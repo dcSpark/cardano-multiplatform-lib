@@ -85,6 +85,7 @@ fn verify_group_entry(entry: &GroupEntry, is_map: bool) -> Result<(), String> {
                             Value::TEXT(text) => verify_len(text.len())?,
                             _ => (),
                         }
+                        _ => todo!()
                     },
                     None => (),
                 }
@@ -148,7 +149,7 @@ fn verify_rule(cddl_rule: &Rule) -> Result<(), String> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cddl_in = std::fs::read_to_string("input.cddl").expect("input.cddl file not present or could not be opened");
-    let cddl = cddl::parser::cddl_from_str(&cddl_in)?;
+    let cddl = cddl::parser::cddl_from_str(&cddl_in, false)?;
     for cddl_rule in &cddl.rules {
         verify_rule(cddl_rule).map_err(|e| format!("type {} not valid metadata: {}", cddl_rule.name(), e))?;
     }

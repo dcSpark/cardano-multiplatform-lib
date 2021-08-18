@@ -2,7 +2,7 @@ import "mocha";
 import { expect } from "chai";
 import { mnemonicToEntropy } from "bip39";
 
-import CardanoWasm from "../rust/pkg/cardano_serialization_lib";
+import CardanoWasm from "rust-lib";
 
 function harden(num: number): number {
   return 0x80000000 + num;

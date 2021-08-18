@@ -91,10 +91,6 @@ describe("Transactions", () => {
       CardanoWasm.BigNum.from_str("2000000")
     );
 
-    const value1 = CardanoWasm.Value.from_bytes(
-      CardanoWasm.BigNum.from_str("3000000").to_bytes()
-    );
-
     const address = CardanoWasm.ByronAddress.from_base58(
       "Ae2tdPwUPEZLs4HtbuNey7tK4hTKrwNwYtGqp7bDfCy2WdR3P6735W5Yfpe"
     );
@@ -110,18 +106,14 @@ describe("Transactions", () => {
         ),
         0 // index
       ),
-      value1
-    );
-
-    const value2 = CardanoWasm.Value.from_bytes(
-      CardanoWasm.BigNum.from_str("1000000").to_bytes()
+      CardanoWasm.Value.new(CardanoWasm.BigNum.from_str("3000000"))
     );
 
     txBuilder.add_output(
       CardanoWasm.TransactionOutput.new(
         address.to_address(),
         // we can construct BigNum (Coin) from both a js BigInt (here) or from a string (below in fee)
-        value2
+        CardanoWasm.Value.new(CardanoWasm.BigNum.from_str("1000000"))
       )
     );
 

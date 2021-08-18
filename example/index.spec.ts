@@ -91,9 +91,9 @@ describe("Transactions", () => {
       CardanoWasm.BigNum.from_str("2000000")
     );
 
-    const value1 = new CardanoWasm.Value();
-
-    value1.set_coin(CardanoWasm.BigNum.from_str("3000000"));
+    const value1 = CardanoWasm.Value.from_bytes(
+      CardanoWasm.BigNum.from_str("3000000").to_bytes()
+    );
 
     const address = CardanoWasm.ByronAddress.from_base58(
       "Ae2tdPwUPEZLs4HtbuNey7tK4hTKrwNwYtGqp7bDfCy2WdR3P6735W5Yfpe"
@@ -113,9 +113,9 @@ describe("Transactions", () => {
       value1
     );
 
-    const value2 = new CardanoWasm.Value();
-
-    value2.set_coin(CardanoWasm.BigNum.from_str("1000000"));
+    const value2 = CardanoWasm.Value.from_bytes(
+      CardanoWasm.BigNum.from_str("1000000").to_bytes()
+    );
 
     txBuilder.add_output(
       CardanoWasm.TransactionOutput.new(

@@ -1,6 +1,6 @@
 // This file is just to test stuff quickly. Look at the spec.ts files for working examples
 
-import wasm = require("rust-lib");
+import wasm from "../rust/pkg/cardano_serialization_lib";
 
 const metadata = wasm.TransactionMetadatum.from_bytes(
   Buffer.from(

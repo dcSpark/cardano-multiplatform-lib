@@ -19,7 +19,6 @@
   "bugs": {
     "url": "https://github.com/Emurgo/cardano-serialization-lib/issues"
   },
-  "type": "module",
   "homepage": "https://github.com/Emurgo/cardano-serialization-lib#readme",
   "dependencies": {},
   "devDependencies": {

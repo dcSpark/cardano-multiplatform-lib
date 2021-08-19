@@ -8,17 +8,17 @@ Rust is wonderfully portable! You can easily bind to the native Rust library fro
 
 NPM packages
 
-* [NodeJS WASM package](https://www.npmjs.com/package/@emurgo/cardano-serialization-lib-nodejs)
-* [Browser \(chrome/firefox\) WASM package](https://www.npmjs.com/package/@emurgo/cardano-serialization-lib-browser)
-* [Browser \(pure JS - no WASM\) ASM.js package](https://www.npmjs.com/package/@emurgo/cardano-serialization-lib-asmjs)
+- [NodeJS WASM package](https://www.npmjs.com/package/@emurgo/cardano-serialization-lib-nodejs)
+- [Browser \(chrome/firefox\) WASM package](https://www.npmjs.com/package/@emurgo/cardano-serialization-lib-browser)
+- [Browser \(pure JS - no WASM\) ASM.js package](https://www.npmjs.com/package/@emurgo/cardano-serialization-lib-asmjs)
 
 Mobile bindings
 
-* [React-Native mobile bindings](https://github.com/Emurgo/react-native-haskell-shelley)
+- [React-Native mobile bindings](https://github.com/Emurgo/react-native-haskell-shelley)
 
 Rust crate
 
-* [crates.io](https://crates.io/crates/cardano-serialization-lib)
+- [crates.io](https://crates.io/crates/cardano-serialization-lib)
 
 ## Benefits of using this library
 
@@ -34,65 +34,23 @@ This library generates both [Typescript](https://www.typescriptlang.org/) and [F
 
 You can also look in the [example](https://github.com/dcSpark/cardano-rust/tree/71a5ad63c419d5045c233b9ed22a89356c87f415/example/README.md) folder to see how to use this library from Typescript or just experiment with the library.
 
+Check out some of the guides to explore some use cases.
+
 ## What about other versions of Cardano?
 
 If you are looking for legacy bindings, you can find them at the following:
 
-* [Byron WASM bindings](https://github.com/input-output-hk/js-cardano-wasm/tree/master/cardano-wallet)
-* [Jormungandr WASM bindings](https://github.com/emurgo/js-chain-libs)
+- [Byron WASM bindings](https://github.com/input-output-hk/js-cardano-wasm/tree/master/cardano-wallet)
+- [Jormungandr WASM bindings](https://github.com/emurgo/js-chain-libs)
 
 ## Original binary specifications
 
 Here are the location of the original [CDDL](http://cbor.io/tools.html) specifications:
 
-* \[Byron\]\([https://github.com/input-output-hk/cardano-ledger-specs/tree/master/byron/cddl-spec](https://github.com/input-output-hk/cardano-ledger-specs/tree/master/byron/cddl-spec)
+- \[Byron\]\([https://github.com/input-output-hk/cardano-ledger-specs/tree/master/byron/cddl-spec](https://github.com/input-output-hk/cardano-ledger-specs/tree/master/byron/cddl-spec)
 
   \)
 
-* [Shelley](https://github.com/input-output-hk/cardano-ledger-specs/tree/master/shelley/chain-and-ledger/shelley-spec-ledger-test/cddl-files)
-* [Mary](https://github.com/input-output-hk/cardano-ledger-specs/tree/master/shelley-ma/shelley-ma-test/cddl-files)
-* [Alonzo](https://github.com/input-output-hk/cardano-ledger-specs/tree/master/alonzo/test/cddl-files)
-
-## Building
-
-If you need to install Rust, do the following:
-
-```bash
-curl https://sh.rustup.rs -sSf | sh -s -- -y
-echo 'export PATH=$HOME/.cargo/bin/:$PATH' >> $BASH_ENV
-rustup install stable
-rustup target add wasm32-unknown-unknown --toolchain stable
-curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-```
-
-To build this repository, do the following:
-
-```bash
-git submodule update --init --recursive
-nvm use
-npm install
-npm run rust:build-nodejs
-```
-
-## Testing
-
-```bash
-npm run rust:test
-```
-
-## Publishing \(only needed if you are an admin of this project\)
-
-To publish a new version to [crates.io](https://crates.io)
-
-```bash
-npm run rust:publish
-```
-
-To publish new versions to NPM
-
-```bash
-npm run js:publish-nodejs
-npm run js:publish-browser
-npm run js:publish-asm
-```
-
+- [Shelley](https://github.com/input-output-hk/cardano-ledger-specs/tree/master/shelley/chain-and-ledger/shelley-spec-ledger-test/cddl-files)
+- [Mary](https://github.com/input-output-hk/cardano-ledger-specs/tree/master/shelley-ma/shelley-ma-test/cddl-files)
+- [Alonzo](https://github.com/input-output-hk/cardano-ledger-specs/tree/master/alonzo/test/cddl-files)

@@ -881,6 +881,14 @@ pub fn min_ada_required(
     }
 }
 
+pub fn native_scripts_from_str(_json_str: &str) -> NativeScripts {
+    // once we actually use this I'll remove T on Vec and let
+    // inference do it's thing.
+    let _native_scripts = Vec::<NativeScript>::new();
+    
+    todo!()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

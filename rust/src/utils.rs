@@ -978,11 +978,11 @@ pub fn encode_wallet_value_to_native_scripts(
                                         let bytes = Vec::from_hex(value)
                                             .map_err(|e| JsError::from_str(&e.to_string()))?;
 
-                                        let public_key = PublicKey::from_bytes(&bytes)
+                                        let public_key = Bip32PublicKey::from_bytes(&bytes)
                                             .map_err(|e| JsError::from_str(&e.to_string()))?;
 
                                         native_scripts.add(&NativeScript::new_script_pubkey(
-                                            &ScriptPubkey::new(&public_key.hash()),
+                                            &ScriptPubkey::new(&public_key.to_raw_key().hash()),
                                         ));
                                     }
                                 } else {

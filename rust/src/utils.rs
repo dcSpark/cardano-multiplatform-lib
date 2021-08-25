@@ -1,9 +1,11 @@
-use crate::error::{DeserializeError, DeserializeFailure};
 use cbor_event::{self, de::Deserializer, se::{Serialize, Serializer}};
+use serde_json;
 use std::{collections::HashMap, io::{BufRead, Seek, Write}};
 use std::cmp;
 use std::ops::{Rem, Div, Sub};
+
 use super::*;
+use crate::error::{DeserializeError, DeserializeFailure};
 
 // JsError can't be used by non-wasm targets so we use this macro to expose
 // either a DeserializeError or a JsError error depending on if we're on a
@@ -886,6 +888,7 @@ pub enum ScriptValidation {
     Recommended,
 }
 
+#[derive(Debug)]
 pub enum TemplateKind {
     /// ^(cosigner#)[0-9]*$
     ///
@@ -917,6 +920,7 @@ pub enum TemplateKind {
     ActiveUntil(usize),
 }
 
+#[derive(Debug)]
 pub struct ScriptTemplate {
     /// Map of cosigners and their account public keys.
     /// Use key as in &cosigner, eg. "cosigner#"or 'self'
@@ -924,11 +928,85 @@ pub struct ScriptTemplate {
     template: TemplateKind,
 }
 
+impl ScriptTemplate {
+    pub fn add_cosigner(&mut self, cosigner: HashMap<String, String>) {
+        self.cosigners.push(cosigner);
+    }
+
+    pub fn from_json_str(json: &str) -> Result<Self, JsError> {
+        let value: serde_json::Value =
+            serde_json::from_str(&json).map_err(|e| JsError::from_str(&e.to_string()))?;
+
+        dbg!(&value);
+
+        match value {
+            serde_json::Value::Object(map) => {
+                if map.contains_key("cosigners") && map.contains_key("template") {
+                    let template_kind = match map.get("template").unwrap() {
+                        serde_json::Value::String(cosigner) => {
+                            TemplateKind::Cosigner(cosigner.to_owned())
+                        }
+                        _ => todo!(),
+                    };
+
+                    let mut script_template = ScriptTemplate {
+                        template: template_kind,
+                        cosigners: Vec::new(),
+                    };
+
+                    if let serde_json::Value::Array(cosigners) = map.get("cosigners").unwrap() {
+                        for cosigner_obj in cosigners {
+                            if let serde_json::Value::Object(cosigner_map) = cosigner_obj {
+                                let mut cosigner = HashMap::new();
+
+                                for (key, value) in cosigner_map.iter() {
+                                    if let serde_json::Value::String(value) = value {
+                                        cosigner.insert(key.to_owned(), value.to_owned());
+                                    } else {
+                                        return Err(JsError::from_str(
+                                            "cosigner value must be a string",
+                                        ));
+                                    }
+                                }
+
+                                script_template.add_cosigner(cosigner);
+                            } else {
+                                return Err(JsError::from_str("cosigner must be a map"));
+                            }
+                        }
+                    } else {
+                        return Err(JsError::from_str("cosigners must be an array"));
+                    }
+
+                    Ok(script_template)
+                } else {
+                    Err(JsError::from_str(
+                        "cosigners and template keys are required",
+                    ))
+                }
+            }
+            _ => Err(JsError::from_str("top level must be an object")),
+        }
+    }
+}
+
+pub enum ScriptSchema {
+    Wallet,
+    Node,
+}
+
 #[wasm_bindgen]
-pub fn native_scripts_from_str(json_str: &str) -> NativeScripts {
-    let native_scripts = NativeScripts::new();
-    
-    native_scripts
+pub fn native_scripts_from_str(json: &str, schema: ScriptSchema) -> Result<NativeScripts, JsError> {
+    let mut native_scripts = NativeScripts::new();
+
+    let script_template = match schema {
+        ScriptSchema::Wallet => ScriptTemplate::from_json_str(json)?,
+        ScriptSchema::Node => todo!(),
+    };
+
+    dbg!(script_template);
+
+    Ok(native_scripts)
 }
 
 #[cfg(test)]
@@ -942,21 +1020,22 @@ mod tests {
     fn native_scripts_json_util() {
         let native_scripts = native_scripts_from_str(
             r#"
-              {
-                "cosigners": [
-                  {
-                    "cosigner#0": "1423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db11423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db1"
-                  },
-                  {
-                    "cosigner#0": "self"
-                  }
-                ],
-                "template": "string"
-              }
-            "#
+                {
+                    "cosigners": [
+                    {
+                        "cosigner#0": "1423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db11423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db1"
+                    },
+                    {
+                        "cosigner#0": "self"
+                    }
+                    ],
+                    "template": "string"
+                }
+                "#,
+            ScriptSchema::Wallet,
         );
 
-        assert_eq!(native_scripts.len(), 2);
+        assert_eq!(native_scripts.unwrap().len(), 2);
     }
 
     #[test]

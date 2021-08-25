@@ -1,6 +1,6 @@
 use crate::error::{DeserializeError, DeserializeFailure};
 use cbor_event::{self, de::Deserializer, se::{Serialize, Serializer}};
-use std::io::{BufRead, Seek, Write};
+use std::{collections::HashMap, io::{BufRead, Seek, Write}};
 use std::cmp;
 use std::ops::{Rem, Div, Sub};
 use super::*;
@@ -881,10 +881,88 @@ pub fn min_ada_required(
     }
 }
 
-pub fn native_scripts_from_str(_json_str: &str) -> NativeScripts {
-    // once we actually use this I'll remove T on Vec and let
-    // inference do it's thing.
-    let _native_scripts = Vec::<NativeScript>::new();
+pub enum ScriptValidation {
+    Required,
+    Recommended,
+}
+
+pub enum TemplateKind {
+    /// ^(cosigner#)[0-9]*$
+    ///
+    /// Leaf value for a script designating a cosigner co-sharing the script.
+    Cosigner(String),
+    /// Script primitive for which all signing keys corresponding
+    /// to all list cosigners' verification keys are expected
+    /// to make the script valid.
+    All(Vec<TemplateKind>),
+    /// Script primitive for which a signing key corresponding
+    /// to any of the list cosigners' verification keys is expected
+    /// to make the script valid. It is equivalent to some with `"at_least"=1`.
+    Any(Vec<TemplateKind>),
+    /// Script primitive for which at least a given number of signing keys
+    /// corresponding to the list cosigners' verification keys are expected
+    /// to make the script valid.
+    Some {
+        /// `[ 1 .. 255 ]`
+        at_least: i32,
+        from: Vec<TemplateKind>,
+    },
+    /// `>= 0`
+    ///
+    /// Transaction is only valid starting at the specified slot number (`≥ active_from`).
+    ActiveFrom(usize),
+    /// `>= 0`
+    ///
+    /// Transaction is only valid before the specified slot number (< active_until).
+    ActiveUntil(usize),
+}
+
+pub struct ScriptTemplate {
+    /// Map of cosigners and their account public keys.
+    /// Use key as in &cosigner, eg. "cosigner#"or 'self'
+    cosigners: Vec<HashMap<String, String>>,
+    template: TemplateKind,
+}
+
+pub struct SharedWallet {
+    name: String,
+    /// <bip-0039-mnemonic-word{english}> `[ 15 .. 24 ] items`
+    ///
+    /// A list of mnemonic words
+    mnemonic_sentence: Vec<String>,
+    /// <bip-0039-mnemonic-word{english}> `[ 9 .. 12 ] items`
+    ///
+    /// An optional passphrase used to encrypt the mnemonic sentence.
+    mnemonic_second_factor: Option<Vec<String>>,
+    /// `[ 10 .. 255 ] characters`
+    ///
+    /// A master passphrase to lock and protect the wallet
+    /// for sensitive operation (e.g. sending funds)
+    passphrase: String,
+    /// An individual segment within a derivation path.
+    /// 
+    /// The H suffix indicates a Hardened child private key,
+    /// which means that children of this key cannot be derived
+    /// from the public key. Indices without a H suffix are called Soft.
+    account_index: String,
+    payment_script_template: ScriptTemplate,
+    delegation_script_template: Option<ScriptTemplate>,
+    /// Script validation level. Required validation sifts off scripts
+    /// that would not be accepted by the ledger. Recommended level filters
+    /// out scripts that do not pass required validation and additionally when:
+    ///
+    /// * 'all' is non-empty
+    /// * there are redundant timelocks in a given level
+    /// * there are no duplicated verification keys in a given level
+    /// * 'at_least' coeffcient is positive
+    /// * 'all', 'any' are non-empty and `'at_least' has no less
+    ///   elements in the list than the coeffcient after timelocks are filtered out.
+    script_validation: ScriptValidation,
+}
+
+#[wasm_bindgen]
+pub fn native_scripts_from_str(json_str: &str) -> NativeScripts {
+    let native_scripts = NativeScripts::new();
     
     todo!()
 }

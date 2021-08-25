@@ -924,42 +924,6 @@ pub struct ScriptTemplate {
     template: TemplateKind,
 }
 
-pub struct SharedWallet {
-    name: String,
-    /// <bip-0039-mnemonic-word{english}> `[ 15 .. 24 ] items`
-    ///
-    /// A list of mnemonic words
-    mnemonic_sentence: Vec<String>,
-    /// <bip-0039-mnemonic-word{english}> `[ 9 .. 12 ] items`
-    ///
-    /// An optional passphrase used to encrypt the mnemonic sentence.
-    mnemonic_second_factor: Option<Vec<String>>,
-    /// `[ 10 .. 255 ] characters`
-    ///
-    /// A master passphrase to lock and protect the wallet
-    /// for sensitive operation (e.g. sending funds)
-    passphrase: String,
-    /// An individual segment within a derivation path.
-    /// 
-    /// The H suffix indicates a Hardened child private key,
-    /// which means that children of this key cannot be derived
-    /// from the public key. Indices without a H suffix are called Soft.
-    account_index: String,
-    payment_script_template: ScriptTemplate,
-    delegation_script_template: Option<ScriptTemplate>,
-    /// Script validation level. Required validation sifts off scripts
-    /// that would not be accepted by the ledger. Recommended level filters
-    /// out scripts that do not pass required validation and additionally when:
-    ///
-    /// * 'all' is non-empty
-    /// * there are redundant timelocks in a given level
-    /// * there are no duplicated verification keys in a given level
-    /// * 'at_least' coeffcient is positive
-    /// * 'all', 'any' are non-empty and `'at_least' has no less
-    ///   elements in the list than the coeffcient after timelocks are filtered out.
-    script_validation: ScriptValidation,
-}
-
 #[wasm_bindgen]
 pub fn native_scripts_from_str(json_str: &str) -> NativeScripts {
     let native_scripts = NativeScripts::new();

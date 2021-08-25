@@ -954,63 +954,89 @@ pub fn encode_json_str_to_native_scripts(
     Ok(native_scripts)
 }
 
-pub fn encode_wallet_value_to_native_scripts(
+fn encode_wallet_value_to_native_scripts(
     value: serde_json::Value,
 ) -> Result<NativeScripts, JsError> {
     let mut native_scripts = NativeScripts::new();
 
     match value {
-        serde_json::Value::Object(map) => {
-            if map.contains_key("cosigners") && map.contains_key("template") {
-                let template_kind = match map.get("template").unwrap() {
-                    serde_json::Value::String(cosigner) => {
-                        TemplateKind::Cosigner(cosigner.to_owned())
-                    }
-                    _ => todo!(),
-                };
+        serde_json::Value::Object(map) if map.contains_key("cosigners") && map.contains_key("template") => {
+            let mut cosigners = HashMap::new();
 
-                if let serde_json::Value::Array(cosigners) = map.get("cosigners").unwrap() {
-                    for cosigner_obj in cosigners {
-                        if let serde_json::Value::Object(cosigner_map) = cosigner_obj {
-                            for (_, value) in cosigner_map.iter() {
-                                if let serde_json::Value::String(value) = value {
-                                    if value != "self" {
-                                        let bytes = Vec::from_hex(value)
-                                            .map_err(|e| JsError::from_str(&e.to_string()))?;
+            if let serde_json::Value::Array(cosigners_array) = map.get("cosigners").unwrap() {
+                for cosigner_obj in cosigners_array {
+                    if let serde_json::Value::Object(cosigner_map) = cosigner_obj {
+                        for (key, value) in cosigner_map.iter() {
+                            if let serde_json::Value::String(value) = value {
+                                if value != "self" {
+                                    cosigners.insert(key.to_owned(), value.to_owned());
 
-                                        let public_key = Bip32PublicKey::from_bytes(&bytes)
-                                            .map_err(|e| JsError::from_str(&e.to_string()))?;
+                                    let bytes = Vec::from_hex(value)
+                                        .map_err(|e| JsError::from_str(&e.to_string()))?;
 
-                                        native_scripts.add(&NativeScript::new_script_pubkey(
-                                            &ScriptPubkey::new(&public_key.to_raw_key().hash()),
-                                        ));
-                                    }
-                                } else {
-                                    return Err(JsError::from_str(
-                                        "cosigner value must be a string",
+                                    let public_key = Bip32PublicKey::from_bytes(&bytes)
+                                        .map_err(|e| JsError::from_str(&e.to_string()))?;
+
+                                    native_scripts.add(&NativeScript::new_script_pubkey(
+                                        &ScriptPubkey::new(&public_key.to_raw_key().hash()),
                                     ));
                                 }
+                            } else {
+                                return Err(JsError::from_str(
+                                    "cosigner value must be a string",
+                                ));
                             }
-
-                            // script_template.add_cosigner(cosigner);
-                        } else {
-                            return Err(JsError::from_str("cosigner must be a map"));
                         }
-                    }
 
-                    Ok(native_scripts)
-                } else {
-                    Err(JsError::from_str("cosigners must be an array"))
+                        // script_template.add_cosigner(cosigner);
+                    } else {
+                        return Err(JsError::from_str("cosigner must be a map"));
+                    }
                 }
             } else {
-                Err(JsError::from_str(
-                    "cosigners and template keys are required",
-                ))
+                return Err(JsError::from_str("cosigners must be an array"));
             }
+
+            let template = map.get("template").unwrap();
+
+            let template_native_scripts = encode_template_to_native_scripts(template, cosigners)?;
+            
+            let oneof_native_script = NativeScript::new_script_n_of_k(
+                &ScriptNOfK::new(template_native_scripts.len() as u32, &template_native_scripts)
+            );
+
+            native_scripts.add(&oneof_native_script);
+
+            Ok(native_scripts)
         }
-        _ => Err(JsError::from_str("top level must be an object")),
+        _ => Err(JsError::from_str("top level must be an object. cosigners and template keys are required")),
     }
 }
+
+fn encode_template_to_native_scripts(value: &serde_json::Value, cosigners: HashMap<String, String>) -> Result<NativeScripts, JsError> {
+    let mut native_scripts = NativeScripts::new();
+
+    match value {
+        serde_json::Value::String(cosigner) => {
+            if let Some(address) = cosigners.get(cosigner) {
+                let bytes = Vec::from_hex(address)
+                    .map_err(|e| JsError::from_str(&e.to_string()))?;
+
+                let public_key = Bip32PublicKey::from_bytes(&bytes)
+                    .map_err(|e| JsError::from_str(&e.to_string()))?;
+
+                native_scripts.add(&NativeScript::new_script_pubkey(
+                    &ScriptPubkey::new(&public_key.to_raw_key().hash()),
+                ));
+
+                Ok(native_scripts)
+            } else {
+                return Err(JsError::from_str("TODO: add a good message"));
+            }
+        }
+        _ => todo!(),
+    }
+} 
 
 #[cfg(test)]
 mod tests {

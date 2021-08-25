@@ -928,85 +928,72 @@ pub struct ScriptTemplate {
     template: TemplateKind,
 }
 
-impl ScriptTemplate {
-    pub fn add_cosigner(&mut self, cosigner: HashMap<String, String>) {
-        self.cosigners.push(cosigner);
-    }
-
-    pub fn from_json_str(json: &str) -> Result<Self, JsError> {
-        let value: serde_json::Value =
-            serde_json::from_str(&json).map_err(|e| JsError::from_str(&e.to_string()))?;
-
-        dbg!(&value);
-
-        match value {
-            serde_json::Value::Object(map) => {
-                if map.contains_key("cosigners") && map.contains_key("template") {
-                    let template_kind = match map.get("template").unwrap() {
-                        serde_json::Value::String(cosigner) => {
-                            TemplateKind::Cosigner(cosigner.to_owned())
-                        }
-                        _ => todo!(),
-                    };
-
-                    let mut script_template = ScriptTemplate {
-                        template: template_kind,
-                        cosigners: Vec::new(),
-                    };
-
-                    if let serde_json::Value::Array(cosigners) = map.get("cosigners").unwrap() {
-                        for cosigner_obj in cosigners {
-                            if let serde_json::Value::Object(cosigner_map) = cosigner_obj {
-                                let mut cosigner = HashMap::new();
-
-                                for (key, value) in cosigner_map.iter() {
-                                    if let serde_json::Value::String(value) = value {
-                                        cosigner.insert(key.to_owned(), value.to_owned());
-                                    } else {
-                                        return Err(JsError::from_str(
-                                            "cosigner value must be a string",
-                                        ));
-                                    }
-                                }
-
-                                script_template.add_cosigner(cosigner);
-                            } else {
-                                return Err(JsError::from_str("cosigner must be a map"));
-                            }
-                        }
-                    } else {
-                        return Err(JsError::from_str("cosigners must be an array"));
-                    }
-
-                    Ok(script_template)
-                } else {
-                    Err(JsError::from_str(
-                        "cosigners and template keys are required",
-                    ))
-                }
-            }
-            _ => Err(JsError::from_str("top level must be an object")),
-        }
-    }
-}
-
 pub enum ScriptSchema {
     Wallet,
     Node,
 }
 
 #[wasm_bindgen]
-pub fn native_scripts_from_str(json: &str, schema: ScriptSchema) -> Result<NativeScripts, JsError> {
-    let mut native_scripts = NativeScripts::new();
+pub fn encode_json_str_to_native_scripts(json: &str, schema: ScriptSchema) -> Result<NativeScripts, JsError> {
+    let value: serde_json::Value =
+        serde_json::from_str(&json).map_err(|e| JsError::from_str(&e.to_string()))?;
+    
+    dbg!(&value);
 
-    let script_template = match schema {
-        ScriptSchema::Wallet => ScriptTemplate::from_json_str(json)?,
+    let native_scripts = match schema {
+        ScriptSchema::Wallet => encode_wallet_value_to_native_scripts(value)?,
         ScriptSchema::Node => todo!(),
     };
 
-    dbg!(script_template);
+    dbg!(&native_scripts);
 
     Ok(native_scripts)
+}
+
+pub fn encode_wallet_value_to_native_scripts(value: serde_json::Value) -> Result<NativeScripts, JsError> {
+    let mut native_scripts = NativeScripts::new();
+
+    match value {
+        serde_json::Value::Object(map) => {
+            if map.contains_key("cosigners") && map.contains_key("template") {
+                let template_kind = match map.get("template").unwrap() {
+                    serde_json::Value::String(cosigner) => {
+                        TemplateKind::Cosigner(cosigner.to_owned())
+                    }
+                    _ => todo!(),
+                };
+
+                if let serde_json::Value::Array(cosigners) = map.get("cosigners").unwrap() {
+                    for cosigner_obj in cosigners {
+                        if let serde_json::Value::Object(cosigner_map) = cosigner_obj {
+                            for (_, value) in cosigner_map.iter() {
+                                if let serde_json::Value::String(value) = value {
+                                    // native_scripts.add(&NativeScript::new_script_pubkey(&ScriptPubkey::new(addr_keyhash)));
+                                } else {
+                                    return Err(JsError::from_str(
+                                        "cosigner value must be a string",
+                                    ));
+                                }
+                            }
+
+                            // script_template.add_cosigner(cosigner);
+                        } else {
+                            return Err(JsError::from_str("cosigner must be a map"));
+                        }
+                    }
+
+                    Ok(native_scripts)
+                } else {
+                    Err(JsError::from_str("cosigners must be an array"))
+                }
+            } else {
+                Err(JsError::from_str(
+                    "cosigners and template keys are required",
+                ))
+            }
+        }
+        _ => Err(JsError::from_str("top level must be an object")),
+    }
 }
 
 #[cfg(test)]
@@ -1017,8 +1004,8 @@ mod tests {
     static MINIMUM_UTXO_VAL: u64 = 1_000_000;
 
     #[test]
-    fn native_scripts_json_util() {
-        let native_scripts = native_scripts_from_str(
+    fn native_scripts_from_wallet_json() {
+        let native_scripts = encode_json_str_to_native_scripts(
             r#"
                 {
                     "cosigners": [

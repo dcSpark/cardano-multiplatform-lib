@@ -928,7 +928,7 @@ pub struct ScriptTemplate {
 pub fn native_scripts_from_str(json_str: &str) -> NativeScripts {
     let native_scripts = NativeScripts::new();
     
-    todo!()
+    native_scripts
 }
 
 #[cfg(test)]
@@ -937,6 +937,27 @@ mod tests {
 
     // this is what is used in mainnet
     static MINIMUM_UTXO_VAL: u64 = 1_000_000;
+
+    #[test]
+    fn native_scripts_json_util() {
+        let native_scripts = native_scripts_from_str(
+            r#"
+              {
+                "cosigners": [
+                  {
+                    "cosigner#0": "1423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db11423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db1"
+                  },
+                  {
+                    "cosigner#0": "self"
+                  }
+                ],
+                "template": "string"
+              }
+            "#
+        );
+
+        assert_eq!(native_scripts.len(), 2);
+    }
 
     #[test]
     fn no_token_minimum() {

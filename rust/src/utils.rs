@@ -1,4 +1,5 @@
 use cbor_event::{self, de::Deserializer, se::{Serialize, Serializer}};
+use hex::FromHex;
 use serde_json;
 use std::{collections::HashMap, io::{BufRead, Seek, Write}};
 use std::cmp;
@@ -934,10 +935,13 @@ pub enum ScriptSchema {
 }
 
 #[wasm_bindgen]
-pub fn encode_json_str_to_native_scripts(json: &str, schema: ScriptSchema) -> Result<NativeScripts, JsError> {
+pub fn encode_json_str_to_native_scripts(
+    json: &str,
+    schema: ScriptSchema,
+) -> Result<NativeScripts, JsError> {
     let value: serde_json::Value =
         serde_json::from_str(&json).map_err(|e| JsError::from_str(&e.to_string()))?;
-    
+
     dbg!(&value);
 
     let native_scripts = match schema {
@@ -950,7 +954,9 @@ pub fn encode_json_str_to_native_scripts(json: &str, schema: ScriptSchema) -> Re
     Ok(native_scripts)
 }
 
-pub fn encode_wallet_value_to_native_scripts(value: serde_json::Value) -> Result<NativeScripts, JsError> {
+pub fn encode_wallet_value_to_native_scripts(
+    value: serde_json::Value,
+) -> Result<NativeScripts, JsError> {
     let mut native_scripts = NativeScripts::new();
 
     match value {
@@ -968,7 +974,17 @@ pub fn encode_wallet_value_to_native_scripts(value: serde_json::Value) -> Result
                         if let serde_json::Value::Object(cosigner_map) = cosigner_obj {
                             for (_, value) in cosigner_map.iter() {
                                 if let serde_json::Value::String(value) = value {
-                                    // native_scripts.add(&NativeScript::new_script_pubkey(&ScriptPubkey::new(addr_keyhash)));
+                                    if value != "self" {
+                                        let bytes = Vec::from_hex(value)
+                                            .map_err(|e| JsError::from_str(&e.to_string()))?;
+
+                                        let public_key = PublicKey::from_bytes(&bytes)
+                                            .map_err(|e| JsError::from_str(&e.to_string()))?;
+
+                                        native_scripts.add(&NativeScript::new_script_pubkey(
+                                            &ScriptPubkey::new(&public_key.hash()),
+                                        ));
+                                    }
                                 } else {
                                     return Err(JsError::from_str(
                                         "cosigner value must be a string",

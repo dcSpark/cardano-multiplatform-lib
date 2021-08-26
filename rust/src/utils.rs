@@ -1026,10 +1026,8 @@ fn encode_template_to_native_scripts(
                 native_scripts.add(&NativeScript::new_script_pubkey(&ScriptPubkey::new(
                     &public_key.to_raw_key().hash(),
                 )));
-
-                Ok(native_scripts)
             } else {
-                Err(JsError::from_str("TODO: add a good message"))
+                return Err(JsError::from_str("TODO: add a good message"));
             }
         }
         serde_json::Value::Object(map) if map.contains_key("all") => {
@@ -1046,8 +1044,22 @@ fn encode_template_to_native_scripts(
             let all_native_script = NativeScript::new_script_all(&ScriptAll::new(&all));
 
             native_scripts.add(&all_native_script);
+        }
+        serde_json::Value::Object(map) if map.contains_key("any") => {
+            let mut any = NativeScripts::new();
 
-            Ok(native_scripts)
+            if let serde_json::Value::Array(array) = map.get("any").unwrap() {
+                for val in array {
+                    any.extend(&encode_template_to_native_scripts(val, cosigners.clone())?);
+                }
+            } else {
+                return Err(JsError::from_str("any must be an array"));
+            }
+
+            let any_native_script = NativeScript::new_script_any(&ScriptAny::new(&any));
+
+            native_scripts.add(&any_native_script);
+
         }
         serde_json::Value::Object(map) if map.contains_key("active_from") => {
             if let serde_json::Value::Number(active_from) = map.get("active_from").unwrap() {
@@ -1059,19 +1071,40 @@ fn encode_template_to_native_scripts(
                     let time_lock_start_script = NativeScript::new_timelock_start(&time_lock_start);
 
                     native_scripts.add(&time_lock_start_script);
-
-                    Ok(native_scripts)
                 } else {
-                    Err(JsError::from_str(
+                    return Err(JsError::from_str(
                         "active_from slot must be an integer greater than or equal to 0",
-                    ))
+                    ));
                 }
             } else {
-                Err(JsError::from_str("active_from slot must be a number"))
+                return Err(JsError::from_str("active_from slot must be a number"));
             }
         }
-        _ => Err(JsError::from_str("invalid template format")),
-    }
+        serde_json::Value::Object(map) if map.contains_key("active_until") => {
+            if let serde_json::Value::Number(active_until) = map.get("active_until").unwrap() {
+                if let Some(n) = active_until.as_u64() {
+                    let slot: u32 = n as u32;
+
+                    let time_lock_expiry = TimelockExpiry::new(slot);
+
+                    let time_lock_expiry_script = NativeScript::new_timelock_expiry(&time_lock_expiry);
+
+                    native_scripts.add(&time_lock_expiry_script);
+                } else {
+                    return Err(JsError::from_str(
+                        "active_until slot must be an integer greater than or equal to 0",
+                    ));
+                }
+            } else {
+                return Err(JsError::from_str("active_until slot must be a number"));
+            }
+        }
+        _ => {
+            return Err(JsError::from_str("invalid template format"));
+        },
+    };
+    
+    Ok(native_scripts)
 }
 
 #[cfg(test)]

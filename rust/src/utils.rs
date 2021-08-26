@@ -921,14 +921,6 @@ pub enum TemplateKind {
     ActiveUntil(usize),
 }
 
-#[derive(Debug)]
-pub struct ScriptTemplate {
-    /// Map of cosigners and their account public keys.
-    /// Use key as in &cosigner, eg. "cosigner#"or 'self'
-    cosigners: Vec<HashMap<String, String>>,
-    template: TemplateKind,
-}
-
 pub enum ScriptSchema {
     Wallet,
     Node,
@@ -960,7 +952,9 @@ fn encode_wallet_value_to_native_scripts(
     let mut native_scripts = NativeScripts::new();
 
     match value {
-        serde_json::Value::Object(map) if map.contains_key("cosigners") && map.contains_key("template") => {
+        serde_json::Value::Object(map)
+            if map.contains_key("cosigners") && map.contains_key("template") =>
+        {
             let mut cosigners = HashMap::new();
 
             if let serde_json::Value::Array(cosigners_array) = map.get("cosigners").unwrap() {
@@ -982,9 +976,7 @@ fn encode_wallet_value_to_native_scripts(
                                     ));
                                 }
                             } else {
-                                return Err(JsError::from_str(
-                                    "cosigner value must be a string",
-                                ));
+                                return Err(JsError::from_str("cosigner value must be a string"));
                             }
                         }
 
@@ -1000,43 +992,87 @@ fn encode_wallet_value_to_native_scripts(
             let template = map.get("template").unwrap();
 
             let template_native_scripts = encode_template_to_native_scripts(template, cosigners)?;
-            
-            let oneof_native_script = NativeScript::new_script_n_of_k(
-                &ScriptNOfK::new(template_native_scripts.len() as u32, &template_native_scripts)
-            );
+
+            let oneof_native_script = NativeScript::new_script_n_of_k(&ScriptNOfK::new(
+                template_native_scripts.len() as u32,
+                &template_native_scripts,
+            ));
 
             native_scripts.add(&oneof_native_script);
 
             Ok(native_scripts)
         }
-        _ => Err(JsError::from_str("top level must be an object. cosigners and template keys are required")),
+        _ => Err(JsError::from_str(
+            "top level must be an object. cosigners and template keys are required",
+        )),
     }
 }
 
-fn encode_template_to_native_scripts(value: &serde_json::Value, cosigners: HashMap<String, String>) -> Result<NativeScripts, JsError> {
+fn encode_template_to_native_scripts(
+    value: &serde_json::Value,
+    cosigners: HashMap<String, String>,
+) -> Result<NativeScripts, JsError> {
     let mut native_scripts = NativeScripts::new();
 
     match value {
         serde_json::Value::String(cosigner) => {
             if let Some(address) = cosigners.get(cosigner) {
-                let bytes = Vec::from_hex(address)
-                    .map_err(|e| JsError::from_str(&e.to_string()))?;
+                let bytes =
+                    Vec::from_hex(address).map_err(|e| JsError::from_str(&e.to_string()))?;
 
                 let public_key = Bip32PublicKey::from_bytes(&bytes)
                     .map_err(|e| JsError::from_str(&e.to_string()))?;
 
-                native_scripts.add(&NativeScript::new_script_pubkey(
-                    &ScriptPubkey::new(&public_key.to_raw_key().hash()),
-                ));
+                native_scripts.add(&NativeScript::new_script_pubkey(&ScriptPubkey::new(
+                    &public_key.to_raw_key().hash(),
+                )));
 
                 Ok(native_scripts)
             } else {
-                return Err(JsError::from_str("TODO: add a good message"));
+                Err(JsError::from_str("TODO: add a good message"))
             }
         }
-        _ => todo!(),
+        serde_json::Value::Object(map) if map.contains_key("all") => {
+            let mut all = NativeScripts::new();
+
+            if let serde_json::Value::Array(array) = map.get("all").unwrap() {
+                for val in array {
+                    all.extend(&encode_template_to_native_scripts(val, cosigners.clone())?);
+                }
+            } else {
+                return Err(JsError::from_str("all must be an array"));
+            }
+
+            let all_native_script = NativeScript::new_script_all(&ScriptAll::new(&all));
+
+            native_scripts.add(&all_native_script);
+
+            Ok(native_scripts)
+        }
+        serde_json::Value::Object(map) if map.contains_key("active_from") => {
+            if let serde_json::Value::Number(active_from) = map.get("active_from").unwrap() {
+                if let Some(n) = active_from.as_u64() {
+                    let slot: u32 = n as u32;
+
+                    let time_lock_start = TimelockStart::new(slot);
+
+                    let time_lock_start_script = NativeScript::new_timelock_start(&time_lock_start);
+
+                    native_scripts.add(&time_lock_start_script);
+
+                    Ok(native_scripts)
+                } else {
+                    Err(JsError::from_str(
+                        "active_from slot must be an integer greater than or equal to 0",
+                    ))
+                }
+            } else {
+                Err(JsError::from_str("active_from slot must be a number"))
+            }
+        }
+        _ => Err(JsError::from_str("invalid template format")),
     }
-} 
+}
 
 #[cfg(test)]
 mod tests {
@@ -1058,7 +1094,12 @@ mod tests {
                         "cosigner#0": "self"
                     }
                     ],
-                    "template": "string"
+                    "template": {
+                        "all": [
+                            "cosigner#0",
+                            { "active_from": 120 }
+                        ]
+                    }
                 }
                 "#,
             ScriptSchema::Wallet,

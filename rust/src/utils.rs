@@ -884,11 +884,6 @@ pub fn min_ada_required(
     }
 }
 
-pub enum ScriptValidation {
-    Required,
-    Recommended,
-}
-
 #[derive(Debug)]
 pub enum TemplateKind {
     /// ^(cosigner#)[0-9]*$

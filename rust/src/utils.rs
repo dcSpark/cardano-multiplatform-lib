@@ -1097,9 +1097,7 @@ mod tests {
             ScriptSchema::Wallet,
         );
 
-        dbg!(&native_script);
-
-        assert_eq!(1, 2);
+        assert!(native_script.is_ok());
     }
 
     #[test]

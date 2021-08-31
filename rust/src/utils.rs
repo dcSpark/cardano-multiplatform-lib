@@ -1004,12 +1004,12 @@ fn encode_wallet_value_to_native_scripts(
 }
 
 fn encode_template_to_native_scripts(
-    value: &serde_json::Value,
+    template: &serde_json::Value,
     cosigners: HashMap<String, String>,
 ) -> Result<NativeScripts, JsError> {
     let mut native_scripts = NativeScripts::new();
 
-    match value {
+    match template {
         serde_json::Value::String(cosigner) => {
             if let Some(address) = cosigners.get(cosigner) {
                 let bytes =

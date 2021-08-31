@@ -1721,10 +1721,6 @@ impl NativeScripts {
     pub fn add(&mut self, elem: &NativeScript) {
         self.0.push(elem.clone());
     }
-
-    pub fn extend(&mut self, elems: &Self) {
-        self.0.extend(elems.0.clone());
-    }
 }
 
 #[wasm_bindgen]

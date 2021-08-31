@@ -884,68 +884,29 @@ pub fn min_ada_required(
     }
 }
 
-#[derive(Debug)]
-pub enum TemplateKind {
-    /// ^(cosigner#)[0-9]*$
-    ///
-    /// Leaf value for a script designating a cosigner co-sharing the script.
-    Cosigner(String),
-    /// Script primitive for which all signing keys corresponding
-    /// to all list cosigners' verification keys are expected
-    /// to make the script valid.
-    All(Vec<TemplateKind>),
-    /// Script primitive for which a signing key corresponding
-    /// to any of the list cosigners' verification keys is expected
-    /// to make the script valid. It is equivalent to some with `"at_least"=1`.
-    Any(Vec<TemplateKind>),
-    /// Script primitive for which at least a given number of signing keys
-    /// corresponding to the list cosigners' verification keys are expected
-    /// to make the script valid.
-    Some {
-        /// `[ 1 .. 255 ]`
-        at_least: i32,
-        from: Vec<TemplateKind>,
-    },
-    /// `>= 0`
-    ///
-    /// Transaction is only valid starting at the specified slot number (`≥ active_from`).
-    ActiveFrom(usize),
-    /// `>= 0`
-    ///
-    /// Transaction is only valid before the specified slot number (< active_until).
-    ActiveUntil(usize),
-}
-
 pub enum ScriptSchema {
     Wallet,
     Node,
 }
 
 #[wasm_bindgen]
-pub fn encode_json_str_to_native_scripts(
+pub fn encode_json_str_to_native_script(
     json: &str,
+    self_address: &str,
     schema: ScriptSchema,
-) -> Result<NativeScripts, JsError> {
+) -> Result<NativeScript, JsError> {
     let value: serde_json::Value =
         serde_json::from_str(&json).map_err(|e| JsError::from_str(&e.to_string()))?;
 
-    dbg!(&value);
-
-    let native_scripts = match schema {
-        ScriptSchema::Wallet => encode_wallet_value_to_native_scripts(value)?,
+    let native_script = match schema {
+        ScriptSchema::Wallet => encode_wallet_value_to_native_script(value, self_address)?,
         ScriptSchema::Node => todo!(),
     };
 
-    dbg!(&native_scripts);
-
-    Ok(native_scripts)
+    Ok(native_script)
 }
 
-fn encode_wallet_value_to_native_scripts(
-    value: serde_json::Value,
-) -> Result<NativeScripts, JsError> {
-    let mut native_scripts = NativeScripts::new();
-
+fn encode_wallet_value_to_native_script(value: serde_json::Value, self_address: &str) -> Result<NativeScript, JsError> {
     match value {
         serde_json::Value::Object(map)
             if map.contains_key("cosigners") && map.contains_key("template") =>
@@ -956,26 +917,16 @@ fn encode_wallet_value_to_native_scripts(
                 for cosigner_obj in cosigners_array {
                     if let serde_json::Value::Object(cosigner_map) = cosigner_obj {
                         for (key, value) in cosigner_map.iter() {
-                            if let serde_json::Value::String(value) = value {
-                                if value != "self" {
-                                    cosigners.insert(key.to_owned(), value.to_owned());
-
-                                    let bytes = Vec::from_hex(value)
-                                        .map_err(|e| JsError::from_str(&e.to_string()))?;
-
-                                    let public_key = Bip32PublicKey::from_bytes(&bytes)
-                                        .map_err(|e| JsError::from_str(&e.to_string()))?;
-
-                                    native_scripts.add(&NativeScript::new_script_pubkey(
-                                        &ScriptPubkey::new(&public_key.to_raw_key().hash()),
-                                    ));
+                            if let serde_json::Value::String(address) = value {
+                                if address == "self" {
+                                    cosigners.insert(key.to_owned(), self_address.to_owned());
+                                } else {
+                                    cosigners.insert(key.to_owned(), address.to_owned());
                                 }
                             } else {
                                 return Err(JsError::from_str("cosigner value must be a string"));
                             }
                         }
-
-                        // script_template.add_cosigner(cosigner);
                     } else {
                         return Err(JsError::from_str("cosigner must be a map"));
                     }
@@ -986,16 +937,9 @@ fn encode_wallet_value_to_native_scripts(
 
             let template = map.get("template").unwrap();
 
-            let template_native_scripts = encode_template_to_native_scripts(template, cosigners)?;
+            let template_native_script = encode_template_to_native_script(template, cosigners)?;
 
-            let oneof_native_script = NativeScript::new_script_n_of_k(&ScriptNOfK::new(
-                template_native_scripts.len() as u32,
-                &template_native_scripts,
-            ));
-
-            native_scripts.add(&oneof_native_script);
-
-            Ok(native_scripts)
+            Ok(template_native_script)
         }
         _ => Err(JsError::from_str(
             "top level must be an object. cosigners and template keys are required",
@@ -1003,12 +947,10 @@ fn encode_wallet_value_to_native_scripts(
     }
 }
 
-fn encode_template_to_native_scripts(
+fn encode_template_to_native_script(
     template: &serde_json::Value,
     cosigners: HashMap<String, String>,
-) -> Result<NativeScripts, JsError> {
-    let mut native_scripts = NativeScripts::new();
-
+) -> Result<NativeScript, JsError> {
     match template {
         serde_json::Value::String(cosigner) => {
             if let Some(address) = cosigners.get(cosigner) {
@@ -1018,11 +960,11 @@ fn encode_template_to_native_scripts(
                 let public_key = Bip32PublicKey::from_bytes(&bytes)
                     .map_err(|e| JsError::from_str(&e.to_string()))?;
 
-                native_scripts.add(&NativeScript::new_script_pubkey(&ScriptPubkey::new(
+                Ok(NativeScript::new_script_pubkey(&ScriptPubkey::new(
                     &public_key.to_raw_key().hash(),
-                )));
+                )))
             } else {
-                return Err(JsError::from_str("TODO: add a good message"));
+                Err(JsError::from_str("cosigner not found"))
             }
         }
         serde_json::Value::Object(map) if map.contains_key("all") => {
@@ -1030,31 +972,63 @@ fn encode_template_to_native_scripts(
 
             if let serde_json::Value::Array(array) = map.get("all").unwrap() {
                 for val in array {
-                    all.extend(&encode_template_to_native_scripts(val, cosigners.clone())?);
+                    all.add(&encode_template_to_native_script(val, cosigners.clone())?);
                 }
             } else {
                 return Err(JsError::from_str("all must be an array"));
             }
 
-            let all_native_script = NativeScript::new_script_all(&ScriptAll::new(&all));
-
-            native_scripts.add(&all_native_script);
+            Ok(NativeScript::new_script_all(&ScriptAll::new(&all)))
         }
         serde_json::Value::Object(map) if map.contains_key("any") => {
             let mut any = NativeScripts::new();
 
             if let serde_json::Value::Array(array) = map.get("any").unwrap() {
                 for val in array {
-                    any.extend(&encode_template_to_native_scripts(val, cosigners.clone())?);
+                    any.add(&encode_template_to_native_script(val, cosigners.clone())?);
                 }
             } else {
                 return Err(JsError::from_str("any must be an array"));
             }
 
-            let any_native_script = NativeScript::new_script_any(&ScriptAny::new(&any));
+            Ok(NativeScript::new_script_any(&ScriptAny::new(&any)))
+        }
+        serde_json::Value::Object(map) if map.contains_key("some") => {
+            if let serde_json::Value::Object(some) = map.get("some").unwrap() {
+                if some.contains_key("at_least") && some.contains_key("from") {
+                    let n = if let serde_json::Value::Number(at_least) =
+                        some.get("at_least").unwrap()
+                    {
+                        if let Some(n) = at_least.as_u64() {
+                            n as u32
+                        } else {
+                            return Err(JsError::from_str("at_least must be an integer"));
+                        }
+                    } else {
+                        return Err(JsError::from_str("at_least must be an integer"));
+                    };
 
-            native_scripts.add(&any_native_script);
+                    let mut from_scripts = NativeScripts::new();
 
+                    if let serde_json::Value::Array(array) = map.get("from").unwrap() {
+                        for val in array {
+                            from_scripts
+                                .add(&encode_template_to_native_script(val, cosigners.clone())?);
+                        }
+                    } else {
+                        return Err(JsError::from_str("from must be an array"));
+                    }
+
+                    Ok(NativeScript::new_script_n_of_k(&ScriptNOfK::new(
+                        n,
+                        &from_scripts,
+                    )))
+                } else {
+                    Err(JsError::from_str("some must contain at_least and from"))
+                }
+            } else {
+                Err(JsError::from_str("some must be an object"))
+            }
         }
         serde_json::Value::Object(map) if map.contains_key("active_from") => {
             if let serde_json::Value::Number(active_from) = map.get("active_from").unwrap() {
@@ -1063,16 +1037,14 @@ fn encode_template_to_native_scripts(
 
                     let time_lock_start = TimelockStart::new(slot);
 
-                    let time_lock_start_script = NativeScript::new_timelock_start(&time_lock_start);
-
-                    native_scripts.add(&time_lock_start_script);
+                    Ok(NativeScript::new_timelock_start(&time_lock_start))
                 } else {
-                    return Err(JsError::from_str(
+                    Err(JsError::from_str(
                         "active_from slot must be an integer greater than or equal to 0",
-                    ));
+                    ))
                 }
             } else {
-                return Err(JsError::from_str("active_from slot must be a number"));
+                Err(JsError::from_str("active_from slot must be a number"))
             }
         }
         serde_json::Value::Object(map) if map.contains_key("active_until") => {
@@ -1082,24 +1054,18 @@ fn encode_template_to_native_scripts(
 
                     let time_lock_expiry = TimelockExpiry::new(slot);
 
-                    let time_lock_expiry_script = NativeScript::new_timelock_expiry(&time_lock_expiry);
-
-                    native_scripts.add(&time_lock_expiry_script);
+                    Ok(NativeScript::new_timelock_expiry(&time_lock_expiry))
                 } else {
-                    return Err(JsError::from_str(
+                    Err(JsError::from_str(
                         "active_until slot must be an integer greater than or equal to 0",
-                    ));
+                    ))
                 }
             } else {
-                return Err(JsError::from_str("active_until slot must be a number"));
+                Err(JsError::from_str("active_until slot must be a number"))
             }
         }
-        _ => {
-            return Err(JsError::from_str("invalid template format"));
-        },
-    };
-    
-    Ok(native_scripts)
+        _ => Err(JsError::from_str("invalid template format")),
+    }
 }
 
 #[cfg(test)]
@@ -1111,29 +1077,29 @@ mod tests {
 
     #[test]
     fn native_scripts_from_wallet_json() {
-        let native_scripts = encode_json_str_to_native_scripts(
+        let native_script = encode_json_str_to_native_script(
             r#"
                 {
-                    "cosigners": [
+                  "cosigners": [
                     {
-                        "cosigner#0": "1423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db11423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db1"
-                    },
-                    {
-                        "cosigner#0": "self"
+                      "cosigner#0": "1423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db11423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db1"
                     }
-                    ],
-                    "template": {
-                        "all": [
-                            "cosigner#0",
-                            { "active_from": 120 }
-                        ]
-                    }
+                  ],
+                  "template": {
+                    "all": [
+                      "cosigner#0",
+                      { "active_from": 120 }
+                    ]
+                  }
                 }
                 "#,
+                "",
             ScriptSchema::Wallet,
         );
 
-        assert_eq!(native_scripts.unwrap().len(), 2);
+        dbg!(&native_script);
+
+        assert_eq!(1, 2);
     }
 
     #[test]

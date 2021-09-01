@@ -884,11 +884,22 @@ pub fn min_ada_required(
     }
 }
 
+/// Used to choosed the schema for a script JSON string
+#[wasm_bindgen]
 pub enum ScriptSchema {
     Wallet,
     Node,
 }
 
+/// Receives a script JSON string
+/// and returns a NativeScript.
+/// Cardano Wallet and Node styles are supported.
+///
+/// * wallet: https://input-output-hk.github.io/cardano-wallet/api/edge/#operation/listSharedWallets
+///   * payment_script_template is the schema
+/// * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
+///
+/// self_address is expected to be a Bip32PublicKey
 #[wasm_bindgen]
 pub fn encode_json_str_to_native_script(
     json: &str,

@@ -968,8 +968,7 @@ fn encode_template_to_native_script(
                 let bytes =
                     Vec::from_hex(address).map_err(|e| JsError::from_str(&e.to_string()))?;
 
-                let public_key = Bip32PublicKey::from_bytes(&bytes)
-                    .map_err(|e| JsError::from_str(&e.to_string()))?;
+                let public_key = Bip32PublicKey::from_bytes(&bytes)?;
 
                 Ok(NativeScript::new_script_pubkey(&ScriptPubkey::new(
                     &public_key.to_raw_key().hash(),

@@ -937,7 +937,7 @@ fn encode_wallet_value_to_native_script(value: serde_json::Value, self_address: 
 
             let template = map.get("template").unwrap();
 
-            let template_native_script = encode_template_to_native_script(template, cosigners)?;
+            let template_native_script = encode_template_to_native_script(template, &cosigners)?;
 
             Ok(template_native_script)
         }
@@ -949,7 +949,7 @@ fn encode_wallet_value_to_native_script(value: serde_json::Value, self_address: 
 
 fn encode_template_to_native_script(
     template: &serde_json::Value,
-    cosigners: HashMap<String, String>,
+    cosigners: &HashMap<String, String>,
 ) -> Result<NativeScript, JsError> {
     match template {
         serde_json::Value::String(cosigner) => {
@@ -972,7 +972,7 @@ fn encode_template_to_native_script(
 
             if let serde_json::Value::Array(array) = map.get("all").unwrap() {
                 for val in array {
-                    all.add(&encode_template_to_native_script(val, cosigners.clone())?);
+                    all.add(&encode_template_to_native_script(val, cosigners)?);
                 }
             } else {
                 return Err(JsError::from_str("all must be an array"));
@@ -985,7 +985,7 @@ fn encode_template_to_native_script(
 
             if let serde_json::Value::Array(array) = map.get("any").unwrap() {
                 for val in array {
-                    any.add(&encode_template_to_native_script(val, cosigners.clone())?);
+                    any.add(&encode_template_to_native_script(val, cosigners)?);
                 }
             } else {
                 return Err(JsError::from_str("any must be an array"));
@@ -1013,7 +1013,7 @@ fn encode_template_to_native_script(
                     if let serde_json::Value::Array(array) = map.get("from").unwrap() {
                         for val in array {
                             from_scripts
-                                .add(&encode_template_to_native_script(val, cosigners.clone())?);
+                                .add(&encode_template_to_native_script(val, cosigners)?);
                         }
                     } else {
                         return Err(JsError::from_str("from must be an array"));

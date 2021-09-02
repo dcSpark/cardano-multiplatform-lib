@@ -1,5 +1,6 @@
 use crate::error::{DeserializeError, DeserializeFailure};
 use cbor_event::{self, de::Deserializer, se::{Serialize, Serializer}};
+use itertools::Itertools;
 use std::io::{BufRead, Seek, Write};
 use std::cmp;
 use std::ops::{Rem, Div, Sub};
@@ -825,6 +826,7 @@ fn bundle_size(
             let sum_asset_name_lengths = assets.0
                 .values()
                 .flat_map(|assets| assets.0.keys())
+                .unique_by(|asset| asset.name())
                 .fold(
                     0,
                     | acc, next| acc + next.0.len()

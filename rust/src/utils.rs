@@ -885,6 +885,8 @@ pub fn min_ada_required(
 
 #[cfg(test)]
 mod tests {
+    use hex::FromHex;
+
     use super::*;
 
     // this is what is used in mainnet
@@ -1126,6 +1128,51 @@ mod tests {
             multiasset: Some(token_bundle),
         };
         
+        assert_eq!(
+            min_ada_required(&assets, &BigNum(MINIMUM_UTXO_VAL)).0,
+            7592585
+        );
+    }
+    
+    #[test]
+    fn some_test() {
+        let bytes: Vec<u8> = vec![0x73, 0x77, 0x61, 0x6E, 0x6B, 0x70, 0x69, 0x65];
+
+        let mut asset_list = Assets::new();
+
+        asset_list.insert(&AssetName(bytes), &BigNum(1));
+
+        let mut token_bundle = MultiAsset::new();
+
+        token_bundle.insert(
+            &PolicyID::from_bytes(
+                Vec::from_hex("7b5fd95985e08b72a5c37b9d3c7d863bb8a6fed82ef4741594be357d").unwrap(),
+            )
+            .unwrap(),
+            &asset_list,
+        );
+
+        token_bundle.insert(
+            &PolicyID::from_bytes(
+                Vec::from_hex("7c306b00720b3a941ede9d6e1c469ec678cea1d1be8f70ff146dd6c8").unwrap(),
+            )
+            .unwrap(),
+            &asset_list,
+        );
+
+        token_bundle.insert(
+            &PolicyID::from_bytes(
+                Vec::from_hex("8bd876119ed2152848cc364db9fab76c5ed8d98fdf53c2157ffd4092").unwrap(),
+            )
+            .unwrap(),
+            &asset_list,
+        );
+
+        let assets = Value {
+            coin: BigNum(1),
+            multiasset: Some(token_bundle),
+        };
+
         assert_eq!(
             min_ada_required(&assets, &BigNum(MINIMUM_UTXO_VAL)).0,
             7592585

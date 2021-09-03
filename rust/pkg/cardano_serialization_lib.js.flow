@@ -129,7 +129,7 @@ declare export function min_ada_required(
  *    * payment_script_template is the schema
  * * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
  *
- * self_address is expected to be a Bip32PublicKey
+ * self_address is expected to be a Bip32PublicKey as hex-encoded bytes
  * @param {string} json
  * @param {string} self_address
  * @param {number} schema

@@ -899,7 +899,7 @@ pub enum ScriptSchema {
 ///   * payment_script_template is the schema
 /// * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
 ///
-/// self_address is expected to be a Bip32PublicKey
+/// self_address is expected to be a Bip32PublicKey as hex-encoded bytes
 #[wasm_bindgen]
 pub fn encode_json_str_to_native_script(
     json: &str,

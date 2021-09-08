@@ -895,15 +895,14 @@ pub enum ScriptSchema {
 /// and returns a NativeScript.
 /// Cardano Wallet and Node styles are supported.
 ///
-/// * wallet: https://input-output-hk.github.io/cardano-wallet/api/edge/#operation/listSharedWallets
-///   * payment_script_template is the schema
+/// * wallet: https://github.com/input-output-hk/cardano-wallet/blob/master/specifications/api/swagger.yaml
 /// * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
 ///
-/// self_address is expected to be a Bip32PublicKey as hex-encoded bytes
+/// self_xpub is expected to be a Bip32PublicKey as hex-encoded bytes
 #[wasm_bindgen]
 pub fn encode_json_str_to_native_script(
     json: &str,
-    self_address: &str,
+    self_xpub: &str,
     schema: ScriptSchema,
 ) -> Result<NativeScript, JsError> {
     let value: serde_json::Value =
@@ -917,33 +916,27 @@ pub fn encode_json_str_to_native_script(
     Ok(native_script)
 }
 
-fn encode_wallet_value_to_native_script(value: serde_json::Value, self_address: &str) -> Result<NativeScript, JsError> {
+fn encode_wallet_value_to_native_script(value: serde_json::Value, self_xpub: &str) -> Result<NativeScript, JsError> {
     match value {
         serde_json::Value::Object(map)
             if map.contains_key("cosigners") && map.contains_key("template") =>
         {
             let mut cosigners = HashMap::new();
 
-            if let serde_json::Value::Array(cosigners_array) = map.get("cosigners").unwrap() {
-                for cosigner_obj in cosigners_array {
-                    if let serde_json::Value::Object(cosigner_map) = cosigner_obj {
-                        for (key, value) in cosigner_map.iter() {
-                            if let serde_json::Value::String(address) = value {
-                                if address == "self" {
-                                    cosigners.insert(key.to_owned(), self_address.to_owned());
-                                } else {
-                                    cosigners.insert(key.to_owned(), address.to_owned());
-                                }
-                            } else {
-                                return Err(JsError::from_str("cosigner value must be a string"));
-                            }
+            if let serde_json::Value::Object(cosigner_map) = map.get("cosigners").unwrap() {
+                for (key, value) in cosigner_map.iter() {
+                    if let serde_json::Value::String(xpub) = value {
+                        if xpub == "self" {
+                            cosigners.insert(key.to_owned(), self_xpub.to_owned());
+                        } else {
+                            cosigners.insert(key.to_owned(), xpub.to_owned());
                         }
                     } else {
-                        return Err(JsError::from_str("cosigner must be a map"));
+                        return Err(JsError::from_str("cosigner value must be a string"));
                     }
                 }
             } else {
-                return Err(JsError::from_str("cosigners must be an array"));
+                return Err(JsError::from_str("cosigners must be a map"));
             }
 
             let template = map.get("template").unwrap();
@@ -964,9 +957,9 @@ fn encode_template_to_native_script(
 ) -> Result<NativeScript, JsError> {
     match template {
         serde_json::Value::String(cosigner) => {
-            if let Some(address) = cosigners.get(cosigner) {
+            if let Some(xpub) = cosigners.get(cosigner) {
                 let bytes =
-                    Vec::from_hex(address).map_err(|e| JsError::from_str(&e.to_string()))?;
+                    Vec::from_hex(xpub).map_err(|e| JsError::from_str(&e.to_string()))?;
 
                 let public_key = Bip32PublicKey::from_bytes(&bytes)?;
 
@@ -974,7 +967,7 @@ fn encode_template_to_native_script(
                     &public_key.to_raw_key().hash(),
                 )))
             } else {
-                Err(JsError::from_str("cosigner not found"))
+                Err(JsError::from_str(&format!("cosigner {} not found", cosigner)))
             }
         }
         serde_json::Value::Object(map) if map.contains_key("all") => {
@@ -1020,7 +1013,7 @@ fn encode_template_to_native_script(
 
                     let mut from_scripts = NativeScripts::new();
 
-                    if let serde_json::Value::Array(array) = map.get("from").unwrap() {
+                    if let serde_json::Value::Array(array) = some.get("from").unwrap() {
                         for val in array {
                             from_scripts
                                 .add(&encode_template_to_native_script(val, cosigners)?);
@@ -1087,27 +1080,69 @@ mod tests {
 
     #[test]
     fn native_scripts_from_wallet_json() {
+        let cosigner0_hex = "1423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db11423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db1";
+        let cosigner1_hex = "a48d97f57ce49433f347d44ee07e54a100229b4f8e125d25f7bca9ad66d9707a25cd1331f46f7d6e279451637ca20802a25c441ba9436abf644fe5410d1080e3";
+        let self_key_hex = "6ce83a12e9d4c783f54c0bb511303b37160a6e4f3f96b8e878a7c1f7751e18c4ccde3fb916d330d07f7bd51fb6bd99aa831d925008d3f7795033f48abd6df7f6";
         let native_script = encode_json_str_to_native_script(
-            r#"
-                {
-                  "cosigners": [
-                    {
-                      "cosigner#0": "1423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db11423856bc91c49e928f6f30f4e8d665d53eb4ab6028bd0ac971809d514c92db1"
-                    }
-                  ],
-                  "template": {
-                    "all": [
-                      "cosigner#0",
-                      { "active_from": 120 }
-                    ]
-                  }
-                }
-                "#,
-                "",
+            &format!(r#"
+            {{
+                "cosigners": {{
+                    "cosigner#0": "{}",
+                    "cosigner#1": "{}",
+                    "cosigner#2": "self"
+                }},
+                "template": {{
+                    "some": {{
+                        "at_least": 2,
+                        "from": [
+                            {{
+                                "all": [
+                                    "cosigner#0",
+                                    {{ "active_from": 120 }}
+                                ]
+                            }},
+                            {{
+                                "any": [
+                                    "cosigner#1",
+                                    {{ "active_until": 1000 }}
+                                ]
+                            }},
+                            "cosigner#2"
+                        ]
+                    }}
+                }}
+            }}"#, cosigner0_hex, cosigner1_hex),
+            self_key_hex,
             ScriptSchema::Wallet,
         );
 
-        assert!(native_script.is_ok());
+        let n_of_k = native_script.unwrap().as_script_n_of_k().unwrap();
+        let from = n_of_k.native_scripts();
+        assert_eq!(n_of_k.n(), 2);
+        assert_eq!(from.len(), 3);
+        let all = from.get(0).as_script_all().unwrap().native_scripts();
+        assert_eq!(all.len(), 2);
+        let all_0 = all.get(0).as_script_pubkey().unwrap();
+        assert_eq!(
+            all_0.addr_keyhash(),
+            Bip32PublicKey::from_bytes(&hex::decode(cosigner0_hex).unwrap()).unwrap().to_raw_key().hash()
+        );
+        let all_1 = all.get(1).as_timelock_start().unwrap();
+        assert_eq!(all_1.slot(), 120);
+        let any = from.get(1).as_script_any().unwrap().native_scripts();
+        assert_eq!(all.len(), 2);
+        let any_0 = any.get(0).as_script_pubkey().unwrap();
+        assert_eq!(
+            any_0.addr_keyhash(),
+            Bip32PublicKey::from_bytes(&hex::decode(cosigner1_hex).unwrap()).unwrap().to_raw_key().hash()
+        );
+        let any_1 = any.get(1).as_timelock_expiry().unwrap();
+        assert_eq!(any_1.slot(), 1000);
+        let self_key = from.get(2).as_script_pubkey().unwrap();
+        assert_eq!(
+            self_key.addr_keyhash(),
+            Bip32PublicKey::from_bytes(&hex::decode(self_key_hex).unwrap()).unwrap().to_raw_key().hash()
+        );
     }
 
     #[test]

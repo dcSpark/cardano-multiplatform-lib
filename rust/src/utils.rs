@@ -807,6 +807,7 @@ impl BigInt {
             return None;
         }
         match u64_digits.len() {
+            0 => Some(to_bignum(0)),
             1 => Some(to_bignum(*u64_digits.first().unwrap())),
             _ => None,
         }
@@ -895,6 +896,12 @@ impl Deserialize for BigInt {
                 _ => return Err(DeserializeFailure::NoVariantMatched.into()),
             }
         })().map_err(|e| e.annotate("BigInt"))
+    }
+}
+
+impl<T> std::convert::From<T> for BigInt where T: std::convert::Into<num_bigint::BigInt> {
+    fn from(x: T) -> Self {
+        Self(x.into())
     }
 }
 

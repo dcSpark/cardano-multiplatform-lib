@@ -100,7 +100,7 @@ type Epoch = u32;
 type Slot = BigNum;
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct Transaction {
     body: TransactionBody,
     witness_set: TransactionWitnessSet,
@@ -2239,7 +2239,7 @@ impl ProtocolParamUpdate {
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct TransactionBodies(Vec<TransactionBody>);
 
 to_from_bytes!(TransactionBodies);
@@ -2264,7 +2264,7 @@ impl TransactionBodies {
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct TransactionWitnessSets(Vec<TransactionWitnessSet>);
 
 to_from_bytes!(TransactionWitnessSets);
@@ -2316,8 +2316,32 @@ impl AuxiliaryDataSet {
     }
 }
 
+impl serde::Serialize for AuxiliaryDataSet {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer {
+        let map = self.0.iter().collect::<std::collections::BTreeMap<_, _>>();
+        map.serialize(serializer)
+    }
+}
+
+impl <'de> serde::de::Deserialize<'de> for AuxiliaryDataSet {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
+    D: serde::de::Deserializer<'de> {
+        let map = <std::collections::BTreeMap<_, _> as serde::de::Deserialize>::deserialize(deserializer)?;
+        Ok(Self(map.into_iter().collect()))
+    }
+}
+
+impl JsonSchema for AuxiliaryDataSet {
+    fn schema_name() -> String { std::collections::BTreeMap::<TransactionIndex, AuxiliaryData>::schema_name() }
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        std::collections::BTreeMap::<TransactionIndex, AuxiliaryData>::json_schema(gen)
+    }
+    fn is_referenceable() -> bool { std::collections::BTreeMap::<TransactionIndex, AuxiliaryData>::is_referenceable() }
+}
+
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct Block {
     header: Header,
     transaction_bodies: TransactionBodies,
@@ -2362,7 +2386,7 @@ impl Block {
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct Header {
     header_body: HeaderBody,
     body_signature: KESSignature,
@@ -2389,7 +2413,7 @@ impl Header {
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct OperationalCert {
     hot_vkey: KESVKey,
     sequence_number: u32,
@@ -2428,7 +2452,7 @@ impl OperationalCert {
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct HeaderBody {
     block_number: u32,
     slot: Slot,
@@ -2511,7 +2535,7 @@ impl HeaderBody {
 
 
 #[wasm_bindgen]
-#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssetName(Vec<u8>);
 
 impl Ord for AssetName {
@@ -2554,6 +2578,32 @@ impl AssetName {
     pub fn name(&self) -> Vec<u8> {
         self.0.clone()
     }
+}
+
+impl serde::Serialize for AssetName {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer {
+        serializer.serialize_str(&hex::encode(&self.0))
+    }
+}
+
+impl <'de> serde::de::Deserialize<'de> for AssetName {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
+    D: serde::de::Deserializer<'de> {
+        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        if let Ok(bytes) = hex::decode(&s) {
+            if let Ok(asset_name) = AssetName::new(bytes) {
+                return Ok(asset_name);
+            }
+        }
+        Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"AssetName as hex string e.g. F8AB28C2"))
+    }
+}
+
+impl JsonSchema for AssetName {
+    fn schema_name() -> String { String::schema_name() }
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
+    fn is_referenceable() -> bool { String::is_referenceable() }
 }
 
 #[wasm_bindgen]

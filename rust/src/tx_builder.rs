@@ -1832,9 +1832,9 @@ mod tests {
                 NetworkInfo::testnet().network_id(),
                 &spend_cred,
                 &Pointer::new(
-                    0.into(),
-                    0,
-                    0
+                    &to_bignum(0),
+                    &to_bignum(0),
+                    &to_bignum(0)
                 )
             ).to_address(),
             &TransactionInput::new(&genesis_id(), 0),

@@ -763,7 +763,7 @@ pub enum CertificateKind {
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
-enum CertificateEnum {
+pub enum CertificateEnum {
     StakeRegistration(StakeRegistration),
     StakeDeregistration(StakeDeregistration),
     StakeDelegation(StakeDelegation),
@@ -1255,7 +1255,7 @@ pub enum RelayKind {
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
-enum RelayEnum {
+pub enum RelayEnum {
     SingleHostAddr(SingleHostAddr),
     SingleHostName(SingleHostName),
     MultiHostName(MultiHostName),
@@ -1665,7 +1665,7 @@ pub enum NativeScriptKind {
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
-enum NativeScriptEnum {
+pub enum NativeScriptEnum {
     ScriptPubkey(ScriptPubkey),
     ScriptAll(ScriptAll),
     ScriptAny(ScriptAny),
@@ -2240,7 +2240,7 @@ impl ProtocolParamUpdate {
 
 #[wasm_bindgen]
 #[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
-pub struct TransactionBodies(Vec<TransactionBody>);
+pub struct TransactionBodies(pub(crate) Vec<TransactionBody>);
 
 to_from_bytes!(TransactionBodies);
 

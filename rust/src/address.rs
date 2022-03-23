@@ -71,6 +71,14 @@ enum StakeCredType {
 }
 
 #[wasm_bindgen]
+#[repr(u8)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum StakeCredKind {
+    Key,
+    Script,
+}
+
+#[wasm_bindgen]
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct StakeCredential(StakeCredType);
 
@@ -98,10 +106,10 @@ impl StakeCredential {
         }
     }
 
-    pub fn kind(&self) -> u8 {
+    pub fn kind(&self) -> StakeCredKind {
         match &self.0 {
-            StakeCredType::Key(_) => 0,
-            StakeCredType::Script(_) => 1,
+            StakeCredType::Key(_) => StakeCredKind::Key,
+            StakeCredType::Script(_) => StakeCredKind::Script,
         }
     }
 
@@ -159,7 +167,7 @@ impl Deserialize for StakeCredential {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 enum AddrType {
     Base(BaseAddress),
     Ptr(PointerAddress),
@@ -169,7 +177,7 @@ enum AddrType {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ByronAddress(pub (crate) ExtendedAddr);
 #[wasm_bindgen]
 impl ByronAddress {
@@ -256,7 +264,7 @@ impl ByronAddress {
 }
 
 #[wasm_bindgen]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Address(AddrType);
 
 from_bytes!(Address, data, {
@@ -272,8 +280,8 @@ impl Address {
         let mut buf = Vec::new();
         match &self.0 {
             AddrType::Base(base) => {
-                let header: u8 = (base.payment.kind() << 4)
-                           | (base.stake.kind() << 5)
+                let header: u8 = ((base.payment.kind() as u8) << 4)
+                           | ((base.stake.kind() as u8) << 5)
                            | (base.network & 0xF);
                 buf.push(header);
                 buf.extend(base.payment.to_raw_bytes());
@@ -281,7 +289,7 @@ impl Address {
             },
             AddrType::Ptr(ptr) => {
                 let header: u8 = 0b0100_0000
-                               | (ptr.payment.kind() << 4)
+                               | ((ptr.payment.kind() as u8) << 4)
                                | (ptr.network & 0xF);
                 buf.push(header);
                 buf.extend(ptr.payment.to_raw_bytes());
@@ -291,14 +299,14 @@ impl Address {
             },
             AddrType::Enterprise(enterprise) => {
                 let header: u8 = 0b0110_0000
-                               | (enterprise.payment.kind() << 4)
+                               | ((enterprise.payment.kind() as u8) << 4)
                                | (enterprise.network & 0xF);
                 buf.push(header);
                 buf.extend(enterprise.payment.to_raw_bytes());
             },
             AddrType::Reward(reward) => {
                 let header: u8 = 0b1110_0000
-                                | (reward.payment.kind() << 4)
+                                | ((reward.payment.kind() as u8) << 4)
                                 | (reward.network & 0xF);
                 buf.push(header);
                 buf.extend(reward.payment.to_raw_bytes());
@@ -432,7 +440,7 @@ impl Address {
             None => {
                 // see CIP5 for bech32 prefix rules
                 let prefix_header = match &self.0 {
-                    AddrType::Reward(a) => "stake",
+                    AddrType::Reward(_) => "stake",
                     _ => "addr",
                 };
                 let prefix_tail = match self.network_id()? {
@@ -703,7 +711,7 @@ mod tests {
         let ptr = PointerAddress::new(
             25,
             &StakeCredential::from_keyhash(&Ed25519KeyHash::from([23; Ed25519KeyHash::BYTE_COUNT])),
-            &Pointer::new(2354556573, 127, 0));
+            &Pointer::new(2354556573.into(), 127, 0));
         let addr = ptr.to_address();
         let addr2 = Address::from_bytes(addr.to_bytes()).unwrap();
         assert_eq!(addr.to_bytes(), addr2.to_bytes());
@@ -819,9 +827,9 @@ mod tests {
             .derive(0)
             .to_public();
         let spend_cred = StakeCredential::from_keyhash(&spend.to_raw_key().hash());
-        let addr_net_0 = PointerAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &Pointer::new(1, 2, 3)).to_address();
+        let addr_net_0 = PointerAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &Pointer::new(1.into(), 2, 3)).to_address();
         assert_eq!(addr_net_0.to_bech32(None).unwrap(), "addr_test1gz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzerspqgpsqe70et");
-        let addr_net_3 = PointerAddress::new(NetworkInfo::mainnet().network_id(), &spend_cred, &Pointer::new(24157, 177, 42)).to_address();
+        let addr_net_3 = PointerAddress::new(NetworkInfo::mainnet().network_id(), &spend_cred, &Pointer::new(24157.into(), 177, 42)).to_address();
         assert_eq!(addr_net_3.to_bech32(None).unwrap(), "addr1gx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer5ph3wczvf2w8lunk");
     }
 
@@ -875,9 +883,9 @@ mod tests {
             .derive(0)
             .to_public();
         let spend_cred = StakeCredential::from_keyhash(&spend.to_raw_key().hash());
-        let addr_net_0 = PointerAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &Pointer::new(1, 2, 3)).to_address();
+        let addr_net_0 = PointerAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &Pointer::new(1.into(), 2, 3)).to_address();
         assert_eq!(addr_net_0.to_bech32(None).unwrap(), "addr_test1gpu5vlrf4xkxv2qpwngf6cjhtw542ayty80v8dyr49rf5egpqgpsdhdyc0");
-        let addr_net_3 = PointerAddress::new(NetworkInfo::mainnet().network_id(), &spend_cred, &Pointer::new(24157, 177, 42)).to_address();
+        let addr_net_3 = PointerAddress::new(NetworkInfo::mainnet().network_id(), &spend_cred, &Pointer::new(24157.into(), 177, 42)).to_address();
         assert_eq!(addr_net_3.to_bech32(None).unwrap(), "addr1g9u5vlrf4xkxv2qpwngf6cjhtw542ayty80v8dyr49rf5evph3wczvf2kd5vam");
     }
 
@@ -958,9 +966,9 @@ mod tests {
             .derive(0)
             .to_public();
         let spend_cred = StakeCredential::from_keyhash(&spend.to_raw_key().hash());
-        let addr_net_0 = PointerAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &Pointer::new(1, 2, 3)).to_address();
+        let addr_net_0 = PointerAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &Pointer::new(1.into(), 2, 3)).to_address();
         assert_eq!(addr_net_0.to_bech32(None).unwrap(), "addr_test1gqy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqpqgps5mee0p");
-        let addr_net_3 = PointerAddress::new(NetworkInfo::mainnet().network_id(), &spend_cred, &Pointer::new(24157, 177, 42)).to_address();
+        let addr_net_3 = PointerAddress::new(NetworkInfo::mainnet().network_id(), &spend_cred, &Pointer::new(24157.into(), 177, 42)).to_address();
         assert_eq!(addr_net_3.to_bech32(None).unwrap(), "addr1gyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnyph3wczvf2dqflgt");
     }
 

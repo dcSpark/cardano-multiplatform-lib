@@ -40,7 +40,7 @@ impl Deserialize for UnitInterval {
 }
 
 impl DeserializeEmbeddedGroup for UnitInterval {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         let numerator = (|| -> Result<_, DeserializeError> {
             Ok(BigNum::deserialize(raw)?)
         })().map_err(|e| e.annotate("numerator"))?;
@@ -56,9 +56,10 @@ impl DeserializeEmbeddedGroup for UnitInterval {
 
 impl cbor_event::se::Serialize for Transaction {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array(cbor_event::Len::Len(3))?;
+        serializer.write_array(cbor_event::Len::Len(4))?;
         self.body.serialize(serializer)?;
         self.witness_set.serialize(serializer)?;
+        serializer.write_special(CBORSpecial::Bool(self.is_valid))?;
         match &self.auxiliary_data {
             Some(x) => {
                 x.serialize(serializer)
@@ -87,29 +88,59 @@ impl Deserialize for Transaction {
 }
 
 impl DeserializeEmbeddedGroup for Transaction {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         let body = (|| -> Result<_, DeserializeError> {
             Ok(TransactionBody::deserialize(raw)?)
         })().map_err(|e| e.annotate("body"))?;
         let witness_set = (|| -> Result<_, DeserializeError> {
             Ok(TransactionWitnessSet::deserialize(raw)?)
         })().map_err(|e| e.annotate("witness_set"))?;
-        let auxiliary_data = (|| -> Result<_, DeserializeError> {
-            Ok(match raw.cbor_type()? != CBORType::Special {
+        let mut checked_auxiliary_data = false;
+        let mut auxiliary_data = None;
+        let is_valid = (|| -> Result<_, DeserializeError> {
+            match raw.cbor_type()? == CBORType::Special {
                 true => {
-                    Some(AuxiliaryData::deserialize(raw)?)
+                    // if it's special it can be either a bool or null. if it's null, then it's empty auxiliary data, otherwise not a valid encoding
+                    let special = raw.special()?;
+                    if let CBORSpecial::Bool(b) = special {
+                        return Ok(b);
+                    } else if special == CBORSpecial::Null {
+                        checked_auxiliary_data = true;
+                        return Ok(true);
+                    } else {
+                        return Err(DeserializeFailure::ExpectedBool.into());
+                    }
                 },
                 false => {
-                    if raw.special()? != CBORSpecial::Null {
-                        return Err(DeserializeFailure::ExpectedNull.into());
-                    }
-                    None
+                    // if no special symbol was detected, it must have auxiliary data
+                    auxiliary_data = (|| -> Result<_, DeserializeError> {
+                                Ok(Some(AuxiliaryData::deserialize(raw)?))
+                    })().map_err(|e| e.annotate("auxiliary_data"))?;
+                    checked_auxiliary_data = true;
+                    return Ok(true);
                 }
-            })
-        })().map_err(|e| e.annotate("auxiliary_data"))?;
+            }
+        })().map_err(|e| e.annotate("is_valid"))?;
+        if !checked_auxiliary_data {
+            // this branch is reached, if the 3rd argument was a bool. then it simply follows the rules for checking auxiliary data
+            auxiliary_data = (|| -> Result<_, DeserializeError> {
+                Ok(match raw.cbor_type()? != CBORType::Special {
+                    true => {
+                        Some(AuxiliaryData::deserialize(raw)?)
+                    },
+                    false => {
+                        if raw.special()? != CBORSpecial::Null {
+                            return Err(DeserializeFailure::ExpectedNull.into());
+                        }
+                        None
+                    }
+                })
+            })().map_err(|e| e.annotate("auxiliary_data"))?;
+        }
         Ok(Transaction {
             body,
             witness_set,
+            is_valid,
             auxiliary_data,
         })
     }
@@ -201,7 +232,7 @@ impl Deserialize for Certificates {
 
 impl cbor_event::se::Serialize for TransactionBody {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_map(cbor_event::Len::Len(3 + match &self.ttl { Some(x) => 1, None => 0 } + match &self.certs { Some(x) => 1, None => 0 } + match &self.withdrawals { Some(x) => 1, None => 0 } + match &self.update { Some(x) => 1, None => 0 } + match &self.auxiliary_data_hash { Some(x) => 1, None => 0 } + match &self.validity_start_interval { Some(x) => 1, None => 0 } + match &self.mint { Some(x) => 1, None => 0 } + match &self.script_data_hash { Some(x) => 1, None => 0 } + match &self.collateral { Some(x) => 1, None => 0 } + match &self.required_signers { Some(x) => 1, None => 0 } + match &self.network_id { Some(x) => 1, None => 0 }))?;
+        serializer.write_map(cbor_event::Len::Len(3 + match &self.ttl { Some(_) => 1, None => 0 } + match &self.certs { Some(_) => 1, None => 0 } + match &self.withdrawals { Some(_) => 1, None => 0 } + match &self.update { Some(_) => 1, None => 0 } + match &self.auxiliary_data_hash { Some(_) => 1, None => 0 } + match &self.validity_start_interval { Some(_) => 1, None => 0 } + match &self.mint { Some(_) => 1, None => 0 } + match &self.script_data_hash { Some(_) => 1, None => 0 } + match &self.collateral { Some(_) => 1, None => 0 } + match &self.required_signers { Some(_) => 1, None => 0 } + match &self.network_id { Some(_) => 1, None => 0 }))?;
         serializer.write_unsigned_integer(0)?;
         self.inputs.serialize(serializer)?;
         serializer.write_unsigned_integer(1)?;
@@ -479,7 +510,7 @@ impl Deserialize for TransactionInput {
 }
 
 impl DeserializeEmbeddedGroup for TransactionInput {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         let transaction_id = (|| -> Result<_, DeserializeError> {
             Ok(TransactionHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("transaction_id"))?;
@@ -530,8 +561,7 @@ impl Deserialize for TransactionOutput {
 // with array-encoded types with optional fields, due to the complexity.
 // This is made worse as this is a plain group...
 impl DeserializeEmbeddedGroup for TransactionOutput {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
-        use std::convert::TryInto;
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         let address = (|| -> Result<_, DeserializeError> {
             Ok(Address::deserialize(raw)?)
         })().map_err(|e| e.annotate("address"))?;
@@ -604,7 +634,7 @@ impl Deserialize for StakeRegistration {
 }
 
 impl DeserializeEmbeddedGroup for StakeRegistration {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 0 {
@@ -654,7 +684,7 @@ impl Deserialize for StakeDeregistration {
 }
 
 impl DeserializeEmbeddedGroup for StakeDeregistration {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 1 {
@@ -705,7 +735,7 @@ impl Deserialize for StakeDelegation {
 }
 
 impl DeserializeEmbeddedGroup for StakeDelegation {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 2 {
@@ -827,7 +857,7 @@ impl Deserialize for PoolParams {
 }
 
 impl DeserializeEmbeddedGroup for PoolParams {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         let operator = (|| -> Result<_, DeserializeError> {
             Ok(Ed25519KeyHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("operator"))?;
@@ -963,7 +993,7 @@ impl Deserialize for PoolRetirement {
 }
 
 impl DeserializeEmbeddedGroup for PoolRetirement {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 4 {
@@ -1019,7 +1049,7 @@ impl Deserialize for GenesisKeyDelegation {
 }
 
 impl DeserializeEmbeddedGroup for GenesisKeyDelegation {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 5 {
@@ -1077,7 +1107,7 @@ impl Deserialize for MoveInstantaneousRewardsCert {
 }
 
 impl DeserializeEmbeddedGroup for MoveInstantaneousRewardsCert {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 6 {
@@ -1410,7 +1440,7 @@ impl Deserialize for SingleHostAddr {
 }
 
 impl DeserializeEmbeddedGroup for SingleHostAddr {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 0 {
@@ -1504,7 +1534,7 @@ impl Deserialize for SingleHostName {
 }
 
 impl DeserializeEmbeddedGroup for SingleHostName {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 1 {
@@ -1568,7 +1598,7 @@ impl Deserialize for MultiHostName {
 }
 
 impl DeserializeEmbeddedGroup for MultiHostName {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 2 {
@@ -1679,7 +1709,7 @@ impl Deserialize for PoolMetadata {
 }
 
 impl DeserializeEmbeddedGroup for PoolMetadata {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         let url = (|| -> Result<_, DeserializeError> {
             Ok(URL::deserialize(raw)?)
         })().map_err(|e| e.annotate("url"))?;
@@ -1757,7 +1787,7 @@ impl Deserialize for Withdrawals {
 
 impl cbor_event::se::Serialize for TransactionWitnessSet {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_map(cbor_event::Len::Len(match &self.vkeys { Some(x) => 1, None => 0 } + match &self.native_scripts { Some(x) => 1, None => 0 } + match &self.bootstraps { Some(x) => 1, None => 0 } + match &self.plutus_scripts { Some(x) => 1, None => 0 } + match &self.plutus_data { Some(x) => 1, None => 0 } + match &self.redeemers { Some(x) => 1, None => 0 }))?;
+        serializer.write_map(cbor_event::Len::Len(match &self.vkeys { Some(_) => 1, None => 0 } + match &self.native_scripts { Some(_) => 1, None => 0 } + match &self.bootstraps { Some(_) => 1, None => 0 } + match &self.plutus_scripts { Some(_) => 1, None => 0 } + match &self.plutus_data { Some(_) => 1, None => 0 } + match &self.redeemers { Some(_) => 1, None => 0 }))?;
         if let Some(field) = &self.vkeys {
             serializer.write_unsigned_integer(0)?;
             field.serialize(serializer)?;
@@ -1919,7 +1949,7 @@ impl Deserialize for ScriptPubkey {
 }
 
 impl DeserializeEmbeddedGroup for ScriptPubkey {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, /*read_len: &mut CBORReadLen, */len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, /*read_len: &mut CBORReadLen, */_: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 0 {
@@ -1971,7 +2001,7 @@ impl Deserialize for ScriptAll {
 }
 
 impl DeserializeEmbeddedGroup for ScriptAll {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, /*read_len: &mut CBORReadLen, */len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, /*read_len: &mut CBORReadLen, */_: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 1 {
@@ -2023,7 +2053,7 @@ impl Deserialize for ScriptAny {
 }
 
 impl DeserializeEmbeddedGroup for ScriptAny {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, /*/*read_len: &mut CBORReadLen, */*/len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, /*/*read_len: &mut CBORReadLen, */*/_: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 2 {
@@ -2076,7 +2106,7 @@ impl Deserialize for ScriptNOfK {
 }
 
 impl DeserializeEmbeddedGroup for ScriptNOfK {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, /*read_len: &mut CBORReadLen, */len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, /*read_len: &mut CBORReadLen, */_: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 3 {
@@ -2132,7 +2162,7 @@ impl Deserialize for TimelockStart {
 }
 
 impl DeserializeEmbeddedGroup for TimelockStart {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, /*read_len: &mut CBORReadLen, */len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, /*read_len: &mut CBORReadLen, */_: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 4 {
@@ -2184,7 +2214,7 @@ impl Deserialize for TimelockExpiry {
 }
 
 impl DeserializeEmbeddedGroup for TimelockExpiry {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, /*read_len: &mut CBORReadLen, */len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, /*read_len: &mut CBORReadLen, */_: cbor_event::Len) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let index_0_value = raw.unsigned_integer()?;
             if index_0_value != 5 {
@@ -2341,7 +2371,7 @@ impl Deserialize for Update {
 }
 
 impl DeserializeEmbeddedGroup for Update {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         let proposed_protocol_parameter_updates = (|| -> Result<_, DeserializeError> {
             Ok(ProposedProtocolParameterUpdates::deserialize(raw)?)
         })().map_err(|e| e.annotate("proposed_protocol_parameter_updates"))?;
@@ -2477,7 +2507,7 @@ impl Deserialize for ProtocolVersion {
 }
 
 impl DeserializeEmbeddedGroup for ProtocolVersion {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         let major = (|| -> Result<_, DeserializeError> {
             Ok(u32::deserialize(raw)?)
         })().map_err(|e| e.annotate("major"))?;
@@ -2520,7 +2550,7 @@ impl Deserialize for ProtocolVersions {
 }
 impl cbor_event::se::Serialize for ProtocolParamUpdate {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_map(cbor_event::Len::Len(match &self.minfee_a { Some(x) => 1, None => 0 } + match &self.minfee_b { Some(x) => 1, None => 0 } + match &self.max_block_body_size { Some(x) => 1, None => 0 } + match &self.max_tx_size { Some(x) => 1, None => 0 } + match &self.max_block_header_size { Some(x) => 1, None => 0 } + match &self.key_deposit { Some(x) => 1, None => 0 } + match &self.pool_deposit { Some(x) => 1, None => 0 } + match &self.max_epoch { Some(x) => 1, None => 0 } + match &self.n_opt { Some(x) => 1, None => 0 } + match &self.pool_pledge_influence { Some(x) => 1, None => 0 } + match &self.expansion_rate { Some(x) => 1, None => 0 } + match &self.treasury_growth_rate { Some(x) => 1, None => 0 } + match &self.d { Some(x) => 1, None => 0 } + match &self.extra_entropy { Some(x) => 1, None => 0 } + match &self.protocol_version { Some(x) => 1, None => 0 } + match &self.min_pool_cost { Some(x) => 1, None => 0 } + match &self.ada_per_utxo_byte { Some(x) => 1, None => 0 } + match &self.cost_models { Some(x) => 1, None => 0 } + match &self.execution_costs { Some(x) => 1, None => 0 } + match &self.max_tx_ex_units { Some(x) => 1, None => 0 } + match &self.max_block_ex_units { Some(x) => 1, None => 0 } + match &self.max_value_size { Some(x) => 1, None => 0 }))?;
+        serializer.write_map(cbor_event::Len::Len(match &self.minfee_a { Some(_) => 1, None => 0 } + match &self.minfee_b { Some(_) => 1, None => 0 } + match &self.max_block_body_size { Some(_) => 1, None => 0 } + match &self.max_tx_size { Some(_) => 1, None => 0 } + match &self.max_block_header_size { Some(_) => 1, None => 0 } + match &self.key_deposit { Some(_) => 1, None => 0 } + match &self.pool_deposit { Some(_) => 1, None => 0 } + match &self.max_epoch { Some(_) => 1, None => 0 } + match &self.n_opt { Some(_) => 1, None => 0 } + match &self.pool_pledge_influence { Some(_) => 1, None => 0 } + match &self.expansion_rate { Some(_) => 1, None => 0 } + match &self.treasury_growth_rate { Some(_) => 1, None => 0 } + match &self.d { Some(_) => 1, None => 0 } + match &self.extra_entropy { Some(_) => 1, None => 0 } + match &self.protocol_version { Some(_) => 1, None => 0 } + match &self.min_pool_cost { Some(_) => 1, None => 0 } + match &self.ada_per_utxo_byte { Some(_) => 1, None => 0 } + match &self.cost_models { Some(_) => 1, None => 0 } + match &self.execution_costs { Some(_) => 1, None => 0 } + match &self.max_tx_ex_units { Some(_) => 1, None => 0 } + match &self.max_block_ex_units { Some(_) => 1, None => 0 } + match &self.max_value_size { Some(_) => 1, None => 0 }))?;
         if let Some(field) = &self.minfee_a {
             serializer.write_unsigned_integer(0)?;
             field.serialize(serializer)?;
@@ -2609,6 +2639,14 @@ impl cbor_event::se::Serialize for ProtocolParamUpdate {
             serializer.write_unsigned_integer(22)?;
             field.serialize(serializer)?;
         }
+        if let Some(field) = &self.collateral_percentage {
+            serializer.write_unsigned_integer(23)?;
+            field.serialize(serializer)?;
+        }
+        if let Some(field) = &self.max_collateral_inputs {
+            serializer.write_unsigned_integer(24)?;
+            field.serialize(serializer)?;
+        }
         Ok(serializer)
     }
 }
@@ -2640,6 +2678,8 @@ impl Deserialize for ProtocolParamUpdate {
             let mut max_tx_ex_units = None;
             let mut max_block_ex_units = None;
             let mut max_value_size = None;
+            let mut collateral_percentage = None;
+            let mut max_collateral_inputs = None;
             let mut read = 0;
             while match len { cbor_event::Len::Len(n) => read < n as usize, cbor_event::Len::Indefinite => true, } {
                 match raw.cbor_type()? {
@@ -2842,6 +2882,24 @@ impl Deserialize for ProtocolParamUpdate {
                                 Ok(u32::deserialize(raw)?)
                             })().map_err(|e| e.annotate("max_value_size"))?);
                         },
+                        23 =>  {
+                            if collateral_percentage.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(23)).into());
+                            }
+                            collateral_percentage = Some((|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                Ok(u32::deserialize(raw)?)
+                            })().map_err(|e| e.annotate("collateral_percentage"))?);
+                        },
+                        24 =>  {
+                            if max_collateral_inputs.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(24)).into());
+                            }
+                            max_collateral_inputs = Some((|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                Ok(u32::deserialize(raw)?)
+                            })().map_err(|e| e.annotate("max_collateral_inputs"))?);
+                        },
                         unknown_key => return Err(DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()),
                     },
                     CBORType::Text => match raw.text()?.as_str() {
@@ -2882,6 +2940,8 @@ impl Deserialize for ProtocolParamUpdate {
                 max_tx_ex_units,
                 max_block_ex_units,
                 max_value_size,
+                collateral_percentage,
+                max_collateral_inputs,
             })
         })().map_err(|e| e.annotate("ProtocolParamUpdate"))
     }
@@ -3066,7 +3126,7 @@ impl Deserialize for Header {
 }
 
 impl DeserializeEmbeddedGroup for Header {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         let header_body = (|| -> Result<_, DeserializeError> {
             Ok(HeaderBody::deserialize(raw)?)
         })().map_err(|e| e.annotate("header_body"))?;
@@ -3115,7 +3175,7 @@ impl Deserialize for OperationalCert {
 }
 
 impl DeserializeEmbeddedGroup for OperationalCert {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, len: cbor_event::Len) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _: cbor_event::Len) -> Result<Self, DeserializeError> {
         let hot_vkey = (|| -> Result<_, DeserializeError> {
             Ok(KESVKey::deserialize(raw)?)
         })().map_err(|e| e.annotate("hot_vkey"))?;
@@ -3444,7 +3504,11 @@ mod tests {
         let mut txos = TransactionOutputs::new();
         let addr = Address::from_bech32("addr1qyxwnq9kylzrtqprmyu35qt8gwylk3eemq53kqd38m9kyduv2q928esxmrz4y5e78cvp0nffhxklfxsqy3vdjn3nty9s8zygkm").unwrap();
         let val = &Value::new(&BigNum::from_str("435464757").unwrap());
-        let txo = TransactionOutput::new(&addr, &val);
+        let txo = TransactionOutput {
+            address: addr.clone(),
+            amount: val.clone(),
+            data_hash: None,
+        };
         let mut txo_dh = txo.clone();
         txo_dh.set_data_hash(&DataHash::from([47u8; DataHash::BYTE_COUNT]));
         txos.add(&txo);

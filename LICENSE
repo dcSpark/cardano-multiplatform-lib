@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2021 dcSpark
+Copyright (c) 2020 EMURGO
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,4 +22,3 @@ SOFTWARE.
 
 Includes other software related under the MIT license:
 - chain-libs, Copyright 2018-2019 IOHK. For licensing see /LICENSE-IOHK
-- general contributions, Copyright 2020-2021 EMURGO. For licensing see /LICENSE-EMURGO

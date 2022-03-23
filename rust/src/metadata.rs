@@ -219,7 +219,7 @@ impl TransactionMetadatum {
     }
 }
 
-type TransactionMetadatumLabel = BigNum;
+pub type TransactionMetadatumLabel = BigNum;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -610,21 +610,26 @@ impl cbor_event::se::Serialize for MetadataMap {
 impl Deserialize for MetadataMap {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let mut table = LinkedHashMap::new();
+        let mut entries: Vec<(TransactionMetadatum, TransactionMetadatum)> = Vec::new();
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
-            while match len { cbor_event::Len::Len(n) => table.len() < n as usize, cbor_event::Len::Indefinite => true, } {
+            while match len { cbor_event::Len::Len(n) => entries.len() < n as usize, cbor_event::Len::Indefinite => true, } {
                 if raw.cbor_type()? == CBORType::Special {
                     assert_eq!(raw.special()?, CBORSpecial::Break);
                     break;
                 }
                 let key = TransactionMetadatum::deserialize(raw)?;
                 let value = TransactionMetadatum::deserialize(raw)?;
-                if table.insert(key.clone(), value).is_some() {
-                    return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
-                }
+                entries.push((key.clone(), value));
             }
             Ok(())
         })().map_err(|e| e.annotate("MetadataMap"))?;
+        entries.iter().for_each(|(k, v)| {
+            if table.insert(k.clone(), v.clone()).is_some() {
+                // Turns out this is totally possible on the actual blockchain
+                // return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
+            }
+        });
         Ok(Self(table))
     }
 }
@@ -930,7 +935,7 @@ mod tests {
         assert_eq!(map.get_str("sender_id").unwrap().as_text().unwrap(), "jkfdsufjdk34h3Sdfjdhfduf873");
         assert_eq!(map.get_str("comment").unwrap().as_text().unwrap(), "happy birthday");
         let tags = map.get_str("tags").unwrap().as_list().unwrap();
-        let tags_i32 = tags.0.iter().map(|md| md.as_int().unwrap().as_i32().unwrap()).collect::<Vec<i32>>();
+        let tags_i32 = tags.0.iter().map(|md| md.as_int().unwrap().as_i32_or_fail().unwrap()).collect::<Vec<i32>>();
         assert_eq!(tags_i32, vec![0, 264, -1024, 32]);
         let output_str = decode_metadatum_to_json_str(&metadata, MetadataJsonSchema::NoConversions).expect("decode failed");
         let input_json: serde_json::Value = serde_json::from_str(&input_str).unwrap();
@@ -991,11 +996,11 @@ mod tests {
     fn json_encoding_check_example_metadatum(metadata: &TransactionMetadatum) {
         let map = metadata.as_map().unwrap();
         assert_eq!(map.get(&TransactionMetadatum::new_bytes(hex::decode("8badf00d").unwrap()).unwrap()).unwrap().as_bytes().unwrap(), hex::decode("deadbeef").unwrap());
-        assert_eq!(map.get_i32(9).unwrap().as_int().unwrap().as_i32().unwrap(), 5);
+        assert_eq!(map.get_i32(9).unwrap().as_int().unwrap().as_i32_or_fail().unwrap(), 5);
         let inner_map = map.get_str("obj").unwrap().as_map().unwrap();
         let a = inner_map.get_str("a").unwrap().as_list().unwrap();
         let a1 = a.get(0).as_map().unwrap();
-        assert_eq!(a1.get_i32(5).unwrap().as_int().unwrap().as_i32().unwrap(), 2);
+        assert_eq!(a1.get_i32(5).unwrap().as_int().unwrap().as_i32_or_fail().unwrap(), 2);
         let a2 = a.get(1).as_map().unwrap();
         assert_eq!(a2.keys().len(), 0);
     }
@@ -1025,11 +1030,11 @@ mod tests {
 
         let map = metadata.as_map().unwrap();
         let key = map.keys().get(0);
-        assert_eq!(map.get(&key).unwrap().as_int().unwrap().as_i32().unwrap(), 5);
+        assert_eq!(map.get(&key).unwrap().as_int().unwrap().as_i32_or_fail().unwrap(), 5);
         let key_list = key.as_list().unwrap();
         assert_eq!(key_list.len(), 2);
         let key_map = key_list.get(0).as_map().unwrap();
-        assert_eq!(key_map.get_i32(5).unwrap().as_int().unwrap().as_i32().unwrap(), -7);
+        assert_eq!(key_map.get_i32(5).unwrap().as_int().unwrap().as_i32_or_fail().unwrap(), -7);
         assert_eq!(key_map.get_str("hello").unwrap().as_text().unwrap(), "world");
         let key_bytes = key_list.get(1).as_bytes().unwrap();
         assert_eq!(key_bytes, hex::decode("ff00ff00").unwrap());
@@ -1055,7 +1060,7 @@ mod tests {
         assert_eq!(aux_data.to_bytes(), ad1_deser.to_bytes());
         // mary shelley
         let mut native_scripts = NativeScripts::new();
-        native_scripts.add(&NativeScript::new_timelock_start(&TimelockStart::new(20)));
+        native_scripts.add(&NativeScript::new_timelock_start(&TimelockStart::new(20.into())));
         aux_data.set_native_scripts(&native_scripts);
         let ad2_deser = AuxiliaryData::from_bytes(aux_data.to_bytes()).unwrap();
         assert_eq!(aux_data.to_bytes(), ad2_deser.to_bytes());
@@ -1065,5 +1070,11 @@ mod tests {
         aux_data.set_plutus_scripts(&plutus_scripts);
         let ad3_deser = AuxiliaryData::from_bytes(aux_data.to_bytes()).unwrap();
         assert_eq!(aux_data.to_bytes(), ad3_deser.to_bytes());
+    }
+
+    #[test]
+    fn metadatum_map_duplicate_keys() {
+        let bytes = hex::decode("a105a4781b232323232323232323232323232323232323232323232323232323827840232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323237840232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323236e232323232323232323232323232382a36f2323232323232323232323232323236a323030302d30312d303166232323232323784023232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323712323232323232323232323232323232323784023232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323a36f2323232323232323232323232323236a323030302d30312d303166232323232323784023232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323712323232323232323232323232323232323784023232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323752323232323232323232323232323232323232323236a323030302d30312d3031752323232323232323232323232323232323232323236a323030302d30312d3031").unwrap();
+        TransactionMetadatum::from_bytes(bytes).unwrap();
     }
 }

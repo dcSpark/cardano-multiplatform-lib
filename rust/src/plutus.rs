@@ -15,10 +15,19 @@ to_from_bytes!(PlutusScript);
 
 #[wasm_bindgen]
 impl PlutusScript {
+    /**
+     * Creates a new Plutus script from the RAW bytes of the compiled script.
+     * This does NOT include any CBOR encoding around these bytes (e.g. from "cborBytes" in cardano-cli)
+     * If you creating this from those you should use PlutusScript::from_bytes() instead.
+     */
     pub fn new(bytes: Vec<u8>) -> PlutusScript {
         Self(bytes)
     }
 
+    /**
+     * The raw bytes of this compiled Plutus script.
+     * If you need "cborBytes" for cardano-cli use PlutusScript::to_bytes() instead.
+     */
     pub fn bytes(&self) -> Vec<u8> {
         self.0.clone()
     }
@@ -52,7 +61,7 @@ impl PlutusScripts {
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ConstrPlutusData {
-    tag: Int,
+    alternative: BigNum,
     data: PlutusList,
 }
 
@@ -60,56 +69,86 @@ to_from_bytes!(ConstrPlutusData);
 
 #[wasm_bindgen]
 impl ConstrPlutusData {
-    pub fn tag(&self) -> Int {
-        self.tag.clone()
+    pub fn alternative(&self) -> BigNum {
+        self.alternative.clone()
     }
 
     pub fn data(&self) -> PlutusList {
         self.data.clone()
     }
 
-    pub fn new(tag: Int, data: &PlutusList) -> Self {
+    pub fn new(alternative: &BigNum, data: &PlutusList) -> Self {
         Self {
-            tag,
+            alternative: alternative.clone(),
             data: data.clone(),
         }
     }
 }
 
 impl ConstrPlutusData {
-    fn is_tag_compact(tag: i128) -> bool {
-        (tag >= 121 && tag <= 127) || (tag >= 1280 && tag <= 1400)
+    // see: https://github.com/input-output-hk/plutus/blob/1f31e640e8a258185db01fa899da63f9018c0e85/plutus-core/plutus-core/src/PlutusCore/Data.hs#L61
+    // We don't directly serialize the alternative in the tag, instead the scheme is:
+    // - Alternatives 0-6 -> tags 121-127, followed by the arguments in a list
+    // - Alternatives 7-127 -> tags 1280-1400, followed by the arguments in a list
+    // - Any alternatives, including those that don't fit in the above -> tag 102 followed by a list containing
+    //   an unsigned integer for the actual alternative, and then the arguments in a (nested!) list.
+    const GENERAL_FORM_TAG: u64 = 102;
+
+    // None -> needs general tag serialization, not compact
+    fn alternative_to_compact_cbor_tag(alt: u64) -> Option<u64> {
+        if alt <= 6 {
+            Some(121 + alt)
+        } else if alt >= 7 && alt <= 127 {
+            Some(1280 - 7 + alt)
+        } else {
+            None
+        }
     }
 
-    const GENERAL_FORM_TAG: u64 = 102;
+    // None -> General tag(=102) OR Invalid CBOR tag for this scheme
+    fn compact_cbor_tag_to_alternative(cbor_tag: u64) -> Option<u64> {
+        if cbor_tag >= 121 && cbor_tag <= 127 {
+            Some(cbor_tag - 121)
+        } else if cbor_tag >= 1280 && cbor_tag <= 1400 {
+            Some(cbor_tag - 1280 + 7)
+        } else {
+            None
+        }
+    }
 }
+
+const COST_MODEL_OP_COUNT: usize = 166;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct CostModel(std::collections::BTreeMap<String, BigInt>);
+pub struct CostModel(Vec<Int>);
 
 to_from_bytes!(CostModel);
 
 #[wasm_bindgen]
 impl CostModel {
     pub fn new() -> Self {
-        Self(std::collections::BTreeMap::new())
+        let mut costs = Vec::with_capacity(COST_MODEL_OP_COUNT);
+        for _ in 0 .. COST_MODEL_OP_COUNT {
+            costs.push(Int::new_i32(0));
+        }
+        Self(costs)
     }
 
-    pub fn len(&self) -> usize {
-        self.0.len()
+    pub fn set(&mut self, operation: usize, cost: &Int) -> Result<Int, JsError> {
+        if operation >= COST_MODEL_OP_COUNT {
+            return Err(JsError::from_str(&format!("CostModel operation {} out of bounds. Max is {}", operation, COST_MODEL_OP_COUNT)));
+        }
+        let old = self.0[operation].clone();
+        self.0[operation] = cost.clone();
+        Ok(old)
     }
 
-    pub fn insert(&mut self, key: String, value: &BigInt) -> Option<BigInt> {
-        self.0.insert(key, value.clone())
-    }
-
-    pub fn get(&self, key: String) -> Option<BigInt> {
-        self.0.get(&key).map(|v| v.clone())
-    }
-
-    pub fn keys(&self) -> Strings {
-        Strings(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    pub fn get(&self, operation: usize) -> Result<Int, JsError> {
+        if operation >= COST_MODEL_OP_COUNT {
+            return Err(JsError::from_str(&format!("CostModel operation {} out of bounds. Max is {}", operation, COST_MODEL_OP_COUNT)));
+        }
+        Ok(self.0[operation].clone())
     }
 }
 
@@ -139,6 +178,33 @@ impl Costmdls {
 
     pub fn keys(&self) -> Languages {
         Languages(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    }
+
+    pub(crate) fn language_views_encoding(&self) -> Vec<u8> {
+        let mut serializer = Serializer::new_vec();
+        let mut keys_bytes: Vec<(Language, Vec<u8>)> = self.0.iter().map(|(k, _v)| (k.clone(), k.to_bytes())).collect();
+        // keys must be in canonical ordering first
+        keys_bytes.sort_by(|lhs, rhs| match lhs.1.len().cmp(&rhs.1.len()) {
+            std::cmp::Ordering::Equal => lhs.1.cmp(&rhs.1),
+            len_order => len_order,
+        });
+        serializer.write_map(cbor_event::Len::Len(self.0.len() as u64)).unwrap();
+        for (key, key_bytes) in keys_bytes.iter() {
+            serializer.write_bytes(key_bytes).unwrap();
+            let cost_model = self.0.get(&key).unwrap();
+            // Due to a bug in the cardano-node input-output-hk/cardano-ledger-specs/issues/2512
+            // we must use indefinite length serialization in this inner bytestring to match it
+            let mut cost_model_serializer = Serializer::new_vec();
+            cost_model_serializer.write_array(cbor_event::Len::Indefinite).unwrap();
+            for cost in &cost_model.0 {
+                cost.serialize(&mut cost_model_serializer).unwrap();
+            }
+            cost_model_serializer.write_special(cbor_event::Special::Break).unwrap();
+            serializer.write_bytes(cost_model_serializer.finalize()).unwrap();
+        }
+        let out = serializer.finalize();
+        println!("language_views = {}", hex::encode(out.clone()));
+        out
     }
 }
 
@@ -268,7 +334,10 @@ impl PlutusMap {
     }
 
     pub fn keys(&self) -> PlutusList {
-        PlutusList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+        PlutusList {
+            elems: self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>(),
+            definite_encoding: None,
+        }
     }
 }
 
@@ -293,40 +362,54 @@ enum PlutusDataEnum {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct PlutusData(PlutusDataEnum);
-
-const PLUTUS_BYTES_MAX_LEN: usize = 64;
+pub struct PlutusData {
+    datum: PlutusDataEnum,
+    // We should always preserve the original datums when deserialized as this is NOT canonicized
+    // before computing datum hashes. So this field stores the original bytes to re-use.
+    original_bytes: Option<Vec<u8>>,
+}
 
 to_from_bytes!(PlutusData);
 
 #[wasm_bindgen]
 impl PlutusData {
     pub fn new_constr_plutus_data(constr_plutus_data: &ConstrPlutusData) -> Self {
-        Self(PlutusDataEnum::ConstrPlutusData(constr_plutus_data.clone()))
+        Self {
+            datum: PlutusDataEnum::ConstrPlutusData(constr_plutus_data.clone()),
+            original_bytes: None,
+        }
     }
 
     pub fn new_map(map: &PlutusMap) -> Self {
-        Self(PlutusDataEnum::Map(map.clone()))
+        Self {
+            datum: PlutusDataEnum::Map(map.clone()),
+            original_bytes: None,
+        }
     }
 
     pub fn new_list(list: &PlutusList) -> Self {
-        Self(PlutusDataEnum::List(list.clone()))
+        Self {
+            datum: PlutusDataEnum::List(list.clone()),
+            original_bytes: None,
+        }
     }
 
     pub fn new_integer(integer: &BigInt) -> Self {
-        Self(PlutusDataEnum::Integer(integer.clone()))
+        Self {
+            datum: PlutusDataEnum::Integer(integer.clone()),
+            original_bytes: None,
+        }
     }
 
-    pub fn new_bytes(bytes: Vec<u8>) -> Result<PlutusData, JsError> {
-        if bytes.len() > PLUTUS_BYTES_MAX_LEN {
-            Err(JsError::from_str(&format!("Max Plutus bytes too long: {}, max = {}", bytes.len(), PLUTUS_BYTES_MAX_LEN)))
-        } else {
-            Ok(Self(PlutusDataEnum::Bytes(bytes)))
+    pub fn new_bytes(bytes: Vec<u8>) -> Self {
+        Self {
+            datum: PlutusDataEnum::Bytes(bytes),
+            original_bytes: None,
         }
     }
 
     pub fn kind(&self) -> PlutusDataKind {
-        match &self.0 {
+        match &self.datum {
             PlutusDataEnum::ConstrPlutusData(_) => PlutusDataKind::ConstrPlutusData,
             PlutusDataEnum::Map(_) => PlutusDataKind::Map,
             PlutusDataEnum::List(_) => PlutusDataKind::List,
@@ -336,35 +419,35 @@ impl PlutusData {
     }
 
     pub fn as_constr_plutus_data(&self) -> Option<ConstrPlutusData> {
-        match &self.0 {
+        match &self.datum {
             PlutusDataEnum::ConstrPlutusData(x) => Some(x.clone()),
             _ => None,
         }
     }
 
     pub fn as_map(&self) -> Option<PlutusMap> {
-        match &self.0 {
+        match &self.datum {
             PlutusDataEnum::Map(x) => Some(x.clone()),
             _ => None,
         }
     }
 
     pub fn as_list(&self) -> Option<PlutusList> {
-        match &self.0 {
+        match &self.datum {
             PlutusDataEnum::List(x) => Some(x.clone()),
             _ => None,
         }
     }
 
     pub fn as_integer(&self) -> Option<BigInt> {
-        match &self.0 {
+        match &self.datum {
             PlutusDataEnum::Integer(x) => Some(x.clone()),
             _ => None,
         }
     }
 
     pub fn as_bytes(&self) -> Option<Vec<u8>> {
-        match &self.0 {
+        match &self.datum {
             PlutusDataEnum::Bytes(x) => Some(x.clone()),
             _ => None,
         }
@@ -373,24 +456,36 @@ impl PlutusData {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct PlutusList(Vec<PlutusData>);
+pub struct PlutusList {
+    elems: Vec<PlutusData>,
+    // We should always preserve the original datums when deserialized as this is NOT canonicized
+    // before computing datum hashes. This field will default to cardano-cli behavior if None
+    // and will re-use the provided one if deserialized, unless the list is modified.
+    definite_encoding: Option<bool>,
+}
+
+to_from_bytes!(PlutusList);
 
 #[wasm_bindgen]
 impl PlutusList {
     pub fn new() -> Self {
-        Self(Vec::new())
+        Self {
+            elems: Vec::new(),
+            definite_encoding: None,
+        }
     }
 
     pub fn len(&self) -> usize {
-        self.0.len()
+        self.elems.len()
     }
 
     pub fn get(&self, index: usize) -> PlutusData {
-        self.0[index].clone()
+        self.elems[index].clone()
     }
 
     pub fn add(&mut self, elem: &PlutusData) {
-        self.0.push(elem.clone());
+        self.elems.push(elem.clone());
+        self.definite_encoding = None;
     }
 }
 
@@ -474,6 +569,8 @@ impl RedeemerTag {
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Redeemers(Vec<Redeemer>);
+
+to_from_bytes!(Redeemers);
 
 #[wasm_bindgen]
 impl Redeemers {
@@ -575,15 +672,15 @@ impl Deserialize for PlutusScripts {
 // TODO: write tests for this hand-coded implementation?
 impl cbor_event::se::Serialize for ConstrPlutusData {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
-        if Self::is_tag_compact(self.tag.0) {
+        if let Some(compact_tag) = Self::alternative_to_compact_cbor_tag(from_bignum(&self.alternative)) {
             // compact form
-            serializer.write_tag(self.tag.0 as u64)?;
+            serializer.write_tag(compact_tag as u64)?;
             self.data.serialize(serializer)
         } else {
             // general form
             serializer.write_tag(Self::GENERAL_FORM_TAG)?;
             serializer.write_array(cbor_event::Len::Len(2))?;
-            self.tag.serialize(serializer)?;
+            self.alternative.serialize(serializer)?;
             self.data.serialize(serializer)
         }
     }
@@ -592,13 +689,13 @@ impl cbor_event::se::Serialize for ConstrPlutusData {
 impl Deserialize for ConstrPlutusData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let (tag, data) = match raw.tag()? {
+            let (alternative, data) = match raw.tag()? {
                 // general form
                 Self::GENERAL_FORM_TAG => {
                     let len = raw.array()?;
                     let mut read_len = CBORReadLen::new(len);
                     read_len.read_elems(2)?;
-                    let tag = Int::deserialize(raw)?;
+                    let alternative = BigNum::deserialize(raw)?;
                     let data = (|| -> Result<_, DeserializeError> {
                         Ok(PlutusList::deserialize(raw)?)
                     })().map_err(|e| e.annotate("datas"))?;
@@ -609,17 +706,22 @@ impl Deserialize for ConstrPlutusData {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     }
-                    (tag, data)
+                    (alternative, data)
                 },
                 // concise form
-                tag if Self::is_tag_compact(tag.into()) => (Int::new(&to_bignum(tag)), PlutusList::deserialize(raw)?),
-                invalid_tag => return Err(DeserializeFailure::TagMismatch{
-                    found: invalid_tag,
-                    expected: Self::GENERAL_FORM_TAG,
-                }.into()),
+                tag => {
+                    if let Some(alternative) = Self::compact_cbor_tag_to_alternative(tag) {
+                        (to_bignum(alternative), PlutusList::deserialize(raw)?)
+                    } else {
+                        return Err(DeserializeFailure::TagMismatch{
+                            found: tag,
+                            expected: Self::GENERAL_FORM_TAG,
+                        }.into());
+                    }
+                },
             };
             Ok(ConstrPlutusData{
-                tag,
+                alternative,
                 data,
             })
         })().map_err(|e| e.annotate("ConstrPlutusData"))
@@ -628,10 +730,9 @@ impl Deserialize for ConstrPlutusData {
 
 impl cbor_event::se::Serialize for CostModel {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_map(cbor_event::Len::Len(self.0.len() as u64))?;
-        for (key, value) in &self.0 {
-            serializer.write_text(&key)?;
-            value.serialize(serializer)?;
+        serializer.write_array(cbor_event::Len::Len(COST_MODEL_OP_COUNT as u64))?;
+        for cost in &self.0 {
+            cost.serialize(serializer)?;
         }
         Ok(serializer)
     }
@@ -639,23 +740,26 @@ impl cbor_event::se::Serialize for CostModel {
 
 impl Deserialize for CostModel {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let mut table = std::collections::BTreeMap::new();
+        let mut arr = Vec::new();
         (|| -> Result<_, DeserializeError> {
-            let len = raw.map()?;
-            while match len { cbor_event::Len::Len(n) => table.len() < n as usize, cbor_event::Len::Indefinite => true, } {
+            let len = raw.array()?;
+            while match len { cbor_event::Len::Len(n) => arr.len() < n as usize, cbor_event::Len::Indefinite => true, } {
                 if raw.cbor_type()? == CBORType::Special {
                     assert_eq!(raw.special()?, CBORSpecial::Break);
                     break;
                 }
-                let key = String::deserialize(raw)?;
-                let value = BigInt::deserialize(raw)?;
-                if table.insert(key.clone(), value).is_some() {
-                    return Err(DeserializeFailure::DuplicateKey(Key::Str(key)).into());
-                }
+                arr.push(Int::deserialize(raw)?);
+            }
+            if arr.len() != COST_MODEL_OP_COUNT {
+                return Err(DeserializeFailure::OutOfRange{
+                    min: COST_MODEL_OP_COUNT,
+                    max: COST_MODEL_OP_COUNT,
+                    found: arr.len()
+                }.into());
             }
             Ok(())
         })().map_err(|e| e.annotate("CostModel"))?;
-        Ok(Self(table))
+        Ok(Self(arr.try_into().unwrap()))
     }
 }
 
@@ -862,7 +966,7 @@ impl cbor_event::se::Serialize for PlutusDataEnum {
                 x.serialize(serializer)
             },
             PlutusDataEnum::Bytes(x) => {
-                serializer.write_bytes(&x)
+                write_bounded_bytes(serializer, &x)
             },
         }
     }
@@ -901,18 +1005,10 @@ impl Deserialize for PlutusDataEnum {
                 Err(_) => raw.as_mut_ref().seek(SeekFrom::Start(initial_position)).unwrap(),
             };
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                Ok(raw.bytes()?)
+                Ok(read_bounded_bytes(raw)?)
             })(raw)
             {
-                Ok(variant) => if variant.len() <= PLUTUS_BYTES_MAX_LEN {
-                    return Ok(PlutusDataEnum::Bytes(variant));
-                } else {
-                    return Err(DeserializeFailure::OutOfRange{
-                        min: 0,
-                        max: PLUTUS_BYTES_MAX_LEN,
-                        found: variant.len(),
-                    }.into());
-                }
+                Ok(variant) => return Ok(PlutusDataEnum::Bytes(variant)),
                 Err(_) => raw.as_mut_ref().seek(SeekFrom::Start(initial_position)).unwrap(),
             };
             Err(DeserializeError::new("PlutusDataEnum", DeserializeFailure::NoVariantMatched.into()))
@@ -922,21 +1018,47 @@ impl Deserialize for PlutusDataEnum {
 
 impl cbor_event::se::Serialize for PlutusData {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
-        self.0.serialize(serializer)
+        match &self.original_bytes {
+            Some(bytes) => serializer.write_raw_bytes(bytes),
+            None => self.datum.serialize(serializer),
+        }
     }
 }
 
 impl Deserialize for PlutusData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        Ok(Self(PlutusDataEnum::deserialize(raw)?))
+        // these unwraps are fine since we're seeking the current position
+        let before = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+        let datum = PlutusDataEnum::deserialize(raw)?;
+        let after = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+        let bytes_read = (after - before) as usize;
+        raw.as_mut_ref().seek(SeekFrom::Start(before)).unwrap();
+        // these unwraps are fine since we read the above already
+        let original_bytes = raw.as_mut_ref().fill_buf().unwrap()[..bytes_read].to_vec();
+        raw.as_mut_ref().consume(bytes_read);
+        Ok(Self {
+            datum,
+            original_bytes: Some(original_bytes),
+        })
     }
 }
 
 impl cbor_event::se::Serialize for PlutusList {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array(cbor_event::Len::Len(self.0.len() as u64))?;
-        for element in &self.0 {
+        let use_definite_encoding = match self.definite_encoding {
+            Some(definite) => definite,
+            None => self.elems.is_empty(),
+        };
+        if use_definite_encoding {
+            serializer.write_array(cbor_event::Len::Len(self.elems.len() as u64))?;
+        } else {
+            serializer.write_array(cbor_event::Len::Indefinite)?;
+        }
+        for element in &self.elems {
             element.serialize(serializer)?;
+        }
+        if !use_definite_encoding {
+            serializer.write_special(cbor_event::Special::Break)?;
         }
         Ok(serializer)
     }
@@ -945,7 +1067,7 @@ impl cbor_event::se::Serialize for PlutusList {
 impl Deserialize for PlutusList {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let mut arr = Vec::new();
-        (|| -> Result<_, DeserializeError> {
+        let len = (|| -> Result<_, DeserializeError> {
             let len = raw.array()?;
             while match len { cbor_event::Len::Len(n) => arr.len() < n as usize, cbor_event::Len::Indefinite => true, } {
                 if raw.cbor_type()? == CBORType::Special {
@@ -954,9 +1076,12 @@ impl Deserialize for PlutusList {
                 }
                 arr.push(PlutusData::deserialize(raw)?);
             }
-            Ok(())
+            Ok(len)
         })().map_err(|e| e.annotate("PlutusList"))?;
-        Ok(Self(arr))
+        Ok(Self {
+            elems: arr,
+            definite_encoding: Some(len != cbor_event::Len::Indefinite),
+        })
     }
 }
 
@@ -1104,5 +1229,91 @@ impl Deserialize for Strings {
             Ok(())
         })().map_err(|e| e.annotate("Strings"))?;
         Ok(Self(arr))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hex::*;
+
+    #[test]
+    pub fn plutus_constr_data() {
+        let constr_0 = PlutusData::new_constr_plutus_data(
+            &ConstrPlutusData::new(&to_bignum(0), &PlutusList::new())
+        );
+        let constr_0_hash = hex::encode(hash_plutus_data(&constr_0).to_bytes());
+        assert_eq!(constr_0_hash, "923918e403bf43c34b4ef6b48eb2ee04babed17320d8d1b9ff9ad086e86f44ec");
+        let constr_0_roundtrip = PlutusData::from_bytes(constr_0.to_bytes()).unwrap();
+        // TODO: do we want semantic equality or bytewise equality?
+        //assert_eq!(constr_0, constr_0_roundtrip);
+        let constr_1854 = PlutusData::new_constr_plutus_data(
+            &ConstrPlutusData::new(&to_bignum(1854), &PlutusList::new())
+        );
+        let constr_1854_roundtrip = PlutusData::from_bytes(constr_1854.to_bytes()).unwrap();
+        //assert_eq!(constr_1854, constr_1854_roundtrip);
+    }
+
+    #[test]
+    pub fn plutus_list_serialization_cli_compatibility() {
+        // mimic cardano-cli array encoding, see https://github.com/Emurgo/cardano-serialization-lib/issues/227
+        let datum_cli = "d8799f4100d8799fd8799fd8799f581cffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd8799fd8799fd8799f581cffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd87a80ff1a002625a0d8799fd879801a000f4240d87a80ffff";
+        let datum = PlutusData::from_bytes(Vec::from_hex(datum_cli).unwrap()).unwrap();
+        assert_eq!(datum_cli, hex::encode(datum.to_bytes()));
+
+        // encode empty arrays as fixed
+        assert_eq!("80", hex::encode(PlutusList::new().to_bytes()));
+
+        // encode arrays as indefinite length array
+        let mut list = PlutusList::new();
+        list.add(&PlutusData::new_integer(&BigInt::from_str("1").unwrap()));
+        assert_eq!("9f01ff", hex::encode(list.to_bytes()));
+
+        // witness_set should have fixed length array
+        let mut witness_set = TransactionWitnessSet::new();
+        witness_set.set_plutus_data(&list);
+        assert_eq!("a1049f01ff", hex::encode(witness_set.to_bytes()));
+
+        list = PlutusList::new();
+        list.add(&datum);
+        witness_set.set_plutus_data(&list);
+        assert_eq!(format!("a1049f{}ff", datum_cli), hex::encode(witness_set.to_bytes()));
+    }
+
+    #[test]
+    pub fn plutus_datums_respect_deserialized_encoding() {
+        let orig_bytes = Vec::from_hex("81d8799f581ce1cbb80db89e292269aeb93ec15eb963dda5176b66949fe1c2a6a38da140a1401864ff").unwrap();
+        let datums = PlutusList::from_bytes(orig_bytes.clone()).unwrap();
+        let new_bytes = datums.to_bytes();
+        assert_eq!(orig_bytes, new_bytes);
+    }
+
+    #[test]
+    pub fn test_cost_model() {
+        let arr = vec![
+            197209, 0, 1, 1, 396231, 621, 0, 1, 150000, 1000, 0, 1, 150000, 32,
+            2477736, 29175, 4, 29773, 100, 29773, 100, 29773, 100, 29773, 100, 29773,
+            100, 29773, 100, 100, 100, 29773, 100, 150000, 32, 150000, 32, 150000, 32,
+            150000, 1000, 0, 1, 150000, 32, 150000, 1000, 0, 8, 148000, 425507, 118,
+            0, 1, 1, 150000, 1000, 0, 8, 150000, 112536, 247, 1, 150000, 10000, 1,
+            136542, 1326, 1, 1000, 150000, 1000, 1, 150000, 32, 150000, 32, 150000,
+            32, 1, 1, 150000, 1, 150000, 4, 103599, 248, 1, 103599, 248, 1, 145276,
+            1366, 1, 179690, 497, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32,
+            150000, 32, 150000, 32, 148000, 425507, 118, 0, 1, 1, 61516, 11218, 0, 1,
+            150000, 32, 148000, 425507, 118, 0, 1, 1, 148000, 425507, 118, 0, 1, 1,
+            2477736, 29175, 4, 0, 82363, 4, 150000, 5000, 0, 1, 150000, 32, 197209, 0,
+            1, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000,
+            32, 150000, 32, 3345831, 1, 1,
+        ];
+        let cm = arr.iter().fold((CostModel::new(), 0), |(mut cm, i), x| {
+            cm.set(i, &Int::new_i32(x.clone()));
+            (cm, i + 1)
+        }).0;
+        let mut cms = Costmdls::new();
+        cms.insert(&Language::new_plutus_v1(), &cm);
+        assert_eq!(
+            hex::encode(cms.language_views_encoding()),
+            "a141005901d59f1a000302590001011a00060bc719026d00011a000249f01903e800011a000249f018201a0025cea81971f70419744d186419744d186419744d186419744d186419744d186419744d18641864186419744d18641a000249f018201a000249f018201a000249f018201a000249f01903e800011a000249f018201a000249f01903e800081a000242201a00067e2318760001011a000249f01903e800081a000249f01a0001b79818f7011a000249f0192710011a0002155e19052e011903e81a000249f01903e8011a000249f018201a000249f018201a000249f0182001011a000249f0011a000249f0041a000194af18f8011a000194af18f8011a0002377c190556011a0002bdea1901f1011a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000242201a00067e23187600010119f04c192bd200011a000249f018201a000242201a00067e2318760001011a000242201a00067e2318760001011a0025cea81971f704001a000141bb041a000249f019138800011a000249f018201a000302590001011a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a00330da70101ff"
+        );
     }
 }

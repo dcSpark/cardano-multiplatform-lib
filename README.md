@@ -1,21 +1,21 @@
-# Cardano Serialization Lib
+# Cardano Multiplatform Lib
 
-This is a library, written in Rust, for serialization & deserialization of data structures used in Cardano's Haskell implementation of Alonzo along with useful utility functions.
+This is a library, written in Rust, that can be deployed to multiple platforms (Rust crate, JS, Typescript, WASM, etc). It handles:
+- Serialization & deserialization of core data structures
+- Useful utility functions for dApps & wallets
 
 ##### NPM packages
 
-- [NodeJS WASM package](https://www.npmjs.com/package/@emurgo/cardano-serialization-lib-nodejs)
-- [Browser (chrome/firefox) WASM package](https://www.npmjs.com/package/@emurgo/cardano-serialization-lib-browser)
-- [Browser (pure JS - no WASM) ASM.js package](https://www.npmjs.com/package/@emurgo/cardano-serialization-lib-asmjs)
+TODO
 
 ##### Rust crates
 
-- [cardano-serialization-lib](https://crates.io/crates/cardano-serialization-lib)
+TODO
 
 ##### Mobile bindings
 
-- [React-Native mobile bindings](https://github.com/Emurgo/react-native-haskell-shelley)
+We recommend using Ionic + Capacitor or an equivalent setup to have the WASM bindings working in mobile
 
 ## Documentation
 
-You can find documentation [here](https://docs.cardano.org/cardano-components/cardano-serialization-lib)
+TODO

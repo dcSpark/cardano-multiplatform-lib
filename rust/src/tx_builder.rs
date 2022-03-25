@@ -64,7 +64,7 @@ fn count_needed_vkeys(tx_builder: &TransactionBuilder) -> usize {
     match &tx_builder.native_scripts {
         None => input_hashes.len(),
         Some(scripts) => {
-            // Union all input keys with minting keys
+            // Union all input keys with native script keys
             input_hashes.union(&RequiredSignersSet::from(scripts)).count()
         }
     }
@@ -784,8 +784,8 @@ impl TransactionBuilder {
         self.mint.clone()
     }
 
-    /// Returns a copy of the current mint witness scripts in the builder
-    pub fn get_mint_scripts(&self) -> Option<NativeScripts> {
+    /// Returns a copy of the current witness native scripts in the builder
+    pub fn get_native_scripts(&self) -> Option<NativeScripts> {
         self.native_scripts.clone()
     }
 

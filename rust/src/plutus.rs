@@ -15,6 +15,10 @@ to_from_bytes!(PlutusScript);
 
 #[wasm_bindgen]
 impl PlutusScript {
+    pub fn hash(&self, namespace: ScriptHashNamespace) -> ScriptHash {
+        hash_script(namespace, self.to_bytes())
+    }
+
     /**
      * Creates a new Plutus script from the RAW bytes of the compiled script.
      * This does NOT include any CBOR encoding around these bytes (e.g. from "cborBytes" in cardano-cli)
@@ -35,7 +39,7 @@ impl PlutusScript {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct PlutusScripts(Vec<PlutusScript>);
+pub struct PlutusScripts(pub (crate) Vec<PlutusScript>);
 
 to_from_bytes!(PlutusScripts);
 
@@ -267,6 +271,7 @@ impl ExUnits {
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum LanguageKind {
     PlutusV1,
+    PlutusV2,
 }
 
 #[wasm_bindgen]
@@ -279,6 +284,10 @@ to_from_bytes!(Language);
 impl Language {
     pub fn new_plutus_v1() -> Self {
         Self(LanguageKind::PlutusV1)
+    }
+
+    pub fn new_plutus_v2() -> Self {
+        Self(LanguageKind::PlutusV2)
     }
 
     pub fn kind(&self) -> LanguageKind {
@@ -457,11 +466,11 @@ impl PlutusData {
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct PlutusList {
-    elems: Vec<PlutusData>,
+    pub(crate) elems: Vec<PlutusData>,
     // We should always preserve the original datums when deserialized as this is NOT canonicized
     // before computing datum hashes. This field will default to cardano-cli behavior if None
     // and will re-use the provided one if deserialized, unless the list is modified.
-    definite_encoding: Option<bool>,
+    pub(crate) definite_encoding: Option<bool>,
 }
 
 to_from_bytes!(PlutusList);
@@ -529,7 +538,7 @@ impl Redeemer {
 }
 
 #[wasm_bindgen]
-#[derive(Copy, Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Hash)]
 pub enum RedeemerTagKind {
     Spend,
     Mint,
@@ -538,7 +547,7 @@ pub enum RedeemerTagKind {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Hash)]
 pub struct RedeemerTag(RedeemerTagKind);
 
 to_from_bytes!(RedeemerTag);
@@ -568,7 +577,7 @@ impl RedeemerTag {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Redeemers(Vec<Redeemer>);
+pub struct Redeemers(pub (crate) Vec<Redeemer>);
 
 to_from_bytes!(Redeemers);
 
@@ -873,6 +882,9 @@ impl cbor_event::se::Serialize for Language {
         match self.0 {
             LanguageKind::PlutusV1 => {
                 serializer.write_unsigned_integer(0u64)
+            },
+            LanguageKind::PlutusV2 => {
+                serializer.write_unsigned_integer(1u64)
             },
         }
     }

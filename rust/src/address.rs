@@ -469,6 +469,41 @@ impl Address {
             AddrType::Byron(a) => a.network_id(),
         }
     }
+
+    pub fn as_byron(&self) -> Option<ByronAddress> {
+        match &self.0 {
+            AddrType::Byron(a) => Some(a.clone()),
+            _ => None
+        }
+    }
+
+    pub fn as_reward(&self) -> Option<RewardAddress> {
+        match &self.0 {
+            AddrType::Reward(a) => Some(a.clone()),
+            _ => None
+        }
+    }
+
+    pub fn as_pointer(&self) -> Option<PointerAddress> {
+        match &self.0 {
+            AddrType::Ptr(a) => Some(a.clone()),
+            _ => None
+        }
+    }
+
+    pub fn as_enterprise(&self) -> Option<EnterpriseAddress> {
+        match &self.0 {
+            AddrType::Enterprise(a) => Some(a.clone()),
+            _ => None
+        }
+    }
+
+    pub fn as_base(&self) -> Option<BaseAddress> {
+        match &self.0 {
+            AddrType::Base(a) => Some(a.clone()),
+            _ => None
+        }
+    }
 }
 
 impl cbor_event::se::Serialize for Address {

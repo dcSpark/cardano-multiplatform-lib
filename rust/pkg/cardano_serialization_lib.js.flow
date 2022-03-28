@@ -376,6 +376,31 @@ declare export class Address {
    * @returns {number}
    */
   network_id(): number;
+
+  /**
+   * @returns {ByronAddress | void}
+   */
+  as_byron(): ByronAddress | void;
+
+  /**
+   * @returns {RewardAddress | void}
+   */
+  as_reward(): RewardAddress | void;
+
+  /**
+   * @returns {PointerAddress | void}
+   */
+  as_pointer(): PointerAddress | void;
+
+  /**
+   * @returns {EnterpriseAddress | void}
+   */
+  as_enterprise(): EnterpriseAddress | void;
+
+  /**
+   * @returns {BaseAddress | void}
+   */
+  as_base(): BaseAddress | void;
 }
 /**
  */

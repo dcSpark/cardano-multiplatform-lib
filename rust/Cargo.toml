@@ -1,12 +1,12 @@
 [package]
-name = "cardano-serialization-lib"
+name = "cardano-multiplatform-lib"
 version = "10.0.4"
 edition = "2018"
-authors = ["EMURGO"]
+authors = ["dcSpark"]
 license = "MIT"
 description = "(De)serialization functions for the Cardano blockchain along with related utility functions"
-documentation = "https://docs.cardano.org/cardano-components/cardano-serialization-lib"
-repository = "https://github.com/Emurgo/cardano-serialization-lib"
+documentation = "https://github.com/dcSpark/cardano-multiplatform-lib/doc"
+repository = "https://github.com/dcSpark/cardano-multiplatform-lib"
 readme="../README.md"
 exclude = [
     "pkg/*",

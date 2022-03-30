@@ -1,4 +1,4 @@
-Cardano Serialization Lib
+Cardano Multiplatform Lib
 =========================
 
 This is a library for serialization & deserialization of data structures
@@ -28,7 +28,7 @@ Benefits of using this library
 
 Serialization/deserialization code is automatically generated from
 Cardano’s official specification, which guarantees it can easily stay up
-to date! We do this using an EMURGO-written tool called `cddl-codegen`_
+to date! We do this using a tool managed by EMURGO & dcSpark called `cddl-codegen`_
 which can be re-used for other tasks such as automatically generate a
 Rust library for Cardano metadata specifications!
 
@@ -109,7 +109,7 @@ To publish a new version to [crates.io](https://crates.io)
 
    npm run rust:publish
 
-.. _Crates package: https://crates.io/crates/cardano-serialization-lib
+.. _Crates package: https://crates.io/crates/cardano-multiplatform-lib
 
 To publish new versions to NPM (only needed if you are an admin of this project)
 ::
@@ -118,14 +118,13 @@ To publish new versions to NPM (only needed if you are an admin of this project)
    npm run js:publish-browser
    npm run js:publish-asm
 
-.. _NodeJS WASM package: https://www.npmjs.com/package/@emurgo/cardano-serialization-lib-nodejs
-.. _Browser (chrome/firefox) WASM package: https://www.npmjs.com/package/@emurgo/cardano-serialization-lib-browser
-.. _Browser (pure JS - no WASM) ASM.js package: https://www.npmjs.com/package/@emurgo/cardano-serialization-lib-asmjs
-.. _React-Native mobile bindings: https://github.com/Emurgo/react-native-haskell-shelley
+.. _NodeJS WASM package: https://www.npmjs.com/package/@dcSpark/cardano-multiplatform-lib-nodejs
+.. _Browser (chrome/firefox) WASM package: https://www.npmjs.com/package/@dcSpark/cardano-multiplatform-lib-browser
+.. _Browser (pure JS - no WASM) ASM.js package: https://www.npmjs.com/package/@dcSpark/cardano-multiplatform-lib-asmjs
 .. _cddl-codegen: https://github.com/Emurgo/cddl-codegen
 .. _Typescript: https://www.typescriptlang.org/
 .. _Flow: https://flow.org/
-.. _here: /rust/pkg/cardano_serialization_lib.js.flow
+.. _here: /rust/pkg/cardano_multiplatform_lib.js.flow
 .. _example: /example
 .. _Byron WASM bindings: https://github.com/input-output-hk/js-cardano-wasm/tree/master/cardano-wallet
 .. _Jormungandr WASM bindings: https://github.com/emurgo/js-chain-libs

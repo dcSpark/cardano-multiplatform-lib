@@ -1,8 +1,8 @@
 const fs = require('fs')
 
 const paths = [
-  './rust/pkg/cardano_serialization_lib_bg.js',
-  './rust/pkg/cardano_serialization_lib.js'
+  './rust/pkg/cardano_multiplatform_lib_bg.js',
+  './rust/pkg/cardano_multiplatform_lib.js'
 ]
 
 paths.forEach((path) => {
@@ -19,4 +19,4 @@ paths.forEach((path) => {
   });
 })
 
-fs.unlinkSync('./rust/pkg/cardano_serialization_lib_bg.wasm')
+fs.unlinkSync('./rust/pkg/cardano_multiplatformn_lib_bg.wasm')

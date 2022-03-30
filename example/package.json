@@ -1,5 +1,5 @@
 {
-  "name": "cardano-serialization-lib-example",
+  "name": "cardano-multiplatform-lib-example",
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
@@ -12,15 +12,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Emurgo/cardano-serialization-lib.git"
+    "url": "git+https://github.com/dcSpark/cardano-multiplatform-lib.git"
   },
-  "author": "EMURGO",
+  "author": "dcSpark",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Emurgo/cardano-serialization-lib/issues"
+    "url": "https://github.com/dcSpark/cardano-multiplatform-lib/issues"
   },
   "type": "module",
-  "homepage": "https://github.com/Emurgo/cardano-serialization-lib#readme",
+  "homepage": "https://github.com/dcSpark/cardano-multiplatform-lib#readme",
   "dependencies": {},
   "devDependencies": {
     "@types/chai": "4.2.11",

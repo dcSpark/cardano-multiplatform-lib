@@ -361,9 +361,9 @@ declare export class Address {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {AddressJSON}
    */
-  to_js_value(): any;
+  to_js_value(): AddressJSON;
 
   /**
    * @param {string} json
@@ -440,9 +440,9 @@ declare export class AssetName {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {AssetNameJSON}
    */
-  to_js_value(): any;
+  to_js_value(): AssetNameJSON;
 
   /**
    * @param {string} json
@@ -483,9 +483,9 @@ declare export class AssetNames {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {AssetNamesJSON}
    */
-  to_js_value(): any;
+  to_js_value(): AssetNamesJSON;
 
   /**
    * @param {string} json
@@ -536,9 +536,9 @@ declare export class Assets {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {AssetsJSON}
    */
-  to_js_value(): any;
+  to_js_value(): AssetsJSON;
 
   /**
    * @param {string} json
@@ -596,9 +596,9 @@ declare export class AuxiliaryData {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {AuxiliaryDataJSON}
    */
-  to_js_value(): any;
+  to_js_value(): AuxiliaryDataJSON;
 
   /**
    * @param {string} json
@@ -1040,9 +1040,9 @@ declare export class Block {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {BlockJSON}
    */
-  to_js_value(): any;
+  to_js_value(): BlockJSON;
 
   /**
    * @param {string} json
@@ -1152,9 +1152,9 @@ declare export class BootstrapWitness {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {BootstrapWitnessJSON}
    */
-  to_js_value(): any;
+  to_js_value(): BootstrapWitnessJSON;
 
   /**
    * @param {string} json
@@ -1315,9 +1315,9 @@ declare export class Certificate {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {CertificateJSON}
    */
-  to_js_value(): any;
+  to_js_value(): CertificateJSON;
 
   /**
    * @param {string} json
@@ -1439,9 +1439,9 @@ declare export class Certificates {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {CertificatesJSON}
    */
-  to_js_value(): any;
+  to_js_value(): CertificatesJSON;
 
   /**
    * @param {string} json
@@ -1735,9 +1735,9 @@ declare export class Ed25519KeyHashes {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {Ed25519KeyHashesJSON}
    */
-  to_js_value(): any;
+  to_js_value(): Ed25519KeyHashesJSON;
 
   /**
    * @param {string} json
@@ -1920,9 +1920,9 @@ declare export class GeneralTransactionMetadata {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {GeneralTransactionMetadataJSON}
    */
-  to_js_value(): any;
+  to_js_value(): GeneralTransactionMetadataJSON;
 
   /**
    * @param {string} json
@@ -2058,9 +2058,9 @@ declare export class GenesisHashes {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {GenesisHashesJSON}
    */
-  to_js_value(): any;
+  to_js_value(): GenesisHashesJSON;
 
   /**
    * @param {string} json
@@ -2111,9 +2111,9 @@ declare export class GenesisKeyDelegation {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {GenesisKeyDelegationJSON}
    */
-  to_js_value(): any;
+  to_js_value(): GenesisKeyDelegationJSON;
 
   /**
    * @param {string} json
@@ -2170,9 +2170,9 @@ declare export class Header {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {HeaderJSON}
    */
-  to_js_value(): any;
+  to_js_value(): HeaderJSON;
 
   /**
    * @param {string} json
@@ -2219,9 +2219,9 @@ declare export class HeaderBody {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {HeaderBodyJSON}
    */
-  to_js_value(): any;
+  to_js_value(): HeaderBodyJSON;
 
   /**
    * @param {string} json
@@ -2419,9 +2419,9 @@ declare export class Ipv4 {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {Ipv4JSON}
    */
-  to_js_value(): any;
+  to_js_value(): Ipv4JSON;
 
   /**
    * @param {string} json
@@ -2462,9 +2462,9 @@ declare export class Ipv6 {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {Ipv6JSON}
    */
-  to_js_value(): any;
+  to_js_value(): Ipv6JSON;
 
   /**
    * @param {string} json
@@ -2660,9 +2660,9 @@ declare export class MIRToStakeCredentials {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {MIRToStakeCredentialsJSON}
    */
-  to_js_value(): any;
+  to_js_value(): MIRToStakeCredentialsJSON;
 
   /**
    * @param {string} json
@@ -2842,9 +2842,9 @@ declare export class Mint {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {MintJSON}
    */
-  to_js_value(): any;
+  to_js_value(): MintJSON;
 
   /**
    * @param {string} json
@@ -2961,9 +2961,9 @@ declare export class MoveInstantaneousReward {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {MoveInstantaneousRewardJSON}
    */
-  to_js_value(): any;
+  to_js_value(): MoveInstantaneousRewardJSON;
 
   /**
    * @param {string} json
@@ -3030,9 +3030,9 @@ declare export class MoveInstantaneousRewardsCert {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {MoveInstantaneousRewardsCertJSON}
    */
-  to_js_value(): any;
+  to_js_value(): MoveInstantaneousRewardsCertJSON;
 
   /**
    * @param {string} json
@@ -3075,9 +3075,9 @@ declare export class MultiAsset {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {MultiAssetJSON}
    */
-  to_js_value(): any;
+  to_js_value(): MultiAssetJSON;
 
   /**
    * @param {string} json
@@ -3170,9 +3170,9 @@ declare export class MultiHostName {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {MultiHostNameJSON}
    */
-  to_js_value(): any;
+  to_js_value(): MultiHostNameJSON;
 
   /**
    * @param {string} json
@@ -3213,9 +3213,9 @@ declare export class NativeScript {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {NativeScriptJSON}
    */
-  to_js_value(): any;
+  to_js_value(): NativeScriptJSON;
 
   /**
    * @param {string} json
@@ -3356,9 +3356,9 @@ declare export class NetworkId {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {NetworkIdJSON}
    */
-  to_js_value(): any;
+  to_js_value(): NetworkIdJSON;
 
   /**
    * @param {string} json
@@ -3467,9 +3467,9 @@ declare export class OperationalCert {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {OperationalCertJSON}
    */
-  to_js_value(): any;
+  to_js_value(): OperationalCertJSON;
 
   /**
    * @param {string} json
@@ -3833,9 +3833,9 @@ declare export class PoolMetadata {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {PoolMetadataJSON}
    */
-  to_js_value(): any;
+  to_js_value(): PoolMetadataJSON;
 
   /**
    * @param {string} json
@@ -3921,9 +3921,9 @@ declare export class PoolParams {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {PoolParamsJSON}
    */
-  to_js_value(): any;
+  to_js_value(): PoolParamsJSON;
 
   /**
    * @param {string} json
@@ -4022,9 +4022,9 @@ declare export class PoolRegistration {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {PoolRegistrationJSON}
    */
-  to_js_value(): any;
+  to_js_value(): PoolRegistrationJSON;
 
   /**
    * @param {string} json
@@ -4065,9 +4065,9 @@ declare export class PoolRetirement {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {PoolRetirementJSON}
    */
-  to_js_value(): any;
+  to_js_value(): PoolRetirementJSON;
 
   /**
    * @param {string} json
@@ -4176,9 +4176,9 @@ declare export class ProposedProtocolParameterUpdates {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {ProposedProtocolParameterUpdatesJSON}
    */
-  to_js_value(): any;
+  to_js_value(): ProposedProtocolParameterUpdatesJSON;
 
   /**
    * @param {string} json
@@ -4239,9 +4239,9 @@ declare export class ProtocolParamUpdate {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {ProtocolParamUpdateJSON}
    */
-  to_js_value(): any;
+  to_js_value(): ProtocolParamUpdateJSON;
 
   /**
    * @param {string} json
@@ -4516,9 +4516,9 @@ declare export class ProtocolVersion {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {ProtocolVersionJSON}
    */
-  to_js_value(): any;
+  to_js_value(): ProtocolVersionJSON;
 
   /**
    * @param {string} json
@@ -4785,9 +4785,9 @@ declare export class Relay {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {RelayJSON}
    */
-  to_js_value(): any;
+  to_js_value(): RelayJSON;
 
   /**
    * @param {string} json
@@ -4855,9 +4855,9 @@ declare export class Relays {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {RelaysJSON}
    */
-  to_js_value(): any;
+  to_js_value(): RelaysJSON;
 
   /**
    * @param {string} json
@@ -5021,9 +5021,9 @@ declare export class RewardAddresses {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {RewardAddressesJSON}
    */
-  to_js_value(): any;
+  to_js_value(): RewardAddressesJSON;
 
   /**
    * @param {string} json
@@ -5074,9 +5074,9 @@ declare export class ScriptAll {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {ScriptAllJSON}
    */
-  to_js_value(): any;
+  to_js_value(): ScriptAllJSON;
 
   /**
    * @param {string} json
@@ -5117,9 +5117,9 @@ declare export class ScriptAny {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {ScriptAnyJSON}
    */
-  to_js_value(): any;
+  to_js_value(): ScriptAnyJSON;
 
   /**
    * @param {string} json
@@ -5238,9 +5238,9 @@ declare export class ScriptHashes {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {ScriptHashesJSON}
    */
-  to_js_value(): any;
+  to_js_value(): ScriptHashesJSON;
 
   /**
    * @param {string} json
@@ -5291,9 +5291,9 @@ declare export class ScriptNOfK {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {ScriptNOfKJSON}
    */
-  to_js_value(): any;
+  to_js_value(): ScriptNOfKJSON;
 
   /**
    * @param {string} json
@@ -5340,9 +5340,9 @@ declare export class ScriptPubkey {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {ScriptPubkeyJSON}
    */
-  to_js_value(): any;
+  to_js_value(): ScriptPubkeyJSON;
 
   /**
    * @param {string} json
@@ -5383,9 +5383,9 @@ declare export class SingleHostAddr {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {SingleHostAddrJSON}
    */
-  to_js_value(): any;
+  to_js_value(): SingleHostAddrJSON;
 
   /**
    * @param {string} json
@@ -5438,9 +5438,9 @@ declare export class SingleHostName {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {SingleHostNameJSON}
    */
-  to_js_value(): any;
+  to_js_value(): SingleHostNameJSON;
 
   /**
    * @param {string} json
@@ -5514,9 +5514,9 @@ declare export class StakeCredential {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {StakeCredentialJSON}
    */
-  to_js_value(): any;
+  to_js_value(): StakeCredentialJSON;
 
   /**
    * @param {string} json
@@ -5546,9 +5546,9 @@ declare export class StakeCredentials {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {StakeCredentialsJSON}
    */
-  to_js_value(): any;
+  to_js_value(): StakeCredentialsJSON;
 
   /**
    * @param {string} json
@@ -5599,9 +5599,9 @@ declare export class StakeDelegation {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {StakeDelegationJSON}
    */
-  to_js_value(): any;
+  to_js_value(): StakeDelegationJSON;
 
   /**
    * @param {string} json
@@ -5651,9 +5651,9 @@ declare export class StakeDeregistration {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {StakeDeregistrationJSON}
    */
-  to_js_value(): any;
+  to_js_value(): StakeDeregistrationJSON;
 
   /**
    * @param {string} json
@@ -5694,9 +5694,9 @@ declare export class StakeRegistration {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {StakeRegistrationJSON}
    */
-  to_js_value(): any;
+  to_js_value(): StakeRegistrationJSON;
 
   /**
    * @param {string} json
@@ -5763,9 +5763,9 @@ declare export class TimelockExpiry {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {TimelockExpiryJSON}
    */
-  to_js_value(): any;
+  to_js_value(): TimelockExpiryJSON;
 
   /**
    * @param {string} json
@@ -5806,9 +5806,9 @@ declare export class TimelockStart {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {TimelockStartJSON}
    */
-  to_js_value(): any;
+  to_js_value(): TimelockStartJSON;
 
   /**
    * @param {string} json
@@ -5849,9 +5849,9 @@ declare export class Transaction {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {TransactionJSON}
    */
-  to_js_value(): any;
+  to_js_value(): TransactionJSON;
 
   /**
    * @param {string} json
@@ -5918,9 +5918,9 @@ declare export class TransactionBodies {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {TransactionBodiesJSON}
    */
-  to_js_value(): any;
+  to_js_value(): TransactionBodiesJSON;
 
   /**
    * @param {string} json
@@ -5971,9 +5971,9 @@ declare export class TransactionBody {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {TransactionBodyJSON}
    */
-  to_js_value(): any;
+  to_js_value(): TransactionBodyJSON;
 
   /**
    * @param {string} json
@@ -6580,9 +6580,9 @@ declare export class TransactionInput {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {TransactionInputJSON}
    */
-  to_js_value(): any;
+  to_js_value(): TransactionInputJSON;
 
   /**
    * @param {string} json
@@ -6629,9 +6629,9 @@ declare export class TransactionInputs {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {TransactionInputsJSON}
    */
-  to_js_value(): any;
+  to_js_value(): TransactionInputsJSON;
 
   /**
    * @param {string} json
@@ -6795,9 +6795,9 @@ declare export class TransactionOutput {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {TransactionOutputJSON}
    */
-  to_js_value(): any;
+  to_js_value(): TransactionOutputJSON;
 
   /**
    * @param {string} json
@@ -6928,9 +6928,9 @@ declare export class TransactionOutputs {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {TransactionOutputsJSON}
    */
-  to_js_value(): any;
+  to_js_value(): TransactionOutputsJSON;
 
   /**
    * @param {string} json
@@ -7043,9 +7043,9 @@ declare export class TransactionWitnessSet {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {TransactionWitnessSetJSON}
    */
-  to_js_value(): any;
+  to_js_value(): TransactionWitnessSetJSON;
 
   /**
    * @param {string} json
@@ -7196,9 +7196,9 @@ declare export class TransactionWitnessSets {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {TransactionWitnessSetsJSON}
    */
-  to_js_value(): any;
+  to_js_value(): TransactionWitnessSetsJSON;
 
   /**
    * @param {string} json
@@ -7276,9 +7276,9 @@ declare export class UnitInterval {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {UnitIntervalJSON}
    */
-  to_js_value(): any;
+  to_js_value(): UnitIntervalJSON;
 
   /**
    * @param {string} json
@@ -7325,9 +7325,9 @@ declare export class Update {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {UpdateJSON}
    */
-  to_js_value(): any;
+  to_js_value(): UpdateJSON;
 
   /**
    * @param {string} json
@@ -7377,9 +7377,9 @@ declare export class VRFCert {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {VRFCertJSON}
    */
-  to_js_value(): any;
+  to_js_value(): VRFCertJSON;
 
   /**
    * @param {string} json
@@ -7504,9 +7504,9 @@ declare export class Value {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {ValueJSON}
    */
-  to_js_value(): any;
+  to_js_value(): ValueJSON;
 
   /**
    * @param {string} json
@@ -7656,9 +7656,9 @@ declare export class Vkeywitness {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {VkeywitnessJSON}
    */
-  to_js_value(): any;
+  to_js_value(): VkeywitnessJSON;
 
   /**
    * @param {string} json
@@ -7731,9 +7731,9 @@ declare export class Withdrawals {
   to_json(): string;
 
   /**
-   * @returns {any}
+   * @returns {WithdrawalsJSON}
    */
-  to_js_value(): any;
+  to_js_value(): WithdrawalsJSON;
 
   /**
    * @param {string} json
@@ -7768,4 +7768,482 @@ declare export class Withdrawals {
    * @returns {RewardAddresses}
    */
   keys(): RewardAddresses;
+}
+export type AddressJSON = string;
+export type AssetNameJSON = string;
+export type AssetNamesJSON = string[];
+export interface AssetsJSON {
+  [k: string]: string;
+}
+export interface AuxiliaryDataJSON {
+  metadata?: {
+    [k: string]: string,
+    ...
+  } | null;
+  native_scripts?: NativeScriptsJSON | null;
+  plutus_scripts?: PlutusScriptsJSON | null;
+}
+export type AuxiliaryDataHashJSON = string;
+export interface AuxiliaryDataSetJSON {
+  [k: string]: AuxiliaryDataJSON;
+}
+export type BigIntJSON = string;
+export type BigNumJSON = string;
+export interface BlockJSON {
+  auxiliary_data_set: {
+    [k: string]: AuxiliaryDataJSON,
+    ...
+  };
+  header: HeaderJSON;
+  invalid_transactions: number[];
+  transaction_bodies: TransactionBodiesJSON;
+  transaction_witness_sets: TransactionWitnessSetsJSON;
+}
+export type BlockHashJSON = string;
+export interface BootstrapWitnessJSON {
+  attributes: number[];
+  chain_code: number[];
+  signature: string;
+  vkey: VkeyJSON;
+}
+export type BootstrapWitnessesJSON = BootstrapWitnessJSON[];
+export type CertificateJSON = CertificateEnumJSON;
+export type CertificateEnumJSON =
+  | {
+      StakeRegistrationJSON: StakeRegistration,
+      ...
+    }
+  | {
+      StakeDeregistrationJSON: StakeDeregistration,
+      ...
+    }
+  | {
+      StakeDelegationJSON: StakeDelegation,
+      ...
+    }
+  | {
+      PoolRegistrationJSON: PoolRegistration,
+      ...
+    }
+  | {
+      PoolRetirementJSON: PoolRetirement,
+      ...
+    }
+  | {
+      GenesisKeyDelegationJSON: GenesisKeyDelegation,
+      ...
+    }
+  | {
+      MoveInstantaneousRewardsCertJSON: MoveInstantaneousRewardsCert,
+      ...
+    };
+export type CertificatesJSON = CertificateJSON[];
+export interface ConstrPlutusDataJSON {
+  alternative: string;
+  data: PlutusListJSON;
+}
+export type CostModelJSON = string[];
+export interface CostmdlsJSON {
+  [k: string]: CostModelJSON;
+}
+export type DNSRecordAorAAAAJSON = string;
+export type DNSRecordSRVJSON = string;
+export type DataHashJSON = string;
+export type Ed25519KeyHashJSON = string;
+export type Ed25519KeyHashesJSON = string[];
+export type Ed25519SignatureJSON = string;
+export interface ExUnitPricesJSON {
+  mem_price: UnitIntervalJSON;
+  step_price: UnitIntervalJSON;
+}
+export interface ExUnitsJSON {
+  mem: string;
+  steps: string;
+}
+export interface GeneralTransactionMetadataJSON {
+  [k: string]: string;
+}
+export type GenesisDelegateHashJSON = string;
+export type GenesisHashJSON = string;
+export type GenesisHashesJSON = string[];
+export interface GenesisKeyDelegationJSON {
+  genesis_delegate_hash: string;
+  genesishash: string;
+  vrf_keyhash: string;
+}
+export interface HeaderJSON {
+  body_signature: string;
+  header_body: HeaderBodyJSON;
+}
+export interface HeaderBodyJSON {
+  block_body_hash: string;
+  block_body_size: number;
+  block_number: number;
+  issuer_vkey: VkeyJSON;
+  leader_vrf: VRFCertJSON;
+  nonce_vrf: VRFCertJSON;
+  operational_cert: OperationalCertJSON;
+  prev_hash?: string | null;
+  protocol_version: ProtocolVersionJSON;
+  slot: string;
+  vrf_vkey: string;
+}
+export type IntJSON = string;
+export type Ipv4JSON = [number, number, number, number];
+export type Ipv6JSON = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number
+];
+export type KESVKeyJSON = string;
+export type LanguageJSON = LanguageKindJSON;
+export type LanguageKindJSON = "PlutusV1" | "PlutusV2";
+export type LanguagesJSON = LanguageJSON[];
+export type MIREnumJSON =
+  | {
+      ToOtherPot: string,
+      ...
+    }
+  | {
+      ToStakeCredentials: {
+        [k: string]: ProtocolParamUpdateJSON,
+        ...
+      },
+      ...
+    };
+export type MIRPotJSON = "Reserves" | "Treasury";
+export interface MIRToStakeCredentialsJSON {
+  [k: string]: ProtocolParamUpdateJSON;
+}
+export interface MintJSON {
+  [k: string]: MintAssetsJSON;
+}
+export interface MintAssetsJSON {
+  [k: string]: string;
+}
+export interface MoveInstantaneousRewardJSON {
+  pot: MIRPotJSON;
+  variant: MIREnumJSON;
+}
+export interface MoveInstantaneousRewardsCertJSON {
+  move_instantaneous_reward: MoveInstantaneousRewardJSON;
+}
+export interface MultiAssetJSON {
+  [k: string]: AssetsJSON;
+}
+export interface MultiHostNameJSON {
+  dns_name: DNSRecordSRVJSON;
+}
+export type NativeScriptJSON = NativeScript1JSON;
+export type NativeScript1JSON =
+  | {
+      ScriptPubkeyJSON: ScriptPubkey,
+      ...
+    }
+  | {
+      ScriptAllJSON: ScriptAll,
+      ...
+    }
+  | {
+      ScriptAnyJSON: ScriptAny,
+      ...
+    }
+  | {
+      ScriptNOfKJSON: ScriptNOfK,
+      ...
+    }
+  | {
+      TimelockStartJSON: TimelockStart,
+      ...
+    }
+  | {
+      TimelockExpiryJSON: TimelockExpiry,
+      ...
+    };
+export type NativeScriptsJSON = NativeScriptJSON[];
+export type NetworkIdJSON = NetworkIdKindJSON;
+export type NetworkIdKindJSON = "Testnet" | "Mainnet";
+export interface NonceJSON {
+  hash?:
+    | [
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number,
+        number
+      ]
+    | null;
+}
+export interface OperationalCertJSON {
+  hot_vkey: string;
+  kes_period: number;
+  sequence_number: number;
+  sigma: string;
+}
+export interface PlutusDataJSON {
+  datum: PlutusDataEnum;
+  original_bytes?: number[] | null;
+}
+export interface PlutusListJSON {
+  definite_encoding?: boolean | null;
+  elems: PlutusDataJSON[];
+}
+export interface PlutusMapJSON {
+  [k: string]: PlutusDataJSON;
+}
+export type PlutusScriptJSON = string;
+export type PlutusScriptsJSON = string[];
+export interface PoolMetadataJSON {
+  pool_metadata_hash: string;
+  url: URLJSON;
+}
+export type PoolMetadataHashJSON = string;
+export interface PoolParamsJSON {
+  cost: string;
+  margin: UnitIntervalJSON;
+  operator: string;
+  pledge: string;
+  pool_metadata?: PoolMetadataJSON | null;
+  pool_owners: Ed25519KeyHashesJSON;
+  relays: RelaysJSON;
+  reward_account: string;
+  vrf_keyhash: string;
+}
+export interface PoolRegistrationJSON {
+  pool_params: PoolParamsJSON;
+}
+export interface PoolRetirementJSON {
+  epoch: number;
+  pool_keyhash: string;
+}
+export interface ProposedProtocolParameterUpdatesJSON {
+  [k: string]: ProtocolParamUpdateJSON;
+}
+export interface ProtocolParamUpdateJSON {
+  ada_per_utxo_byte?: string | null;
+  collateral_percentage?: number | null;
+  cost_models?: CostmdlsJSON | null;
+  d?: UnitIntervalJSON | null;
+  execution_costs?: ExUnitPricesJSON | null;
+  expansion_rate?: UnitIntervalJSON | null;
+  extra_entropy?: NonceJSON | null;
+  key_deposit?: string | null;
+  max_block_body_size?: number | null;
+  max_block_ex_units?: ExUnitsJSON | null;
+  max_block_header_size?: number | null;
+  max_collateral_inputs?: number | null;
+  max_epoch?: number | null;
+  max_tx_ex_units?: ExUnitsJSON | null;
+  max_tx_size?: number | null;
+  max_value_size?: number | null;
+  min_pool_cost?: string | null;
+  minfee_a?: string | null;
+  minfee_b?: string | null;
+  n_opt?: number | null;
+  pool_deposit?: string | null;
+  pool_pledge_influence?: UnitIntervalJSON | null;
+  protocol_version?: ProtocolVersionJSON | null;
+  treasury_growth_rate?: UnitIntervalJSON | null;
+}
+export interface ProtocolVersionJSON {
+  major: number;
+  minor: number;
+}
+export type PublicKeyJSON = string;
+export interface RedeemerJSON {
+  data: PlutusDataJSON;
+  ex_units: ExUnitsJSON;
+  index: string;
+  tag: RedeemerTagJSON;
+}
+export type RedeemerTagJSON = RedeemerTagKindJSON;
+export type RedeemerTagKindJSON = "Spend" | "MintJSON" | "Cert" | "Reward";
+export type RedeemersJSON = RedeemerJSON[];
+export type RelayJSON = RelayEnumJSON;
+export type RelayEnumJSON =
+  | {
+      SingleHostAddrJSON: SingleHostAddr,
+      ...
+    }
+  | {
+      SingleHostNameJSON: SingleHostName,
+      ...
+    }
+  | {
+      MultiHostNameJSON: MultiHostName,
+      ...
+    };
+export type RelaysJSON = RelayJSON[];
+export type RewardAddressJSON = string;
+export type RewardAddressesJSON = string[];
+export interface ScriptAllJSON {
+  native_scripts: NativeScriptsJSON;
+}
+export interface ScriptAnyJSON {
+  native_scripts: NativeScriptsJSON;
+}
+export type ScriptDataHashJSON = string;
+export type ScriptHashJSON = string;
+export type ScriptHashesJSON = string[];
+export interface ScriptNOfKJSON {
+  n: number;
+  native_scripts: NativeScriptsJSON;
+}
+export interface ScriptPubkeyJSON {
+  addr_keyhash: string;
+}
+export interface SingleHostAddrJSON {
+  ipv4?: Ipv4JSON | null;
+  ipv6?: Ipv6JSON | null;
+  port?: number | null;
+}
+export interface SingleHostNameJSON {
+  dns_name: DNSRecordAorAAAAJSON;
+  port?: number | null;
+}
+export type StakeCredTypeJSON =
+  | {
+      Key: string,
+      ...
+    }
+  | {
+      Script: string,
+      ...
+    };
+export type StakeCredentialJSON = StakeCredTypeJSON;
+export type StakeCredentialsJSON = StakeCredTypeJSON[];
+export interface StakeDelegationJSON {
+  pool_keyhash: string;
+  stake_credential: StakeCredTypeJSON;
+}
+export interface StakeDeregistrationJSON {
+  stake_credential: StakeCredTypeJSON;
+}
+export interface StakeRegistrationJSON {
+  stake_credential: StakeCredTypeJSON;
+}
+export interface TimelockExpiryJSON {
+  slot: string;
+}
+export interface TimelockStartJSON {
+  slot: string;
+}
+export interface TransactionJSON {
+  auxiliary_data?: AuxiliaryDataJSON | null;
+  body: TransactionBodyJSON;
+  is_valid: boolean;
+  witness_set: TransactionWitnessSetJSON;
+}
+export type TransactionBodiesJSON = TransactionBodyJSON[];
+export interface TransactionBodyJSON {
+  auxiliary_data_hash?: string | null;
+  certs?: CertificatesJSON | null;
+  collateral?: TransactionInputsJSON | null;
+  fee: string;
+  inputs: TransactionInputsJSON;
+  mint?: MintJSON | null;
+  network_id?: NetworkIdJSON | null;
+  outputs: TransactionOutputsJSON;
+  required_signers?: Ed25519KeyHashesJSON | null;
+  script_data_hash?: string | null;
+  ttl?: string | null;
+  update?: UpdateJSON | null;
+  validity_start_interval?: string | null;
+  withdrawals?: {
+    [k: string]: ProtocolParamUpdateJSON,
+    ...
+  } | null;
+}
+export type TransactionHashJSON = string;
+export interface TransactionInputJSON {
+  index: number;
+  transaction_id: string;
+}
+export type TransactionInputsJSON = TransactionInputJSON[];
+export type TransactionMetadatumJSON = string;
+export interface TransactionOutputJSON {
+  address: string;
+  amount: ValueJSON;
+  data_hash?: string | null;
+}
+export type TransactionOutputsJSON = TransactionOutputJSON[];
+export interface TransactionWitnessSetJSON {
+  bootstraps?: BootstrapWitnessesJSON | null;
+  native_scripts?: NativeScriptsJSON | null;
+  plutus_data?: PlutusListJSON | null;
+  plutus_scripts?: PlutusScriptsJSON | null;
+  redeemers?: RedeemersJSON | null;
+  vkeys?: VkeywitnessesJSON | null;
+}
+export type TransactionWitnessSetsJSON = TransactionWitnessSetJSON[];
+export type URLJSON = string;
+export interface UnitIntervalJSON {
+  denominator: string;
+  numerator: string;
+}
+export interface UpdateJSON {
+  epoch: number;
+  proposed_protocol_parameter_updates: {
+    [k: string]: ProtocolParamUpdateJSON,
+    ...
+  };
+}
+export interface VRFCertJSON {
+  output: number[];
+  proof: number[];
+}
+export type VRFKeyHashJSON = string;
+export type VRFVKeyJSON = string;
+export interface ValueJSON {
+  coin: string;
+  multiasset?: MultiAssetJSON | null;
+}
+export type VkeyJSON = string;
+export interface VkeywitnessJSON {
+  signature: string;
+  vkey: VkeyJSON;
+}
+export type VkeywitnessesJSON = VkeywitnessJSON[];
+export interface WithdrawalsJSON {
+  [k: string]: ProtocolParamUpdateJSON;
 }

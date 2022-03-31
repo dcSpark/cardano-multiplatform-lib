@@ -1,12 +1,12 @@
 use std::fs;
 use std::path::Path;
 
-use cardano_serialization_lib::*;
-use cardano_serialization_lib::address::*;
-use cardano_serialization_lib::crypto::*;
-use cardano_serialization_lib::metadata::*;
-use cardano_serialization_lib::plutus::*;
-use cardano_serialization_lib::utils::*;
+use cardano_multiplatform_lib::*;
+use cardano_multiplatform_lib::address::*;
+use cardano_multiplatform_lib::crypto::*;
+use cardano_multiplatform_lib::metadata::*;
+use cardano_multiplatform_lib::plutus::*;
+use cardano_multiplatform_lib::utils::*;
 
 //#[macro_export]
 macro_rules! gen_json_schema {

@@ -358,14 +358,14 @@ mod tests {
 
         // add the same element twice
         let wit1 = NativeScript::new_timelock_start(
-            &TimelockStart::new(BigNum::from(1)),
+            &TimelockStart::new(&1.into()),
         );
         builder.add_native_script(&wit1);
         builder.add_native_script(&wit1);
 
         // add a different element
         builder.add_native_script(&NativeScript::new_timelock_start(
-            &TimelockStart::new(BigNum::from(2)),
+            &TimelockStart::new(&2.into()),
         ));
 
         let wit_set = builder.build().unwrap();
@@ -384,7 +384,7 @@ mod tests {
         let mut required_wits = RequiredWitnessSet::new();
         required_wits.add_vkey_key(&Vkey::new(&fake_raw_key_public(0)));
         required_wits.add_native_script(&NativeScript::new_timelock_start(
-            &TimelockStart::new(BigNum::from(2)),
+            &TimelockStart::new(&2.into()),
         ));
         builder.add_required_wits(&required_wits);
 

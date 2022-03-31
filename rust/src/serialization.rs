@@ -515,7 +515,7 @@ impl DeserializeEmbeddedGroup for TransactionInput {
             Ok(TransactionHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("transaction_id"))?;
         let index = (|| -> Result<_, DeserializeError> {
-            Ok(u32::deserialize(raw)?)
+            Ok(TransactionIndex::deserialize(raw)?)
         })().map_err(|e| e.annotate("index"))?;
         Ok(TransactionInput {
             transaction_id,
@@ -2976,6 +2976,34 @@ impl Deserialize for TransactionWitnessSets {
     }
 }
 
+impl cbor_event::se::Serialize for TransactionIndexes {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array(cbor_event::Len::Len(self.0.len() as u64))?;
+        for element in &self.0 {
+            element.serialize(serializer)?;
+        }
+        Ok(serializer)
+    }
+}
+
+impl Deserialize for TransactionIndexes {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let mut arr = Vec::new();
+        (|| -> Result<_, DeserializeError> {
+            let len = raw.array()?;
+            while match len { cbor_event::Len::Len(n) => arr.len() < n as usize, cbor_event::Len::Indefinite => true, } {
+                if raw.cbor_type()? == CBORType::Special {
+                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    break;
+                }
+                arr.push(TransactionIndex::deserialize(raw)?);
+            }
+            Ok(())
+        })().map_err(|e| e.annotate("TransactionIndexes"))?;
+        Ok(Self(arr))
+    }
+}
+
 impl cbor_event::se::Serialize for AuxiliaryDataSet {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_map(cbor_event::Len::Len(self.0.len() as u64))?;
@@ -3017,7 +3045,7 @@ impl cbor_event::se::Serialize for Block {
         self.transaction_witness_sets.serialize(serializer)?;
         self.auxiliary_data_set.serialize(serializer)?;
         serializer.write_array(cbor_event::Len::Len(self.invalid_transactions.len() as u64))?;
-        for element in self.invalid_transactions.iter() {
+        for element in self.invalid_transactions.0.iter() {
             element.serialize(serializer)?;
         }
         Ok(serializer)
@@ -3074,7 +3102,7 @@ impl Deserialize for Block {
                 transaction_bodies,
                 transaction_witness_sets,
                 auxiliary_data_set,
-                invalid_transactions,
+                invalid_transactions: TransactionIndexes(invalid_transactions),
             })
         })().map_err(|e| e.annotate("Block"))
     }

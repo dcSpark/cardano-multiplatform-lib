@@ -51,7 +51,7 @@ mod tests {
         let mut inputs = TransactionInputs::new();
         inputs.add(&TransactionInput::new(
             &TransactionHash::from_bytes(hex::decode("3b40265111d8bb3c3c608d95b3a0bf83461ace32d79336579a1939b3aad1c0b7").unwrap()).unwrap(),
-            0
+            &0.into()
         ));
         let mut outputs = TransactionOutputs::new();
 
@@ -99,7 +99,7 @@ mod tests {
         let mut inputs = TransactionInputs::new();
         inputs.add(&TransactionInput::new(
             &TransactionHash::from_bytes(hex::decode("3b40265111d8bb3c3c608d95b3a0bf83461ace32d79336579a1939b3aad1c0b7").unwrap()).unwrap(),
-            0
+            &0.into()
         ));
         let mut outputs = TransactionOutputs::new();
 
@@ -153,7 +153,7 @@ mod tests {
                     .unwrap(),
             )
             .unwrap(),
-            42,
+            &42.into(),
         ));
         inputs.add(&TransactionInput::new(
             &TransactionHash::from_bytes(
@@ -161,7 +161,7 @@ mod tests {
                     .unwrap(),
             )
             .unwrap(),
-            7,
+            &7.into(),
         ));
         let mut outputs = TransactionOutputs::new();
 
@@ -226,7 +226,7 @@ mod tests {
         let mut inputs = TransactionInputs::new();
         inputs.add(&TransactionInput::new(
             &TransactionHash::from_bytes(hex::decode("3b40265111d8bb3c3c608d95b3a0bf83461ace32d79336579a1939b3aad1c0b7").unwrap()).unwrap(),
-            0
+            &0.into()
         ));
         let mut outputs = TransactionOutputs::new();
 
@@ -459,7 +459,7 @@ mod tests {
         let mut inputs = TransactionInputs::new();
         inputs.add(&TransactionInput::new(
             &TransactionHash::from_bytes(hex::decode("3b40265111d8bb3c3c608d95b3a0bf83461ace32d79336579a1939b3aad1c0b7").unwrap()).unwrap(),
-            0
+            &0.into()
         ));
         let mut outputs = TransactionOutputs::new();
 

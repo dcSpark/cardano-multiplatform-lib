@@ -690,12 +690,12 @@ impl TransactionBuilder {
         self.fee = Some(fee.clone())
     }
 
-    pub fn set_ttl(&mut self, ttl: Slot) {
-        self.ttl = Some(ttl)
+    pub fn set_ttl(&mut self, ttl: &Slot) {
+        self.ttl = Some(ttl.clone())
     }
 
-    pub fn set_validity_start_interval(&mut self, validity_start_interval: Slot) {
-        self.validity_start_interval = Some(validity_start_interval)
+    pub fn set_validity_start_interval(&mut self, validity_start_interval: &Slot) {
+        self.validity_start_interval = Some(validity_start_interval.clone())
     }
 
     pub fn set_certs(&mut self, certs: &Certificates) {
@@ -1459,7 +1459,7 @@ mod tests {
         let addr_net_0 = BaseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &stake_cred).to_address();
         tx_builder.add_key_input(
             &spend.to_raw_key().hash(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(1_000_000))
         );
         tx_builder.add_output(
@@ -1469,7 +1469,7 @@ mod tests {
                 .with_coin(&to_bignum(29))
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(1000.into());
+        tx_builder.set_ttl(&1000.into());
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
@@ -1517,7 +1517,7 @@ mod tests {
         let addr_net_0 = BaseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &stake_cred).to_address();
         tx_builder.add_key_input(
             &spend.to_raw_key().hash(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(1_000_000))
         );
         tx_builder.add_output(
@@ -1527,7 +1527,7 @@ mod tests {
                 .with_coin(&to_bignum(880_000))
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(1000.into());
+        tx_builder.set_ttl(&1000.into());
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
@@ -1571,10 +1571,10 @@ mod tests {
         let stake_cred = StakeCredential::from_keyhash(&stake.to_raw_key().hash());
         tx_builder.add_key_input(
             &spend.to_raw_key().hash(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(5_000_000))
         );
-        tx_builder.set_ttl(1000.into());
+        tx_builder.set_ttl(&1000.into());
 
         let mut certs = Certificates::new();
         certs.add(&Certificate::new_stake_registration(&StakeRegistration::new(&stake_cred)));
@@ -1630,7 +1630,7 @@ mod tests {
             .to_public();
         tx_builder.add_key_input(
             &&spend.to_raw_key().hash(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(100))
         );
         let spend_cred = StakeCredential::from_keyhash(&spend.to_raw_key().hash());
@@ -1643,7 +1643,7 @@ mod tests {
                 .with_coin(&to_bignum(100))
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(0.into());
+        tx_builder.set_ttl(&0.into());
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
@@ -1682,7 +1682,7 @@ mod tests {
             .to_public();
         tx_builder.add_key_input(
             &&spend.to_raw_key().hash(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(58))
         );
         let spend_cred = StakeCredential::from_keyhash(&spend.to_raw_key().hash());
@@ -1700,7 +1700,7 @@ mod tests {
                 .with_coin(&to_bignum(29))
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(0.into());
+        tx_builder.set_ttl(&0.into());
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
@@ -1741,7 +1741,7 @@ mod tests {
             .to_public();
         tx_builder.add_key_input(
             &&spend.to_raw_key().hash(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(5)),
         );
         let spend_cred = StakeCredential::from_keyhash(&spend.to_raw_key().hash());
@@ -1759,7 +1759,7 @@ mod tests {
                 .with_coin(&to_bignum(5))
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(0.into());
+        tx_builder.set_ttl(&0.into());
 
         // add a cert which requires a deposit
         let mut certs = Certificates::new();
@@ -1806,7 +1806,7 @@ mod tests {
                     NetworkInfo::testnet().network_id(),
                     &spend_cred
                 ).to_address(),
-                &TransactionInput::new(&genesis_id(), 0),
+                &TransactionInput::new(&genesis_id(), &0.into()),
                 &Value::new(&to_bignum(1_000_000))
             ).unwrap().to_str(), "69500");
             tx_builder.add_input(
@@ -1814,7 +1814,7 @@ mod tests {
                     NetworkInfo::testnet().network_id(),
                     &spend_cred
                 ).to_address(),
-                &TransactionInput::new(&genesis_id(), 0),
+                &TransactionInput::new(&genesis_id(), &0.into()),
                 &Value::new(&to_bignum(1_000_000))
             );
         }
@@ -1824,7 +1824,7 @@ mod tests {
                 &spend_cred,
                 &stake_cred
             ).to_address(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(1_000_000))
         );
         tx_builder.add_input(
@@ -1837,14 +1837,14 @@ mod tests {
                     &to_bignum(0)
                 )
             ).to_address(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(1_000_000))
         );
         tx_builder.add_input(
             &ByronAddress::icarus_from_key(
                 &spend, NetworkInfo::testnet().protocol_magic()
             ).to_address(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(1_000_000))
         );
 
@@ -1885,7 +1885,7 @@ mod tests {
                 NetworkInfo::testnet().network_id(),
                 &spend_cred
             ).to_address(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(150))
         );
 
@@ -1972,7 +1972,7 @@ mod tests {
                 NetworkInfo::testnet().network_id(),
                 &spend_cred
             ).to_address(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(150))
         );
 
@@ -2088,7 +2088,7 @@ mod tests {
 
             tx_builder.add_key_input(
                 &&spend.to_raw_key().hash(),
-                &TransactionInput::new(&genesis_id(), 0),
+                &TransactionInput::new(&genesis_id(), &0.into()),
                 &input_amount,
             );
         }
@@ -2201,7 +2201,7 @@ mod tests {
 
             tx_builder.add_key_input(
                 &&spend.to_raw_key().hash(),
-                &TransactionInput::new(&genesis_id(), 0),
+                &TransactionInput::new(&genesis_id(), &0.into()),
                 &input_amount,
             );
         }
@@ -2331,7 +2331,7 @@ mod tests {
 
             tx_builder.add_key_input(
                 &&spend.to_raw_key().hash(),
-                &TransactionInput::new(&genesis_id(), 0),
+                &TransactionInput::new(&genesis_id(), &0.into()),
                 &input_amount,
             );
         }
@@ -2437,7 +2437,7 @@ mod tests {
         input_amount.set_multiasset(&input_multiasset);
         tx_builder.add_key_input(
             &spend.to_raw_key().hash(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &input_amount
         );
 
@@ -2448,7 +2448,7 @@ mod tests {
                 .with_coin(&to_bignum(880_000))
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(1000.into());
+        tx_builder.set_ttl(&1000.into());
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
@@ -2482,12 +2482,12 @@ mod tests {
             &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address(),
             &TransactionInput::new(
                 &genesis_id(),
-                0
+                &0.into()
             ),
             &Value::new(&to_bignum(2_400_000))
         );
 
-        tx_builder.set_ttl(1.into());
+        tx_builder.set_ttl(&1.into());
 
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap();
         let added_change = tx_builder.add_change_if_needed(
@@ -2521,12 +2521,12 @@ mod tests {
             &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address(),
             &TransactionInput::new(
                 &genesis_id(),
-                0
+                &0.into()
             ),
             &input_value
         );
 
-        tx_builder.set_ttl(1.into());
+        tx_builder.set_ttl(&1.into());
 
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap();
         let added_change = tx_builder.add_change_if_needed(
@@ -2562,7 +2562,7 @@ mod tests {
             &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address(),
             &TransactionInput::new(
                 &genesis_id(),
-                0
+                &0.into()
             ),
             &input_amount
         );
@@ -2586,7 +2586,7 @@ mod tests {
                 .build().unwrap()
             ).unwrap();
 
-        tx_builder.set_ttl(1.into());
+        tx_builder.set_ttl(&1.into());
 
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap();
         let added_change = tx_builder.add_change_if_needed(
@@ -2645,7 +2645,7 @@ mod tests {
             &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address(),
             &TransactionInput::new(
                 &genesis_id(),
-                0
+                &0.into()
             ),
             &input_value
         );
@@ -2695,7 +2695,7 @@ mod tests {
             &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address(),
             &TransactionInput::new(
                 &genesis_id(),
-                0
+                &0.into()
             ),
             &Value::new(&to_bignum(500))
         );
@@ -2750,7 +2750,7 @@ mod tests {
             &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address(),
             &TransactionInput::new(
                 &genesis_id(),
-                0
+                &0.into()
             ),
             &input_value
         );
@@ -2773,7 +2773,7 @@ mod tests {
 
     fn make_input(input_hash_byte: u8, value: Value) -> TransactionUnspentOutput {
         TransactionUnspentOutput::new(
-            &TransactionInput::new(&TransactionHash::from([input_hash_byte; 32]), 0),
+            &TransactionInput::new(&TransactionHash::from([input_hash_byte; 32]), &0.into()),
             &TransactionOutputBuilder::new()
                 .with_address(&Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
                 .next().unwrap()
@@ -2848,7 +2848,6 @@ mod tests {
     #[test]
     fn tx_builder_cip2_largest_first_multiasset() {
         // we have a = 0 so we know adding inputs/outputs doesn't change the fee so we can analyze more
-        let linear_fee = LinearFee::new(&to_bignum(0), &to_bignum(0));
         let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(0, 0));
         let pid1 = PolicyID::from([1u8; 28]);
         let pid2 = PolicyID::from([2u8; 28]);
@@ -3179,7 +3178,7 @@ mod tests {
 
         tx_builder.add_key_input(
             &spend.to_raw_key().hash(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(1_000_000))
         );
         tx_builder.add_output(
@@ -3189,7 +3188,7 @@ mod tests {
                 .with_coin(&to_bignum(999_000))
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(1000.into());
+        tx_builder.set_ttl(&1000.into());
         tx_builder.set_fee(&to_bignum(1_000));
 
         assert_eq!(tx_builder.outputs.len(),1);
@@ -3250,7 +3249,7 @@ mod tests {
 
         tx_builder.add_input(
             &addr_multisig,
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(1_000_000))
         );
 
@@ -3261,7 +3260,7 @@ mod tests {
                 .with_coin(&to_bignum(999_000))
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(1000.into());
+        tx_builder.set_ttl(&1000.into());
         tx_builder.set_fee(&to_bignum(1_000));
 
         let mut auxiliary_data = AuxiliaryData::new();
@@ -3312,7 +3311,7 @@ mod tests {
         let addr_net_0 = BaseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &stake_cred).to_address();
         tx_builder.add_key_input(
             &spend.to_raw_key().hash(),
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(1_000_000))
         );
         tx_builder.add_output(
@@ -3322,7 +3321,7 @@ mod tests {
                 .with_coin(&to_bignum(999_000))
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(1000.into());
+        tx_builder.set_ttl(&1000.into());
         tx_builder.set_fee(&to_bignum(1_000));
 
         let mut auxiliary_data = AuxiliaryData::new();
@@ -3401,7 +3400,7 @@ mod tests {
             &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address(),
             &TransactionInput::new(
                 &genesis_id(),
-                0
+                &0.into()
             ),
             &input_value
         );
@@ -3479,7 +3478,7 @@ mod tests {
         let mut nats = NativeScripts::new();
         nats.add(
             &NativeScript::new_timelock_start(
-                &TimelockStart::new(123.into()),
+                &TimelockStart::new(&123.into()),
             ),
         );
         aux.set_native_scripts(&nats);
@@ -3994,14 +3993,14 @@ mod tests {
         // One input from unrelated address
         tx_builder.add_key_input(
             &hash0,
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(10_000_000)),
         );
 
         // One input from same address as mint
         tx_builder.add_key_input(
             &hash1,
-            &TransactionInput::new(&genesis_id(), 0),
+            &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(10_000_000)),
         );
 
@@ -4168,7 +4167,7 @@ mod tests {
 
             tx_builder.add_key_input(
                 &&spend.to_raw_key().hash(),
-                &TransactionInput::new(&genesis_id(), 0),
+                &TransactionInput::new(&genesis_id(), &0.into()),
                 &input_amount,
             );
         }

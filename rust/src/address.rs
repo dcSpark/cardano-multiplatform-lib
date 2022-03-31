@@ -702,14 +702,14 @@ impl Deserialize for RewardAddress {
 #[wasm_bindgen]
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Pointer {
-    slot: BigNum,
-    tx_index: BigNum,
-    cert_index: BigNum,
+    slot: Slot,
+    tx_index: TransactionIndex,
+    cert_index: CertificateIndex,
 }
 
 #[wasm_bindgen]
 impl Pointer {
-    pub fn new(slot: &BigNum, tx_index: &BigNum, cert_index: &BigNum) -> Self {
+    pub fn new(slot: &Slot, tx_index: &TransactionIndex, cert_index: &CertificateIndex) -> Self {
         Self {
             slot: slot.clone(),
             tx_index: tx_index.clone(),
@@ -717,15 +717,15 @@ impl Pointer {
         }
     }
 
-    pub fn slot(&self) -> BigNum {
+    pub fn slot(&self) -> Slot {
         self.slot.clone()
     }
 
-    pub fn tx_index(&self) -> BigNum {
+    pub fn tx_index(&self) -> TransactionIndex {
         self.tx_index.clone()
     }
 
-    pub fn cert_index(&self) -> BigNum {
+    pub fn cert_index(&self) -> CertificateIndex {
         self.cert_index.clone()
     }
 }

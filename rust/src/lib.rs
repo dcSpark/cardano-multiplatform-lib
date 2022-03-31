@@ -151,9 +151,9 @@ impl Transaction {
 }
 
 // index of a tx within a block
-type TransactionIndex = u32;
+type TransactionIndex = BigNum;
 // index of a cert within a tx
-type CertificateIndex = u32;
+type CertificateIndex = BigNum;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
@@ -312,8 +312,8 @@ impl TransactionBody {
         self.auxiliary_data_hash.clone()
     }
 
-    pub fn set_validity_start_interval(&mut self, validity_start_interval: Slot) {
-        self.validity_start_interval = Some(validity_start_interval)
+    pub fn set_validity_start_interval(&mut self, validity_start_interval: &Slot) {
+        self.validity_start_interval = Some(validity_start_interval.clone())
     }
 
     pub fn validity_start_interval(&self) -> Option<Slot> {
@@ -415,10 +415,10 @@ impl TransactionInput {
         self.index.clone()
     }
 
-    pub fn new(transaction_id: &TransactionHash, index: TransactionIndex) -> Self {
+    pub fn new(transaction_id: &TransactionHash, index: &TransactionIndex) -> Self {
         Self {
             transaction_id: transaction_id.clone(),
-            index: index,
+            index: index.clone(),
         }
     }
 }
@@ -1699,9 +1699,9 @@ impl TimelockStart {
         self.slot
     }
 
-    pub fn new(slot: Slot) -> Self {
+    pub fn new(slot: &Slot) -> Self {
         Self {
-            slot,
+            slot: slot.clone(),
         }
     }
 }
@@ -1722,9 +1722,9 @@ impl TimelockExpiry {
         self.slot
     }
 
-    pub fn new(slot: Slot) -> Self {
+    pub fn new(slot: &Slot) -> Self {
         Self {
-            slot,
+            slot: slot.clone(),
         }
     }
 }
@@ -2382,7 +2382,30 @@ impl TransactionWitnessSets {
     }
 }
 
-pub type TransactionIndexes = Vec<TransactionIndex>;
+#[wasm_bindgen]
+#[derive(Clone)]
+pub struct TransactionIndexes(Vec<TransactionIndex>);
+
+to_from_bytes!(TransactionIndexes);
+
+#[wasm_bindgen]
+impl TransactionIndexes {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> TransactionIndex {
+        self.0[index].clone()
+    }
+
+    pub fn add(&mut self, elem: &TransactionIndex) {
+        self.0.push(elem.clone());
+    }
+}
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -2398,16 +2421,16 @@ impl AuxiliaryDataSet {
         self.0.len()
     }
 
-    pub fn insert(&mut self, tx_index: TransactionIndex, data: &AuxiliaryData) -> Option<AuxiliaryData> {
-        self.0.insert(tx_index, data.clone())
+    pub fn insert(&mut self, tx_index: &TransactionIndex, data: &AuxiliaryData) -> Option<AuxiliaryData> {
+        self.0.insert(tx_index.clone(), data.clone())
     }
 
-    pub fn get(&self, tx_index: TransactionIndex) -> Option<AuxiliaryData> {
-        self.0.get(&tx_index).map(|v| v.clone())
+    pub fn get(&self, tx_index: &TransactionIndex) -> Option<AuxiliaryData> {
+        self.0.get(tx_index).map(|v| v.clone())
     }
 
     pub fn indices(&self) -> TransactionIndexes {
-        self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<TransactionIndex>>()
+        TransactionIndexes(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<TransactionIndex>>())
     }
 }
 
@@ -2471,13 +2494,13 @@ impl Block {
         self.invalid_transactions.clone()
     }
 
-    pub fn new(header: &Header, transaction_bodies: &TransactionBodies, transaction_witness_sets: &TransactionWitnessSets, auxiliary_data_set: &AuxiliaryDataSet, invalid_transactions: TransactionIndexes) -> Self {
+    pub fn new(header: &Header, transaction_bodies: &TransactionBodies, transaction_witness_sets: &TransactionWitnessSets, auxiliary_data_set: &AuxiliaryDataSet, invalid_transactions: &TransactionIndexes) -> Self {
         Self {
             header: header.clone(),
             transaction_bodies: transaction_bodies.clone(),
             transaction_witness_sets: transaction_witness_sets.clone(),
             auxiliary_data_set: auxiliary_data_set.clone(),
-            invalid_transactions: invalid_transactions,
+            invalid_transactions: invalid_transactions.clone(),
         }
     }
 }
@@ -2618,10 +2641,10 @@ impl HeaderBody {
         self.protocol_version.clone()
     }
 
-    pub fn new(block_number: u32, slot: Slot, prev_hash: Option<BlockHash>, issuer_vkey: &Vkey, vrf_vkey: &VRFVKey, nonce_vrf: &VRFCert, leader_vrf: &VRFCert, block_body_size: u32, block_body_hash: &BlockHash, operational_cert: &OperationalCert, protocol_version: &ProtocolVersion) -> Self {
+    pub fn new(block_number: u32, slot: &Slot, prev_hash: Option<BlockHash>, issuer_vkey: &Vkey, vrf_vkey: &VRFVKey, nonce_vrf: &VRFCert, leader_vrf: &VRFCert, block_body_size: u32, block_body_hash: &BlockHash, operational_cert: &OperationalCert, protocol_version: &ProtocolVersion) -> Self {
         Self {
             block_number: block_number,
-            slot: slot,
+            slot: slot.clone(),
             prev_hash: prev_hash.clone(),
             issuer_vkey: issuer_vkey.clone(),
             vrf_vkey: vrf_vkey.clone(),
@@ -3270,7 +3293,7 @@ mod tests {
 
         let pks2 = RequiredSignersSet::from(
             &NativeScript::new_timelock_start(
-                &TimelockStart::new(123.into()),
+                &TimelockStart::new(&123.into()),
             ),
         );
         assert_eq!(pks2.len(), 0);
@@ -3293,13 +3316,13 @@ mod tests {
                     &NativeScript::new_script_n_of_k(&ScriptNOfK::new(
                         1,
                         &scripts_vec(vec![
-                            &NativeScript::new_timelock_start(&TimelockStart::new(132.into())),
+                            &NativeScript::new_timelock_start(&TimelockStart::new(&132.into())),
                             &pkscript(&keyhash3),
                         ]),
                     )),
                     &NativeScript::new_script_all(&ScriptAll::new(
                         &scripts_vec(vec![
-                            &NativeScript::new_timelock_expiry(&TimelockExpiry::new(132.into())),
+                            &NativeScript::new_timelock_expiry(&TimelockExpiry::new(&132.into())),
                             &pkscript(&keyhash1),
                         ]),
                     )),

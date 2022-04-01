@@ -2318,6 +2318,17 @@ declare export class Int {
   free(): void;
 
   /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {Int}
+   */
+  static from_bytes(bytes: Uint8Array): Int;
+
+  /**
    * @param {BigNum} x
    * @returns {Int}
    */
@@ -7832,7 +7843,7 @@ export interface BlockJSON {
     ...
   };
   header: HeaderJSON;
-  invalid_transactions: number[];
+  invalid_transactions: TransactionIndexes;
   transaction_bodies: TransactionBodiesJSON;
   transaction_witness_sets: TransactionWitnessSetsJSON;
 }
@@ -8233,7 +8244,7 @@ export interface TransactionBodyJSON {
 }
 export type TransactionHashJSON = string;
 export interface TransactionInputJSON {
-  index: number;
+  index: string;
   transaction_id: string;
 }
 export type TransactionInputsJSON = TransactionInputJSON[];

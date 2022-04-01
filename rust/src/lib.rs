@@ -2383,7 +2383,7 @@ impl TransactionWitnessSets {
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct TransactionIndexes(Vec<TransactionIndex>);
 
 to_from_bytes!(TransactionIndexes);

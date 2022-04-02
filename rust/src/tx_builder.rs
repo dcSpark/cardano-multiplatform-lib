@@ -296,6 +296,10 @@ pub struct TransactionBuilder {
     input_types: MockWitnessSet,
     mint: Option<Mint>,
     native_scripts: Option<NativeScripts>,
+    script_data_hash: Option<ScriptDataHash>,
+    collateral: Option<TransactionInputs>,
+    required_signers: Option<RequiredSigners>,
+    network_id: Option<NetworkId>,
 }
 
 #[wasm_bindgen]
@@ -904,7 +908,43 @@ impl TransactionBuilder {
             validity_start_interval: None,
             mint: None,
             native_scripts: None,
+            script_data_hash: None,
+            collateral: None,
+            required_signers: None,
+            network_id: None,
         }
+    }
+
+    pub fn set_script_data_hash(&mut self, script_data_hash: ScriptDataHash) {
+        self.script_data_hash = Some(script_data_hash)
+    }
+
+    pub fn script_data_hash(&self) -> Option<ScriptDataHash> {
+        self.script_data_hash.clone()
+    }
+
+    pub fn set_collateral(&mut self, collateral: TransactionInputs) {
+        self.collateral = Some(collateral)
+    }
+
+    pub fn collateral(&self) -> Option<TransactionInputs> {
+        self.collateral.clone()
+    }
+
+    pub fn set_required_signers(&mut self, required_signers: RequiredSigners) {
+        self.required_signers = Some(required_signers)
+    }
+
+    pub fn required_signers(&self) -> Option<RequiredSigners> {
+        self.required_signers.clone()
+    }
+
+    pub fn set_network_id(&mut self, network_id: NetworkId) {
+        self.network_id = Some(network_id)
+    }
+
+    pub fn network_id(&self) -> Option<NetworkId> {
+        self.network_id.clone()
     }
 
     /// does not include refunds or withdrawals
@@ -1237,11 +1277,10 @@ impl TransactionBuilder {
             },
             validity_start_interval: self.validity_start_interval,
             mint: self.mint.clone(),
-            // TODO: update for use with Alonzo
-            script_data_hash: None,
-            collateral: None,
-            required_signers: None,
-            network_id: None,
+            script_data_hash: self.script_data_hash.clone(),
+            collateral: self.collateral.clone(),
+            required_signers: self.required_signers.clone(),
+            network_id: self.network_id.clone(),
         };
         // we must build a tx with fake data (of correct size) to check the final Transaction size
         let full_tx = fake_full_tx(self, built)?;

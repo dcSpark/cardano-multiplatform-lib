@@ -6429,6 +6429,46 @@ declare export class TransactionBuilder {
   static new(cfg: TransactionBuilderConfig): TransactionBuilder;
 
   /**
+   * @param {ScriptDataHash} script_data_hash
+   */
+  set_script_data_hash(script_data_hash: ScriptDataHash): void;
+
+  /**
+   * @returns {ScriptDataHash | void}
+   */
+  script_data_hash(): ScriptDataHash | void;
+
+  /**
+   * @param {TransactionInputs} collateral
+   */
+  set_collateral(collateral: TransactionInputs): void;
+
+  /**
+   * @returns {TransactionInputs | void}
+   */
+  collateral(): TransactionInputs | void;
+
+  /**
+   * @param {Ed25519KeyHashes} required_signers
+   */
+  set_required_signers(required_signers: Ed25519KeyHashes): void;
+
+  /**
+   * @returns {Ed25519KeyHashes | void}
+   */
+  required_signers(): Ed25519KeyHashes | void;
+
+  /**
+   * @param {NetworkId} network_id
+   */
+  set_network_id(network_id: NetworkId): void;
+
+  /**
+   * @returns {NetworkId | void}
+   */
+  network_id(): NetworkId | void;
+
+  /**
    * does not include refunds or withdrawals
    * @returns {Value}
    */

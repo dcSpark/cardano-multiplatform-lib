@@ -1,6 +1,6 @@
 [package]
 name = "cardano-multiplatform-lib"
-version = "10.0.4"
+version = "0.1.0"
 edition = "2018"
 authors = ["dcSpark"]
 license = "MIT"

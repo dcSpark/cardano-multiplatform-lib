@@ -6,7 +6,7 @@ if (oldPkg.files.find(entry => entry === flowFile) == null) {
   oldPkg.files.push(flowFile);
 }
 if (oldPkg.name === 'cardano-multiplatform-lib') {
-  oldPkg.name = '@dcSpark/' + oldPkg.name + process.argv.slice(2)[0];
+  oldPkg.name = '@dcspark/' + oldPkg.name + process.argv.slice(2)[0];
 }
 if (process.argv.slice(2)[0] === '-browser' || process.argv.slice(2)[0] === '-asmjs') {
   // due to a bug in wasm-pack, this file is missing from browser builds

@@ -815,10 +815,10 @@ declare export class BigInt {
   as_int(): Int | void;
 
   /**
-   * @param {string} text
+   * @param {string} string
    * @returns {BigInt}
    */
-  static from_str(text: string): BigInt;
+  static from_str(string: string): BigInt;
 
   /**
    * @returns {string}
@@ -7134,6 +7134,11 @@ declare export class TransactionUnspentOutputs {
    * @returns {TransactionUnspentOutputs}
    */
   static new(): TransactionUnspentOutputs;
+
+  /**
+   * @returns {boolean}
+   */
+  is_empty(): boolean;
 
   /**
    * @returns {number}

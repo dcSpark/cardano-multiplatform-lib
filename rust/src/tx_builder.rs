@@ -200,7 +200,7 @@ pub struct TransactionBuilderConfig {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TransactionBuilderConfigBuilder {
     fee_algo: Option<fees::LinearFee>,
     pool_deposit: Option<BigNum>,      // protocol parameter
@@ -214,15 +214,8 @@ pub struct TransactionBuilderConfigBuilder {
 #[wasm_bindgen]
 impl TransactionBuilderConfigBuilder {
     pub fn new() -> Self {
-        Self {
-            fee_algo: None,
-            pool_deposit: None,
-            key_deposit: None,
-            max_value_size: None,
-            max_tx_size: None,
-            coins_per_utxo_word: None,
-            prefer_pure_change: false,
-        }
+        // we have to provide new to expose it to WASM builds
+        Self::default()
     }
 
     pub fn fee_algo(&self, fee_algo: &fees::LinearFee) -> Self {
@@ -233,19 +226,19 @@ impl TransactionBuilderConfigBuilder {
 
     pub fn coins_per_utxo_word(&self, coins_per_utxo_word: &Coin) -> Self {
         let mut cfg = self.clone();
-        cfg.coins_per_utxo_word = Some(coins_per_utxo_word.clone());
+        cfg.coins_per_utxo_word = Some(*coins_per_utxo_word);
         cfg
     }
 
     pub fn pool_deposit(&self, pool_deposit: &BigNum) -> Self {
         let mut cfg = self.clone();
-        cfg.pool_deposit = Some(pool_deposit.clone());
+        cfg.pool_deposit = Some(*pool_deposit);
         cfg
     }
 
     pub fn key_deposit(&self, key_deposit: &BigNum) -> Self {
         let mut cfg = self.clone();
-        cfg.key_deposit = Some(key_deposit.clone());
+        cfg.key_deposit = Some(*key_deposit);
         cfg
     }
 
@@ -270,12 +263,12 @@ impl TransactionBuilderConfigBuilder {
     pub fn build(&self) -> Result<TransactionBuilderConfig, JsError> {
         let cfg = self.clone();
         Ok(TransactionBuilderConfig {
-            fee_algo: cfg.fee_algo.ok_or(JsError::from_str("uninitialized field: fee_algo"))?,
-            pool_deposit: cfg.pool_deposit.ok_or(JsError::from_str("uninitialized field: pool_deposit"))?,
-            key_deposit: cfg.key_deposit.ok_or(JsError::from_str("uninitialized field: key_deposit"))?,
-            max_value_size: cfg.max_value_size.ok_or(JsError::from_str("uninitialized field: max_value_size"))?,
-            max_tx_size: cfg.max_tx_size.ok_or(JsError::from_str("uninitialized field: max_tx_size"))?,
-            coins_per_utxo_word: cfg.coins_per_utxo_word.ok_or(JsError::from_str("uninitialized field: coins_per_utxo_word"))?,
+            fee_algo: cfg.fee_algo.ok_or_else(|| JsError::from_str("uninitialized field: fee_algo"))?,
+            pool_deposit: cfg.pool_deposit.ok_or_else(|| JsError::from_str("uninitialized field: pool_deposit"))?,
+            key_deposit: cfg.key_deposit.ok_or_else(|| JsError::from_str("uninitialized field: key_deposit"))?,
+            max_value_size: cfg.max_value_size.ok_or_else(|| JsError::from_str("uninitialized field: max_value_size"))?,
+            max_tx_size: cfg.max_tx_size.ok_or_else(|| JsError::from_str("uninitialized field: max_tx_size"))?,
+            coins_per_utxo_word: cfg.coins_per_utxo_word.ok_or_else(|| JsError::from_str("uninitialized field: coins_per_utxo_word"))?,
             prefer_pure_change: cfg.prefer_pure_change,
         })
     }
@@ -433,7 +426,7 @@ impl TransactionBuilder {
 
     fn cip2_largest_first_by<F>(
         &mut self,
-        available_inputs: &Vec<TransactionUnspentOutput>,
+        available_inputs: &[TransactionUnspentOutput],
         available_indices: &mut Vec<usize>,
         input_total: &mut Value,
         output_total: &mut Value,
@@ -447,7 +440,7 @@ impl TransactionBuilder {
 
         // iterate in decreasing order for predicate {by}
         for i in relevant_indices.iter().rev() {
-            if by(input_total).unwrap_or(BigNum::zero()) >= by(output_total).expect("do not call on asset types that aren't in the output") {
+            if by(input_total).unwrap_or_else(BigNum::zero) >= by(output_total).expect("do not call on asset types that aren't in the output") {
                 break;
             }
             let input = &available_inputs[*i];
@@ -459,7 +452,7 @@ impl TransactionBuilder {
             available_indices.swap_remove(available_indices.iter().position(|j| i == j).unwrap());
         }
 
-        if by(input_total).unwrap_or(BigNum::zero()) < by(output_total).expect("do not call on asset types that aren't in the output") {
+        if by(input_total).unwrap_or_else(BigNum::zero) < by(output_total).expect("do not call on asset types that aren't in the output") {
             return Err(JsError::from_str("UTxO Balance Insufficient"));
         }
 
@@ -468,7 +461,7 @@ impl TransactionBuilder {
 
     fn cip2_random_improve_by<F>(
         &mut self,
-        available_inputs: &Vec<TransactionUnspentOutput>,
+        available_inputs: &[TransactionUnspentOutput],
         available_indices: &mut BTreeSet<usize>,
         input_total: &mut Value,
         output_total: &mut Value,
@@ -495,12 +488,12 @@ impl TransactionBuilder {
             // On the other hand, the improvement phase it difficult to determine if a change is an improvement
             // if we're trying to improve for multiple assets at a time without knowing how important each input is
             // e.g. maybe we have lots of asset A but not much of B
-            // For now I will just have this be entirely separarte per-asset but we might want to in a later commit
+            // For now I will just have this be entirely separate per-asset but we might want to in a later commit
             // consider the improvements separately and have it take some kind of dot product / distance for assets
             // during the improvement phase and have the improvement phase target multiple asset types at once.
-            // One issue with that is how to scale in between differnet assets. We could maybe normalize them by
+            // One issue with that is how to scale in between different assets. We could maybe normalize them by
             // dividing each asset type by the sum of the required asset type in all outputs.
-            // Another possibility for adapting this to multiasstes is when associating an input x for asset type a
+            // Another possibility for adapting this to multiassets is when associating an input x for asset type a
             // we try and subtract all other assets b != a from the outputs we're trying to cover.
             // It might make sense to diverge further and not consider it per-output and to instead just match against
             // the sum of all outputs as one single value.
@@ -623,9 +616,7 @@ impl TransactionBuilder {
             None => (),
         }
         match &ByronAddress::from_address(address) {
-            Some(addr) => {
-                return self.add_bootstrap_input(addr, input, amount);
-            },
+            Some(addr) => self.add_bootstrap_input(addr, input, amount),
             None => (),
         }
     }
@@ -641,7 +632,7 @@ impl TransactionBuilder {
 
         let fee_before = min_fee(&self_copy)?;
 
-        self_copy.add_input(&address, &input, &amount);
+        self_copy.add_input(address, input, amount);
         let fee_after = min_fee(&self_copy)?;
         fee_after.checked_sub(&fee_before)
     }
@@ -685,21 +676,21 @@ impl TransactionBuilder {
 
         let fee_before = min_fee(&self_copy)?;
 
-        self_copy.add_output(&output)?;
+        self_copy.add_output(output)?;
         let fee_after = min_fee(&self_copy)?;
         fee_after.checked_sub(&fee_before)
     }
 
     pub fn set_fee(&mut self, fee: &Coin) {
-        self.fee = Some(fee.clone())
+        self.fee = Some(*fee)
     }
 
     pub fn set_ttl(&mut self, ttl: &Slot) {
-        self.ttl = Some(ttl.clone())
+        self.ttl = Some(*ttl)
     }
 
     pub fn set_validity_start_interval(&mut self, validity_start_interval: &Slot) {
-        self.validity_start_interval = Some(validity_start_interval.clone())
+        self.validity_start_interval = Some(*validity_start_interval)
     }
 
     pub fn set_certs(&mut self, certs: &Certificates) {
@@ -734,7 +725,7 @@ impl TransactionBuilder {
     /// Set metadata using a GeneralTransactionMetadata object
     /// It will be set to the existing or new auxiliary data in this builder
     pub fn set_metadata(&mut self, metadata: &GeneralTransactionMetadata) {
-        let mut aux = self.auxiliary_data.as_ref().cloned().unwrap_or(AuxiliaryData::new());
+        let mut aux = self.auxiliary_data.as_ref().cloned().unwrap_or_else(AuxiliaryData::new);
         aux.set_metadata(metadata);
         self.set_auxiliary_data(&aux);
     }
@@ -745,7 +736,7 @@ impl TransactionBuilder {
         let mut metadata = self.auxiliary_data.as_ref()
             .map(|aux| { aux.metadata().as_ref().cloned() })
             .unwrap_or(None)
-            .unwrap_or(GeneralTransactionMetadata::new());
+            .unwrap_or_else(GeneralTransactionMetadata::new);
         metadata.insert(key, val);
         self.set_metadata(&metadata);
     }
@@ -794,11 +785,11 @@ impl TransactionBuilder {
     }
 
     fn _set_mint_asset(&mut self, policy_id: &PolicyID, policy_script: &NativeScript, mint_assets: &MintAssets) {
-        let mut mint = self.mint.as_ref().cloned().unwrap_or(Mint::new());
-        let is_new_policy = mint.insert(&policy_id, mint_assets).is_none();
+        let mut mint = self.mint.as_ref().cloned().unwrap_or_else(Mint::new);
+        let is_new_policy = mint.insert(policy_id, mint_assets).is_none();
         let mint_scripts = {
             let mut witness_scripts = self.native_scripts.as_ref().cloned()
-                .unwrap_or(NativeScripts::new());
+                .unwrap_or_else(NativeScripts::new);
             if is_new_policy {
                 // If policy has not been encountered before - insert the script into witnesses
                 witness_scripts.add(&policy_script.clone());
@@ -819,11 +810,11 @@ impl TransactionBuilder {
 
     fn _add_mint_asset(&mut self, policy_id: &PolicyID, policy_script: &NativeScript, asset_name: &AssetName, amount: Int) {
         let mut asset = self.mint.as_ref()
-            .map(|m| { m.get(&policy_id).as_ref().cloned() })
+            .map(|m| { m.get(policy_id).as_ref().cloned() })
             .unwrap_or(None)
-            .unwrap_or(MintAssets::new());
+            .unwrap_or_else(MintAssets::new);
         asset.insert(asset_name, amount);
-        self._set_mint_asset(&policy_id, policy_script, &asset);
+        self._set_mint_asset(policy_id, policy_script, &asset);
     }
 
     /// Add a mint entry to this builder using a PolicyID, AssetName, and Int object for amount
@@ -857,7 +848,7 @@ impl TransactionBuilder {
         ).as_positive_multiasset();
 
         self.add_output(&output_builder
-            .with_coin_and_asset(&output_coin, &multiasset)
+            .with_coin_and_asset(output_coin, &multiasset)
             .build()?
         )
     }
@@ -944,14 +935,14 @@ impl TransactionBuilder {
     }
 
     pub fn network_id(&self) -> Option<NetworkId> {
-        self.network_id.clone()
+        self.network_id
     }
 
     /// does not include refunds or withdrawals
     pub fn get_explicit_input(&self) -> Result<Value, JsError> {
         self.inputs
             .iter()
-            .try_fold(Value::zero(), |acc, ref tx_builder_input| {
+            .try_fold(Value::zero(), |acc, tx_builder_input| {
                 acc.checked_add(&tx_builder_input.amount)
             })
     }
@@ -988,7 +979,7 @@ impl TransactionBuilder {
         self.outputs
             .0
             .iter()
-            .try_fold(Value::new(&to_bignum(0)), |acc, ref output| {
+            .try_fold(Value::new(&to_bignum(0)), |acc, output| {
                 acc.checked_add(&output.amount())
             })
     }
@@ -1002,7 +993,7 @@ impl TransactionBuilder {
     }
 
     pub fn get_fee_if_set(&self) -> Option<Coin> {
-        self.fee.clone()
+        self.fee
     }
 
     /// Warning: this function will mutate the /fee/ field
@@ -1086,7 +1077,7 @@ impl TransactionBuilder {
                         // differences in NFT policy sizes
                         for (policy, assets) in change_estimator.multiasset().unwrap().0.iter() {
                             // for simplicity we also don't split assets within a single policy since
-                            // you would need to have a very high amoun of assets (which add 1-36 bytes each)
+                            // you would need to have a very high amount of assets (which add 1-36 bytes each)
                             // in a single policy to make a difference. In the future if this becomes an issue
                             // we can change that here.
 
@@ -1156,20 +1147,20 @@ impl TransactionBuilder {
                         Ok(change_assets)
                     }
                     let mut change_left = input_total.checked_sub(&output_total)?;
-                    let mut new_fee = fee.clone();
+                    let mut new_fee = fee;
                     // we might need multiple change outputs for cases where the change has many asset types
                     // which surpass the max UTXO size limit
                     let minimum_utxo_val = min_pure_ada(&self.config.coins_per_utxo_word, data_hash.is_some())?;
                     while let Some(Ordering::Greater) = change_left.multiasset.as_ref().map_or_else(|| None, |ma| ma.partial_cmp(&MultiAsset::new())) {
                         let nft_changes = pack_nfts_for_change(self.config.max_value_size, &self.config.coins_per_utxo_word, address, &change_left, data_hash.clone())?;
-                        if nft_changes.len() == 0 {
+                        if nft_changes.is_empty() {
                             // this likely should never happen
                             return Err(JsError::from_str("NFTs too large for change output"));
                         }
                         // we only add the minimum needed (for now) to cover this output
                         let mut change_value = Value::new(&Coin::zero());
                         for nft_change in nft_changes.iter() {
-                            change_value.set_multiasset(&nft_change);
+                            change_value.set_multiasset(nft_change);
                             let min_ada = min_ada_required(&change_value, data_hash.is_some(), &self.config.coins_per_utxo_word)?;
                             change_value.set_coin(&min_ada);
                             let change_output = TransactionOutput {
@@ -1264,36 +1255,33 @@ impl TransactionBuilder {
     fn build_and_size(&self) -> Result<(TransactionBody, usize), JsError> {
         let fee = self.fee.ok_or_else(|| JsError::from_str("Fee not specified"))?;
         let built = TransactionBody {
-            inputs: TransactionInputs(self.inputs.iter().map(|ref tx_builder_input| tx_builder_input.input.clone()).collect()),
+            inputs: TransactionInputs(self.inputs.iter().map(|tx_builder_input| tx_builder_input.input.clone()).collect()),
             outputs: self.outputs.clone(),
-            fee: fee,
+            fee,
             ttl: self.ttl,
             certs: self.certs.clone(),
             withdrawals: self.withdrawals.clone(),
             update: None,
-            auxiliary_data_hash: match &self.auxiliary_data {
-                None => None,
-                Some(x) => Some(utils::hash_auxiliary_data(x)),
-            },
+            auxiliary_data_hash: self.auxiliary_data.as_ref().map(utils::hash_auxiliary_data),
             validity_start_interval: self.validity_start_interval,
             mint: self.mint.clone(),
             script_data_hash: self.script_data_hash.clone(),
             collateral: self.collateral.clone(),
             required_signers: self.required_signers.clone(),
-            network_id: self.network_id.clone(),
+            network_id: self.network_id,
         };
         // we must build a tx with fake data (of correct size) to check the final Transaction size
         let full_tx = fake_full_tx(self, built)?;
         let full_tx_size = full_tx.to_bytes().len();
-        return Ok((full_tx.body, full_tx_size));
+        Ok((full_tx.body, full_tx_size))
     }
 
     pub fn full_size(&self) -> Result<usize, JsError> {
-        return self.build_and_size().map(|r| { r.1 });
+        self.build_and_size().map(|r| { r.1 })
     }
 
     pub fn output_sizes(&self) -> Vec<usize> {
-        return self.outputs.0.iter().map(|o| { o.to_bytes().len() }).collect();
+        self.outputs.0.iter().map(|o| { o.to_bytes().len() }).collect()
     }
 
     /// Returns object the body of the new transaction
@@ -1409,7 +1397,7 @@ mod tests {
         max_val_size: u32,
         coins_per_utxo_word: u64,
     ) -> TransactionBuilder {
-        let cfg = TransactionBuilderConfigBuilder::new()
+        let cfg = TransactionBuilderConfigBuilder::default()
             .fee_algo(linear_fee)
             .pool_deposit(&to_bignum(pool_deposit))
             .key_deposit(&to_bignum(key_deposit))
@@ -1448,7 +1436,7 @@ mod tests {
     }
 
     fn create_tx_builder_with_fee_and_pure_change(linear_fee: &LinearFee) -> TransactionBuilder {
-        TransactionBuilder::new(&TransactionBuilderConfigBuilder::new()
+        TransactionBuilder::new(&TransactionBuilderConfigBuilder::default()
             .fee_algo(linear_fee)
             .pool_deposit(&to_bignum(1))
             .key_deposit(&to_bignum(1))
@@ -1668,7 +1656,7 @@ mod tests {
             .derive(0)
             .to_public();
         tx_builder.add_key_input(
-            &&spend.to_raw_key().hash(),
+            &spend.to_raw_key().hash(),
             &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(100))
         );
@@ -1689,7 +1677,7 @@ mod tests {
         let added_change = tx_builder.add_change_if_needed(
             &change_addr
         ).unwrap();
-        assert_eq!(added_change, false);
+        assert!(!added_change);
         let final_tx = tx_builder.build().unwrap();
         assert_eq!(final_tx.outputs().len(), 1);
     }
@@ -1720,7 +1708,7 @@ mod tests {
             .derive(0)
             .to_public();
         tx_builder.add_key_input(
-            &&spend.to_raw_key().hash(),
+            &spend.to_raw_key().hash(),
             &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(58))
         );
@@ -1746,7 +1734,7 @@ mod tests {
         let added_change = tx_builder.add_change_if_needed(
             &change_addr
         ).unwrap();
-        assert_eq!(added_change, true);
+        assert!(added_change);
         let final_tx = tx_builder.build().unwrap();
         assert_eq!(final_tx.outputs().len(), 2);
         assert_eq!(final_tx.outputs().get(1).amount().coin().to_str(), "29");
@@ -1779,7 +1767,7 @@ mod tests {
             .derive(0)
             .to_public();
         tx_builder.add_key_input(
-            &&spend.to_raw_key().hash(),
+            &spend.to_raw_key().hash(),
             &TransactionInput::new(&genesis_id(), &0.into()),
             &Value::new(&to_bignum(5)),
         );
@@ -2126,7 +2114,7 @@ mod tests {
             input_amount.set_multiasset(multiasset);
 
             tx_builder.add_key_input(
-                &&spend.to_raw_key().hash(),
+                &spend.to_raw_key().hash(),
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &input_amount,
             );
@@ -2162,7 +2150,7 @@ mod tests {
         .to_address();
 
         let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
-        assert_eq!(added_change, true);
+        assert!(added_change);
         let final_tx = tx_builder.build().unwrap();
         assert_eq!(final_tx.outputs().len(), 2);
         assert_eq!(
@@ -2239,7 +2227,7 @@ mod tests {
             input_amount.set_multiasset(multiasset);
 
             tx_builder.add_key_input(
-                &&spend.to_raw_key().hash(),
+                &spend.to_raw_key().hash(),
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &input_amount,
             );
@@ -2275,7 +2263,7 @@ mod tests {
         .to_address();
 
         let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
-        assert_eq!(added_change, true);
+        assert!(added_change);
         let final_tx = tx_builder.build().unwrap();
         assert_eq!(final_tx.outputs().len(), 3);
         assert_eq!(
@@ -2369,7 +2357,7 @@ mod tests {
             input_amount.set_multiasset(multiasset);
 
             tx_builder.add_key_input(
-                &&spend.to_raw_key().hash(),
+                &spend.to_raw_key().hash(),
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &input_amount,
             );
@@ -2405,7 +2393,7 @@ mod tests {
         .to_address();
 
         let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
-        assert_eq!(added_change, true);
+        assert!(added_change);
         let final_tx = tx_builder.build().unwrap();
         assert_eq!(final_tx.outputs().len(), 2);
         assert_eq!(
@@ -2659,12 +2647,12 @@ mod tests {
             .fold(MultiAsset::new(), |mut acc, (policy_id, name)| {
                 acc.insert(policy_id, &{
                     let mut assets = Assets::new();
-                    assets.insert(&name, &to_bignum(500));
+                    assets.insert(name, &to_bignum(500));
                     assets
                 });
                 acc
             });
-        return (multiasset, policy_ids, names);
+        (multiasset, policy_ids, names)
     }
 
     #[test]
@@ -2703,7 +2691,7 @@ mod tests {
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
 
         let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
-        assert_eq!(added_change, true);
+        assert!(added_change);
         let final_tx = tx_builder.build().unwrap();
         assert_eq!(final_tx.outputs().len(), 3);
         for (policy_id, asset_name) in policy_ids.iter().zip(names.iter()) {
@@ -2711,11 +2699,11 @@ mod tests {
                 .outputs
                 .0
                 .iter()
-                .find(|output| output.amount.multiasset.as_ref().map_or_else(
+                .any(|output| output.amount.multiasset.as_ref().map_or_else(
                     || false,
-                    |ma| ma.0.iter().find(|(pid, a)| *pid == policy_id
-                        && a.0.iter().find(|(name, _)| *name == asset_name).is_some()).is_some()
-                )).is_some()
+                    |ma| ma.0.iter().any(|(pid, a)| pid == policy_id
+                        && a.0.iter().any(|(name, _)| name == asset_name))
+                ))
             );
         }
         for output in final_tx.outputs.0.iter() {
@@ -2776,7 +2764,7 @@ mod tests {
             .fold(MultiAsset::new(), |mut acc, (policy_id, name)| {
                 acc.insert(policy_id, &{
                     let mut assets = Assets::new();
-                    assets.insert(&name, &to_bignum(500));
+                    assets.insert(name, &to_bignum(500));
                     assets
                 });
                 acc
@@ -2991,7 +2979,6 @@ mod tests {
 
     #[test]
     fn tx_builder_cip2_random_improve_multiasset() {
-        let linear_fee = LinearFee::new(&to_bignum(0), &to_bignum(0));
         let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(0, 0));
         let pid1 = PolicyID::from([1u8; 28]);
         let pid2 = PolicyID::from([2u8; 28]);
@@ -3129,7 +3116,7 @@ mod tests {
     fn tx_builder_cip2_random_improve_when_using_all_available_inputs() {
         // we have a = 1 to test increasing fees when more inputs are added
         let linear_fee = LinearFee::new(&to_bignum(1), &to_bignum(0));
-        let cfg = TransactionBuilderConfigBuilder::new()
+        let cfg = TransactionBuilderConfigBuilder::default()
             .fee_algo(&linear_fee)
             .pool_deposit(&to_bignum(0))
             .key_deposit(&to_bignum(0))
@@ -3159,7 +3146,7 @@ mod tests {
     fn tx_builder_cip2_random_improve_adds_enough_for_fees() {
         // we have a = 1 to test increasing fees when more inputs are added
         let linear_fee = LinearFee::new(&to_bignum(1), &to_bignum(0));
-        let cfg = TransactionBuilderConfigBuilder::new()
+        let cfg = TransactionBuilderConfigBuilder::default()
             .fee_algo(&linear_fee)
             .pool_deposit(&to_bignum(0))
             .key_deposit(&to_bignum(0))
@@ -3245,12 +3232,13 @@ mod tests {
 
     fn build_full_tx(body: &TransactionBody,
         witness_set: &TransactionWitnessSet,
-        auxiliary_data: Option<AuxiliaryData>) -> Transaction {
-            return Transaction::new(
+        auxiliary_data: Option<AuxiliaryData>
+    ) -> Transaction {
+            Transaction::new(
                 body,
                 witness_set,
                 auxiliary_data
-            );
+            )
         }
 
     #[test]
@@ -3403,7 +3391,7 @@ mod tests {
         let linear_fee = LinearFee::new(&to_bignum(0), &to_bignum(1));
         let max_value_size = 100; // super low max output size to test with fewer assets
         let mut tx_builder = TransactionBuilder::new(
-            &TransactionBuilderConfigBuilder::new()
+            &TransactionBuilderConfigBuilder::default()
                 .fee_algo(&linear_fee)
                 .pool_deposit(&to_bignum(0))
                 .key_deposit(&to_bignum(0))
@@ -3426,7 +3414,7 @@ mod tests {
         let assets = names
             .iter()
             .fold(Assets::new(), |mut a, name| {
-                a.insert(&name, &to_bignum(500));
+                a.insert(name, &to_bignum(500));
                 a
             });
         let mut multiasset = MultiAsset::new();
@@ -3522,7 +3510,7 @@ mod tests {
         );
         aux.set_native_scripts(&nats);
 
-        return aux;
+        aux
     }
 
     fn assert_json_metadatum(dat: &TransactionMetadatum) {
@@ -3667,7 +3655,7 @@ mod tests {
     fn create_assets() -> Assets {
         let mut assets = Assets::new();
         assets.insert(&create_asset_name(), &to_bignum(1234));
-        return assets;
+        assets
     }
 
     fn create_mint_with_one_asset(policy_id: &PolicyID) -> Mint {
@@ -3677,12 +3665,12 @@ mod tests {
     fn create_multiasset_one_asset(policy_id: &PolicyID) -> MultiAsset {
         let mut mint = MultiAsset::new();
         mint.insert(policy_id, &create_assets());
-        return mint;
+        mint
     }
 
     fn assert_mint_asset(mint: &Mint, policy_id: &PolicyID) {
-        assert!(mint.get(&policy_id).is_some());
-        let result_asset = mint.get(&policy_id).unwrap();
+        assert!(mint.get(policy_id).is_some());
+        let result_asset = mint.get(policy_id).unwrap();
         assert_eq!(result_asset.len(), 1);
         assert_eq!(result_asset.get(&create_asset_name()).unwrap(), Int::new_i32(1234));
     }
@@ -4205,7 +4193,7 @@ mod tests {
             input_amount.set_multiasset(multiasset);
 
             tx_builder.add_key_input(
-                &&spend.to_raw_key().hash(),
+                &spend.to_raw_key().hash(),
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &input_amount,
             );

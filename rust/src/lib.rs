@@ -2893,7 +2893,7 @@ impl MultiAsset {
 impl PartialOrd for MultiAsset {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         fn amount_or_zero(ma: &MultiAsset, pid: &PolicyID, aname: &AssetName) -> Coin {
-            ma.get(&pid).and_then(|assets| assets.get(aname))
+            ma.get(pid).and_then(|assets| assets.get(aname))
                 .unwrap_or(to_bignum(0u64)) // assume 0 if asset not present
         }
 
@@ -2902,7 +2902,7 @@ impl PartialOrd for MultiAsset {
             for (pid, assets) in lhs.0.iter() {
                 for (aname, amount) in assets.0.iter() {
                     match amount
-                            .clamped_sub(&amount_or_zero(&rhs, pid, aname))
+                            .clamped_sub(&amount_or_zero(rhs, pid, aname))
                             .cmp(&to_bignum(0))
                     {
                         std::cmp::Ordering::Equal => (),

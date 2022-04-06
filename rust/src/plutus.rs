@@ -572,7 +572,7 @@ pub enum RedeemerTagKind {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Hash, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Hash, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct RedeemerTag(RedeemerTagKind);
 
 to_from_bytes!(RedeemerTag);

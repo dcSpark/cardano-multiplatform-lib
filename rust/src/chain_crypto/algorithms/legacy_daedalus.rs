@@ -86,7 +86,7 @@ impl AsymmetricKey for LegacyDaedalus {
                 out[64..96].clone_from_slice(&block[32..64]);
                 break;
             }
-            iter = iter + 1;
+            iter += 1;
         }
 
         LegacyPriv(out)

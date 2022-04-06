@@ -377,12 +377,11 @@ impl Address {
             // checks the /bit/ bit of the header for key vs scripthash then reads the credential starting at byte position /pos/
             let read_addr_cred = |bit: u8, pos: usize| {
                 let hash_bytes: [u8; HASH_LEN] = data[pos..pos+HASH_LEN].try_into().unwrap();
-                let x = if header & (1 << bit)  == 0 {
+                if header & (1 << bit)  == 0 {
                     StakeCredential::from_keyhash(&Ed25519KeyHash::from(hash_bytes))
                 } else {
                     StakeCredential::from_scripthash(&ScriptHash::from(hash_bytes))
-                };
-                x
+                }
             };
             let addr = match (header & 0xF0) >> 4 {
                 // base
@@ -408,13 +407,13 @@ impl Address {
                     let payment_cred = read_addr_cred(4, 1);
                     byte_index += HASH_LEN;
                     let (slot, slot_bytes) = variable_nat_decode(&data[byte_index..])
-                        .ok_or(DeserializeError::new("Address.Pointer.slot", DeserializeFailure::VariableLenNatDecodeFailed))?;
+                        .ok_or_else(|| DeserializeError::new("Address.Pointer.slot", DeserializeFailure::VariableLenNatDecodeFailed))?;
                     byte_index += slot_bytes;
                     let (tx_index, tx_bytes) = variable_nat_decode(&data[byte_index..])
-                        .ok_or(DeserializeError::new("Address.Pointer.tx_index", DeserializeFailure::VariableLenNatDecodeFailed))?;
+                        .ok_or_else(|| DeserializeError::new("Address.Pointer.tx_index", DeserializeFailure::VariableLenNatDecodeFailed))?;
                     byte_index += tx_bytes;
                     let (cert_index, cert_bytes) = variable_nat_decode(&data[byte_index..])
-                        .ok_or(DeserializeError::new("Address.Pointer.cert_index", DeserializeFailure::VariableLenNatDecodeFailed))?;
+                        .ok_or_else(|| DeserializeError::new("Address.Pointer.cert_index", DeserializeFailure::VariableLenNatDecodeFailed))?;
                     byte_index += cert_bytes;
                     if byte_index < data.len() {
                         return Err(cbor_event::Error::TrailingData.into());

@@ -69,7 +69,7 @@ impl From<i::SignatureError> for SignatureError {
         match v {
             i::SignatureError::InvalidLength(got) => SignatureError::SizeInvalid {
                 expected: ed25519_bip32::SIGNATURE_SIZE,
-                got: got,
+                got,
             },
         }
     }

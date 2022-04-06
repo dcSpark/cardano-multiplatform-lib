@@ -12,24 +12,24 @@ pub struct RedeemerWitnessKey {
 impl RedeemerWitnessKey {
 
     pub fn tag(&self) -> RedeemerTag {
-        self.tag.clone()
+        self.tag
     }
 
     pub fn index(&self) -> BigNum {
-        self.index.clone()
+        self.index
     }
 
     pub fn new(tag: &RedeemerTag, index: &BigNum) -> Self {
         Self {
-            tag: tag.clone(),
-            index: index.clone(),
+            tag: *tag,
+            index: *index,
         }
     }
 
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct RequiredWitnessSet {
     // note: the real key type for these is Vkey
     // but cryptographically these should be equivalent and Ed25519KeyHash is more flexible
@@ -79,7 +79,7 @@ impl RequiredWitnessSet {
     }
 
     pub fn add_plutus_datum(&mut self, plutus_datum: &PlutusData) {
-        self.add_plutus_datum_hash(&hash_plutus_data(&plutus_datum));
+        self.add_plutus_datum_hash(&hash_plutus_data(plutus_datum));
     }
     pub fn add_plutus_datum_hash(&mut self, plutus_datum: &DataHash) {
         self.plutus_data.insert(plutus_datum.clone());
@@ -109,7 +109,7 @@ impl RequiredWitnessSet {
         let plutus_data = self.plutus_data.iter().map(|hash| format!("Plutus data hash:{}", hex::encode(hash.to_bytes()))).collect::<Vec<String>>().join(",");
         let redeemers = self.redeemers.iter().map(|key| format!("Redeemer:{}-{}", hex::encode(key.tag().to_bytes()), key.index().to_str())).collect::<Vec<String>>().join(",");
 
-        [vkeys, bootstraps, native_scripts, plutus_scripts, plutus_data, redeemers].iter().filter(|msg| msg.len() > 0).cloned().collect::<Vec<String>>().join("\n")
+        [vkeys, bootstraps, native_scripts, plutus_scripts, plutus_data, redeemers].iter().filter(|msg| !msg.is_empty()).cloned().collect::<Vec<String>>().join("\n")
     }
 
     pub (crate) fn len(&self) -> usize {
@@ -122,20 +122,14 @@ impl RequiredWitnessSet {
     }
 
     pub fn new() -> Self {
-        Self {
-            vkeys: HashSet::new(),
-            bootstraps: HashSet::new(),
-            native_scripts: HashSet::new(),
-            plutus_scripts: HashSet::new(),
-            plutus_data: HashSet::new(),
-            redeemers: HashSet::new(),
-        }
+        // have to expose new so it's visible in WASM
+        Self::default()
     }
 }
 
 /// Builder de-duplicates witnesses as they are added 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct TransactionWitnessSetBuilder {
     // See Alonzo spec section 3.1 which defines the keys for these types
     vkeys: HashMap<Vkey, Vkeywitness>,
@@ -170,7 +164,7 @@ impl TransactionWitnessSetBuilder {
     }
 
     pub fn add_plutus_datum(&mut self, plutus_datum: &PlutusData) {
-        self.plutus_data.insert(hash_plutus_data(&plutus_datum), plutus_datum.clone());
+        self.plutus_data.insert(hash_plutus_data(plutus_datum), plutus_datum.clone());
     }
 
     pub fn add_redeemer(&mut self, redeemer: &Redeemer) {
@@ -181,19 +175,12 @@ impl TransactionWitnessSetBuilder {
     }
 
     pub fn add_required_wits(&mut self, required_wits: &RequiredWitnessSet) {
-        self.required_wits.add_all(&required_wits)
+        self.required_wits.add_all(required_wits)
     }
 
     pub fn new() -> Self {
-        Self {
-            vkeys: HashMap::new(),
-            bootstraps: HashMap::new(),
-            native_scripts: HashMap::new(),
-            plutus_scripts: HashMap::new(),
-            plutus_data: HashMap::new(),
-            redeemers: HashMap::new(),
-            required_wits: RequiredWitnessSet::new(),
-        }
+        // have to expose new so it's visible in WASM
+        Self::default()
     }
 
     pub fn add_existing(&mut self, wit_set: &TransactionWitnessSet) {
@@ -227,30 +214,30 @@ impl TransactionWitnessSetBuilder {
         let mut result = TransactionWitnessSet::new();
         let mut remaining_wits = self.required_wits.clone();
         
-        if self.vkeys.len() > 0 {
+        if !self.vkeys.is_empty() {
             result.set_vkeys(&Vkeywitnesses(self.vkeys.values().cloned().collect()));
             self.vkeys.keys().for_each(|key| { remaining_wits.vkeys.remove(&key.public_key().hash()); });
         }
-        if self.bootstraps.len() > 0 {
+        if !self.bootstraps.is_empty() {
             result.set_bootstraps(&BootstrapWitnesses(self.bootstraps.values().cloned().collect()));
             self.bootstraps.keys().for_each(|key| { remaining_wits.bootstraps.remove(&key.public_key().hash()); });
         }
-        if self.native_scripts.len() > 0 {
+        if !self.native_scripts.is_empty() {
             result.set_native_scripts(&NativeScripts(self.native_scripts.values().cloned().collect()));
             self.native_scripts.keys().for_each(|hash| { remaining_wits.native_scripts.remove(hash); });
         }
-        if self.plutus_scripts.len() > 0 {
+        if !self.plutus_scripts.is_empty() {
             result.set_plutus_scripts(&PlutusScripts(self.plutus_scripts.values().cloned().collect()));
             self.plutus_scripts.keys().for_each(|hash| { remaining_wits.plutus_scripts.remove(hash); });
         }
-        if self.plutus_data.len() > 0 {
+        if !self.plutus_data.is_empty() {
             result.set_plutus_data(&PlutusList {
                 elems: self.plutus_data.values().cloned().collect(),
                 definite_encoding: None,
             });
             self.plutus_data.keys().for_each(|hash| { remaining_wits.plutus_data.remove(hash); });
         }
-        if self.redeemers.len() > 0 {
+        if !self.redeemers.is_empty() {
             result.set_redeemers(&Redeemers(self.redeemers.values().cloned().collect()));
             self.redeemers.keys().for_each(|key| { remaining_wits.redeemers.remove(key); });
         }

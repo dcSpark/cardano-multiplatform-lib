@@ -301,7 +301,7 @@ impl<H: DigestAlg, T> Clone for DigestOf<H, T> {
     fn clone(&self) -> Self {
         DigestOf {
             inner: self.inner.clone(),
-            marker: self.marker.clone(),
+            marker: self.marker,
         }
     }
 }
@@ -323,7 +323,7 @@ impl<H: DigestAlg, T> From<Digest<H>> for DigestOf<H, T> {
 
 impl<H: DigestAlg, T> PartialEq for DigestOf<H, T> {
     fn eq(&self, other: &Self) -> bool {
-        &self.inner == &other.inner
+        self.inner == other.inner
     }
 }
 

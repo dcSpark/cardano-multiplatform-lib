@@ -50,7 +50,7 @@ pub fn encrypt_with_password(
     if nonce.len() != NONCE_SIZE {
         return Err(JsError::from_str(&format!("nonce len must be {}, found {} bytes", NONCE_SIZE, nonce.len())));
     }
-    if password.len() == 0 {
+    if password.is_empty() {
       return Err(JsError::from_str("Password len cannot be 0"));
     }
 
@@ -98,13 +98,13 @@ pub fn decrypt_with_password(
     let key = {
         let mut mac = Hmac::new(Sha512::new(), &password);
         let mut key: Vec<u8> = repeat(0).take(KEY_SIZE).collect();
-        pbkdf2(&mut mac, &salt[..], ITER, &mut key);
+        pbkdf2(&mut mac, salt, ITER, &mut key);
         key
     };
 
     let mut decrypted: Vec<u8> = repeat(0).take(encrypted.len()).collect();
     let decryption_succeed =
-        { ChaCha20Poly1305::new(&key, &nonce, &[]).decrypt(&encrypted, &mut decrypted, &tag) };
+        { ChaCha20Poly1305::new(&key, nonce, &[]).decrypt(encrypted, &mut decrypted, tag) };
 
     if decryption_succeed {
         Ok(decrypted.encode_hex::<String>())

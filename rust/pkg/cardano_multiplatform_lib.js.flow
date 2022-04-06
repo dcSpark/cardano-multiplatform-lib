@@ -409,6 +409,11 @@ declare export class Address {
   static from_json(json: string): Address;
 
   /**
+   * @returns {number}
+   */
+  header(): number;
+
+  /**
    * @returns {Uint8Array}
    */
   to_bytes(): Uint8Array;

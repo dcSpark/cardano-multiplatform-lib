@@ -307,39 +307,45 @@ impl JsonSchema for Address {
 // other CBOR types
 #[wasm_bindgen]
 impl Address {
+    pub fn header(&self) -> u8 {
+        match &self.0 {
+            AddrType::Base(base) => ((base.payment.kind() as u8) << 4)
+                           | ((base.stake.kind() as u8) << 5)
+                           | (base.network & 0xF),
+            AddrType::Ptr(ptr) => 0b0100_0000
+                               | ((ptr.payment.kind() as u8) << 4)
+                               | (ptr.network & 0xF),
+            AddrType::Enterprise(enterprise) => 0b0110_0000
+                               | ((enterprise.payment.kind() as u8) << 4)
+                               | (enterprise.network & 0xF),
+            AddrType::Reward(reward) => 0b1110_0000
+                                | ((reward.payment.kind() as u8) << 4)
+                                | (reward.network & 0xF),
+            AddrType::Byron(_) => 0b1000,
+        }
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
         match &self.0 {
             AddrType::Base(base) => {
-                let header: u8 = ((base.payment.kind() as u8) << 4)
-                           | ((base.stake.kind() as u8) << 5)
-                           | (base.network & 0xF);
-                buf.push(header);
+                buf.push(self.header());
                 buf.extend(base.payment.to_raw_bytes());
                 buf.extend(base.stake.to_raw_bytes());
             },
             AddrType::Ptr(ptr) => {
-                let header: u8 = 0b0100_0000
-                               | ((ptr.payment.kind() as u8) << 4)
-                               | (ptr.network & 0xF);
-                buf.push(header);
+                buf.push(self.header());
                 buf.extend(ptr.payment.to_raw_bytes());
                 buf.extend(variable_nat_encode(from_bignum(&ptr.stake.slot)));
                 buf.extend(variable_nat_encode(from_bignum(&ptr.stake.tx_index)));
                 buf.extend(variable_nat_encode(from_bignum(&ptr.stake.cert_index)));
             },
             AddrType::Enterprise(enterprise) => {
-                let header: u8 = 0b0110_0000
-                               | ((enterprise.payment.kind() as u8) << 4)
-                               | (enterprise.network & 0xF);
-                buf.push(header);
+                buf.push(self.header());
                 buf.extend(enterprise.payment.to_raw_bytes());
             },
             AddrType::Reward(reward) => {
-                let header: u8 = 0b1110_0000
-                                | ((reward.payment.kind() as u8) << 4)
-                                | (reward.network & 0xF);
-                buf.push(header);
+                buf.push(self.header());
                 buf.extend(reward.payment.to_raw_bytes());
             },
             AddrType::Byron(byron) => {

@@ -19,4 +19,4 @@ paths.forEach((path) => {
   });
 })
 
-fs.unlinkSync('./rust/pkg/cardano_multiplatformn_lib_bg.wasm')
+fs.unlinkSync('./rust/pkg/cardano_multiplatform_lib_bg.wasm')

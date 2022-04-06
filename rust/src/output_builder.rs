@@ -7,7 +7,7 @@ use super::*;
 /// 3. Easier to adapt as the output format gets more complicated in future Cardano releases
 
 #[wasm_bindgen]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TransactionOutputBuilder {
     address: Option<Address>,
     data_hash: Option<DataHash>,
@@ -16,10 +16,8 @@ pub struct TransactionOutputBuilder {
 #[wasm_bindgen]
 impl TransactionOutputBuilder {
     pub fn new() -> Self {
-        Self {
-            address: None,
-            data_hash: None,
-        }
+        // explicit add new so that it's visible from WASM
+        Self::default()
     }
 
     pub fn with_address(&self, address: &Address) -> Self {
@@ -36,7 +34,7 @@ impl TransactionOutputBuilder {
 
     pub fn next(&self) -> Result<TransactionOutputAmountBuilder, JsError> {
         Ok(TransactionOutputAmountBuilder {
-            address: self.address.clone().ok_or(JsError::from_str("TransactionOutputBaseBuilder: Address missing"))?,
+            address: self.address.clone().ok_or_else(|| JsError::from_str("TransactionOutputBaseBuilder: Address missing"))?,
             amount: None,
             data_hash: self.data_hash.clone(),
         })
@@ -77,22 +75,22 @@ impl TransactionOutputAmountBuilder {
     }
 
     pub fn with_asset_and_min_required_coin(&self, multiasset: &MultiAsset, coins_per_utxo_word: &Coin) -> Result<TransactionOutputAmountBuilder, JsError> {
-        let min_possible_coin = min_pure_ada(&coins_per_utxo_word, self.data_hash.is_some())?;
+        let min_possible_coin = min_pure_ada(coins_per_utxo_word, self.data_hash.is_some())?;
         let mut value = Value::new(&min_possible_coin);
         value.set_multiasset(multiasset);
         let required_coin = min_ada_required(
             &value,
             self.data_hash.is_some(),
-            &coins_per_utxo_word,
+            coins_per_utxo_word,
         )?;
 
-        Ok(self.with_coin_and_asset(&required_coin, &multiasset))
+        Ok(self.with_coin_and_asset(&required_coin, multiasset))
     }
 
     pub fn build(&self) -> Result<TransactionOutput, JsError> {
         Ok(TransactionOutput {
             address: self.address.clone(),
-            amount: self.amount.clone().ok_or(JsError::from_str("TransactionOutputAmountBuilder: amount missing"))?,
+            amount: self.amount.clone().ok_or_else(|| JsError::from_str("TransactionOutputAmountBuilder: amount missing"))?,
             data_hash: self.data_hash.clone(),
         })
     }

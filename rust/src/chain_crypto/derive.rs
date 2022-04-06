@@ -32,7 +32,7 @@ pub fn from_bip39_entropy(entropy: &[u8], password: &[u8]) -> SecretKey<Ed25519B
 
     const ITER: u32 = 4096;
     let mut mac = Hmac::new(Sha512::new(), password);
-    pbkdf2(&mut mac, entropy.as_ref(), ITER, &mut pbkdf2_result);
+    pbkdf2(&mut mac, entropy, ITER, &mut pbkdf2_result);
 
     SecretKey(XPrv::normalize_bytes_force3rd(pbkdf2_result))
 }

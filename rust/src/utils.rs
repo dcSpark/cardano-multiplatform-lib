@@ -163,13 +163,18 @@ impl Deserialize for TransactionUnspentOutput {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TransactionUnspentOutputs(pub(crate) Vec<TransactionUnspentOutput>);
 
 #[wasm_bindgen]
 impl TransactionUnspentOutputs {
     pub fn new() -> Self {
-        Self(Vec::new())
+        // we have to provide new to expose it to WASM builds
+        Self::default()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     pub fn len(&self) -> usize {
@@ -194,13 +199,22 @@ pub struct BigNum(u64);
 
 to_from_bytes!(BigNum);
 
-#[wasm_bindgen]
-impl BigNum {
-    // Create a BigNum from a standard rust string representation
-    pub fn from_str(string: &str) -> Result<BigNum, JsError> {
+impl std::str::FromStr for BigNum {
+    type Err = JsError;
+    fn from_str(string: &str) -> Result<BigNum, JsError> {
         string.parse::<u64>()
             .map_err(|e| JsError::from_str(&format! {"{:?}", e}))
             .map(BigNum)
+    }
+}
+
+#[wasm_bindgen]
+impl BigNum {
+    // Create a BigNum from a standard rust string representation
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(string: &str) -> Result<BigNum, JsError> {
+        // have to redefine so it's visible in WASM
+        std::str::FromStr::from_str(string)
     }
 
     // String representation of the BigNum value for use from environments that don't support BigInt
@@ -246,7 +260,7 @@ impl BigNum {
     }
 
     pub fn compare(&self, rhs_value: &BigNum) -> i8 {
-        match self.cmp(&rhs_value) {
+        match self.cmp(rhs_value) {
             std::cmp::Ordering::Equal => 0,
             std::cmp::Ordering::Less => -1,
             std::cmp::Ordering::Greater => 1,
@@ -330,7 +344,7 @@ impl Value {
 
     pub fn new(coin: &Coin) -> Value {
         Self {
-            coin: coin.clone(),
+            coin: *coin,
             multiasset: None,
         }
     }
@@ -358,7 +372,7 @@ impl Value {
     }
 
     pub fn set_coin(&mut self, coin: &Coin) {
-        self.coin = coin.clone();
+        self.coin = *coin;
     }
 
     pub fn multiasset(&self) -> Option<MultiAsset> {
@@ -385,16 +399,16 @@ impl Value {
                                     match assets.get_mut().0.entry(asset_name.clone()) {
                                         Entry::Occupied(mut assets) => {
                                             let current = assets.get_mut();
-                                            *current = current.checked_add(&amount)?;
+                                            *current = current.checked_add(amount)?;
                                         }
                                         Entry::Vacant(vacant_entry) => {
-                                            vacant_entry.insert(amount.clone());
+                                            vacant_entry.insert(*amount);
                                         }
                                     }
                                 }
                                 Entry::Vacant(entry) => {
                                     let mut assets = Assets::new();
-                                    assets.0.insert(asset_name.clone(), amount.clone());
+                                    assets.0.insert(asset_name.clone(), *amount);
                                     entry.insert(assets);
                                 }
                             }
@@ -451,7 +465,7 @@ impl Value {
 
     /// note: values are only partially comparable
     pub fn compare(&self, rhs_value: &Value) -> Option<i8> {
-        match self.partial_cmp(&rhs_value) {
+        match self.partial_cmp(rhs_value) {
             None => None,
             Some(std::cmp::Ordering::Equal) => Some(0),
             Some(std::cmp::Ordering::Less) => Some(-1),
@@ -467,9 +481,9 @@ impl PartialOrd for Value {
         fn compare_assets(lhs: &Option<MultiAsset>, rhs: &Option<MultiAsset>) -> Option<std::cmp::Ordering> {
             match (lhs, rhs) {
                 (None, None) => Some(Equal),
-                (None, Some(rhs_assets)) => MultiAsset::new().partial_cmp(&rhs_assets),
+                (None, Some(rhs_assets)) => MultiAsset::new().partial_cmp(rhs_assets),
                 (Some(lhs_assets), None) => lhs_assets.partial_cmp(&MultiAsset::new()),
-                (Some(lhs_assets), Some(rhs_assets)) => lhs_assets.partial_cmp(&rhs_assets),
+                (Some(lhs_assets), Some(rhs_assets)) => lhs_assets.partial_cmp(rhs_assets),
             }
         }
 
@@ -537,6 +551,18 @@ impl Deserialize for Value {
     }
 }
 
+impl std::str::FromStr for Int {
+    type Err = JsError;
+    fn from_str(string: &str) -> Result<Int, JsError> {
+        let x = string.parse::<i128>()
+            .map_err(|e| JsError::from_str(&format! {"{:?}", e}))?;
+        if x.abs() > u64::MAX as i128 {
+            return Err(JsError::from_str(&format!("{} out of bounds. Value (without sign) must fit within 4 bytes limit of {}", x, u64::MAX)));
+        }
+        Ok(Self(x))
+    }
+}
+
 // CBOR has int = uint / nint
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -559,7 +585,7 @@ impl Int {
     }
 
     pub fn is_positive(&self) -> bool {
-        return self.0 >= 0
+        self.0 >= 0
     }
 
     /// BigNum can only contain unsigned u64 values
@@ -594,7 +620,7 @@ impl Int {
     /// Returns an i32 value in case the underlying original i128 value is within the limits.
     /// Otherwise will just return an empty value (undefined).
     #[deprecated(
-        since = "10.0.0",
+        since = "0.1.0",
         note = "Unsafe ignoring of possible boundary error and it's not clear from the function name. Use `as_i32_or_nothing`, `as_i32_or_fail`, or `to_str`"
     )]
     pub fn as_i32(&self) -> Option<i32> {
@@ -623,13 +649,10 @@ impl Int {
     }
 
     // Create an Int from a standard rust string representation
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(string: &str) -> Result<Int, JsError> {
-        let x = string.parse::<i128>()
-            .map_err(|e| JsError::from_str(&format! {"{:?}", e}))?;
-        if x.abs() > u64::MAX as i128 {
-            return Err(JsError::from_str(&format!("{} out of bounds. Value (without sign) must fit within 4 bytes limit of {}", x, u64::MAX)));
-        }
-        Ok(Self(x))
+        // have to redefine so it's visible in WASM
+        std::str::FromStr::from_str(string)
     }
 }
 
@@ -799,6 +822,15 @@ impl JsonSchema for BigInt {
     fn is_referenceable() -> bool { String::is_referenceable() }
 }
 
+impl std::str::FromStr for BigInt {
+    type Err = JsError;
+    fn from_str(string: &str) -> Result<BigInt, JsError> {
+        num_bigint::BigInt::from_str(string)
+            .map_err(|e| JsError::from_str(&format! {"{:?}", e}))
+            .map(BigInt)
+    }
+}
+
 #[wasm_bindgen]
 impl BigInt {
     pub fn as_u64(&self) -> Option<BigNum> {
@@ -827,11 +859,10 @@ impl BigInt {
         }
     }
 
-    pub fn from_str(text: &str) -> Result<BigInt, JsError> {
-        use std::str::FromStr;
-        num_bigint::BigInt::from_str(text)
-            .map_err(|e| JsError::from_str(&format! {"{:?}", e}))
-            .map(BigInt)
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(string: &str) -> Result<BigInt, JsError> {
+        // have to redefine so it's visible in WASM
+        std::str::FromStr::from_str(string)
     }
 
     pub fn to_str(&self) -> String {
@@ -900,14 +931,14 @@ impl Deserialize for BigInt {
                             let adjusted = initial.checked_add(&num_bigint::BigInt::from(1u32)).unwrap().neg();
                             Ok(Self(adjusted))
                         },
-                        _ => return Err(DeserializeFailure::TagMismatch{ found: tag, expected: 2 }.into()),
+                        _ => Err(DeserializeFailure::TagMismatch{ found: tag, expected: 2 }.into()),
                     }
                 },
                 // uint
                 CBORType::UnsignedInteger => Ok(Self(num_bigint::BigInt::from(raw.unsigned_integer()?))),
                 // nint
                 CBORType::NegativeInteger => Ok(Self(num_bigint::BigInt::from(read_nint(raw)?))),
-                _ => return Err(DeserializeFailure::NoVariantMatched.into()),
+                _ => Err(DeserializeFailure::NoVariantMatched.into()),
             }
         })().map_err(|e| e.annotate("BigInt"))
     }
@@ -1002,7 +1033,7 @@ pub fn make_daedalus_bootstrap_witness(
 ) -> BootstrapWitness {
     let chain_code = key.chaincode();
 
-    let pubkey = Bip32PublicKey::from_bytes(&key.0.to_public().as_ref()).unwrap();
+    let pubkey = Bip32PublicKey::from_bytes(key.0.to_public().as_ref()).unwrap();
     let vkey = Vkey::new(&pubkey.to_raw_key());
     let signature = Ed25519Signature::from_bytes(key.0.sign(&tx_body_hash.to_bytes()).as_ref().to_vec()).unwrap();
 
@@ -1100,7 +1131,7 @@ pub fn internal_get_implicit_input(
             .values()
             .try_fold(
                 to_bignum(0),
-                |acc, ref withdrawal_amt| acc.checked_add(&withdrawal_amt)
+                |acc, withdrawal_amt| acc.checked_add(withdrawal_amt)
             )?,
     };
     let certificate_refund = match &certs {
@@ -1109,9 +1140,9 @@ pub fn internal_get_implicit_input(
             .iter()
             .try_fold(
                 to_bignum(0),
-                |acc, ref cert| match &cert.0 {
-                    CertificateEnum::PoolRetirement(_cert) => acc.checked_add(&pool_deposit),
-                    CertificateEnum::StakeDeregistration(_cert) => acc.checked_add(&key_deposit),
+                |acc, cert| match &cert.0 {
+                    CertificateEnum::PoolRetirement(_cert) => acc.checked_add(pool_deposit),
+                    CertificateEnum::StakeDeregistration(_cert) => acc.checked_add(key_deposit),
                     _ => Ok(acc),
                 }
             )?
@@ -1130,9 +1161,9 @@ pub fn internal_get_deposit(
             .iter()
             .try_fold(
                 to_bignum(0),
-                |acc, ref cert| match &cert.0 {
-                    CertificateEnum::PoolRegistration(_cert) => acc.checked_add(&pool_deposit),
-                    CertificateEnum::StakeRegistration(_cert) => acc.checked_add(&key_deposit),
+                |acc, cert| match &cert.0 {
+                    CertificateEnum::PoolRegistration(_cert) => acc.checked_add(pool_deposit),
+                    CertificateEnum::StakeRegistration(_cert) => acc.checked_add(key_deposit),
                     _ => Ok(acc),
                 }
             )?
@@ -1150,8 +1181,8 @@ pub fn get_implicit_input(
     internal_get_implicit_input(
         &txbody.withdrawals,
         &txbody.certs,
-        &pool_deposit,
-        &key_deposit,
+        pool_deposit,
+        key_deposit,
     )
 }
 
@@ -1163,8 +1194,8 @@ pub fn get_deposit(
 ) -> Result<Coin, JsError> {
     internal_get_deposit(
         &txbody.certs,
-        &pool_deposit,
-        &key_deposit,
+        pool_deposit,
+        key_deposit,
     )
 }
 
@@ -1235,7 +1266,7 @@ pub enum ScriptHashNamespace {
 
 pub (crate) fn hash_script(namespace: ScriptHashNamespace, script: Vec<u8>) -> ScriptHash {
     let mut bytes = Vec::with_capacity(script.len() + 1);
-    bytes.extend_from_slice(&vec![namespace as u8]);
+    bytes.extend_from_slice(&[namespace as u8]);
     bytes.extend_from_slice(&script);
     ScriptHash::from(blake2b224(bytes.as_ref()))
 }
@@ -1251,7 +1282,7 @@ pub fn min_ada_required(
     let utxo_entry_size_without_val = 27; // in words
 
     let size = bundle_size(
-        &assets,
+        assets,
         &OutputSizeConstants {
             k0: 6,
             k1: 12,
@@ -1294,7 +1325,7 @@ pub fn encode_json_str_to_native_script(
     schema: ScriptSchema,
 ) -> Result<NativeScript, JsError> {
     let value: serde_json::Value =
-        serde_json::from_str(&json).map_err(|e| JsError::from_str(&e.to_string()))?;
+        serde_json::from_str(json).map_err(|e| JsError::from_str(&e.to_string()))?;
 
     let native_script = match schema {
         ScriptSchema::Wallet => encode_wallet_value_to_native_script(value, self_xpub)?,
@@ -1574,7 +1605,7 @@ mod tests {
 
     fn three_policies_96_1_char_assets() -> Value {
         let mut token_bundle = MultiAsset::new();
-        fn add_policy(token_bundle: &mut MultiAsset, index: u8) -> () {
+        fn add_policy(token_bundle: &mut MultiAsset, index: u8) {
             let mut asset_list = Assets::new();
 
             for i in 0..32 {
@@ -2493,6 +2524,7 @@ mod tests {
         assert_eq!(bytes_y, y.to_bytes());
     }
 
+    #[test]
     fn bigint_as_int() {
         let zero = BigInt::from_str("0").unwrap();
         let zero_int = zero.as_int().unwrap();

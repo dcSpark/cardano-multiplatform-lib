@@ -302,11 +302,56 @@ impl JsonSchema for Address {
     fn is_referenceable() -> bool { String::is_referenceable() }
 }
 
+#[wasm_bindgen]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[repr(u8)]
+pub enum AddressHeader {
+    BasePaymentKeyStakeKey = 0b0000_0000,
+    BasePaymentScriptStakeKey = 0b0001_0000,
+    BasePaymentKeyStakeScript = 0b0010_0000,
+    BasePaymentScriptStakeScript = 0b0011_0000,
+    PointerKey = 0b0100_0000,
+    PointerScript = 0b0101_0000,
+    EnterpriseKey = 0b0110_0000,
+    EnterpriseScript = 0b0111_0000,
+    Byron = 0b1000_0000,
+    RewardKey = 0b1110_0000,
+    RewardScript = 0b1111_0000
+    // 1001-1101 are left for future formats
+}
+
 // to/from_bytes() are the raw encoding without a wrapping CBOR Bytes tag
 // while Serialize and Deserialize traits include that for inclusion with
 // other CBOR types
 #[wasm_bindgen]
 impl Address {
+    /// header has 4 bits addr type discrim then 4 bits network discrim.
+    /// Copied from shelley.cddl:
+    ///
+    /// base address
+    /// bits 7-6: 00
+    /// bit 5: stake cred is keyhash/scripthash
+    /// bit 4: payment cred is keyhash/scripthash
+    /// bits 3-0: network id
+    /// 
+    /// pointer address
+    /// bits 7-5: 010
+    /// bit 4: payment cred is keyhash/scripthash
+    /// bits 3-0: network id
+    /// 
+    /// enterprise address
+    /// bits 7-5: 010
+    /// bit 4: payment cred is keyhash/scripthash
+    /// bits 3-0: network id
+    ///
+    /// reward addresses:
+    /// bits 7-5: 111
+    /// bit 4: credential is keyhash/scripthash
+    /// bits 3-0: network id
+    ///
+    /// byron addresses:
+    /// bits 7-4: 1000
+    /// bits 3-0: unrelated data (recall: no network ID in Byron addresses)
     pub fn header(&self) -> u8 {
         match &self.0 {
             AddrType::Base(base) => ((base.payment.kind() as u8) << 4)
@@ -318,10 +363,10 @@ impl Address {
             AddrType::Enterprise(enterprise) => 0b0110_0000
                                | ((enterprise.payment.kind() as u8) << 4)
                                | (enterprise.network & 0xF),
+            AddrType::Byron(_) => 0b1000 << 4, // note: no network ID for Byron
             AddrType::Reward(reward) => 0b1110_0000
                                 | ((reward.payment.kind() as u8) << 4)
                                 | (reward.network & 0xF),
-            AddrType::Byron(_) => 0b1000,
         }
     }
 
@@ -357,23 +402,6 @@ impl Address {
 
     fn from_bytes_impl(data: &[u8]) -> Result<Address, DeserializeError> {
         use std::convert::TryInto;
-        // header has 4 bits addr type discrim then 4 bits network discrim.
-        // Copied from shelley.cddl:
-        //
-        // shelley payment addresses:
-        // bit 7: 0
-        // bit 6: base/other
-        // bit 5: pointer/enterprise [for base: stake cred is keyhash/scripthash]
-        // bit 4: payment cred is keyhash/scripthash
-        // bits 3-0: network id
-        //
-        // reward addresses:
-        // bits 7-5: 111
-        // bit 4: credential is keyhash/scripthash
-        // bits 3-0: network id
-        //
-        // byron addresses:
-        // bits 7-4: 1000
         (|| -> Result<Self, DeserializeError> {
             let header = data[0];
             let network = header & 0x0F;

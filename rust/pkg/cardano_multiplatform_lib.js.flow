@@ -349,6 +349,26 @@ declare export var StakeCredKind: {|
 |};
 
 /**
+ * Careful: this enum doesn't include the network ID part of the header
+ * ex: base address isn't 0b0000_0000 but instead 0b0000
+ * Use `header_matches_kind` if you don't want to implement the bitwise operators yourself
+ */
+
+declare export var AddressHeaderKind: {|
+  +BasePaymentKeyStakeKey: 0, // 0
+  +BasePaymentScriptStakeKey: 1, // 1
+  +BasePaymentKeyStakeScript: 2, // 2
+  +BasePaymentScriptStakeScript: 3, // 3
+  +PointerKey: 4, // 4
+  +PointerScript: 5, // 5
+  +EnterpriseKey: 6, // 6
+  +EnterpriseScript: 7, // 7
+  +Byron: 8, // 8
+  +RewardKey: 9, // 9
+  +RewardScript: 10, // 10
+|};
+
+/**
  */
 
 declare export var CoinSelectionStrategyCIP2: {|
@@ -407,6 +427,45 @@ declare export class Address {
    * @returns {Address}
    */
   static from_json(json: string): Address;
+
+  /**
+   * header has 4 bits addr type discrim then 4 bits network discrim.
+   * Copied from shelley.cddl:
+   *
+   * base address
+   * bits 7-6: 00
+   * bit 5: stake cred is keyhash/scripthash
+   * bit 4: payment cred is keyhash/scripthash
+   * bits 3-0: network id
+   *
+   * pointer address
+   * bits 7-5: 010
+   * bit 4: payment cred is keyhash/scripthash
+   * bits 3-0: network id
+   *
+   * enterprise address
+   * bits 7-5: 010
+   * bit 4: payment cred is keyhash/scripthash
+   * bits 3-0: network id
+   *
+   * reward addresses:
+   * bits 7-5: 111
+   * bit 4: credential is keyhash/scripthash
+   * bits 3-0: network id
+   *
+   * byron addresses:
+   * bits 7-4: 1000
+   * bits 3-0: unrelated data (recall: no network ID in Byron addresses)
+   * @returns {number}
+   */
+  header(): number;
+
+  /**
+   * @param {number} header
+   * @param {number} kind
+   * @returns {boolean}
+   */
+  static header_matches_kind(header: number, kind: number): boolean;
 
   /**
    * @returns {Uint8Array}

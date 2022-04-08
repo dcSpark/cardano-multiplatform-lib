@@ -302,44 +302,102 @@ impl JsonSchema for Address {
     fn is_referenceable() -> bool { String::is_referenceable() }
 }
 
+/// Careful: this enum doesn't include the network ID part of the header
+/// ex: base address isn't 0b0000_0000 but instead 0b0000
+/// Use `header_matches_kind` if you don't want to implement the bitwise operators yourself
+#[wasm_bindgen]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[repr(u8)]
+pub enum AddressHeaderKind {
+    BasePaymentKeyStakeKey = 0b0000,
+    BasePaymentScriptStakeKey = 0b0001,
+    BasePaymentKeyStakeScript = 0b0010,
+    BasePaymentScriptStakeScript = 0b0011,
+    PointerKey = 0b0100,
+    PointerScript = 0b0101,
+    EnterpriseKey = 0b0110,
+    EnterpriseScript = 0b0111,
+    Byron = 0b1000,
+    RewardKey = 0b1110,
+    RewardScript = 0b1111
+    // 1001-1101 are left for future formats
+}
+
 // to/from_bytes() are the raw encoding without a wrapping CBOR Bytes tag
 // while Serialize and Deserialize traits include that for inclusion with
 // other CBOR types
 #[wasm_bindgen]
 impl Address {
+    /// header has 4 bits addr type discrim then 4 bits network discrim.
+    /// Copied from shelley.cddl:
+    ///
+    /// base address
+    /// bits 7-6: 00
+    /// bit 5: stake cred is keyhash/scripthash
+    /// bit 4: payment cred is keyhash/scripthash
+    /// bits 3-0: network id
+    /// 
+    /// pointer address
+    /// bits 7-5: 010
+    /// bit 4: payment cred is keyhash/scripthash
+    /// bits 3-0: network id
+    /// 
+    /// enterprise address
+    /// bits 7-5: 010
+    /// bit 4: payment cred is keyhash/scripthash
+    /// bits 3-0: network id
+    ///
+    /// reward addresses:
+    /// bits 7-5: 111
+    /// bit 4: credential is keyhash/scripthash
+    /// bits 3-0: network id
+    ///
+    /// byron addresses:
+    /// bits 7-4: 1000
+    /// bits 3-0: unrelated data (recall: no network ID in Byron addresses)
+    pub fn header(&self) -> u8 {
+        match &self.0 {
+            AddrType::Base(base) => ((base.payment.kind() as u8) << 4)
+                           | ((base.stake.kind() as u8) << 5)
+                           | (base.network & 0xF),
+            AddrType::Ptr(ptr) => 0b0100_0000
+                               | ((ptr.payment.kind() as u8) << 4)
+                               | (ptr.network & 0xF),
+            AddrType::Enterprise(enterprise) => 0b0110_0000
+                               | ((enterprise.payment.kind() as u8) << 4)
+                               | (enterprise.network & 0xF),
+            AddrType::Byron(_) => 0b1000 << 4, // note: no network ID for Byron
+            AddrType::Reward(reward) => 0b1110_0000
+                                | ((reward.payment.kind() as u8) << 4)
+                                | (reward.network & 0xF),
+        }
+    }
+
+    pub fn header_matches_kind(header: u8, kind: AddressHeaderKind) -> bool {
+        (header >> 4) == kind as u8
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
         match &self.0 {
             AddrType::Base(base) => {
-                let header: u8 = ((base.payment.kind() as u8) << 4)
-                           | ((base.stake.kind() as u8) << 5)
-                           | (base.network & 0xF);
-                buf.push(header);
+                buf.push(self.header());
                 buf.extend(base.payment.to_raw_bytes());
                 buf.extend(base.stake.to_raw_bytes());
             },
             AddrType::Ptr(ptr) => {
-                let header: u8 = 0b0100_0000
-                               | ((ptr.payment.kind() as u8) << 4)
-                               | (ptr.network & 0xF);
-                buf.push(header);
+                buf.push(self.header());
                 buf.extend(ptr.payment.to_raw_bytes());
                 buf.extend(variable_nat_encode(from_bignum(&ptr.stake.slot)));
                 buf.extend(variable_nat_encode(from_bignum(&ptr.stake.tx_index)));
                 buf.extend(variable_nat_encode(from_bignum(&ptr.stake.cert_index)));
             },
             AddrType::Enterprise(enterprise) => {
-                let header: u8 = 0b0110_0000
-                               | ((enterprise.payment.kind() as u8) << 4)
-                               | (enterprise.network & 0xF);
-                buf.push(header);
+                buf.push(self.header());
                 buf.extend(enterprise.payment.to_raw_bytes());
             },
             AddrType::Reward(reward) => {
-                let header: u8 = 0b1110_0000
-                                | ((reward.payment.kind() as u8) << 4)
-                                | (reward.network & 0xF);
-                buf.push(header);
+                buf.push(self.header());
                 buf.extend(reward.payment.to_raw_bytes());
             },
             AddrType::Byron(byron) => {
@@ -351,23 +409,6 @@ impl Address {
 
     fn from_bytes_impl(data: &[u8]) -> Result<Address, DeserializeError> {
         use std::convert::TryInto;
-        // header has 4 bits addr type discrim then 4 bits network discrim.
-        // Copied from shelley.cddl:
-        //
-        // shelley payment addresses:
-        // bit 7: 0
-        // bit 6: base/other
-        // bit 5: pointer/enterprise [for base: stake cred is keyhash/scripthash]
-        // bit 4: payment cred is keyhash/scripthash
-        // bits 3-0: network id
-        //
-        // reward addresses:
-        // bits 7-5: 111
-        // bit 4: credential is keyhash/scripthash
-        // bits 3-0: network id
-        //
-        // byron addresses:
-        // bits 7-4: 1000
         (|| -> Result<Self, DeserializeError> {
             let header = data[0];
             let network = header & 0x0F;
@@ -834,6 +875,16 @@ mod tests {
         let addr = reward.to_address();
         let addr2 = Address::from_bytes(addr.to_bytes()).unwrap();
         assert_eq!(addr.to_bytes(), addr2.to_bytes());
+    }
+
+    #[test]
+    fn address_header_matching() {
+        let reward = RewardAddress::new(
+            0b1001,
+            &StakeCredential::from_scripthash(&ScriptHash::from([127; Ed25519KeyHash::BYTE_COUNT]))
+        ).to_address();
+        assert_eq!(reward.header(), 0b1111_1001);
+        assert!(Address::header_matches_kind(reward.header(), AddressHeaderKind::RewardScript))
     }
 
     fn root_key_12() -> Bip32PrivateKey {

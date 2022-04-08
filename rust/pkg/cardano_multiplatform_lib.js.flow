@@ -349,9 +349,12 @@ declare export var StakeCredKind: {|
 |};
 
 /**
+ * Careful: this enum doesn't include the network ID part of the header
+ * ex: base address isn't 0b0000_0000 but instead 0b0000
+ * Use `header_matches_kind` if you don't want to implement the bitwise operators yourself
  */
 
-declare export var AddressHeader: {|
+declare export var AddressHeaderKind: {|
   +BasePaymentKeyStakeKey: 0, // 0
   +BasePaymentScriptStakeKey: 1, // 1
   +BasePaymentKeyStakeScript: 2, // 2
@@ -456,6 +459,13 @@ declare export class Address {
    * @returns {number}
    */
   header(): number;
+
+  /**
+   * @param {number} header
+   * @param {number} kind
+   * @returns {boolean}
+   */
+  static header_matches_kind(header: number, kind: number): boolean;
 
   /**
    * @returns {Uint8Array}

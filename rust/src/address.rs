@@ -302,21 +302,24 @@ impl JsonSchema for Address {
     fn is_referenceable() -> bool { String::is_referenceable() }
 }
 
+/// Careful: this enum doesn't include the network ID part of the header
+/// ex: base address isn't 0b0000_0000 but instead 0b0000
+/// Use `header_matches_kind` if you don't want to implement the bitwise operators yourself
 #[wasm_bindgen]
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(u8)]
-pub enum AddressHeader {
-    BasePaymentKeyStakeKey = 0b0000_0000,
-    BasePaymentScriptStakeKey = 0b0001_0000,
-    BasePaymentKeyStakeScript = 0b0010_0000,
-    BasePaymentScriptStakeScript = 0b0011_0000,
-    PointerKey = 0b0100_0000,
-    PointerScript = 0b0101_0000,
-    EnterpriseKey = 0b0110_0000,
-    EnterpriseScript = 0b0111_0000,
-    Byron = 0b1000_0000,
-    RewardKey = 0b1110_0000,
-    RewardScript = 0b1111_0000
+pub enum AddressHeaderKind {
+    BasePaymentKeyStakeKey = 0b0000,
+    BasePaymentScriptStakeKey = 0b0001,
+    BasePaymentKeyStakeScript = 0b0010,
+    BasePaymentScriptStakeScript = 0b0011,
+    PointerKey = 0b0100,
+    PointerScript = 0b0101,
+    EnterpriseKey = 0b0110,
+    EnterpriseScript = 0b0111,
+    Byron = 0b1000,
+    RewardKey = 0b1110,
+    RewardScript = 0b1111
     // 1001-1101 are left for future formats
 }
 
@@ -368,6 +371,10 @@ impl Address {
                                 | ((reward.payment.kind() as u8) << 4)
                                 | (reward.network & 0xF),
         }
+    }
+
+    pub fn header_matches_kind(header: u8, kind: AddressHeaderKind) -> bool {
+        (header >> 4) == kind as u8
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -869,6 +876,16 @@ mod tests {
         let addr = reward.to_address();
         let addr2 = Address::from_bytes(addr.to_bytes()).unwrap();
         assert_eq!(addr.to_bytes(), addr2.to_bytes());
+    }
+
+    #[test]
+    fn address_header_matching() {
+        let reward = RewardAddress::new(
+            0b1001,
+            &StakeCredential::from_scripthash(&ScriptHash::from([127; Ed25519KeyHash::BYTE_COUNT]))
+        ).to_address();
+        assert_eq!(reward.header(), 0b1111_1001);
+        assert!(Address::header_matches_kind(reward.header(), AddressHeaderKind::RewardScript))
     }
 
     fn root_key_12() -> Bip32PrivateKey {

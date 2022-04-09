@@ -59,11 +59,11 @@ impl UntaggedRedeemer {
 /// A partial Plutus witness
 /// It contains all the information needed to witness the Plutus script execution
 /// except for the redeemer tag and index
+/// Note: no datum is attached because only input script types have datums
 #[wasm_bindgen]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PartialPlutusWitness {
     script: PlutusScript,
-    datum: PlutusData,
     untagged_redeemer: UntaggedRedeemer,
 }
 
@@ -74,22 +74,16 @@ impl PartialPlutusWitness {
         self.script.clone()
     }
 
-    pub fn datum(&self) -> PlutusData {
-        self.datum.clone()
-    }
-
     pub fn untagged_redeemer(&self) -> UntaggedRedeemer {
         self.untagged_redeemer.clone()
     }
 
     pub fn new(
         script: &PlutusScript,
-        datum: &PlutusData,
         untagged_redeemer: &UntaggedRedeemer
     ) -> Self {
         Self {
             script: script.clone(),
-            datum: datum.clone(),
             untagged_redeemer: untagged_redeemer.clone(),
         }
     }
@@ -100,7 +94,8 @@ impl PartialPlutusWitness {
 pub enum InputAggregateWitnessData {
     Vkeys(HashSet<Ed25519KeyHash>),
     NativeScript(NativeScript),
-    PlutusScript(PartialPlutusWitness)
+    PlutusScriptNoDatum(PartialPlutusWitness),
+    PlutusScriptWithDatum((PartialPlutusWitness, PlutusData))
 }
 
 

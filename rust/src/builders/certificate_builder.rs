@@ -116,7 +116,7 @@ impl SingleCertificateBuilder {
         check_cert_script_hash(&self.cert, &expected_hash)?;
         Ok(CertificateBuilderResult {
             cert: self.cert.clone(),
-            aggregate_witness: InputAggregateWitnessData::PlutusScript(partial_witness.clone()),
+            aggregate_witness: InputAggregateWitnessData::PlutusScriptNoDatum(partial_witness.clone()),
         })
     }
 }

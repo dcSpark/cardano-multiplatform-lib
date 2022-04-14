@@ -2,41 +2,8 @@ use super::*;
 use super::fees;
 use super::utils;
 use super::output_builder::{TransactionOutputAmountBuilder};
+use super::builders::certificate_builder::*;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
-
-// comes from witsVKeyNeeded in the Ledger spec
-fn witness_keys_for_cert(cert_enum: &Certificate, keys: &mut BTreeSet<Ed25519KeyHash>) {
-    match &cert_enum.0 {
-        // stake key registrations do not require a witness
-        CertificateEnum::StakeRegistration(_cert) => {},
-        CertificateEnum::StakeDeregistration(cert) => {
-            keys.insert(cert.stake_credential().to_keyhash().unwrap());
-        },
-        CertificateEnum::StakeDelegation(cert) => {
-            keys.insert(cert.stake_credential().to_keyhash().unwrap());
-        },
-        CertificateEnum::PoolRegistration(cert) => {
-            for owner in &cert.pool_params().pool_owners().0 {
-                keys.insert(owner.clone());
-            }
-            keys.insert(
-                Ed25519KeyHash::from_bytes(cert.pool_params().operator().to_bytes()).unwrap()
-            );
-        },
-        CertificateEnum::PoolRetirement(cert) => {
-            keys.insert(
-                Ed25519KeyHash::from_bytes(cert.pool_keyhash().to_bytes()).unwrap()
-            );
-        },
-        CertificateEnum::GenesisKeyDelegation(cert) => {
-            keys.insert(
-                Ed25519KeyHash::from_bytes(cert.genesis_delegate_hash().to_bytes()).unwrap()
-            );
-        },
-        // not witness as there is no single core node or genesis key that posts the certificate
-        CertificateEnum::MoveInstantaneousRewardsCert(_cert) => {},
-    }
-}
 
 fn fake_private_key() -> Bip32PrivateKey {
     Bip32PrivateKey::from_bytes(
@@ -288,11 +255,11 @@ pub struct TransactionBuilder {
     validity_start_interval: Option<Slot>,
     input_types: MockWitnessSet,
     mint: Option<Mint>,
-    native_scripts: Option<NativeScripts>,
     script_data_hash: Option<ScriptDataHash>,
     collateral: Option<TransactionInputs>,
     required_signers: Option<RequiredSigners>,
     network_id: Option<NetworkId>,
+    native_scripts: Option<NativeScripts>,
 }
 
 #[wasm_bindgen]
@@ -693,11 +660,18 @@ impl TransactionBuilder {
         self.validity_start_interval = Some(*validity_start_interval)
     }
 
-    pub fn set_certs(&mut self, certs: &Certificates) {
+    /// TODO: replace with add_cert that takes in a CertificateBuilderResult
+    pub fn set_certs(&mut self, certs: &Certificates) -> Result<(), JsError> {
         self.certs = Some(certs.clone());
+
+        let mut vkey_set = HashSet::<Ed25519KeyHash>::new();
         for cert in &certs.0 {
-            witness_keys_for_cert(cert, &mut self.input_types.vkeys);
+            add_cert_vkeys(cert, &mut vkey_set)?;
         };
+        for vkey in &vkey_set {
+            self.input_types.vkeys.insert(vkey.clone());
+        }
+        Ok(())        
     }
 
     pub fn set_withdrawals(&mut self, withdrawals: &Withdrawals) {
@@ -1609,7 +1583,7 @@ mod tests {
             &stake_cred,
             &stake.to_raw_key().hash(), // in reality, this should be the pool owner's key, not ours
         )));
-        tx_builder.set_certs(&certs);
+        tx_builder.set_certs(&certs).unwrap();
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
@@ -1793,7 +1767,7 @@ mod tests {
         certs.add(&Certificate::new_stake_registration(
             &StakeRegistration::new(&stake_cred),
         ));
-        tx_builder.set_certs(&certs);
+        tx_builder.set_certs(&certs).unwrap();
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(

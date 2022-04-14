@@ -1520,6 +1520,11 @@ declare export class Certificate {
 }
 /**
  */
+declare export class CertificateBuilderResult {
+  free(): void;
+}
+/**
+ */
 declare export class Certificates {
   free(): void;
 
@@ -3624,6 +3629,35 @@ declare export class OperationalCert {
   ): OperationalCert;
 }
 /**
+ * A partial Plutus witness
+ * It contains all the information needed to witness the Plutus script execution
+ * except for the redeemer tag and index
+ * Note: no datum is attached because only input script types have datums
+ */
+declare export class PartialPlutusWitness {
+  free(): void;
+
+  /**
+   * @returns {PlutusScript}
+   */
+  script(): PlutusScript;
+
+  /**
+   * @returns {UntaggedRedeemer}
+   */
+  untagged_redeemer(): UntaggedRedeemer;
+
+  /**
+   * @param {PlutusScript} script
+   * @param {UntaggedRedeemer} untagged_redeemer
+   * @returns {PartialPlutusWitness}
+   */
+  static new(
+    script: PlutusScript,
+    untagged_redeemer: UntaggedRedeemer
+  ): PartialPlutusWitness;
+}
+/**
  */
 declare export class PlutusData {
   free(): void;
@@ -5475,6 +5509,36 @@ declare export class ScriptPubkey {
 }
 /**
  */
+declare export class SingleCertificateBuilder {
+  free(): void;
+
+  /**
+   * @param {Certificate} cert
+   * @returns {SingleCertificateBuilder}
+   */
+  static new(cert: Certificate): SingleCertificateBuilder;
+
+  /**
+   * @returns {CertificateBuilderResult}
+   */
+  no_script(): CertificateBuilderResult;
+
+  /**
+   * @param {NativeScript} native_script
+   * @returns {CertificateBuilderResult}
+   */
+  native_script(native_script: NativeScript): CertificateBuilderResult;
+
+  /**
+   * @param {PartialPlutusWitness} partial_witness
+   * @returns {CertificateBuilderResult}
+   */
+  plutus_script(
+    partial_witness: PartialPlutusWitness
+  ): CertificateBuilderResult;
+}
+/**
+ */
 declare export class SingleHostAddr {
   free(): void;
 
@@ -6337,6 +6401,7 @@ declare export class TransactionBuilder {
   set_validity_start_interval(validity_start_interval: BigNum): void;
 
   /**
+   * TODO: replace with add_cert that takes in a CertificateBuilderResult
    * @param {Certificates} certs
    */
   set_certs(certs: Certificates): void;
@@ -7526,6 +7591,31 @@ declare export class UnitInterval {
    * @returns {UnitInterval}
    */
   static new(numerator: BigNum, denominator: BigNum): UnitInterval;
+}
+/**
+ * Redeemer without the tag of index
+ * This allows builder code to return partial redeemers
+ * and then later have them placed in the right context
+ */
+declare export class UntaggedRedeemer {
+  free(): void;
+
+  /**
+   * @returns {PlutusData}
+   */
+  datum(): PlutusData;
+
+  /**
+   * @returns {ExUnits}
+   */
+  ex_units(): ExUnits;
+
+  /**
+   * @param {PlutusData} data
+   * @param {ExUnits} ex_units
+   * @returns {UntaggedRedeemer}
+   */
+  static new(data: PlutusData, ex_units: ExUnits): UntaggedRedeemer;
 }
 /**
  */

@@ -838,6 +838,12 @@ macro_rules! impl_hash_type {
             pub const BYTE_COUNT: usize = $byte_count;
         }
 
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.to_hex())
+            }
+        }
+
         // can't expose [T; N] to wasm for new() but it's useful internally so we implement From trait
         impl From<[u8; $byte_count]> for $name {
             fn from(bytes: [u8; $byte_count]) -> Self {

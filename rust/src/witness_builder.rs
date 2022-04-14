@@ -2,7 +2,7 @@ use std::collections::{HashSet, HashMap};
 use super::*;
 
 #[wasm_bindgen]
-#[derive(Clone, PartialEq, Eq,  Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RedeemerWitnessKey {
     tag: RedeemerTag,
     index: BigNum,
@@ -25,8 +25,79 @@ impl RedeemerWitnessKey {
             index: *index,
         }
     }
-
 }
+
+/// Redeemer without the tag of index
+/// This allows builder code to return partial redeemers
+/// and then later have them placed in the right context
+#[wasm_bindgen]
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct UntaggedRedeemer {
+    data: PlutusData,
+    ex_units: ExUnits,
+}
+
+#[wasm_bindgen]
+impl UntaggedRedeemer {
+
+    pub fn datum(&self) -> PlutusData {
+        self.data.clone()
+    }
+
+    pub fn ex_units(&self) -> ExUnits {
+        self.ex_units.clone()
+    }
+
+    pub fn new(data: &PlutusData, ex_units: &ExUnits) -> Self {
+        Self {
+            data: data.clone(),
+            ex_units: ex_units.clone(),
+        }
+    }
+}
+
+/// A partial Plutus witness
+/// It contains all the information needed to witness the Plutus script execution
+/// except for the redeemer tag and index
+/// Note: no datum is attached because only input script types have datums
+#[wasm_bindgen]
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PartialPlutusWitness {
+    script: PlutusScript,
+    untagged_redeemer: UntaggedRedeemer,
+}
+
+#[wasm_bindgen]
+impl PartialPlutusWitness {
+
+    pub fn script(&self) -> PlutusScript {
+        self.script.clone()
+    }
+
+    pub fn untagged_redeemer(&self) -> UntaggedRedeemer {
+        self.untagged_redeemer.clone()
+    }
+
+    pub fn new(
+        script: &PlutusScript,
+        untagged_redeemer: &UntaggedRedeemer
+    ) -> Self {
+        Self {
+            script: script.clone(),
+            untagged_redeemer: untagged_redeemer.clone(),
+        }
+    }
+}
+
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum InputAggregateWitnessData {
+    Vkeys(HashSet<Ed25519KeyHash>),
+    NativeScript(NativeScript),
+    PlutusScriptNoDatum(PartialPlutusWitness),
+    PlutusScriptWithDatum((PartialPlutusWitness, PlutusData))
+}
+
 
 #[wasm_bindgen]
 #[derive(Clone, Default)]

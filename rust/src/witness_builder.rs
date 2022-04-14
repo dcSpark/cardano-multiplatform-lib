@@ -147,6 +147,10 @@ pub struct TransactionWitnessSetBuilder {
 
 #[wasm_bindgen]
 impl TransactionWitnessSetBuilder {
+    pub fn get_vkeys(&self) -> Vkeys {
+        Vkeys(self.vkeys.clone().into_keys().collect())
+    }
+
     pub fn add_vkey(&mut self, vkey: &Vkeywitness) {
         self.vkeys.insert(vkey.vkey(), vkey.clone());
     }
@@ -155,16 +159,35 @@ impl TransactionWitnessSetBuilder {
         self.bootstraps.insert(bootstrap.vkey(), bootstrap.clone());
     }
 
+    pub fn get_bootstraps(&self) -> Vkeys {
+        Vkeys(self.bootstraps.clone().into_keys().collect())
+    }
+
     pub fn add_native_script(&mut self, native_script: &NativeScript) {
         self.native_scripts.insert(native_script.hash(ScriptHashNamespace::NativeScript), native_script.clone());
+    }
+
+    pub fn get_native_script(&self) -> NativeScripts {
+        NativeScripts(self.native_scripts.clone().into_values().collect())
     }
 
     pub fn add_plutus_script(&mut self, plutus_script: &PlutusScript) {
         self.plutus_scripts.insert(plutus_script.hash(ScriptHashNamespace::PlutusV1), plutus_script.clone());
     }
 
+    pub fn get_plutus_script(&self) -> PlutusScripts {
+        PlutusScripts(self.plutus_scripts.clone().into_values().collect())
+    }
+
     pub fn add_plutus_datum(&mut self, plutus_datum: &PlutusData) {
         self.plutus_data.insert(hash_plutus_data(plutus_datum), plutus_datum.clone());
+    }
+
+    pub fn get_plutus_datum(&self) -> PlutusList {
+        PlutusList {
+            elems: self.plutus_data.clone().into_values().collect(),
+            definite_encoding: None
+        }
     }
 
     pub fn add_redeemer(&mut self, redeemer: &Redeemer) {
@@ -172,6 +195,10 @@ impl TransactionWitnessSetBuilder {
             RedeemerWitnessKey::new(&redeemer.tag(), &redeemer.index()),
             redeemer.clone()
         );
+    }
+
+    pub fn get_redeemer(&self) -> Redeemers {
+        Redeemers(self.redeemers.clone().into_values().collect())
     }
 
     pub fn add_required_wits(&mut self, required_wits: &RequiredWitnessSet) {

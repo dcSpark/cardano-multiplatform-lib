@@ -380,7 +380,7 @@ impl Deserialize for Vkey {
 
 #[wasm_bindgen]
 #[derive(Clone)]
-pub struct Vkeys(Vec<Vkey>);
+pub struct Vkeys(pub(crate) Vec<Vkey>);
 
 #[wasm_bindgen]
 impl Vkeys {

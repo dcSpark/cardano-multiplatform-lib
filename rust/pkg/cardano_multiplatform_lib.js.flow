@@ -7319,6 +7319,11 @@ declare export class TransactionWitnessSetBuilder {
   free(): void;
 
   /**
+   * @returns {Vkeys}
+   */
+  get_vkeys(): Vkeys;
+
+  /**
    * @param {Vkeywitness} vkey
    */
   add_vkey(vkey: Vkeywitness): void;
@@ -7329,9 +7334,19 @@ declare export class TransactionWitnessSetBuilder {
   add_bootstrap(bootstrap: BootstrapWitness): void;
 
   /**
+   * @returns {Vkeys}
+   */
+  get_bootstraps(): Vkeys;
+
+  /**
    * @param {NativeScript} native_script
    */
   add_native_script(native_script: NativeScript): void;
+
+  /**
+   * @returns {NativeScripts}
+   */
+  get_native_script(): NativeScripts;
 
   /**
    * @param {PlutusScript} plutus_script
@@ -7339,14 +7354,29 @@ declare export class TransactionWitnessSetBuilder {
   add_plutus_script(plutus_script: PlutusScript): void;
 
   /**
+   * @returns {PlutusScripts}
+   */
+  get_plutus_script(): PlutusScripts;
+
+  /**
    * @param {PlutusData} plutus_datum
    */
   add_plutus_datum(plutus_datum: PlutusData): void;
 
   /**
+   * @returns {PlutusList}
+   */
+  get_plutus_datum(): PlutusList;
+
+  /**
    * @param {Redeemer} redeemer
    */
   add_redeemer(redeemer: Redeemer): void;
+
+  /**
+   * @returns {Redeemers}
+   */
+  get_redeemer(): Redeemers;
 
   /**
    * @param {RequiredWitnessSet} required_wits

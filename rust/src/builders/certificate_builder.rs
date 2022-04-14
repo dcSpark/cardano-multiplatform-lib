@@ -39,6 +39,8 @@ pub fn add_cert_vkeys(cert_enum: &Certificate, vkeys: &mut HashSet<Ed25519KeyHas
     Ok(())
 }
 
+/// Check if the script hash matches the one in the certificate
+/// If the certificate does not require the script to sign the transaction, Ok(false) is returned
 fn check_cert_script_hash(cert_enum: &Certificate, expected_hash: &ScriptHash) -> Result<bool, JsError> {
     match &cert_enum.0 {
         // stake key registrations do not require a witness
@@ -75,7 +77,7 @@ fn check_cert_script_hash(cert_enum: &Certificate, expected_hash: &ScriptHash) -
 #[derive(Clone)]
 pub struct CertificateBuilderResult {
     cert: Certificate,
-    aggregate_witness: InputAggregateWitnessData,
+    aggregate_witness: Option<InputAggregateWitnessData>,
 }
 
 #[wasm_bindgen]
@@ -97,26 +99,36 @@ impl SingleCertificateBuilder {
         add_cert_vkeys(&self.cert, &mut vkey_set)?;
         Ok(CertificateBuilderResult {
             cert: self.cert.clone(),
-            aggregate_witness: InputAggregateWitnessData::Vkeys(vkey_set.clone()),
+            aggregate_witness: if vkey_set.len() > 0 { Some(InputAggregateWitnessData::Vkeys(vkey_set.clone())) } else { None },
         })
     }
 
     pub fn native_script(&self, native_script: &NativeScript) -> Result<CertificateBuilderResult, JsError> {
         let expected_hash = native_script.hash(ScriptHashNamespace::NativeScript);
-        check_cert_script_hash(&self.cert, &expected_hash)?;
-        Ok(CertificateBuilderResult {
-            cert: self.cert.clone(),
-            aggregate_witness: InputAggregateWitnessData::NativeScript(native_script.clone()),
-        })
+        match check_cert_script_hash(&self.cert, &expected_hash)? {
+            true => Ok(CertificateBuilderResult {
+                cert: self.cert.clone(),
+                aggregate_witness: Some(InputAggregateWitnessData::NativeScript(native_script.clone())),
+            }),
+            false => Ok(CertificateBuilderResult {
+                cert: self.cert.clone(),
+                aggregate_witness: None,
+            })
+        }
     }
 
     pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness) -> Result<CertificateBuilderResult, JsError> {
         // TODO: support PlutusV2
         let expected_hash = partial_witness.script().hash(ScriptHashNamespace::PlutusV1);
-        check_cert_script_hash(&self.cert, &expected_hash)?;
-        Ok(CertificateBuilderResult {
-            cert: self.cert.clone(),
-            aggregate_witness: InputAggregateWitnessData::PlutusScriptNoDatum(partial_witness.clone()),
-        })
+        match check_cert_script_hash(&self.cert, &expected_hash)? {
+            true => Ok(CertificateBuilderResult {
+                cert: self.cert.clone(),
+                aggregate_witness: Some(InputAggregateWitnessData::PlutusScriptNoDatum(partial_witness.clone())),
+            }),
+            false => Ok(CertificateBuilderResult {
+                cert: self.cert.clone(),
+                aggregate_witness: None,
+            })
+        }
     }
 }

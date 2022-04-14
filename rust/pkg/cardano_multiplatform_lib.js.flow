@@ -3573,6 +3573,7 @@ declare export class OperationalCert {
  * A partial Plutus witness
  * It contains all the information needed to witness the Plutus script execution
  * except for the redeemer tag and index
+ * Note: no datum is attached because only input script types have datums
  */
 declare export class PartialPlutusWitness {
   free(): void;
@@ -3583,24 +3584,17 @@ declare export class PartialPlutusWitness {
   script(): PlutusScript;
 
   /**
-   * @returns {PlutusData}
-   */
-  datum(): PlutusData;
-
-  /**
    * @returns {UntaggedRedeemer}
    */
   untagged_redeemer(): UntaggedRedeemer;
 
   /**
    * @param {PlutusScript} script
-   * @param {PlutusData} datum
    * @param {UntaggedRedeemer} untagged_redeemer
    * @returns {PartialPlutusWitness}
    */
   static new(
     script: PlutusScript,
-    datum: PlutusData,
     untagged_redeemer: UntaggedRedeemer
   ): PartialPlutusWitness;
 }

@@ -38,7 +38,7 @@ mod tests {
     use super::*;
     use crypto::*;
     use address::*;
-    use super::output_builder::TransactionOutputBuilder;
+    use super::builders::output_builder::TransactionOutputBuilder;
 
     // based off tx test vectors (https://gist.github.com/KtorZ/5a2089df0915f21aca368d12545ab230)
 

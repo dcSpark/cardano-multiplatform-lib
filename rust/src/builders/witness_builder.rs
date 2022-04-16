@@ -1,5 +1,5 @@
 use std::collections::{HashSet, HashMap};
-use super::*;
+use crate::*;
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]

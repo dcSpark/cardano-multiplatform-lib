@@ -1,8 +1,8 @@
-use super::*;
-use super::fees;
-use super::utils;
+use crate::*;
+use crate::fees;
+use crate::utils;
 use super::output_builder::{TransactionOutputAmountBuilder};
-use super::builders::certificate_builder::*;
+use super::certificate_builder::*;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 fn fake_private_key() -> Bip32PrivateKey {
@@ -1312,7 +1312,7 @@ impl TransactionBuilder {
 mod tests {
     use super::*;
     use fees::*;
-    use super::output_builder::{TransactionOutputBuilder};
+    use super::builders::output_builder::{TransactionOutputBuilder};
 
     const MAX_VALUE_SIZE: u32 = 4000;
     const MAX_TX_SIZE: u32 = 8000; // might be out of date but suffices for our tests

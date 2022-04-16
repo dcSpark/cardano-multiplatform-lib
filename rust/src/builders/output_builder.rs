@@ -1,4 +1,4 @@
-use super::*;
+use crate::*;
 
 /// We introduce a builder-pattern format for creating transaction outputs
 /// This is because:

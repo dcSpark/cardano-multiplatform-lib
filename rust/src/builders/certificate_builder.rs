@@ -1,5 +1,5 @@
 use crate::*;
-use crate::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
+use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 use std::collections::{HashSet};
 
 // comes from witsVKeyNeeded in the Ledger spec

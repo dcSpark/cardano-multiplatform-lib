@@ -44,16 +44,13 @@ pub mod fees;
 pub mod impl_mockchain;
 pub mod legacy_address;
 pub mod metadata;
-pub mod output_builder;
 pub mod plutus;
 pub mod serialization;
-pub mod tx_builder;
 pub mod builders;
 pub mod typed_bytes;
 pub mod emip3;
 #[macro_use]
 pub mod utils;
-pub mod witness_builder;
 
 use address::*;
 use crypto::*;

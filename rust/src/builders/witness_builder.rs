@@ -90,13 +90,14 @@ impl PartialPlutusWitness {
 }
 
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone)]
 pub enum InputAggregateWitnessData {
     // note: this struct may contains duplicates, but it will be de-duped later
     Vkeys(Vec<Vkey>),
+    Bootstraps(Vec<BootstrapWitness>),
     NativeScript(NativeScript),
     PlutusScriptNoDatum(PartialPlutusWitness),
-    PlutusScriptWithDatum((PartialPlutusWitness, PlutusData))
+    PlutusScriptWithDatum(PartialPlutusWitness, PlutusData)
 }
 
 

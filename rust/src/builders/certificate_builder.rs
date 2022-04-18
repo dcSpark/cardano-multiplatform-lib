@@ -155,9 +155,6 @@ impl SingleCertificateBuilder {
             return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str()))); 
         }
 
-        let mut required_wits = RequiredWitnessSet::default();
-        cert_required_wits(&self.cert, &mut required_wits);
-
         Ok(CertificateBuilderResult {
             cert: self.cert.clone(),
             aggregate_witness: if contains { Some(InputAggregateWitnessData::NativeScript(native_script.clone())) } else { None },

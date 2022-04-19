@@ -1,11 +1,9 @@
 use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 
-use super::witness_builder::RequiredWitnessSet;
+use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitnessInfo};
 
-// comes from witsVKeyNeeded in the Ledger spec
 pub fn input_required_wits(utxo_info: &TransactionOutput, required_witnesses: &mut RequiredWitnessSet) -> () {
-    // TODO: script hash, plutus script, plutus data
     if let Some(cred) = &utxo_info.address().payment_cred() {
         if let Some(keyhash) = &cred.to_keyhash() {
             required_witnesses.add_vkey_key_hash(&keyhash);
@@ -72,7 +70,7 @@ impl SingleInputBuilder {
         required_wits_left.vkeys.remove(&keyhash);
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str()))); 
         }
 
         Ok(InputBuilderResult {
@@ -97,7 +95,7 @@ impl SingleInputBuilder {
         required_wits_left.bootstraps.remove(&keyhash);
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str()))); 
         }
 
         Ok(InputBuilderResult {
@@ -108,7 +106,7 @@ impl SingleInputBuilder {
         })
     }
 
-    pub fn native_script(&self, native_script: &NativeScript) -> Result<InputBuilderResult, JsError> {
+    pub fn native_script(&self, native_script: &NativeScript, witness_info: &NativeScriptWitnessInfo) -> Result<InputBuilderResult, JsError> {
         let mut required_wits = RequiredWitnessSet::default();
         input_required_wits(&self.utxo_info,&mut required_wits);
         let mut required_wits_left = required_wits.clone();
@@ -122,19 +120,20 @@ impl SingleInputBuilder {
         required_wits_left.scripts.remove(script_hash);
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str()))); 
         }
 
         Ok(InputBuilderResult {
             input: self.input.clone(),
             utxo_info: self.utxo_info.clone(),
-            aggregate_witness: if contains { Some(InputAggregateWitnessData::NativeScript(native_script.clone())) } else { None },
+            aggregate_witness: if contains { Some(InputAggregateWitnessData::NativeScript(native_script.clone(), witness_info.clone())) } else { None },
             required_wits: required_wits.clone(),
         })
     }
 
-    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, datum: &PlutusData) -> Result<InputBuilderResult, JsError> {
+    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, witness_info: &PlutusScriptWitnessInfo, datum: &PlutusData) -> Result<InputBuilderResult, JsError> {
         let mut required_wits = RequiredWitnessSet::default();
+        witness_info.missing_signers.0.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(&required_signer));
         input_required_wits(&self.utxo_info,&mut required_wits);
         let mut required_wits_left = required_wits.clone();
 
@@ -149,13 +148,13 @@ impl SingleInputBuilder {
         required_wits_left.plutus_data.remove(&hash_plutus_data(datum));
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str()))); 
         }
 
         Ok(InputBuilderResult {
             input: self.input.clone(),
             utxo_info: self.utxo_info.clone(),
-            aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScriptWithDatum(partial_witness.clone(), datum.clone())) } else { None },
+            aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScriptWithDatum(partial_witness.clone(), witness_info.clone(), datum.clone())) } else { None },
             required_wits: required_wits.clone(),
         })
     }

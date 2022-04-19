@@ -513,6 +513,18 @@ declare export class Address {
    * @returns {BaseAddress | void}
    */
   as_base(): BaseAddress | void;
+
+  /**
+   * Note: by convention, the key inside reward addresses are considered payment credentials
+   * @returns {StakeCredential | void}
+   */
+  payment_cred(): StakeCredential | void;
+
+  /**
+   * Note: by convention, the key inside reward addresses are NOT considered staking credentials
+   * @returns {StakeCredential | void}
+   */
+  staking_cred(): StakeCredential | void;
 }
 /**
  */
@@ -2420,6 +2432,11 @@ declare export class HeaderBody {
 }
 /**
  */
+declare export class InputBuilderResult {
+  free(): void;
+}
+/**
+ */
 declare export class Int {
   free(): void;
 
@@ -3058,6 +3075,11 @@ declare export class MintAssets {
 }
 /**
  */
+declare export class MintBuilderResult {
+  free(): void;
+}
+/**
+ */
 declare export class MoveInstantaneousReward {
   free(): void;
 
@@ -3424,6 +3446,11 @@ declare export class NativeScript {
    * @returns {Ed25519KeyHashes}
    */
   get_required_signers(): Ed25519KeyHashes;
+}
+/**
+ */
+declare export class NativeScriptWitnessInfo {
+  free(): void;
 }
 /**
  */
@@ -3853,6 +3880,11 @@ declare export class PlutusScript {
    * @returns {Uint8Array}
    */
   bytes(): Uint8Array;
+}
+/**
+ */
+declare export class PlutusScriptWitnessInfo {
+  free(): void;
 }
 /**
  */
@@ -5073,19 +5105,14 @@ declare export class RequiredWitnessSet {
   add_native_script(native_script: NativeScript): void;
 
   /**
-   * @param {ScriptHash} native_script
+   * @param {ScriptHash} script_hash
    */
-  add_native_script_hash(native_script: ScriptHash): void;
+  add_script_hash(script_hash: ScriptHash): void;
 
   /**
    * @param {PlutusScript} plutus_script
    */
   add_plutus_script(plutus_script: PlutusScript): void;
-
-  /**
-   * @param {ScriptHash} plutus_script
-   */
-  add_plutus_hash(plutus_script: ScriptHash): void;
 
   /**
    * @param {PlutusData} plutus_datum
@@ -5521,20 +5548,39 @@ declare export class SingleCertificateBuilder {
   /**
    * @returns {CertificateBuilderResult}
    */
-  no_script(): CertificateBuilderResult;
+  skip_witness(): CertificateBuilderResult;
 
   /**
-   * @param {NativeScript} native_script
+   * @param {Vkeys} vkeys
    * @returns {CertificateBuilderResult}
    */
-  native_script(native_script: NativeScript): CertificateBuilderResult;
+  vkeys(vkeys: Vkeys): CertificateBuilderResult;
+
+  /**
+   * @param {Vkey} vkey
+   * @returns {CertificateBuilderResult}
+   */
+  vkey(vkey: Vkey): CertificateBuilderResult;
+
+  /**
+   * Signer keys don't have to be set. You can leave it empty and then add the required witnesses later
+   * @param {NativeScript} native_script
+   * @param {NativeScriptWitnessInfo} witness_info
+   * @returns {CertificateBuilderResult}
+   */
+  native_script(
+    native_script: NativeScript,
+    witness_info: NativeScriptWitnessInfo
+  ): CertificateBuilderResult;
 
   /**
    * @param {PartialPlutusWitness} partial_witness
+   * @param {PlutusScriptWitnessInfo} witness_info
    * @returns {CertificateBuilderResult}
    */
   plutus_script(
-    partial_witness: PartialPlutusWitness
+    partial_witness: PartialPlutusWitness,
+    witness_info: PlutusScriptWitnessInfo
   ): CertificateBuilderResult;
 }
 /**
@@ -5640,6 +5686,146 @@ declare export class SingleHostName {
    * @returns {SingleHostName}
    */
   static new(port: number | void, dns_name: DNSRecordAorAAAA): SingleHostName;
+}
+/**
+ */
+declare export class SingleInputBuilder {
+  free(): void;
+
+  /**
+   * @param {TransactionInput} input
+   * @param {TransactionOutput} utxo_info
+   * @returns {SingleInputBuilder}
+   */
+  static new(
+    input: TransactionInput,
+    utxo_info: TransactionOutput
+  ): SingleInputBuilder;
+
+  /**
+   * @returns {InputBuilderResult}
+   */
+  skip_witness(): InputBuilderResult;
+
+  /**
+   * @param {Vkey} vkey
+   * @returns {InputBuilderResult}
+   */
+  vkey(vkey: Vkey): InputBuilderResult;
+
+  /**
+   * @param {BootstrapWitness} bootstrap
+   * @returns {InputBuilderResult}
+   */
+  bootstrap(bootstrap: BootstrapWitness): InputBuilderResult;
+
+  /**
+   * @param {NativeScript} native_script
+   * @param {NativeScriptWitnessInfo} witness_info
+   * @returns {InputBuilderResult}
+   */
+  native_script(
+    native_script: NativeScript,
+    witness_info: NativeScriptWitnessInfo
+  ): InputBuilderResult;
+
+  /**
+   * @param {PartialPlutusWitness} partial_witness
+   * @param {PlutusScriptWitnessInfo} witness_info
+   * @param {PlutusData} datum
+   * @returns {InputBuilderResult}
+   */
+  plutus_script(
+    partial_witness: PartialPlutusWitness,
+    witness_info: PlutusScriptWitnessInfo,
+    datum: PlutusData
+  ): InputBuilderResult;
+}
+/**
+ */
+declare export class SingleMintBuilder {
+  free(): void;
+
+  /**
+   * @param {MintAssets} assets
+   * @returns {SingleMintBuilder}
+   */
+  static new(assets: MintAssets): SingleMintBuilder;
+
+  /**
+   * @param {ScriptHash} policy_id
+   * @returns {MintBuilderResult}
+   */
+  skip_witness(policy_id: ScriptHash): MintBuilderResult;
+
+  /**
+   * @param {NativeScript} native_script
+   * @param {NativeScriptWitnessInfo} witness_info
+   * @returns {MintBuilderResult}
+   */
+  native_script(
+    native_script: NativeScript,
+    witness_info: NativeScriptWitnessInfo
+  ): MintBuilderResult;
+
+  /**
+   * @param {PartialPlutusWitness} partial_witness
+   * @param {PlutusScriptWitnessInfo} witness_info
+   * @returns {MintBuilderResult}
+   */
+  plutus_script(
+    partial_witness: PartialPlutusWitness,
+    witness_info: PlutusScriptWitnessInfo
+  ): MintBuilderResult;
+}
+/**
+ */
+declare export class SingleWithdrawalBuilder {
+  free(): void;
+
+  /**
+   * @param {RewardAddress} address
+   * @param {BigNum} amount
+   * @returns {SingleWithdrawalBuilder}
+   */
+  static new(address: RewardAddress, amount: BigNum): SingleWithdrawalBuilder;
+
+  /**
+   * @returns {WithdrawalBuilderResult}
+   */
+  skip_witness(): WithdrawalBuilderResult;
+
+  /**
+   * @param {Vkeys} vkeys
+   * @returns {WithdrawalBuilderResult}
+   */
+  vkeys(vkeys: Vkeys): WithdrawalBuilderResult;
+
+  /**
+   * @param {Vkey} vkey
+   * @returns {WithdrawalBuilderResult}
+   */
+  vkey(vkey: Vkey): WithdrawalBuilderResult;
+
+  /**
+   * @param {NativeScript} native_script
+   * @param {NativeScriptWitnessInfo} witness_info
+   * @returns {WithdrawalBuilderResult}
+   */
+  native_script(
+    native_script: NativeScript,
+    witness_info: NativeScriptWitnessInfo
+  ): WithdrawalBuilderResult;
+
+  /**
+   * @param {PartialPlutusWitness} partial_witness
+   * @param {PlutusScriptWitnessInfo} witness_info
+   * @returns {WithdrawalBuilderResult}
+   */
+  plutus_script(
+    partial_witness: PartialPlutusWitness,
+    witness_info: PlutusScriptWitnessInfo
+  ): WithdrawalBuilderResult;
 }
 /**
  */
@@ -8022,6 +8208,11 @@ declare export class Vkeywitnesses {
    * @param {Vkeywitness} elem
    */
   add(elem: Vkeywitness): void;
+}
+/**
+ */
+declare export class WithdrawalBuilderResult {
+  free(): void;
 }
 /**
  */

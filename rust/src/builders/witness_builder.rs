@@ -95,9 +95,9 @@ pub enum InputAggregateWitnessData {
     // note: this struct may contains duplicates, but it will be de-duped later
     Vkeys(Vec<Vkey>),
     Bootstraps(Vec<BootstrapWitness>),
-    NativeScript(NativeScript),
-    PlutusScriptNoDatum(PartialPlutusWitness),
-    PlutusScriptWithDatum(PartialPlutusWitness, PlutusData)
+    NativeScript(NativeScript, NativeScriptWitnessInfo),
+    PlutusScriptNoDatum(PartialPlutusWitness, PlutusScriptWitnessInfo),
+    PlutusScriptWithDatum(PartialPlutusWitness, PlutusScriptWitnessInfo, PlutusData)
 }
 
 
@@ -342,6 +342,53 @@ impl TransactionWitnessSetBuilder {
         Ok(result)
     }
 }
+
+#[derive(Clone)]
+pub enum NativeScriptWitnessInfoKind {
+    Count(i32),
+    Vkeys(Vec<Vkey>),
+    AssumeWorst(()),
+}
+
+#[wasm_bindgen]
+#[derive(Clone)]
+pub struct NativeScriptWitnessInfo(NativeScriptWitnessInfoKind);
+
+impl NativeScriptWitnessInfo {
+    /// Unsure which keys will sign, but you know the exact number to save on tx fee
+    pub fn num_signatures(num: i32) -> NativeScriptWitnessInfo {
+        NativeScriptWitnessInfo(NativeScriptWitnessInfoKind::Count(num))
+    }
+
+    /// This native script will be witnessed by exactly these keys
+    pub fn vkeys(vkeys: &Vkeys) -> NativeScriptWitnessInfo {
+        NativeScriptWitnessInfo(NativeScriptWitnessInfoKind::Vkeys(vkeys.0.clone()))
+    }
+
+    /// You don't know how many keys will sign, so the maximum possible case will be assumed
+    pub fn assume_signature_count() -> NativeScriptWitnessInfo {
+        NativeScriptWitnessInfo(NativeScriptWitnessInfoKind::AssumeWorst(()))
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Clone)]
+pub struct PlutusScriptWitnessInfo {
+    pub(crate) missing_signers: RequiredSigners,
+    pub(crate) known_signers: Vkeys,
+}
+
+impl PlutusScriptWitnessInfo {
+    /// you can pass in an empty array if there are no required witnesses
+    pub fn set_required_signers(known_signers: &Vkeys, missing_signers: &RequiredSigners) -> PlutusScriptWitnessInfo {
+        Self {
+            missing_signers: missing_signers.clone(),
+            known_signers: known_signers.clone()
+        }
+    }
+}
+
+
 
 #[cfg(test)]
 mod tests {

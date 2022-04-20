@@ -257,11 +257,14 @@ impl ByronAddress {
     }
 
     pub fn to_address(&self) -> Address {
-        Address(AddrType::Byron(self.clone()))
+        Address {
+            variant: AddrType::Byron(self.clone()),
+            trailing: None,
+        }
     }
 
     pub fn from_address(addr: &Address) -> Option<ByronAddress> {
-        match &addr.0 {
+        match &addr.variant {
             AddrType::Byron(byron) => Some(byron.clone()),
             _ => None,
         }
@@ -270,7 +273,11 @@ impl ByronAddress {
 
 #[wasm_bindgen]
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Address(AddrType);
+pub struct Address {
+    variant: AddrType,
+    // we store this for consistent round-tripping. this should be None for most addresses
+    trailing: Option<Vec<u8>>,
+}
 
 from_bytes!(Address, data, {
     Self::from_bytes_impl(data.as_ref())
@@ -356,7 +363,7 @@ impl Address {
     /// bits 7-4: 1000
     /// bits 3-0: unrelated data (recall: no network ID in Byron addresses)
     pub fn header(&self) -> u8 {
-        match &self.0 {
+        match &self.variant {
             AddrType::Base(base) => ((base.payment.kind() as u8) << 4)
                            | ((base.stake.kind() as u8) << 5)
                            | (base.network & 0xF),
@@ -379,7 +386,7 @@ impl Address {
 
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
-        match &self.0 {
+        match &self.variant {
             AddrType::Base(base) => {
                 buf.push(self.header());
                 buf.extend(base.payment.to_raw_bytes());
@@ -404,6 +411,9 @@ impl Address {
                 buf.extend(byron.to_bytes())
             },
         }
+        if let Some(trailing_bytes) = &self.trailing {
+            buf.extend(trailing_bytes);
+        }
         buf
     }
 
@@ -424,7 +434,8 @@ impl Address {
                     StakeCredential::from_scripthash(&ScriptHash::from(hash_bytes))
                 }
             };
-            let addr = match (header & 0xF0) >> 4 {
+            let mut trailing = None;
+            let variant = match (header & 0xF0) >> 4 {
                 // base
                 0b0000 | 0b0001 | 0b0010 | 0b0011 => {
                     const BASE_ADDR_SIZE: usize = 1 + HASH_LEN * 2;
@@ -432,7 +443,7 @@ impl Address {
                         return Err(cbor_event::Error::NotEnough(data.len(), BASE_ADDR_SIZE).into());
                     }
                     if data.len() > BASE_ADDR_SIZE {
-                        return Err(cbor_event::Error::TrailingData.into());
+                        trailing = Some(data[BASE_ADDR_SIZE..].to_vec());
                     }
                     AddrType::Base(BaseAddress::new(network, &read_addr_cred(4, 1), &read_addr_cred(5, 1 + HASH_LEN)))
                 },
@@ -457,7 +468,7 @@ impl Address {
                         .ok_or_else(|| DeserializeError::new("Address.Pointer.cert_index", DeserializeFailure::VariableLenNatDecodeFailed))?;
                     byte_index += cert_bytes;
                     if byte_index < data.len() {
-                        return Err(cbor_event::Error::TrailingData.into());
+                        trailing = Some(data[byte_index..].to_vec());
                     }
                     AddrType::Ptr(
                         PointerAddress::new(
@@ -475,7 +486,7 @@ impl Address {
                         return Err(cbor_event::Error::NotEnough(data.len(), ENTERPRISE_ADDR_SIZE).into());
                     }
                     if data.len() > ENTERPRISE_ADDR_SIZE {
-                        return Err(cbor_event::Error::TrailingData.into());
+                        trailing = Some(data[ENTERPRISE_ADDR_SIZE..].to_vec());
                     }
                     AddrType::Enterprise(EnterpriseAddress::new(network, &read_addr_cred(4, 1)))
                 },
@@ -486,7 +497,7 @@ impl Address {
                         return Err(cbor_event::Error::NotEnough(data.len(), REWARD_ADDR_SIZE).into());
                     }
                     if data.len() > REWARD_ADDR_SIZE {
-                        return Err(cbor_event::Error::TrailingData.into());
+                        trailing = Some(data[REWARD_ADDR_SIZE..].to_vec());
                     }
                     AddrType::Reward(RewardAddress::new(network, &read_addr_cred(4, 1)))
                 }
@@ -501,7 +512,7 @@ impl Address {
                 },
                 _ => return Err(DeserializeFailure::BadAddressType(header).into()),
             };
-            Ok(Address(addr))
+            Ok(Address { variant, trailing })
         })().map_err(|e| e.annotate("Address"))
     }
 
@@ -510,7 +521,7 @@ impl Address {
             Some(prefix) => prefix,
             None => {
                 // see CIP5 for bech32 prefix rules
-                let prefix_header = match &self.0 {
+                let prefix_header = match &self.variant {
                     AddrType::Reward(_) => "stake",
                     _ => "addr",
                 };
@@ -532,7 +543,7 @@ impl Address {
     }
 
     pub fn network_id(&self) -> Result<u8, JsError> {
-        match &self.0 {
+        match &self.variant {
             AddrType::Base(a) => Ok(a.network),
             AddrType::Enterprise(a) => Ok(a.network),
             AddrType::Ptr(a) => Ok(a.network),
@@ -542,35 +553,35 @@ impl Address {
     }
 
     pub fn as_byron(&self) -> Option<ByronAddress> {
-        match &self.0 {
+        match &self.variant {
             AddrType::Byron(a) => Some(a.clone()),
             _ => None
         }
     }
 
     pub fn as_reward(&self) -> Option<RewardAddress> {
-        match &self.0 {
+        match &self.variant {
             AddrType::Reward(a) => Some(a.clone()),
             _ => None
         }
     }
 
     pub fn as_pointer(&self) -> Option<PointerAddress> {
-        match &self.0 {
+        match &self.variant {
             AddrType::Ptr(a) => Some(a.clone()),
             _ => None
         }
     }
 
     pub fn as_enterprise(&self) -> Option<EnterpriseAddress> {
-        match &self.0 {
+        match &self.variant {
             AddrType::Enterprise(a) => Some(a.clone()),
             _ => None
         }
     }
 
     pub fn as_base(&self) -> Option<BaseAddress> {
-        match &self.0 {
+        match &self.variant {
             AddrType::Base(a) => Some(a.clone()),
             _ => None
         }
@@ -616,11 +627,14 @@ impl BaseAddress {
     }
 
     pub fn to_address(&self) -> Address {
-        Address(AddrType::Base(self.clone()))
+        Address {
+            variant: AddrType::Base(self.clone()),
+            trailing: None,
+        }
     }
 
     pub fn from_address(addr: &Address) -> Option<BaseAddress> {
-        match &addr.0 {
+        match &addr.variant {
             AddrType::Base(base) => Some(base.clone()),
             _ => None,
         }
@@ -649,11 +663,14 @@ impl EnterpriseAddress {
     }
 
     pub fn to_address(&self) -> Address {
-        Address(AddrType::Enterprise(self.clone()))
+        Address {
+            variant: AddrType::Enterprise(self.clone()),
+            trailing: None,
+        }
     }
 
     pub fn from_address(addr: &Address) -> Option<EnterpriseAddress> {
-        match &addr.0 {
+        match &addr.variant {
             AddrType::Enterprise(enterprise) => Some(enterprise.clone()),
             _ => None,
         }
@@ -681,11 +698,14 @@ impl RewardAddress {
     }
 
     pub fn to_address(&self) -> Address {
-        Address(AddrType::Reward(self.clone()))
+        Address {
+            variant: AddrType::Reward(self.clone()),
+            trailing: None,
+        }
     }
 
     pub fn from_address(addr: &Address) -> Option<RewardAddress> {
-        match &addr.0 {
+        match &addr.variant {
             AddrType::Reward(reward) => Some(reward.clone()),
             _ => None,
         }
@@ -731,7 +751,7 @@ impl Deserialize for RewardAddress {
     fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<Self, DeserializeError> {
             let bytes = raw.bytes()?;
-            match Address::from_bytes_impl(bytes.as_ref())?.0 {
+            match Address::from_bytes_impl(bytes.as_ref())?.variant {
                 AddrType::Reward(ra) => Ok(ra),
                 _other_address => Err(DeserializeFailure::BadAddressType(bytes[0]).into()),
             }
@@ -797,11 +817,14 @@ impl PointerAddress {
     }
 
     pub fn to_address(&self) -> Address {
-        Address(AddrType::Ptr(self.clone()))
+        Address {
+            variant: AddrType::Ptr(self.clone()),
+            trailing: None,
+        }
     }
 
     pub fn from_address(addr: &Address) -> Option<PointerAddress> {
-        match &addr.0 {
+        match &addr.variant {
             AddrType::Ptr(ptr) => Some(ptr.clone()),
             _ => None,
         }
@@ -1199,5 +1222,15 @@ mod tests {
         assert_eq!(u64::MAX, from_bignum(&ptr.slot));
         assert_eq!(u64::MAX, from_bignum(&ptr.tx_index));
         assert_eq!(u64::MAX, from_bignum(&ptr.cert_index));
+    }
+
+    #[test]
+    fn long_address() {
+        let long = Address::from_bech32("addr1q9d66zzs27kppmx8qc8h43q7m4hkxp5d39377lvxefvxd8j7eukjsdqc5c97t2zg5guqadepqqx6rc9m7wtnxy6tajjvk4a0kze4ljyuvvrpexg5up2sqxj33363v35gtew").unwrap();
+        let long_trimmed = Address::from_bech32("addr1q9d66zzs27kppmx8qc8h43q7m4hkxp5d39377lvxefvxd8j7eukjsdqc5c97t2zg5guqadepqqx6rc9m7wtnxy6tajjq6r54x9").unwrap();
+        assert_eq!(long.variant, long_trimmed.variant);
+        assert_eq!(long.trailing, Some(vec![203u8, 87, 175, 176, 179, 95, 200, 156, 99, 6, 28, 153, 20, 224, 85, 0, 26, 81, 140, 117, 22]));
+        assert_eq!(long_trimmed.trailing, None);
+        assert_eq!(long.to_bytes(), hex::decode("015bad085057ac10ecc7060f7ac41edd6f63068d8963ef7d86ca58669e5ecf2d283418a60be5a848a2380eb721000da1e0bbf39733134beca4cb57afb0b35fc89c63061c9914e055001a518c7516").unwrap());
     }
 }

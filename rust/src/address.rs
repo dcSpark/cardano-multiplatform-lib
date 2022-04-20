@@ -344,9 +344,6 @@ impl Address {
 
     fn from_bytes_impl(data: &[u8]) -> Result<Address, DeserializeError> {
         use std::convert::TryInto;
-        const TRAILING_WHITELIST: [&[u8]; 1] = [
-            &[203, 87, 175, 176, 179, 95, 200, 156, 99, 6, 28, 153, 20, 224, 85, 0, 26, 81, 140, 117, 22]
-        ];
         (|| -> Result<Self, DeserializeError> {
             let header = data[0];
             let network = header & 0x0F;
@@ -441,17 +438,6 @@ impl Address {
                 },
                 _ => return Err(DeserializeFailure::BadAddressType(header).into()),
             };
-            if let Some(trailing) = &trailing {
-                let mut found = false;
-                for ending in TRAILING_WHITELIST.iter() {
-                    if trailing.as_slice() == *ending {
-                        found = true;
-                    }
-                }
-                if !found {
-                    return Err(cbor_event::Error::TrailingData.into());
-                }
-            }
             Ok(Address { variant, trailing })
         })().map_err(|e| e.annotate("Address"))
     }
@@ -1194,8 +1180,6 @@ mod tests {
         assert_eq!(long.trailing, Some(vec![203u8, 87, 175, 176, 179, 95, 200, 156, 99, 6, 28, 153, 20, 224, 85, 0, 26, 81, 140, 117, 22]));
         assert_eq!(long_trimmed.trailing, None);
         assert_eq!(long.to_bytes(), hex::decode("015bad085057ac10ecc7060f7ac41edd6f63068d8963ef7d86ca58669e5ecf2d283418a60be5a848a2380eb721000da1e0bbf39733134beca4cb57afb0b35fc89c63061c9914e055001a518c7516").unwrap());
-        let long_not_whitelisted = Address::from_bech32("addr_test1vqt3w9chzut3w9chzut3w9chzut3w9chzut3w9chzut3w9cqqspqvqcqsmxqdssg97");
-        assert!(long_not_whitelisted.is_err());
     }
 
     #[test]

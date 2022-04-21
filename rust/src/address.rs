@@ -406,8 +406,11 @@ impl Address {
 
     fn from_bytes_impl(data: &[u8]) -> Result<Address, DeserializeError> {
         use std::convert::TryInto;
-        const TRAILING_WHITELIST: [&[u8]; 1] = [
-            &[203, 87, 175, 176, 179, 95, 200, 156, 99, 6, 28, 153, 20, 224, 85, 0, 26, 81, 140, 117, 22]
+        const TRAILING_WHITELIST: [&[u8]; 2] = [
+            // addr1q9d66zzs27kppmx8qc8h43q7m4hkxp5d39377lvxefvxd8j7eukjsdqc5c97t2zg5guqadepqqx6rc9m7wtnxy6tajjvk4a0kze4ljyuvvrpexg5up2sqxj33363v35gtew
+            &[203, 87, 175, 176, 179, 95, 200, 156, 99, 6, 28, 153, 20, 224, 85, 0, 26, 81, 140, 117, 22],
+            // addr1q9d66zzs27kppmxxgdzs5gp34etxla3m89g48n4z6q3m5ecw82xn7xy064e7e2zg5guqadk40nmf3057kagdzjqk7hs3840550lqg79jys0qz68rewjsqx3zc9dpzuurrhe
+            &[19, 213, 244, 163, 254, 4, 120, 178, 36, 30, 1, 104, 227, 203, 165, 0, 26, 34, 193, 90, 17]
         ];
         (|| -> Result<Self, DeserializeError> {
             let header = data[0];
@@ -510,6 +513,7 @@ impl Address {
                     }
                 }
                 if !found {
+                    // println!("{:?}", trailing);
                     return Err(cbor_event::Error::TrailingData.into());
                 }
             }

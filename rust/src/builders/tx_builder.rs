@@ -3128,6 +3128,38 @@ mod tests {
     }
 
     #[test]
+    fn tx_builder_cip2_random_improve_exclude_used_indices() {
+        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(44, 155381));
+        const COST: u64 = 1000000;
+        tx_builder.add_output(
+            &TransactionOutputBuilder::new()
+                .with_address(&Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
+                .next().unwrap()
+                .with_coin(&to_bignum(COST))
+                .build().unwrap()
+            ).unwrap();
+        let mut available_inputs = TransactionUnspentOutputs::new();
+        available_inputs.add(&make_input(0u8, Value::new(&to_bignum(1000000))));
+        available_inputs.add(&make_input(1u8, Value::new(&to_bignum(10000000))));
+        let mut input_total = tx_builder.get_total_input().unwrap();
+        let mut output_total = tx_builder
+            .get_explicit_output().unwrap()
+            .checked_add(&Value::new(&tx_builder.get_deposit().unwrap())).unwrap()
+            .checked_add(&Value::new(&tx_builder.min_fee().unwrap())).unwrap();
+        let mut available_indices: BTreeSet<usize> = (0..available_inputs.len()).collect();
+        assert!(available_indices.len() == 2);
+        let mut rng = rand::thread_rng();
+        tx_builder.cip2_random_improve_by(
+            &available_inputs.0,
+            &mut available_indices,
+            &mut input_total,
+            &mut output_total,
+            |value| Some(value.coin),
+            &mut rng).unwrap();
+        assert!(available_indices.len() < 2);
+    }
+
+    #[test]
     fn tx_builder_cip2_random_improve_when_using_all_available_inputs() {
         // we have a = 1 to test increasing fees when more inputs are added
         let linear_fee = LinearFee::new(&to_bignum(1), &to_bignum(0));

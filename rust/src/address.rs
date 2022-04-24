@@ -600,6 +600,29 @@ impl Address {
             _ => None
         }
     }
+
+    /// Note: by convention, the key inside reward addresses are considered payment credentials
+    pub fn payment_cred(&self) -> Option<StakeCredential> {
+        match &self.0 {
+            AddrType::Base(a) => Some(a.payment.clone()),
+            AddrType::Enterprise(a) => Some(a.payment.clone()),
+            AddrType::Ptr(a) => Some(a.payment.clone()),
+            AddrType::Reward(a) => Some(a.payment.clone()),
+            AddrType::Byron(_) => None,
+        }
+    }
+
+    /// Note: by convention, the key inside reward addresses are NOT considered staking credentials
+    /// Note: None is returned pointer addresses as the chain history is required to resolve its associated cred
+    pub fn staking_cred(&self) -> Option<StakeCredential> {
+        match &self.0 {
+            AddrType::Base(a) => Some(a.stake.clone()),
+            AddrType::Enterprise(_) => None,
+            AddrType::Ptr(_) => None,
+            AddrType::Reward(_) => None,
+            AddrType::Byron(_) => None,
+        }
+    }
 }
 
 impl cbor_event::se::Serialize for Address {

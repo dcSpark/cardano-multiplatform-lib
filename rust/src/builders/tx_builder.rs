@@ -3087,6 +3087,47 @@ mod tests {
     }
 
     #[test]
+    fn tx_builder_cip2_random_improve_on_real_data() {
+        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(44, 155381));
+        const COST: u64 = 1000000;
+        tx_builder.add_output(
+            &TransactionOutputBuilder::new()
+                .with_address(&Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
+                .next().unwrap()
+                .with_coin(&to_bignum(COST))
+                .build().unwrap()
+            ).unwrap();
+        let mut available_inputs = TransactionUnspentOutputs::new();
+        available_inputs.add(&make_input(0u8, Value::new(&to_bignum(1000000))));
+        available_inputs.add(&make_input(1u8, Value::new(&to_bignum(10000000))));
+        let add_inputs_res =
+            tx_builder.add_inputs_from(&available_inputs, CoinSelectionStrategyCIP2::RandomImprove);
+        assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
+        let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
+        let add_change_res = tx_builder.add_change_if_needed(&change_addr);
+        assert!(add_change_res.is_ok(), "{:?}", add_change_res.err());
+        let tx_build_res = tx_builder.build();
+        assert!(tx_build_res.is_ok(), "{:?}", tx_build_res.err());
+        let tx = tx_build_res.unwrap();
+        // we need to look up the values to ensure there's enough
+        let mut input_values = BTreeMap::new();
+        for utxo in available_inputs.0.iter() {
+            input_values.insert(utxo.input.transaction_id(), utxo.output.amount.clone());
+        }
+        let mut encountered = std::collections::HashSet::new();
+        let mut input_total = Value::new(&Coin::zero());
+        for input in tx.inputs.0.iter() {
+            let txid = input.transaction_id();
+            if !encountered.insert(txid.clone()) {
+                panic!("Input {:?} duplicated", txid);
+            }
+            let value = input_values.get(&txid).unwrap();
+            input_total = input_total.checked_add(value).unwrap();
+        }
+        assert!(input_total >= Value::new(&tx_builder.min_fee().unwrap().checked_add(&to_bignum(COST)).unwrap()));
+    }
+
+    #[test]
     fn tx_builder_cip2_random_improve_when_using_all_available_inputs() {
         // we have a = 1 to test increasing fees when more inputs are added
         let linear_fee = LinearFee::new(&to_bignum(1), &to_bignum(0));

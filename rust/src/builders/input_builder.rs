@@ -3,7 +3,7 @@ use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusW
 
 use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitnessInfo};
 
-pub fn input_required_wits(utxo_info: &TransactionOutput, required_witnesses: &mut RequiredWitnessSet) -> () {
+pub fn input_required_wits(utxo_info: &TransactionOutput, required_witnesses: &mut RequiredWitnessSet) {
     if let Some(cred) = &utxo_info.address().payment_cred() {
         if let Some(keyhash) = &cred.to_keyhash() {
             required_witnesses.add_vkey_key_hash(&keyhash);
@@ -52,7 +52,7 @@ impl SingleInputBuilder {
             input: self.input.clone(),
             utxo_info: self.utxo_info.clone(),
             aggregate_witness: None,
-            required_wits: required_wits.clone(),
+            required_wits,
         })
     }
 
@@ -61,7 +61,7 @@ impl SingleInputBuilder {
         input_required_wits(&self.utxo_info,&mut required_wits);
         let mut required_wits_left = required_wits.clone();
 
-        let keyhash = &vkey.public_key().hash();
+        let keyhash = vkey.public_key().hash();
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
         let contains = required_wits_left.vkeys.contains(&keyhash);
@@ -77,7 +77,7 @@ impl SingleInputBuilder {
             input: self.input.clone(),
             utxo_info: self.utxo_info.clone(),
             aggregate_witness: if contains { Some(InputAggregateWitnessData::Vkeys(vec![vkey.clone()])) } else { None },
-            required_wits: required_wits.clone(),
+            required_wits,
         })
     }
 
@@ -102,7 +102,7 @@ impl SingleInputBuilder {
             input: self.input.clone(),
             utxo_info: self.utxo_info.clone(),
             aggregate_witness: if contains { Some(InputAggregateWitnessData::Bootstraps(vec![bootstrap.clone()])) } else { None },
-            required_wits: required_wits.clone(),
+            required_wits,
         })
     }
 
@@ -127,7 +127,7 @@ impl SingleInputBuilder {
             input: self.input.clone(),
             utxo_info: self.utxo_info.clone(),
             aggregate_witness: if contains { Some(InputAggregateWitnessData::NativeScript(native_script.clone(), witness_info.clone())) } else { None },
-            required_wits: required_wits.clone(),
+            required_wits,
         })
     }
 
@@ -155,7 +155,7 @@ impl SingleInputBuilder {
             input: self.input.clone(),
             utxo_info: self.utxo_info.clone(),
             aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScriptWithDatum(partial_witness.clone(), witness_info.clone(), datum.clone())) } else { None },
-            required_wits: required_wits.clone(),
+            required_wits,
         })
     }
 }

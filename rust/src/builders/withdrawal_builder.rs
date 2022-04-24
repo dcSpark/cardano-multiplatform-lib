@@ -4,7 +4,7 @@ use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusW
 use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitnessInfo};
 
 // comes from witsVKeyNeeded in the Ledger spec
-pub fn withdrawal_required_wits(address: &RewardAddress, required_witnesses: &mut RequiredWitnessSet) -> () {
+pub fn withdrawal_required_wits(address: &RewardAddress, required_witnesses: &mut RequiredWitnessSet) {
     let cred = &address.payment_cred();
     if let Some(keyhash) = &cred.to_keyhash() {
         required_witnesses.add_vkey_key_hash(&keyhash);
@@ -48,7 +48,7 @@ impl SingleWithdrawalBuilder {
             address: self.address.clone(),
             amount: self.amount.clone(),
             aggregate_witness: None,
-            required_wits: required_wits.clone(),
+            required_wits,
         }
     }
 
@@ -71,7 +71,7 @@ impl SingleWithdrawalBuilder {
             address: self.address.clone(),
             amount: self.amount.clone(),
             aggregate_witness: if provided_wit_subset.len() > 0 { Some(InputAggregateWitnessData::Vkeys(provided_wit_subset.into_iter().cloned().collect())) } else { None },
-            required_wits: required_wits.clone(),
+            required_wits,
         })
     }
 
@@ -98,7 +98,7 @@ impl SingleWithdrawalBuilder {
             address: self.address.clone(),
             amount: self.amount.clone(),
             aggregate_witness: if contains { Some(InputAggregateWitnessData::NativeScript(native_script.clone(), witness_info.clone())) } else { None },
-            required_wits: required_wits.clone(),
+            required_wits,
         })
     }
 
@@ -125,7 +125,7 @@ impl SingleWithdrawalBuilder {
             address: self.address.clone(),
             amount: self.amount.clone(),
             aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScriptNoDatum(partial_witness.clone(), witness_info.clone())) } else { None },
-            required_wits: required_wits.clone(),
+            required_wits,
         })
     }
 }

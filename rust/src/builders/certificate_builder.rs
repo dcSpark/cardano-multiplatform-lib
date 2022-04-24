@@ -5,7 +5,7 @@ use std::collections::{HashSet};
 use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitnessInfo};
 
 // comes from witsVKeyNeeded in the Ledger spec
-pub fn cert_required_wits(cert_enum: &Certificate, required_witnesses: &mut RequiredWitnessSet) -> () {
+pub fn cert_required_wits(cert_enum: &Certificate, required_witnesses: &mut RequiredWitnessSet) {
     match &cert_enum.0 {
         // stake key registrations do not require a witness
         CertificateEnum::StakeRegistration(_cert) => (),
@@ -110,7 +110,7 @@ impl SingleCertificateBuilder {
         CertificateBuilderResult {
             cert: self.cert.clone(),
             aggregate_witness: None,
-            required_wits: required_wits.clone(),
+            required_wits,
         }
     }
 
@@ -132,7 +132,7 @@ impl SingleCertificateBuilder {
         Ok(CertificateBuilderResult {
             cert: self.cert.clone(),
             aggregate_witness: if provided_wit_subset.len() > 0 { Some(InputAggregateWitnessData::Vkeys(provided_wit_subset.into_iter().cloned().collect())) } else { None },
-            required_wits: required_wits.clone(),
+            required_wits,
         })
     }
 
@@ -159,7 +159,7 @@ impl SingleCertificateBuilder {
         Ok(CertificateBuilderResult {
             cert: self.cert.clone(),
             aggregate_witness: if contains { Some(InputAggregateWitnessData::NativeScript(native_script.clone(), witness_info.clone())) } else { None },
-            required_wits: required_wits.clone(),
+            required_wits,
         })
     }
 
@@ -185,7 +185,7 @@ impl SingleCertificateBuilder {
         Ok(CertificateBuilderResult {
             cert: self.cert.clone(),
             aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScriptNoDatum(partial_witness.clone(), witness_info.clone())) } else { None },
-            required_wits: required_wits.clone(),
+            required_wits,
         })
     }
 }

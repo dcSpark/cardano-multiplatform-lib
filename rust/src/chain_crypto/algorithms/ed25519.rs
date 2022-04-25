@@ -5,7 +5,7 @@ use crate::chain_crypto::sign::{
     SignatureError, SigningAlgorithm, Verification, VerificationAlgorithm,
 };
 use cryptoxide::ed25519;
-use rand_os::rand_core::{CryptoRng, RngCore};
+use rand::{CryptoRng, RngCore};
 
 use ed25519_bip32::XPub;
 

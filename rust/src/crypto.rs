@@ -1,10 +1,10 @@
 use cbor_event::{de::Deserializer, se::Serializer};
 use crate::impl_mockchain as chain;
 use crate::chain_crypto as crypto;
-use chain::{key};
+use chain::key;
 use crypto::bech32::Bech32 as _;
 use bech32::ToBase32;
-use rand_os::OsRng;
+use rand::rngs::OsRng;
 use std::io::{BufRead, Seek, Write};
 use std::str::FromStr;
 
@@ -84,10 +84,9 @@ impl Bip32PrivateKey {
     }
 
     pub fn generate_ed25519_bip32() -> Result<Bip32PrivateKey, JsError> {
-        OsRng::new()
+        Ok(OsRng)
             .map(crypto::SecretKey::<crypto::Ed25519Bip32>::generate)
             .map(Bip32PrivateKey)
-            .map_err(|e| JsError::from_str(&format!("{}", e)))
     }
 
     pub fn to_raw_key(&self) -> PrivateKey {
@@ -214,19 +213,17 @@ impl PrivateKey {
     }
 
     pub fn generate_ed25519() -> Result<PrivateKey, JsError> {
-        OsRng::new()
+        Ok(OsRng)
             .map(crypto::SecretKey::<crypto::Ed25519>::generate)
             .map(key::EitherEd25519SecretKey::Normal)
             .map(PrivateKey)
-            .map_err(|e| JsError::from_str(&format!("{}", e)))
     }
 
     pub fn generate_ed25519extended() -> Result<PrivateKey, JsError> {
-        OsRng::new()
+        Ok(OsRng)
             .map(crypto::SecretKey::<crypto::Ed25519Extended>::generate)
             .map(key::EitherEd25519SecretKey::Extended)
             .map(PrivateKey)
-            .map_err(|e| JsError::from_str(&format!("{}", e)))
     }
 
     /// Get private key from its bech32 representation

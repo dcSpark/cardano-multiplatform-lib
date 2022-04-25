@@ -425,14 +425,14 @@ impl TransactionBuilder {
         Ok(())
     }
 
-    fn cip2_random_improve_by<F>(
+    fn cip2_random_improve_by<F, R: Rng + ?Sized>(
         &mut self,
         available_inputs: &[TransactionUnspentOutput],
         available_indices: &mut BTreeSet<usize>,
         input_total: &mut Value,
         output_total: &mut Value,
         by: F,
-        rng: &mut rand::rngs::ThreadRng) -> Result<(), JsError>
+        rng: &mut R) -> Result<(), JsError>
     where
         F: Fn(&Value) -> Option<BigNum> {
         // Phase 1: Random Selection
@@ -3150,7 +3150,8 @@ mod tests {
             .checked_add(&Value::new(&tx_builder.min_fee().unwrap())).unwrap();
         let mut available_indices: BTreeSet<usize> = (0..available_inputs.len()).collect();
         assert!(available_indices.len() == 2);
-        let mut rng = rand::thread_rng();
+        use rand::SeedableRng;
+        let mut rng = rand_chacha::ChaChaRng::seed_from_u64(1);
         tx_builder.cip2_random_improve_by(
             &available_inputs.0,
             &mut available_indices,

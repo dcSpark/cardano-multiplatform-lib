@@ -4,6 +4,7 @@ use crate::utils;
 use super::output_builder::{TransactionOutputAmountBuilder};
 use super::certificate_builder::*;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
+use rand::Rng;
 
 fn fake_private_key() -> Bip32PrivateKey {
     Bip32PrivateKey::from_bytes(
@@ -294,7 +295,6 @@ impl TransactionBuilder {
                 if self.outputs.0.iter().any(|output| output.amount.multiasset.is_some()) {
                     return Err(JsError::from_str("Multiasset values not supported by RandomImprove. Please use RandomImproveMultiAsset"));
                 }
-                use rand::Rng;
                 let mut rng = rand::thread_rng();
                 let mut available_indices = (0..available_inputs.len()).collect::<BTreeSet<usize>>();
                 self.cip2_random_improve_by(
@@ -345,7 +345,6 @@ impl TransactionBuilder {
                     |value| Some(value.coin))?;
             },
             CoinSelectionStrategyCIP2::RandomImproveMultiAsset => {
-                use rand::Rng;
                 let mut rng = rand::thread_rng();
                 let mut available_indices = (0..available_inputs.len()).collect::<BTreeSet<usize>>();
                 // run random-improve by each asset type
@@ -436,7 +435,6 @@ impl TransactionBuilder {
         rng: &mut rand::rngs::ThreadRng) -> Result<(), JsError>
     where
         F: Fn(&Value) -> Option<BigNum> {
-        use rand::Rng;
         // Phase 1: Random Selection
         let mut relevant_indices = available_indices.iter()
             .filter(|i| by(&available_inputs[**i].output.amount).is_some())

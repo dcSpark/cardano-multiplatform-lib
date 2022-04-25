@@ -499,9 +499,9 @@ impl TransactionBuilder {
                         move_closer && not_exceed_max
                     };
                     if should_improve {
-                        std::mem::swap(i, j);
                         available_indices.insert(*i);
                         available_indices.remove(j);
+                        std::mem::swap(i, j);
                     }
                 }
             }

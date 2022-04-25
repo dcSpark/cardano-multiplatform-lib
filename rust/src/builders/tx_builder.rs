@@ -485,16 +485,20 @@ impl TransactionBuilder {
                 for i in associated.iter_mut() {
                     let random_index = rng.gen_range(0..relevant_indices.len());
                     let j: &mut usize = relevant_indices.get_mut(random_index).unwrap();
-                    let input = &available_inputs[*i];
-                    let new_input = &available_inputs[*j];
-                    let cur = from_bignum(&input.output.amount.coin);
-                    let new = from_bignum(&new_input.output.amount.coin);
-                    let min = from_bignum(&output.amount.coin);
-                    let ideal = 2 * min;
-                    let max = 3 * min;
-                    let move_closer = (ideal as i128 - new as i128).abs() < (ideal as i128 - cur as i128).abs();
-                    let not_exceed_max = new < max;
-                    if move_closer && not_exceed_max {
+                    let should_improve = {
+                        let input = &available_inputs[*i];
+                        let new_input = &available_inputs[*j];
+                        let cur = from_bignum(&input.output.amount.coin);
+                        let new = from_bignum(&new_input.output.amount.coin);
+                        let min = from_bignum(&output.amount.coin);
+                        let ideal = 2 * min;
+                        let max = 3 * min;
+                        let move_closer = (ideal as i128 - new as i128).abs() < (ideal as i128 - cur as i128).abs();
+                        let not_exceed_max = new < max;
+
+                        move_closer && not_exceed_max
+                    };
+                    if should_improve {
                         std::mem::swap(i, j);
                         available_indices.insert(*i);
                         available_indices.remove(j);

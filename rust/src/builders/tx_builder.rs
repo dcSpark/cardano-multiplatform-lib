@@ -3160,6 +3160,8 @@ mod tests {
             &mut output_total,
             |value| Some(value.coin),
             &mut rng).unwrap();
+        assert!(!available_indices.contains(&0));
+        assert!(available_indices.contains(&1));
         assert!(available_indices.len() < 2);
     }
 

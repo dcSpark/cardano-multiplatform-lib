@@ -7,7 +7,7 @@ use crate::chain_crypto as crypto;
 use crate::chain_crypto::{
     AsymmetricKey, AsymmetricPublicKey, SecretKey, SigningAlgorithm, VerificationAlgorithm,
 };
-use rand_os::rand_core::{CryptoRng, RngCore};
+use rand::{CryptoRng, RngCore};
 
 #[derive(Clone)]
 pub enum EitherEd25519SecretKey {

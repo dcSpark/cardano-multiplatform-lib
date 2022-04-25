@@ -13,7 +13,7 @@ use cryptoxide::sha2::Sha512;
 use super::ed25519 as ei;
 use cryptoxide::ed25519;
 use ed25519_bip32::{XPrv, XPub, XPRV_SIZE, XPUB_SIZE};
-use rand_os::rand_core::{CryptoRng, RngCore};
+use rand::{CryptoRng, RngCore};
 
 const CHAIN_CODE_SIZE: usize = 32;
 const SEED_SIZE: usize = 64;

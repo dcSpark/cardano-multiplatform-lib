@@ -3,7 +3,7 @@ use crate::chain_crypto::digest;
 
 use quickcheck::{Arbitrary, Gen};
 use rand_chacha::ChaChaRng;
-use rand_os::rand_core::SeedableRng;
+use rand::SeedableRng;
 
 /// an Arbitrary friendly cryptographic generator
 ///

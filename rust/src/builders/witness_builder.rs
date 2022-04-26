@@ -347,7 +347,7 @@ impl TransactionWitnessSetBuilder {
 pub enum NativeScriptWitnessInfoKind {
     Count(i32),
     Vkeys(Vec<Vkey>),
-    AssumeWorst(()),
+    AssumeWorst,
 }
 
 #[wasm_bindgen]
@@ -367,7 +367,7 @@ impl NativeScriptWitnessInfo {
 
     /// You don't know how many keys will sign, so the maximum possible case will be assumed
     pub fn assume_signature_count() -> NativeScriptWitnessInfo {
-        NativeScriptWitnessInfo(NativeScriptWitnessInfoKind::AssumeWorst(()))
+        NativeScriptWitnessInfo(NativeScriptWitnessInfoKind::AssumeWorst)
     }
 }
 

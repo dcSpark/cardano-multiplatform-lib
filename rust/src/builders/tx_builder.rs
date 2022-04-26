@@ -4,6 +4,7 @@ use crate::utils;
 use super::output_builder::{TransactionOutputAmountBuilder};
 use super::certificate_builder::*;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
+use rand::Rng;
 
 fn fake_private_key() -> Bip32PrivateKey {
     Bip32PrivateKey::from_bytes(
@@ -294,7 +295,6 @@ impl TransactionBuilder {
                 if self.outputs.0.iter().any(|output| output.amount.multiasset.is_some()) {
                     return Err(JsError::from_str("Multiasset values not supported by RandomImprove. Please use RandomImproveMultiAsset"));
                 }
-                use rand::Rng;
                 let mut rng = rand::thread_rng();
                 let mut available_indices = (0..available_inputs.len()).collect::<BTreeSet<usize>>();
                 self.cip2_random_improve_by(
@@ -345,7 +345,6 @@ impl TransactionBuilder {
                     |value| Some(value.coin))?;
             },
             CoinSelectionStrategyCIP2::RandomImproveMultiAsset => {
-                use rand::Rng;
                 let mut rng = rand::thread_rng();
                 let mut available_indices = (0..available_inputs.len()).collect::<BTreeSet<usize>>();
                 // run random-improve by each asset type
@@ -426,17 +425,16 @@ impl TransactionBuilder {
         Ok(())
     }
 
-    fn cip2_random_improve_by<F>(
+    fn cip2_random_improve_by<F, R: Rng + ?Sized>(
         &mut self,
         available_inputs: &[TransactionUnspentOutput],
         available_indices: &mut BTreeSet<usize>,
         input_total: &mut Value,
         output_total: &mut Value,
         by: F,
-        rng: &mut rand::rngs::ThreadRng) -> Result<(), JsError>
+        rng: &mut R) -> Result<(), JsError>
     where
         F: Fn(&Value) -> Option<BigNum> {
-        use rand::Rng;
         // Phase 1: Random Selection
         let mut relevant_indices = available_indices.iter()
             .filter(|i| by(&available_inputs[**i].output.amount).is_some())
@@ -485,19 +483,23 @@ impl TransactionBuilder {
                 for i in associated.iter_mut() {
                     let random_index = rng.gen_range(0..relevant_indices.len());
                     let j: &mut usize = relevant_indices.get_mut(random_index).unwrap();
-                    let input = &available_inputs[*i];
-                    let new_input = &available_inputs[*j];
-                    let cur = from_bignum(&input.output.amount.coin);
-                    let new = from_bignum(&new_input.output.amount.coin);
-                    let min = from_bignum(&output.amount.coin);
-                    let ideal = 2 * min;
-                    let max = 3 * min;
-                    let move_closer = (ideal as i128 - new as i128).abs() < (ideal as i128 - cur as i128).abs();
-                    let not_exceed_max = new < max;
-                    if move_closer && not_exceed_max {
-                        std::mem::swap(i, j);
+                    let should_improve = {
+                        let input = &available_inputs[*i];
+                        let new_input = &available_inputs[*j];
+                        let cur = from_bignum(&input.output.amount.coin);
+                        let new = from_bignum(&new_input.output.amount.coin);
+                        let min = from_bignum(&output.amount.coin);
+                        let ideal = 2 * min;
+                        let max = 3 * min;
+                        let move_closer = (ideal as i128 - new as i128).abs() < (ideal as i128 - cur as i128).abs();
+                        let not_exceed_max = new < max;
+
+                        move_closer && not_exceed_max
+                    };
+                    if should_improve {
                         available_indices.insert(*i);
                         available_indices.remove(j);
+                        std::mem::swap(i, j);
                     }
                 }
             }
@@ -3084,6 +3086,41 @@ mod tests {
             input_total = input_total.checked_add(value).unwrap();
         }
         assert!(input_total >= Value::new(&tx_builder.min_fee().unwrap().checked_add(&to_bignum(COST)).unwrap()));
+    }
+
+    #[test]
+    fn tx_builder_cip2_random_improve_exclude_used_indices() {
+        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(44, 155381));
+        const COST: u64 = 1000000;
+        tx_builder.add_output(
+            &TransactionOutputBuilder::new()
+                .with_address(&Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
+                .next().unwrap()
+                .with_coin(&to_bignum(COST))
+                .build().unwrap()
+            ).unwrap();
+        let mut available_inputs = TransactionUnspentOutputs::new();
+        available_inputs.add(&make_input(0u8, Value::new(&to_bignum(1000000))));
+        available_inputs.add(&make_input(1u8, Value::new(&to_bignum(10000000))));
+        let mut input_total = tx_builder.get_total_input().unwrap();
+        let mut output_total = tx_builder
+            .get_explicit_output().unwrap()
+            .checked_add(&Value::new(&tx_builder.get_deposit().unwrap())).unwrap()
+            .checked_add(&Value::new(&tx_builder.min_fee().unwrap())).unwrap();
+        let mut available_indices: BTreeSet<usize> = (0..available_inputs.len()).collect();
+        assert!(available_indices.len() == 2);
+        use rand::SeedableRng;
+        let mut rng = rand_chacha::ChaChaRng::seed_from_u64(1);
+        tx_builder.cip2_random_improve_by(
+            &available_inputs.0,
+            &mut available_indices,
+            &mut input_total,
+            &mut output_total,
+            |value| Some(value.coin),
+            &mut rng).unwrap();
+        assert!(!available_indices.contains(&0));
+        assert!(available_indices.contains(&1));
+        assert!(available_indices.len() < 2);
     }
 
     #[test]

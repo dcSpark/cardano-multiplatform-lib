@@ -306,7 +306,7 @@ impl TransactionWitnessSetBuilder {
     pub fn build(&self) -> Result<TransactionWitnessSet, JsError> {
         let mut result = TransactionWitnessSet::new();
         let mut remaining_wits = self.required_wits.clone();
-        
+
         if !self.vkeys.is_empty() {
             result.set_vkeys(&Vkeywitnesses(self.vkeys.values().cloned().collect()));
             self.vkeys.keys().for_each(|key| { remaining_wits.vkeys.remove(&key.public_key().hash()); });
@@ -347,7 +347,7 @@ impl TransactionWitnessSetBuilder {
 pub enum NativeScriptWitnessInfoKind {
     Count(i32),
     Vkeys(Vec<Vkey>),
-    AssumeWorst(()),
+    AssumeWorst,
 }
 
 #[wasm_bindgen]
@@ -367,7 +367,7 @@ impl NativeScriptWitnessInfo {
 
     /// You don't know how many keys will sign, so the maximum possible case will be assumed
     pub fn assume_signature_count() -> NativeScriptWitnessInfo {
-        NativeScriptWitnessInfo(NativeScriptWitnessInfoKind::AssumeWorst(()))
+        NativeScriptWitnessInfo(NativeScriptWitnessInfoKind::AssumeWorst)
     }
 }
 
@@ -399,7 +399,7 @@ mod tests {
             vec![id, 248, 153, 211, 155, 23, 253, 93, 102, 193, 146, 196, 181, 13, 52, 62, 66, 247, 35, 91, 48, 80, 76, 138, 231, 97, 159, 147, 200, 40, 220, 109, 206, 69, 104, 221, 105, 23, 124, 85, 24, 40, 73, 45, 119, 122, 103, 39, 253, 102, 194, 251, 204, 189, 168, 194, 174, 237, 146, 3, 44, 153, 121, 10]
         ).unwrap()
     }
-    
+
     fn fake_raw_key_public(id: u8) -> PublicKey {
         PublicKey::from_bytes(
             &[id, 118, 57, 154, 33, 13, 232, 114, 14, 159, 168, 148, 228, 94, 65, 226, 154, 181, 37, 227, 11, 196, 2, 128, 28, 7, 98, 80, 209, 88, 91, 205]
@@ -420,12 +420,10 @@ mod tests {
             &hex::decode("d84c65426109a36edda5375ea67f1b738e1dacf8629f2bb5a2b0b20f3cd5075873bf5cdfa7e533482677219ac7d639e30a38e2e645ea9140855f44ff09e60c52c8b95d0d35fe75a70f9f5633a3e2439b2994b9e2bc851c49e9f91d1a5dcbb1a3").unwrap()
         ).unwrap()
     }
-    
 
     #[test]
     fn vkey_test() {
         let mut builder = TransactionWitnessSetBuilder::new();
-        
         let raw_key_public = fake_raw_key_public(0);
         let fake_sig = fake_raw_key_sig(0);
 

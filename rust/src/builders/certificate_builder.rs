@@ -84,7 +84,7 @@ pub fn add_cert_vkeys(cert_enum: &Certificate, vkeys: &mut HashSet<Ed25519KeyHas
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct CertificateBuilderResult {
-    cert: Certificate,
+    pub(crate) cert: Certificate,
     aggregate_witness: Option<InputAggregateWitnessData>,
     required_wits: RequiredWitnessSet,
 }
@@ -121,12 +121,12 @@ impl SingleCertificateBuilder {
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
         let provided_wit_subset: Vec<&Vkey> = vkeys.0.iter().filter(|vkey| required_wits_left.vkeys.contains(&vkey.public_key().hash())).collect();
-        
+
         // check the user provided all the required witnesses
         provided_wit_subset.iter().for_each(|wit| { required_wits_left.vkeys.remove(&wit.public_key().hash()); });
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str())));
         }
 
         Ok(CertificateBuilderResult {
@@ -148,7 +148,7 @@ impl SingleCertificateBuilder {
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
         let contains = required_wits_left.scripts.contains(&native_script.hash(ScriptHashNamespace::NativeScript));
-        
+
         // check the user provided all the required witnesses
         required_wits_left.scripts.remove(&native_script.hash(ScriptHashNamespace::NativeScript));
 
@@ -174,12 +174,12 @@ impl SingleCertificateBuilder {
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
         let contains = required_wits_left.scripts.contains(&script_hash);
-        
+
         // check the user provided all the required witnesses
         required_wits_left.scripts.remove(&script_hash);
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str())));
         }
 
         Ok(CertificateBuilderResult {

@@ -676,6 +676,12 @@ impl TransactionBuilder {
         Ok(())        
     }
 
+    pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
+        let mut certs = self.certs.clone().unwrap_or(Certificates::new());
+        certs.add(&result.cert);
+        self.certs = Some(certs);
+    }
+
     pub fn set_withdrawals(&mut self, withdrawals: &Withdrawals) {
         self.withdrawals = Some(withdrawals.clone());
         for (withdrawal, _coin) in &withdrawals.0 {

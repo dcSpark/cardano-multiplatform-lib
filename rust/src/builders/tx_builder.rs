@@ -276,7 +276,8 @@ impl TransactionBuilder {
     /// Adding a change output must be called after via TransactionBuilder::add_change_if_needed()
     /// This function, diverging from CIP2, takes into account fees and will attempt to add additional
     /// inputs to cover the minimum fees. This does not, however, set the txbuilder's fee.
-    pub fn add_inputs_from(&mut self, inputs: &TransactionUnspentOutputs, strategy: CoinSelectionStrategyCIP2) -> Result<(), JsError> {
+    pub fn select_utxos(&mut self, strategy: CoinSelectionStrategyCIP2) -> Result<(), JsError> {
+        let inputs = &self.utxos;
         let available_inputs = &inputs.0.clone();
         let mut input_total = self.get_total_input()?;
         let mut output_total = self
@@ -2822,13 +2823,13 @@ mod tests {
                 .with_coin(&to_bignum(1000))
                 .build().unwrap()
             ).unwrap();
-        let mut available_inputs = TransactionUnspentOutputs::new();
+        let available_inputs = &mut tx_builder.utxos;
         available_inputs.add(&make_input(0u8, Value::new(&to_bignum(150))));
         available_inputs.add(&make_input(1u8, Value::new(&to_bignum(200))));
         available_inputs.add(&make_input(2u8, Value::new(&to_bignum(800))));
         available_inputs.add(&make_input(3u8, Value::new(&to_bignum(400))));
         available_inputs.add(&make_input(4u8, Value::new(&to_bignum(100))));
-        tx_builder.add_inputs_from(&available_inputs, CoinSelectionStrategyCIP2::LargestFirst).unwrap();
+        tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirst).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(change_added);
@@ -2854,13 +2855,13 @@ mod tests {
                 .with_coin(&to_bignum(1200))
                 .build().unwrap()
             ).unwrap();
-        let mut available_inputs = TransactionUnspentOutputs::new();
+        let available_inputs = &mut tx_builder.utxos;
         available_inputs.add(&make_input(0u8, Value::new(&to_bignum(150))));
         available_inputs.add(&make_input(1u8, Value::new(&to_bignum(200))));
         available_inputs.add(&make_input(2u8, Value::new(&to_bignum(800))));
         available_inputs.add(&make_input(3u8, Value::new(&to_bignum(400))));
         available_inputs.add(&make_input(4u8, Value::new(&to_bignum(100))));
-        tx_builder.add_inputs_from(&available_inputs, CoinSelectionStrategyCIP2::LargestFirst).unwrap();
+        tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirst).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(!change_added);
@@ -2895,7 +2896,7 @@ mod tests {
             &output_value
         )).unwrap();
 
-        let mut available_inputs = TransactionUnspentOutputs::new();
+        let available_inputs = &mut tx_builder.utxos;
         // should not be taken
         available_inputs.add(&make_input(0u8, Value::new(&to_bignum(150))));
 
@@ -2946,7 +2947,7 @@ mod tests {
 
         // should not be taken
         available_inputs.add(&make_input(7u8, Value::new(&to_bignum(100))));
-        tx_builder.add_inputs_from(&available_inputs, CoinSelectionStrategyCIP2::LargestFirstMultiAsset).unwrap();
+        tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirstMultiAsset).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(change_added);
@@ -2999,7 +3000,7 @@ mod tests {
             &output_value
         )).unwrap();
 
-        let mut available_inputs = TransactionUnspentOutputs::new();
+        let available_inputs = &mut tx_builder.utxos;
         available_inputs.add(&make_input(0u8, Value::new(&to_bignum(150))));
 
         let mut input1 = make_input(1u8, Value::new(&to_bignum(200)));
@@ -3054,7 +3055,7 @@ mod tests {
         input9.output.amount.multiasset = Some(ma9);
         available_inputs.add(&input9);
 
-        tx_builder.add_inputs_from(&available_inputs, CoinSelectionStrategyCIP2::RandomImproveMultiAsset).unwrap();
+        tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImproveMultiAsset).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(change_added);
@@ -3078,16 +3079,14 @@ mod tests {
                 .with_coin(&to_bignum(COST))
                 .build().unwrap()
             ).unwrap();
-        let mut available_inputs = TransactionUnspentOutputs::new();
-        available_inputs.add(&make_input(0u8, Value::new(&to_bignum(1500))));
-        available_inputs.add(&make_input(1u8, Value::new(&to_bignum(2000))));
-        available_inputs.add(&make_input(2u8, Value::new(&to_bignum(8000))));
-        available_inputs.add(&make_input(3u8, Value::new(&to_bignum(4000))));
-        available_inputs.add(&make_input(4u8, Value::new(&to_bignum(1000))));
-        available_inputs.add(&make_input(5u8, Value::new(&to_bignum(2000))));
-        available_inputs.add(&make_input(6u8, Value::new(&to_bignum(1500))));
-        let add_inputs_res =
-            tx_builder.add_inputs_from(&available_inputs, CoinSelectionStrategyCIP2::RandomImprove);
+        tx_builder.utxos.add(&make_input(0u8, Value::new(&to_bignum(1500))));
+        tx_builder.utxos.add(&make_input(1u8, Value::new(&to_bignum(2000))));
+        tx_builder.utxos.add(&make_input(2u8, Value::new(&to_bignum(8000))));
+        tx_builder.utxos.add(&make_input(3u8, Value::new(&to_bignum(4000))));
+        tx_builder.utxos.add(&make_input(4u8, Value::new(&to_bignum(1000))));
+        tx_builder.utxos.add(&make_input(5u8, Value::new(&to_bignum(2000))));
+        tx_builder.utxos.add(&make_input(6u8, Value::new(&to_bignum(1500))));
+        let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let add_change_res = tx_builder.add_change_if_needed(&change_addr);
@@ -3097,7 +3096,7 @@ mod tests {
         let tx = tx_build_res.unwrap();
         // we need to look up the values to ensure there's enough
         let mut input_values = BTreeMap::new();
-        for utxo in available_inputs.0.iter() {
+        for utxo in tx_builder.utxos.0.iter() {
             input_values.insert(utxo.input.transaction_id(), utxo.output.amount.clone());
         }
         let mut encountered = std::collections::HashSet::new();
@@ -3170,11 +3169,10 @@ mod tests {
                 .with_coin(&to_bignum(COST))
                 .build().unwrap()
             ).unwrap();
-        let mut available_inputs = TransactionUnspentOutputs::new();
+        let available_inputs = &mut tx_builder.utxos;
         available_inputs.add(&make_input(1u8, Value::new(&to_bignum(800))));
         available_inputs.add(&make_input(2u8, Value::new(&to_bignum(800))));
-        let add_inputs_res =
-            tx_builder.add_inputs_from(&available_inputs, CoinSelectionStrategyCIP2::RandomImprove);
+        let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
     }
 
@@ -3201,12 +3199,11 @@ mod tests {
                 .build().unwrap()
             ).unwrap();
         assert_eq!(tx_builder.min_fee().unwrap(), to_bignum(53));
-        let mut available_inputs = TransactionUnspentOutputs::new();
+        let available_inputs = &mut tx_builder.utxos;
         available_inputs.add(&make_input(1u8, Value::new(&to_bignum(150))));
         available_inputs.add(&make_input(2u8, Value::new(&to_bignum(150))));
         available_inputs.add(&make_input(3u8, Value::new(&to_bignum(150))));
-        let add_inputs_res =
-            tx_builder.add_inputs_from(&available_inputs, CoinSelectionStrategyCIP2::RandomImprove);
+        let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
         assert_eq!(tx_builder.min_fee().unwrap(), to_bignum(264));
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();

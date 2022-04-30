@@ -262,7 +262,8 @@ pub struct TransactionBuilder {
     required_signers: Option<RequiredSigners>,
     network_id: Option<NetworkId>,
     native_scripts: Option<NativeScripts>,
-    witness_set_builder: TransactionWitnessSetBuilder
+    witness_set_builder: TransactionWitnessSetBuilder,
+    utxos: TransactionUnspentOutputs
 }
 
 #[wasm_bindgen]
@@ -891,7 +892,8 @@ impl TransactionBuilder {
             collateral: None,
             required_signers: None,
             network_id: None,
-            witness_set_builder: TransactionWitnessSetBuilder::new()
+            witness_set_builder: TransactionWitnessSetBuilder::new(),
+            utxos: TransactionUnspentOutputs::new()
         }
     }
 

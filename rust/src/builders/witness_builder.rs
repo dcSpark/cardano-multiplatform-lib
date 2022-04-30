@@ -1,4 +1,4 @@
-use std::collections::{HashSet, HashMap};
+use std::{collections::{HashSet, HashMap}, fmt::Debug};
 use crate::*;
 
 #[wasm_bindgen]
@@ -193,7 +193,7 @@ impl RequiredWitnessSet {
     }
 }
 
-/// Builder de-duplicates witnesses as they are added 
+/// Builder de-duplicates witnesses as they are added
 #[wasm_bindgen]
 #[derive(Clone, Default)]
 pub struct TransactionWitnessSetBuilder {
@@ -303,6 +303,54 @@ impl TransactionWitnessSetBuilder {
         };
     }
 
+    fn add_vkeys(&mut self, vkeys: &Vec<Vkey>) {
+        let fake_sig = fake_raw_key_sig(0);
+        for vkey in vkeys {
+            let fake_vkey_witness = Vkeywitness::new(&vkey, &fake_sig);
+            self.add_vkey(&fake_vkey_witness);
+        }
+    }
+
+    fn add_vkeys_by_num(&mut self, num: usize) {
+        let vkeys: Vec<Vkey> = (0..num).into_iter().map(|_| Vkey::new(&fake_raw_key_public(0))).collect();
+        self.add_vkeys(&vkeys);
+    }
+
+    pub fn add_input_aggregate_witness_data(&mut self, data: &InputAggregateWitnessData) {
+        match data {
+            InputAggregateWitnessData::Vkeys(vkeys) => self.add_vkeys(vkeys),
+            InputAggregateWitnessData::Bootstraps(witnesseses) => {
+                for witness in witnesseses {
+                    self.add_bootstrap(witness);
+                }
+            }
+            InputAggregateWitnessData::NativeScript(script, info) => {
+                self.add_native_script(script);
+                match info.0 {
+                    NativeScriptWitnessInfoKind::Count(num) => self.add_vkeys_by_num(num),
+                    NativeScriptWitnessInfoKind::Vkeys(ref vkeys) => self.add_vkeys(vkeys),
+                    NativeScriptWitnessInfoKind::AssumeWorst => {
+                        let num = script.get_required_signers().len();
+                        self.add_vkeys_by_num(num);
+                    }
+                }
+            }
+            InputAggregateWitnessData::PlutusScriptNoDatum(witness, info) => {
+                self.add_plutus_script(&witness.script());
+                self.add_plutus_datum(&witness.untagged_redeemer().datum());
+                self.add_vkeys_by_num(info.missing_signers.len());
+                self.add_vkeys(&info.known_signers.0);
+            }
+            InputAggregateWitnessData::PlutusScriptWithDatum(witness, info, data) => {
+                self.add_plutus_script(&witness.script());
+                self.add_plutus_datum(&witness.untagged_redeemer().datum());
+                self.add_plutus_datum(data);
+                self.add_vkeys_by_num(info.missing_signers.len());
+                self.add_vkeys(&info.known_signers.0);
+            }
+        }
+    }
+
     pub fn build(&self) -> Result<TransactionWitnessSet, JsError> {
         let mut result = TransactionWitnessSet::new();
         let mut remaining_wits = self.required_wits.clone();
@@ -343,9 +391,21 @@ impl TransactionWitnessSetBuilder {
     }
 }
 
+fn fake_raw_key_sig(id: u8) -> Ed25519Signature {
+    Ed25519Signature::from_bytes(
+        vec![id, 248, 153, 211, 155, 23, 253, 93, 102, 193, 146, 196, 181, 13, 52, 62, 66, 247, 35, 91, 48, 80, 76, 138, 231, 97, 159, 147, 200, 40, 220, 109, 206, 69, 104, 221, 105, 23, 124, 85, 24, 40, 73, 45, 119, 122, 103, 39, 253, 102, 194, 251, 204, 189, 168, 194, 174, 237, 146, 3, 44, 153, 121, 10]
+    ).unwrap()
+}
+
+fn fake_raw_key_public(id: u8) -> PublicKey {
+    PublicKey::from_bytes(
+        &[id, 118, 57, 154, 33, 13, 232, 114, 14, 159, 168, 148, 228, 94, 65, 226, 154, 181, 37, 227, 11, 196, 2, 128, 28, 7, 98, 80, 209, 88, 91, 205]
+    ).unwrap()
+}
+
 #[derive(Clone)]
 pub enum NativeScriptWitnessInfoKind {
-    Count(i32),
+    Count(usize),
     Vkeys(Vec<Vkey>),
     AssumeWorst,
 }
@@ -356,7 +416,7 @@ pub struct NativeScriptWitnessInfo(NativeScriptWitnessInfoKind);
 
 impl NativeScriptWitnessInfo {
     /// Unsure which keys will sign, but you know the exact number to save on tx fee
-    pub fn num_signatures(num: i32) -> NativeScriptWitnessInfo {
+    pub fn num_signatures(num: usize) -> NativeScriptWitnessInfo {
         NativeScriptWitnessInfo(NativeScriptWitnessInfoKind::Count(num))
     }
 
@@ -393,18 +453,6 @@ impl PlutusScriptWitnessInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn fake_raw_key_sig(id: u8) -> Ed25519Signature {
-        Ed25519Signature::from_bytes(
-            vec![id, 248, 153, 211, 155, 23, 253, 93, 102, 193, 146, 196, 181, 13, 52, 62, 66, 247, 35, 91, 48, 80, 76, 138, 231, 97, 159, 147, 200, 40, 220, 109, 206, 69, 104, 221, 105, 23, 124, 85, 24, 40, 73, 45, 119, 122, 103, 39, 253, 102, 194, 251, 204, 189, 168, 194, 174, 237, 146, 3, 44, 153, 121, 10]
-        ).unwrap()
-    }
-
-    fn fake_raw_key_public(id: u8) -> PublicKey {
-        PublicKey::from_bytes(
-            &[id, 118, 57, 154, 33, 13, 232, 114, 14, 159, 168, 148, 228, 94, 65, 226, 154, 181, 37, 227, 11, 196, 2, 128, 28, 7, 98, 80, 209, 88, 91, 205]
-        ).unwrap()
-    }
 
     fn fake_private_key1() -> Bip32PrivateKey {
         Bip32PrivateKey::from_bytes(

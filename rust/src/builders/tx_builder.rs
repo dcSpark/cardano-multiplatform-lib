@@ -1,7 +1,7 @@
 use crate::*;
 use crate::fees;
 use crate::utils;
-use super::output_builder::{TransactionOutputAmountBuilder};
+use super::output_builder::TransactionOutputAmountBuilder;
 use super::certificate_builder::*;
 use super::witness_builder::TransactionWitnessSetBuilder;
 use std::collections::{BTreeMap, BTreeSet, HashSet};

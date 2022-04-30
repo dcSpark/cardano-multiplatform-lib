@@ -6,10 +6,10 @@ use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, Plutus
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct MintBuilderResult {
-    policy_id: PolicyID,
-    assets: MintAssets,
-    aggregate_witness: Option<InputAggregateWitnessData>,
-    required_wits: RequiredWitnessSet,
+    pub(crate) policy_id: PolicyID,
+    pub(crate) assets: MintAssets,
+    pub(crate) aggregate_witness: Option<InputAggregateWitnessData>,
+    pub(crate) required_wits: RequiredWitnessSet,
 }
 
 #[wasm_bindgen]

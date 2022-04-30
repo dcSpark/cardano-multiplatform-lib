@@ -2,6 +2,7 @@ use crate::*;
 use crate::fees;
 use crate::utils;
 use super::input_builder::InputBuilderResult;
+use super::mint_builder::MintBuilderResult;
 use super::output_builder::TransactionOutputAmountBuilder;
 use super::certificate_builder::*;
 use super::witness_builder::TransactionWitnessSetBuilder;
@@ -772,6 +773,14 @@ impl TransactionBuilder {
         self.mint = Some(mint.clone());
         self.set_native_scripts(mint_scripts);
         Ok(())
+    }
+
+    pub fn add_mint(&mut self, result: &MintBuilderResult) {
+        if let Some(ref data) = result.aggregate_witness {
+            self.witness_set_builder.add_input_aggregate_witness_data(data);
+        }
+        self.witness_set_builder.add_required_wits(&result.required_wits);
+        self.mint = Some(Mint::new_from_entry(&result.policy_id, &result.assets));
     }
 
     /// Returns a copy of the current mint state in the builder

@@ -682,6 +682,10 @@ impl TransactionBuilder {
         let mut certs = self.certs.clone().unwrap_or(Certificates::new());
         certs.add(&result.cert);
         self.certs = Some(certs);
+        if let Some(ref data) = result.aggregate_witness {
+            self.witness_set_builder.add_input_aggregate_witness_data(data)
+        }
+        self.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
     pub fn set_withdrawals(&mut self, withdrawals: &Withdrawals) {

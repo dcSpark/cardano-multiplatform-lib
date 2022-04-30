@@ -85,8 +85,8 @@ pub fn add_cert_vkeys(cert_enum: &Certificate, vkeys: &mut HashSet<Ed25519KeyHas
 #[derive(Clone)]
 pub struct CertificateBuilderResult {
     pub(crate) cert: Certificate,
-    aggregate_witness: Option<InputAggregateWitnessData>,
-    required_wits: RequiredWitnessSet,
+    pub(crate) aggregate_witness: Option<InputAggregateWitnessData>,
+    pub(crate) required_wits: RequiredWitnessSet,
 }
 
 #[wasm_bindgen]

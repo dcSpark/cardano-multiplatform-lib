@@ -37,7 +37,7 @@ pub struct SingleInputBuilder {
 
 #[wasm_bindgen]
 impl SingleInputBuilder {
-    pub fn new(input: &TransactionInput, utxo_info: &TransactionOutput,) -> Self {
+    pub fn new(input: &TransactionInput, utxo_info: &TransactionOutput) -> Self {
         Self {
             input: input.clone(),
             utxo_info: utxo_info.clone(),
@@ -65,12 +65,12 @@ impl SingleInputBuilder {
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
         let contains = required_wits_left.vkeys.contains(&keyhash);
-        
+
         // check the user provided all the required witnesses
         required_wits_left.vkeys.remove(&keyhash);
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str())));
         }
 
         Ok(InputBuilderResult {
@@ -90,12 +90,12 @@ impl SingleInputBuilder {
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
         let contains = required_wits_left.bootstraps.contains(&keyhash);
-        
+
         // check the user provided all the required witnesses
         required_wits_left.bootstraps.remove(&keyhash);
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str())));
         }
 
         Ok(InputBuilderResult {
@@ -115,12 +115,12 @@ impl SingleInputBuilder {
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
         let contains = required_wits_left.scripts.contains(script_hash);
-        
+
         // check the user provided all the required witnesses
         required_wits_left.scripts.remove(script_hash);
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str())));
         }
 
         Ok(InputBuilderResult {
@@ -142,13 +142,13 @@ impl SingleInputBuilder {
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
         let contains = required_wits_left.scripts.contains(script_hash);
-        
+
         // check the user provided all the required witnesses
         required_wits_left.scripts.remove(script_hash);
         required_wits_left.plutus_data.remove(&hash_plutus_data(datum));
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str())));
         }
 
         Ok(InputBuilderResult {

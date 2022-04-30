@@ -1,6 +1,7 @@
 use crate::*;
 use crate::fees;
 use crate::utils;
+use super::input_builder::InputBuilderResult;
 use super::output_builder::TransactionOutputAmountBuilder;
 use super::certificate_builder::*;
 use super::witness_builder::TransactionWitnessSetBuilder;
@@ -590,6 +591,15 @@ impl TransactionBuilder {
         match &ByronAddress::from_address(address) {
             Some(addr) => self.add_bootstrap_input(addr, input, amount),
             None => (),
+        }
+    }
+
+    pub fn add_utxo(&mut self, result: &InputBuilderResult) {
+        let utxo = TransactionUnspentOutput::new(&result.input, &result.utxo_info);
+        self.utxos.add(&utxo);
+        self.witness_set_builder.add_required_wits(&result.required_wits);
+        if let Some(ref data) = result.aggregate_witness {
+            self.witness_set_builder.add_input_aggregate_witness_data(data);
         }
     }
 

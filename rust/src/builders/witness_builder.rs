@@ -2,7 +2,7 @@ use std::{collections::{HashSet, HashMap}, fmt::Debug};
 use crate::*;
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RedeemerWitnessKey {
     tag: RedeemerTag,
     index: BigNum,
@@ -102,7 +102,7 @@ pub enum InputAggregateWitnessData {
 
 
 #[wasm_bindgen]
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct RequiredWitnessSet {
     // note: the real key type for these is Vkey
     // but cryptographically these should be equivalent and Ed25519KeyHash is more flexible
@@ -195,7 +195,7 @@ impl RequiredWitnessSet {
 
 /// Builder de-duplicates witnesses as they are added
 #[wasm_bindgen]
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct TransactionWitnessSetBuilder {
     // See Alonzo spec section 3.1 which defines the keys for these types
     vkeys: HashMap<Vkey, Vkeywitness>,

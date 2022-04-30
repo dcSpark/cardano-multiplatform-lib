@@ -280,7 +280,7 @@ impl PrivateKey {
 
 /// ED25519 key used as public key
 #[wasm_bindgen]
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PublicKey(crypto::PublicKey<crypto::Ed25519>);
 
 impl From<crypto::PublicKey<crypto::Ed25519>> for PublicKey {
@@ -347,7 +347,7 @@ impl JsonSchema for PublicKey {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct Vkey(PublicKey);
 
 to_from_bytes!(Vkey);
@@ -427,7 +427,7 @@ impl Deserialize for Vkeys {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct Vkeywitness {
     vkey: Vkey,
     signature: Ed25519Signature,
@@ -541,7 +541,7 @@ impl Deserialize for Vkeywitnesses {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct BootstrapWitness {
     vkey: Vkey,
     signature: Ed25519Signature,
@@ -710,7 +710,7 @@ impl PublicKeys {
 macro_rules! impl_signature {
     ($name:ident, $signee_type:ty, $verifier_type:ty) => {
         #[wasm_bindgen]
-        #[derive(Clone)]
+        #[derive(Clone, Debug)]
         pub struct $name(crypto::Signature<$signee_type, $verifier_type>);
 
         #[wasm_bindgen]

@@ -3,6 +3,7 @@ use crate::fees;
 use crate::utils;
 use super::output_builder::{TransactionOutputAmountBuilder};
 use super::certificate_builder::*;
+use super::witness_builder::TransactionWitnessSetBuilder;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use rand::Rng;
 
@@ -261,6 +262,7 @@ pub struct TransactionBuilder {
     required_signers: Option<RequiredSigners>,
     network_id: Option<NetworkId>,
     native_scripts: Option<NativeScripts>,
+    witness_set_builder: TransactionWitnessSetBuilder
 }
 
 #[wasm_bindgen]
@@ -885,6 +887,7 @@ impl TransactionBuilder {
             collateral: None,
             required_signers: None,
             network_id: None,
+            witness_set_builder: TransactionWitnessSetBuilder::new()
         }
     }
 

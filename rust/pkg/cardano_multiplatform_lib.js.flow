@@ -522,6 +522,7 @@ declare export class Address {
 
   /**
    * Note: by convention, the key inside reward addresses are NOT considered staking credentials
+   * Note: None is returned pointer addresses as the chain history is required to resolve its associated cred
    * @returns {StakeCredential | void}
    */
   staking_cred(): StakeCredential | void;

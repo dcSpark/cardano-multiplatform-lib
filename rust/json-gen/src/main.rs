@@ -133,7 +133,6 @@ fn main() {
     gen_json_schema!(LanguageKind);
     gen_json_schema!(Languages);
     gen_json_schema!(PlutusMap);
-    gen_json_schema!(PlutusData);
     gen_json_schema!(PlutusList);
     gen_json_schema!(PlutusData);
     //gen_json_schema!(PlutusDataEnum);

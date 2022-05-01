@@ -5,6 +5,7 @@ use super::input_builder::InputBuilderResult;
 use super::mint_builder::MintBuilderResult;
 use super::output_builder::TransactionOutputAmountBuilder;
 use super::certificate_builder::*;
+use super::withdrawal_builder::WithdrawalBuilderResult;
 use super::witness_builder::TransactionWitnessSetBuilder;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use rand::Rng;
@@ -706,6 +707,16 @@ impl TransactionBuilder {
         for (withdrawal, _coin) in &withdrawals.0 {
             self.input_types.vkeys.insert(withdrawal.payment_cred().to_keyhash().unwrap().clone());
         };
+    }
+
+    pub fn add_withdrawal(&mut self, result: &WithdrawalBuilderResult) {
+        let mut withdrawals = self.withdrawals.clone().unwrap_or(Withdrawals::new());
+        withdrawals.insert(&result.address, &result.amount);
+        self.withdrawals = Some(withdrawals);
+        if let Some(ref data) = result.aggregate_witness {
+            self.witness_set_builder.add_input_aggregate_witness_data(data)
+        }
+        self.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
     pub fn get_auxiliary_data(&self) -> Option<AuxiliaryData> {

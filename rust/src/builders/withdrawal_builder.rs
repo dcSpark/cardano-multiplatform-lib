@@ -18,10 +18,10 @@ pub fn withdrawal_required_wits(address: &RewardAddress, required_witnesses: &mu
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct WithdrawalBuilderResult {
-    address: RewardAddress,
-    amount: Coin,
-    aggregate_witness: Option<InputAggregateWitnessData>,
-    required_wits: RequiredWitnessSet,
+    pub(crate) address: RewardAddress,
+    pub(crate) amount: Coin,
+    pub(crate) aggregate_witness: Option<InputAggregateWitnessData>,
+    pub(crate) required_wits: RequiredWitnessSet,
 }
 
 #[wasm_bindgen]

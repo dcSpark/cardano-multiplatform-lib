@@ -9,6 +9,7 @@
 //! to binary makes an `Addr`
 //!
 
+use crate::address::NetworkInfo;
 use crate::chain_crypto;
 use crate::chain_crypto::Ed25519;
 use crate::chain_crypto::Ed25519Bip32;
@@ -228,10 +229,16 @@ pub struct Attributes {
 }
 impl Attributes {
     pub fn new_bootstrap_era(hdap: Option<HDAddressPayload>, protocol_magic: Option<ProtocolMagic>) -> Self {
+        let adjusted_magic = match &protocol_magic {
+            Some(magic) => {
+                if magic.0 == NetworkInfo::mainnet().protocol_magic() { None } else { protocol_magic }
+            }
+            None => None
+        };
         Attributes {
             derivation_path: hdap,
             stake_distribution: StakeDistribution::BootstrapEraDistr,
-            protocol_magic,
+            protocol_magic: adjusted_magic,
         }
     }
     pub fn new_single_key(

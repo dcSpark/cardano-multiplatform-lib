@@ -12,7 +12,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use crate::{legacy_address, utils, fees, chain_crypto::{Ed25519Bip32, self, Ed25519}, crypto::BlockHeaderHash};
+use crate::{legacy_address, utils, fees, chain_crypto::{Ed25519Bip32, self, Ed25519}, crypto::BlockHeaderHash, genesis::network_info::NetworkInfo};
 
 
 /// this is the protocol magic number
@@ -58,7 +58,7 @@ impl From<u32> for ProtocolMagic {
 }
 impl Default for ProtocolMagic {
     fn default() -> Self {
-        ProtocolMagic::from(764824073)
+        NetworkInfo::mainnet().protocol_magic()
     }
 }
 impl cbor_event::se::Serialize for ProtocolMagic {

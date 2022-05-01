@@ -33,37 +33,27 @@ fn variable_nat_encode(mut num: u64) -> Vec<u8> {
 
 #[wasm_bindgen]
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct NetworkInfo {
-    network_id: u8,
-    // FIXME: should by i32?
-    protocol_magic: u32,
-}
+pub struct NetworkInfo(genesis::network_info::NetworkInfo);
 #[wasm_bindgen]
 impl NetworkInfo {
     pub fn new(network_id: u8, protocol_magic: u32) -> Self {
-        Self {
+        NetworkInfo(genesis::network_info::NetworkInfo::new(
             network_id,
-            protocol_magic,
-        }
+            ProtocolMagic(protocol_magic),
+        ))
     }
     pub fn network_id(&self) -> u8 {
-        self.network_id
+        self.0.network_id()
     }
     pub fn protocol_magic(&self) -> u32 {
-        self.protocol_magic
+        self.0.protocol_magic().0
     }
 
     pub fn testnet() -> NetworkInfo {
-        NetworkInfo {
-            network_id: 0b0000,
-            protocol_magic: 1097911063
-        }
+        NetworkInfo(genesis::network_info::NetworkInfo::testnet())
     }
     pub fn mainnet() -> NetworkInfo {
-        NetworkInfo {
-            network_id: 0b0001,
-            protocol_magic: 764824073
-        }
+        NetworkInfo(genesis::network_info::NetworkInfo::mainnet())
     }
 }
 

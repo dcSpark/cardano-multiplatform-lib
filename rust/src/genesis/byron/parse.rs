@@ -115,7 +115,7 @@ pub fn canonicalize_json<R: Read>(json: R) -> String {
 pub fn redeem_pubkey_to_txid(
     pubkey: &chain_crypto::PublicKey<Ed25519>,
     protocol_magic: Option<ProtocolMagic>,
-) -> (TransactionHash, ExtendedAddr) {
+) -> (TransactionHash, ExtendedAddr /* todo: change to ByronAddress */) {
     let address = ExtendedAddr::new_redeem(pubkey, protocol_magic);
     let txid = Blake2b256::new(&cbor!(&address).unwrap());
     (TransactionHash(*txid.as_hash_bytes()), address)

@@ -1,7 +1,6 @@
 use super::*;
 use bech32::ToBase32;
-use crate::legacy_address::ExtendedAddr;
-use ed25519_bip32::XPub;
+use crate::{legacy_address::ExtendedAddr, genesis::byron::config::ProtocolMagic};
 
 // returns (Number represented, bytes read) if valid encoding
 // or None if decoding prematurely finished
@@ -204,7 +203,7 @@ impl ByronAddress {
     /// note: for bech32 addresses, you need to use network_id instead
     pub fn byron_protocol_magic(&self) -> u32 {
         match self.0.attributes.protocol_magic {
-            Some(x) => x,
+            Some(x) => x.0,
             None => NetworkInfo::mainnet().protocol_magic(), // mainnet is implied if omitted
         }
     }
@@ -241,12 +240,9 @@ impl ByronAddress {
 
     // icarus-style address (Ae2)
     pub fn icarus_from_key(key: &Bip32PublicKey, protocol_magic: u32) -> ByronAddress {
-        let mut out = [0u8; 64];
-        out.clone_from_slice(&key.as_bytes());
-
         // need to ensure we use None for mainnet since Byron-era addresses omitted the network id
-        let filtered_protocol_magic = if protocol_magic == NetworkInfo::mainnet().protocol_magic() { None } else { Some(protocol_magic) };
-        ByronAddress(ExtendedAddr::new_simple(& XPub::from_bytes(out), filtered_protocol_magic))
+        let filtered_protocol_magic = if protocol_magic == NetworkInfo::mainnet().protocol_magic() { None } else { Some(ProtocolMagic(protocol_magic)) };
+        ByronAddress(ExtendedAddr::new_simple(& key.0, filtered_protocol_magic))
     }
 
     pub fn is_valid(s: &str) -> bool {

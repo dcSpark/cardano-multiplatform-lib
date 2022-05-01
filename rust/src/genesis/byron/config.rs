@@ -30,10 +30,10 @@ use crate::{legacy_address, utils, fees, chain_crypto::{Ed25519Bip32, self, Ed25
 /// assert_eq!(ProtocolMagic::default(), ProtocolMagic::new(0x2D964A09));
 /// ```
 ///
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 #[cfg_attr(feature = "generic-serialization", derive(Serialize, Deserialize))]
 #[repr(C)]
-pub struct ProtocolMagic(u32); // FIXME: should be i32
+pub struct ProtocolMagic(pub u32);
 impl ProtocolMagic {
     #[deprecated]
     pub fn new(val: u32) -> Self {
@@ -76,32 +76,6 @@ impl cbor_event::Deserialize for ProtocolMagic {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-#[cfg_attr(feature = "generic-serialization", derive(Serialize, Deserialize))]
-pub enum NetworkMagic {
-    NoMagic,
-    Magic(u32), // FIXME: should by i32
-}
-
-impl From<ProtocolMagic> for NetworkMagic {
-    fn from(pm: ProtocolMagic) -> Self {
-        NetworkMagic::from(*pm)
-    }
-}
-
-impl From<u32> for NetworkMagic {
-    fn from(pm: u32) -> Self {
-        // FIXME: is there a better way to determine whether to emit
-        // NetworkMagic? There is a requiresNetworkMagic field in
-        // lib/configuration.yaml, but not in the genesis data.
-        if pm == *ProtocolMagic::default() || pm == 633343913 {
-            NetworkMagic::NoMagic
-        } else {
-            NetworkMagic::Magic(pm)
-        }
-    }
-}
-
 /// Configuration for the wallet-crypto
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 #[cfg_attr(feature = "generic-serialization", derive(Serialize, Deserialize))]
@@ -136,6 +110,7 @@ pub struct GenesisData {
     pub protocol_magic: ProtocolMagic,
     pub fee_policy: fees::LinearFee,
     pub avvm_distr: BTreeMap<chain_crypto::PublicKey<Ed25519>, utils::Coin>, // AVVM = Ada Voucher Vending Machine
+    // TODO: convert to ByronAddress without affecting order
     pub non_avvm_balances: BTreeMap<legacy_address::Addr, utils::Coin>,
     pub boot_stakeholders: BTreeMap<legacy_address::StakeholderId, BootStakeholder>,
 }

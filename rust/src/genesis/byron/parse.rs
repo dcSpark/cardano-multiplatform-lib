@@ -1,3 +1,4 @@
+use cbor_event::cbor;
 use serde_json;
 use std::collections::BTreeMap;
 use std::io::Read;
@@ -5,12 +6,13 @@ use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 
 use crate::chain_crypto::byron_proxy_key::ProxySecretKey;
-use crate::chain_crypto::{Ed25519, self, Ed25519Bip32, Signature};
-use crate::crypto::{BlockHeaderHash, blake2b256};
+use crate::chain_crypto::{Ed25519, self, Ed25519Bip32, Signature, Blake2b256};
+use crate::crypto::{BlockHeaderHash, blake2b256, TransactionHash};
 use crate::fees::LinearFee;
 use crate::legacy_address::{StakeholderId, ExtendedAddr};
 use crate::utils::{Coin, BigNum};
 
+use super::config::ProtocolMagic;
 use super::{raw, config};
 
 pub fn parse<R: Read>(json: R) -> config::GenesisData {
@@ -73,7 +75,7 @@ pub fn parse<R: Read>(json: R) -> config::GenesisData {
         };
 
         // Check that the stakeholder ID corresponds to the issuer public key.
-        assert_eq!(stakeholder_id, StakeholderId::new(&psk.issuer_pk.0));
+        assert_eq!(stakeholder_id, StakeholderId::new(&psk.issuer_pk));
 
         // Check that the certificate is correct.
         assert!(psk.verify(protocol_magic));
@@ -109,6 +111,16 @@ pub fn canonicalize_json<R: Read>(json: R) -> String {
     let data: serde_json::Value = serde_json::from_reader(json).unwrap();
     data.to_string()
 }
+
+pub fn redeem_pubkey_to_txid(
+    pubkey: &chain_crypto::PublicKey<Ed25519>,
+    protocol_magic: Option<ProtocolMagic>,
+) -> (TransactionHash, ExtendedAddr) {
+    let address = ExtendedAddr::new_redeem(pubkey, protocol_magic);
+    let txid = Blake2b256::new(&cbor!(&address).unwrap());
+    (TransactionHash(*txid.as_hash_bytes()), address)
+}
+
 
 #[cfg(test)]
 mod test {

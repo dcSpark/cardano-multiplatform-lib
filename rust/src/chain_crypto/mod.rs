@@ -13,6 +13,7 @@ pub mod digest;
 pub mod hash;
 pub mod byron_tags;
 pub mod byron_proxy_key;
+pub(crate) mod securemem;
 mod sign;
 mod key;
 

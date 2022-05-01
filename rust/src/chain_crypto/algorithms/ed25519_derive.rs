@@ -102,7 +102,6 @@ impl SigningAlgorithm for Ed25519Bip32 {
         key.sign(msg)
     }
 }
-
 #[cfg(test)]
 mod test {
     use super::*;

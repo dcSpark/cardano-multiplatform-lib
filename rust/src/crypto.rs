@@ -131,7 +131,7 @@ impl Bip32PrivateKey {
 }
 
 #[wasm_bindgen]
-pub struct Bip32PublicKey(crypto::PublicKey<crypto::Ed25519Bip32>);
+pub struct Bip32PublicKey(pub(crate) crypto::PublicKey<crypto::Ed25519Bip32>);
 
 #[wasm_bindgen]
 impl Bip32PublicKey {
@@ -915,6 +915,7 @@ impl LegacyDaedalusPrivateKey {
 
 impl_hash_type!(Ed25519KeyHash, 28);
 impl_hash_type!(ScriptHash, 28);
+// TransactionHash is either a hash of the tx CBOR or a hash of a redeem address (genesis)
 impl_hash_type!(TransactionHash, 32);
 impl_hash_type!(GenesisDelegateHash, 28);
 impl_hash_type!(GenesisHash, 28);

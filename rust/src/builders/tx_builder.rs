@@ -189,7 +189,7 @@ pub struct TransactionBuilder {
     required_signers: Option<RequiredSigners>,
     network_id: Option<NetworkId>,
     witness_set_builder: TransactionWitnessSetBuilder,
-    utxos: TransactionUnspentOutputs
+    utxos: Vec<InputBuilderResult>
 }
 
 #[wasm_bindgen]
@@ -202,7 +202,6 @@ impl TransactionBuilder {
     /// This function, diverging from CIP2, takes into account fees and will attempt to add additional
     /// inputs to cover the minimum fees. This does not, however, set the txbuilder's fee.
     pub fn select_utxos(&mut self, strategy: CoinSelectionStrategyCIP2) -> Result<(), JsError> {
-        let inputs = &self.utxos;
         let available_inputs = &inputs.0.clone();
         let mut input_total = self.get_total_input()?;
         let mut output_total = self
@@ -520,13 +519,8 @@ impl TransactionBuilder {
         }
     }
 
-    pub fn add_utxo(&mut self, result: &InputBuilderResult) {
-        let utxo = TransactionUnspentOutput::new(&result.input, &result.utxo_info);
-        self.utxos.add(&utxo);
-        self.witness_set_builder.add_required_wits(&result.required_wits);
-        if let Some(ref data) = result.aggregate_witness {
-            self.witness_set_builder.add_input_aggregate_witness_data(data);
-        }
+    pub fn add_utxo_result(&mut self, result: &InputBuilderResult) {
+        self.utxos.push(result.clone());
     }
 
     /// calculates how much the fee would increase if you added a given output
@@ -731,7 +725,7 @@ impl TransactionBuilder {
             required_signers: None,
             network_id: None,
             witness_set_builder: TransactionWitnessSetBuilder::new(),
-            utxos: TransactionUnspentOutputs::new()
+            utxos: Vec::new()
         }
     }
 

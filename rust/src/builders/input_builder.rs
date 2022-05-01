@@ -20,7 +20,7 @@ pub fn input_required_wits(utxo_info: &TransactionOutput, required_witnesses: &m
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct InputBuilderResult {
     pub(crate) input: TransactionInput,
     pub(crate) utxo_info: TransactionOutput,

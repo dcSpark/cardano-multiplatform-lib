@@ -921,7 +921,8 @@ impl_hash_type!(GenesisHash, 28);
 impl_hash_type!(AuxiliaryDataHash, 32);
 impl_hash_type!(PoolMetadataHash, 32);
 impl_hash_type!(VRFKeyHash, 32);
-impl_hash_type!(BlockHash, 32);
+impl_hash_type!(BlockBodyHash, 32);
+impl_hash_type!(BlockHeaderHash, 32);
 impl_hash_type!(DataHash, 32);
 impl_hash_type!(ScriptDataHash, 32);
 // We might want to make these two vkeys normal classes later but for now it's just arbitrary bytes for us (used in block parsing)

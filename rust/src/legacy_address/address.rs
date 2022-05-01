@@ -16,7 +16,10 @@ use cryptoxide::blake2b::Blake2b;
 use cryptoxide::digest::Digest;
 use cryptoxide::sha3;
 use ed25519_bip32::XPub;
+use crate::chain_crypto::hash::{Blake2b224, Sha3_256};
 
+
+use std::str::FromStr;
 use std::{
     convert::{TryFrom, TryInto},
     fmt,
@@ -73,6 +76,73 @@ impl cbor_event::de::Deserialize for AddrType {
         }
     }
 }
+
+/// StakeholderId is the transaction
+///
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
+#[cfg_attr(feature = "generic-serialization", derive(Serialize, Deserialize))]
+pub struct StakeholderId(Blake2b224);
+impl StakeholderId {
+    pub fn new(pubk: &XPub) -> StakeholderId {
+        // the reason for this unwrap is that we have to dynamically allocate 66 bytes
+        // to serialize 64 bytes in cbor (2 bytes of cbor overhead).
+        let buf = cbor!(pubk.as_ref()).unwrap();
+
+        let hash = Sha3_256::new(&buf);
+        StakeholderId(Blake2b224::new(hash.as_ref()))
+    }
+
+    pub fn as_hash_bytes(&self) -> &[u8; Blake2b224::HASH_SIZE] {
+        self.0.as_hash_bytes()
+    }
+}
+impl cbor_event::se::Serialize for StakeholderId {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        cbor_event::se::Serialize::serialize(&self.0, serializer)
+    }
+}
+impl cbor_event::de::Deserialize for StakeholderId {
+    fn deserialize<R: BufRead>(reader: &mut Deserializer<R>) -> cbor_event::Result<Self> {
+        Ok(StakeholderId(cbor_event::de::Deserialize::deserialize(
+            reader,
+        )?))
+    }
+}
+impl fmt::Display for StakeholderId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
+impl AsRef<[u8]> for StakeholderId {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+}
+impl From<StakeholderId> for [u8; Blake2b224::HASH_SIZE] {
+    fn from(hash: StakeholderId) -> Self {
+        hash.0.into()
+    }
+}
+impl From<[u8; Blake2b224::HASH_SIZE]> for StakeholderId {
+    fn from(hash: [u8; Blake2b224::HASH_SIZE]) -> Self {
+        StakeholderId(Blake2b224::from(hash))
+    }
+}
+impl From<Blake2b224> for StakeholderId {
+    fn from(hash: Blake2b224) -> Self {
+        StakeholderId(hash)
+    }
+}
+impl FromStr for StakeholderId {
+    type Err = <Blake2b224 as FromStr>::Err;
+    fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
+        Ok(Self::from(Blake2b224::from_str(s)?))
+    }
+}
+
 
 type HDAddressPayload = Vec<u8>;
 

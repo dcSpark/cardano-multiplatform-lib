@@ -109,7 +109,8 @@ fn main() {
     gen_json_schema!(AuxiliaryDataHash);
     gen_json_schema!(PoolMetadataHash);
     gen_json_schema!(VRFKeyHash);
-    gen_json_schema!(BlockHash);
+    gen_json_schema!(BlockBodyHash);
+    gen_json_schema!(BlockHeaderHash);
     gen_json_schema!(DataHash);
     gen_json_schema!(ScriptDataHash);
     gen_json_schema!(VRFVKey);

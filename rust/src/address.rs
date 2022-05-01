@@ -36,6 +36,7 @@ fn variable_nat_encode(mut num: u64) -> Vec<u8> {
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NetworkInfo {
     network_id: u8,
+    // FIXME: should by i32?
     protocol_magic: u32,
 }
 #[wasm_bindgen]

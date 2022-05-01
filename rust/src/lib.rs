@@ -41,6 +41,7 @@ pub mod chain_crypto;
 pub mod crypto;
 pub mod error;
 pub mod fees;
+pub mod genesis;
 pub mod impl_mockchain;
 pub mod legacy_address;
 pub mod metadata;
@@ -2578,13 +2579,13 @@ impl OperationalCert {
 pub struct HeaderBody {
     block_number: u32,
     slot: Slot,
-    prev_hash: Option<BlockHash>,
+    prev_hash: Option<BlockHeaderHash>,
     issuer_vkey: Vkey,
     vrf_vkey: VRFVKey,
     nonce_vrf: VRFCert,
     leader_vrf: VRFCert,
     block_body_size: u32,
-    block_body_hash: BlockHash,
+    block_body_hash: BlockBodyHash,
     operational_cert: OperationalCert,
     protocol_version: ProtocolVersion,
 }
@@ -2603,7 +2604,7 @@ impl HeaderBody {
         self.slot.clone()
     }
 
-    pub fn prev_hash(&self) -> Option<BlockHash> {
+    pub fn prev_hash(&self) -> Option<BlockHeaderHash> {
         self.prev_hash.clone()
     }
 
@@ -2627,7 +2628,7 @@ impl HeaderBody {
         self.block_body_size.clone()
     }
 
-    pub fn block_body_hash(&self) -> BlockHash {
+    pub fn block_body_hash(&self) -> BlockBodyHash {
         self.block_body_hash.clone()
     }
 
@@ -2639,7 +2640,7 @@ impl HeaderBody {
         self.protocol_version.clone()
     }
 
-    pub fn new(block_number: u32, slot: &Slot, prev_hash: Option<BlockHash>, issuer_vkey: &Vkey, vrf_vkey: &VRFVKey, nonce_vrf: &VRFCert, leader_vrf: &VRFCert, block_body_size: u32, block_body_hash: &BlockHash, operational_cert: &OperationalCert, protocol_version: &ProtocolVersion) -> Self {
+    pub fn new(block_number: u32, slot: &Slot, prev_hash: Option<BlockHeaderHash>, issuer_vkey: &Vkey, vrf_vkey: &VRFVKey, nonce_vrf: &VRFCert, leader_vrf: &VRFCert, block_body_size: u32, block_body_hash: &BlockBodyHash, operational_cert: &OperationalCert, protocol_version: &ProtocolVersion) -> Self {
         Self {
             block_number: block_number,
             slot: slot.clone(),

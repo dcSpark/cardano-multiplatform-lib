@@ -1,11 +1,13 @@
 use super::*;
 use utils::*;
 
+/// Careful: although the linear fee is the same for Byron & Shelley
+/// The value of the parameters and how fees are computed is not the same
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct LinearFee {
-    constant: Coin,
-    coefficient: Coin,
+    pub constant: Coin,
+    pub coefficient: Coin,
 }
 
 #[wasm_bindgen]

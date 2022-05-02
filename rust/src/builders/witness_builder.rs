@@ -90,7 +90,7 @@ impl PartialPlutusWitness {
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum InputAggregateWitnessData {
     // note: this struct may contains duplicates, but it will be de-duped later
     Vkeys(Vec<Vkey>),
@@ -403,7 +403,7 @@ fn fake_raw_key_public(id: u8) -> PublicKey {
     ).unwrap()
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum NativeScriptWitnessInfoKind {
     Count(usize),
     Vkeys(Vec<Vkey>),
@@ -411,7 +411,7 @@ pub enum NativeScriptWitnessInfoKind {
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct NativeScriptWitnessInfo(NativeScriptWitnessInfoKind);
 
 impl NativeScriptWitnessInfo {
@@ -432,7 +432,7 @@ impl NativeScriptWitnessInfo {
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PlutusScriptWitnessInfo {
     pub(crate) missing_signers: RequiredSigners,
     pub(crate) known_signers: Vkeys,

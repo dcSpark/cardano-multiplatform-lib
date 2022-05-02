@@ -420,7 +420,7 @@ impl TransactionBuilder {
         self.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
-    pub fn add_utxo_result(&mut self, result: &InputBuilderResult) {
+    pub fn add_utxo(&mut self, result: &InputBuilderResult) {
         self.utxos.push(result.clone());
     }
 
@@ -2349,12 +2349,11 @@ mod tests {
                 .with_coin(&to_bignum(1000))
                 .build().unwrap()
             ).unwrap();
-        let available_inputs = &mut tx_builder.utxos;
-        available_inputs.push(make_input(0u8, Value::new(&to_bignum(150))));
-        available_inputs.push(make_input(1u8, Value::new(&to_bignum(200))));
-        available_inputs.push(make_input(2u8, Value::new(&to_bignum(800))));
-        available_inputs.push(make_input(3u8, Value::new(&to_bignum(400))));
-        available_inputs.push(make_input(4u8, Value::new(&to_bignum(100))));
+        tx_builder.add_utxo(&make_input(0u8, Value::new(&to_bignum(150))));
+        tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(200))));
+        tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(800))));
+        tx_builder.add_utxo(&make_input(3u8, Value::new(&to_bignum(400))));
+        tx_builder.add_utxo(&make_input(4u8, Value::new(&to_bignum(100))));
         tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirst).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
@@ -2381,12 +2380,11 @@ mod tests {
                 .with_coin(&to_bignum(1200))
                 .build().unwrap()
             ).unwrap();
-        let available_inputs = &mut tx_builder.utxos;
-        available_inputs.push(make_input(0u8, Value::new(&to_bignum(150))));
-        available_inputs.push(make_input(1u8, Value::new(&to_bignum(200))));
-        available_inputs.push(make_input(2u8, Value::new(&to_bignum(800))));
-        available_inputs.push(make_input(3u8, Value::new(&to_bignum(400))));
-        available_inputs.push(make_input(4u8, Value::new(&to_bignum(100))));
+        tx_builder.add_utxo(&make_input(0u8, Value::new(&to_bignum(150))));
+        tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(200))));
+        tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(800))));
+        tx_builder.add_utxo(&make_input(3u8, Value::new(&to_bignum(400))));
+        tx_builder.add_utxo(&make_input(4u8, Value::new(&to_bignum(100))));
         tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirst).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
@@ -2422,9 +2420,8 @@ mod tests {
             &output_value
         )).unwrap();
 
-        let available_inputs = &mut tx_builder.utxos;
         // should not be taken
-        available_inputs.push(make_input(0u8, Value::new(&to_bignum(150))));
+        tx_builder.add_utxo(&make_input(0u8, Value::new(&to_bignum(150))));
 
         // should not be taken
         let mut input1 = make_input(1u8, Value::new(&to_bignum(200)));
@@ -2433,7 +2430,7 @@ mod tests {
         ma1.set_asset(&pid1, &asset_name2, to_bignum(1));
         ma1.set_asset(&pid2, &asset_name2, to_bignum(2));
         input1.utxo_info.amount.set_multiasset(&ma1);
-        available_inputs.push(input1);
+        tx_builder.add_utxo(&input1);
 
         // taken first to satisfy pid1:asset_name1 (but also satisfies pid2:asset_name3)
         let mut input2 = make_input(2u8, Value::new(&to_bignum(10)));
@@ -2441,7 +2438,7 @@ mod tests {
         ma2.set_asset(&pid1, &asset_name1, to_bignum(20));
         ma2.set_asset(&pid2, &asset_name3, to_bignum(4));
         input2.utxo_info.amount.set_multiasset(&ma2);
-        available_inputs.push(input2.clone());
+        tx_builder.add_utxo(&input2.clone());
 
         // taken second to satisfy pid1:asset_name2 (but also satisfies pid2:asset_name1)
         let mut input3 = make_input(3u8, Value::new(&to_bignum(50)));
@@ -2449,7 +2446,7 @@ mod tests {
         ma3.set_asset(&pid2, &asset_name1, to_bignum(5));
         ma3.set_asset(&pid1, &asset_name2, to_bignum(15));
         input3.utxo_info.amount.multiasset = Some(ma3);
-        available_inputs.push(input3.clone());
+        tx_builder.add_utxo(&input3.clone());
 
         // should not be taken either
         let mut input4 = make_input(4u8, Value::new(&to_bignum(10)));
@@ -2457,7 +2454,7 @@ mod tests {
         ma4.set_asset(&pid1, &asset_name1, to_bignum(10));
         ma4.set_asset(&pid1, &asset_name2, to_bignum(10));
         input4.utxo_info.amount.multiasset = Some(ma4);
-        available_inputs.push(input4.clone());
+        tx_builder.add_utxo(&input4.clone());
 
         // taken third to satisfy pid2:asset_name_2
         let mut input5 = make_input(5u8, Value::new(&to_bignum(10)));
@@ -2465,14 +2462,14 @@ mod tests {
         ma5.set_asset(&pid1, &asset_name2, to_bignum(10));
         ma5.set_asset(&pid2, &asset_name2, to_bignum(3));
         input5.utxo_info.amount.multiasset = Some(ma5);
-        available_inputs.push(input5.clone());
+        tx_builder.add_utxo(&input5.clone());
 
         // should be taken to get enough ADA
         let input6 = make_input(6u8, Value::new(&to_bignum(400)));
-        available_inputs.push(input6.clone());
+        tx_builder.add_utxo(&input6.clone());
 
         // should not be taken
-        available_inputs.push(make_input(7u8, Value::new(&to_bignum(100))));
+        tx_builder.add_utxo(&make_input(7u8, Value::new(&to_bignum(100))));
         tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirstMultiAsset).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
@@ -2526,8 +2523,7 @@ mod tests {
             &output_value
         )).unwrap();
 
-        let available_inputs = &mut tx_builder.utxos;
-        available_inputs.push(make_input(0u8, Value::new(&to_bignum(150))));
+        tx_builder.add_utxo(&make_input(0u8, Value::new(&to_bignum(150))));
 
         let mut input1 = make_input(1u8, Value::new(&to_bignum(200)));
         let mut ma1 = MultiAsset::new();
@@ -2535,51 +2531,51 @@ mod tests {
         ma1.set_asset(&pid1, &asset_name2, to_bignum(1));
         ma1.set_asset(&pid2, &asset_name2, to_bignum(2));
         input1.utxo_info.amount.set_multiasset(&ma1);
-        available_inputs.push(input1);
+        tx_builder.add_utxo(&input1);
 
         let mut input2 = make_input(2u8, Value::new(&to_bignum(10)));
         let mut ma2 = MultiAsset::new();
         ma2.set_asset(&pid1, &asset_name1, to_bignum(20));
         ma2.set_asset(&pid2, &asset_name3, to_bignum(4));
         input2.utxo_info.amount.set_multiasset(&ma2);
-        available_inputs.push(input2);
+        tx_builder.add_utxo(&input2);
 
         let mut input3 = make_input(3u8, Value::new(&to_bignum(50)));
         let mut ma3 = MultiAsset::new();
         ma3.set_asset(&pid2, &asset_name1, to_bignum(5));
         ma3.set_asset(&pid1, &asset_name2, to_bignum(15));
         input3.utxo_info.amount.multiasset = Some(ma3);
-        available_inputs.push(input3);
+        tx_builder.add_utxo(&input3);
 
         let mut input4 = make_input(4u8, Value::new(&to_bignum(10)));
         let mut ma4 = MultiAsset::new();
         ma4.set_asset(&pid1, &asset_name1, to_bignum(10));
         ma4.set_asset(&pid1, &asset_name2, to_bignum(10));
         input4.utxo_info.amount.multiasset = Some(ma4);
-        available_inputs.push(input4);
+        tx_builder.add_utxo(&input4);
 
         let mut input5 = make_input(5u8, Value::new(&to_bignum(10)));
         let mut ma5 = MultiAsset::new();
         ma5.set_asset(&pid1, &asset_name2, to_bignum(10));
         ma5.set_asset(&pid2, &asset_name2, to_bignum(3));
         input5.utxo_info.amount.multiasset = Some(ma5);
-        available_inputs.push(input5);
+        tx_builder.add_utxo(&input5);
 
         let input6 = make_input(6u8, Value::new(&to_bignum(400)));
-        available_inputs.push(input6);
-        available_inputs.push(make_input(7u8, Value::new(&to_bignum(100))));
+        tx_builder.add_utxo(&input6);
+        tx_builder.add_utxo(&make_input(7u8, Value::new(&to_bignum(100))));
 
         let mut input8 = make_input(8u8, Value::new(&to_bignum(10)));
         let mut ma8 = MultiAsset::new();
         ma8.set_asset(&pid2, &asset_name2, to_bignum(10));
         input8.utxo_info.amount.multiasset = Some(ma8);
-        available_inputs.push(input8);
+        tx_builder.add_utxo(&input8);
 
         let mut input9 = make_input(9u8, Value::new(&to_bignum(10)));
         let mut ma9 = MultiAsset::new();
         ma9.set_asset(&pid2, &asset_name3, to_bignum(10));
         input9.utxo_info.amount.multiasset = Some(ma9);
-        available_inputs.push(input9);
+        tx_builder.add_utxo(&input9);
 
         tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImproveMultiAsset).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
@@ -2649,14 +2645,14 @@ mod tests {
                 .with_coin(&to_bignum(COST))
                 .build().unwrap()
             ).unwrap();
-        let mut available_inputs: Vec<InputBuilderResult> = Vec::new();
-        available_inputs.push(make_input(0u8, Value::new(&to_bignum(1000000))));
-        available_inputs.push(make_input(1u8, Value::new(&to_bignum(10000000))));
+        tx_builder.add_utxo(&make_input(0u8, Value::new(&to_bignum(1000000))));
+        tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(10000000))));
         let mut input_total = tx_builder.get_total_input().unwrap();
         let mut output_total = tx_builder
             .get_explicit_output().unwrap()
             .checked_add(&Value::new(&tx_builder.get_deposit().unwrap())).unwrap()
             .checked_add(&Value::new(&tx_builder.min_fee().unwrap())).unwrap();
+        let available_inputs = tx_builder.utxos.clone();
         let mut available_indices: BTreeSet<usize> = (0..available_inputs.len()).collect();
         assert!(available_indices.len() == 2);
         use rand::SeedableRng;
@@ -2695,9 +2691,8 @@ mod tests {
                 .with_coin(&to_bignum(COST))
                 .build().unwrap()
             ).unwrap();
-        let available_inputs = &mut tx_builder.utxos;
-        available_inputs.push(make_input(1u8, Value::new(&to_bignum(800))));
-        available_inputs.push(make_input(2u8, Value::new(&to_bignum(800))));
+        tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(800))));
+        tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(800))));
         let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
     }
@@ -2725,10 +2720,9 @@ mod tests {
                 .build().unwrap()
             ).unwrap();
         assert_eq!(tx_builder.min_fee().unwrap(), to_bignum(53));
-        let available_inputs = &mut tx_builder.utxos;
-        available_inputs.push(make_input(1u8, Value::new(&to_bignum(150))));
-        available_inputs.push(make_input(2u8, Value::new(&to_bignum(150))));
-        available_inputs.push(make_input(3u8, Value::new(&to_bignum(150))));
+        tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(150))));
+        tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(150))));
+        tx_builder.add_utxo(&make_input(3u8, Value::new(&to_bignum(150))));
         let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
         assert_eq!(tx_builder.min_fee().unwrap(), to_bignum(264));

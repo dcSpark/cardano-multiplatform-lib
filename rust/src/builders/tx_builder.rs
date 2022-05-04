@@ -573,7 +573,7 @@ impl TransactionBuilder {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
-        let mut mint = self.mint.clone().unwrap_or(Mint::new());
+        let mut mint = self.get_mint().unwrap_or(Mint::new());
         mint.insert(&result.policy_id, &result.assets);
         self.mint = Some(mint);
     }

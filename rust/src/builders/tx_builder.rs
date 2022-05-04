@@ -575,10 +575,10 @@ impl TransactionBuilder {
         self.witness_set_builder.add_required_wits(&result.required_wits);
         let mut mint = self.get_mint().unwrap_or(Mint::new());
         let assets = {
-            let mut mint_assets = mint.get(&result.policy_id).unwrap_or(MintAssets::new());
-            let mut assets = result.assets.clone();
-            mint_assets.0.append(&mut assets.0);
-            mint_assets
+            let mut old_assets = mint.get(&result.policy_id).unwrap_or(MintAssets::new());
+            let mut new_assets = result.assets.clone();
+            new_assets.0.append(&mut old_assets.0);
+            new_assets
         };
         mint.insert(&result.policy_id, &assets);
         self.mint = Some(mint);

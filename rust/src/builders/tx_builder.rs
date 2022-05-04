@@ -574,7 +574,13 @@ impl TransactionBuilder {
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
         let mut mint = self.get_mint().unwrap_or(Mint::new());
-        mint.insert(&result.policy_id, &result.assets);
+        let assets = {
+            let mut mint_assets = mint.get(&result.policy_id).unwrap_or(MintAssets::new());
+            let mut assets = result.assets.clone();
+            mint_assets.0.append(&mut assets.0);
+            mint_assets
+        };
+        mint.insert(&result.policy_id, &assets);
         self.mint = Some(mint);
     }
 
@@ -3637,7 +3643,8 @@ mod tests {
             .unwrap();
 
         assert_eq!(raw_mint_fee, to_bignum(5544));
-        assert_eq!(raw_mint_script_fee, to_bignum(4312));
+        // assert_eq!(raw_mint_script_fee, to_bignum(4312));
+        assert_eq!(raw_mint_script_fee, to_bignum(13288));
 
         let new_tx_fee = tx_builder.min_fee().unwrap();
 

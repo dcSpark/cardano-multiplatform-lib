@@ -577,8 +577,8 @@ impl TransactionBuilder {
         let assets = {
             let mut old_assets = mint.get(&result.policy_id).unwrap_or(MintAssets::new());
             let mut new_assets = result.assets.clone();
-            new_assets.0.append(&mut old_assets.0);
-            new_assets
+            old_assets.0.append(&mut new_assets.0);
+            old_assets
         };
         mint.insert(&result.policy_id, &assets);
         self.mint = Some(mint);
@@ -3614,14 +3614,15 @@ mod tests {
 
         tx_builder.add_mint(&result);
 
-        let result = {
-            let mut multiassets = MintAssets::new();
-            multiassets.insert(&name3, amount.clone());
-            multiassets.insert(&name4, amount.clone());
-            SingleMintBuilder::new(&multiassets)
-                .native_script(&mint_script3, &NativeScriptWitnessInfo::assume_signature_count())
-                .unwrap()
-        };
+        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name3, amount.clone()))
+            .native_script(&mint_script3, &NativeScriptWitnessInfo::assume_signature_count())
+            .unwrap();
+
+        tx_builder.add_mint(&result);
+
+        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name4, amount.clone()))
+            .native_script(&mint_script3, &NativeScriptWitnessInfo::assume_signature_count())
+            .unwrap();
 
         tx_builder.add_mint(&result);
 

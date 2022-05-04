@@ -3562,9 +3562,9 @@ mod tests {
 
         let mut tx_builder = create_reallistic_tx_builder();
 
-        let (mint_script1, policy_id1, _) = mint_script_and_policy_and_hash(1);
-        let (mint_script2, _, _) = mint_script_and_policy_and_hash(2);
-        let (mint_script3, _, _) = mint_script_and_policy_and_hash(3);
+        let (mint_script1, policy_id1) = mint_script_and_policy(1);
+        let (_mint_script2, policy_id2) = mint_script_and_policy(2);
+        let (_mint_script3, policy_id3) = mint_script_and_policy(3);
 
         let name1 = AssetName::new(vec![0u8, 1, 2, 3]).unwrap();
         let name2 = AssetName::new(vec![1u8, 1, 2, 3]).unwrap();
@@ -3572,7 +3572,7 @@ mod tests {
         let name4 = AssetName::new(vec![3u8, 1, 2, 3]).unwrap();
         let amount = Int::new_i32(1234);
 
-        // One input from unrelated address
+        // One input from an unrelated address
         let input = {
             let ((spend, _), _, address) = create_account();
             let builder = SingleInputBuilder::new(
@@ -3584,7 +3584,7 @@ mod tests {
         };
         tx_builder.add_input(&input);
 
-        // One input from unrelated address
+        // One input from a related address
         let input = {
             let cred = StakeCredential::from_scripthash(&policy_id1);
             let address = BaseAddress::new(NetworkInfo::testnet().network_id(), &cred, &cred).to_address();
@@ -3596,42 +3596,45 @@ mod tests {
         };
         tx_builder.add_input(&input);
 
-        // Original tx fee now assumes two VKey signatures for two inputs
+        // Original tx fee now assumes:
+        // 1. two VKey signatures for two inputs
+        // 2. a native script witness for one input
         let original_tx_fee = tx_builder.min_fee().unwrap();
         // The original test did not include native script
         // assert_eq!(original_tx_fee, to_bignum(168361));
         assert_eq!(original_tx_fee, to_bignum(169857));
 
         let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name1, amount.clone()))
-            .native_script(&mint_script1, &NativeScriptWitnessInfo::assume_signature_count())
-            .unwrap();
+            .skip_witness(&policy_id1);
 
         tx_builder.add_mint(&result);
 
         let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name2, amount.clone()))
-            .native_script(&mint_script2, &NativeScriptWitnessInfo::assume_signature_count())
-            .unwrap();
+            .skip_witness(&policy_id2);
 
         tx_builder.add_mint(&result);
 
         let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name3, amount.clone()))
-            .native_script(&mint_script3, &NativeScriptWitnessInfo::assume_signature_count())
-            .unwrap();
+            .skip_witness(&policy_id3);
 
         tx_builder.add_mint(&result);
 
         let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name4, amount.clone()))
-            .native_script(&mint_script3, &NativeScriptWitnessInfo::assume_signature_count())
-            .unwrap();
+            .skip_witness(&policy_id3);
 
         tx_builder.add_mint(&result);
 
         let mint = tx_builder.get_mint().unwrap();
         let mint_len = mint.to_bytes().len();
 
+        assert_eq!(mint.len(), 3);
+
         let mint_scripts = tx_builder.witness_set_builder.build().unwrap();
         let mint_scripts_len = mint_scripts.to_bytes().len()
             - TransactionWitnessSet::new().to_bytes().len();
+
+        assert_eq!(mint_scripts.native_scripts().unwrap().len(), 1);
+        assert_eq!(mint_scripts.vkeys().unwrap().len(), 2);
 
         let fee_coefficient = tx_builder.config.fee_algo.coefficient();
 
@@ -3644,8 +3647,9 @@ mod tests {
             .unwrap();
 
         assert_eq!(raw_mint_fee, to_bignum(5544));
+        // The fee did not include 1 native script in witnesses
         // assert_eq!(raw_mint_script_fee, to_bignum(4312));
-        assert_eq!(raw_mint_script_fee, to_bignum(13288));
+        assert_eq!(raw_mint_script_fee, to_bignum(10472));
 
         let new_tx_fee = tx_builder.min_fee().unwrap();
 

@@ -3635,6 +3635,10 @@ mod tests {
 
         assert_eq!(mint_scripts.native_scripts().unwrap().len(), 1);
         assert_eq!(mint_scripts.vkeys().unwrap().len(), 2);
+        assert!(mint_scripts.bootstraps().is_none());
+        assert!(mint_scripts.plutus_data().is_none());
+        assert!(mint_scripts.plutus_scripts().is_none());
+        assert!(mint_scripts.redeemers().is_none());
 
         let fee_coefficient = tx_builder.config.fee_algo.coefficient();
 
@@ -3647,32 +3651,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(raw_mint_fee, to_bignum(5544));
-        // The fee did not include 1 native script in witnesses
-        // assert_eq!(raw_mint_script_fee, to_bignum(4312));
         assert_eq!(raw_mint_script_fee, to_bignum(10472));
-
-        let new_tx_fee = tx_builder.min_fee().unwrap();
-
-        let fee_diff_from_adding_mint = new_tx_fee
-            .checked_sub(&original_tx_fee)
-            .unwrap();
-
-        let witness_fee_increase = fee_diff_from_adding_mint
-            .checked_sub(&raw_mint_fee).unwrap()
-            .checked_sub(&raw_mint_script_fee).unwrap();
-
-        assert_eq!(witness_fee_increase, to_bignum(8932));
-
-        let fee_increase_bytes = from_bignum(&witness_fee_increase)
-            .checked_div(from_bignum(&fee_coefficient))
-            .unwrap();
-
-        // Two vkey witnesses 96 bytes each (32 byte pubkey + 64 byte signature)
-        // Plus 11 bytes overhead for CBOR wrappers
-        // This is happening because we have three different minting policies
-        // but the same key-hash from one of them is already also used in inputs
-        // so no suplicate witness signature is require for that one
-        assert_eq!(fee_increase_bytes, 203);
     }
 
     #[test]

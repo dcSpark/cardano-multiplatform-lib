@@ -343,12 +343,13 @@ impl TransactionWitnessSetBuilder {
                 let missing_signers = &info.missing_signers.0;
 
                 self.add_fake_vkey_witnesses(known_signers);
-                self.add_fake_vkey_witnesses_by_num(
-                    missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
-                );
                 for vkey in known_signers.iter() {
                     self.required_wits.add_vkey_key(vkey);
                 }
+
+                self.add_fake_vkey_witnesses_by_num(
+                    missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
+                );
                 for hash in missing_signers.iter() {
                     self.required_wits.add_vkey_key_hash(hash);
                 }
@@ -362,12 +363,13 @@ impl TransactionWitnessSetBuilder {
                 let missing_signers = &info.missing_signers.0;
 
                 self.add_fake_vkey_witnesses(known_signers);
-                self.add_fake_vkey_witnesses_by_num(
-                    missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
-                );
                 for vkey in known_signers.iter() {
                     self.required_wits.add_vkey_key(vkey);
                 }
+
+                self.add_fake_vkey_witnesses_by_num(
+                    missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
+                );
                 for hash in missing_signers.iter() {
                     self.required_wits.add_vkey_key_hash(hash);
                 }

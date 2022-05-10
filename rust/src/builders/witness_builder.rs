@@ -303,7 +303,7 @@ impl TransactionWitnessSetBuilder {
         };
     }
 
-    fn add_vkeys(&mut self, vkeys: &Vec<Vkey>) {
+    fn add_fake_vkey_witnesses_set(&mut self, vkeys: &Vec<Vkey>) {
         let fake_sig = fake_raw_key_sig(0);
         for vkey in vkeys {
             let fake_vkey_witness = Vkeywitness::new(&vkey, &fake_sig);
@@ -311,14 +311,14 @@ impl TransactionWitnessSetBuilder {
         }
     }
 
-    fn add_vkeys_by_num(&mut self, num: usize) {
-        let vkeys: Vec<Vkey> = (0..num).into_iter().map(|_| Vkey::new(&fake_raw_key_public(0))).collect();
-        self.add_vkeys(&vkeys);
+    fn add_fake_vkey_witness_set_by_num(&mut self, num: usize) {
+        let vkeys: Vec<Vkey> = (0..num).into_iter().map(|i| Vkey::new(&fake_raw_key_public(i as u8))).collect();
+        self.add_fake_vkey_witnesses_set(&vkeys);
     }
 
     pub fn add_input_aggregate_witness_data(&mut self, data: &InputAggregateWitnessData) {
         match data {
-            InputAggregateWitnessData::Vkeys(vkeys) => self.add_vkeys(vkeys),
+            InputAggregateWitnessData::Vkeys(vkeys) => self.add_fake_vkey_witnesses_set(vkeys),
             InputAggregateWitnessData::Bootstraps(witnesseses) => {
                 for witness in witnesseses {
                     self.add_bootstrap(witness);
@@ -327,26 +327,26 @@ impl TransactionWitnessSetBuilder {
             InputAggregateWitnessData::NativeScript(script, info) => {
                 self.add_native_script(script);
                 match info.0 {
-                    NativeScriptWitnessInfoKind::Count(num) => self.add_vkeys_by_num(num),
-                    NativeScriptWitnessInfoKind::Vkeys(ref vkeys) => self.add_vkeys(vkeys),
+                    NativeScriptWitnessInfoKind::Count(num) => self.add_fake_vkey_witness_set_by_num(num),
+                    NativeScriptWitnessInfoKind::Vkeys(ref vkeys) => self.add_fake_vkey_witnesses_set(vkeys),
                     NativeScriptWitnessInfoKind::AssumeWorst => {
                         let num = script.get_required_signers().len();
-                        self.add_vkeys_by_num(num);
+                        self.add_fake_vkey_witness_set_by_num(num);
                     }
                 }
             }
             InputAggregateWitnessData::PlutusScriptNoDatum(witness, info) => {
                 self.add_plutus_script(&witness.script());
                 self.add_plutus_datum(&witness.untagged_redeemer().datum());
-                self.add_vkeys_by_num(info.missing_signers.len());
-                self.add_vkeys(&info.known_signers.0);
+                self.add_fake_vkey_witness_set_by_num(info.missing_signers.len());
+                self.add_fake_vkey_witnesses_set(&info.known_signers.0);
             }
             InputAggregateWitnessData::PlutusScriptWithDatum(witness, info, data) => {
                 self.add_plutus_script(&witness.script());
                 self.add_plutus_datum(&witness.untagged_redeemer().datum());
                 self.add_plutus_datum(data);
-                self.add_vkeys_by_num(info.missing_signers.len());
-                self.add_vkeys(&info.known_signers.0);
+                self.add_fake_vkey_witness_set_by_num(info.missing_signers.len());
+                self.add_fake_vkey_witnesses_set(&info.known_signers.0);
             }
         }
     }
@@ -467,6 +467,13 @@ mod tests {
         Bip32PrivateKey::from_bytes(
             &hex::decode("d84c65426109a36edda5375ea67f1b738e1dacf8629f2bb5a2b0b20f3cd5075873bf5cdfa7e533482677219ac7d639e30a38e2e645ea9140855f44ff09e60c52c8b95d0d35fe75a70f9f5633a3e2439b2994b9e2bc851c49e9f91d1a5dcbb1a3").unwrap()
         ).unwrap()
+    }
+
+    #[test]
+    fn test_add_fake_vkey_witness_set_by_num() {
+        let mut builder = TransactionWitnessSetBuilder::new();
+        builder.add_fake_vkey_witness_set_by_num(2);
+        assert_eq!(builder.vkeys.len(), 2);
     }
 
     #[test]

@@ -308,12 +308,17 @@ impl TransactionWitnessSetBuilder {
         for vkey in vkeys {
             let fake_vkey_witness = Vkeywitness::new(&vkey, &fake_sig);
             self.add_vkey(&fake_vkey_witness);
+            self.required_wits.add_vkey_key(vkey);
         }
     }
 
     fn add_fake_vkey_witnesses_by_num(&mut self, num: usize) {
         let vkeys: Vec<Vkey> = (0..num).into_iter().map(|i| Vkey::new(&fake_raw_key_public((i + self.vkeys.len()) as u8))).collect();
-        self.add_fake_vkey_witnesses(&vkeys);
+        let fake_sig = fake_raw_key_sig(0);
+        for vkey in vkeys {
+            let fake_vkey_witness = Vkeywitness::new(&vkey, &fake_sig);
+            self.add_vkey(&fake_vkey_witness);
+        }
     }
 
     pub fn add_input_aggregate_witness_data(&mut self, data: &InputAggregateWitnessData) {
@@ -343,9 +348,6 @@ impl TransactionWitnessSetBuilder {
                 let missing_signers = &info.missing_signers.0;
 
                 self.add_fake_vkey_witnesses(known_signers);
-                for vkey in known_signers.iter() {
-                    self.required_wits.add_vkey_key(vkey);
-                }
 
                 self.add_fake_vkey_witnesses_by_num(
                     missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
@@ -363,9 +365,6 @@ impl TransactionWitnessSetBuilder {
                 let missing_signers = &info.missing_signers.0;
 
                 self.add_fake_vkey_witnesses(known_signers);
-                for vkey in known_signers.iter() {
-                    self.required_wits.add_vkey_key(vkey);
-                }
 
                 self.add_fake_vkey_witnesses_by_num(
                     missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()

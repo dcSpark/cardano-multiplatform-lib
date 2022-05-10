@@ -339,40 +339,38 @@ impl TransactionWitnessSetBuilder {
                 self.add_plutus_script(&witness.script());
                 self.add_plutus_datum(&witness.untagged_redeemer().datum());
 
-                let mut required_wits = RequiredWitnessSet::new();
                 let known_signers = &info.known_signers.0;
-                for vkey in known_signers.iter() {
-                    required_wits.add_vkey_key(vkey);
-                }
                 let missing_signers = &info.missing_signers.0;
-                for hash in missing_signers.iter() {
-                    required_wits.add_vkey_key_hash(hash);
-                }
+
                 self.add_fake_vkey_witnesses(known_signers);
                 self.add_fake_vkey_witnesses_by_num(
                     missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
                 );
-                self.add_required_wits(&required_wits);
+                for vkey in known_signers.iter() {
+                    self.required_wits.add_vkey_key(vkey);
+                }
+                for hash in missing_signers.iter() {
+                    self.required_wits.add_vkey_key_hash(hash);
+                }
             }
             InputAggregateWitnessData::PlutusScriptWithDatum(witness, info, data) => {
                 self.add_plutus_script(&witness.script());
                 self.add_plutus_datum(&witness.untagged_redeemer().datum());
                 self.add_plutus_datum(data);
 
-                let mut required_wits = RequiredWitnessSet::new();
                 let known_signers = &info.known_signers.0;
-                for vkey in known_signers.iter() {
-                    required_wits.add_vkey_key(vkey);
-                }
                 let missing_signers = &info.missing_signers.0;
-                for hash in missing_signers.iter() {
-                    required_wits.add_vkey_key_hash(hash);
-                }
+
                 self.add_fake_vkey_witnesses(known_signers);
                 self.add_fake_vkey_witnesses_by_num(
                     missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
                 );
-                self.add_required_wits(&required_wits);
+                for vkey in known_signers.iter() {
+                    self.required_wits.add_vkey_key(vkey);
+                }
+                for hash in missing_signers.iter() {
+                    self.required_wits.add_vkey_key_hash(hash);
+                }
             }
         }
     }

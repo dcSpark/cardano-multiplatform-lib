@@ -312,7 +312,7 @@ impl TransactionWitnessSetBuilder {
     }
 
     fn add_fake_vkey_witness_set_by_num(&mut self, num: usize) {
-        let vkeys: Vec<Vkey> = (0..num).into_iter().map(|i| Vkey::new(&fake_raw_key_public(i as u8))).collect();
+        let vkeys: Vec<Vkey> = (0..num).into_iter().map(|i| Vkey::new(&fake_raw_key_public((i + self.vkeys.len()) as u8))).collect();
         self.add_fake_vkey_witnesses_set(&vkeys);
     }
 
@@ -474,6 +474,8 @@ mod tests {
         let mut builder = TransactionWitnessSetBuilder::new();
         builder.add_fake_vkey_witness_set_by_num(2);
         assert_eq!(builder.vkeys.len(), 2);
+        builder.add_fake_vkey_witness_set_by_num(1);
+        assert_eq!(builder.vkeys.len(), 3);
     }
 
     #[test]

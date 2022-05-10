@@ -507,19 +507,20 @@ mod tests {
     #[test]
     fn test_add_input_aggregate_witness_data() {
         let mut builder = TransactionWitnessSetBuilder::new();
-        let witness = {
-            let script = PlutusScript::new(vec![0]);
-            let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
-            PartialPlutusWitness::new(&script, &untagged_redeemer)
+        let data = {
+            let witness = {
+                let script = PlutusScript::new(vec![0]);
+                let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
+                PartialPlutusWitness::new(&script, &untagged_redeemer)
+            };
+            let info = {
+                let key = fake_raw_key_public(0);
+                let mut missing_signers = Ed25519KeyHashes::new();
+                missing_signers.add(&key.hash());
+                PlutusScriptWitnessInfo::set_required_signers(&Vkeys::new(), &missing_signers)
+            };
+            InputAggregateWitnessData::PlutusScriptNoDatum(witness, info)
         };
-        let info = {
-            let key = fake_raw_key_public(0);
-            let mut missing_signers = Ed25519KeyHashes::new();
-            missing_signers.add(&key.hash());
-            PlutusScriptWitnessInfo::set_required_signers(&Vkeys::new(), &missing_signers)
-        };
-        assert_eq!(info.missing_signers.len(), 1);
-        let data = InputAggregateWitnessData::PlutusScriptNoDatum(witness, info);
         assert_eq!(builder.vkeys.len(), 0);
         builder.add_input_aggregate_witness_data(&data);
         assert_eq!(builder.vkeys.len(), 1);

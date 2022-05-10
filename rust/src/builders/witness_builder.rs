@@ -308,17 +308,12 @@ impl TransactionWitnessSetBuilder {
         for vkey in vkeys {
             let fake_vkey_witness = Vkeywitness::new(&vkey, &fake_sig);
             self.add_vkey(&fake_vkey_witness);
-            self.required_wits.add_vkey_key(vkey);
         }
     }
 
     fn add_fake_vkey_witnesses_by_num(&mut self, num: usize) {
         let vkeys: Vec<Vkey> = (0..num).into_iter().map(|i| Vkey::new(&fake_raw_key_public((i + self.vkeys.len()) as u8))).collect();
-        let fake_sig = fake_raw_key_sig(0);
-        for vkey in vkeys {
-            let fake_vkey_witness = Vkeywitness::new(&vkey, &fake_sig);
-            self.add_vkey(&fake_vkey_witness);
-        }
+        self.add_fake_vkey_witnesses(&vkeys);
     }
 
     pub fn add_input_aggregate_witness_data(&mut self, data: &InputAggregateWitnessData) {
@@ -348,13 +343,9 @@ impl TransactionWitnessSetBuilder {
                 let missing_signers = &info.missing_signers.0;
 
                 self.add_fake_vkey_witnesses(known_signers);
-
                 self.add_fake_vkey_witnesses_by_num(
                     missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
                 );
-                for hash in missing_signers.iter() {
-                    self.required_wits.add_vkey_key_hash(hash);
-                }
             }
             InputAggregateWitnessData::PlutusScriptWithDatum(witness, info, data) => {
                 self.add_plutus_script(&witness.script());
@@ -365,13 +356,9 @@ impl TransactionWitnessSetBuilder {
                 let missing_signers = &info.missing_signers.0;
 
                 self.add_fake_vkey_witnesses(known_signers);
-
                 self.add_fake_vkey_witnesses_by_num(
                     missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
                 );
-                for hash in missing_signers.iter() {
-                    self.required_wits.add_vkey_key_hash(hash);
-                }
             }
         }
     }
@@ -520,11 +507,36 @@ mod tests {
             };
             InputAggregateWitnessData::PlutusScriptNoDatum(witness, info)
         };
+
         assert_eq!(builder.vkeys.len(), 0);
         builder.add_input_aggregate_witness_data(&data);
         assert_eq!(builder.vkeys.len(), 1);
+    }
+
+    #[test]
+    fn test_add_input_aggregate_witness_data_with_existing_key_hash() {
+        let mut builder = TransactionWitnessSetBuilder::new();
+        let key = fake_raw_key_public(0);
+        let hash = key.hash();
+        builder.required_wits.add_vkey_key_hash(&hash);
+
+        let data = {
+            let witness = {
+                let script = PlutusScript::new(vec![0]);
+                let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
+                PartialPlutusWitness::new(&script, &untagged_redeemer)
+            };
+            let info = {
+                let mut missing_signers = Ed25519KeyHashes::new();
+                missing_signers.add(&hash);
+                PlutusScriptWitnessInfo::set_required_signers(&Vkeys::new(), &missing_signers)
+            };
+            InputAggregateWitnessData::PlutusScriptNoDatum(witness, info)
+        };
+
+        assert_eq!(builder.vkeys.len(), 0);
         builder.add_input_aggregate_witness_data(&data);
-        assert_eq!(builder.vkeys.len(), 1);
+        assert_eq!(builder.vkeys.len(), 0);
     }
 
     #[test]

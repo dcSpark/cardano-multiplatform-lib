@@ -338,29 +338,25 @@ impl TransactionWitnessSetBuilder {
             InputAggregateWitnessData::PlutusScriptNoDatum(witness, info) => {
                 self.add_plutus_script(&witness.script());
                 self.add_plutus_datum(&witness.untagged_redeemer().datum());
-
-                let known_signers = &info.known_signers.0;
-                let missing_signers = &info.missing_signers.0;
-
-                self.add_fake_vkey_witnesses(known_signers);
-                self.add_fake_vkey_witnesses_by_num(
-                    missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
-                );
+                self.add_plutus_witness_info(info);
             }
             InputAggregateWitnessData::PlutusScriptWithDatum(witness, info, data) => {
                 self.add_plutus_script(&witness.script());
                 self.add_plutus_datum(&witness.untagged_redeemer().datum());
                 self.add_plutus_datum(data);
-
-                let known_signers = &info.known_signers.0;
-                let missing_signers = &info.missing_signers.0;
-
-                self.add_fake_vkey_witnesses(known_signers);
-                self.add_fake_vkey_witnesses_by_num(
-                    missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
-                );
+                self.add_plutus_witness_info(info);
             }
         }
+    }
+
+    fn add_plutus_witness_info(&mut self, info: &PlutusScriptWitnessInfo) {
+        let known_signers = &info.known_signers.0;
+        let missing_signers = &info.missing_signers.0;
+
+        self.add_fake_vkey_witnesses(known_signers);
+        self.add_fake_vkey_witnesses_by_num(
+            missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
+        );
     }
 
     pub fn build(&self) -> Result<TransactionWitnessSet, JsError> {

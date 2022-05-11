@@ -184,7 +184,7 @@ impl SingleCertificateBuilder {
 
         Ok(CertificateBuilderResult {
             cert: self.cert.clone(),
-            aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScriptNoDatum(partial_witness.clone(), witness_info.clone())) } else { None },
+            aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), witness_info.clone(), None)) } else { None },
             required_wits,
         })
     }

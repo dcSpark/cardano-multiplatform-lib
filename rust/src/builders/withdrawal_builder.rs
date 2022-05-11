@@ -124,7 +124,7 @@ impl SingleWithdrawalBuilder {
         Ok(WithdrawalBuilderResult {
             address: self.address.clone(),
             amount: self.amount.clone(),
-            aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScriptNoDatum(partial_witness.clone(), witness_info.clone())) } else { None },
+            aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), witness_info.clone(), None)) } else { None },
             required_wits,
         })
     }

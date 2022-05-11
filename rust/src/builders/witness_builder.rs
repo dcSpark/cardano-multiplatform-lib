@@ -96,8 +96,7 @@ pub enum InputAggregateWitnessData {
     Vkeys(Vec<Vkey>),
     Bootstraps(Vec<BootstrapWitness>),
     NativeScript(NativeScript, NativeScriptWitnessInfo),
-    PlutusScriptNoDatum(PartialPlutusWitness, PlutusScriptWitnessInfo),
-    PlutusScriptWithDatum(PartialPlutusWitness, PlutusScriptWitnessInfo, PlutusData)
+    PlutusScript(PartialPlutusWitness, PlutusScriptWitnessInfo, Option<PlutusData>)
 }
 
 
@@ -335,15 +334,12 @@ impl TransactionWitnessSetBuilder {
                     }
                 }
             }
-            InputAggregateWitnessData::PlutusScriptNoDatum(witness, info) => {
+            InputAggregateWitnessData::PlutusScript(witness, info, option) => {
                 self.add_plutus_script(&witness.script());
                 self.add_plutus_datum(&witness.untagged_redeemer().datum());
-                self.add_plutus_witness_info(info);
-            }
-            InputAggregateWitnessData::PlutusScriptWithDatum(witness, info, data) => {
-                self.add_plutus_script(&witness.script());
-                self.add_plutus_datum(&witness.untagged_redeemer().datum());
-                self.add_plutus_datum(data);
+                if let Some(ref data) = option {
+                    self.add_plutus_datum(data);
+                }
                 self.add_plutus_witness_info(info);
             }
         }
@@ -501,7 +497,7 @@ mod tests {
                 missing_signers.add(&key.hash());
                 PlutusScriptWitnessInfo::set_required_signers(&Vkeys::new(), &missing_signers)
             };
-            InputAggregateWitnessData::PlutusScriptNoDatum(witness, info)
+            InputAggregateWitnessData::PlutusScript(witness, info, None)
         };
 
         assert_eq!(builder.vkeys.len(), 0);
@@ -527,7 +523,7 @@ mod tests {
                 missing_signers.add(&hash);
                 PlutusScriptWitnessInfo::set_required_signers(&Vkeys::new(), &missing_signers)
             };
-            InputAggregateWitnessData::PlutusScriptNoDatum(witness, info)
+            InputAggregateWitnessData::PlutusScript(witness, info, None)
         };
 
         assert_eq!(builder.vkeys.len(), 0);

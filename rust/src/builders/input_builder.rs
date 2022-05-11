@@ -154,7 +154,7 @@ impl SingleInputBuilder {
         Ok(InputBuilderResult {
             input: self.input.clone(),
             utxo_info: self.utxo_info.clone(),
-            aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScriptWithDatum(partial_witness.clone(), witness_info.clone(), datum.clone())) } else { None },
+            aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), witness_info.clone(), Some(datum.clone()))) } else { None },
             required_wits,
         })
     }

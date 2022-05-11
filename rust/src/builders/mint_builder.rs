@@ -51,7 +51,7 @@ impl SingleMintBuilder {
         Ok(MintBuilderResult {
             assets: self.assets.clone(),
             policy_id: script_hash,
-            aggregate_witness: Some(InputAggregateWitnessData::PlutusScriptNoDatum(partial_witness.clone(), witness_info.clone())),
+            aggregate_witness: Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), witness_info.clone(), None)),
             required_wits: RequiredWitnessSet::default(),
         })
     }

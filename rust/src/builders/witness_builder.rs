@@ -336,7 +336,6 @@ impl TransactionWitnessSetBuilder {
             }
             InputAggregateWitnessData::PlutusScript(witness, info, option) => {
                 self.add_plutus_script(&witness.script());
-                self.add_plutus_datum(&witness.untagged_redeemer().datum());
                 if let Some(ref data) = option {
                     self.add_plutus_datum(data);
                 }

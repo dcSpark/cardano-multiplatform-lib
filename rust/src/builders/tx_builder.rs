@@ -5,6 +5,7 @@ use super::input_builder::InputBuilderResult;
 use super::mint_builder::MintBuilderResult;
 use super::certificate_builder::*;
 use super::withdrawal_builder::WithdrawalBuilderResult;
+use super::witness_builder::InputAggregateWitnessData;
 use super::witness_builder::TransactionWitnessSetBuilder;
 use std::collections::{BTreeMap, BTreeSet};
 use rand::Rng;
@@ -415,7 +416,17 @@ impl TransactionBuilder {
             amount: result.utxo_info.amount.clone(),
         });
         if let Some(ref data) = result.aggregate_witness {
-            self.witness_set_builder.add_input_aggregate_witness_data(data)
+            self.witness_set_builder.add_input_aggregate_witness_data(data);
+            if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
+                let redeemer = {
+                    let untagged = witness.untagged_redeemer();
+                    let data = untagged.datum();
+                    let ex_units = untagged.ex_units();
+                    let index = self.inputs.len() as u64;
+                    Redeemer::new(&RedeemerTag::new_spend(), &index.into(), &data, &ex_units)
+                };
+                self.witness_set_builder.add_redeemer(&redeemer);
+            }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
     }
@@ -501,7 +512,17 @@ impl TransactionBuilder {
         certs.add(&result.cert);
         self.certs = Some(certs);
         if let Some(ref data) = result.aggregate_witness {
-            self.witness_set_builder.add_input_aggregate_witness_data(data)
+            self.witness_set_builder.add_input_aggregate_witness_data(data);
+            if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
+                let redeemer = {
+                    let untagged = witness.untagged_redeemer();
+                    let data = untagged.datum();
+                    let ex_units = untagged.ex_units();
+                    let index = self.certs.as_ref().unwrap().len() as u64;
+                    Redeemer::new(&RedeemerTag::new_cert(), &index.into(), &data, &ex_units)
+                };
+                self.witness_set_builder.add_redeemer(&redeemer);
+            }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
     }
@@ -511,7 +532,17 @@ impl TransactionBuilder {
         withdrawals.insert(&result.address, &result.amount);
         self.withdrawals = Some(withdrawals);
         if let Some(ref data) = result.aggregate_witness {
-            self.witness_set_builder.add_input_aggregate_witness_data(data)
+            self.witness_set_builder.add_input_aggregate_witness_data(data);
+            if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
+                let redeemer = {
+                    let untagged = witness.untagged_redeemer();
+                    let data = untagged.datum();
+                    let ex_units = untagged.ex_units();
+                    let index = self.withdrawals.as_ref().unwrap().len() as u64;
+                    Redeemer::new(&RedeemerTag::new_reward(), &index.into(), &data, &ex_units)
+                };
+                self.witness_set_builder.add_redeemer(&redeemer);
+            }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
     }
@@ -571,6 +602,16 @@ impl TransactionBuilder {
     pub fn add_mint(&mut self, result: &MintBuilderResult) {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
+            if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
+                let redeemer = {
+                    let untagged = witness.untagged_redeemer();
+                    let data = untagged.datum();
+                    let ex_units = untagged.ex_units();
+                    let index = self.mint.as_ref().and(Some(1u64)).or(Some(0)).unwrap();
+                    Redeemer::new(&RedeemerTag::new_mint(), &index.into(), &data, &ex_units)
+                };
+                self.witness_set_builder.add_redeemer(&redeemer);
+            }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
         let mut mint = self.get_mint().unwrap_or(Mint::new());

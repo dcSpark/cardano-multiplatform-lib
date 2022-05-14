@@ -110,7 +110,8 @@ pub struct GenesisData {
     pub protocol_magic: ProtocolMagic,
     pub fee_policy: fees::LinearFee,
     pub avvm_distr: BTreeMap<chain_crypto::PublicKey<Ed25519>, utils::Coin>, // AVVM = Ada Voucher Vending Machine
-    // TODO: convert to ByronAddress without affecting order
+    // TODO: convert to ByronAddress without exposing a bunch of WASM stuff
+    // note: order of the keys here is unspecified in the spec (anything order is valid)
     pub non_avvm_balances: BTreeMap<legacy_address::Addr, utils::Coin>,
     pub boot_stakeholders: BTreeMap<legacy_address::StakeholderId, BootStakeholder>,
 }

@@ -1,4 +1,5 @@
 use crate::chain_crypto::bech32::{self, Bech32};
+use cbor_event::{de::Deserializer, se::Serializer};
 use hex::FromHexError;
 use rand::{CryptoRng, RngCore};
 use std::fmt;
@@ -21,6 +22,12 @@ pub enum PublicKeyError {
 pub enum PublicKeyFromStrError {
     HexMalformed(FromHexError),
     KeyInvalid(PublicKeyError),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SecretKeyFromStrError {
+    HexMalformed(FromHexError),
+    KeyInvalid(SecretKeyError),
 }
 
 pub trait AsymmetricPublicKey {
@@ -100,6 +107,15 @@ impl<A: AsymmetricPublicKey> FromStr for PublicKey<A> {
     fn from_str(hex: &str) -> Result<Self, Self::Err> {
         let bytes = hex::decode(hex).map_err(PublicKeyFromStrError::HexMalformed)?;
         Self::from_binary(&bytes).map_err(PublicKeyFromStrError::KeyInvalid)
+    }
+}
+
+impl<A: AsymmetricKey> FromStr for SecretKey<A> {
+    type Err = SecretKeyFromStrError;
+
+    fn from_str(hex: &str) -> Result<Self, Self::Err> {
+        let bytes = hex::decode(hex).map_err(SecretKeyFromStrError::HexMalformed)?;
+        Self::from_binary(&bytes).map_err(SecretKeyFromStrError::KeyInvalid)
     }
 }
 
@@ -253,6 +269,21 @@ impl<A: AsymmetricKey> Bech32 for SecretKey<A> {
         bech32::to_bech32_from_bytes::<Self>(self.0.as_ref())
     }
 }
+
+impl<A: AsymmetricPublicKey> cbor_event::se::Serialize for PublicKey<A> {
+    fn serialize<'se, W: std::io::Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_bytes(self.as_ref())
+    }
+}
+
+impl<A: AsymmetricPublicKey> cbor_event::de::Deserialize for PublicKey<A> {
+    fn deserialize<R: std::io::BufRead>(raw: &mut Deserializer<R>) -> cbor_event::Result<Self> {
+        let result = PublicKey::<A>::from_binary(raw.bytes()?.as_ref())
+            .map_err(|err| cbor_event::Error::CustomError(format!("{}", err)))?;
+        Ok(result)
+    }
+}
+
 
 #[cfg(test)]
 mod test {

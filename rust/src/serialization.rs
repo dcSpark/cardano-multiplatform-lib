@@ -3257,7 +3257,7 @@ impl DeserializeEmbeddedGroup for HeaderBody {
         let prev_hash = (|| -> Result<_, DeserializeError> {
             Ok(match raw.cbor_type()? != CBORType::Special {
                 true => {
-                    Some(BlockHash::deserialize(raw)?)
+                    Some(BlockHeaderHash::deserialize(raw)?)
                 },
                 false => {
                     if raw.special()? != CBORSpecial::Null {
@@ -3283,7 +3283,7 @@ impl DeserializeEmbeddedGroup for HeaderBody {
             Ok(u32::deserialize(raw)?)
         })().map_err(|e| e.annotate("block_body_size"))?;
         let block_body_hash = (|| -> Result<_, DeserializeError> {
-            Ok(BlockHash::deserialize(raw)?)
+            Ok(BlockBodyHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("block_body_hash"))?;
         let operational_cert = (|| -> Result<_, DeserializeError> {
             Ok(OperationalCert::deserialize_as_embedded_group(raw, len)?)

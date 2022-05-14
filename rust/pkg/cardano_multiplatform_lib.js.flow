@@ -6,93 +6,6 @@
  */
 
 /**
- * @param {Uint8Array} bytes
- * @returns {TransactionMetadatum}
- */
-declare export function encode_arbitrary_bytes_as_metadatum(
-  bytes: Uint8Array
-): TransactionMetadatum;
-
-/**
- * @param {TransactionMetadatum} metadata
- * @returns {Uint8Array}
- */
-declare export function decode_arbitrary_bytes_from_metadatum(
-  metadata: TransactionMetadatum
-): Uint8Array;
-
-/**
- * @param {string} json
- * @param {number} schema
- * @returns {TransactionMetadatum}
- */
-declare export function encode_json_str_to_metadatum(
-  json: string,
-  schema: number
-): TransactionMetadatum;
-
-/**
- * @param {TransactionMetadatum} metadatum
- * @param {number} schema
- * @returns {string}
- */
-declare export function decode_metadatum_to_json_str(
-  metadatum: TransactionMetadatum,
-  schema: number
-): string;
-
-/**
- * @param {string} json
- * @param {number} schema
- * @returns {PlutusData}
- */
-declare export function encode_json_str_to_plutus_datum(
-  json: string,
-  schema: number
-): PlutusData;
-
-/**
- * @param {PlutusData} datum
- * @param {number} schema
- * @returns {string}
- */
-declare export function decode_plutus_datum_to_json_str(
-  datum: PlutusData,
-  schema: number
-): string;
-
-/**
- * @param {Transaction} tx
- * @param {LinearFee} linear_fee
- * @returns {BigNum}
- */
-declare export function min_fee(tx: Transaction, linear_fee: LinearFee): BigNum;
-
-/**
- * @param {string} password
- * @param {string} salt
- * @param {string} nonce
- * @param {string} data
- * @returns {string}
- */
-declare export function encrypt_with_password(
-  password: string,
-  salt: string,
-  nonce: string,
-  data: string
-): string;
-
-/**
- * @param {string} password
- * @param {string} data
- * @returns {string}
- */
-declare export function decrypt_with_password(
-  password: string,
-  data: string
-): string;
-
-/**
  * @param {TransactionHash} tx_body_hash
  * @param {ByronAddress} addr
  * @param {LegacyDaedalusPrivateKey} key
@@ -217,6 +130,93 @@ declare export function encode_json_str_to_native_script(
 ): NativeScript;
 
 /**
+ * @param {Transaction} tx
+ * @param {LinearFee} linear_fee
+ * @returns {BigNum}
+ */
+declare export function min_fee(tx: Transaction, linear_fee: LinearFee): BigNum;
+
+/**
+ * @param {Uint8Array} bytes
+ * @returns {TransactionMetadatum}
+ */
+declare export function encode_arbitrary_bytes_as_metadatum(
+  bytes: Uint8Array
+): TransactionMetadatum;
+
+/**
+ * @param {TransactionMetadatum} metadata
+ * @returns {Uint8Array}
+ */
+declare export function decode_arbitrary_bytes_from_metadatum(
+  metadata: TransactionMetadatum
+): Uint8Array;
+
+/**
+ * @param {string} json
+ * @param {number} schema
+ * @returns {TransactionMetadatum}
+ */
+declare export function encode_json_str_to_metadatum(
+  json: string,
+  schema: number
+): TransactionMetadatum;
+
+/**
+ * @param {TransactionMetadatum} metadatum
+ * @param {number} schema
+ * @returns {string}
+ */
+declare export function decode_metadatum_to_json_str(
+  metadatum: TransactionMetadatum,
+  schema: number
+): string;
+
+/**
+ * @param {string} json
+ * @param {number} schema
+ * @returns {PlutusData}
+ */
+declare export function encode_json_str_to_plutus_datum(
+  json: string,
+  schema: number
+): PlutusData;
+
+/**
+ * @param {PlutusData} datum
+ * @param {number} schema
+ * @returns {string}
+ */
+declare export function decode_plutus_datum_to_json_str(
+  datum: PlutusData,
+  schema: number
+): string;
+
+/**
+ * @param {string} password
+ * @param {string} salt
+ * @param {string} nonce
+ * @param {string} data
+ * @returns {string}
+ */
+declare export function encrypt_with_password(
+  password: string,
+  salt: string,
+  nonce: string,
+  data: string
+): string;
+
+/**
+ * @param {string} password
+ * @param {string} data
+ * @returns {string}
+ */
+declare export function decrypt_with_password(
+  password: string,
+  data: string
+): string;
+
+/**
  */
 
 declare export var CertificateKind: {|
@@ -272,6 +272,29 @@ declare export var NativeScriptKind: {|
 declare export var NetworkIdKind: {|
   +Testnet: 0, // 0
   +Mainnet: 1, // 1
+|};
+
+/**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
+ */
+
+declare export var ScriptHashNamespace: {|
+  +NativeScript: 0, // 0
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
+|};
+
+/**
+ * Used to choose the schema for a script JSON string
+ */
+
+declare export var ScriptSchema: {|
+  +Wallet: 0, // 0
+  +Node: 1, // 1
 |};
 
 /**
@@ -376,29 +399,6 @@ declare export var CoinSelectionStrategyCIP2: {|
   +RandomImprove: 1, // 1
   +LargestFirstMultiAsset: 2, // 2
   +RandomImproveMultiAsset: 3, // 3
-|};
-
-/**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
- */
-
-declare export var ScriptHashNamespace: {|
-  +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
-|};
-
-/**
- * Used to choose the schema for a script JSON string
- */
-
-declare export var ScriptSchema: {|
-  +Wallet: 0, // 0
-  +Node: 1, // 1
 |};
 
 /**
@@ -1207,14 +1207,14 @@ declare export class Block {
 }
 /**
  */
-declare export class BlockHash {
+declare export class BlockBodyHash {
   free(): void;
 
   /**
    * @param {Uint8Array} bytes
-   * @returns {BlockHash}
+   * @returns {BlockBodyHash}
    */
-  static from_bytes(bytes: Uint8Array): BlockHash;
+  static from_bytes(bytes: Uint8Array): BlockBodyHash;
 
   /**
    * @returns {Uint8Array}
@@ -1229,9 +1229,9 @@ declare export class BlockHash {
 
   /**
    * @param {string} bech_str
-   * @returns {BlockHash}
+   * @returns {BlockBodyHash}
    */
-  static from_bech32(bech_str: string): BlockHash;
+  static from_bech32(bech_str: string): BlockBodyHash;
 
   /**
    * @returns {string}
@@ -1240,9 +1240,48 @@ declare export class BlockHash {
 
   /**
    * @param {string} hex
-   * @returns {BlockHash}
+   * @returns {BlockBodyHash}
    */
-  static from_hex(hex: string): BlockHash;
+  static from_hex(hex: string): BlockBodyHash;
+}
+/**
+ */
+declare export class BlockHeaderHash {
+  free(): void;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {BlockHeaderHash}
+   */
+  static from_bytes(bytes: Uint8Array): BlockHeaderHash;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {string} prefix
+   * @returns {string}
+   */
+  to_bech32(prefix: string): string;
+
+  /**
+   * @param {string} bech_str
+   * @returns {BlockHeaderHash}
+   */
+  static from_bech32(bech_str: string): BlockHeaderHash;
+
+  /**
+   * @returns {string}
+   */
+  to_hex(): string;
+
+  /**
+   * @param {string} hex
+   * @returns {BlockHeaderHash}
+   */
+  static from_hex(hex: string): BlockHeaderHash;
 }
 /**
  */
@@ -2359,9 +2398,9 @@ declare export class HeaderBody {
   slot(): BigNum;
 
   /**
-   * @returns {BlockHash | void}
+   * @returns {BlockHeaderHash | void}
    */
-  prev_hash(): BlockHash | void;
+  prev_hash(): BlockHeaderHash | void;
 
   /**
    * @returns {Vkey}
@@ -2389,9 +2428,9 @@ declare export class HeaderBody {
   block_body_size(): number;
 
   /**
-   * @returns {BlockHash}
+   * @returns {BlockBodyHash}
    */
-  block_body_hash(): BlockHash;
+  block_body_hash(): BlockBodyHash;
 
   /**
    * @returns {OperationalCert}
@@ -2406,13 +2445,13 @@ declare export class HeaderBody {
   /**
    * @param {number} block_number
    * @param {BigNum} slot
-   * @param {BlockHash | void} prev_hash
+   * @param {BlockHeaderHash | void} prev_hash
    * @param {Vkey} issuer_vkey
    * @param {VRFVKey} vrf_vkey
    * @param {VRFCert} nonce_vrf
    * @param {VRFCert} leader_vrf
    * @param {number} block_body_size
-   * @param {BlockHash} block_body_hash
+   * @param {BlockBodyHash} block_body_hash
    * @param {OperationalCert} operational_cert
    * @param {ProtocolVersion} protocol_version
    * @returns {HeaderBody}
@@ -2420,13 +2459,13 @@ declare export class HeaderBody {
   static new(
     block_number: number,
     slot: BigNum,
-    prev_hash: BlockHash | void,
+    prev_hash: BlockHeaderHash | void,
     issuer_vkey: Vkey,
     vrf_vkey: VRFVKey,
     nonce_vrf: VRFCert,
     leader_vrf: VRFCert,
     block_body_size: number,
-    block_body_hash: BlockHash,
+    block_body_hash: BlockBodyHash,
     operational_cert: OperationalCert,
     protocol_version: ProtocolVersion
   ): HeaderBody;
@@ -2752,6 +2791,8 @@ declare export class LegacyDaedalusPrivateKey {
   chaincode(): Uint8Array;
 }
 /**
+ * Careful: although the linear fee is the same for Byron & Shelley
+ * The value of the parameters and how fees are computed is not the same
  */
 declare export class LinearFee {
   free(): void;
@@ -2772,6 +2813,14 @@ declare export class LinearFee {
    * @returns {LinearFee}
    */
   static new(coefficient: BigNum, constant: BigNum): LinearFee;
+
+  /**
+   */
+  coefficient: BigNum;
+
+  /**
+   */
+  constant: BigNum;
 }
 /**
  */
@@ -8305,7 +8354,9 @@ export interface BlockJSON {
   transaction_bodies: TransactionBodiesJSON;
   transaction_witness_sets: TransactionWitnessSetsJSON;
 }
+export type BlockBodyHashJSON = string;
 export type BlockHashJSON = string;
+export type BlockHeaderHashJSON = string;
 export interface BootstrapWitnessJSON {
   attributes: number[];
   chain_code: number[];

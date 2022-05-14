@@ -131,7 +131,7 @@ impl Bip32PrivateKey {
 }
 
 #[wasm_bindgen]
-pub struct Bip32PublicKey(crypto::PublicKey<crypto::Ed25519Bip32>);
+pub struct Bip32PublicKey(pub(crate) crypto::PublicKey<crypto::Ed25519Bip32>);
 
 #[wasm_bindgen]
 impl Bip32PublicKey {
@@ -915,13 +915,15 @@ impl LegacyDaedalusPrivateKey {
 
 impl_hash_type!(Ed25519KeyHash, 28);
 impl_hash_type!(ScriptHash, 28);
+// TransactionHash is either a hash of the tx CBOR or a hash of a redeem address (genesis)
 impl_hash_type!(TransactionHash, 32);
 impl_hash_type!(GenesisDelegateHash, 28);
 impl_hash_type!(GenesisHash, 28);
 impl_hash_type!(AuxiliaryDataHash, 32);
 impl_hash_type!(PoolMetadataHash, 32);
 impl_hash_type!(VRFKeyHash, 32);
-impl_hash_type!(BlockHash, 32);
+impl_hash_type!(BlockBodyHash, 32);
+impl_hash_type!(BlockHeaderHash, 32);
 impl_hash_type!(DataHash, 32);
 impl_hash_type!(ScriptDataHash, 32);
 // We might want to make these two vkeys normal classes later but for now it's just arbitrary bytes for us (used in block parsing)

@@ -355,6 +355,7 @@ impl TransactionWitnessSetBuilder {
 
         self.add_fake_vkey_witnesses(known_signers);
         self.add_fake_vkey_witnesses_by_num(
+            // Exclude the missing signers whose key hashes are known.
             missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(hash)).count()
         );
     }

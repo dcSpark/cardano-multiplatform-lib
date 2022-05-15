@@ -305,7 +305,7 @@ impl TransactionWitnessSetBuilder {
     fn add_fake_vkey_witnesses(&mut self, vkeys: &Vec<Vkey>) {
         let fake_sig = fake_raw_key_sig(0);
         for vkey in vkeys {
-            let fake_vkey_witness = Vkeywitness::new(&vkey, &fake_sig);
+            let fake_vkey_witness = Vkeywitness::new(vkey, &fake_sig);
             self.add_vkey(&fake_vkey_witness);
         }
     }
@@ -350,7 +350,7 @@ impl TransactionWitnessSetBuilder {
 
         self.add_fake_vkey_witnesses(known_signers);
         self.add_fake_vkey_witnesses_by_num(
-            missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(&hash)).count()
+            missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(hash)).count()
         );
     }
 

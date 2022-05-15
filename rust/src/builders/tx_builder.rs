@@ -508,7 +508,7 @@ impl TransactionBuilder {
     }
 
     pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
-        let mut certs = self.certs.clone().unwrap_or(Certificates::new());
+        let mut certs = self.certs.clone().unwrap_or_else(Certificates::new);
         certs.add(&result.cert);
         self.certs = Some(certs);
         if let Some(ref data) = result.aggregate_witness {
@@ -528,7 +528,7 @@ impl TransactionBuilder {
     }
 
     pub fn add_withdrawal(&mut self, result: &WithdrawalBuilderResult) {
-        let mut withdrawals = self.withdrawals.clone().unwrap_or(Withdrawals::new());
+        let mut withdrawals = self.withdrawals.clone().unwrap_or_else(Withdrawals::new);
         withdrawals.insert(&result.address, &result.amount);
         self.withdrawals = Some(withdrawals);
         if let Some(ref data) = result.aggregate_witness {
@@ -614,9 +614,9 @@ impl TransactionBuilder {
             }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
-        let mut mint = self.get_mint().unwrap_or(Mint::new());
+        let mut mint = self.get_mint().unwrap_or_else(Mint::new);
         let assets = {
-            let mut old_assets = mint.get(&result.policy_id).unwrap_or(MintAssets::new());
+            let mut old_assets = mint.get(&result.policy_id).unwrap_or_else(MintAssets::new);
             let mut new_assets = result.assets.clone();
             old_assets.0.append(&mut new_assets.0);
             old_assets

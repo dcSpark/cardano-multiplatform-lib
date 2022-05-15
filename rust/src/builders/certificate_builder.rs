@@ -103,6 +103,7 @@ impl SingleCertificateBuilder {
         }
     }
 
+    /// note: particularly useful for StakeRegistration which doesn't require witnessing
     pub fn skip_witness(&self) -> CertificateBuilderResult {
         let mut required_wits = RequiredWitnessSet::default();
         cert_required_wits(&self.cert, &mut required_wits);
@@ -120,6 +121,7 @@ impl SingleCertificateBuilder {
         let mut required_wits_left = required_wits.clone();
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
+        // often happens because users aren't aware StakeRegistration doesn't require a witness
         let provided_wit_subset: Vec<&Vkey> = vkeys.0.iter().filter(|vkey| required_wits_left.vkeys.contains(&vkey.public_key().hash())).collect();
 
         // check the user provided all the required witnesses
@@ -131,7 +133,7 @@ impl SingleCertificateBuilder {
 
         Ok(CertificateBuilderResult {
             cert: self.cert.clone(),
-            aggregate_witness: if provided_wit_subset.len() > 0 { Some(InputAggregateWitnessData::Vkeys(provided_wit_subset.into_iter().cloned().collect())) } else { None },
+            aggregate_witness: if !provided_wit_subset.is_empty() { Some(InputAggregateWitnessData::Vkeys(provided_wit_subset.into_iter().cloned().collect())) } else { None },
             required_wits,
         })
     }
@@ -147,6 +149,7 @@ impl SingleCertificateBuilder {
         let mut required_wits_left = required_wits.clone();
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
+        // often happens because users aren't aware StakeRegistration doesn't require a witness
         let contains = required_wits_left.scripts.contains(&native_script.hash(ScriptHashNamespace::NativeScript));
 
         // check the user provided all the required witnesses
@@ -173,6 +176,7 @@ impl SingleCertificateBuilder {
         let script_hash = partial_witness.script().hash(ScriptHashNamespace::PlutusV1);
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
+        // often happens because users aren't aware StakeRegistration doesn't require a witness
         let contains = required_wits_left.scripts.contains(&script_hash);
 
         // check the user provided all the required witnesses

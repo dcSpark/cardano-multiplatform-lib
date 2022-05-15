@@ -315,7 +315,7 @@ impl TransactionWitnessSetBuilder {
         self.add_fake_vkey_witnesses(&vkeys);
     }
 
-    pub fn add_input_aggregate_witness_data(&mut self, data: &InputAggregateWitnessData) {
+    pub(crate) fn add_input_aggregate_witness_data(&mut self, data: &InputAggregateWitnessData) {
         match data {
             InputAggregateWitnessData::Vkeys(vkeys) => self.add_fake_vkey_witnesses(vkeys),
             InputAggregateWitnessData::Bootstraps(witnesseses) => {

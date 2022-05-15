@@ -600,20 +600,6 @@ impl TransactionBuilder {
     }
 
     pub fn add_mint(&mut self, result: &MintBuilderResult) {
-        if let Some(ref data) = result.aggregate_witness {
-            self.witness_set_builder.add_input_aggregate_witness_data(data);
-            if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
-                let redeemer = {
-                    let untagged = witness.untagged_redeemer();
-                    let data = untagged.datum();
-                    let ex_units = untagged.ex_units();
-                    let index = self.mint.as_ref().and(Some(1u64)).or(Some(0)).unwrap();
-                    Redeemer::new(&RedeemerTag::new_mint(), &index.into(), &data, &ex_units)
-                };
-                self.witness_set_builder.add_redeemer(&redeemer);
-            }
-        }
-        self.witness_set_builder.add_required_wits(&result.required_wits);
         let mut mint = self.get_mint().unwrap_or_else(Mint::new);
         let assets = {
             let mut old_assets = mint.get(&result.policy_id).unwrap_or_else(MintAssets::new);
@@ -623,6 +609,22 @@ impl TransactionBuilder {
         };
         mint.insert(&result.policy_id, &assets);
         self.mint = Some(mint);
+        if let Some(ref data) = result.aggregate_witness {
+            self.witness_set_builder.add_input_aggregate_witness_data(data);
+            if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
+                let redeemer = {
+                    let untagged = witness.untagged_redeemer();
+                    let data = untagged.datum();
+                    let ex_units = untagged.ex_units();
+                    let index = self.mint.as_ref()
+                        .and_then(|m| Some(m.0.iter().fold(0, |r, (_, ma)| r + ma.len())))
+                        .unwrap_or(0) as u64;
+                    Redeemer::new(&RedeemerTag::new_mint(), &index.into(), &data, &ex_units)
+                };
+                self.witness_set_builder.add_redeemer(&redeemer);
+            }
+        }
+        self.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
     /// Returns a copy of the current mint state in the builder

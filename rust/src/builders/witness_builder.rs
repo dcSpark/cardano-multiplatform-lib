@@ -360,43 +360,55 @@ impl TransactionWitnessSetBuilder {
         );
     }
 
-    pub fn build(&self) -> Result<TransactionWitnessSet, JsError> {
+    pub(crate) fn build(&self) -> TransactionWitnessSet {
         let mut result = TransactionWitnessSet::new();
-        let mut remaining_wits = self.required_wits.clone();
 
         if !self.vkeys.is_empty() {
             result.set_vkeys(&Vkeywitnesses(self.vkeys.values().cloned().collect()));
-            self.vkeys.keys().for_each(|key| { remaining_wits.vkeys.remove(&key.public_key().hash()); });
         }
         if !self.bootstraps.is_empty() {
             result.set_bootstraps(&BootstrapWitnesses(self.bootstraps.values().cloned().collect()));
-            self.bootstraps.keys().for_each(|key| { remaining_wits.bootstraps.remove(&key.public_key().hash()); });
         }
         if !self.native_scripts.is_empty() {
             result.set_native_scripts(&NativeScripts(self.native_scripts.values().cloned().collect()));
-            self.native_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
         }
         if !self.plutus_scripts.is_empty() {
             result.set_plutus_scripts(&PlutusScripts(self.plutus_scripts.values().cloned().collect()));
-            self.plutus_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
         }
         if !self.plutus_data.is_empty() {
             result.set_plutus_data(&PlutusList {
                 elems: self.plutus_data.values().cloned().collect(),
                 definite_encoding: None,
             });
-            self.plutus_data.keys().for_each(|hash| { remaining_wits.plutus_data.remove(hash); });
         }
         if !self.redeemers.is_empty() {
             result.set_redeemers(&Redeemers(self.redeemers.values().cloned().collect()));
-            self.redeemers.keys().for_each(|key| { remaining_wits.redeemers.remove(key); });
         }
+
+        result
+    }
+
+    fn remaining_wits(&self) -> RequiredWitnessSet {
+        let mut remaining_wits = self.required_wits.clone();
+
+        self.vkeys.keys().for_each(|key| { remaining_wits.vkeys.remove(&key.public_key().hash()); });
+        self.bootstraps.keys().for_each(|key| { remaining_wits.bootstraps.remove(&key.public_key().hash()); });
+        self.native_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
+        self.plutus_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
+        self.plutus_data.keys().for_each(|hash| { remaining_wits.plutus_data.remove(hash); });
+        self.redeemers.keys().for_each(|key| { remaining_wits.redeemers.remove(key); });
+
+        remaining_wits
+    }
+
+    pub fn try_build(&self) -> Result<TransactionWitnessSet, JsError> {
+        let remaining_wits = self.remaining_wits();
 
         if remaining_wits.len() > 0 {
             return Err(JsError::from_str(&format!("Missing following witnesses:\n{}", remaining_wits.to_str())))
         }
 
-        Ok(result)
+        Ok(self.build())
     }
 }
 
@@ -558,7 +570,7 @@ mod tests {
             &fake_raw_key_sig(1)
         ));
 
-        let wit_set = builder.build().unwrap();
+        let wit_set = builder.build();
         assert_eq!(
             wit_set.vkeys().unwrap().len(),
             2
@@ -585,7 +597,7 @@ mod tests {
             &fake_private_key2()
         ));
 
-        let wit_set = builder.build().unwrap();
+        let wit_set = builder.build();
         assert_eq!(
             wit_set.bootstraps().unwrap().len(),
             2
@@ -608,7 +620,7 @@ mod tests {
             &TimelockStart::new(&2.into()),
         ));
 
-        let wit_set = builder.build().unwrap();
+        let wit_set = builder.build();
         assert_eq!(
             wit_set.native_scripts().unwrap().len(),
             2
@@ -634,7 +646,7 @@ mod tests {
             &fake_raw_key_sig(1)
         ));
 
-        assert!(builder.build().is_err());
+        assert!(builder.try_build().is_err());
     }
 
     #[test]
@@ -651,6 +663,6 @@ mod tests {
             &fake_raw_key_sig(0)
         ));
 
-        assert!(builder.build().is_ok());
+        assert!(builder.try_build().is_ok());
     }
 }

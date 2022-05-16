@@ -16,7 +16,7 @@ use rand::Rng;
 fn fake_full_tx(tx_builder: &TransactionBuilder, body: TransactionBody) -> Result<Transaction, JsError> {
     Ok(Transaction {
         body,
-        witness_set: tx_builder.witness_set_builder.build()?,
+        witness_set: tx_builder.witness_set_builder.build(),
         is_valid: true,
         auxiliary_data: tx_builder.auxiliary_data.clone(),
     })
@@ -1053,7 +1053,7 @@ impl TransactionBuilder {
     pub fn build_tx(&self) -> Result<Transaction, JsError> {
         Ok(Transaction {
             body: self.build()?,
-            witness_set: self.witness_set_builder.build()?,
+            witness_set: self.witness_set_builder.try_build()?,
             is_valid: true,
             auxiliary_data: self.auxiliary_data.clone(),
         })
@@ -3672,7 +3672,7 @@ mod tests {
 
         assert_eq!(mint.len(), 3);
 
-        let mint_scripts = tx_builder.witness_set_builder.build().unwrap();
+        let mint_scripts = tx_builder.witness_set_builder.build();
         let mint_scripts_len = mint_scripts.to_bytes().len()
             - TransactionWitnessSet::new().to_bytes().len();
 

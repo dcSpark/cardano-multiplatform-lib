@@ -360,7 +360,7 @@ impl TransactionWitnessSetBuilder {
         );
     }
 
-    pub(crate) fn build(&self) -> TransactionWitnessSet {
+    pub fn build(&self) -> TransactionWitnessSet {
         let mut result = TransactionWitnessSet::new();
 
         if !self.vkeys.is_empty() {
@@ -388,7 +388,7 @@ impl TransactionWitnessSetBuilder {
         result
     }
 
-    fn remaining_wits(&self) -> RequiredWitnessSet {
+    pub fn remaining_wits(&self) -> RequiredWitnessSet {
         let mut remaining_wits = self.required_wits.clone();
 
         self.vkeys.keys().for_each(|key| { remaining_wits.vkeys.remove(&key.public_key().hash()); });

@@ -418,14 +418,7 @@ impl TransactionBuilder {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
             if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
-                let redeemer = {
-                    let untagged = witness.untagged_redeemer();
-                    let data = untagged.datum();
-                    let ex_units = untagged.ex_units();
-                    let index = self.inputs.len() as u64;
-                    Redeemer::new(&RedeemerTag::new_spend(), &index.into(), &data, &ex_units)
-                };
-                self.witness_set_builder.add_redeemer(&redeemer);
+                self.witness_set_builder.add_untagged_redeemer(&RedeemerTag::new_spend(), witness.untagged_redeemer());
             }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
@@ -514,14 +507,7 @@ impl TransactionBuilder {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
             if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
-                let redeemer = {
-                    let untagged = witness.untagged_redeemer();
-                    let data = untagged.datum();
-                    let ex_units = untagged.ex_units();
-                    let index = self.certs.as_ref().unwrap().len() as u64;
-                    Redeemer::new(&RedeemerTag::new_cert(), &index.into(), &data, &ex_units)
-                };
-                self.witness_set_builder.add_redeemer(&redeemer);
+                self.witness_set_builder.add_untagged_redeemer(&RedeemerTag::new_cert(), witness.untagged_redeemer());
             }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
@@ -534,14 +520,7 @@ impl TransactionBuilder {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
             if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
-                let redeemer = {
-                    let untagged = witness.untagged_redeemer();
-                    let data = untagged.datum();
-                    let ex_units = untagged.ex_units();
-                    let index = self.withdrawals.as_ref().unwrap().len() as u64;
-                    Redeemer::new(&RedeemerTag::new_reward(), &index.into(), &data, &ex_units)
-                };
-                self.witness_set_builder.add_redeemer(&redeemer);
+                self.witness_set_builder.add_untagged_redeemer(&RedeemerTag::new_reward(), witness.untagged_redeemer());
             }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
@@ -612,16 +591,7 @@ impl TransactionBuilder {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
             if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
-                let redeemer = {
-                    let untagged = witness.untagged_redeemer();
-                    let data = untagged.datum();
-                    let ex_units = untagged.ex_units();
-                    let index = self.mint.as_ref()
-                        .and_then(|m| Some(m.0.iter().fold(0, |r, (_, ma)| r + ma.len())))
-                        .unwrap_or(0) as u64;
-                    Redeemer::new(&RedeemerTag::new_mint(), &index.into(), &data, &ex_units)
-                };
-                self.witness_set_builder.add_redeemer(&redeemer);
+                self.witness_set_builder.add_untagged_redeemer(&RedeemerTag::new_mint(), witness.untagged_redeemer());
             }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);

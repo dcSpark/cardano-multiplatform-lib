@@ -262,6 +262,16 @@ impl TransactionWitnessSetBuilder {
         );
     }
 
+    pub fn add_untagged_redeemer(&mut self, tag: &RedeemerTag, untagged: UntaggedRedeemer) {
+        let redeemer = {
+            let data = untagged.datum();
+            let ex_units = untagged.ex_units();
+            let index = self.redeemers.iter().filter(|(key, _)| key.tag == *tag).count() as u64;
+            Redeemer::new(tag, &index.into(), &data, &ex_units)
+        };
+        self.add_redeemer(&redeemer);
+    }
+
     pub fn get_redeemer(&self) -> Redeemers {
         Redeemers(self.redeemers.clone().into_values().collect())
     }

@@ -262,7 +262,7 @@ impl TransactionWitnessSetBuilder {
         );
     }
 
-    pub fn add_untagged_redeemer(&mut self, tag: &RedeemerTag, untagged: UntaggedRedeemer) {
+    pub fn add_untagged_redeemer(&mut self, tag: &RedeemerTag, untagged: &UntaggedRedeemer) {
         let redeemer = {
             let data = untagged.datum();
             let ex_units = untagged.ex_units();
@@ -530,6 +530,22 @@ mod tests {
         assert_eq!(builder.vkeys.len(), 0);
         builder.add_input_aggregate_witness_data(&data);
         assert_eq!(builder.vkeys.len(), 1);
+    }
+
+    #[test]
+    fn test_add_untagged_redeemer() {
+        let mut builder = TransactionWitnessSetBuilder::new();
+        let untagged = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
+
+        assert_eq!(builder.redeemers.len(), 0);
+        builder.add_untagged_redeemer(&RedeemerTag::new_spend(), &untagged);
+        assert_eq!(builder.redeemers.len(), 1);
+        assert!(builder.redeemers.contains_key(&RedeemerWitnessKey::new(&RedeemerTag::new_spend(), &0u64.into())));
+        assert!(!builder.redeemers.contains_key(&RedeemerWitnessKey::new(&RedeemerTag::new_cert(), &0u64.into())));
+        builder.add_untagged_redeemer(&RedeemerTag::new_cert(), &untagged);
+        assert!(builder.redeemers.contains_key(&RedeemerWitnessKey::new(&RedeemerTag::new_cert(), &0u64.into())));
+        builder.add_untagged_redeemer(&RedeemerTag::new_spend(), &untagged);
+        assert!(builder.redeemers.contains_key(&RedeemerWitnessKey::new(&RedeemerTag::new_spend(), &1u64.into())));
     }
 
     #[test]

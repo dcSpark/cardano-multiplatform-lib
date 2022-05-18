@@ -418,7 +418,7 @@ impl TransactionBuilder {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
             if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
-                self.witness_set_builder.add_untagged_redeemer(&RedeemerTag::new_spend(), witness.untagged_redeemer());
+                self.witness_set_builder.add_untagged_redeemer(&RedeemerTag::new_spend(), &witness.untagged_redeemer());
             }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
@@ -507,7 +507,7 @@ impl TransactionBuilder {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
             if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
-                self.witness_set_builder.add_untagged_redeemer(&RedeemerTag::new_cert(), witness.untagged_redeemer());
+                self.witness_set_builder.add_untagged_redeemer(&RedeemerTag::new_cert(), &witness.untagged_redeemer());
             }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
@@ -520,7 +520,7 @@ impl TransactionBuilder {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
             if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
-                self.witness_set_builder.add_untagged_redeemer(&RedeemerTag::new_reward(), witness.untagged_redeemer());
+                self.witness_set_builder.add_untagged_redeemer(&RedeemerTag::new_reward(), &witness.untagged_redeemer());
             }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);
@@ -591,7 +591,7 @@ impl TransactionBuilder {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
             if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
-                self.witness_set_builder.add_untagged_redeemer(&RedeemerTag::new_mint(), witness.untagged_redeemer());
+                self.witness_set_builder.add_untagged_redeemer(&RedeemerTag::new_mint(), &witness.untagged_redeemer());
             }
         }
         self.witness_set_builder.add_required_wits(&result.required_wits);

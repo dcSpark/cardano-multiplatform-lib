@@ -286,30 +286,21 @@ impl TransactionWitnessSetBuilder {
     }
 
     pub fn add_existing(&mut self, wit_set: &TransactionWitnessSet) {
-        match &wit_set.vkeys() {
-            None => (),
-            Some(vkeys) => vkeys.0.iter().for_each(|vkey| { self.add_vkey(vkey); } ),
-        };
-        match &wit_set.bootstraps() {
-            None => (),
-            Some(bootstraps) => bootstraps.0.iter().for_each(|bootstrap| { self.add_bootstrap(bootstrap); } ),
-        };
-        match &wit_set.native_scripts() {
-            None => (),
-            Some(native_scripts) => native_scripts.0.iter().for_each(|native_script| { self.add_native_script(native_script); } ),
-        };
-        match &wit_set.plutus_scripts() {
-            None => (),
-            Some(plutus_scripts) => plutus_scripts.0.iter().for_each(|plutus_script| { self.add_plutus_script(plutus_script); } ),
-        };
-        match &wit_set.plutus_data() {
-            None => (),
-            Some(plutus_data) => plutus_data.elems.iter().for_each(|plutus_datum| { self.add_plutus_datum(plutus_datum); } ),
-        };
-        match &wit_set.redeemers() {
-            None => (),
-            Some(redeemers) => redeemers.0.iter().for_each(|redeemer| { self.add_redeemer(redeemer); } ),
-        };
+        if let Some(vkeys) = wit_set.vkeys() {
+            vkeys.0.iter().for_each(|vkey| { self.add_vkey(vkey); } );
+        }
+        if let Some(bootstraps) = &wit_set.bootstraps() {
+            bootstraps.0.iter().for_each(|bootstrap| { self.add_bootstrap(bootstrap); } );
+        }
+        if let Some(native_scripts) = &wit_set.native_scripts() {
+            native_scripts.0.iter().for_each(|native_script| { self.add_native_script(native_script); } );
+        }
+        if let Some(plutus_scripts) = &wit_set.plutus_scripts() {
+            plutus_scripts.0.iter().for_each(|plutus_script| { self.add_plutus_script(plutus_script); } );
+        }
+        if let Some(redeemers) = &wit_set.redeemers() {
+            redeemers.0.iter().for_each(|redeemer| { self.add_redeemer(redeemer); } );
+        }
     }
 
     fn add_fake_vkey_witnesses(&mut self, vkeys: &Vec<Vkey>) {

@@ -410,6 +410,14 @@ impl TransactionBuilder {
         Ok(())
     }
 
+    pub fn get_witness_set_builder(&self) -> TransactionWitnessSetBuilder {
+        self.witness_set_builder.clone()
+    }
+
+    pub fn set_witness_set_builder(&mut self, witness_set_builder: TransactionWitnessSetBuilder) {
+        self.witness_set_builder = witness_set_builder;
+    }
+
     pub fn add_input(&mut self, result: &InputBuilderResult) {
         self.inputs.push(TxBuilderInput {
             input: result.input.clone(),
@@ -500,10 +508,18 @@ impl TransactionBuilder {
         self.validity_start_interval = Some(*validity_start_interval)
     }
 
-    pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
-        let mut certs = self.certs.clone().unwrap_or_else(Certificates::new);
-        certs.add(&result.cert);
+    pub fn get_certs(&self) -> Option<Certificates> {
+        self.certs.clone()
+    }
+
+    pub fn set_certs(&mut self, certs: Certificates) {
         self.certs = Some(certs);
+    }
+
+    pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
+        let mut certs = self.get_certs().unwrap_or_else(Certificates::new);
+        certs.add(&result.cert);
+        self.set_certs(certs);
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
             if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
@@ -513,10 +529,18 @@ impl TransactionBuilder {
         self.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
-    pub fn add_withdrawal(&mut self, result: &WithdrawalBuilderResult) {
-        let mut withdrawals = self.withdrawals.clone().unwrap_or_else(Withdrawals::new);
-        withdrawals.insert(&result.address, &result.amount);
+    pub fn get_withdrawals(&self) -> Option<Withdrawals> {
+        self.withdrawals.clone()
+    }
+
+    pub fn set_withdrawals(&mut self, withdrawals: Withdrawals) {
         self.withdrawals = Some(withdrawals);
+    }
+
+    pub fn add_withdrawal(&mut self, result: &WithdrawalBuilderResult) {
+        let mut withdrawals = self.get_withdrawals().unwrap_or_else(Withdrawals::new);
+        withdrawals.insert(&result.address, &result.amount);
+        self.set_withdrawals(withdrawals);
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
             if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
@@ -587,7 +611,7 @@ impl TransactionBuilder {
             old_assets
         };
         mint.insert(&result.policy_id, &assets);
-        self.mint = Some(mint);
+        self.set_mint(mint);
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
             if let InputAggregateWitnessData::PlutusScript(witness, _, _) = data {
@@ -600,6 +624,10 @@ impl TransactionBuilder {
     /// Returns a copy of the current mint state in the builder
     pub fn get_mint(&self) -> Option<Mint> {
         self.mint.clone()
+    }
+
+    pub fn set_mint(&mut self, mint: Mint) {
+        self.mint = Some(mint);
     }
 
     pub fn new(cfg: &TransactionBuilderConfig) -> Self {

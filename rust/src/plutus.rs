@@ -385,6 +385,7 @@ pub enum PlutusDataKind {
     Bytes,
 }
 
+#[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub enum PlutusDataEnum {
     ConstrPlutusData(ConstrPlutusData),

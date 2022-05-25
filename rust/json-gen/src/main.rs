@@ -135,8 +135,9 @@ fn main() {
     gen_json_schema!(Languages);
     gen_json_schema!(PlutusMap);
     gen_json_schema!(PlutusList);
-    gen_json_schema!(PlutusData);
-    //gen_json_schema!(PlutusDataEnum);
+    // these types instead use decode_plutus_datum_to_json_value
+    // gen_json_schema!(PlutusData);
+    // gen_json_schema!(PlutusDataEnum);
     gen_json_schema!(Redeemer);
     gen_json_schema!(RedeemerTag);
     gen_json_schema!(RedeemerTagKind);

@@ -150,6 +150,10 @@ impl Transaction {
 }
 
 // index of a tx within a block
+//type TransactionIndexPreBabbage = BigNum;
+//type TransactionIndex = u16;
+// TODO: for Babbage this was changed to u16 but that now makes it no longer backwards-compatible
+// what should we do here?
 type TransactionIndex = BigNum;
 // index of a cert within a tx
 type CertificateIndex = BigNum;
@@ -255,6 +259,9 @@ pub struct TransactionBody {
     collateral: Option<TransactionInputs>,
     required_signers: Option<RequiredSigners>,
     network_id: Option<NetworkId>,
+    collateral_return: Option<TransactionOutput>,
+    total_collateral: Option<Coin>,
+    reference_inputs: Option<TransactionInputs>,
 }
 
 to_from_bytes!(TransactionBody);
@@ -369,6 +376,30 @@ impl TransactionBody {
         self.network_id.clone()
     }
 
+    pub fn set_collateral_return(&mut self, collateral_return: &TransactionOutput) {
+        self.collateral_return = Some(collateral_return.clone())
+    }
+
+    pub fn collateral_return(&self) -> Option<TransactionOutput> {
+        self.collateral_return.clone()
+    }
+
+    pub fn set_total_collateral(&mut self, total_collateral: &Coin) {
+        self.total_collateral = Some(total_collateral.clone())
+    }
+
+    pub fn total_collateral(&self) -> Option<Coin> {
+        self.total_collateral.clone()
+    }
+
+    pub fn set_reference_inputs(&mut self, reference_inputs: &TransactionInputs) {
+        self.reference_inputs = Some(reference_inputs.clone())
+    }
+
+    pub fn reference_inputs(&self) -> Option<TransactionInputs> {
+        self.reference_inputs.clone()
+    }
+
     pub fn new(
         inputs: &TransactionInputs,
         outputs: &TransactionOutputs,
@@ -389,6 +420,9 @@ impl TransactionBody {
             collateral: None,
             required_signers: None,
             network_id: None,
+            collateral_return: None,
+            total_collateral: None,
+            reference_inputs: None,
         }
     }
 }
@@ -422,12 +456,19 @@ impl TransactionInput {
     }
 }
 
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+enum TxOutputData {
+    DatumHash(DataHash),
+    InlinedDatum(PlutusData),
+}
+
 #[wasm_bindgen]
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct TransactionOutput {
     address: Address,
     pub (crate) amount: Value,
-    data_hash: Option<DataHash>,
+    data: Option<TxOutputData>,
+    script_ref: Option<ScriptRef>,
 }
 
 to_from_bytes!(TransactionOutput);
@@ -445,18 +486,22 @@ impl TransactionOutput {
     }
 
     pub fn data_hash(&self) -> Option<DataHash> {
-        self.data_hash.clone()
+        match &self.data {
+            Some(TxOutputData::DatumHash(data_hash)) => Some(data_hash.clone()),
+            _ => None,
+        }
     }
 
     pub fn set_data_hash(&mut self, data_hash: &DataHash) {
-        self.data_hash = Some(data_hash.clone());
+        self.data = Some(TxOutputData::DatumHash(data_hash.clone()));
     }
 
     pub fn new(address: &Address, amount: &Value) -> Self {
         Self {
             address: address.clone(),
             amount: amount.clone(),
-            data_hash: None,
+            data: None,
+            script_ref: None,
         }
     }
 }
@@ -1513,9 +1558,10 @@ pub struct TransactionWitnessSet {
     vkeys: Option<Vkeywitnesses>,
     native_scripts: Option<NativeScripts>,
     bootstraps: Option<BootstrapWitnesses>,
-    plutus_scripts: Option<PlutusScripts>,
+    plutus_v1_scripts: Option<PlutusV1Scripts>,
     plutus_data: Option<PlutusList>,
     redeemers: Option<Redeemers>,
+    plutus_v2_scripts: Option<PlutusV2Scripts>,
 }
 
 to_from_bytes!(TransactionWitnessSet);
@@ -1548,12 +1594,12 @@ impl TransactionWitnessSet {
         self.bootstraps.clone()
     }
 
-    pub fn set_plutus_scripts(&mut self, plutus_scripts: &PlutusScripts) {
-        self.plutus_scripts = Some(plutus_scripts.clone())
+    pub fn set_plutus_v1_scripts(&mut self, plutus_v1_scripts: &PlutusV1Scripts) {
+        self.plutus_v1_scripts = Some(plutus_v1_scripts.clone())
     }
 
-    pub fn plutus_scripts(&self) -> Option<PlutusScripts> {
-        self.plutus_scripts.clone()
+    pub fn plutus_v1_scripts(&self) -> Option<PlutusV1Scripts> {
+        self.plutus_v1_scripts.clone()
     }
 
     pub fn set_plutus_data(&mut self, plutus_data: &PlutusList) {
@@ -1572,14 +1618,23 @@ impl TransactionWitnessSet {
         self.redeemers.clone()
     }
 
+    pub fn set_plutus_v2_scripts(&mut self, plutus_v2_scripts: &PlutusV2Scripts) {
+        self.plutus_v2_scripts = Some(plutus_v2_scripts.clone())
+    }
+
+    pub fn plutus_v2_scripts(&self) -> Option<PlutusV2Scripts> {
+        self.plutus_v2_scripts.clone()
+    }
+
     pub fn new() -> Self {
         Self {
             vkeys: None,
             native_scripts: None,
             bootstraps: None,
-            plutus_scripts: None,
+            plutus_v1_scripts: None,
             plutus_data: None,
             redeemers: None,
+            plutus_v2_scripts: None,
         }
     }
 }
@@ -2201,18 +2256,22 @@ impl ProtocolParamUpdate {
         self.treasury_growth_rate.clone()
     }
 
+    /// This parameter is only used in the Alonzo era. Do not set it for other eras.
     pub fn set_d(&mut self, d: &UnitInterval) {
         self.d = Some(d.clone())
     }
 
+    /// This parameter is only used in the Alonzo era. Do not set it for other eras.
     pub fn d(&self) -> Option<UnitInterval> {
         self.d.clone()
     }
 
+    /// This parameter is only used in the Alonzo era. Do not set it for other eras.
     pub fn set_extra_entropy(&mut self, extra_entropy: &Nonce) {
         self.extra_entropy = Some(extra_entropy.clone())
     }
 
+    /// This parameter is only used in the Alonzo era. Do not set it for other eras.
     pub fn extra_entropy(&self) -> Option<Nonce> {
         self.extra_entropy.clone()
     }
@@ -2582,8 +2641,7 @@ pub struct HeaderBody {
     prev_hash: Option<BlockHeaderHash>,
     issuer_vkey: Vkey,
     vrf_vkey: VRFVKey,
-    nonce_vrf: VRFCert,
-    leader_vrf: VRFCert,
+    vrf_result: VRFCert,
     block_body_size: u32,
     block_body_hash: BlockBodyHash,
     operational_cert: OperationalCert,
@@ -2616,12 +2674,8 @@ impl HeaderBody {
         self.vrf_vkey.clone()
     }
 
-    pub fn nonce_vrf(&self) -> VRFCert {
-        self.nonce_vrf.clone()
-    }
-
-    pub fn leader_vrf(&self) -> VRFCert {
-        self.leader_vrf.clone()
+    pub fn vrf_result(&self) -> VRFCert {
+        self.vrf_result.clone()
     }
 
     pub fn block_body_size(&self) -> u32 {
@@ -2640,15 +2694,14 @@ impl HeaderBody {
         self.protocol_version.clone()
     }
 
-    pub fn new(block_number: u32, slot: &Slot, prev_hash: Option<BlockHeaderHash>, issuer_vkey: &Vkey, vrf_vkey: &VRFVKey, nonce_vrf: &VRFCert, leader_vrf: &VRFCert, block_body_size: u32, block_body_hash: &BlockBodyHash, operational_cert: &OperationalCert, protocol_version: &ProtocolVersion) -> Self {
+    pub fn new(block_number: u32, slot: &Slot, prev_hash: Option<BlockHeaderHash>, issuer_vkey: &Vkey, vrf_vkey: &VRFVKey, vrf_result: &VRFCert, block_body_size: u32, block_body_hash: &BlockBodyHash, operational_cert: &OperationalCert, protocol_version: &ProtocolVersion) -> Self {
         Self {
             block_number: block_number,
             slot: slot.clone(),
             prev_hash: prev_hash.clone(),
             issuer_vkey: issuer_vkey.clone(),
             vrf_vkey: vrf_vkey.clone(),
-            nonce_vrf: nonce_vrf.clone(),
-            leader_vrf: leader_vrf.clone(),
+            vrf_result: vrf_result.clone(),
             block_body_size: block_body_size,
             block_body_hash: block_body_hash.clone(),
             operational_cert: operational_cert.clone(),

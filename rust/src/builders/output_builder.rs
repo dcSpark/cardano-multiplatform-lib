@@ -91,7 +91,8 @@ impl TransactionOutputAmountBuilder {
         Ok(TransactionOutput {
             address: self.address.clone(),
             amount: self.amount.clone().ok_or_else(|| JsError::from_str("TransactionOutputAmountBuilder: amount missing"))?,
-            data_hash: self.data_hash.clone(),
+            data: self.data_hash.clone().map(TxOutputData::DatumHash),
+            script_ref: None,
         })
     }
 }

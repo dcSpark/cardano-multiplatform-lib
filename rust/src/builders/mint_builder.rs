@@ -45,8 +45,7 @@ impl SingleMintBuilder {
     }
 
     pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, witness_info: &PlutusScriptWitnessInfo) -> Result<MintBuilderResult, JsError> {
-        // TODO: Plutus V2
-        let script_hash = partial_witness.script().hash(ScriptHashNamespace::PlutusV1);
+        let script_hash = partial_witness.script.hash();
 
         Ok(MintBuilderResult {
             assets: self.assets.clone(),

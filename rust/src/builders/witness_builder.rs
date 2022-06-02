@@ -65,23 +65,14 @@ impl UntaggedRedeemer {
 #[wasm_bindgen]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PartialPlutusWitness {
-    script: PlutusScript,
-    untagged_redeemer: UntaggedRedeemer,
+    pub(crate) script: PlutusScriptWasm,
+    pub(crate) untagged_redeemer: UntaggedRedeemer,
 }
 
 #[wasm_bindgen]
 impl PartialPlutusWitness {
-
-    pub fn script(&self) -> PlutusScript {
-        self.script.clone()
-    }
-
-    pub fn untagged_redeemer(&self) -> UntaggedRedeemer {
-        self.untagged_redeemer.clone()
-    }
-
     pub fn new(
-        script: &PlutusScript,
+        script: &PlutusScriptWasm,
         untagged_redeemer: &UntaggedRedeemer
     ) -> Self {
         Self {
@@ -89,8 +80,15 @@ impl PartialPlutusWitness {
             untagged_redeemer: untagged_redeemer.clone(),
         }
     }
-}
 
+    pub fn script(&self) -> PlutusScriptWasm {
+        self.script.clone()
+    }
+
+    pub fn untagged_redeemer(&self) -> UntaggedRedeemer {
+        self.untagged_redeemer.clone()
+    }
+}
 
 #[derive(Clone, Debug)]
 pub enum InputAggregateWitnessData {
@@ -154,8 +152,8 @@ impl RequiredWitnessSet {
         self.scripts.insert(script_hash.clone());
     }
 
-    pub fn add_plutus_script(&mut self, plutus_script: &PlutusScript) {
-        self.add_script_hash(&plutus_script.hash(ScriptHashNamespace::PlutusV1));
+    pub fn add_plutus_script(&mut self, plutus_v1_script: &PlutusScriptWasm) {
+        self.add_script_hash(&plutus_v1_script.hash());
     }
 
     pub fn add_plutus_datum(&mut self, plutus_datum: &PlutusData) {
@@ -303,7 +301,8 @@ pub struct TransactionWitnessSetBuilder {
     vkeys: HashMap<Vkey, Vkeywitness>,
     bootstraps: HashMap<Vkey, BootstrapWitness>,
     native_scripts: HashMap<ScriptHash, NativeScript>,
-    plutus_scripts: HashMap<ScriptHash, PlutusScript>,
+    plutus_v1_scripts: HashMap<ScriptHash, PlutusV1Script>,
+    plutus_v2_scripts: HashMap<ScriptHash, PlutusV2Script>,
     plutus_data: HashMap<DataHash, PlutusData>,
     redeemers: HashMap<RedeemerWitnessKey, Redeemer>,
 
@@ -339,12 +338,20 @@ impl TransactionWitnessSetBuilder {
         NativeScripts(self.native_scripts.clone().into_values().collect())
     }
 
-    pub fn add_plutus_script(&mut self, plutus_script: &PlutusScript) {
-        self.plutus_scripts.insert(plutus_script.hash(ScriptHashNamespace::PlutusV1), plutus_script.clone());
+    pub fn add_plutus_v1_script(&mut self, plutus_v1_script: &PlutusV1Script) {
+        self.plutus_v1_scripts.insert(plutus_v1_script.hash(), plutus_v1_script.clone());
     }
 
-    pub fn get_plutus_script(&self) -> PlutusScripts {
-        PlutusScripts(self.plutus_scripts.clone().into_values().collect())
+    pub fn get_plutus_v1_script(&self) -> PlutusV1Scripts {
+        PlutusV1Scripts(self.plutus_v1_scripts.clone().into_values().collect())
+    }
+
+    pub fn add_plutus_v2_script(&mut self, plutus_v2_script: &PlutusV2Script) {
+        self.plutus_v2_scripts.insert(plutus_v2_script.hash(), plutus_v2_script.clone());
+    }
+
+    pub fn get_plutus_v2_script(&self) -> PlutusV2Scripts {
+        PlutusV2Scripts(self.plutus_v2_scripts.clone().into_values().collect())
     }
 
     pub fn add_plutus_datum(&mut self, plutus_datum: &PlutusData) {
@@ -392,8 +399,11 @@ impl TransactionWitnessSetBuilder {
         if let Some(native_scripts) = &wit_set.native_scripts() {
             native_scripts.0.iter().for_each(|native_script| { self.add_native_script(native_script); } );
         }
-        if let Some(plutus_scripts) = &wit_set.plutus_scripts() {
-            plutus_scripts.0.iter().for_each(|plutus_script| { self.add_plutus_script(plutus_script); } );
+        if let Some(plutus_scripts) = &wit_set.plutus_v1_scripts() {
+            plutus_scripts.0.iter().for_each(|plutus_script| { self.add_plutus_v1_script(plutus_script); } );
+        }
+        if let Some(plutus_scripts) = &wit_set.plutus_v2_scripts() {
+            plutus_scripts.0.iter().for_each(|plutus_script| { self.add_plutus_v2_script(plutus_script); } );
         }
         if let Some(redeemers) = &wit_set.redeemers() {
             redeemers.0.iter().for_each(|redeemer| { self.add_redeemer(redeemer); } );
@@ -439,7 +449,10 @@ impl TransactionWitnessSetBuilder {
                 self.add_native_script(script);
             }
             InputAggregateWitnessData::PlutusScript(witness, _info, option) => {
-                self.add_plutus_script(&witness.script());
+                match &witness.script.0 {
+                    PlutusScript::PlutusV1(script) => self.add_plutus_v1_script(script),
+                    PlutusScript::PlutusV2(script) => self.add_plutus_v2_script(script)
+                }
                 if let Some(ref data) = option {
                     self.add_plutus_datum(data);
                 }
@@ -489,8 +502,11 @@ impl TransactionWitnessSetBuilder {
         if !self.native_scripts.is_empty() {
             result.set_native_scripts(&NativeScripts(self.native_scripts.values().cloned().collect()));
         }
-        if !self.plutus_scripts.is_empty() {
-            result.set_plutus_scripts(&PlutusScripts(self.plutus_scripts.values().cloned().collect()));
+        if !self.plutus_v1_scripts.is_empty() {
+            result.set_plutus_v1_scripts(&PlutusV1Scripts(self.plutus_v1_scripts.values().cloned().collect()));
+        }
+        if !self.plutus_v2_scripts.is_empty() {
+            result.set_plutus_v2_scripts(&PlutusV2Scripts(self.plutus_v2_scripts.values().cloned().collect()));
         }
         if !self.plutus_data.is_empty() {
             result.set_plutus_data(&PlutusList {
@@ -511,7 +527,8 @@ impl TransactionWitnessSetBuilder {
         self.vkeys.keys().for_each(|key| { remaining_wits.vkeys.remove(&key.public_key().hash()); });
         self.bootstraps.keys().for_each(|key| { remaining_wits.bootstraps.remove(&key.public_key().hash()); });
         self.native_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
-        self.plutus_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
+        self.plutus_v1_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
+        self.plutus_v2_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
         self.plutus_data.keys().for_each(|hash| { remaining_wits.plutus_data.remove(hash); });
         self.redeemers.keys().for_each(|key| { remaining_wits.redeemers.remove(key); });
 
@@ -622,9 +639,9 @@ mod tests {
 
         let data = {
             let witness = {
-                let script = PlutusScript::new(vec![0]);
+                let script = PlutusScript::from_v1(&PlutusV1Script::new(vec![0]));
                 let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
-                PartialPlutusWitness::new(&script, &untagged_redeemer)
+                PartialPlutusWitness::new(&PlutusScriptWasm(script), &untagged_redeemer)
             };
             let info = {
                 let key = fake_raw_key_public(0);
@@ -639,7 +656,7 @@ mod tests {
 
         let input_result = InputBuilderResult {
             input: TransactionInput { transaction_id: TransactionHash([1; 32]), index: 1u64.into() },
-            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), data_hash: None },
+            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), data: None, script_ref: None },
             aggregate_witness: None,
             required_wits: RequiredWitnessSet::new(),
         };
@@ -648,7 +665,7 @@ mod tests {
 
         let input_result = InputBuilderResult {
             input: TransactionInput { transaction_id: TransactionHash([1; 32]), index: 0u64.into() },
-            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), data_hash: None },
+            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), data: None, script_ref: None },
             aggregate_witness: None,
             required_wits: RequiredWitnessSet::new(),
         };
@@ -657,7 +674,7 @@ mod tests {
 
         let input_result = InputBuilderResult {
             input: TransactionInput { transaction_id: TransactionHash([0; 32]), index: 0u64.into() },
-            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), data_hash: None },
+            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), data: None, script_ref: None },
             aggregate_witness: Some(data.clone()),
             required_wits: RequiredWitnessSet::new(),
         };
@@ -688,9 +705,9 @@ mod tests {
         let mut builder = TransactionWitnessSetBuilder::new();
         let data = {
             let witness = {
-                let script = PlutusScript::new(vec![0]);
+                let script = PlutusScript::from_v1(&PlutusV1Script::new(vec![0]));
                 let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
-                PartialPlutusWitness::new(&script, &untagged_redeemer)
+                PartialPlutusWitness::new(&PlutusScriptWasm(script), &untagged_redeemer)
             };
             let info = {
                 let key = fake_raw_key_public(0);
@@ -715,9 +732,9 @@ mod tests {
 
         let data = {
             let witness = {
-                let script = PlutusScript::new(vec![0]);
+                let script = PlutusScript::from_v1(&PlutusV1Script::new(vec![0]));
                 let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
-                PartialPlutusWitness::new(&script, &untagged_redeemer)
+                PartialPlutusWitness::new(&PlutusScriptWasm(script), &untagged_redeemer)
             };
             let info = {
                 let mut missing_signers = Ed25519KeyHashes::new();
@@ -811,7 +828,7 @@ mod tests {
         );
     }
 
-    // TODO: tests for plutus_scripts, plutus_data, redeemers
+    // TODO: tests for plutus scripts (v1 & v2), plutus_data, redeemers
     // once we have mock data for them
     #[test]
     fn requirement_test_fail() {

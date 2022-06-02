@@ -342,7 +342,8 @@ impl JsonSchema for GeneralTransactionMetadata {
 pub struct AuxiliaryData {
     metadata: Option<GeneralTransactionMetadata>,
     native_scripts: Option<NativeScripts>,
-    plutus_scripts: Option<PlutusScripts>,
+    plutus_v1_scripts: Option<PlutusV1Scripts>,
+    plutus_v2_scripts: Option<PlutusV2Scripts>,
 }
 
 to_from_bytes!(AuxiliaryData);
@@ -355,7 +356,8 @@ impl AuxiliaryData {
         Self {
             metadata: None,
             native_scripts: None,
-            plutus_scripts: None,
+            plutus_v1_scripts: None,
+            plutus_v2_scripts: None,
         }
     }
 
@@ -375,12 +377,20 @@ impl AuxiliaryData {
         self.native_scripts = Some(native_scripts.clone())
     }
 
-    pub fn plutus_scripts(&self) -> Option<PlutusScripts> {
-        self.plutus_scripts.clone()
+    pub fn plutus_v1_scripts(&self) -> Option<PlutusV1Scripts> {
+        self.plutus_v1_scripts.clone()
     }
 
-    pub fn set_plutus_scripts(&mut self, plutus_scripts: &PlutusScripts) {
-        self.plutus_scripts = Some(plutus_scripts.clone())
+    pub fn set_plutus_v1_scripts(&mut self, plutus_v1_scripts: &PlutusV1Scripts) {
+        self.plutus_v1_scripts = Some(plutus_v1_scripts.clone())
+    }
+
+    pub fn plutus_v2_scripts(&self) -> Option<PlutusV2Scripts> {
+        self.plutus_v2_scripts.clone()
+    }
+
+    pub fn set_plutus_v2_scripts(&mut self, plutus_v2_scripts: &PlutusV2Scripts) {
+        self.plutus_v2_scripts = Some(plutus_v2_scripts.clone())
     }
 }
 
@@ -831,7 +841,7 @@ impl cbor_event::se::Serialize for AuxiliaryData {
         // we still serialize using the shelley-mary era format as it is still supported
         // and it takes up less space on-chain so this should be better for scaling.
         // Plus the code was already written for shelley-mary anyway
-        if self.metadata.is_some() && self.plutus_scripts.is_none()  {
+        if self.metadata.is_some() && self.plutus_v1_scripts.is_none() && self.plutus_v2_scripts.is_none()  {
             match &self.native_scripts() {
                 Some(native_scripts) => {
                     serializer.write_array(cbor_event::Len::Len(2))?;
@@ -846,7 +856,8 @@ impl cbor_event::se::Serialize for AuxiliaryData {
             serializer.write_map(cbor_event::Len::Len(
                 if self.metadata.is_some() { 1 } else { 0 } +
                 if self.native_scripts.is_some() { 1 } else { 0 } +
-                if self.plutus_scripts.is_some() { 1 } else { 0 }))?;
+                if self.plutus_v1_scripts.is_some() { 1 } else { 0 } +
+                if self.plutus_v2_scripts.is_some() { 1 } else { 0 }))?;
             if let Some(metadata) = &self.metadata {
                 serializer.write_unsigned_integer(0)?;
                 metadata.serialize(serializer)?;
@@ -855,9 +866,13 @@ impl cbor_event::se::Serialize for AuxiliaryData {
                 serializer.write_unsigned_integer(1)?;
                 native_scripts.serialize(serializer)?;
             }
-            if let Some(plutus_scripts) = &self.plutus_scripts {
+            if let Some(plutus_v1_scripts) = &self.plutus_v1_scripts {
                 serializer.write_unsigned_integer(2)?;
-                plutus_scripts.serialize(serializer)?;
+                plutus_v1_scripts.serialize(serializer)?;
+            }
+	    if let Some(plutus_v2_scripts) = &self.plutus_v2_scripts {
+                serializer.write_unsigned_integer(3)?;
+                plutus_v2_scripts.serialize(serializer)?;
             }
             Ok(serializer)
         }
@@ -868,7 +883,7 @@ impl Deserialize for AuxiliaryData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             match raw.cbor_type()? {
-                // alonzo format
+                // alonzo+ format (babbage adds optional v2 script field)
                 CBORType::Tag => {
                     let tag = raw.tag()?;
                     if tag != 259 {
@@ -878,7 +893,8 @@ impl Deserialize for AuxiliaryData {
                     let mut read_len = CBORReadLen::new(len);
                     let mut metadata = None;
                     let mut native_scripts = None;
-                    let mut plutus_scripts = None;
+                    let mut plutus_v1_scripts = None;
+                    let mut plutus_v2_scripts = None;
                     let mut read = 0;
                     while match len { cbor_event::Len::Len(n) => read < n as usize, cbor_event::Len::Indefinite => true, } {
                         match raw.cbor_type()? {
@@ -902,13 +918,22 @@ impl Deserialize for AuxiliaryData {
                                     })().map_err(|e| e.annotate("native_scripts"))?);
                                 },
                                 2 =>  {
-                                    if plutus_scripts.is_some() {
+                                    if plutus_v1_scripts.is_some() {
                                         return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
                                     }
-                                    plutus_scripts = Some((|| -> Result<_, DeserializeError> {
+                                    plutus_v1_scripts = Some((|| -> Result<_, DeserializeError> {
                                         read_len.read_elems(1)?;
-                                        Ok(PlutusScripts::deserialize(raw)?)
-                                    })().map_err(|e| e.annotate("plutus_scripts"))?);
+                                        Ok(PlutusV1Scripts::deserialize(raw)?)
+                                    })().map_err(|e| e.annotate("plutus_v1_scripts"))?);
+                                },
+                                3 =>  {
+                                    if plutus_v2_scripts.is_some() {
+                                        return Err(DeserializeFailure::DuplicateKey(Key::Uint(3)).into());
+                                    }
+                                    plutus_v2_scripts = Some((|| -> Result<_, DeserializeError> {
+                                        read_len.read_elems(1)?;
+                                        Ok(PlutusV2Scripts::deserialize(raw)?)
+                                    })().map_err(|e| e.annotate("plutus_v2_scripts"))?);
                                 },
                                 unknown_key => return Err(DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()),
                             },
@@ -930,10 +955,11 @@ impl Deserialize for AuxiliaryData {
                     Ok(Self {
                         metadata,
                         native_scripts,
-                        plutus_scripts,
+                        plutus_v1_scripts,
+                        plutus_v2_scripts,
                     })
                 },
-                // shelley mary format (still valid for alonzo)
+                // shelley mary format (still valid for alonzo onwards)
                 CBORType::Array => {
                     let len = raw.array()?;
                     let mut read_len = CBORReadLen::new(len);
@@ -954,14 +980,16 @@ impl Deserialize for AuxiliaryData {
                     Ok(Self {
                         metadata: Some(metadata),
                         native_scripts: Some(native_scripts),
-                        plutus_scripts: None,
+                        plutus_v1_scripts: None,
+                        plutus_v2_scripts: None,
                     })
                 },
-                // shelley pre-mary format (still valid for alonzo + mary)
+                // shelley pre-mary format (still valid for mary onwards)
                 CBORType::Map => Ok(Self {
                     metadata: Some(GeneralTransactionMetadata::deserialize(raw).map_err(|e| e.annotate("metadata"))?),
                     native_scripts: None,
-                    plutus_scripts: None,
+                    plutus_v1_scripts: None,
+                    plutus_v2_scripts: None,
                 }),
                 _ => return Err(DeserializeFailure::NoVariantMatched)?
             }
@@ -1120,9 +1148,9 @@ mod tests {
         let ad2_deser = AuxiliaryData::from_bytes(aux_data.to_bytes()).unwrap();
         assert_eq!(aux_data.to_bytes(), ad2_deser.to_bytes());
         // alonzo
-        let mut plutus_scripts = PlutusScripts::new();
-        plutus_scripts.add(&PlutusScript::new([61u8; 29].to_vec()));
-        aux_data.set_plutus_scripts(&plutus_scripts);
+        let mut plutus_v1_scripts = PlutusV1Scripts::new();
+        plutus_v1_scripts.add(&PlutusV1Script::new([61u8; 29].to_vec()));
+        aux_data.set_plutus_v1_scripts(&plutus_v1_scripts);
         let ad3_deser = AuxiliaryData::from_bytes(aux_data.to_bytes()).unwrap();
         assert_eq!(aux_data.to_bytes(), ad3_deser.to_bytes());
     }

@@ -2374,7 +2374,7 @@ mod tests {
             240, 24, 32, 26, 0, 51, 13, 167, 1, 1, 255
         ]).unwrap();
         let mut cost_models = Costmdls::new();
-        cost_models.insert(&Language::new_plutus_v1(), &plutus_cost_model);
+        cost_models.insert(&plutus_cost_model);
         let script_data_hash = hash_script_data(&redeemers, &cost_models, Some(datums));
 
         assert_eq!(

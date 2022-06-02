@@ -172,8 +172,7 @@ impl SingleCertificateBuilder {
         cert_required_wits(&self.cert, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
 
-        // TODO: Plutus V2
-        let script_hash = partial_witness.script().hash(ScriptHashNamespace::PlutusV1);
+        let script_hash = partial_witness.script.hash();
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
         // often happens because users aren't aware StakeRegistration doesn't require a witness

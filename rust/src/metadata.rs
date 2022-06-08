@@ -809,7 +809,8 @@ impl Deserialize for GeneralTransactionMetadata {
         let mut table = LinkedHashMap::new();
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
-            while match len { cbor_event::Len::Len(n) => table.len() < n as usize, cbor_event::Len::Indefinite => true, } {
+            let mut read = 0;
+            while match len { cbor_event::Len::Len(n) => read < n as usize, cbor_event::Len::Indefinite => true, } {
                 if raw.cbor_type()? == CBORType::Special {
                     assert_eq!(raw.special()?, CBORSpecial::Break);
                     break;
@@ -817,8 +818,10 @@ impl Deserialize for GeneralTransactionMetadata {
                 let key = TransactionMetadatumLabel::deserialize(raw)?;
                 let value = TransactionMetadatum::deserialize(raw)?;
                 if table.insert(key.clone(), value).is_some() {
-                    return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
+                    // this is actually allowed on the blockchain (sadly)
+                    //return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
                 }
+                read += 1;
             }
             Ok(())
         })().map_err(|e| e.annotate("GeneralTransactionMetadata"))?;
@@ -1131,5 +1134,11 @@ mod tests {
     fn metadatum_map_duplicate_keys() {
         let bytes = hex::decode("a105a4781b232323232323232323232323232323232323232323232323232323827840232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323237840232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323236e232323232323232323232323232382a36f2323232323232323232323232323236a323030302d30312d303166232323232323784023232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323712323232323232323232323232323232323784023232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323a36f2323232323232323232323232323236a323030302d30312d303166232323232323784023232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323712323232323232323232323232323232323784023232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323752323232323232323232323232323232323232323236a323030302d30312d3031752323232323232323232323232323232323232323236a323030302d30312d3031").unwrap();
         TransactionMetadatum::from_bytes(bytes).unwrap();
+    }
+
+    #[test]
+    fn metadata_duplicate_labels() {
+        let bytes = hex::decode("82a219270fa16474657374747365636f6e64206d657461646174612066696c6519270fa16474657374736669727374206d657461646174612066696c6580").unwrap();
+        AuxiliaryData::from_bytes(bytes).unwrap();
     }
 }

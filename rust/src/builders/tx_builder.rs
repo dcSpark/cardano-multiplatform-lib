@@ -425,7 +425,7 @@ impl TransactionBuilder {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
         }
-        self.witness_set_builder.add_spend_redeemer(result);
+        self.witness_set_builder.redeemer_set_builder.add_spend(result);
         self.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
@@ -520,7 +520,7 @@ impl TransactionBuilder {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
         }
-        self.witness_set_builder.add_cert_redeemer(result);
+        self.witness_set_builder.redeemer_set_builder.add_cert(result);
         self.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
@@ -539,7 +539,7 @@ impl TransactionBuilder {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
         }
-        self.witness_set_builder.add_reward_redeemer(result);
+        self.witness_set_builder.redeemer_set_builder.add_reward(result);
         self.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
@@ -608,7 +608,7 @@ impl TransactionBuilder {
         if let Some(ref data) = result.aggregate_witness {
             self.witness_set_builder.add_input_aggregate_witness_data(data);
         }
-        self.witness_set_builder.add_mint_redeemer(result);
+        self.witness_set_builder.redeemer_set_builder.add_mint(result);
         self.witness_set_builder.add_required_wits(&result.required_wits);
     }
 

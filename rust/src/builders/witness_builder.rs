@@ -204,6 +204,80 @@ impl RequiredWitnessSet {
     }
 }
 
+#[wasm_bindgen]
+#[derive(Clone, Default, Debug)]
+pub struct RedeemerSetBuilder {
+    spend: BTreeMap<TransactionInput, Option<UntaggedRedeemer>>,
+    mint: BTreeMap<PolicyID, Option<UntaggedRedeemer>>,
+    reward: BTreeMap<RewardAddress, Option<UntaggedRedeemer>>,
+    cert: Vec<Option<UntaggedRedeemer>>,
+}
+
+impl RedeemerSetBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn add_spend(&mut self, result: &InputBuilderResult) {
+        let untagged = {
+            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
+        };
+        self.spend.insert(result.input.clone(), untagged);
+    }
+
+    pub fn add_mint(&mut self, result: &MintBuilderResult) {
+        let untagged = {
+            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
+        };
+        self.mint.insert(result.policy_id.clone(), untagged);
+    }
+
+    pub fn add_reward(&mut self, result: &WithdrawalBuilderResult) {
+        let untagged = {
+            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
+        };
+        self.reward.insert(result.address.clone(), untagged);
+    }
+
+    pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
+        let untagged = {
+            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
+        };
+        self.cert.push(untagged);
+    }
+
+    pub fn build(&self) -> Redeemers {
+        let mut redeemers = Vec::new();
+
+        redeemers.append(&mut Self::tag_redeemer(&RedeemerTag::new_spend(), &Self::values(&self.spend)));
+        redeemers.append(&mut Self::tag_redeemer(&RedeemerTag::new_mint(), &Self::values(&self.mint)));
+        redeemers.append(&mut Self::tag_redeemer(&RedeemerTag::new_reward(), &Self::values(&self.reward)));
+        redeemers.append(&mut Self::tag_redeemer(&RedeemerTag::new_cert(), &self.cert));
+
+        Redeemers(redeemers)
+    }
+
+    fn values<K>(map: &BTreeMap<K, Option<UntaggedRedeemer>>) -> Vec<Option<UntaggedRedeemer>> {
+        map.values().cloned().collect()
+    }
+
+    fn tag_redeemer(tag: &RedeemerTag, untagged_redeemers: &[Option<UntaggedRedeemer>]) -> Vec<Redeemer> {
+        let mut result = Vec::new();
+
+        for (index, value) in untagged_redeemers.iter().enumerate() {
+            if let Some(untagged) = value {
+                let redeemer = {
+                    let index = index as u64;
+                    Redeemer::new(tag, &index.into(), &untagged.data, &untagged.ex_units)
+                };
+                result.push(redeemer);
+            }
+        }
+
+        result
+    }
+}
+
 /// Builder de-duplicates witnesses as they are added
 #[wasm_bindgen]
 #[derive(Clone, Default, Debug)]
@@ -216,15 +290,12 @@ pub struct TransactionWitnessSetBuilder {
     plutus_data: HashMap<DataHash, PlutusData>,
     redeemers: HashMap<RedeemerWitnessKey, Redeemer>,
 
-    spend_redeemers: BTreeMap<TransactionInput, Option<UntaggedRedeemer>>,
-    mint_redeemers: BTreeMap<PolicyID, Option<UntaggedRedeemer>>,
-    reward_redeemers: BTreeMap<RewardAddress, Option<UntaggedRedeemer>>,
-    cert_redeemers: Vec<Option<UntaggedRedeemer>>,
-
     /// witnesses that need to be added for the build function to succeed
     /// this allows checking that witnesses are present at build time (instead of when submitting to a node)
     /// This is useful for APIs that can keep track of which witnesses will be required (like transaction builders)
     required_wits: RequiredWitnessSet,
+
+    pub redeemer_set_builder: RedeemerSetBuilder,
 }
 
 #[wasm_bindgen]
@@ -279,32 +350,8 @@ impl TransactionWitnessSetBuilder {
         );
     }
 
-    pub(crate) fn add_spend_redeemer(&mut self, result: &InputBuilderResult) {
-        let untagged = {
-            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
-        };
-        self.spend_redeemers.insert(result.input.clone(), untagged);
-    }
-
-    pub(crate) fn add_mint_redeemer(&mut self, result: &MintBuilderResult) {
-        let untagged = {
-            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
-        };
-        self.mint_redeemers.insert(result.policy_id.clone(), untagged);
-    }
-
-    pub(crate) fn add_reward_redeemer(&mut self, result: &WithdrawalBuilderResult) {
-        let untagged = {
-            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
-        };
-        self.reward_redeemers.insert(result.address.clone(), untagged);
-    }
-
-    pub(crate) fn add_cert_redeemer(&mut self, result: &CertificateBuilderResult) {
-        let untagged = {
-            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
-        };
-        self.cert_redeemers.push(untagged);
+    pub fn add_redeemers(&mut self, redeemers: &Redeemers) {
+        redeemers.0.iter().for_each(|redeemer| self.add_redeemer(redeemer));
     }
 
     pub fn get_redeemer(&self) -> Redeemers {

@@ -1,5 +1,7 @@
-use std::{collections::{HashSet, HashMap}, fmt::Debug};
+use std::{collections::{HashSet, HashMap, BTreeMap}, fmt::Debug};
 use crate::*;
+
+use super::{input_builder::InputBuilderResult, mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult, certificate_builder::CertificateBuilderResult};
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -99,6 +101,16 @@ pub enum InputAggregateWitnessData {
     PlutusScript(PartialPlutusWitness, PlutusScriptWitnessInfo, Option<PlutusData>)
 }
 
+impl InputAggregateWitnessData {
+    fn untagged_redeemer(&self) -> Option<UntaggedRedeemer> {
+        match self {
+            InputAggregateWitnessData::PlutusScript(witness, _, _) => {
+                Some(witness.untagged_redeemer())
+            }
+            _ => None
+        }
+    }
+}
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Default)]
@@ -204,6 +216,11 @@ pub struct TransactionWitnessSetBuilder {
     plutus_data: HashMap<DataHash, PlutusData>,
     redeemers: HashMap<RedeemerWitnessKey, Redeemer>,
 
+    spend_redeemers: BTreeMap<TransactionInput, Option<UntaggedRedeemer>>,
+    mint_redeemers: BTreeMap<PolicyID, Option<UntaggedRedeemer>>,
+    reward_redeemers: BTreeMap<RewardAddress, Option<UntaggedRedeemer>>,
+    cert_redeemers: Vec<Option<UntaggedRedeemer>>,
+
     /// witnesses that need to be added for the build function to succeed
     /// this allows checking that witnesses are present at build time (instead of when submitting to a node)
     /// This is useful for APIs that can keep track of which witnesses will be required (like transaction builders)
@@ -262,14 +279,32 @@ impl TransactionWitnessSetBuilder {
         );
     }
 
-    pub fn add_untagged_redeemer(&mut self, tag: &RedeemerTag, untagged: &UntaggedRedeemer) {
-        let redeemer = {
-            let data = untagged.datum();
-            let ex_units = untagged.ex_units();
-            let index = self.redeemers.iter().filter(|(key, _)| key.tag == *tag).count() as u64;
-            Redeemer::new(tag, &index.into(), &data, &ex_units)
+    pub(crate) fn add_spend_redeemer(&mut self, result: &InputBuilderResult) {
+        let untagged = {
+            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
         };
-        self.add_redeemer(&redeemer);
+        self.spend_redeemers.insert(result.input.clone(), untagged);
+    }
+
+    pub(crate) fn add_mint_redeemer(&mut self, result: &MintBuilderResult) {
+        let untagged = {
+            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
+        };
+        self.mint_redeemers.insert(result.policy_id.clone(), untagged);
+    }
+
+    pub(crate) fn add_reward_redeemer(&mut self, result: &WithdrawalBuilderResult) {
+        let untagged = {
+            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
+        };
+        self.reward_redeemers.insert(result.address.clone(), untagged);
+    }
+
+    pub(crate) fn add_cert_redeemer(&mut self, result: &CertificateBuilderResult) {
+        let untagged = {
+            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
+        };
+        self.cert_redeemers.push(untagged);
     }
 
     pub fn get_redeemer(&self) -> Redeemers {
@@ -521,22 +556,6 @@ mod tests {
         assert_eq!(builder.vkeys.len(), 0);
         builder.add_input_aggregate_witness_data(&data);
         assert_eq!(builder.vkeys.len(), 1);
-    }
-
-    #[test]
-    fn test_add_untagged_redeemer() {
-        let mut builder = TransactionWitnessSetBuilder::new();
-        let untagged = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
-
-        assert_eq!(builder.redeemers.len(), 0);
-        builder.add_untagged_redeemer(&RedeemerTag::new_spend(), &untagged);
-        assert_eq!(builder.redeemers.len(), 1);
-        assert!(builder.redeemers.contains_key(&RedeemerWitnessKey::new(&RedeemerTag::new_spend(), &0u64.into())));
-        assert!(!builder.redeemers.contains_key(&RedeemerWitnessKey::new(&RedeemerTag::new_cert(), &0u64.into())));
-        builder.add_untagged_redeemer(&RedeemerTag::new_cert(), &untagged);
-        assert!(builder.redeemers.contains_key(&RedeemerWitnessKey::new(&RedeemerTag::new_cert(), &0u64.into())));
-        builder.add_untagged_redeemer(&RedeemerTag::new_spend(), &untagged);
-        assert!(builder.redeemers.contains_key(&RedeemerWitnessKey::new(&RedeemerTag::new_spend(), &1u64.into())));
     }
 
     #[test]

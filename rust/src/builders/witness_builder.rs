@@ -397,7 +397,7 @@ impl TransactionWitnessSetBuilder {
     // In order to prevent the fake keys get deduplicated when it is called more than once,
     // its index starts from the current amount of vkeys.
     // WARN: this function might fail at runtime when there are more than 255 witnesses,
-    // however this is unrealistic because the limit of transaction size. (101 bytes each witness has)
+    // however this is unrealistic because the limit of transaction size. (101 bytes each witness)
     fn add_fake_vkey_witnesses_by_num(&mut self, num: usize) {
         let vkeys: Vec<Vkey> = (0..num).into_iter().map(|i| Vkey::new(&fake_raw_key_public((i + self.vkeys.len()) as u8))).collect();
         self.add_fake_vkey_witnesses(&vkeys);

@@ -209,9 +209,24 @@ impl RequiredWitnessSet {
 #[wasm_bindgen]
 #[derive(Clone, Default, Debug)]
 pub struct RedeemerSetBuilder {
+    // the set of inputs is an ordered set (according to the order defined on the type TxIn) -
+    // this also is the order in which the elements of the set are indexed (lex order on the pair of TxId and Ix).
+    // All inputs of a transaction are included in the set being indexed (not just the ones that point to a Plutus script UTxO)
     spend: BTreeMap<TransactionInput, Option<UntaggedRedeemer>>,
+
+    // the set of policy IDs is ordered according to the order defined on PolicyID (lex).
+    // The index of a PolicyID in this set of policy IDs is computed according to this order.
+    // Note that at the use site, the set of policy IDs passed to indexof is the (unfiltered)
+    // domain of the Value map in the mint field of the transaction.
     mint: BTreeMap<PolicyID, Option<UntaggedRedeemer>>,
+
+    // the index of a reward account ract in the reward withdrawals map is the index of ract as a key in the (unfiltered) map.
+    // The keys of the Wdrl map are arranged in the order defined on the RewardAcnt type, which is a lexicographical (abbrv. lex)
+    // order on the pair of the Network and the Credential.
     reward: BTreeMap<RewardAddress, Option<UntaggedRedeemer>>,
+
+    // certificates in the DCert list are indexed in the order in which they arranged in the (full, unfiltered)
+    // list of certificates inside the transaction
     cert: Vec<Option<UntaggedRedeemer>>,
 }
 

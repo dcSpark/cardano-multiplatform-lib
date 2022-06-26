@@ -577,6 +577,64 @@ mod tests {
     }
 
     #[test]
+    fn test_redeemer_set_builder() {
+        let mut builder = RedeemerSetBuilder::new();
+
+        let data = {
+            let witness = {
+                let script = PlutusScript::new(vec![0]);
+                let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
+                PartialPlutusWitness::new(&script, &untagged_redeemer)
+            };
+            let info = {
+                let key = fake_raw_key_public(0);
+                let mut missing_signers = Ed25519KeyHashes::new();
+                missing_signers.add(&key.hash());
+                PlutusScriptWitnessInfo::set_required_signers(&Vkeys::new(), &missing_signers)
+            };
+            InputAggregateWitnessData::PlutusScript(witness, info, None)
+        };
+
+        let address = Address::from_bech32(&"addr1qxeqxcja25k8q05evyngf4f88xn89asl54x2zg3ephgj26ndyt5qk02xmmras5pe9jz2c7tc93wu4c96rqwvg6e2v50qlpmx70").unwrap();
+
+        let input_result = InputBuilderResult {
+            input: TransactionInput { transaction_id: TransactionHash([1; 32]), index: 1u64.into() },
+            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), data_hash: None },
+            aggregate_witness: None,
+            required_wits: RequiredWitnessSet::new(),
+        };
+
+        builder.add_spend(&input_result);
+
+        let input_result = InputBuilderResult {
+            input: TransactionInput { transaction_id: TransactionHash([1; 32]), index: 0u64.into() },
+            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), data_hash: None },
+            aggregate_witness: None,
+            required_wits: RequiredWitnessSet::new(),
+        };
+
+        builder.add_spend(&input_result);
+
+        let input_result = InputBuilderResult {
+            input: TransactionInput { transaction_id: TransactionHash([0; 32]), index: 0u64.into() },
+            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), data_hash: None },
+            aggregate_witness: Some(data.clone()),
+            required_wits: RequiredWitnessSet::new(),
+        };
+
+        builder.add_spend(&input_result);
+
+        let redeemers = builder.build();
+
+        assert_eq!(redeemers.len(), 1);
+
+        let spend_redeemer = &redeemers.0[0];
+
+        assert_eq!(spend_redeemer.tag(), RedeemerTag::new_spend());
+        assert_eq!(spend_redeemer.index(), BigNum::from(0u64));
+    }
+
+    #[test]
     fn test_add_fake_vkey_witnesses_by_num() {
         let mut builder = TransactionWitnessSetBuilder::new();
         builder.add_fake_vkey_witnesses_by_num(2);

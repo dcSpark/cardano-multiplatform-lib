@@ -445,27 +445,30 @@ impl TransactionWitnessSetBuilder {
 
     pub fn build(&self) -> TransactionWitnessSet {
         let mut result = TransactionWitnessSet::new();
+        let redeemers = self.redeemer_set_builder.build();
+        let mut cloned = self.clone();
+        cloned.add_redeemers(&redeemers);
 
-        if !self.vkeys.is_empty() {
-            result.set_vkeys(&Vkeywitnesses(self.vkeys.values().cloned().collect()));
+        if !cloned.vkeys.is_empty() {
+            result.set_vkeys(&Vkeywitnesses(cloned.vkeys.values().cloned().collect()));
         }
-        if !self.bootstraps.is_empty() {
-            result.set_bootstraps(&BootstrapWitnesses(self.bootstraps.values().cloned().collect()));
+        if !cloned.bootstraps.is_empty() {
+            result.set_bootstraps(&BootstrapWitnesses(cloned.bootstraps.values().cloned().collect()));
         }
-        if !self.native_scripts.is_empty() {
-            result.set_native_scripts(&NativeScripts(self.native_scripts.values().cloned().collect()));
+        if !cloned.native_scripts.is_empty() {
+            result.set_native_scripts(&NativeScripts(cloned.native_scripts.values().cloned().collect()));
         }
-        if !self.plutus_scripts.is_empty() {
-            result.set_plutus_scripts(&PlutusScripts(self.plutus_scripts.values().cloned().collect()));
+        if !cloned.plutus_scripts.is_empty() {
+            result.set_plutus_scripts(&PlutusScripts(cloned.plutus_scripts.values().cloned().collect()));
         }
-        if !self.plutus_data.is_empty() {
+        if !cloned.plutus_data.is_empty() {
             result.set_plutus_data(&PlutusList {
-                elems: self.plutus_data.values().cloned().collect(),
+                elems: cloned.plutus_data.values().cloned().collect(),
                 definite_encoding: None,
             });
         }
-        if !self.redeemers.is_empty() {
-            result.set_redeemers(&Redeemers(self.redeemers.values().cloned().collect()));
+        if !cloned.redeemers.is_empty() {
+            result.set_redeemers(&Redeemers(cloned.redeemers.values().cloned().collect()));
         }
 
         result

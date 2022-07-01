@@ -4,28 +4,32 @@ use crate::{legacy_address::ExtendedAddr, genesis::byron::config::ProtocolMagic}
 
 // returns (Number represented, bytes read) if valid encoding
 // or None if decoding prematurely finished
-fn variable_nat_decode(bytes: &[u8]) -> Option<(u64, usize)> {
-    let mut output = 0u128;
+fn variable_nat_decode(bytes: &[u8]) -> Option<(num_bigint::BigUint, usize)> {
+    let mut output = num_bigint::BigUint::from(0u64);
     let mut bytes_read = 0;
     for byte in bytes {
-        output = (output << 7) | (byte & 0x7F) as u128;
-        if output > u64::MAX.into() {
-            return None;
-        }
+        output = (output * 128u8) + (byte & 0x7F);
         bytes_read += 1;
         if (byte & 0x80) == 0 {
-            return Some((output as u64, bytes_read));
+            return Some((output, bytes_read));
         }
     }
     None
 }
 
-fn variable_nat_encode(mut num: u64) -> Vec<u8> {
-    let mut output = vec![num as u8 & 0x7F];
-    num /= 128;
-    while num > 0 {
-        output.push((num & 0x7F) as u8 | 0x80);
-        num /= 128;
+fn variable_nat_encode(mut num: num_bigint::BigUint) -> Vec<u8> {
+    use num_integer::Integer;
+    let zero = num_bigint::BigUint::from(0u64);
+    let divider = num_bigint::BigUint::from(128u64);
+    let (next, chunk) = num.div_rem(&divider);
+    let chunk_byte: u8 = chunk.try_into().unwrap();
+    let mut output = vec![chunk_byte];
+    num = next;
+    while num > zero {
+        let (next, chunk) = num.div_rem(&divider);
+        let chunk_byte: u8 = chunk.try_into().unwrap();
+        num = next;
+        output.push(chunk_byte | 0x80);
     }
     output.reverse();
     output
@@ -382,9 +386,9 @@ impl Address {
             AddrType::Ptr(ptr) => {
                 buf.push(self.header());
                 buf.extend(ptr.payment.to_raw_bytes());
-                buf.extend(variable_nat_encode(from_bignum(&ptr.stake.slot)));
-                buf.extend(variable_nat_encode(from_bignum(&ptr.stake.tx_index)));
-                buf.extend(variable_nat_encode(from_bignum(&ptr.stake.cert_index)));
+                buf.extend(variable_nat_encode(ptr.stake.slot.clone()));
+                buf.extend(variable_nat_encode(ptr.stake.tx_index.clone()));
+                buf.extend(variable_nat_encode(ptr.stake.cert_index.clone()));
             },
             AddrType::Enterprise(enterprise) => {
                 buf.push(self.header());
@@ -464,10 +468,11 @@ impl Address {
                         PointerAddress::new(
                             network,
                             &payment_cred,
-                            &Pointer::new(
-                                &to_bignum(slot),
-                                &to_bignum(tx_index),
-                                &to_bignum(cert_index))))
+                            &Pointer {
+                                slot,
+                                tx_index,
+                                cert_index
+                            }))
                 },
                 // enterprise
                 0b0110 | 0b0111 => {
@@ -786,31 +791,34 @@ impl Deserialize for RewardAddress {
 #[wasm_bindgen]
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Pointer {
-    slot: Slot,
-    tx_index: TransactionIndex,
-    cert_index: CertificateIndex,
+    slot: num_bigint::BigUint,
+    tx_index: num_bigint::BigUint,
+    cert_index: num_bigint::BigUint,
 }
 
 #[wasm_bindgen]
 impl Pointer {
     pub fn new(slot: &Slot, tx_index: &TransactionIndex, cert_index: &CertificateIndex) -> Self {
         Self {
-            slot: slot.clone(),
-            tx_index: tx_index.clone(),
-            cert_index: cert_index.clone(),
+            slot: num_bigint::BigUint::from(from_bignum(slot)),
+            tx_index: num_bigint::BigUint::from(from_bignum(tx_index)),
+            cert_index: num_bigint::BigUint::from(from_bignum(cert_index)),
         }
     }
 
+    /// This will be truncated if above u64::MAX
     pub fn slot(&self) -> Slot {
-        self.slot.clone()
+        to_bignum(self.slot.clone().try_into().unwrap_or(u64::MAX))
     }
 
-    pub fn tx_index(&self) -> TransactionIndex {
-        self.tx_index.clone()
+    /// This will be truncated if above u64::MAX
+    pub fn tx_index(&self) -> Slot {
+        to_bignum(self.tx_index.clone().try_into().unwrap_or(u64::MAX))
     }
 
-    pub fn cert_index(&self) -> CertificateIndex {
-        self.cert_index.clone()
+    /// This will be truncated if above u64::MAX
+    pub fn cert_index(&self) -> Slot {
+        to_bignum(self.cert_index.clone().try_into().unwrap_or(u64::MAX))
     }
 }
 
@@ -870,16 +878,11 @@ mod tests {
             256275757658493284u64
         ];
         for case in cases.iter() {
-            let encoded = variable_nat_encode(*case);
+            let case_biguint = num_bigint::BigUint::from(*case);
+            let encoded = variable_nat_encode(case_biguint.clone());
             let decoded = variable_nat_decode(&encoded).unwrap().0;
-            assert_eq!(*case, decoded);
+            assert_eq!(case_biguint, decoded);
         }
-    }
-
-    #[test]
-    fn variable_nat_decode_too_big() {
-        let too_big = [129, 255, 255, 255, 255, 255, 255, 255, 255, 255, 127];
-        assert_eq!(None, variable_nat_decode(&too_big));
     }
 
     #[test]
@@ -1243,9 +1246,10 @@ mod tests {
     fn pointer_address_big() {
         let addr = Address::from_bech32("addr_test1grqe6lg9ay8wkcu5k5e38lne63c80h3nq6xxhqfmhewf645pllllllllllll7lupllllllllllll7lupllllllllllll7lc9wayvj").unwrap();
         let ptr = PointerAddress::from_address(&addr).unwrap().stake;
-        assert_eq!(u64::MAX, from_bignum(&ptr.slot));
-        assert_eq!(u64::MAX, from_bignum(&ptr.tx_index));
-        assert_eq!(u64::MAX, from_bignum(&ptr.cert_index));
+        let u64_max = num_bigint::BigUint::from(u64::MAX);
+        assert_eq!(u64_max, ptr.slot);
+        assert_eq!(u64_max, ptr.tx_index);
+        assert_eq!(u64_max, ptr.cert_index);
     }
 
     #[test]
@@ -1258,5 +1262,12 @@ mod tests {
         assert_eq!(long.to_bytes(), hex::decode("015bad085057ac10ecc7060f7ac41edd6f63068d8963ef7d86ca58669e5ecf2d283418a60be5a848a2380eb721000da1e0bbf39733134beca4cb57afb0b35fc89c63061c9914e055001a518c7516").unwrap());
         let long_not_whitelisted = Address::from_bech32("addr_test1vqt3w9chzut3w9chzut3w9chzut3w9chzut3w9chzut3w9cqqspqvqcqsmxqdssg97");
         assert!(long_not_whitelisted.is_err());
+    }
+
+    #[test]
+    fn ptr_addr_huge_slot() {
+        let addr_bytes: Vec<u8> = vec![64, 193, 157, 125, 5, 233, 14, 235, 99, 148, 181, 51, 19, 254, 121, 212, 112, 119, 222, 51, 6, 140, 107, 129, 59, 190, 92, 157, 86, 129, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 127, 129, 255, 255, 255, 255, 255, 255, 255, 255, 127, 129, 255, 255, 255, 255, 255, 255, 255, 255, 127];
+        let addr = Address::from_bytes(addr_bytes.clone()).unwrap();
+        assert_eq!(addr_bytes, addr.to_bytes());
     }
 }

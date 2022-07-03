@@ -96,7 +96,7 @@ impl PartialPlutusWitness {
 pub enum InputAggregateWitnessData {
     // note: this struct may contains duplicates, but it will be de-duped later
     Vkeys(Vec<Vkey>),
-    Bootstraps(Vec<BootstrapWitness>),
+    Bootstraps(Vec<(Vkey, Address)>),
     NativeScript(NativeScript, NativeScriptWitnessInfo),
     PlutusScript(PartialPlutusWitness, PlutusScriptWitnessInfo, Option<PlutusData>)
 }
@@ -436,11 +436,7 @@ impl TransactionWitnessSetBuilder {
     pub(crate) fn add_input_aggregate_fake_witness_data(&mut self, data: &InputAggregateWitnessData) {
         match data {
             InputAggregateWitnessData::Vkeys(vkeys) => self.add_fake_vkey_witnesses(vkeys),
-            InputAggregateWitnessData::Bootstraps(witnesseses) => {
-                for witness in witnesseses {
-                    self.add_bootstrap(witness);
-                }
-            }
+            InputAggregateWitnessData::Bootstraps(witnesseses) => self.add_fake_vkey_witnesses(&witnesseses.iter().map(|bootstrap| bootstrap.0.clone()).collect()),
             InputAggregateWitnessData::NativeScript(script, info) => {
                 match info.0 {
                     NativeScriptWitnessInfoKind::Count(num) => self.add_fake_vkey_witnesses_by_num(num),

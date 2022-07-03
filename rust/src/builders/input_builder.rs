@@ -78,12 +78,12 @@ impl SingleInputBuilder {
         })
     }
 
-    pub fn bootstrap(&self, bootstrap: &BootstrapWitness) -> Result<InputBuilderResult, JsError> {
+    pub fn bootstrap(&self, vkey: &Vkey, address: &Address) -> Result<InputBuilderResult, JsError> {
         let mut required_wits = RequiredWitnessSet::default();
         input_required_wits(&self.utxo_info,&mut required_wits);
         let mut required_wits_left = required_wits.clone();
 
-        let keyhash = &bootstrap.vkey().public_key().hash();
+        let keyhash = &vkey.public_key().hash();
 
         // check the user provided all the required witnesses
         required_wits_left.bootstraps.remove(keyhash);
@@ -95,7 +95,7 @@ impl SingleInputBuilder {
         Ok(InputBuilderResult {
             input: self.input.clone(),
             utxo_info: self.utxo_info.clone(),
-            aggregate_witness: Some(InputAggregateWitnessData::Bootstraps(vec![bootstrap.clone()])),
+            aggregate_witness: Some(InputAggregateWitnessData::Bootstraps(vec![(vkey.clone(), address.clone())])),
             required_wits,
         })
     }

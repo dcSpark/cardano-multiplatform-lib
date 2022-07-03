@@ -5,9 +5,41 @@ use super::input_builder::InputBuilderResult;
 use super::mint_builder::MintBuilderResult;
 use super::certificate_builder::*;
 use super::withdrawal_builder::WithdrawalBuilderResult;
+use super::witness_builder::RedeemerSetBuilder;
 use super::witness_builder::TransactionWitnessSetBuilder;
 use std::collections::{BTreeMap, BTreeSet};
 use rand::Rng;
+
+#[derive(Clone, Default, Debug)]
+struct WitnessBuilders {
+    pub(crate) witness_set_builder: TransactionWitnessSetBuilder,
+    pub(crate) fake_witness_set_builder: TransactionWitnessSetBuilder,
+    pub(crate) redeemer_set_builder: RedeemerSetBuilder,
+}
+impl WitnessBuilders {
+    fn merge_data(&self, include_fake: bool) -> TransactionWitnessSetBuilder {
+        // add redeemers
+        let redeemers = self.redeemer_set_builder.build();
+        let mut witness_set_clone = self.witness_set_builder.clone();
+        witness_set_clone.add_redeemers(&redeemers);
+
+        if include_fake {
+            witness_set_clone.add_existing(&self.fake_witness_set_builder.build());
+        }
+
+        witness_set_clone
+    }
+
+    /// build with fake witnesses to estimate tx fee cost
+    pub fn build_fake(&self) -> TransactionWitnessSet {
+        self.merge_data(true).build()
+    }
+
+    /// build without including fake witnesses used for fee estimation
+    pub fn build_real(&self) -> Result<TransactionWitnessSet, JsError> {
+        self.merge_data(false).try_build()
+    }
+}
 
 // tx_body must be the result of building from tx_builder
 // constructs the rest of the Transaction using fake witness data of the correct length
@@ -15,7 +47,7 @@ use rand::Rng;
 fn fake_full_tx(tx_builder: &TransactionBuilder, body: TransactionBody) -> Result<Transaction, JsError> {
     Ok(Transaction {
         body,
-        witness_set: tx_builder.witness_set_builder.build(),
+        witness_set: tx_builder.witness_builders.build_fake(),
         is_valid: true,
         auxiliary_data: tx_builder.auxiliary_data.clone(),
     })
@@ -149,8 +181,9 @@ pub struct TransactionBuilder {
     collateral: Option<TransactionInputs>,
     required_signers: Option<RequiredSigners>,
     network_id: Option<NetworkId>,
-    witness_set_builder: TransactionWitnessSetBuilder,
+    witness_builders: WitnessBuilders,
     utxos: Vec<InputBuilderResult>
+
 }
 
 #[wasm_bindgen]
@@ -410,11 +443,11 @@ impl TransactionBuilder {
     }
 
     pub fn get_witness_set_builder(&self) -> TransactionWitnessSetBuilder {
-        self.witness_set_builder.clone()
+        self.witness_builders.witness_set_builder.clone()
     }
 
     pub fn set_witness_set_builder(&mut self, witness_set_builder: TransactionWitnessSetBuilder) {
-        self.witness_set_builder = witness_set_builder;
+        self.witness_builders.witness_set_builder = witness_set_builder;
     }
 
     pub fn add_input(&mut self, result: &InputBuilderResult) {
@@ -423,10 +456,11 @@ impl TransactionBuilder {
             amount: result.utxo_info.amount.clone(),
         });
         if let Some(ref data) = result.aggregate_witness {
-            self.witness_set_builder.add_input_aggregate_witness_data(data);
+            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
+            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
         }
-        self.witness_set_builder.redeemer_set_builder.add_spend(result);
-        self.witness_set_builder.add_required_wits(&result.required_wits);
+        self.witness_builders.redeemer_set_builder.add_spend(result);
+        self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
     pub fn add_utxo(&mut self, result: &InputBuilderResult) {
@@ -518,10 +552,11 @@ impl TransactionBuilder {
         certs.add(&result.cert);
         self.set_certs(certs);
         if let Some(ref data) = result.aggregate_witness {
-            self.witness_set_builder.add_input_aggregate_witness_data(data);
+            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
+            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
         }
-        self.witness_set_builder.redeemer_set_builder.add_cert(result);
-        self.witness_set_builder.add_required_wits(&result.required_wits);
+        self.witness_builders.redeemer_set_builder.add_cert(result);
+        self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
     pub fn get_withdrawals(&self) -> Option<Withdrawals> {
@@ -537,10 +572,11 @@ impl TransactionBuilder {
         withdrawals.insert(&result.address, &result.amount);
         self.set_withdrawals(withdrawals);
         if let Some(ref data) = result.aggregate_witness {
-            self.witness_set_builder.add_input_aggregate_witness_data(data);
+            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
+            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
         }
-        self.witness_set_builder.redeemer_set_builder.add_reward(result);
-        self.witness_set_builder.add_required_wits(&result.required_wits);
+        self.witness_builders.redeemer_set_builder.add_reward(result);
+        self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
     pub fn get_auxiliary_data(&self) -> Option<AuxiliaryData> {
@@ -606,10 +642,11 @@ impl TransactionBuilder {
         mint.insert(&result.policy_id, &assets);
         self.set_mint(mint);
         if let Some(ref data) = result.aggregate_witness {
-            self.witness_set_builder.add_input_aggregate_witness_data(data);
+            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
+            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
         }
-        self.witness_set_builder.redeemer_set_builder.add_mint(result);
-        self.witness_set_builder.add_required_wits(&result.required_wits);
+        self.witness_builders.redeemer_set_builder.add_mint(result);
+        self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
     /// Returns a copy of the current mint state in the builder
@@ -637,7 +674,7 @@ impl TransactionBuilder {
             collateral: None,
             required_signers: None,
             network_id: None,
-            witness_set_builder: TransactionWitnessSetBuilder::new(),
+            witness_builders: WitnessBuilders::default(),
             utxos: Vec::new()
         }
     }
@@ -1037,12 +1074,12 @@ impl TransactionBuilder {
     }
 
     /// Returns full Transaction object with the body and the auxiliary data
-    /// NOTE: witness_set will contain all mint_scripts if any been added or set
+    /// NOTE: witness_set will contain all scripts, datums, etc. if any been added or set
     /// NOTE: is_valid set to true
     pub fn build_tx(&self) -> Result<Transaction, JsError> {
         Ok(Transaction {
             body: self.build()?,
-            witness_set: self.witness_set_builder.try_build()?,
+            witness_set: self.witness_builders.build_real()?,
             is_valid: true,
             auxiliary_data: self.auxiliary_data.clone(),
         })
@@ -3661,7 +3698,7 @@ mod tests {
 
         assert_eq!(mint.len(), 3);
 
-        let mint_scripts = tx_builder.witness_set_builder.build();
+        let mint_scripts = tx_builder.witness_builders.build_fake();
         let mint_scripts_len = mint_scripts.to_bytes().len()
             - TransactionWitnessSet::new().to_bytes().len();
 

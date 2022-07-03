@@ -311,8 +311,6 @@ pub struct TransactionWitnessSetBuilder {
     /// this allows checking that witnesses are present at build time (instead of when submitting to a node)
     /// This is useful for APIs that can keep track of which witnesses will be required (like transaction builders)
     required_wits: RequiredWitnessSet,
-
-    pub redeemer_set_builder: RedeemerSetBuilder,
 }
 
 #[wasm_bindgen]
@@ -420,7 +418,22 @@ impl TransactionWitnessSetBuilder {
         self.add_fake_vkey_witnesses(&vkeys);
     }
 
-    pub(crate) fn add_input_aggregate_witness_data(&mut self, data: &InputAggregateWitnessData) {
+    pub(crate) fn add_input_aggregate_real_witness_data(&mut self, data: &InputAggregateWitnessData) {
+        match data {
+            InputAggregateWitnessData::Vkeys(_vkeys) => {},
+            InputAggregateWitnessData::Bootstraps(_witnesseses) => {}
+            InputAggregateWitnessData::NativeScript(script, _info) => {
+                self.add_native_script(script);
+            }
+            InputAggregateWitnessData::PlutusScript(witness, _info, option) => {
+                self.add_plutus_script(&witness.script());
+                if let Some(ref data) = option {
+                    self.add_plutus_datum(data);
+                }
+            }
+        }
+    }
+    pub(crate) fn add_input_aggregate_fake_witness_data(&mut self, data: &InputAggregateWitnessData) {
         match data {
             InputAggregateWitnessData::Vkeys(vkeys) => self.add_fake_vkey_witnesses(vkeys),
             InputAggregateWitnessData::Bootstraps(witnesseses) => {
@@ -429,7 +442,6 @@ impl TransactionWitnessSetBuilder {
                 }
             }
             InputAggregateWitnessData::NativeScript(script, info) => {
-                self.add_native_script(script);
                 match info.0 {
                     NativeScriptWitnessInfoKind::Count(num) => self.add_fake_vkey_witnesses_by_num(num),
                     NativeScriptWitnessInfoKind::Vkeys(ref vkeys) => self.add_fake_vkey_witnesses(vkeys),
@@ -439,11 +451,7 @@ impl TransactionWitnessSetBuilder {
                     }
                 }
             }
-            InputAggregateWitnessData::PlutusScript(witness, info, option) => {
-                self.add_plutus_script(&witness.script());
-                if let Some(ref data) = option {
-                    self.add_plutus_datum(data);
-                }
+            InputAggregateWitnessData::PlutusScript(_witness, info, _option) => {
                 self.add_plutus_witness_info(info);
             }
         }
@@ -462,30 +470,27 @@ impl TransactionWitnessSetBuilder {
 
     pub fn build(&self) -> TransactionWitnessSet {
         let mut result = TransactionWitnessSet::new();
-        let redeemers = self.redeemer_set_builder.build();
-        let mut cloned = self.clone();
-        cloned.add_redeemers(&redeemers);
 
-        if !cloned.vkeys.is_empty() {
-            result.set_vkeys(&Vkeywitnesses(cloned.vkeys.values().cloned().collect()));
+        if !self.vkeys.is_empty() {
+            result.set_vkeys(&Vkeywitnesses(self.vkeys.values().cloned().collect()));
         }
-        if !cloned.bootstraps.is_empty() {
-            result.set_bootstraps(&BootstrapWitnesses(cloned.bootstraps.values().cloned().collect()));
+        if !self.bootstraps.is_empty() {
+            result.set_bootstraps(&BootstrapWitnesses(self.bootstraps.values().cloned().collect()));
         }
-        if !cloned.native_scripts.is_empty() {
-            result.set_native_scripts(&NativeScripts(cloned.native_scripts.values().cloned().collect()));
+        if !self.native_scripts.is_empty() {
+            result.set_native_scripts(&NativeScripts(self.native_scripts.values().cloned().collect()));
         }
-        if !cloned.plutus_scripts.is_empty() {
-            result.set_plutus_scripts(&PlutusScripts(cloned.plutus_scripts.values().cloned().collect()));
+        if !self.plutus_scripts.is_empty() {
+            result.set_plutus_scripts(&PlutusScripts(self.plutus_scripts.values().cloned().collect()));
         }
-        if !cloned.plutus_data.is_empty() {
+        if !self.plutus_data.is_empty() {
             result.set_plutus_data(&PlutusList {
-                elems: cloned.plutus_data.values().cloned().collect(),
+                elems: self.plutus_data.values().cloned().collect(),
                 definite_encoding: None,
             });
         }
-        if !cloned.redeemers.is_empty() {
-            result.set_redeemers(&Redeemers(cloned.redeemers.values().cloned().collect()));
+        if !self.redeemers.is_empty() {
+            result.set_redeemers(&Redeemers(self.redeemers.values().cloned().collect()));
         }
 
         result
@@ -679,7 +684,7 @@ mod tests {
         };
 
         assert_eq!(builder.vkeys.len(), 0);
-        builder.add_input_aggregate_witness_data(&data);
+        builder.add_input_aggregate_fake_witness_data(&data);
         assert_eq!(builder.vkeys.len(), 1);
     }
 
@@ -705,7 +710,7 @@ mod tests {
         };
 
         assert_eq!(builder.vkeys.len(), 0);
-        builder.add_input_aggregate_witness_data(&data);
+        builder.add_input_aggregate_fake_witness_data(&data);
         assert_eq!(builder.vkeys.len(), 0);
     }
 

@@ -1010,7 +1010,7 @@ impl JsonSchema for MIRToStakeCredentials {
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct MoveInstantaneousReward {
     pot: MIRPot,
-    variant: MIREnum, 
+    variant: MIREnum,
 }
 
 to_from_bytes!(MoveInstantaneousReward);

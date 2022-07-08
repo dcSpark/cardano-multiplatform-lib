@@ -267,7 +267,6 @@ impl ExUnitPrices {
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct ExUnits {
-    // TODO: should these be u32 or BigNum?
     mem: BigNum,
     steps: BigNum,
 }

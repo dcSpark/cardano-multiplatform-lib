@@ -6,10 +6,10 @@ use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, Plutus
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct MintBuilderResult {
-    policy_id: PolicyID,
-    assets: MintAssets,
-    aggregate_witness: Option<InputAggregateWitnessData>,
-    required_wits: RequiredWitnessSet,
+    pub(crate) policy_id: PolicyID,
+    pub(crate) assets: MintAssets,
+    pub(crate) aggregate_witness: Option<InputAggregateWitnessData>,
+    pub(crate) required_wits: RequiredWitnessSet,
 }
 
 #[wasm_bindgen]
@@ -20,7 +20,7 @@ pub struct SingleMintBuilder {
 
 #[wasm_bindgen]
 impl SingleMintBuilder {
-    pub fn new(assets: &MintAssets,) -> Self {
+    pub fn new(assets: &MintAssets) -> Self {
         Self {
             assets: assets.clone(),
         }
@@ -47,11 +47,11 @@ impl SingleMintBuilder {
     pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, witness_info: &PlutusScriptWitnessInfo) -> Result<MintBuilderResult, JsError> {
         // TODO: Plutus V2
         let script_hash = partial_witness.script().hash(ScriptHashNamespace::PlutusV1);
-        
+
         Ok(MintBuilderResult {
             assets: self.assets.clone(),
             policy_id: script_hash,
-            aggregate_witness: Some(InputAggregateWitnessData::PlutusScriptNoDatum(partial_witness.clone(), witness_info.clone())),
+            aggregate_witness: Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), witness_info.clone(), None)),
             required_wits: RequiredWitnessSet::default(),
         })
     }

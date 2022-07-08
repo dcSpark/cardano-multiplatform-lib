@@ -84,9 +84,9 @@ pub fn add_cert_vkeys(cert_enum: &Certificate, vkeys: &mut HashSet<Ed25519KeyHas
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct CertificateBuilderResult {
-    cert: Certificate,
-    aggregate_witness: Option<InputAggregateWitnessData>,
-    required_wits: RequiredWitnessSet,
+    pub(crate) cert: Certificate,
+    pub(crate) aggregate_witness: Option<InputAggregateWitnessData>,
+    pub(crate) required_wits: RequiredWitnessSet,
 }
 
 #[wasm_bindgen]
@@ -103,6 +103,7 @@ impl SingleCertificateBuilder {
         }
     }
 
+    /// note: particularly useful for StakeRegistration which doesn't require witnessing
     pub fn skip_witness(&self) -> CertificateBuilderResult {
         let mut required_wits = RequiredWitnessSet::default();
         cert_required_wits(&self.cert, &mut required_wits);
@@ -120,18 +121,19 @@ impl SingleCertificateBuilder {
         let mut required_wits_left = required_wits.clone();
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
+        // often happens because users aren't aware StakeRegistration doesn't require a witness
         let provided_wit_subset: Vec<&Vkey> = vkeys.0.iter().filter(|vkey| required_wits_left.vkeys.contains(&vkey.public_key().hash())).collect();
-        
+
         // check the user provided all the required witnesses
         provided_wit_subset.iter().for_each(|wit| { required_wits_left.vkeys.remove(&wit.public_key().hash()); });
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str())));
         }
 
         Ok(CertificateBuilderResult {
             cert: self.cert.clone(),
-            aggregate_witness: if provided_wit_subset.len() > 0 { Some(InputAggregateWitnessData::Vkeys(provided_wit_subset.into_iter().cloned().collect())) } else { None },
+            aggregate_witness: if !provided_wit_subset.is_empty() { Some(InputAggregateWitnessData::Vkeys(provided_wit_subset.into_iter().cloned().collect())) } else { None },
             required_wits,
         })
     }
@@ -147,8 +149,9 @@ impl SingleCertificateBuilder {
         let mut required_wits_left = required_wits.clone();
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
+        // often happens because users aren't aware StakeRegistration doesn't require a witness
         let contains = required_wits_left.scripts.contains(&native_script.hash(ScriptHashNamespace::NativeScript));
-        
+
         // check the user provided all the required witnesses
         required_wits_left.scripts.remove(&native_script.hash(ScriptHashNamespace::NativeScript));
 
@@ -173,18 +176,19 @@ impl SingleCertificateBuilder {
         let script_hash = partial_witness.script().hash(ScriptHashNamespace::PlutusV1);
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
+        // often happens because users aren't aware StakeRegistration doesn't require a witness
         let contains = required_wits_left.scripts.contains(&script_hash);
-        
+
         // check the user provided all the required witnesses
         required_wits_left.scripts.remove(&script_hash);
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str())));
         }
 
         Ok(CertificateBuilderResult {
             cert: self.cert.clone(),
-            aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScriptNoDatum(partial_witness.clone(), witness_info.clone())) } else { None },
+            aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), witness_info.clone(), None)) } else { None },
             required_wits,
         })
     }

@@ -98,8 +98,7 @@ impl SingleWithdrawalBuilder {
         withdrawal_required_wits(&self.address, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
 
-        // TODO: Plutus V2
-        let script_hash = partial_witness.script().hash(ScriptHashNamespace::PlutusV1);
+        let script_hash = partial_witness.script.hash();
 
         // check the user provided all the required witnesses
         required_wits_left.scripts.remove(&script_hash);

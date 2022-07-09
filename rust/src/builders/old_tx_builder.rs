@@ -80,8 +80,9 @@ fn fake_full_tx(tx_builder: &TransactionBuilder, body: TransactionBody) -> Resul
         vkeys,
         native_scripts: tx_builder.native_scripts.clone(),
         bootstraps: bootstrap_keys,
-        // TODO: plutus support?
-        plutus_scripts: None,
+        // note: no Plutus support in old tx builder
+        plutus_v1_scripts: None,
+        plutus_v2_scripts: None,
         plutus_data: None,
         redeemers: None,
     };
@@ -621,9 +622,13 @@ impl TransactionBuilder {
                 value_size
             )));
         }
+        // note: Babbage not supported in old tx builder
+        if let Some(TxOutputData::InlinedDatum(_)) = &output.data {
+            return Err(JsError::from_str("inlined datums not supported"));
+        }
         let min_ada = min_ada_required(
             &output.amount(),
-            output.data_hash.is_some(),
+            output.data.is_some(),
             &self.config.coins_per_utxo_word,
         )?;
         if output.amount().coin() < min_ada {
@@ -1043,7 +1048,9 @@ impl TransactionBuilder {
                         let mut output = TransactionOutput {
                             address: change_address.clone(),
                             amount: base_coin.clone(),
-                            data_hash: data_hash.clone(),
+                            // note: babbage not supported in old tx builder
+                            data: data_hash.clone().map(TxOutputData::DatumHash),
+                            script_ref: None,
                         };
                         // If this becomes slow on large TXs we can optimize it like the following
                         // to avoid cloning + reserializing the entire output.
@@ -1095,7 +1102,9 @@ impl TransactionBuilder {
                                     output = TransactionOutput {
                                         address: change_address.clone(),
                                         amount: base_coin.clone(),
-                                        data_hash: data_hash.clone(),
+                                        // note: babbage not supported in old tx builder
+                                        data: data_hash.clone().map(TxOutputData::DatumHash),
+                                        script_ref: None,
                                     };
 
                                     // 3. continue building the new output from the asset we stopped
@@ -1146,7 +1155,9 @@ impl TransactionBuilder {
                             let change_output = TransactionOutput {
                                 address: address.clone(),
                                 amount: change_value.clone(),
-                                data_hash: data_hash.clone(),
+                                // note: babbage not supported in old tx builder
+                                data: data_hash.clone().map(TxOutputData::DatumHash),
+                                script_ref: None,
                             };
                             // increase fee
                             let fee_for_change = self.fee_for_output(&change_output)?;
@@ -1165,7 +1176,9 @@ impl TransactionBuilder {
                         let pure_output = TransactionOutput {
                             address: address.clone(),
                             amount: change_left.clone(),
-                            data_hash: data_hash.clone(),
+                            // note: babbage not supported in old tx builder
+                            data: data_hash.clone().map(TxOutputData::DatumHash),
+                            script_ref: None,
                         };
                         let additional_fee = self.fee_for_output(&pure_output)?;
                         let potential_pure_value = change_left.checked_sub(&Value::new(&additional_fee))?;
@@ -1176,7 +1189,9 @@ impl TransactionBuilder {
                             self.add_output(&TransactionOutput {
                                 address: address.clone(),
                                 amount: potential_pure_value.clone(),
-                                data_hash: data_hash.clone(),
+                                // note: babbage not supported in old tx builder
+                                data: data_hash.clone().map(TxOutputData::DatumHash),
+                                script_ref: None,
                             })?;
                         }
                     }
@@ -1205,7 +1220,9 @@ impl TransactionBuilder {
                             let fee_for_change = self.fee_for_output(&TransactionOutput {
                                 address: address.clone(),
                                 amount: change_estimator.clone(),
-                                data_hash: data_hash.clone(),
+                                // note: babbage not supported in old tx builder
+                                data: data_hash.clone().map(TxOutputData::DatumHash),
+                                script_ref: None,
                             })?;
 
                             let new_fee = fee.checked_add(&fee_for_change)?;
@@ -1218,7 +1235,9 @@ impl TransactionBuilder {
                                     self.add_output(&TransactionOutput {
                                         address: address.clone(),
                                         amount: change_estimator.checked_sub(&Value::new(&new_fee.clone()))?,
-                                        data_hash: data_hash.clone(),
+                                        // note: babbage not supported in old tx builder
+                                        data: data_hash.clone().map(TxOutputData::DatumHash),
+                                        script_ref: None,
                                     })?;
 
                                     Ok(true)
@@ -1249,6 +1268,10 @@ impl TransactionBuilder {
             collateral: self.collateral.clone(),
             required_signers: self.required_signers.clone(),
             network_id: self.network_id,
+            // note: babbage not supported in old tx builder
+            collateral_return: None,
+            total_collateral: None,
+            reference_inputs: None,
         };
         // we must build a tx with fake data (of correct size) to check the final Transaction size
         let full_tx = fake_full_tx(self, built)?;
@@ -3548,7 +3571,7 @@ mod tests {
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
         assert!(aux.native_scripts().is_none());
-        assert!(aux.plutus_scripts().is_none());
+        assert!(aux.plutus_v1_scripts().is_none());
 
         let met = aux.metadata().unwrap();
 
@@ -3569,7 +3592,7 @@ mod tests {
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
         assert!(aux.native_scripts().is_some());
-        assert!(aux.plutus_scripts().is_none());
+        assert!(aux.plutus_v1_scripts().is_none());
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 1);
@@ -3589,7 +3612,7 @@ mod tests {
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
         assert!(aux.native_scripts().is_none());
-        assert!(aux.plutus_scripts().is_none());
+        assert!(aux.plutus_v1_scripts().is_none());
 
         let met = aux.metadata().unwrap();
 
@@ -3610,7 +3633,7 @@ mod tests {
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
         assert!(aux.native_scripts().is_some());
-        assert!(aux.plutus_scripts().is_none());
+        assert!(aux.plutus_v1_scripts().is_none());
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 2);
@@ -3630,7 +3653,7 @@ mod tests {
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
         assert!(aux.native_scripts().is_none());
-        assert!(aux.plutus_scripts().is_none());
+        assert!(aux.plutus_v1_scripts().is_none());
 
         let met = aux.metadata().unwrap();
 
@@ -3651,7 +3674,7 @@ mod tests {
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
         assert!(aux.native_scripts().is_some());
-        assert!(aux.plutus_scripts().is_none());
+        assert!(aux.plutus_v1_scripts().is_none());
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 2);

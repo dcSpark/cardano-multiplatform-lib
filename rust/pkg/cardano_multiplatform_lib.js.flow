@@ -6,6 +6,26 @@
  */
 
 /**
+ * @param {string} json
+ * @param {number} schema
+ * @returns {PlutusData}
+ */
+declare export function encode_json_str_to_plutus_datum(
+  json: string,
+  schema: number
+): PlutusData;
+
+/**
+ * @param {PlutusData} datum
+ * @param {number} schema
+ * @returns {string}
+ */
+declare export function decode_plutus_datum_to_json_str(
+  datum: PlutusData,
+  schema: number
+): string;
+
+/**
  * @param {TransactionHash} tx_body_hash
  * @param {ByronAddress} addr
  * @param {LegacyDaedalusPrivateKey} key
@@ -173,26 +193,6 @@ declare export function decode_metadatum_to_json_str(
 ): string;
 
 /**
- * @param {string} json
- * @param {number} schema
- * @returns {PlutusData}
- */
-declare export function encode_json_str_to_plutus_datum(
-  json: string,
-  schema: number
-): PlutusData;
-
-/**
- * @param {PlutusData} datum
- * @param {number} schema
- * @returns {string}
- */
-declare export function decode_plutus_datum_to_json_str(
-  datum: PlutusData,
-  schema: number
-): string;
-
-/**
  * @param {string} password
  * @param {string} salt
  * @param {string} nonce
@@ -275,49 +275,6 @@ declare export var NetworkIdKind: {|
 |};
 
 /**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
- */
-
-declare export var ScriptHashNamespace: {|
-  +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
-|};
-
-/**
- * Used to choose the schema for a script JSON string
- */
-
-declare export var ScriptSchema: {|
-  +Wallet: 0, // 0
-  +Node: 1, // 1
-|};
-
-/**
- */
-
-declare export var TransactionMetadatumKind: {|
-  +MetadataMap: 0, // 0
-  +MetadataList: 1, // 1
-  +Int: 2, // 2
-  +Bytes: 3, // 3
-  +Text: 4, // 4
-|};
-
-/**
- */
-
-declare export var MetadataJsonSchema: {|
-  +NoConversions: 0, // 0
-  +BasicConversions: 1, // 1
-  +DetailedSchema: 2, // 2
-|};
-
-/**
  */
 
 declare export var LanguageKind: {|
@@ -361,6 +318,49 @@ declare export var RedeemerTagKind: {|
 declare export var PlutusDatumSchema: {|
   +BasicConversions: 0, // 0
   +DetailedSchema: 1, // 1
+|};
+
+/**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
+ */
+
+declare export var ScriptHashNamespace: {|
+  +NativeScript: 0, // 0
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
+|};
+
+/**
+ * Used to choose the schema for a script JSON string
+ */
+
+declare export var ScriptSchema: {|
+  +Wallet: 0, // 0
+  +Node: 1, // 1
+|};
+
+/**
+ */
+
+declare export var TransactionMetadatumKind: {|
+  +MetadataMap: 0, // 0
+  +MetadataList: 1, // 1
+  +Int: 2, // 2
+  +Bytes: 3, // 3
+  +Text: 4, // 4
+|};
+
+/**
+ */
+
+declare export var MetadataJsonSchema: {|
+  +NoConversions: 0, // 0
+  +BasicConversions: 1, // 1
+  +DetailedSchema: 2, // 2
 |};
 
 /**
@@ -751,14 +751,24 @@ declare export class AuxiliaryData {
   set_native_scripts(native_scripts: NativeScripts): void;
 
   /**
-   * @returns {PlutusScripts | void}
+   * @returns {PlutusV1Scripts | void}
    */
-  plutus_scripts(): PlutusScripts | void;
+  plutus_v1_scripts(): PlutusV1Scripts | void;
 
   /**
-   * @param {PlutusScripts} plutus_scripts
+   * @param {PlutusV1Scripts} plutus_v1_scripts
    */
-  set_plutus_scripts(plutus_scripts: PlutusScripts): void;
+  set_plutus_v1_scripts(plutus_v1_scripts: PlutusV1Scripts): void;
+
+  /**
+   * @returns {PlutusV2Scripts | void}
+   */
+  plutus_v2_scripts(): PlutusV2Scripts | void;
+
+  /**
+   * @param {PlutusV2Scripts} plutus_v2_scripts
+   */
+  set_plutus_v2_scripts(plutus_v2_scripts: PlutusV2Scripts): void;
 }
 /**
  */
@@ -1688,9 +1698,10 @@ declare export class CostModel {
   static from_bytes(bytes: Uint8Array): CostModel;
 
   /**
+   * @param {Language} language
    * @returns {CostModel}
    */
-  static new(): CostModel;
+  static new(language: Language): CostModel;
 
   /**
    * @param {number} operation
@@ -1732,11 +1743,10 @@ declare export class Costmdls {
   len(): number;
 
   /**
-   * @param {Language} key
    * @param {CostModel} value
    * @returns {CostModel | void}
    */
-  insert(key: Language, value: CostModel): CostModel | void;
+  insert(value: CostModel): CostModel | void;
 
   /**
    * @param {Language} key
@@ -2425,12 +2435,7 @@ declare export class HeaderBody {
   /**
    * @returns {VRFCert}
    */
-  nonce_vrf(): VRFCert;
-
-  /**
-   * @returns {VRFCert}
-   */
-  leader_vrf(): VRFCert;
+  vrf_result(): VRFCert;
 
   /**
    * @returns {number}
@@ -2458,8 +2463,7 @@ declare export class HeaderBody {
    * @param {BlockHeaderHash | void} prev_hash
    * @param {Vkey} issuer_vkey
    * @param {VRFVKey} vrf_vkey
-   * @param {VRFCert} nonce_vrf
-   * @param {VRFCert} leader_vrf
+   * @param {VRFCert} vrf_result
    * @param {number} block_body_size
    * @param {BlockBodyHash} block_body_hash
    * @param {OperationalCert} operational_cert
@@ -2472,8 +2476,7 @@ declare export class HeaderBody {
     prev_hash: BlockHeaderHash | void,
     issuer_vkey: Vkey,
     vrf_vkey: VRFVKey,
-    nonce_vrf: VRFCert,
-    leader_vrf: VRFCert,
+    vrf_result: VRFCert,
     block_body_size: number,
     block_body_hash: BlockBodyHash,
     operational_cert: OperationalCert,
@@ -4083,24 +4086,24 @@ declare export class PartialPlutusWitness {
   free(): void;
 
   /**
-   * @returns {PlutusScript}
+   * @param {PlutusScriptWasm} script
+   * @param {UntaggedRedeemer} untagged_redeemer
+   * @returns {PartialPlutusWitness}
    */
-  script(): PlutusScript;
+  static new(
+    script: PlutusScriptWasm,
+    untagged_redeemer: UntaggedRedeemer
+  ): PartialPlutusWitness;
+
+  /**
+   * @returns {PlutusScriptWasm}
+   */
+  script(): PlutusScriptWasm;
 
   /**
    * @returns {UntaggedRedeemer}
    */
   untagged_redeemer(): UntaggedRedeemer;
-
-  /**
-   * @param {PlutusScript} script
-   * @param {UntaggedRedeemer} untagged_redeemer
-   * @returns {PartialPlutusWitness}
-   */
-  static new(
-    script: PlutusScript,
-    untagged_redeemer: UntaggedRedeemer
-  ): PartialPlutusWitness;
 }
 /**
  */
@@ -4263,41 +4266,8 @@ declare export class PlutusMap {
 }
 /**
  */
-declare export class PlutusScript {
+declare export class PlutusScriptWasm {
   free(): void;
-
-  /**
-   * @returns {Uint8Array}
-   */
-  to_bytes(): Uint8Array;
-
-  /**
-   * @param {Uint8Array} bytes
-   * @returns {PlutusScript}
-   */
-  static from_bytes(bytes: Uint8Array): PlutusScript;
-
-  /**
-   * @param {number} namespace
-   * @returns {ScriptHash}
-   */
-  hash(namespace: number): ScriptHash;
-
-  /**
-   * * Creates a new Plutus script from the RAW bytes of the compiled script.
-   * * This does NOT include any CBOR encoding around these bytes (e.g. from "cborBytes" in cardano-cli)
-   * * If you creating this from those you should use PlutusScript::from_bytes() instead.
-   * @param {Uint8Array} bytes
-   * @returns {PlutusScript}
-   */
-  static new(bytes: Uint8Array): PlutusScript;
-
-  /**
-   * * The raw bytes of this compiled Plutus script.
-   * * If you need "cborBytes" for cardano-cli use PlutusScript::to_bytes() instead.
-   * @returns {Uint8Array}
-   */
-  bytes(): Uint8Array;
 }
 /**
  */
@@ -4306,7 +4276,7 @@ declare export class PlutusScriptWitnessInfo {
 }
 /**
  */
-declare export class PlutusScripts {
+declare export class PlutusV1Script {
   free(): void;
 
   /**
@@ -4316,14 +4286,83 @@ declare export class PlutusScripts {
 
   /**
    * @param {Uint8Array} bytes
-   * @returns {PlutusScripts}
+   * @returns {PlutusV1Script}
    */
-  static from_bytes(bytes: Uint8Array): PlutusScripts;
+  static from_bytes(bytes: Uint8Array): PlutusV1Script;
 
   /**
-   * @returns {PlutusScripts}
+   * @returns {string}
    */
-  static new(): PlutusScripts;
+  to_json(): string;
+
+  /**
+   * @returns {PlutusV1ScriptJSON}
+   */
+  to_js_value(): PlutusV1ScriptJSON;
+
+  /**
+   * @param {string} json
+   * @returns {PlutusV1Script}
+   */
+  static from_json(json: string): PlutusV1Script;
+
+  /**
+   * @returns {ScriptHash}
+   */
+  hash(): ScriptHash;
+
+  /**
+   * * Creates a new Plutus script from the RAW bytes of the compiled script.
+   * * This does NOT include any CBOR encoding around these bytes (e.g. from "cborBytes" in cardano-cli)
+   * * If you creating this from those you should use PlutusV1Script::from_bytes() instead.
+   * @param {Uint8Array} bytes
+   * @returns {PlutusV1Script}
+   */
+  static new(bytes: Uint8Array): PlutusV1Script;
+
+  /**
+   * * The raw bytes of this compiled Plutus script.
+   * * If you need "cborBytes" for cardano-cli use PlutusV1Script::to_bytes() instead.
+   * @returns {Uint8Array}
+   */
+  bytes(): Uint8Array;
+}
+/**
+ */
+declare export class PlutusV1Scripts {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {PlutusV1Scripts}
+   */
+  static from_bytes(bytes: Uint8Array): PlutusV1Scripts;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {PlutusV1ScriptsJSON}
+   */
+  to_js_value(): PlutusV1ScriptsJSON;
+
+  /**
+   * @param {string} json
+   * @returns {PlutusV1Scripts}
+   */
+  static from_json(json: string): PlutusV1Scripts;
+
+  /**
+   * @returns {PlutusV1Scripts}
+   */
+  static new(): PlutusV1Scripts;
 
   /**
    * @returns {number}
@@ -4332,14 +4371,120 @@ declare export class PlutusScripts {
 
   /**
    * @param {number} index
-   * @returns {PlutusScript}
+   * @returns {PlutusV1Script}
    */
-  get(index: number): PlutusScript;
+  get(index: number): PlutusV1Script;
 
   /**
-   * @param {PlutusScript} elem
+   * @param {PlutusV1Script} elem
    */
-  add(elem: PlutusScript): void;
+  add(elem: PlutusV1Script): void;
+}
+/**
+ */
+declare export class PlutusV2Script {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {PlutusV2Script}
+   */
+  static from_bytes(bytes: Uint8Array): PlutusV2Script;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {PlutusV2ScriptJSON}
+   */
+  to_js_value(): PlutusV2ScriptJSON;
+
+  /**
+   * @param {string} json
+   * @returns {PlutusV2Script}
+   */
+  static from_json(json: string): PlutusV2Script;
+
+  /**
+   * @returns {ScriptHash}
+   */
+  hash(): ScriptHash;
+
+  /**
+   * * Creates a new Plutus script from the RAW bytes of the compiled script.
+   * * This does NOT include any CBOR encoding around these bytes (e.g. from "cborBytes" in cardano-cli)
+   * * If you creating this from those you should use PlutusV2Script::from_bytes() instead.
+   * @param {Uint8Array} bytes
+   * @returns {PlutusV2Script}
+   */
+  static new(bytes: Uint8Array): PlutusV2Script;
+
+  /**
+   * * The raw bytes of this compiled Plutus script.
+   * * If you need "cborBytes" for cardano-cli use PlutusV2Script::to_bytes() instead.
+   * @returns {Uint8Array}
+   */
+  bytes(): Uint8Array;
+}
+/**
+ */
+declare export class PlutusV2Scripts {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {PlutusV2Scripts}
+   */
+  static from_bytes(bytes: Uint8Array): PlutusV2Scripts;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {PlutusV2ScriptsJSON}
+   */
+  to_js_value(): PlutusV2ScriptsJSON;
+
+  /**
+   * @param {string} json
+   * @returns {PlutusV2Scripts}
+   */
+  static from_json(json: string): PlutusV2Scripts;
+
+  /**
+   * @returns {PlutusV2Scripts}
+   */
+  static new(): PlutusV2Scripts;
+
+  /**
+   * @returns {number}
+   */
+  len(): number;
+
+  /**
+   * @param {number} index
+   * @returns {PlutusV2Script}
+   */
+  get(index: number): PlutusV2Script;
+
+  /**
+   * @param {PlutusV2Script} elem
+   */
+  add(elem: PlutusV2Script): void;
 }
 /**
  */
@@ -4969,21 +5114,25 @@ declare export class ProtocolParamUpdate {
   treasury_growth_rate(): UnitInterval | void;
 
   /**
+   * This parameter is only used in the Alonzo era. Do not set it for other eras.
    * @param {UnitInterval} d
    */
   set_d(d: UnitInterval): void;
 
   /**
+   * This parameter is only used in the Alonzo era. Do not set it for other eras.
    * @returns {UnitInterval | void}
    */
   d(): UnitInterval | void;
 
   /**
+   * This parameter is only used in the Alonzo era. Do not set it for other eras.
    * @param {Nonce} extra_entropy
    */
   set_extra_entropy(extra_entropy: Nonce): void;
 
   /**
+   * This parameter is only used in the Alonzo era. Do not set it for other eras.
    * @returns {Nonce | void}
    */
   extra_entropy(): Nonce | void;
@@ -5538,9 +5687,9 @@ declare export class RequiredWitnessSet {
   add_script_hash(script_hash: ScriptHash): void;
 
   /**
-   * @param {PlutusScript} plutus_script
+   * @param {PlutusScriptWasm} plutus_v1_script
    */
-  add_plutus_script(plutus_script: PlutusScript): void;
+  add_plutus_script(plutus_v1_script: PlutusScriptWasm): void;
 
   /**
    * @param {PlutusData} plutus_datum
@@ -5652,6 +5801,53 @@ declare export class RewardAddresses {
    * @param {RewardAddress} elem
    */
   add(elem: RewardAddress): void;
+}
+/**
+ */
+declare export class Script {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {Script}
+   */
+  static from_bytes(bytes: Uint8Array): Script;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {ScriptJSON}
+   */
+  to_js_value(): ScriptJSON;
+
+  /**
+   * @param {string} json
+   * @returns {Script}
+   */
+  static from_json(json: string): Script;
+
+  /**
+   * @returns {NativeScript | void}
+   */
+  as_native(): NativeScript | void;
+
+  /**
+   * @returns {PlutusV1Script | void}
+   */
+  as_plutus_v1(): PlutusV1Script | void;
+
+  /**
+   * @returns {PlutusV2Script | void}
+   */
+  as_plutus_v2(): PlutusV2Script | void;
 }
 /**
  */
@@ -5961,6 +6157,43 @@ declare export class ScriptPubkey {
    * @returns {ScriptPubkey}
    */
   static new(addr_keyhash: Ed25519KeyHash): ScriptPubkey;
+}
+/**
+ */
+declare export class ScriptRef {
+  free(): void;
+
+  /**
+   * @returns {Script}
+   */
+  script(): Script;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {ScriptRef}
+   */
+  static from_bytes(bytes: Uint8Array): ScriptRef;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {ScriptRefJSON}
+   */
+  to_js_value(): ScriptRefJSON;
+
+  /**
+   * @param {string} json
+   * @returns {ScriptRef}
+   */
+  static from_json(json: string): ScriptRef;
 }
 /**
  */
@@ -6893,6 +7126,36 @@ declare export class TransactionBody {
    * @returns {NetworkId | void}
    */
   network_id(): NetworkId | void;
+
+  /**
+   * @param {TransactionOutput} collateral_return
+   */
+  set_collateral_return(collateral_return: TransactionOutput): void;
+
+  /**
+   * @returns {TransactionOutput | void}
+   */
+  collateral_return(): TransactionOutput | void;
+
+  /**
+   * @param {BigNum} total_collateral
+   */
+  set_total_collateral(total_collateral: BigNum): void;
+
+  /**
+   * @returns {BigNum | void}
+   */
+  total_collateral(): BigNum | void;
+
+  /**
+   * @param {TransactionInputs} reference_inputs
+   */
+  set_reference_inputs(reference_inputs: TransactionInputs): void;
+
+  /**
+   * @returns {TransactionInputs | void}
+   */
+  reference_inputs(): TransactionInputs | void;
 
   /**
    * @param {TransactionInputs} inputs
@@ -7953,14 +8216,14 @@ declare export class TransactionWitnessSet {
   bootstraps(): BootstrapWitnesses | void;
 
   /**
-   * @param {PlutusScripts} plutus_scripts
+   * @param {PlutusV1Scripts} plutus_v1_scripts
    */
-  set_plutus_scripts(plutus_scripts: PlutusScripts): void;
+  set_plutus_v1_scripts(plutus_v1_scripts: PlutusV1Scripts): void;
 
   /**
-   * @returns {PlutusScripts | void}
+   * @returns {PlutusV1Scripts | void}
    */
-  plutus_scripts(): PlutusScripts | void;
+  plutus_v1_scripts(): PlutusV1Scripts | void;
 
   /**
    * @param {PlutusList} plutus_data
@@ -7981,6 +8244,16 @@ declare export class TransactionWitnessSet {
    * @returns {Redeemers | void}
    */
   redeemers(): Redeemers | void;
+
+  /**
+   * @param {PlutusV2Scripts} plutus_v2_scripts
+   */
+  set_plutus_v2_scripts(plutus_v2_scripts: PlutusV2Scripts): void;
+
+  /**
+   * @returns {PlutusV2Scripts | void}
+   */
+  plutus_v2_scripts(): PlutusV2Scripts | void;
 
   /**
    * @returns {TransactionWitnessSet}
@@ -8024,14 +8297,24 @@ declare export class TransactionWitnessSetBuilder {
   get_native_script(): NativeScripts;
 
   /**
-   * @param {PlutusScript} plutus_script
+   * @param {PlutusV1Script} plutus_v1_script
    */
-  add_plutus_script(plutus_script: PlutusScript): void;
+  add_plutus_v1_script(plutus_v1_script: PlutusV1Script): void;
 
   /**
-   * @returns {PlutusScripts}
+   * @returns {PlutusV1Scripts}
    */
-  get_plutus_script(): PlutusScripts;
+  get_plutus_v1_script(): PlutusV1Scripts;
+
+  /**
+   * @param {PlutusV2Script} plutus_v2_script
+   */
+  add_plutus_v2_script(plutus_v2_script: PlutusV2Script): void;
+
+  /**
+   * @returns {PlutusV2Scripts}
+   */
+  get_plutus_v2_script(): PlutusV2Scripts;
 
   /**
    * @param {PlutusData} plutus_datum
@@ -8725,7 +9008,8 @@ export interface AuxiliaryDataJSON {
     ...
   } | null;
   native_scripts?: NativeScriptsJSON | null;
-  plutus_scripts?: PlutusScriptsJSON | null;
+  plutus_v1_scripts?: PlutusV1ScriptsJSON | null;
+  plutus_v2_scripts?: PlutusV2ScriptsJSON | null;
 }
 export type AuxiliaryDataHashJSON = string;
 export interface AuxiliaryDataSetJSON {
@@ -8788,7 +9072,10 @@ export interface ConstrPlutusDataJSON {
   alternative: string;
   data: PlutusListJSON;
 }
-export type CostModelJSON = string[];
+export interface CostModelJSON {
+  language: LanguageJSON;
+  op_costs: string[];
+}
 export interface CostmdlsJSON {
   [k: string]: CostModelJSON;
 }
@@ -8826,12 +9113,11 @@ export interface HeaderBodyJSON {
   block_body_size: number;
   block_number: number;
   issuer_vkey: VkeyJSON;
-  leader_vrf: VRFCertJSON;
-  nonce_vrf: VRFCertJSON;
   operational_cert: OperationalCertJSON;
   prev_hash?: string | null;
   protocol_version: ProtocolVersionJSON;
   slot: string;
+  vrf_result: VRFCertJSON;
   vrf_vkey: string;
 }
 export type IntJSON = string;
@@ -8979,6 +9265,10 @@ export interface PlutusMapJSON {
 }
 export type PlutusScriptJSON = string;
 export type PlutusScriptsJSON = string[];
+export type PlutusV1ScriptJSON = string;
+export type PlutusV1ScriptsJSON = string[];
+export type PlutusV2ScriptJSON = string;
+export type PlutusV2ScriptsJSON = string[];
 export interface PoolMetadataJSON {
   pool_metadata_hash: string;
   url: URLJSON;
@@ -9062,6 +9352,20 @@ export type RelayEnumJSON =
 export type RelaysJSON = RelayJSON[];
 export type RewardAddressJSON = string;
 export type RewardAddressesJSON = string[];
+export type ScriptJSON = ScriptEnumJSON;
+export type ScriptEnumJSON =
+  | {
+      Native: NativeScriptJSON,
+      ...
+    }
+  | {
+      PlutusV1: string,
+      ...
+    }
+  | {
+      PlutusV2: string,
+      ...
+    };
 export interface ScriptAllJSON {
   native_scripts: NativeScriptsJSON;
 }
@@ -9078,6 +9382,7 @@ export interface ScriptNOfKJSON {
 export interface ScriptPubkeyJSON {
   addr_keyhash: string;
 }
+export type ScriptRefJSON = ScriptJSON;
 export interface SingleHostAddrJSON {
   ipv4?: Ipv4JSON | null;
   ipv6?: Ipv6JSON | null;
@@ -9093,7 +9398,7 @@ export type StakeCredTypeJSON =
       ...
     }
   | {
-      Script: string,
+      ScriptJSON: string,
       ...
     };
 export type StakeCredentialJSON = StakeCredTypeJSON;
@@ -9125,13 +9430,16 @@ export interface TransactionBodyJSON {
   auxiliary_data_hash?: string | null;
   certs?: CertificatesJSON | null;
   collateral?: TransactionInputsJSON | null;
+  collateral_return?: TransactionOutputJSON | null;
   fee: string;
   inputs: TransactionInputsJSON;
   mint?: MintJSON | null;
   network_id?: NetworkIdJSON | null;
   outputs: TransactionOutputsJSON;
+  reference_inputs?: TransactionInputsJSON | null;
   required_signers?: Ed25519KeyHashesJSON | null;
   script_data_hash?: string | null;
+  total_collateral?: string | null;
   ttl?: string | null;
   update?: UpdateJSON | null;
   validity_start_interval?: string | null;
@@ -9150,14 +9458,16 @@ export type TransactionMetadatumJSON = string;
 export interface TransactionOutputJSON {
   address: string;
   amount: ValueJSON;
-  data_hash?: string | null;
+  data?: TxOutputData | null;
+  script_ref?: ScriptJSON | null;
 }
 export type TransactionOutputsJSON = TransactionOutputJSON[];
 export interface TransactionWitnessSetJSON {
   bootstraps?: BootstrapWitnessesJSON | null;
   native_scripts?: NativeScriptsJSON | null;
   plutus_data?: PlutusListJSON | null;
-  plutus_scripts?: PlutusScriptsJSON | null;
+  plutus_v1_scripts?: PlutusV1ScriptsJSON | null;
+  plutus_v2_scripts?: PlutusV2ScriptsJSON | null;
   redeemers?: RedeemersJSON | null;
   vkeys?: VkeywitnessesJSON | null;
 }

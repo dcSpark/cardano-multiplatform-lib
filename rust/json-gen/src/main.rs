@@ -91,7 +91,6 @@ fn main() {
     gen_json_schema!(MintAssets);
     gen_json_schema!(Mint);
     gen_json_schema!(NetworkId);
-    gen_json_schema!(NetworkIdKind);
     // crypto.rs
     gen_json_schema!(PublicKey);
     gen_json_schema!(Vkey);
@@ -123,8 +122,10 @@ fn main() {
     gen_json_schema!(Address);
     gen_json_schema!(RewardAddress);
     // plutus.rs
-    gen_json_schema!(PlutusScript);
-    gen_json_schema!(PlutusScripts);
+    gen_json_schema!(PlutusV1Script);
+    gen_json_schema!(PlutusV1Scripts);
+    gen_json_schema!(PlutusV2Script);
+    gen_json_schema!(PlutusV2Scripts);
     gen_json_schema!(ConstrPlutusData);
     gen_json_schema!(CostModel);
     gen_json_schema!(Costmdls);
@@ -142,6 +143,8 @@ fn main() {
     gen_json_schema!(RedeemerTag);
     gen_json_schema!(RedeemerTagKind);
     gen_json_schema!(Redeemers);
+    gen_json_schema!(Script);
+    gen_json_schema!(ScriptRef);
     //gen_json_schema!(Strings);
     // metadata.rs
     gen_json_schema!(TransactionMetadatum);

@@ -11,65 +11,69 @@ use schemars::JsonSchema;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct PlutusScript(Vec<u8>);
+pub struct PlutusV1Script(Vec<u8>);
 
-to_from_bytes!(PlutusScript);
+to_from_bytes!(PlutusV1Script);
+
+to_from_json!(PlutusV1Script);
 
 #[wasm_bindgen]
-impl PlutusScript {
-    pub fn hash(&self, namespace: ScriptHashNamespace) -> ScriptHash {
-        hash_script(namespace, self.to_bytes())
+impl PlutusV1Script {
+    pub fn hash(&self) -> ScriptHash {
+        hash_script(ScriptHashNamespace::PlutusV1, self.to_bytes())
     }
 
     /**
      * Creates a new Plutus script from the RAW bytes of the compiled script.
      * This does NOT include any CBOR encoding around these bytes (e.g. from "cborBytes" in cardano-cli)
-     * If you creating this from those you should use PlutusScript::from_bytes() instead.
+     * If you creating this from those you should use PlutusV1Script::from_bytes() instead.
      */
-    pub fn new(bytes: Vec<u8>) -> PlutusScript {
+    pub fn new(bytes: Vec<u8>) -> PlutusV1Script {
         Self(bytes)
     }
 
     /**
      * The raw bytes of this compiled Plutus script.
-     * If you need "cborBytes" for cardano-cli use PlutusScript::to_bytes() instead.
+     * If you need "cborBytes" for cardano-cli use PlutusV1Script::to_bytes() instead.
      */
     pub fn bytes(&self) -> Vec<u8> {
         self.0.clone()
     }
 }
 
-impl serde::Serialize for PlutusScript {
+impl serde::Serialize for PlutusV1Script {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: serde::Serializer {
         serializer.serialize_str(&hex::encode(&self.0))
     }
 }
 
-impl <'de> serde::de::Deserialize<'de> for PlutusScript {
+impl <'de> serde::de::Deserialize<'de> for PlutusV1Script {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
     D: serde::de::Deserializer<'de> {
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
         hex::decode(&s)
-            .map(|bytes| PlutusScript::new(bytes))
-            .map_err(|_err| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"PlutusScript as hex string e.g. F8AB28C2 (without CBOR bytes tag)"))
+            .map(|bytes| PlutusV1Script::new(bytes))
+            .map_err(|_err| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"PlutusV1Script as hex string e.g. F8AB28C2 (without CBOR bytes tag)"))
     }
 }
 
-impl JsonSchema for PlutusScript {
-    fn schema_name() -> String { String::from("PlutusScript") }
+impl JsonSchema for PlutusV1Script {
+    fn schema_name() -> String { String::from("PlutusV1Script") }
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
     fn is_referenceable() -> bool { String::is_referenceable() }
 }
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
-pub struct PlutusScripts(pub (crate) Vec<PlutusScript>);
+pub struct PlutusV1Scripts(pub (crate) Vec<PlutusV1Script>);
 
-to_from_bytes!(PlutusScripts);
+to_from_bytes!(PlutusV1Scripts);
+
+to_from_json!(PlutusV1Scripts);
 
 #[wasm_bindgen]
-impl PlutusScripts {
+impl PlutusV1Scripts {
     pub fn new() -> Self {
         Self(Vec::new())
     }
@@ -78,11 +82,93 @@ impl PlutusScripts {
         self.0.len()
     }
 
-    pub fn get(&self, index: usize) -> PlutusScript {
+    pub fn get(&self, index: usize) -> PlutusV1Script {
         self.0[index].clone()
     }
 
-    pub fn add(&mut self, elem: &PlutusScript) {
+    pub fn add(&mut self, elem: &PlutusV1Script) {
+        self.0.push(elem.clone());
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct PlutusV2Script(Vec<u8>);
+
+to_from_bytes!(PlutusV2Script);
+
+to_from_json!(PlutusV2Script);
+
+#[wasm_bindgen]
+impl PlutusV2Script {
+    pub fn hash(&self) -> ScriptHash {
+        hash_script(ScriptHashNamespace::PlutusV2, self.to_bytes())
+    }
+
+    /**
+     * Creates a new Plutus script from the RAW bytes of the compiled script.
+     * This does NOT include any CBOR encoding around these bytes (e.g. from "cborBytes" in cardano-cli)
+     * If you creating this from those you should use PlutusV2Script::from_bytes() instead.
+     */
+    pub fn new(bytes: Vec<u8>) -> PlutusV2Script {
+        Self(bytes)
+    }
+
+    /**
+     * The raw bytes of this compiled Plutus script.
+     * If you need "cborBytes" for cardano-cli use PlutusV2Script::to_bytes() instead.
+     */
+    pub fn bytes(&self) -> Vec<u8> {
+        self.0.clone()
+    }
+}
+
+impl serde::Serialize for PlutusV2Script {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer {
+        serializer.serialize_str(&hex::encode(&self.0))
+    }
+}
+
+impl <'de> serde::de::Deserialize<'de> for PlutusV2Script {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
+    D: serde::de::Deserializer<'de> {
+        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        hex::decode(&s)
+            .map(|bytes| PlutusV2Script::new(bytes))
+            .map_err(|_err| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"PlutusV2Script as hex string e.g. F8AB28C2 (without CBOR bytes tag)"))
+    }
+}
+
+impl JsonSchema for PlutusV2Script {
+    fn schema_name() -> String { String::from("PlutusV2Script") }
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
+    fn is_referenceable() -> bool { String::is_referenceable() }
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+pub struct PlutusV2Scripts(pub (crate) Vec<PlutusV2Script>);
+
+to_from_bytes!(PlutusV2Scripts);
+
+to_from_json!(PlutusV2Scripts);
+
+#[wasm_bindgen]
+impl PlutusV2Scripts {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> PlutusV2Script {
+        self.0[index].clone()
+    }
+
+    pub fn add(&mut self, elem: &PlutusV2Script) {
         self.0.push(elem.clone());
     }
 }
@@ -146,38 +232,53 @@ impl ConstrPlutusData {
     }
 }
 
-const COST_MODEL_OP_COUNT: usize = 166;
+const PLUTUS_V1_COST_MODEL_OP_COUNT: usize = 166;
+const PLUTUS_V2_COST_MODEL_OP_COUNT: usize = 175;
+
+fn cost_model_op_count(lang: LanguageKind) -> usize {
+    match lang {
+        LanguageKind::PlutusV1 => PLUTUS_V1_COST_MODEL_OP_COUNT,
+        LanguageKind::PlutusV2 => PLUTUS_V2_COST_MODEL_OP_COUNT,
+    }
+}
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
-pub struct CostModel(Vec<Int>);
+pub struct CostModel {
+    language: Language,
+    op_costs: Vec<Int>,
+}
 
 to_from_bytes!(CostModel);
 
 #[wasm_bindgen]
 impl CostModel {
-    pub fn new() -> Self {
-        let mut costs = Vec::with_capacity(COST_MODEL_OP_COUNT);
-        for _ in 0 .. COST_MODEL_OP_COUNT {
-            costs.push(Int::new_i32(0));
+    pub fn new(language: &Language) -> Self {
+        let op_count = cost_model_op_count(language.0);
+        let mut op_costs = Vec::with_capacity(op_count);
+        for _ in 0 .. op_count {
+            op_costs.push(Int::new_i32(0));
         }
-        Self(costs)
+        Self {
+            language: language.clone(),
+            op_costs,
+        }
     }
 
     pub fn set(&mut self, operation: usize, cost: &Int) -> Result<Int, JsError> {
-        if operation >= COST_MODEL_OP_COUNT {
-            return Err(JsError::from_str(&format!("CostModel operation {} out of bounds. Max is {}", operation, COST_MODEL_OP_COUNT)));
+        if operation >= self.op_costs.len() {
+            return Err(JsError::from_str(&format!("CostModel operation {} out of bounds. Max is {}", operation, self.op_costs.len())));
         }
-        let old = self.0[operation].clone();
-        self.0[operation] = cost.clone();
+        let old = self.op_costs[operation].clone();
+        self.op_costs[operation] = cost.clone();
         Ok(old)
     }
 
     pub fn get(&self, operation: usize) -> Result<Int, JsError> {
-        if operation >= COST_MODEL_OP_COUNT {
-            return Err(JsError::from_str(&format!("CostModel operation {} out of bounds. Max is {}", operation, COST_MODEL_OP_COUNT)));
+        if operation >= self.op_costs.len() {
+            return Err(JsError::from_str(&format!("CostModel operation {} out of bounds. Max is {}", operation, self.op_costs.len())));
         }
-        Ok(self.0[operation].clone())
+        Ok(self.op_costs[operation].clone())
     }
 }
 
@@ -197,8 +298,8 @@ impl Costmdls {
         self.0.len()
     }
 
-    pub fn insert(&mut self, key: &Language, value: &CostModel) -> Option<CostModel> {
-        self.0.insert(key.clone(), value.clone())
+    pub fn insert(&mut self, value: &CostModel) -> Option<CostModel> {
+        self.0.insert(value.language.clone(), value.clone())
     }
 
     pub fn get(&self, key: &Language) -> Option<CostModel> {
@@ -219,21 +320,77 @@ impl Costmdls {
         });
         serializer.write_map(cbor_event::Len::Len(self.0.len() as u64)).unwrap();
         for (key, key_bytes) in keys_bytes.iter() {
-            serializer.write_bytes(key_bytes).unwrap();
-            let cost_model = self.0.get(&key).unwrap();
-            // Due to a bug in the cardano-node input-output-hk/cardano-ledger-specs/issues/2512
-            // we must use indefinite length serialization in this inner bytestring to match it
-            let mut cost_model_serializer = Serializer::new_vec();
-            cost_model_serializer.write_array(cbor_event::Len::Indefinite).unwrap();
-            for cost in &cost_model.0 {
-                cost.serialize(&mut cost_model_serializer).unwrap();
+            match key.0 {
+                LanguageKind::PlutusV1 => {
+                    // For PlutusV1 (language id 0), the language view is the following:
+                    //   * the value of costmdls map at key 0 is encoded as an indefinite length
+                    //     list and the result is encoded as a bytestring. (our apologies)
+                    //   * the language ID tag is also encoded twice. first as a uint then as
+                    //     a bytestring. (our apologies)
+                    serializer.write_bytes(key_bytes).unwrap();
+                    let cost_model = self.0.get(&key).unwrap();
+                    // Due to a bug in the cardano-node input-output-hk/cardano-ledger-specs/issues/2512
+                    // we must use indefinite length serialization in this inner bytestring to match it
+                    let mut cost_model_serializer = Serializer::new_vec();
+                    cost_model_serializer.write_array(cbor_event::Len::Indefinite).unwrap();
+                    for cost in &cost_model.op_costs {
+                        cost.serialize(&mut cost_model_serializer).unwrap();
+                    }
+                    cost_model_serializer.write_special(cbor_event::Special::Break).unwrap();
+                    serializer.write_bytes(cost_model_serializer.finalize()).unwrap();
+                },
+                LanguageKind::PlutusV2 => {
+                    // For PlutusV2 (language id 1), the language view is the following:
+                    //    * the value of costmdls map at key 1 is encoded as an definite length list.
+                    key.serialize(&mut serializer).unwrap();
+                    let cost_model = self.0.get(&key).unwrap();
+                    serializer.write_array(cbor_event::Len::Len(cost_model.op_costs.len() as u64)).unwrap();
+                    for cost in &cost_model.op_costs {
+                        cost.serialize(&mut serializer).unwrap();
+                    }
+                },
             }
-            cost_model_serializer.write_special(cbor_event::Special::Break).unwrap();
-            serializer.write_bytes(cost_model_serializer.finalize()).unwrap();
         }
         let out = serializer.finalize();
         println!("language_views = {}", hex::encode(out.clone()));
         out
+    }
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum PlutusScript {
+    PlutusV1(PlutusV1Script),
+    PlutusV2(PlutusV2Script),
+}
+
+impl PlutusScript {
+    pub fn from_v1(script: &PlutusV1Script) -> PlutusScript {
+        PlutusScript::PlutusV1(script.clone())
+    }
+    pub fn from_v2(script: &PlutusV2Script) -> PlutusScript {
+        PlutusScript::PlutusV2(script.clone())
+    }
+    pub fn hash(&self) -> ScriptHash {
+        match &self {
+            PlutusScript::PlutusV1(script) => script.hash(),
+            PlutusScript::PlutusV2(script) => script.hash()
+        }
+    }
+}
+
+
+#[wasm_bindgen]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct PlutusScriptWasm(pub(crate) PlutusScript);
+impl PlutusScriptWasm {
+    pub fn from_v1(script: &PlutusV1Script) -> PlutusScriptWasm {
+        PlutusScriptWasm(PlutusScript::PlutusV1(script.clone()))
+    }
+    pub fn from_v2(script: &PlutusV2Script) -> PlutusScriptWasm {
+        PlutusScriptWasm(PlutusScript::PlutusV2(script.clone()))
+    }
+    pub fn hash(&self) -> ScriptHash {
+        self.0.hash()
     }
 }
 
@@ -647,7 +804,130 @@ impl Strings {
     }
 }
 
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+pub enum ScriptEnum {
+    Native(NativeScript),
+    PlutusV1(PlutusV1Script),
+    PlutusV2(PlutusV2Script),
+}
 
+#[wasm_bindgen]
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+pub struct Script(ScriptEnum);
+
+to_from_bytes!(Script);
+
+to_from_json!(Script);
+
+#[wasm_bindgen]
+impl Script {
+    pub fn as_native(&self) -> Option<NativeScript> {
+        match &self.0 {
+            ScriptEnum::Native(ns) => Some(ns.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn as_plutus_v1(&self) -> Option<PlutusV1Script> {
+        match &self.0 {
+            ScriptEnum::PlutusV1(ps1) => Some(ps1.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn as_plutus_v2(&self) -> Option<PlutusV2Script> {
+        match &self.0 {
+            ScriptEnum::PlutusV2(ps2) => Some(ps2.clone()),
+            _ => None,
+        }
+    }
+}
+
+impl cbor_event::se::Serialize for Script {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array(cbor_event::Len::Len(2))?;
+        match &self.0 {
+            ScriptEnum::Native(ns) => {
+                serializer.write_tag(0u64)?;
+                ns.serialize(serializer)
+            },
+            ScriptEnum::PlutusV1(ps1) => {
+                serializer.write_tag(1u64)?;
+                ps1.serialize(serializer)
+            },
+            ScriptEnum::PlutusV2(ps2) => {
+                serializer.write_tag(2u64)?;
+                ps2.serialize(serializer)
+            },
+        }
+    }
+}
+
+impl Deserialize for Script {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let len = raw.array()?;
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            let script_enum = match raw.unsigned_integer()? {
+                0 => NativeScript::deserialize(raw).map(ScriptEnum::Native),
+                1 => PlutusV1Script::deserialize(raw).map(ScriptEnum::PlutusV1),
+                2 => PlutusV2Script::deserialize(raw).map(ScriptEnum::PlutusV2),
+                _ => Err(DeserializeFailure::NoVariantMatched.into()),
+            };
+            match len {
+                cbor_event::Len::Len(_) => read_len.finish()?,
+                cbor_event::Len::Indefinite => match raw.special()? {
+                    CBORSpecial::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            script_enum.map(Script)
+        })().map_err(|e| e.annotate("Script"))
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+pub struct ScriptRef(Script);
+
+#[wasm_bindgen]
+impl ScriptRef {
+    pub fn script(&self) -> Script {
+        self.0.clone()
+    }
+}
+
+to_from_bytes!(ScriptRef);
+
+to_from_json!(ScriptRef);
+
+impl cbor_event::se::Serialize for ScriptRef {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_tag(24u64)?;
+        let mut buf = Serializer::new_vec();
+        self.0.serialize(&mut buf)?;
+        let script_bytes = buf.finalize();
+        serializer.write_bytes(script_bytes)?;
+        Ok(serializer)
+    }
+}
+
+impl Deserialize for ScriptRef {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let tag = raw.tag()?;
+            let bytes = raw.bytes()?;
+            let mut bytes_deser = Deserializer::from(std::io::Cursor::new(bytes));
+            let script = Script::deserialize(&mut bytes_deser)?;
+            if bytes_deser.as_mut_ref().fill_buf().map_err(cbor_event::Error::IoError)?.len() > 0 {
+                Err(cbor_event::Error::TrailingData.into())
+            } else {
+                Ok(ScriptRef(script))
+            }
+        })().map_err(|e| e.annotate("ScriptRef"))
+    }
+}
 
 // json
 
@@ -926,19 +1206,19 @@ pub fn decode_plutus_datum_to_json_value(datum: &PlutusData, schema: PlutusDatum
 use std::io::{SeekFrom};
 
 
-impl cbor_event::se::Serialize for PlutusScript {
+impl cbor_event::se::Serialize for PlutusV1Script {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_bytes(&self.0)
     }
 }
 
-impl Deserialize for PlutusScript {
+impl Deserialize for PlutusV1Script {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         Ok(Self(raw.bytes()?))
     }
 }
 
-impl cbor_event::se::Serialize for PlutusScripts {
+impl cbor_event::se::Serialize for PlutusV1Scripts {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(self.0.len() as u64))?;
         for element in &self.0 {
@@ -948,7 +1228,7 @@ impl cbor_event::se::Serialize for PlutusScripts {
     }
 }
 
-impl Deserialize for PlutusScripts {
+impl Deserialize for PlutusV1Scripts {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let mut arr = Vec::new();
         (|| -> Result<_, DeserializeError> {
@@ -958,10 +1238,50 @@ impl Deserialize for PlutusScripts {
                     assert_eq!(raw.special()?, CBORSpecial::Break);
                     break;
                 }
-                arr.push(PlutusScript::deserialize(raw)?);
+                arr.push(PlutusV1Script::deserialize(raw)?);
             }
             Ok(())
-        })().map_err(|e| e.annotate("PlutusScripts"))?;
+        })().map_err(|e| e.annotate("PlutusV1Scripts"))?;
+        Ok(Self(arr))
+    }
+}
+
+impl cbor_event::se::Serialize for PlutusV2Script {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_bytes(&self.0)
+    }
+}
+
+impl Deserialize for PlutusV2Script {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        Ok(Self(raw.bytes()?))
+    }
+}
+
+impl cbor_event::se::Serialize for PlutusV2Scripts {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array(cbor_event::Len::Len(self.0.len() as u64))?;
+        for element in &self.0 {
+            element.serialize(serializer)?;
+        }
+        Ok(serializer)
+    }
+}
+
+impl Deserialize for PlutusV2Scripts {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let mut arr = Vec::new();
+        (|| -> Result<_, DeserializeError> {
+            let len = raw.array()?;
+            while match len { cbor_event::Len::Len(n) => arr.len() < n as usize, cbor_event::Len::Indefinite => true, } {
+                if raw.cbor_type()? == CBORType::Special {
+                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    break;
+                }
+                arr.push(PlutusV2Script::deserialize(raw)?);
+            }
+            Ok(())
+        })().map_err(|e| e.annotate("PlutusV2Scripts"))?;
         Ok(Self(arr))
     }
 }
@@ -1026,8 +1346,8 @@ impl Deserialize for ConstrPlutusData {
 
 impl cbor_event::se::Serialize for CostModel {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array(cbor_event::Len::Len(COST_MODEL_OP_COUNT as u64))?;
-        for cost in &self.0 {
+        serializer.write_array(cbor_event::Len::Len(self.op_costs.len() as u64))?;
+        for cost in &self.op_costs {
             cost.serialize(serializer)?;
         }
         Ok(serializer)
@@ -1036,26 +1356,26 @@ impl cbor_event::se::Serialize for CostModel {
 
 impl Deserialize for CostModel {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let mut arr = Vec::new();
         (|| -> Result<_, DeserializeError> {
+            let mut op_costs = Vec::new();
             let len = raw.array()?;
-            while match len { cbor_event::Len::Len(n) => arr.len() < n as usize, cbor_event::Len::Indefinite => true, } {
+            while match len { cbor_event::Len::Len(n) => op_costs.len() < n as usize, cbor_event::Len::Indefinite => true, } {
                 if raw.cbor_type()? == CBORType::Special {
                     assert_eq!(raw.special()?, CBORSpecial::Break);
                     break;
                 }
-                arr.push(Int::deserialize(raw)?);
+                op_costs.push(Int::deserialize(raw)?);
             }
-            if arr.len() != COST_MODEL_OP_COUNT {
-                return Err(DeserializeFailure::OutOfRange{
-                    min: COST_MODEL_OP_COUNT,
-                    max: COST_MODEL_OP_COUNT,
-                    found: arr.len()
-                }.into());
-            }
-            Ok(())
-        })().map_err(|e| e.annotate("CostModel"))?;
-        Ok(Self(arr.try_into().unwrap()))
+            let language = match op_costs.len() {
+                PLUTUS_V1_COST_MODEL_OP_COUNT => Ok(Language::new_plutus_v1()),
+                PLUTUS_V2_COST_MODEL_OP_COUNT => Ok(Language::new_plutus_v2()),
+                _ => Err(DeserializeFailure::NoVariantMatched),
+            }?;
+            Ok(CostModel {
+                language,
+                op_costs,
+            })
+        })().map_err(|e| e.annotate("CostModel"))
     }
 }
 
@@ -1604,12 +1924,12 @@ mod tests {
             1, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000,
             32, 150000, 32, 3345831, 1, 1,
         ];
-        let cm = arr.iter().fold((CostModel::new(), 0), |(mut cm, i), x| {
+        let cm = arr.iter().fold((CostModel::new(&Language::new_plutus_v1()), 0), |(mut cm, i), x| {
             cm.set(i, &Int::new_i32(x.clone())).unwrap();
             (cm, i + 1)
         }).0;
         let mut cms = Costmdls::new();
-        cms.insert(&Language::new_plutus_v1(), &cm);
+        cms.insert(&cm);
         assert_eq!(
             hex::encode(cms.language_views_encoding()),
             "a141005901d59f1a000302590001011a00060bc719026d00011a000249f01903e800011a000249f018201a0025cea81971f70419744d186419744d186419744d186419744d186419744d186419744d18641864186419744d18641a000249f018201a000249f018201a000249f018201a000249f01903e800011a000249f018201a000249f01903e800081a000242201a00067e2318760001011a000249f01903e800081a000249f01a0001b79818f7011a000249f0192710011a0002155e19052e011903e81a000249f01903e8011a000249f018201a000249f018201a000249f0182001011a000249f0011a000249f0041a000194af18f8011a000194af18f8011a0002377c190556011a0002bdea1901f1011a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000242201a00067e23187600010119f04c192bd200011a000249f018201a000242201a00067e2318760001011a000242201a00067e2318760001011a0025cea81971f704001a000141bb041a000249f019138800011a000249f018201a000302590001011a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a00330da70101ff"

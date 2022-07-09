@@ -78,7 +78,7 @@ impl SingleInputBuilder {
         })
     }
 
-    pub fn bootstrap(&self, vkey: &Vkey, address: &Address) -> Result<InputBuilderResult, JsError> {
+    pub fn bootstrap(&self, vkey: &Vkey, address: &ByronAddress) -> Result<InputBuilderResult, JsError> {
         let mut required_wits = RequiredWitnessSet::default();
         input_required_wits(&self.utxo_info,&mut required_wits);
         let mut required_wits_left = required_wits.clone();

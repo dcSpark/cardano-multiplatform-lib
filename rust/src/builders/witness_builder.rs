@@ -96,7 +96,7 @@ impl PartialPlutusWitness {
 pub enum InputAggregateWitnessData {
     // note: this struct may contains duplicates, but it will be de-duped later
     Vkeys(Vec<Vkey>),
-    Bootstraps(Vec<(Vkey, Address)>),
+    Bootstraps(Vec<(Vkey, ByronAddress)>),
     NativeScript(NativeScript, NativeScriptWitnessInfo),
     PlutusScript(PartialPlutusWitness, PlutusScriptWitnessInfo, Option<PlutusData>)
 }
@@ -408,6 +408,19 @@ impl TransactionWitnessSetBuilder {
         }
     }
 
+    fn add_fake_bootstrap_witnesses(&mut self, entries: &Vec<(Vkey, ByronAddress)>) {
+        let fake_key = fake_key_private(0);
+        for entry in entries {
+            // picking icarus over daedalus for fake witness generation shouldn't matter
+            let bootstrap_wit = make_icarus_bootstrap_witness(
+                &TransactionHash::from([0u8; TransactionHash::BYTE_COUNT]),
+                &entry.1,
+                &fake_key
+            );
+            self.add_bootstrap(&bootstrap_wit);
+        }
+    }
+
     // This method add fake vkeys to calculate the fee.
     // In order to prevent the fake keys get deduplicated when it is called more than once,
     // its index starts from the current amount of vkeys.
@@ -436,7 +449,7 @@ impl TransactionWitnessSetBuilder {
     pub(crate) fn add_input_aggregate_fake_witness_data(&mut self, data: &InputAggregateWitnessData) {
         match data {
             InputAggregateWitnessData::Vkeys(vkeys) => self.add_fake_vkey_witnesses(vkeys),
-            InputAggregateWitnessData::Bootstraps(witnesseses) => self.add_fake_vkey_witnesses(&witnesseses.iter().map(|bootstrap| bootstrap.0.clone()).collect()),
+            InputAggregateWitnessData::Bootstraps(witnesses) => self.add_fake_bootstrap_witnesses(witnesses),
             InputAggregateWitnessData::NativeScript(script, info) => {
                 match info.0 {
                     NativeScriptWitnessInfoKind::Count(num) => self.add_fake_vkey_witnesses_by_num(num),
@@ -525,6 +538,15 @@ fn fake_raw_key_sig(id: u8) -> Ed25519Signature {
 fn fake_raw_key_public(id: u8) -> PublicKey {
     PublicKey::from_bytes(
         &[id, 118, 57, 154, 33, 13, 232, 114, 14, 159, 168, 148, 228, 94, 65, 226, 154, 181, 37, 227, 11, 196, 2, 128, 28, 7, 98, 80, 209, 88, 91, 205]
+    ).unwrap()
+}
+
+fn fake_key_private(id: u8) -> Bip32PrivateKey {
+    Bip32PrivateKey::from_bytes(
+        &[0xb8, id, 0xbe, 0xce, 0x9b, 0xdf, 0xe2, 0xb0, 0x28, 0x2f, 0x5b, 0xad, 0x70, 0x55, 0x62, 0xac, 0x99, 0x6e, 0xfb, 0x6a, 0xf9, 0x6b, 0x64, 0x8f,
+            0x44, 0x45, 0xec, 0x44, 0xf4, 0x7a, 0xd9, 0x5c, 0x10, 0xe3, 0xd7, 0x2f, 0x26, 0xed, 0x07, 0x54, 0x22, 0xa3, 0x6e, 0xd8, 0x58, 0x5c, 0x74, 0x5a,
+            0x0e, 0x11, 0x50, 0xbc, 0xce, 0xba, 0x23, 0x57, 0xd0, 0x58, 0x63, 0x69, 0x91, 0xf3, 0x8a, 0x37, 0x91, 0xe2, 0x48, 0xde, 0x50, 0x9c, 0x07, 0x0d,
+            0x81, 0x2a, 0xb2, 0xfd, 0xa5, 0x78, 0x60, 0xac, 0x87, 0x6b, 0xc4, 0x89, 0x19, 0x2c, 0x1e, 0xf4, 0xce, 0x25, 0x3c, 0x19, 0x7e, 0xe2, 0x19, 0xa4]
     ).unwrap()
 }
 

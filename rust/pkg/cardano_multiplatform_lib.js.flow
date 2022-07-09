@@ -6144,10 +6144,10 @@ declare export class SingleInputBuilder {
 
   /**
    * @param {Vkey} vkey
-   * @param {Address} address
+   * @param {ByronAddress} address
    * @returns {InputBuilderResult}
    */
-  bootstrap(vkey: Vkey, address: Address): InputBuilderResult;
+  bootstrap(vkey: Vkey, address: ByronAddress): InputBuilderResult;
 
   /**
    * @param {NativeScript} native_script

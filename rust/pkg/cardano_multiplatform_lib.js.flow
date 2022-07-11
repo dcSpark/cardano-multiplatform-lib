@@ -2433,9 +2433,22 @@ declare export class HeaderBody {
   vrf_vkey(): VRFVKey;
 
   /**
-   * @returns {VRFCert}
+   * * Present in all Vasil blocks, but not prior ones
+   * @returns {VRFCert | void}
    */
-  vrf_result(): VRFCert;
+  vrf_result(): VRFCert | void;
+
+  /**
+   * * Present in all pre-Vasil blocks, but not later ones
+   * @returns {VRFCert | void}
+   */
+  leader_vrf(): VRFCert | void;
+
+  /**
+   * * Present in all pre-Vasil blocks, but not later ones
+   * @returns {VRFCert | void}
+   */
+  nonce_vrf(): VRFCert | void;
 
   /**
    * @returns {number}
@@ -2458,6 +2471,7 @@ declare export class HeaderBody {
   protocol_version(): ProtocolVersion;
 
   /**
+   * Creates a new Vasil-era HeaderBody
    * @param {number} block_number
    * @param {BigNum} slot
    * @param {BlockHeaderHash | void} prev_hash
@@ -9113,11 +9127,13 @@ export interface HeaderBodyJSON {
   block_body_size: number;
   block_number: number;
   issuer_vkey: VkeyJSON;
+  leader_vrf?: VRFCertJSON | null;
+  nonce_vrf?: VRFCertJSON | null;
   operational_cert: OperationalCertJSON;
   prev_hash?: string | null;
   protocol_version: ProtocolVersionJSON;
   slot: string;
-  vrf_result: VRFCertJSON;
+  vrf_result?: VRFCertJSON | null;
   vrf_vkey: string;
 }
 export type IntJSON = string;

@@ -2641,7 +2641,9 @@ pub struct HeaderBody {
     prev_hash: Option<BlockHeaderHash>,
     issuer_vkey: Vkey,
     vrf_vkey: VRFVKey,
-    vrf_result: VRFCert,
+    vrf_result: Option<VRFCert>,
+    nonce_vrf: Option<VRFCert>,
+    leader_vrf: Option<VRFCert>,
     block_body_size: u32,
     block_body_hash: BlockBodyHash,
     operational_cert: OperationalCert,
@@ -2674,8 +2676,25 @@ impl HeaderBody {
         self.vrf_vkey.clone()
     }
 
-    pub fn vrf_result(&self) -> VRFCert {
+    /**
+     * Present in all Vasil blocks, but not prior ones
+     */
+    pub fn vrf_result(&self) -> Option<VRFCert> {
         self.vrf_result.clone()
+    }
+
+    /**
+     * Present in all pre-Vasil blocks, but not later ones
+     */
+    pub fn leader_vrf(&self) -> Option<VRFCert> {
+        self.leader_vrf.clone()
+    }
+
+    /**
+     * Present in all pre-Vasil blocks, but not later ones
+     */
+    pub fn nonce_vrf(&self) -> Option<VRFCert> {
+        self.nonce_vrf.clone()
     }
 
     pub fn block_body_size(&self) -> u32 {
@@ -2694,6 +2713,7 @@ impl HeaderBody {
         self.protocol_version.clone()
     }
 
+    /// Creates a new Vasil-era HeaderBody
     pub fn new(block_number: u32, slot: &Slot, prev_hash: Option<BlockHeaderHash>, issuer_vkey: &Vkey, vrf_vkey: &VRFVKey, vrf_result: &VRFCert, block_body_size: u32, block_body_hash: &BlockBodyHash, operational_cert: &OperationalCert, protocol_version: &ProtocolVersion) -> Self {
         Self {
             block_number: block_number,
@@ -2701,7 +2721,9 @@ impl HeaderBody {
             prev_hash: prev_hash.clone(),
             issuer_vkey: issuer_vkey.clone(),
             vrf_vkey: vrf_vkey.clone(),
-            vrf_result: vrf_result.clone(),
+            vrf_result: Some(vrf_result.clone()),
+            leader_vrf: None,
+            nonce_vrf: None,
             block_body_size: block_body_size,
             block_body_hash: block_body_hash.clone(),
             operational_cert: operational_cert.clone(),

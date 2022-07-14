@@ -12,7 +12,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use crate::{legacy_address, utils, fees, chain_crypto::{Ed25519Bip32, self, Ed25519}, crypto::BlockHeaderHash, genesis::network_info::NetworkInfo};
+use crate::{legacy_address, ledger::{alonzo::fees::LinearFee, common::value::Coin}, chain_crypto::{Ed25519Bip32, self, Ed25519}, crypto::BlockHeaderHash, genesis::network_info::NetworkInfo};
 
 
 /// this is the protocol magic number
@@ -108,11 +108,11 @@ pub struct GenesisData {
     pub start_time: SystemTime,
     pub slot_duration: Duration,
     pub protocol_magic: ProtocolMagic,
-    pub fee_policy: fees::LinearFee,
-    pub avvm_distr: BTreeMap<chain_crypto::PublicKey<Ed25519>, utils::Coin>, // AVVM = Ada Voucher Vending Machine
+    pub fee_policy: LinearFee,
+    pub avvm_distr: BTreeMap<chain_crypto::PublicKey<Ed25519>, Coin>, // AVVM = Ada Voucher Vending Machine
     // TODO: convert to ByronAddress without exposing a bunch of WASM stuff
     // note: order of the keys here is unspecified in the spec (anything order is valid)
-    pub non_avvm_balances: BTreeMap<legacy_address::Addr, utils::Coin>,
+    pub non_avvm_balances: BTreeMap<legacy_address::Addr, Coin>,
     pub boot_stakeholders: BTreeMap<legacy_address::StakeholderId, BootStakeholder>,
 }
 

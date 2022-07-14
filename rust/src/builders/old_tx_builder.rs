@@ -1,6 +1,10 @@
 use crate::*;
-use crate::fees;
-use crate::utils;
+use crate::ledger::alonzo::fees::LinearFee;
+use crate::ledger::byron::witness::make_icarus_bootstrap_witness;
+use crate::ledger::common::deposit::{internal_get_implicit_input, internal_get_deposit};
+use crate::ledger::common::hash::hash_auxiliary_data;
+use crate::ledger::common::utxo::{TransactionUnspentOutputs, TransactionUnspentOutput};
+use crate::ledger::common::value::{Value, from_bignum};
 use super::output_builder::{TransactionOutputAmountBuilder};
 use super::certificate_builder::*;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -126,7 +130,14 @@ fn min_fee(tx_builder: &TransactionBuilder) -> Result<Coin, JsError> {
     //     assert_required_mint_scripts(mint, tx_builder.native_scripts.as_ref())?;
     // }
     let full_tx = fake_full_tx(tx_builder, tx_builder.build()?)?;
-    fees::min_fee(&full_tx, &tx_builder.config.fee_algo)
+    ledger::alonzo::fees::min_fee(
+        &full_tx,
+        &tx_builder.config.fee_algo,
+        &ExUnitPrices::new(
+            &UnitInterval::new(&BigNum::zero(), &BigNum::zero()),
+            &UnitInterval::new(&BigNum::zero(), &BigNum::zero())
+        )
+    )
 }
 
 
@@ -159,7 +170,7 @@ pub enum CoinSelectionStrategyCIP2 {
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct TransactionBuilderConfig {
-    fee_algo: fees::LinearFee,
+    fee_algo: LinearFee,
     pool_deposit: BigNum,      // protocol parameter
     key_deposit: BigNum,       // protocol parameter
     max_value_size: u32,       // protocol parameter
@@ -171,7 +182,7 @@ pub struct TransactionBuilderConfig {
 #[wasm_bindgen]
 #[derive(Clone, Debug, Default)]
 pub struct TransactionBuilderConfigBuilder {
-    fee_algo: Option<fees::LinearFee>,
+    fee_algo: Option<LinearFee>,
     pool_deposit: Option<BigNum>,      // protocol parameter
     key_deposit: Option<BigNum>,       // protocol parameter
     max_value_size: Option<u32>,       // protocol parameter
@@ -187,7 +198,7 @@ impl TransactionBuilderConfigBuilder {
         Self::default()
     }
 
-    pub fn fee_algo(&self, fee_algo: &fees::LinearFee) -> Self {
+    pub fn fee_algo(&self, fee_algo: &LinearFee) -> Self {
         let mut cfg = self.clone();
         cfg.fee_algo = Some(fee_algo.clone());
         cfg
@@ -623,12 +634,12 @@ impl TransactionBuilder {
             )));
         }
         // note: Babbage not supported in old tx builder
-        if let Some(TxOutputData::InlinedDatum(_)) = &output.data {
+        if let Some(DatumEnum::InlineDatum(_)) = &output.datum_option {
             return Err(JsError::from_str("inlined datums not supported"));
         }
-        let min_ada = min_ada_required(
+        let min_ada = ledger::alonzo::min_ada::min_ada_required(
             &output.amount(),
-            output.data.is_some(),
+            output.datum_option.is_some(),
             &self.config.coins_per_utxo_word,
         )?;
         if output.amount().coin() < min_ada {
@@ -1033,7 +1044,7 @@ impl TransactionBuilder {
                         amount_clone = amount_clone.checked_add(&val).unwrap();
 
                         // calculate minADA for more precise max value size
-                        let min_ada = min_ada_required(&val, false, coins_per_utxo_word).unwrap();
+                        let min_ada = ledger::alonzo::min_ada::min_ada_required(&val, false, coins_per_utxo_word).unwrap();
                         amount_clone.set_coin(&min_ada);
 
                         amount_clone.to_bytes().len() > max_value_size as usize
@@ -1049,7 +1060,7 @@ impl TransactionBuilder {
                             address: change_address.clone(),
                             amount: base_coin.clone(),
                             // note: babbage not supported in old tx builder
-                            data: data_hash.clone().map(TxOutputData::DatumHash),
+                            datum_option: data_hash.clone().map(DatumEnum::DatumHash),
                             script_ref: None,
                         };
                         // If this becomes slow on large TXs we can optimize it like the following
@@ -1103,7 +1114,7 @@ impl TransactionBuilder {
                                         address: change_address.clone(),
                                         amount: base_coin.clone(),
                                         // note: babbage not supported in old tx builder
-                                        data: data_hash.clone().map(TxOutputData::DatumHash),
+                                        datum_option: data_hash.clone().map(DatumEnum::DatumHash),
                                         script_ref: None,
                                     };
 
@@ -1124,7 +1135,7 @@ impl TransactionBuilder {
 
                             // calculate minADA for more precise max value size
                             let mut amount_clone = output.amount.clone();
-                            let min_ada = min_ada_required(&val, false, coins_per_utxo_word).unwrap();
+                            let min_ada = ledger::alonzo::min_ada::min_ada_required(&val, false, coins_per_utxo_word).unwrap();
                             amount_clone.set_coin(&min_ada);
 
                             if amount_clone.to_bytes().len() > max_value_size as usize {
@@ -1139,7 +1150,7 @@ impl TransactionBuilder {
                     let mut new_fee = fee;
                     // we might need multiple change outputs for cases where the change has many asset types
                     // which surpass the max UTXO size limit
-                    let minimum_utxo_val = min_pure_ada(&self.config.coins_per_utxo_word, data_hash.is_some())?;
+                    let minimum_utxo_val = ledger::alonzo::min_ada::min_pure_ada(&self.config.coins_per_utxo_word, data_hash.is_some())?;
                     while let Some(Ordering::Greater) = change_left.multiasset.as_ref().map_or_else(|| None, |ma| ma.partial_cmp(&MultiAsset::new())) {
                         let nft_changes = pack_nfts_for_change(self.config.max_value_size, &self.config.coins_per_utxo_word, address, &change_left, data_hash.clone())?;
                         if nft_changes.is_empty() {
@@ -1150,13 +1161,13 @@ impl TransactionBuilder {
                         let mut change_value = Value::new(&Coin::zero());
                         for nft_change in nft_changes.iter() {
                             change_value.set_multiasset(nft_change);
-                            let min_ada = min_ada_required(&change_value, data_hash.is_some(), &self.config.coins_per_utxo_word)?;
+                            let min_ada = ledger::alonzo::min_ada::min_ada_required(&change_value, data_hash.is_some(), &self.config.coins_per_utxo_word)?;
                             change_value.set_coin(&min_ada);
                             let change_output = TransactionOutput {
                                 address: address.clone(),
                                 amount: change_value.clone(),
                                 // note: babbage not supported in old tx builder
-                                data: data_hash.clone().map(TxOutputData::DatumHash),
+                                datum_option: data_hash.clone().map(DatumEnum::DatumHash),
                                 script_ref: None,
                             };
                             // increase fee
@@ -1177,7 +1188,7 @@ impl TransactionBuilder {
                             address: address.clone(),
                             amount: change_left.clone(),
                             // note: babbage not supported in old tx builder
-                            data: data_hash.clone().map(TxOutputData::DatumHash),
+                            datum_option: data_hash.clone().map(DatumEnum::DatumHash),
                             script_ref: None,
                         };
                         let additional_fee = self.fee_for_output(&pure_output)?;
@@ -1190,7 +1201,7 @@ impl TransactionBuilder {
                                 address: address.clone(),
                                 amount: potential_pure_value.clone(),
                                 // note: babbage not supported in old tx builder
-                                data: data_hash.clone().map(TxOutputData::DatumHash),
+                                datum_option: data_hash.clone().map(DatumEnum::DatumHash),
                                 script_ref: None,
                             })?;
                         }
@@ -1202,7 +1213,7 @@ impl TransactionBuilder {
                     }
                     Ok(true)
                 } else {
-                    let min_ada = min_ada_required(
+                    let min_ada = ledger::alonzo::min_ada::min_ada_required(
                         &change_estimator,
                         data_hash.is_some(),
                         &self.config.coins_per_utxo_word,
@@ -1221,7 +1232,7 @@ impl TransactionBuilder {
                                 address: address.clone(),
                                 amount: change_estimator.clone(),
                                 // note: babbage not supported in old tx builder
-                                data: data_hash.clone().map(TxOutputData::DatumHash),
+                                datum_option: data_hash.clone().map(DatumEnum::DatumHash),
                                 script_ref: None,
                             })?;
 
@@ -1236,7 +1247,7 @@ impl TransactionBuilder {
                                         address: address.clone(),
                                         amount: change_estimator.checked_sub(&Value::new(&new_fee.clone()))?,
                                         // note: babbage not supported in old tx builder
-                                        data: data_hash.clone().map(TxOutputData::DatumHash),
+                                        datum_option: data_hash.clone().map(DatumEnum::DatumHash),
                                         script_ref: None,
                                     })?;
 
@@ -1261,7 +1272,7 @@ impl TransactionBuilder {
             certs: self.certs.clone(),
             withdrawals: self.withdrawals.clone(),
             update: None,
-            auxiliary_data_hash: self.auxiliary_data.as_ref().map(utils::hash_auxiliary_data),
+            auxiliary_data_hash: self.auxiliary_data.as_ref().map(hash_auxiliary_data),
             validity_start_interval: self.validity_start_interval,
             mint: self.mint.clone(),
             script_data_hash: self.script_data_hash.clone(),
@@ -1339,8 +1350,9 @@ impl TransactionBuilder {
 
 #[cfg(test)]
 mod tests {
+    use crate::ledger::{common::{utxo::TransactionUnspentOutputs, hash::hash_transaction}, shelley::witness::make_vkey_witness};
+
     use super::*;
-    use fees::*;
     use super::builders::output_builder::{TransactionOutputBuilder};
 
     const MAX_VALUE_SIZE: u32 = 4000;
@@ -2287,7 +2299,7 @@ mod tests {
             to_bignum(ma_input1 + ma_input2 - ma_output1)
         );
         // The first change output that contains all the tokens contain minimum required Coin
-        let min_coin_for_dirty_change = min_ada_required(
+        let min_coin_for_dirty_change = ledger::alonzo::min_ada::min_ada_required(
             &final_tx.outputs().get(1).amount(),
             false,
             &coin_per_utxo_word,
@@ -3350,7 +3362,7 @@ mod tests {
         let _deser_t = TransactionBody::from_bytes(_final_tx.to_bytes()).unwrap();
 
         assert_eq!(_deser_t.to_bytes(), _final_tx.to_bytes());
-        assert_eq!(_deser_t.auxiliary_data_hash.unwrap(), utils::hash_auxiliary_data(&auxiliary_data));
+        assert_eq!(_deser_t.auxiliary_data_hash.unwrap(), hash_auxiliary_data(&auxiliary_data));
     }
 
     #[test]
@@ -3421,7 +3433,7 @@ mod tests {
         let _final_tx = build_full_tx(&body, &witness_set, None);
         let _deser_t = Transaction::from_bytes(_final_tx.to_bytes()).unwrap();
         assert_eq!(_deser_t.to_bytes(), _final_tx.to_bytes());
-        assert_eq!(_deser_t.body().auxiliary_data_hash.unwrap(), utils::hash_auxiliary_data(&auxiliary_data));
+        assert_eq!(_deser_t.body().auxiliary_data_hash.unwrap(), hash_auxiliary_data(&auxiliary_data));
     }
 
     #[test]

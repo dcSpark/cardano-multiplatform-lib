@@ -1,6 +1,6 @@
 use super::*;
 use bech32::ToBase32;
-use crate::{legacy_address::ExtendedAddr, genesis::byron::config::ProtocolMagic};
+use crate::{legacy_address::ExtendedAddr, genesis::byron::config::ProtocolMagic, ledger::common::{binary::Deserialize, value::{to_bignum, from_bignum}}};
 
 // returns (Number represented, bytes read) if valid encoding
 // or None if decoding prematurely finished
@@ -865,6 +865,8 @@ impl PointerAddress {
 
 #[cfg(test)]
 mod tests {
+    use crate::ledger::common::hash::ScriptHashNamespace;
+
     use super::*;
     use crypto::*;
 

@@ -6,7 +6,7 @@ use cardano_multiplatform_lib::address::*;
 use cardano_multiplatform_lib::crypto::*;
 use cardano_multiplatform_lib::metadata::*;
 use cardano_multiplatform_lib::plutus::*;
-use cardano_multiplatform_lib::utils::*;
+use cardano_multiplatform_lib::ledger::common::value::*;
 
 //#[macro_export]
 macro_rules! gen_json_schema {
@@ -145,6 +145,7 @@ fn main() {
     gen_json_schema!(Redeemers);
     gen_json_schema!(Script);
     gen_json_schema!(ScriptRef);
+    gen_json_schema!(Datum);
     //gen_json_schema!(Strings);
     // metadata.rs
     gen_json_schema!(TransactionMetadatum);

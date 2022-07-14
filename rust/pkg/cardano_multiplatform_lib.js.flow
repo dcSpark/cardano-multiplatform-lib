@@ -26,110 +26,6 @@ declare export function decode_plutus_datum_to_json_str(
 ): string;
 
 /**
- * @param {TransactionHash} tx_body_hash
- * @param {ByronAddress} addr
- * @param {LegacyDaedalusPrivateKey} key
- * @returns {BootstrapWitness}
- */
-declare export function make_daedalus_bootstrap_witness(
-  tx_body_hash: TransactionHash,
-  addr: ByronAddress,
-  key: LegacyDaedalusPrivateKey
-): BootstrapWitness;
-
-/**
- * @param {TransactionHash} tx_body_hash
- * @param {ByronAddress} addr
- * @param {Bip32PrivateKey} key
- * @returns {BootstrapWitness}
- */
-declare export function make_icarus_bootstrap_witness(
-  tx_body_hash: TransactionHash,
-  addr: ByronAddress,
-  key: Bip32PrivateKey
-): BootstrapWitness;
-
-/**
- * @param {TransactionHash} tx_body_hash
- * @param {PrivateKey} sk
- * @returns {Vkeywitness}
- */
-declare export function make_vkey_witness(
-  tx_body_hash: TransactionHash,
-  sk: PrivateKey
-): Vkeywitness;
-
-/**
- * @param {AuxiliaryData} auxiliary_data
- * @returns {AuxiliaryDataHash}
- */
-declare export function hash_auxiliary_data(
-  auxiliary_data: AuxiliaryData
-): AuxiliaryDataHash;
-
-/**
- * @param {TransactionBody} tx_body
- * @returns {TransactionHash}
- */
-declare export function hash_transaction(
-  tx_body: TransactionBody
-): TransactionHash;
-
-/**
- * @param {PlutusData} plutus_data
- * @returns {DataHash}
- */
-declare export function hash_plutus_data(plutus_data: PlutusData): DataHash;
-
-/**
- * @param {Redeemers} redeemers
- * @param {Costmdls} cost_models
- * @param {PlutusList | void} datums
- * @returns {ScriptDataHash}
- */
-declare export function hash_script_data(
-  redeemers: Redeemers,
-  cost_models: Costmdls,
-  datums?: PlutusList
-): ScriptDataHash;
-
-/**
- * @param {TransactionBody} txbody
- * @param {BigNum} pool_deposit
- * @param {BigNum} key_deposit
- * @returns {Value}
- */
-declare export function get_implicit_input(
-  txbody: TransactionBody,
-  pool_deposit: BigNum,
-  key_deposit: BigNum
-): Value;
-
-/**
- * @param {TransactionBody} txbody
- * @param {BigNum} pool_deposit
- * @param {BigNum} key_deposit
- * @returns {BigNum}
- */
-declare export function get_deposit(
-  txbody: TransactionBody,
-  pool_deposit: BigNum,
-  key_deposit: BigNum
-): BigNum;
-
-/**
- * @param {Value} assets
- * @param {boolean} has_data_hash
- * @param {BigNum} coins_per_utxo_word
- * @returns {BigNum}
- */
-declare export function min_ada_required(
-  assets: Value,
-  has_data_hash: boolean,
-  coins_per_utxo_word: BigNum
-): BigNum;
-
-/**
  * Receives a script JSON string
  * and returns a NativeScript.
  * Cardano Wallet and Node styles are supported.
@@ -148,13 +44,6 @@ declare export function encode_json_str_to_native_script(
   self_xpub: string,
   schema: number
 ): NativeScript;
-
-/**
- * @param {Transaction} tx
- * @param {LinearFee} linear_fee
- * @returns {BigNum}
- */
-declare export function min_fee(tx: Transaction, linear_fee: LinearFee): BigNum;
 
 /**
  * @param {Uint8Array} bytes
@@ -193,6 +82,64 @@ declare export function decode_metadatum_to_json_str(
 ): string;
 
 /**
+ * @param {TransactionHash} tx_body_hash
+ * @param {ByronAddress} addr
+ * @param {LegacyDaedalusPrivateKey} key
+ * @returns {BootstrapWitness}
+ */
+declare export function make_daedalus_bootstrap_witness(
+  tx_body_hash: TransactionHash,
+  addr: ByronAddress,
+  key: LegacyDaedalusPrivateKey
+): BootstrapWitness;
+
+/**
+ * @param {TransactionHash} tx_body_hash
+ * @param {ByronAddress} addr
+ * @param {Bip32PrivateKey} key
+ * @returns {BootstrapWitness}
+ */
+declare export function make_icarus_bootstrap_witness(
+  tx_body_hash: TransactionHash,
+  addr: ByronAddress,
+  key: Bip32PrivateKey
+): BootstrapWitness;
+
+/**
+ * @param {AuxiliaryData} auxiliary_data
+ * @returns {AuxiliaryDataHash}
+ */
+declare export function hash_auxiliary_data(
+  auxiliary_data: AuxiliaryData
+): AuxiliaryDataHash;
+
+/**
+ * @param {TransactionBody} tx_body
+ * @returns {TransactionHash}
+ */
+declare export function hash_transaction(
+  tx_body: TransactionBody
+): TransactionHash;
+
+/**
+ * @param {PlutusData} plutus_data
+ * @returns {DataHash}
+ */
+declare export function hash_plutus_data(plutus_data: PlutusData): DataHash;
+
+/**
+ * @param {Redeemers} redeemers
+ * @param {Costmdls} cost_models
+ * @param {PlutusList | void} datums
+ * @returns {ScriptDataHash}
+ */
+declare export function hash_script_data(
+  redeemers: Redeemers,
+  cost_models: Costmdls,
+  datums?: PlutusList
+): ScriptDataHash;
+
+/**
  * @param {string} password
  * @param {string} salt
  * @param {string} nonce
@@ -215,6 +162,70 @@ declare export function decrypt_with_password(
   password: string,
   data: string
 ): string;
+
+/**
+ * @param {Transaction} tx
+ * @param {LinearFee} linear_fee
+ * @param {ExUnitPrices} ex_unit_prices
+ * @returns {BigNum}
+ */
+declare export function min_fee(
+  tx: Transaction,
+  linear_fee: LinearFee,
+  ex_unit_prices: ExUnitPrices
+): BigNum;
+
+/**
+ * @param {TransactionBody} txbody
+ * @param {BigNum} pool_deposit
+ * @param {BigNum} key_deposit
+ * @returns {Value}
+ */
+declare export function get_implicit_input(
+  txbody: TransactionBody,
+  pool_deposit: BigNum,
+  key_deposit: BigNum
+): Value;
+
+/**
+ * @param {TransactionBody} txbody
+ * @param {BigNum} pool_deposit
+ * @param {BigNum} key_deposit
+ * @returns {BigNum}
+ */
+declare export function get_deposit(
+  txbody: TransactionBody,
+  pool_deposit: BigNum,
+  key_deposit: BigNum
+): BigNum;
+
+/**
+ * @param {TransactionOutput} output
+ * @param {BigNum} coins_per_utxo_byte
+ * @returns {BigNum}
+ */
+declare export function min_ada_required(
+  output: TransactionOutput,
+  coins_per_utxo_byte: BigNum
+): BigNum;
+
+/**
+ * @param {TransactionHash} tx_body_hash
+ * @param {PrivateKey} sk
+ * @returns {Vkeywitness}
+ */
+declare export function make_vkey_witness(
+  tx_body_hash: TransactionHash,
+  sk: PrivateKey
+): Vkeywitness;
+
+/**
+ */
+
+declare export var DatumKind: {|
+  +Hash: 0, // 0
+  +Inline: 1, // 1
+|};
 
 /**
  */
@@ -304,6 +315,15 @@ declare export var RedeemerTagKind: {|
 |};
 
 /**
+ */
+
+declare export var ScriptKind: {|
+  +NativeScript: 0, // 0
+  +PlutusScriptV1: 1, // 1
+  +PlutusScriptV2: 2, // 2
+|};
+
+/**
  * JSON <-> PlutusData conversion schemas.
  * Follows ScriptDataJsonSchema in cardano-cli defined at:
  * https://github.com/input-output-hk/cardano-node/blob/master/cardano-api/src/Cardano/Api/ScriptData.hs#L254
@@ -318,20 +338,6 @@ declare export var RedeemerTagKind: {|
 declare export var PlutusDatumSchema: {|
   +BasicConversions: 0, // 0
   +DetailedSchema: 1, // 1
-|};
-
-/**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
- */
-
-declare export var ScriptHashNamespace: {|
-  +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
 |};
 
 /**
@@ -399,6 +405,20 @@ declare export var CoinSelectionStrategyCIP2: {|
   +RandomImprove: 1, // 1
   +LargestFirstMultiAsset: 2, // 2
   +RandomImproveMultiAsset: 3, // 3
+|};
+
+/**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
+ */
+
+declare export var ScriptHashNamespace: {|
+  +NativeScript: 0, // 0
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
 |};
 
 /**
@@ -978,6 +998,18 @@ declare export class BigNum {
    * @returns {BigNum}
    */
   clamped_sub(other: BigNum): BigNum;
+
+  /**
+   * @param {BigNum} other
+   * @returns {BigNum}
+   */
+  checked_div(other: BigNum): BigNum;
+
+  /**
+   * @param {BigNum} other
+   * @returns {BigNum}
+   */
+  checked_div_ceil(other: BigNum): BigNum;
 
   /**
    * @param {BigNum} rhs_value
@@ -1715,6 +1747,11 @@ declare export class CostModel {
    * @returns {Int}
    */
   get(operation: number): Int;
+
+  /**
+   * @returns {Language}
+   */
+  language(): Language;
 }
 /**
  */
@@ -1851,6 +1888,65 @@ declare export class DataHash {
    * @returns {DataHash}
    */
   static from_hex(hex: string): DataHash;
+}
+/**
+ */
+declare export class Datum {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {Datum}
+   */
+  static from_bytes(bytes: Uint8Array): Datum;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {DatumJSON}
+   */
+  to_js_value(): DatumJSON;
+
+  /**
+   * @param {string} json
+   * @returns {Datum}
+   */
+  static from_json(json: string): Datum;
+
+  /**
+   * @param {DataHash} data_hash
+   * @returns {Datum}
+   */
+  static new_data_hash(data_hash: DataHash): Datum;
+
+  /**
+   * @param {PlutusData} data
+   * @returns {Datum}
+   */
+  static new_data(data: PlutusData): Datum;
+
+  /**
+   * @returns {number}
+   */
+  kind(): number;
+
+  /**
+   * @returns {DataHash | void}
+   */
+  as_data_hash(): DataHash | void;
+
+  /**
+   * @returns {PlutusData | void}
+   */
+  as_inline_data(): PlutusData | void;
 }
 /**
  */
@@ -2075,6 +2171,12 @@ declare export class ExUnits {
    * @returns {ExUnits}
    */
   static new(mem: BigNum, steps: BigNum): ExUnits;
+
+  /**
+   * @param {ExUnits} other
+   * @returns {ExUnits}
+   */
+  checked_add(other: ExUnits): ExUnits;
 }
 /**
  */
@@ -3700,11 +3802,6 @@ declare export class NewTransactionBuilder {
   get_certs(): Certificates | void;
 
   /**
-   * @param {Certificates} certs
-   */
-  set_certs(certs: Certificates): void;
-
-  /**
    * @param {CertificateBuilderResult} result
    */
   add_cert(result: CertificateBuilderResult): void;
@@ -3713,11 +3810,6 @@ declare export class NewTransactionBuilder {
    * @returns {Withdrawals | void}
    */
   get_withdrawals(): Withdrawals | void;
-
-  /**
-   * @param {Withdrawals} withdrawals
-   */
-  set_withdrawals(withdrawals: Withdrawals): void;
 
   /**
    * @param {WithdrawalBuilderResult} result
@@ -3784,11 +3876,6 @@ declare export class NewTransactionBuilder {
   get_mint(): Mint | void;
 
   /**
-   * @param {Mint} mint
-   */
-  set_mint(mint: Mint): void;
-
-  /**
    * @param {NewTransactionBuilderConfig} cfg
    * @returns {NewTransactionBuilder}
    */
@@ -3805,9 +3892,9 @@ declare export class NewTransactionBuilder {
   script_data_hash(): ScriptDataHash | void;
 
   /**
-   * @param {TransactionInputs} collateral
+   * @param {InputBuilderResult} result
    */
-  set_collateral(collateral: TransactionInputs): void;
+  add_collateral(result: InputBuilderResult): void;
 
   /**
    * @returns {TransactionInputs | void}
@@ -3815,9 +3902,9 @@ declare export class NewTransactionBuilder {
   collateral(): TransactionInputs | void;
 
   /**
-   * @param {Ed25519KeyHashes} required_signers
+   * @param {Ed25519KeyHash} hash
    */
-  set_required_signers(required_signers: Ed25519KeyHashes): void;
+  add_required_signer(hash: Ed25519KeyHash): void;
 
   /**
    * @returns {Ed25519KeyHashes | void}
@@ -3847,10 +3934,16 @@ declare export class NewTransactionBuilder {
   get_implicit_input(): Value;
 
   /**
-   * Return explicit input plus implicit input plus mint minus burn
+   * Return explicit input plus implicit input plus mint
    * @returns {Value}
    */
   get_total_input(): Value;
+
+  /**
+   * Return explicit output plus implicit output plus burn (does not consider fee directly)
+   * @returns {Value}
+   */
+  get_total_output(): Value;
 
   /**
    * does not include fee
@@ -3934,11 +4027,11 @@ declare export class NewTransactionBuilderConfigBuilder {
   fee_algo(fee_algo: LinearFee): NewTransactionBuilderConfigBuilder;
 
   /**
-   * @param {BigNum} coins_per_utxo_word
+   * @param {BigNum} coins_per_utxo_byte
    * @returns {NewTransactionBuilderConfigBuilder}
    */
-  coins_per_utxo_word(
-    coins_per_utxo_word: BigNum
+  coins_per_utxo_byte(
+    coins_per_utxo_byte: BigNum
   ): NewTransactionBuilderConfigBuilder;
 
   /**
@@ -3971,6 +4064,36 @@ declare export class NewTransactionBuilderConfigBuilder {
    */
   prefer_pure_change(
     prefer_pure_change: boolean
+  ): NewTransactionBuilderConfigBuilder;
+
+  /**
+   * @param {ExUnitPrices} ex_unit_prices
+   * @returns {NewTransactionBuilderConfigBuilder}
+   */
+  ex_unit_prices(
+    ex_unit_prices: ExUnitPrices
+  ): NewTransactionBuilderConfigBuilder;
+
+  /**
+   * @param {Costmdls} costmdls
+   * @returns {NewTransactionBuilderConfigBuilder}
+   */
+  costmdls(costmdls: Costmdls): NewTransactionBuilderConfigBuilder;
+
+  /**
+   * @param {number} collateral_percentage
+   * @returns {NewTransactionBuilderConfigBuilder}
+   */
+  collateral_percentage(
+    collateral_percentage: number
+  ): NewTransactionBuilderConfigBuilder;
+
+  /**
+   * @param {number} max_collateral_inputs
+   * @returns {NewTransactionBuilderConfigBuilder}
+   */
+  max_collateral_inputs(
+    max_collateral_inputs: number
   ): NewTransactionBuilderConfigBuilder;
 
   /**
@@ -4086,19 +4209,19 @@ declare export class PartialPlutusWitness {
   free(): void;
 
   /**
-   * @param {PlutusScriptWasm} script
+   * @param {PlutusScript} script
    * @param {UntaggedRedeemer} untagged_redeemer
    * @returns {PartialPlutusWitness}
    */
   static new(
-    script: PlutusScriptWasm,
+    script: PlutusScript,
     untagged_redeemer: UntaggedRedeemer
   ): PartialPlutusWitness;
 
   /**
-   * @returns {PlutusScriptWasm}
+   * @returns {PlutusScript}
    */
-  script(): PlutusScriptWasm;
+  script(): PlutusScript;
 
   /**
    * @returns {UntaggedRedeemer}
@@ -4266,7 +4389,7 @@ declare export class PlutusMap {
 }
 /**
  */
-declare export class PlutusScriptWasm {
+declare export class PlutusScript {
   free(): void;
 }
 /**
@@ -5687,9 +5810,9 @@ declare export class RequiredWitnessSet {
   add_script_hash(script_hash: ScriptHash): void;
 
   /**
-   * @param {PlutusScriptWasm} plutus_v1_script
+   * @param {PlutusScript} plutus_v1_script
    */
-  add_plutus_script(plutus_v1_script: PlutusScriptWasm): void;
+  add_plutus_script(plutus_v1_script: PlutusScript): void;
 
   /**
    * @param {PlutusData} plutus_datum
@@ -5833,6 +5956,29 @@ declare export class Script {
    * @returns {Script}
    */
   static from_json(json: string): Script;
+
+  /**
+   * @param {NativeScript} native_script
+   * @returns {Script}
+   */
+  static new_native(native_script: NativeScript): Script;
+
+  /**
+   * @param {PlutusV1Script} plutus_script
+   * @returns {Script}
+   */
+  static new_plutus_v1(plutus_script: PlutusV1Script): Script;
+
+  /**
+   * @param {PlutusV2Script} plutus_script
+   * @returns {Script}
+   */
+  static new_plutus_v2(plutus_script: PlutusV2Script): Script;
+
+  /**
+   * @returns {number}
+   */
+  kind(): number;
 
   /**
    * @returns {NativeScript | void}
@@ -6162,6 +6308,12 @@ declare export class ScriptPubkey {
  */
 declare export class ScriptRef {
   free(): void;
+
+  /**
+   * @param {Script} script
+   * @returns {ScriptRef}
+   */
+  static new(script: Script): ScriptRef;
 
   /**
    * @returns {Script}
@@ -7943,14 +8095,24 @@ declare export class TransactionOutput {
   amount(): Value;
 
   /**
-   * @returns {DataHash | void}
+   * @returns {Datum | void}
    */
-  data_hash(): DataHash | void;
+  datum(): Datum | void;
 
   /**
-   * @param {DataHash} data_hash
+   * @param {Datum} data
    */
-  set_data_hash(data_hash: DataHash): void;
+  set_datum(data: Datum): void;
+
+  /**
+   * @returns {ScriptRef | void}
+   */
+  script_ref(): ScriptRef | void;
+
+  /**
+   * @param {ScriptRef} script_ref
+   */
+  set_script_ref(script_ref: ScriptRef): void;
 
   /**
    * @param {Address} address
@@ -7988,12 +8150,12 @@ declare export class TransactionOutputAmountBuilder {
 
   /**
    * @param {MultiAsset} multiasset
-   * @param {BigNum} coins_per_utxo_word
+   * @param {BigNum} coins_per_utxo_byte
    * @returns {TransactionOutputAmountBuilder}
    */
   with_asset_and_min_required_coin(
     multiasset: MultiAsset,
-    coins_per_utxo_word: BigNum
+    coins_per_utxo_byte: BigNum
   ): TransactionOutputAmountBuilder;
 
   /**
@@ -8023,10 +8185,16 @@ declare export class TransactionOutputBuilder {
   with_address(address: Address): TransactionOutputBuilder;
 
   /**
-   * @param {DataHash} data_hash
+   * @param {Datum} datum
    * @returns {TransactionOutputBuilder}
    */
-  with_data_hash(data_hash: DataHash): TransactionOutputBuilder;
+  with_data(datum: Datum): TransactionOutputBuilder;
+
+  /**
+   * @param {ScriptRef} script_ref
+   * @returns {TransactionOutputBuilder}
+   */
+  with_reference_script(script_ref: ScriptRef): TransactionOutputBuilder;
 
   /**
    * @returns {TransactionOutputAmountBuilder}
@@ -9082,6 +9250,16 @@ export interface CostmdlsJSON {
 export type DNSRecordAorAAAAJSON = string;
 export type DNSRecordSRVJSON = string;
 export type DataHashJSON = string;
+export type DatumJSON = DatumEnumJSON;
+export type DatumEnumJSON =
+  | {
+      DatumHash: string,
+      ...
+    }
+  | {
+      InlineDatum: PlutusDataJSON,
+      ...
+    };
 export type Ed25519KeyHashJSON = string;
 export type Ed25519KeyHashesJSON = string[];
 export type Ed25519SignatureJSON = string;
@@ -9458,7 +9636,7 @@ export type TransactionMetadatumJSON = string;
 export interface TransactionOutputJSON {
   address: string;
   amount: ValueJSON;
-  data?: TxOutputData | null;
+  datum_option?: DatumEnumJSON | null;
   script_ref?: ScriptJSON | null;
 }
 export type TransactionOutputsJSON = TransactionOutputJSON[];

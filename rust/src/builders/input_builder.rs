@@ -1,5 +1,6 @@
 use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
+use crate::ledger::common::hash::hash_plutus_data;
 
 use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitnessInfo};
 
@@ -10,8 +11,8 @@ pub fn input_required_wits(utxo_info: &TransactionOutput, required_witnesses: &m
         }
         if let Some(script_hash) = &cred.to_scripthash() {
             required_witnesses.add_script_hash(script_hash);
-            if let Some(data_hash) = utxo_info.data_hash() {
-                required_witnesses.add_plutus_datum_hash(&data_hash);
+            if let Some(data_hash) = &utxo_info.datum().and_then(|datum| datum.as_data_hash()) {
+                required_witnesses.add_plutus_datum_hash(data_hash);
                 // note: redeemer is required as well
                 // but we can't know the index, so we rely on the tx builder to satisfy this requirement
             }

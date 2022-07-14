@@ -8,9 +8,9 @@ use std::time::{Duration, SystemTime};
 use crate::chain_crypto::byron_proxy_key::ProxySecretKey;
 use crate::chain_crypto::{Ed25519, self, Ed25519Bip32, Signature, Blake2b256};
 use crate::crypto::{BlockHeaderHash, blake2b256, TransactionHash};
-use crate::fees::LinearFee;
+use crate::ledger::alonzo::fees::LinearFee;
+use crate::ledger::common::value::{Coin, BigNum};
 use crate::legacy_address::{StakeholderId, ExtendedAddr};
-use crate::utils::{Coin, BigNum};
 
 use super::config::ProtocolMagic;
 use super::{raw, config};
@@ -125,7 +125,7 @@ pub fn redeem_pubkey_to_txid(
 #[cfg(test)]
 mod test {
 
-    use crate::{crypto::BlockHeaderHash, utils::Coin};
+    use crate::{crypto::BlockHeaderHash};
 
     use super::*;
 

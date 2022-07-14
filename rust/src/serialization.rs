@@ -2,7 +2,7 @@ use super::*;
 use address::*;
 use crypto::*;
 use error::*;
-use crate::utils::*;
+use crate::ledger::{common::{binary::{Deserialize, DeserializeEmbeddedGroup, CBORReadLen, SerializeEmbeddedGroup}, value::Value}};
 use std::io::{Seek, SeekFrom};
 
 // This file was code-generated using an experimental CDDL to rust tool:
@@ -571,35 +571,35 @@ impl DeserializeEmbeddedGroup for TransactionInput {
 
 impl cbor_event::se::Serialize for TransactionOutput {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
-        let has_data = match &self.data {
-            Some(TxOutputData::DatumHash(_)) => false,
-            Some(TxOutputData::InlinedDatum(_)) => true,
+        let has_data = match &self.datum_option {
+            Some(DatumEnum::DatumHash(_)) => false,
+            Some(DatumEnum::InlineDatum(_)) => true,
             None => false,
         };
         if !has_data && self.script_ref.is_none() {
             // Alonzo format
-            serializer.write_array(cbor_event::Len::Len(if self.data.is_some() { 3 } else { 2 }))?;
+            serializer.write_array(cbor_event::Len::Len(if self.datum_option.is_some() { 3 } else { 2 }))?;
             self.address.serialize(serializer)?;
             self.amount.serialize(serializer)?;
-            if let Some(TxOutputData::DatumHash(data_hash)) = &self.data {
+            if let Some(DatumEnum::DatumHash(data_hash)) = &self.datum_option {
                 data_hash.serialize(serializer)?;
             }
         } else {
             // Vasil format
-            serializer.write_map(cbor_event::Len::Len(2 + if self.data.is_some() { 1 } else { 0 } + if self.script_ref.is_some() { 1 } else { 0 }))?;
+            serializer.write_map(cbor_event::Len::Len(2 + if self.datum_option.is_some() { 1 } else { 0 } + if self.script_ref.is_some() { 1 } else { 0 }))?;
             serializer.write_unsigned_integer(0)?;
             self.address.serialize(serializer)?;
             serializer.write_unsigned_integer(1)?;
             self.amount.serialize(serializer)?;
-            if let Some(data) = &self.data {
+            if let Some(data) = &self.datum_option {
                 serializer.write_unsigned_integer(2)?;
                 serializer.write_array(cbor_event::Len::Len(2))?;
                 match data {
-                    TxOutputData::DatumHash(data_hash) => {
+                    DatumEnum::DatumHash(data_hash) => {
                         serializer.write_unsigned_integer(0)?;
                         data_hash.serialize(serializer)?;
                     },
-                    TxOutputData::InlinedDatum(plutus_data) => {
+                    DatumEnum::InlineDatum(plutus_data) => {
                         serializer.write_unsigned_integer(1)?;
                         serializer.write_tag(24u64)?;
                         let datum_bytes = plutus_data.to_bytes();
@@ -668,7 +668,7 @@ impl Deserialize for TransactionOutput {
                     Ok(TransactionOutput {
                         address,
                         amount,
-                        data: data_hash.map(TxOutputData::DatumHash),
+                        datum_option: data_hash.map(DatumEnum::DatumHash),
                         script_ref: None,
                     })
                 },
@@ -678,7 +678,7 @@ impl Deserialize for TransactionOutput {
                     let mut read_len = CBORReadLen::new(len);
                     let mut address = None;
                     let mut amount = None;
-                    let mut data = None;
+                    let mut datum_option = None;
                     let mut script_ref = None;
                     let mut read = 0;
                     while match len { cbor_event::Len::Len(n) => read < n as usize, cbor_event::Len::Indefinite => true, } {
@@ -703,10 +703,10 @@ impl Deserialize for TransactionOutput {
                                     })().map_err(|e| e.annotate("amount"))?);
                                 },
                                 2 =>  {
-                                    if data.is_some() {
+                                    if datum_option.is_some() {
                                         return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
                                     }
-                                    data = Some((|| -> Result<_, DeserializeError> {
+                                    datum_option = Some((|| -> Result<_, DeserializeError> {
                                         read_len.read_elems(1)?;
                                         let len_inner = raw.array()?;
                                         if let cbor_event::Len::Len(n) = len_inner {
@@ -715,7 +715,7 @@ impl Deserialize for TransactionOutput {
                                             }
                                         }
                                         let data = match raw.unsigned_integer()? {
-                                            0 => DataHash::deserialize(raw).map(TxOutputData::DatumHash),
+                                            0 => DataHash::deserialize(raw).map(DatumEnum::DatumHash),
                                             1 => {
                                                 let tag = raw.tag()?;
                                                 if tag != 24 {
@@ -727,7 +727,7 @@ impl Deserialize for TransactionOutput {
                                                 if bytes_deser.as_mut_ref().fill_buf().map_err(cbor_event::Error::IoError)?.len() > 0 {
                                                     Err(cbor_event::Error::TrailingData.into())
                                                 } else {
-                                                    Ok(TxOutputData::InlinedDatum(plutus_data))
+                                                    Ok(DatumEnum::InlineDatum(plutus_data))
                                                 }
                                             },
                                             _ => Err(DeserializeFailure::NoVariantMatched.into()),
@@ -775,7 +775,7 @@ impl Deserialize for TransactionOutput {
                     Ok(TransactionOutput {
                         address,
                         amount,
-                        data,
+                        datum_option,
                         script_ref,
                     })
                 },
@@ -3698,6 +3698,63 @@ impl Deserialize for NetworkId {
     }
 }
 
+impl cbor_event::se::Serialize for Datum {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array(cbor_event::Len::Len(2))?;
+        match &self.0 {
+            DatumEnum::DatumHash(data_hash) => {
+                serializer.write_unsigned_integer(0u64)?;
+                data_hash.serialize(serializer)
+            }
+            DatumEnum::InlineDatum(data) => {
+                serializer.write_unsigned_integer(1u64)?;
+                data.serialize(serializer)
+            }
+        }
+    }
+}
+
+
+impl Deserialize for Datum {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let len = raw.array()?;
+            if let cbor_event::Len::Len(n) = len {
+                if n != 1 && n != 2 {
+                    return Err(DeserializeFailure::CBOR(cbor_event::Error::WrongLen(
+                        2,
+                        len,
+                        "[hash, inline]",
+                    ))
+                    .into());
+                }
+            }
+            let datum_enum = match raw.unsigned_integer()? {
+                0 => DatumEnum::DatumHash(DataHash::deserialize(raw)?),
+                1 => DatumEnum::InlineDatum(PlutusData::deserialize(raw)?),
+                n => {
+                    return Err(DeserializeFailure::FixedValueMismatch {
+                        found: Key::Uint(n),
+                        // TODO: change codegen to make FixedValueMismatch support Vec<Key> or ranges or something
+                        expected: Key::Uint(0),
+                    }
+                    .into());
+                }
+            };
+            if let cbor_event::Len::Indefinite = len {
+                if raw.special()? != CBORSpecial::Break {
+                    return Err(DeserializeFailure::EndingBreakMissing.into());
+                }
+            }
+            Ok(Datum(datum_enum))
+        })()
+        .map_err(|e| e.annotate("Datum"))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3710,11 +3767,11 @@ mod tests {
         let txo = TransactionOutput {
             address: addr.clone(),
             amount: val.clone(),
-            data: None,
+            datum_option: None,
             script_ref: None,
         };
         let mut txo_dh = txo.clone();
-        txo_dh.set_data_hash(&DataHash::from([47u8; DataHash::BYTE_COUNT]));
+        txo_dh.set_datum(&Datum::new_data_hash(&DataHash::from([47u8; DataHash::BYTE_COUNT])));
         txos.add(&txo);
         txos.add(&txo_dh);
         txos.add(&txo_dh);

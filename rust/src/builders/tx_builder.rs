@@ -1,11 +1,21 @@
 use crate::*;
-use crate::fees;
-use crate::utils;
+use crate::builders::output_builder::TransactionOutputBuilder;
+use crate::ledger;
+use crate::ledger::alonzo::fees::LinearFee;
+use crate::ledger::babbage::min_ada::min_ada_required;
+use crate::ledger::babbage::min_ada::min_pure_ada;
+use crate::ledger::common::deposit::internal_get_deposit;
+use crate::ledger::common::deposit::internal_get_implicit_input;
+use crate::ledger::common::hash::hash_auxiliary_data;
+use crate::ledger::common::value::Value;
+use crate::ledger::common::value::from_bignum;
 use super::input_builder::InputBuilderResult;
 use super::mint_builder::MintBuilderResult;
 use super::certificate_builder::*;
 use super::withdrawal_builder::WithdrawalBuilderResult;
+use super::witness_builder::InputAggregateWitnessData;
 use super::witness_builder::RedeemerSetBuilder;
+use super::witness_builder::RequiredWitnessSet;
 use super::witness_builder::TransactionWitnessSetBuilder;
 use std::collections::{BTreeMap, BTreeSet};
 use rand::Rng;
@@ -55,7 +65,7 @@ fn fake_full_tx(tx_builder: &NewTransactionBuilder, body: TransactionBody) -> Re
 
 fn min_fee(tx_builder: &NewTransactionBuilder) -> Result<Coin, JsError> {
     let full_tx = fake_full_tx(tx_builder, tx_builder.build()?)?;
-    fees::min_fee(&full_tx, &tx_builder.config.fee_algo)
+    ledger::alonzo::fees::min_fee(&full_tx, &tx_builder.config.fee_algo, &tx_builder.config.ex_unit_prices)
 }
 
 
@@ -80,24 +90,32 @@ pub enum NewCoinSelectionStrategyCIP2 {
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct NewTransactionBuilderConfig {
-    fee_algo: fees::LinearFee,
+    fee_algo: LinearFee,
     pool_deposit: BigNum,      // protocol parameter
     key_deposit: BigNum,       // protocol parameter
     max_value_size: u32,       // protocol parameter
     max_tx_size: u32,          // protocol parameter
-    coins_per_utxo_word: Coin, // protocol parameter
+    coins_per_utxo_byte: Coin, // protocol parameter
+    ex_unit_prices: ExUnitPrices, // protocol parameter
+    costmdls: Costmdls,           // protocol parameter
+    collateral_percentage: u32,   // protocol parameter
+    max_collateral_inputs: u32,   // protocol parameter
     prefer_pure_change: bool,
 }
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Default)]
 pub struct NewTransactionBuilderConfigBuilder {
-    fee_algo: Option<fees::LinearFee>,
+    fee_algo: Option<LinearFee>,
     pool_deposit: Option<BigNum>,      // protocol parameter
     key_deposit: Option<BigNum>,       // protocol parameter
     max_value_size: Option<u32>,       // protocol parameter
     max_tx_size: Option<u32>,          // protocol parameter
-    coins_per_utxo_word: Option<Coin>, // protocol parameter
+    coins_per_utxo_byte: Option<Coin>, // protocol parameter
+    ex_unit_prices: Option<ExUnitPrices>, // protocol parameter
+    costmdls: Option<Costmdls>,           // protocol parameter
+    collateral_percentage: Option<u32>,   // protocol parameter
+    max_collateral_inputs: Option<u32>,   // protocol parameter
     prefer_pure_change: bool,
 }
 
@@ -108,15 +126,15 @@ impl NewTransactionBuilderConfigBuilder {
         Self::default()
     }
 
-    pub fn fee_algo(&self, fee_algo: &fees::LinearFee) -> Self {
+    pub fn fee_algo(&self, fee_algo: &LinearFee) -> Self {
         let mut cfg = self.clone();
         cfg.fee_algo = Some(fee_algo.clone());
         cfg
     }
 
-    pub fn coins_per_utxo_word(&self, coins_per_utxo_word: &Coin) -> Self {
+    pub fn coins_per_utxo_byte(&self, coins_per_utxo_byte: &Coin) -> Self {
         let mut cfg = self.clone();
-        cfg.coins_per_utxo_word = Some(*coins_per_utxo_word);
+        cfg.coins_per_utxo_byte = Some(*coins_per_utxo_byte);
         cfg
     }
 
@@ -150,6 +168,30 @@ impl NewTransactionBuilderConfigBuilder {
         cfg
     }
 
+    pub fn ex_unit_prices(&self, ex_unit_prices: &ExUnitPrices) -> Self {
+        let mut cfg = self.clone();
+        cfg.ex_unit_prices = Some(ex_unit_prices.clone());
+        cfg
+    }
+
+    pub fn costmdls(&self, costmdls: &Costmdls) -> Self {
+        let mut cfg = self.clone();
+        cfg.costmdls = Some(costmdls.clone());
+        cfg
+    }
+
+    pub fn collateral_percentage(&self, collateral_percentage: u32) -> Self {
+        let mut cfg = self.clone();
+        cfg.collateral_percentage = Some(collateral_percentage);
+        cfg
+    }
+
+    pub fn max_collateral_inputs(&self, max_collateral_inputs: u32) -> Self {
+        let mut cfg = self.clone();
+        cfg.max_collateral_inputs = Some(max_collateral_inputs);
+        cfg
+    }
+
     pub fn build(&self) -> Result<NewTransactionBuilderConfig, JsError> {
         let cfg = self.clone();
         Ok(NewTransactionBuilderConfig {
@@ -158,7 +200,23 @@ impl NewTransactionBuilderConfigBuilder {
             key_deposit: cfg.key_deposit.ok_or_else(|| JsError::from_str("uninitialized field: key_deposit"))?,
             max_value_size: cfg.max_value_size.ok_or_else(|| JsError::from_str("uninitialized field: max_value_size"))?,
             max_tx_size: cfg.max_tx_size.ok_or_else(|| JsError::from_str("uninitialized field: max_tx_size"))?,
-            coins_per_utxo_word: cfg.coins_per_utxo_word.ok_or_else(|| JsError::from_str("uninitialized field: coins_per_utxo_word"))?,
+            coins_per_utxo_byte: cfg.coins_per_utxo_byte.ok_or(JsError::from_str(
+                "uninitialized field: coins_per_utxo_byte",
+            ))?,
+            ex_unit_prices: cfg
+                .ex_unit_prices
+                .ok_or(JsError::from_str("uninitialized field: ex_unit_prices"))?,
+            costmdls: if cfg.costmdls.is_some() {
+                cfg.costmdls.unwrap()
+            } else {
+                Costmdls::new()
+            },
+            collateral_percentage: cfg.collateral_percentage.ok_or(JsError::from_str(
+                "uninitialized field: collateral_percentage",
+            ))?,
+            max_collateral_inputs: cfg.max_collateral_inputs.ok_or(JsError::from_str(
+                "uninitialized field: max_collateral_inputs",
+            ))?,
             prefer_pure_change: cfg.prefer_pure_change,
         })
     }
@@ -178,12 +236,14 @@ pub struct NewTransactionBuilder {
     validity_start_interval: Option<Slot>,
     mint: Option<Mint>,
     script_data_hash: Option<ScriptDataHash>,
-    collateral: Option<TransactionInputs>,
+    collateral: Option<Vec<TxBuilderInput>>,
     required_signers: Option<RequiredSigners>,
     network_id: Option<NetworkId>,
     witness_builders: WitnessBuilders,
-    utxos: Vec<InputBuilderResult>
-
+    utxos: Vec<InputBuilderResult>,
+    collateral_return: Option<TransactionOutput>,
+    total_collateral: Option<Coin>,
+    reference_inputs: Option<TransactionInputs>,
 }
 
 #[wasm_bindgen]
@@ -199,8 +259,7 @@ impl NewTransactionBuilder {
         let available_inputs = &self.utxos.clone();
         let mut input_total = self.get_total_input()?;
         let mut output_total = self
-            .get_explicit_output()?
-            .checked_add(&Value::new(&self.get_deposit()?))?
+            .get_total_output()?
             .checked_add(&Value::new(&self.min_fee()?))?;
         match strategy {
             NewCoinSelectionStrategyCIP2::LargestFirst => {
@@ -494,14 +553,9 @@ impl NewTransactionBuilder {
                 value_size
             )));
         }
-        if let Some(TxOutputData::InlinedDatum(_)) = &output.data {
-            return Err(JsError::from_str("inlined datums not supported"));
-        }
-        // TODO Vasil update - how is this impacted by inlined data?
         let min_ada = min_ada_required(
-            &output.amount(),
-            output.data.is_some(),
-            &self.config.coins_per_utxo_word,
+            &output,
+            &self.config.coins_per_utxo_byte,
         )?;
         if output.amount().coin() < min_ada {
             Err(JsError::from_str(&format!(
@@ -547,14 +601,10 @@ impl NewTransactionBuilder {
         self.certs.clone()
     }
 
-    pub fn set_certs(&mut self, certs: Certificates) {
-        self.certs = Some(certs);
-    }
-
     pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
         let mut certs = self.get_certs().unwrap_or_else(Certificates::new);
         certs.add(&result.cert);
-        self.set_certs(certs);
+        self.certs = Some(certs);
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
             self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
@@ -567,14 +617,10 @@ impl NewTransactionBuilder {
         self.withdrawals.clone()
     }
 
-    pub fn set_withdrawals(&mut self, withdrawals: Withdrawals) {
-        self.withdrawals = Some(withdrawals);
-    }
-
     pub fn add_withdrawal(&mut self, result: &WithdrawalBuilderResult) {
         let mut withdrawals = self.get_withdrawals().unwrap_or_else(Withdrawals::new);
         withdrawals.insert(&result.address, &result.amount);
-        self.set_withdrawals(withdrawals);
+        self.withdrawals = Some(withdrawals);
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
             self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
@@ -644,7 +690,7 @@ impl NewTransactionBuilder {
             old_assets
         };
         mint.insert(&result.policy_id, &assets);
-        self.set_mint(mint);
+        self.mint = Some(mint);
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
             self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
@@ -656,10 +702,6 @@ impl NewTransactionBuilder {
     /// Returns a copy of the current mint state in the builder
     pub fn get_mint(&self) -> Option<Mint> {
         self.mint.clone()
-    }
-
-    pub fn set_mint(&mut self, mint: Mint) {
-        self.mint = Some(mint);
     }
 
     pub fn new(cfg: &NewTransactionBuilderConfig) -> Self {
@@ -679,7 +721,10 @@ impl NewTransactionBuilder {
             required_signers: None,
             network_id: None,
             witness_builders: WitnessBuilders::default(),
-            utxos: Vec::new()
+            utxos: Vec::new(),
+            collateral_return: None,
+            total_collateral: None,
+            reference_inputs: None,
         }
     }
 
@@ -691,16 +736,51 @@ impl NewTransactionBuilder {
         self.script_data_hash.clone()
     }
 
-    pub fn set_collateral(&mut self, collateral: TransactionInputs) {
-        self.collateral = Some(collateral)
+    pub fn add_collateral(&mut self, result: &InputBuilderResult) -> Result<(), JsError>  {
+        match &result.aggregate_witness {
+            Some(InputAggregateWitnessData::Vkeys(_)) => {},
+            _ => return Err(JsError::from_str(
+                "Collateral can only be payment keys (scripts not allowed)",
+            ))
+        };
+        let new_input = TxBuilderInput {
+            input: result.input.clone(),
+            amount: result.utxo_info.amount.clone(),
+        };
+        match &mut self.collateral {
+            None => { self.collateral = Some(vec![new_input]) },
+            Some(collateral) => {
+                collateral.push(new_input);
+            }
+        }
+        
+        if let Some(ref data) = result.aggregate_witness {
+            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
+            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
+        }
+        self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
+
+        Ok(())
     }
 
     pub fn collateral(&self) -> Option<TransactionInputs> {
-        self.collateral.clone()
+        match &self.collateral {
+            None => None,
+            Some(list) => Some(TransactionInputs(list.iter().map(|input| input.input.clone()).collect()))
+        }
     }
 
-    pub fn set_required_signers(&mut self, required_signers: RequiredSigners) {
-        self.required_signers = Some(required_signers)
+    pub fn add_required_signer(&mut self, hash: &Ed25519KeyHash) {
+        let mut set = RequiredWitnessSet::new();
+        set.add_vkey_key_hash(hash);
+        self.witness_builders.witness_set_builder.add_required_wits(&set);
+
+        match &mut self.required_signers {
+            None => { self.required_signers = Some(Ed25519KeyHashes::new()); }
+            Some(required_signers) => {
+                required_signers.add(&hash)
+            }
+        }
     }
 
     pub fn required_signers(&self) -> Option<RequiredSigners> {
@@ -742,13 +822,20 @@ impl NewTransactionBuilder {
         }).unwrap_or((Value::zero(), Value::zero()))
     }
 
-    /// Return explicit input plus implicit input plus mint minus burn
+    /// Return explicit input plus implicit input plus mint
     pub fn get_total_input(&self) -> Result<Value, JsError> {
-        let (mint_value, burn_value) = self.get_mint_as_values();
+        let (mint_value, _) = self.get_mint_as_values();
         self.get_explicit_input()?
             .checked_add(&self.get_implicit_input()?)?
-            .checked_add(&mint_value)?
-            .checked_sub(&burn_value)
+            .checked_add(&mint_value)
+    }
+
+    /// Return explicit output plus implicit output plus burn (does not consider fee directly)
+    pub fn get_total_output(&self) -> Result<Value, JsError> {
+        let (_, burn_value) = self.get_mint_as_values();
+        self.get_explicit_output()?
+            .checked_add(&Value::new(&self.get_deposit()?))?
+            .checked_add(&burn_value)
     }
 
     /// does not include fee
@@ -788,15 +875,14 @@ impl NewTransactionBuilder {
             }
         }?;
 
-        // note: can't add data_hash to change
+        // note: can't add datum / script_ref to change
         // because we don't know how many change outputs will need to be created
-        let data_hash = None;
+        let datum = None;
+        let script_ref = None;
 
         let input_total = self.get_total_input()?;
 
-        let output_total = self
-            .get_explicit_output()?
-            .checked_add(&Value::new(&self.get_deposit()?))?;
+        let output_total = self.get_total_output()?;
 
         use std::cmp::Ordering;
         match &input_total.partial_cmp(&output_total.checked_add(&Value::new(&fee))?) {
@@ -812,7 +898,7 @@ impl NewTransactionBuilder {
                 }
                 let change_estimator = input_total.checked_sub(&output_total)?;
                 if has_assets(change_estimator.multiasset()) {
-                    fn will_adding_asset_make_output_overflow(output: &TransactionOutput, current_assets: &Assets, asset_to_add: (PolicyID, AssetName, BigNum), max_value_size: u32, coins_per_utxo_word: &Coin) -> bool {
+                    fn will_adding_asset_make_output_overflow(output: &TransactionOutput, current_assets: &Assets, asset_to_add: (PolicyID, AssetName, BigNum), max_value_size: u32, coins_per_utxo_byte: &Coin) -> bool {
                         let (policy, asset_name, value) = asset_to_add;
                         let mut current_assets_clone = current_assets.clone();
                         current_assets_clone.insert(&asset_name, &value);
@@ -823,14 +909,17 @@ impl NewTransactionBuilder {
                         ma.insert(&policy, &current_assets_clone);
                         val.set_multiasset(&ma);
                         amount_clone = amount_clone.checked_add(&val).unwrap();
+                    
+                        let mut output_clone = output.clone();
+                        output_clone.amount = val;
 
                         // calculate minADA for more precise max value size
-                        let min_ada = min_ada_required(&val, false, coins_per_utxo_word).unwrap();
+                        let min_ada = min_ada_required(&output_clone, coins_per_utxo_byte).unwrap();
                         amount_clone.set_coin(&min_ada);
 
                         amount_clone.to_bytes().len() > max_value_size as usize
                     }
-                    fn pack_nfts_for_change(max_value_size: u32, coins_per_utxo_word: &Coin, change_address: &Address, change_estimator: &Value, data_hash: Option<DataHash>) -> Result<Vec<MultiAsset>, JsError> {
+                    fn pack_nfts_for_change(max_value_size: u32, coins_per_utxo_byte: &Coin, change_address: &Address, change_estimator: &Value, datum: Option<Datum>, script_ref: &Option<ScriptRef>) -> Result<Vec<MultiAsset>, JsError> {
                         // we insert the entire available ADA temporarily here since that could potentially impact the size
                         // as it could be 1, 2 3 or 4 bytes for Coin.
                         let mut change_assets: Vec<MultiAsset> = Vec::new();
@@ -840,8 +929,8 @@ impl NewTransactionBuilder {
                         let mut output = TransactionOutput {
                             address: change_address.clone(),
                             amount: base_coin.clone(),
-                            data: data_hash.clone().map(TxOutputData::DatumHash),
-                            script_ref: None,
+                            datum_option: datum.as_ref().map(|d| d.0.clone()),
+                            script_ref: script_ref.clone(),
                         };
                         // If this becomes slow on large TXs we can optimize it like the following
                         // to avoid cloning + reserializing the entire output.
@@ -877,7 +966,7 @@ impl NewTransactionBuilder {
                                 let asset_name = asset_names.get(n);
                                 let value = assets.get(&asset_name).unwrap();
 
-                                if will_adding_asset_make_output_overflow(&output, &rebuilt_assets, (policy.clone(), asset_name.clone(), value), max_value_size, coins_per_utxo_word) {
+                                if will_adding_asset_make_output_overflow(&output, &rebuilt_assets, (policy.clone(), asset_name.clone(), value), max_value_size, coins_per_utxo_byte) {
                                     // if we got here, this means we will run into a overflow error,
                                     // so we want to split into multiple outputs, for that we...
 
@@ -893,8 +982,8 @@ impl NewTransactionBuilder {
                                     output = TransactionOutput {
                                         address: change_address.clone(),
                                         amount: base_coin.clone(),
-                                        data: data_hash.clone().map(TxOutputData::DatumHash),
-                                        script_ref: None,
+                                        datum_option: datum.as_ref().map(|d| d.0.clone()),
+                                        script_ref: script_ref.clone(),
                                     };
 
                                     // 3. continue building the new output from the asset we stopped
@@ -913,10 +1002,12 @@ impl NewTransactionBuilder {
                             output.amount = output.amount.checked_add(&val)?;
 
                             // calculate minADA for more precise max value size
-                            let mut amount_clone = output.amount.clone();
-                            let min_ada = min_ada_required(&val, false, coins_per_utxo_word).unwrap();
-                            amount_clone.set_coin(&min_ada);
+                            let mut output_copy = output.clone();
+                            output_copy.amount = val;
+                            let min_ada = min_ada_required(&output_copy, coins_per_utxo_byte).unwrap();
 
+                            let mut amount_clone = output.amount.clone();
+                            amount_clone.set_coin(&min_ada);
                             if amount_clone.to_bytes().len() > max_value_size as usize {
                                 output.amount = old_amount;
                                 break;
@@ -929,9 +1020,9 @@ impl NewTransactionBuilder {
                     let mut new_fee = fee;
                     // we might need multiple change outputs for cases where the change has many asset types
                     // which surpass the max UTXO size limit
-                    let minimum_utxo_val = min_pure_ada(&self.config.coins_per_utxo_word, data_hash.is_some())?;
+                    let minimum_utxo_val = min_pure_ada(&self.config.coins_per_utxo_byte, address, &datum, &script_ref)?;
                     while let Some(Ordering::Greater) = change_left.multiasset.as_ref().map_or_else(|| None, |ma| ma.partial_cmp(&MultiAsset::new())) {
-                        let nft_changes = pack_nfts_for_change(self.config.max_value_size, &self.config.coins_per_utxo_word, address, &change_left, data_hash.clone())?;
+                        let nft_changes = pack_nfts_for_change(self.config.max_value_size, &self.config.coins_per_utxo_byte, address, &change_left, datum.clone(), &script_ref)?;
                         if nft_changes.is_empty() {
                             // this likely should never happen
                             return Err(JsError::from_str("NFTs too large for change output"));
@@ -940,18 +1031,20 @@ impl NewTransactionBuilder {
                         let mut change_value = Value::new(&Coin::zero());
                         for nft_change in nft_changes.iter() {
                             change_value.set_multiasset(nft_change);
-                            let min_ada = min_ada_required(&change_value, data_hash.is_some(), &self.config.coins_per_utxo_word)?;
-                            change_value.set_coin(&min_ada);
-                            let change_output = TransactionOutput {
-                                address: address.clone(),
-                                amount: change_value.clone(),
-                                data: data_hash.clone().map(TxOutputData::DatumHash),
-                                script_ref: None,
-                            };
+
+                            let change_output = (TransactionOutputBuilder {
+                                address: Some(address.clone()),
+                                datum: datum.as_ref().map(|d| d.0.clone()),
+                                script_ref: script_ref.clone()
+                            })
+                                .next()?
+                                .with_asset_and_min_required_coin(nft_change,  &self.config.coins_per_utxo_byte)?
+                                .build()?;
+                            
                             // increase fee
                             let fee_for_change = self.fee_for_output(&change_output)?;
                             new_fee = new_fee.checked_add(&fee_for_change)?;
-                            if change_left.coin() < min_ada.checked_add(&new_fee)? {
+                            if change_left.coin() < change_output.amount.coin().checked_add(&new_fee)? {
                                 return Err(JsError::from_str("Not enough ADA leftover to include non-ADA assets in a change address"));
                             }
                             change_left = change_left.checked_sub(&change_value)?;
@@ -965,8 +1058,8 @@ impl NewTransactionBuilder {
                         let pure_output = TransactionOutput {
                             address: address.clone(),
                             amount: change_left.clone(),
-                            data: data_hash.clone().map(TxOutputData::DatumHash),
-                            script_ref: None,
+                            datum_option: datum.as_ref().map(|d| d.0.clone()),
+                            script_ref: script_ref.clone(),
                         };
                         let additional_fee = self.fee_for_output(&pure_output)?;
                         let potential_pure_value = change_left.checked_sub(&Value::new(&additional_fee))?;
@@ -977,8 +1070,8 @@ impl NewTransactionBuilder {
                             self.add_output(&TransactionOutput {
                                 address: address.clone(),
                                 amount: potential_pure_value.clone(),
-                                data: data_hash.clone().map(TxOutputData::DatumHash),
-                                script_ref: None,
+                                datum_option: datum.as_ref().map(|d| d.0.clone()),
+                                script_ref: script_ref.clone(),
                             })?;
                         }
                     }
@@ -990,9 +1083,13 @@ impl NewTransactionBuilder {
                     Ok(true)
                 } else {
                     let min_ada = min_ada_required(
-                        &change_estimator,
-                        data_hash.is_some(),
-                        &self.config.coins_per_utxo_word,
+                        &TransactionOutput {
+                            address: address.clone(),
+                            amount: change_estimator.clone(),
+                            datum_option: datum.as_ref().map(|d| d.0.clone()),
+                            script_ref: script_ref.clone(),
+                        },
+                        &self.config.coins_per_utxo_byte,
                     )?;
                     // no-asset case so we have no problem burning the rest if there is no other option
                     fn burn_extra(builder: &mut NewTransactionBuilder, burn_amount: &BigNum) -> Result<bool, JsError> {
@@ -1007,8 +1104,8 @@ impl NewTransactionBuilder {
                             let fee_for_change = self.fee_for_output(&TransactionOutput {
                                 address: address.clone(),
                                 amount: change_estimator.clone(),
-                                data: data_hash.clone().map(TxOutputData::DatumHash),
-                                script_ref: None,
+                                datum_option: datum.as_ref().map(|d| d.0.clone()),
+                                script_ref: script_ref.clone(),
                             })?;
 
                             let new_fee = fee.checked_add(&fee_for_change)?;
@@ -1021,8 +1118,8 @@ impl NewTransactionBuilder {
                                     self.add_output(&TransactionOutput {
                                         address: address.clone(),
                                         amount: change_estimator.checked_sub(&Value::new(&new_fee.clone()))?,
-                                        data: data_hash.clone().map(TxOutputData::DatumHash),
-                                        script_ref: None,
+                                        datum_option: datum.as_ref().map(|d| d.0.clone()),
+                                        script_ref: script_ref.clone(),
                                     })?;
 
                                     Ok(true)
@@ -1046,17 +1143,18 @@ impl NewTransactionBuilder {
             certs: self.certs.clone(),
             withdrawals: self.withdrawals.clone(),
             update: None,
-            auxiliary_data_hash: self.auxiliary_data.as_ref().map(utils::hash_auxiliary_data),
+            auxiliary_data_hash: self.auxiliary_data.as_ref().map(hash_auxiliary_data),
             validity_start_interval: self.validity_start_interval,
             mint: self.mint.clone(),
             script_data_hash: self.script_data_hash.clone(),
-            collateral: self.collateral.clone(),
+            collateral: self.collateral.as_ref().map(
+                |collateral| TransactionInputs(collateral.iter().map(|c| c.input.clone()).collect())
+            ),
             required_signers: self.required_signers.clone(),
             network_id: self.network_id,
-            // TODO: update for Babbage
-            collateral_return: None,
-            total_collateral: None,
-            reference_inputs: None,
+            collateral_return: self.collateral_return.clone(),
+            total_collateral: self.total_collateral,
+            reference_inputs: self.reference_inputs.clone(),
         };
         // we must build a tx with fake data (of correct size) to check the final Transaction size
         let full_tx = fake_full_tx(self, built)?;
@@ -1113,9 +1211,10 @@ impl NewTransactionBuilder {
 #[cfg(test)]
 mod tests {
     use crate::builders::{mint_builder::SingleMintBuilder, witness_builder::NativeScriptWitnessInfo, input_builder::SingleInputBuilder};
+    use crate::ledger::common::hash::hash_transaction;
+    use crate::ledger::shelley::witness::make_vkey_witness;
 
     use super::*;
-    use fees::*;
     use super::builders::output_builder::TransactionOutputBuilder;
 
     const MAX_VALUE_SIZE: u32 = 4000;
@@ -1160,7 +1259,7 @@ mod tests {
         pool_deposit: u64,
         key_deposit: u64,
         max_val_size: u32,
-        coins_per_utxo_word: u64,
+        coins_per_utxo_byte: u64,
     ) -> NewTransactionBuilder {
         let cfg = NewTransactionBuilderConfigBuilder::default()
             .fee_algo(linear_fee)
@@ -1168,7 +1267,7 @@ mod tests {
             .key_deposit(&to_bignum(key_deposit))
             .max_value_size(max_val_size)
             .max_tx_size(MAX_TX_SIZE)
-            .coins_per_utxo_word(&to_bignum(coins_per_utxo_word))
+            .coins_per_utxo_byte(&to_bignum(coins_per_utxo_byte))
             .build()
             .unwrap();
         NewTransactionBuilder::new(&cfg)
@@ -1176,11 +1275,11 @@ mod tests {
 
     fn create_tx_builder(
         linear_fee: &LinearFee,
-        coins_per_utxo_word: u64,
+        coins_per_utxo_byte: u64,
         pool_deposit: u64,
         key_deposit: u64,
     ) -> NewTransactionBuilder {
-        create_tx_builder_full(linear_fee, pool_deposit, key_deposit, MAX_VALUE_SIZE, coins_per_utxo_word)
+        create_tx_builder_full(linear_fee, pool_deposit, key_deposit, MAX_VALUE_SIZE, coins_per_utxo_byte)
     }
 
     fn create_reallistic_tx_builder() -> NewTransactionBuilder {
@@ -1207,7 +1306,7 @@ mod tests {
             .key_deposit(&to_bignum(1))
             .max_value_size(MAX_VALUE_SIZE)
             .max_tx_size(MAX_TX_SIZE)
-            .coins_per_utxo_word(&to_bignum(1))
+            .coins_per_utxo_byte(&to_bignum(1))
             .prefer_pure_change(true)
             .build()
             .unwrap())
@@ -1835,7 +1934,7 @@ mod tests {
 
     #[test]
     fn build_tx_with_native_assets_change_and_purification() {
-        let coin_per_utxo_word = to_bignum(1);
+        let coin_per_utxo_byte = to_bignum(1);
         // Prefer pure change!
         let mut tx_builder = create_tx_builder_with_fee_and_pure_change(&create_linear_fee(0, 1));
         let change_key = root_key_15()
@@ -1927,9 +2026,8 @@ mod tests {
         );
         // The first change output that contains all the tokens contain minimum required Coin
         let min_coin_for_dirty_change = min_ada_required(
-            &final_tx.outputs().get(1).amount(),
-            false,
-            &coin_per_utxo_word,
+            &final_tx.outputs().get(1),
+            &coin_per_utxo_byte,
         ).unwrap();
         assert_eq!(
             final_tx.outputs().get(1).amount().coin(),
@@ -2769,7 +2867,7 @@ mod tests {
             .key_deposit(&to_bignum(0))
             .max_value_size(9999)
             .max_tx_size(9999)
-            .coins_per_utxo_word(&Coin::zero())
+            .coins_per_utxo_byte(&Coin::zero())
             .build()
             .unwrap();
         let mut tx_builder = NewTransactionBuilder::new(&cfg);
@@ -2797,7 +2895,7 @@ mod tests {
             .key_deposit(&to_bignum(0))
             .max_value_size(9999)
             .max_tx_size(9999)
-            .coins_per_utxo_word(&Coin::zero())
+            .coins_per_utxo_byte(&Coin::zero())
             .build()
             .unwrap();
         let mut tx_builder = NewTransactionBuilder::new(&cfg);
@@ -2926,7 +3024,7 @@ mod tests {
         let _deser_t = TransactionBody::from_bytes(_final_tx.to_bytes()).unwrap();
 
         assert_eq!(_deser_t.to_bytes(), _final_tx.to_bytes());
-        assert_eq!(_deser_t.auxiliary_data_hash.unwrap(), utils::hash_auxiliary_data(&auxiliary_data));
+        assert_eq!(_deser_t.auxiliary_data_hash.unwrap(), hash_auxiliary_data(&auxiliary_data));
     }
 
     #[test]
@@ -3001,7 +3099,7 @@ mod tests {
         let _final_tx = build_full_tx(&body, &witness_set, None);
         let _deser_t = Transaction::from_bytes(_final_tx.to_bytes()).unwrap();
         assert_eq!(_deser_t.to_bytes(), _final_tx.to_bytes());
-        assert_eq!(_deser_t.body().auxiliary_data_hash.unwrap(), utils::hash_auxiliary_data(&auxiliary_data));
+        assert_eq!(_deser_t.body().auxiliary_data_hash.unwrap(), hash_auxiliary_data(&auxiliary_data));
     }
 
     #[test]
@@ -3015,7 +3113,7 @@ mod tests {
                 .key_deposit(&to_bignum(0))
                 .max_value_size(max_value_size)
                 .max_tx_size(MAX_TX_SIZE)
-                .coins_per_utxo_word(&to_bignum(1))
+                .coins_per_utxo_byte(&to_bignum(1))
                 .prefer_pure_change(true)
                 .build()
                 .unwrap()
@@ -3493,7 +3591,7 @@ mod tests {
             &TransactionOutputBuilder::new()
                 .with_address(&address)
                 .next().unwrap()
-                .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_word).unwrap()
+                .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_byte).unwrap()
                 .build().unwrap()
             ).unwrap();
 
@@ -3606,7 +3704,7 @@ mod tests {
             .with_address(&address)
             .next()
             .unwrap()
-            .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_word)
+            .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_byte)
             .unwrap()
             .build()
             .unwrap();

@@ -1,6 +1,8 @@
 use cbor_event::{de::Deserializer, se::Serializer};
 use crate::impl_mockchain as chain;
 use crate::chain_crypto as crypto;
+use crate::ledger::common::binary::Deserialize;
+use crate::ledger::common::binary::DeserializeEmbeddedGroup;
 use chain::key;
 use crypto::bech32::Bech32 as _;
 use bech32::ToBase32;

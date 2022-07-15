@@ -776,9 +776,13 @@ impl NewTransactionBuilder {
         self.witness_builders.witness_set_builder.add_required_wits(&set);
 
         match &mut self.required_signers {
-            None => { self.required_signers = Some(Ed25519KeyHashes::new()); }
+            None => {
+                let mut required_signers = Ed25519KeyHashes::new(); 
+                required_signers.add(hash);
+                self.required_signers = Some(required_signers);
+            }
             Some(required_signers) => {
-                required_signers.add(&hash)
+                required_signers.add(hash)
             }
         }
     }

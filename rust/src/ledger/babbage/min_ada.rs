@@ -22,7 +22,7 @@ pub fn min_ada_required(
     coins_per_utxo_byte: &BigNum, // protocol parameter (in lovelace)
 ) -> Result<BigNum, JsError> {
     // constant from figure 5 in Babbage spec meant to represent the size the input in a UTXO
-    let constant_overhead = 160 as u64;
+    let constant_overhead = 160_u64;
 
     let old_coin_size = output.amount.coin.to_bytes().len();
 
@@ -31,10 +31,10 @@ pub fn min_ada_required(
 
     // we calculate min ada in a loop because every time we increase the min ADA, it may increase the CBOR size in bytes
     loop {
-        let size_diff = (latest_size - old_coin_size) as u64;
+        let size_diff = latest_size as i128 - old_coin_size as i128;
 
-        let tentative_min_ada = to_bignum(output.to_bytes().len() as u64 + constant_overhead + size_diff)
-            .checked_mul(&coins_per_utxo_byte)?;
+        let tentative_min_ada = to_bignum((output.to_bytes().len() as i128 + constant_overhead as i128 + size_diff) as u64)
+            .checked_mul(coins_per_utxo_byte)?;
 
         let new_coin_size = tentative_min_ada
             .to_bytes()
@@ -47,16 +47,16 @@ pub fn min_ada_required(
         }
     }
 
-    // how many bytes the size increased from including the minimum ADA value
-    let mut size_increase = cmp::max(latest_size as i128 - old_coin_size as i128, 0) as u64;
+    // how many bytes the size changed from including the minimum ADA value
+    let size_change = latest_size as i128 - old_coin_size as i128;
 
-    let adjusted_min_ada = to_bignum(output.to_bytes().len() as u64 + constant_overhead + size_increase)
-        .checked_mul(&coins_per_utxo_byte)?;
+    let adjusted_min_ada = to_bignum((output.to_bytes().len() as i128 + constant_overhead as i128 + size_change) as u64)
+        .checked_mul(coins_per_utxo_byte)?;
     Ok(adjusted_min_ada)
 }
 
 // note: don't expose to WASM since these Option<> types would be dangerous
-pub fn min_pure_ada(coins_per_utxo_word: &BigNum, address: &Address, datum: &Option<Datum>, script_ref: &Option<ScriptRef>) -> Result<BigNum, JsError> {
+pub fn min_pure_ada(coins_per_utxo_byte: &BigNum, address: &Address, datum: &Option<Datum>, script_ref: &Option<ScriptRef>) -> Result<BigNum, JsError> {
     let mut output = TransactionOutput::new(
         address,
         // arbitrary value that happens to give the right number of bytes at the CBOR level
@@ -70,7 +70,7 @@ pub fn min_pure_ada(coins_per_utxo_word: &BigNum, address: &Address, datum: &Opt
     }
     min_ada_required( 
         &output,
-        coins_per_utxo_word,
+        coins_per_utxo_byte,
     )
 }
 
@@ -81,7 +81,7 @@ mod tests {
     use super::*;
 
     // this is what is used in mainnet
-    const COINS_PER_UTXO_WORD: u64 = 34_482;
+    const COINS_PER_UTXO_BYTE: u64 = 4310;
 
     fn test_output() -> TransactionOutput {
         fn harden(index: u32) -> u32 {
@@ -277,8 +277,8 @@ mod tests {
     fn min_ada_value_no_multiasset() {
         let check_output = test_output();
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_WORD)).unwrap()),
-            978370,
+            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            969750,
         );
     }
 
@@ -287,8 +287,8 @@ mod tests {
         let mut check_output = test_output();
         check_output.amount = one_policy_one_0_char_asset();
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_WORD)).unwrap()),
-            1129220,
+            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            1120600,
         );
     }
 
@@ -297,8 +297,8 @@ mod tests {
         let mut check_output = test_output();
         check_output.amount = one_policy_one_1_char_asset();
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_WORD)).unwrap()),
-            1133530,
+            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            1124910,
         );
     }
 
@@ -307,8 +307,8 @@ mod tests {
         let mut check_output = test_output();
         check_output.amount = one_policy_three_1_char_assets();
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_WORD)).unwrap()),
-            1159390,
+            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            1150770,
         );
     }
 
@@ -317,8 +317,8 @@ mod tests {
         let mut check_output = test_output();
         check_output.amount = two_policies_one_0_char_asset();
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_WORD)).unwrap()),
-            1271450,
+            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            1262830,
         );
     }
 
@@ -327,8 +327,8 @@ mod tests {
         let mut check_output = test_output();
         check_output.amount = two_policies_one_1_char_asset();
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_WORD)).unwrap()),
-            1280070,
+            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            1271450,
         );
     }
 
@@ -337,8 +337,8 @@ mod tests {
         let mut check_output = test_output();
         check_output.amount = three_policies_96_1_char_assets();
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_WORD)).unwrap()),
-            2642030,
+            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            2633410,
         );
     }
 
@@ -347,8 +347,8 @@ mod tests {
         let mut check_output = test_output();
         check_output.amount = one_policy_one_0_char_asset();
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_WORD)).unwrap()),
-            1129220,
+            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            1120600,
         );
     }
 
@@ -357,8 +357,8 @@ mod tests {
         let mut check_output = test_output();
         check_output.amount = one_policy_three_32_char_assets();
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_WORD)).unwrap()),
-            1573150,
+            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            1564530,
         );
     }
 
@@ -367,8 +367,8 @@ mod tests {
         let mut check_output = test_output();
         check_output.amount = two_policies_one_0_char_asset();
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_WORD)).unwrap()),
-            1271450,
+            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            1262830,
         );
     }
 }

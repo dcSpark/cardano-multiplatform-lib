@@ -22,7 +22,7 @@ to_from_json!(PlutusV1Script);
 #[wasm_bindgen]
 impl PlutusV1Script {
     pub fn hash(&self) -> ScriptHash {
-        hash_script(ScriptHashNamespace::PlutusV1, self.to_bytes())
+        hash_script(ScriptHashNamespace::PlutusV1, self.bytes())
     }
 
     /**
@@ -104,7 +104,7 @@ to_from_json!(PlutusV2Script);
 #[wasm_bindgen]
 impl PlutusV2Script {
     pub fn hash(&self) -> ScriptHash {
-        hash_script(ScriptHashNamespace::PlutusV2, self.to_bytes())
+        hash_script(ScriptHashNamespace::PlutusV2, self.bytes())
     }
 
     /**

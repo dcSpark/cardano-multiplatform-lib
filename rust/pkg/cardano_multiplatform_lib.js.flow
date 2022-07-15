@@ -106,6 +106,30 @@ declare export function make_icarus_bootstrap_witness(
 ): BootstrapWitness;
 
 /**
+ * @param {string} password
+ * @param {string} salt
+ * @param {string} nonce
+ * @param {string} data
+ * @returns {string}
+ */
+declare export function encrypt_with_password(
+  password: string,
+  salt: string,
+  nonce: string,
+  data: string
+): string;
+
+/**
+ * @param {string} password
+ * @param {string} data
+ * @returns {string}
+ */
+declare export function decrypt_with_password(
+  password: string,
+  data: string
+): string;
+
+/**
  * @param {AuxiliaryData} auxiliary_data
  * @returns {AuxiliaryDataHash}
  */
@@ -138,30 +162,6 @@ declare export function hash_script_data(
   cost_models: Costmdls,
   datums?: PlutusList
 ): ScriptDataHash;
-
-/**
- * @param {string} password
- * @param {string} salt
- * @param {string} nonce
- * @param {string} data
- * @returns {string}
- */
-declare export function encrypt_with_password(
-  password: string,
-  salt: string,
-  nonce: string,
-  data: string
-): string;
-
-/**
- * @param {string} password
- * @param {string} data
- * @returns {string}
- */
-declare export function decrypt_with_password(
-  password: string,
-  data: string
-): string;
 
 /**
  * @param {Transaction} tx
@@ -398,16 +398,6 @@ declare export var AddressHeaderKind: {|
 |};
 
 /**
- */
-
-declare export var CoinSelectionStrategyCIP2: {|
-  +LargestFirst: 0, // 0
-  +RandomImprove: 1, // 1
-  +LargestFirstMultiAsset: 2, // 2
-  +RandomImproveMultiAsset: 3, // 3
-|};
-
-/**
  * Each new language uses a different namespace for hashing its script
  * This is because you could have a language where the same bytes have different semantics
  * So this avoids scripts in different languages mapping to the same hash
@@ -424,7 +414,7 @@ declare export var ScriptHashNamespace: {|
 /**
  */
 
-declare export var NewCoinSelectionStrategyCIP2: {|
+declare export var CoinSelectionStrategyCIP2: {|
   +LargestFirst: 0, // 0
   +RandomImprove: 1, // 1
   +LargestFirstMultiAsset: 2, // 2
@@ -3724,385 +3714,6 @@ declare export class NetworkInfo {
 }
 /**
  */
-declare export class NewTransactionBuilder {
-  free(): void;
-
-  /**
-   * This automatically selects and adds inputs from {inputs} consisting of just enough to cover
-   * the outputs that have already been added.
-   * This should be called after adding all certs/outputs/etc and will be an error otherwise.
-   * Uses CIP2: https://github.com/cardano-foundation/CIPs/blob/master/CIP-0002/CIP-0002.md
-   * Adding a change output must be called after via NewTransactionBuilder::add_change_if_needed()
-   * This function, diverging from CIP2, takes into account fees and will attempt to add additional
-   * inputs to cover the minimum fees. This does not, however, set the txbuilder's fee.
-   * @param {number} strategy
-   */
-  select_utxos(strategy: number): void;
-
-  /**
-   * @returns {TransactionWitnessSetBuilder}
-   */
-  get_witness_set_builder(): TransactionWitnessSetBuilder;
-
-  /**
-   * @param {TransactionWitnessSetBuilder} witness_set_builder
-   */
-  set_witness_set_builder(
-    witness_set_builder: TransactionWitnessSetBuilder
-  ): void;
-
-  /**
-   * @param {InputBuilderResult} result
-   */
-  add_input(result: InputBuilderResult): void;
-
-  /**
-   * @param {InputBuilderResult} result
-   */
-  add_utxo(result: InputBuilderResult): void;
-
-  /**
-   * calculates how much the fee would increase if you added a given output
-   * @param {InputBuilderResult} result
-   * @returns {BigNum}
-   */
-  fee_for_input(result: InputBuilderResult): BigNum;
-
-  /**
-   * Add explicit output via a TransactionOutput object
-   * @param {TransactionOutput} output
-   */
-  add_output(output: TransactionOutput): void;
-
-  /**
-   * calculates how much the fee would increase if you added a given output
-   * @param {TransactionOutput} output
-   * @returns {BigNum}
-   */
-  fee_for_output(output: TransactionOutput): BigNum;
-
-  /**
-   * @param {BigNum} fee
-   */
-  set_fee(fee: BigNum): void;
-
-  /**
-   * @param {BigNum} ttl
-   */
-  set_ttl(ttl: BigNum): void;
-
-  /**
-   * @param {BigNum} validity_start_interval
-   */
-  set_validity_start_interval(validity_start_interval: BigNum): void;
-
-  /**
-   * @returns {Certificates | void}
-   */
-  get_certs(): Certificates | void;
-
-  /**
-   * @param {CertificateBuilderResult} result
-   */
-  add_cert(result: CertificateBuilderResult): void;
-
-  /**
-   * @returns {Withdrawals | void}
-   */
-  get_withdrawals(): Withdrawals | void;
-
-  /**
-   * @param {WithdrawalBuilderResult} result
-   */
-  add_withdrawal(result: WithdrawalBuilderResult): void;
-
-  /**
-   * @returns {AuxiliaryData | void}
-   */
-  get_auxiliary_data(): AuxiliaryData | void;
-
-  /**
-   * Set explicit auxiliary data via an AuxiliaryData object
-   * It might contain some metadata plus native or Plutus scripts
-   * @param {AuxiliaryData} auxiliary_data
-   */
-  set_auxiliary_data(auxiliary_data: AuxiliaryData): void;
-
-  /**
-   * Set metadata using a GeneralTransactionMetadata object
-   * It will be set to the existing or new auxiliary data in this builder
-   * @param {GeneralTransactionMetadata} metadata
-   */
-  set_metadata(metadata: GeneralTransactionMetadata): void;
-
-  /**
-   * Add a single metadatum using TransactionMetadatumLabel and TransactionMetadatum objects
-   * It will be securely added to existing or new metadata in this builder
-   * @param {BigNum} key
-   * @param {TransactionMetadatum} val
-   */
-  add_metadatum(key: BigNum, val: TransactionMetadatum): void;
-
-  /**
-   * Add a single JSON metadatum using a TransactionMetadatumLabel and a String
-   * It will be securely added to existing or new metadata in this builder
-   * @param {BigNum} key
-   * @param {string} val
-   */
-  add_json_metadatum(key: BigNum, val: string): void;
-
-  /**
-   * Add a single JSON metadatum using a TransactionMetadatumLabel, a String, and a MetadataJsonSchema object
-   * It will be securely added to existing or new metadata in this builder
-   * @param {BigNum} key
-   * @param {string} val
-   * @param {number} schema
-   */
-  add_json_metadatum_with_schema(
-    key: BigNum,
-    val: string,
-    schema: number
-  ): void;
-
-  /**
-   * @param {MintBuilderResult} result
-   */
-  add_mint(result: MintBuilderResult): void;
-
-  /**
-   * Returns a copy of the current mint state in the builder
-   * @returns {Mint | void}
-   */
-  get_mint(): Mint | void;
-
-  /**
-   * @param {NewTransactionBuilderConfig} cfg
-   * @returns {NewTransactionBuilder}
-   */
-  static new(cfg: NewTransactionBuilderConfig): NewTransactionBuilder;
-
-  /**
-   * @param {ScriptDataHash} script_data_hash
-   */
-  set_script_data_hash(script_data_hash: ScriptDataHash): void;
-
-  /**
-   * @returns {ScriptDataHash | void}
-   */
-  script_data_hash(): ScriptDataHash | void;
-
-  /**
-   * @param {InputBuilderResult} result
-   */
-  add_collateral(result: InputBuilderResult): void;
-
-  /**
-   * @returns {TransactionInputs | void}
-   */
-  collateral(): TransactionInputs | void;
-
-  /**
-   * @param {Ed25519KeyHash} hash
-   */
-  add_required_signer(hash: Ed25519KeyHash): void;
-
-  /**
-   * @returns {Ed25519KeyHashes | void}
-   */
-  required_signers(): Ed25519KeyHashes | void;
-
-  /**
-   * @param {NetworkId} network_id
-   */
-  set_network_id(network_id: NetworkId): void;
-
-  /**
-   * @returns {NetworkId | void}
-   */
-  network_id(): NetworkId | void;
-
-  /**
-   * does not include refunds or withdrawals
-   * @returns {Value}
-   */
-  get_explicit_input(): Value;
-
-  /**
-   * withdrawals and refunds
-   * @returns {Value}
-   */
-  get_implicit_input(): Value;
-
-  /**
-   * Return explicit input plus implicit input plus mint
-   * @returns {Value}
-   */
-  get_total_input(): Value;
-
-  /**
-   * Return explicit output plus implicit output plus burn (does not consider fee directly)
-   * @returns {Value}
-   */
-  get_total_output(): Value;
-
-  /**
-   * does not include fee
-   * @returns {Value}
-   */
-  get_explicit_output(): Value;
-
-  /**
-   * @returns {BigNum}
-   */
-  get_deposit(): BigNum;
-
-  /**
-   * @returns {BigNum | void}
-   */
-  get_fee_if_set(): BigNum | void;
-
-  /**
-   * Warning: this function will mutate the /fee/ field
-   * Make sure to call this function last after setting all other tx-body properties
-   * Editing inputs, outputs, mint, etc. after change been calculated
-   * might cause a mismatch in calculated fee versus the required fee
-   * @param {Address} address
-   * @returns {boolean}
-   */
-  add_change_if_needed(address: Address): boolean;
-
-  /**
-   * @returns {number}
-   */
-  full_size(): number;
-
-  /**
-   * @returns {Uint32Array}
-   */
-  output_sizes(): Uint32Array;
-
-  /**
-   * Returns object the body of the new transaction
-   * Auxiliary data itself is not included
-   * You can use `get_auxiliary_data` or `build_tx`
-   * @returns {TransactionBody}
-   */
-  build(): TransactionBody;
-
-  /**
-   * Returns full Transaction object with the body and the auxiliary data
-   * NOTE: witness_set will contain all scripts, datums, etc. if any been added or set
-   * NOTE: is_valid set to true
-   * @returns {Transaction}
-   */
-  build_tx(): Transaction;
-
-  /**
-   * warning: sum of all parts of a transaction must equal 0. You cannot just set the fee to the min value and forget about it
-   * warning: min_fee may be slightly larger than the actual minimum fee (ex: a few lovelaces)
-   * this is done to simplify the library code, but can be fixed later
-   * @returns {BigNum}
-   */
-  min_fee(): BigNum;
-}
-/**
- */
-declare export class NewTransactionBuilderConfig {
-  free(): void;
-}
-/**
- */
-declare export class NewTransactionBuilderConfigBuilder {
-  free(): void;
-
-  /**
-   * @returns {NewTransactionBuilderConfigBuilder}
-   */
-  static new(): NewTransactionBuilderConfigBuilder;
-
-  /**
-   * @param {LinearFee} fee_algo
-   * @returns {NewTransactionBuilderConfigBuilder}
-   */
-  fee_algo(fee_algo: LinearFee): NewTransactionBuilderConfigBuilder;
-
-  /**
-   * @param {BigNum} coins_per_utxo_byte
-   * @returns {NewTransactionBuilderConfigBuilder}
-   */
-  coins_per_utxo_byte(
-    coins_per_utxo_byte: BigNum
-  ): NewTransactionBuilderConfigBuilder;
-
-  /**
-   * @param {BigNum} pool_deposit
-   * @returns {NewTransactionBuilderConfigBuilder}
-   */
-  pool_deposit(pool_deposit: BigNum): NewTransactionBuilderConfigBuilder;
-
-  /**
-   * @param {BigNum} key_deposit
-   * @returns {NewTransactionBuilderConfigBuilder}
-   */
-  key_deposit(key_deposit: BigNum): NewTransactionBuilderConfigBuilder;
-
-  /**
-   * @param {number} max_value_size
-   * @returns {NewTransactionBuilderConfigBuilder}
-   */
-  max_value_size(max_value_size: number): NewTransactionBuilderConfigBuilder;
-
-  /**
-   * @param {number} max_tx_size
-   * @returns {NewTransactionBuilderConfigBuilder}
-   */
-  max_tx_size(max_tx_size: number): NewTransactionBuilderConfigBuilder;
-
-  /**
-   * @param {boolean} prefer_pure_change
-   * @returns {NewTransactionBuilderConfigBuilder}
-   */
-  prefer_pure_change(
-    prefer_pure_change: boolean
-  ): NewTransactionBuilderConfigBuilder;
-
-  /**
-   * @param {ExUnitPrices} ex_unit_prices
-   * @returns {NewTransactionBuilderConfigBuilder}
-   */
-  ex_unit_prices(
-    ex_unit_prices: ExUnitPrices
-  ): NewTransactionBuilderConfigBuilder;
-
-  /**
-   * @param {Costmdls} costmdls
-   * @returns {NewTransactionBuilderConfigBuilder}
-   */
-  costmdls(costmdls: Costmdls): NewTransactionBuilderConfigBuilder;
-
-  /**
-   * @param {number} collateral_percentage
-   * @returns {NewTransactionBuilderConfigBuilder}
-   */
-  collateral_percentage(
-    collateral_percentage: number
-  ): NewTransactionBuilderConfigBuilder;
-
-  /**
-   * @param {number} max_collateral_inputs
-   * @returns {NewTransactionBuilderConfigBuilder}
-   */
-  max_collateral_inputs(
-    max_collateral_inputs: number
-  ): NewTransactionBuilderConfigBuilder;
-
-  /**
-   * @returns {NewTransactionBuilderConfig}
-   */
-  build(): NewTransactionBuilderConfig;
-}
-/**
- */
 declare export class Nonce {
   free(): void;
 
@@ -7336,66 +6947,38 @@ declare export class TransactionBuilder {
    * Adding a change output must be called after via TransactionBuilder::add_change_if_needed()
    * This function, diverging from CIP2, takes into account fees and will attempt to add additional
    * inputs to cover the minimum fees. This does not, however, set the txbuilder's fee.
-   * @param {TransactionUnspentOutputs} inputs
    * @param {number} strategy
    */
-  add_inputs_from(inputs: TransactionUnspentOutputs, strategy: number): void;
+  select_utxos(strategy: number): void;
 
   /**
-   * We have to know what kind of inputs these are to know what kind of mock witnesses to create since
-   * 1) mock witnesses have different lengths depending on the type which changes the expecting fee
-   * 2) Witnesses are a set so we need to get rid of duplicates to avoid over-estimating the fee
-   * @param {Ed25519KeyHash} hash
-   * @param {TransactionInput} input
-   * @param {Value} amount
+   * @returns {TransactionWitnessSetBuilder}
    */
-  add_key_input(
-    hash: Ed25519KeyHash,
-    input: TransactionInput,
-    amount: Value
+  get_witness_set_builder(): TransactionWitnessSetBuilder;
+
+  /**
+   * @param {TransactionWitnessSetBuilder} witness_set_builder
+   */
+  set_witness_set_builder(
+    witness_set_builder: TransactionWitnessSetBuilder
   ): void;
 
   /**
-   * @param {ScriptHash} hash
-   * @param {TransactionInput} input
-   * @param {Value} amount
+   * @param {InputBuilderResult} result
    */
-  add_script_input(
-    hash: ScriptHash,
-    input: TransactionInput,
-    amount: Value
-  ): void;
+  add_input(result: InputBuilderResult): void;
 
   /**
-   * @param {ByronAddress} hash
-   * @param {TransactionInput} input
-   * @param {Value} amount
+   * @param {InputBuilderResult} result
    */
-  add_bootstrap_input(
-    hash: ByronAddress,
-    input: TransactionInput,
-    amount: Value
-  ): void;
-
-  /**
-   * @param {Address} address
-   * @param {TransactionInput} input
-   * @param {Value} amount
-   */
-  add_input(address: Address, input: TransactionInput, amount: Value): void;
+  add_utxo(result: InputBuilderResult): void;
 
   /**
    * calculates how much the fee would increase if you added a given output
-   * @param {Address} address
-   * @param {TransactionInput} input
-   * @param {Value} amount
+   * @param {InputBuilderResult} result
    * @returns {BigNum}
    */
-  fee_for_input(
-    address: Address,
-    input: TransactionInput,
-    amount: Value
-  ): BigNum;
+  fee_for_input(result: InputBuilderResult): BigNum;
 
   /**
    * Add explicit output via a TransactionOutput object
@@ -7426,15 +7009,24 @@ declare export class TransactionBuilder {
   set_validity_start_interval(validity_start_interval: BigNum): void;
 
   /**
-   * TODO: replace with add_cert that takes in a CertificateBuilderResult
-   * @param {Certificates} certs
+   * @returns {Certificates | void}
    */
-  set_certs(certs: Certificates): void;
+  get_certs(): Certificates | void;
 
   /**
-   * @param {Withdrawals} withdrawals
+   * @param {CertificateBuilderResult} result
    */
-  set_withdrawals(withdrawals: Withdrawals): void;
+  add_cert(result: CertificateBuilderResult): void;
+
+  /**
+   * @returns {Withdrawals | void}
+   */
+  get_withdrawals(): Withdrawals | void;
+
+  /**
+   * @param {WithdrawalBuilderResult} result
+   */
+  add_withdrawal(result: WithdrawalBuilderResult): void;
 
   /**
    * @returns {AuxiliaryData | void}
@@ -7447,12 +7039,6 @@ declare export class TransactionBuilder {
    * @param {AuxiliaryData} auxiliary_data
    */
   set_auxiliary_data(auxiliary_data: AuxiliaryData): void;
-
-  /**
-   * Set explicit native scripts via a NativeScripts object
-   * @param {NativeScripts} native_scripts
-   */
-  set_native_scripts(native_scripts: NativeScripts): void;
 
   /**
    * Set metadata using a GeneralTransactionMetadata object
@@ -7491,85 +7077,15 @@ declare export class TransactionBuilder {
   ): void;
 
   /**
-   * Set explicit Mint object and the required witnesses to this builder
-   * it will replace any previously existing mint and mint scripts
-   * NOTE! Error will be returned in case a mint policy does not have a matching script
-   * @param {Mint} mint
-   * @param {NativeScripts} mint_scripts
+   * @param {MintBuilderResult} result
    */
-  set_mint(mint: Mint, mint_scripts: NativeScripts): void;
+  add_mint(result: MintBuilderResult): void;
 
   /**
    * Returns a copy of the current mint state in the builder
    * @returns {Mint | void}
    */
   get_mint(): Mint | void;
-
-  /**
-   * Returns a copy of the current witness native scripts in the builder
-   * @returns {NativeScripts | void}
-   */
-  get_native_scripts(): NativeScripts | void;
-
-  /**
-   * Add a mint entry to this builder using a PolicyID and MintAssets object
-   * It will be securely added to existing or new Mint in this builder
-   * It will replace any existing mint assets with the same PolicyID
-   * @param {NativeScript} policy_script
-   * @param {MintAssets} mint_assets
-   */
-  set_mint_asset(policy_script: NativeScript, mint_assets: MintAssets): void;
-
-  /**
-   * Add a mint entry to this builder using a PolicyID, AssetName, and Int object for amount
-   * It will be securely added to existing or new Mint in this builder
-   * It will replace any previous existing amount same PolicyID and AssetName
-   * @param {NativeScript} policy_script
-   * @param {AssetName} asset_name
-   * @param {Int} amount
-   */
-  add_mint_asset(
-    policy_script: NativeScript,
-    asset_name: AssetName,
-    amount: Int
-  ): void;
-
-  /**
-   * Add a mint entry together with an output to this builder
-   * Using a PolicyID, AssetName, Int for amount, Address, and Coin (BigNum) objects
-   * The asset will be securely added to existing or new Mint in this builder
-   * A new output will be added with the specified Address, the Coin value, and the minted asset
-   * @param {NativeScript} policy_script
-   * @param {AssetName} asset_name
-   * @param {Int} amount
-   * @param {TransactionOutputAmountBuilder} output_builder
-   * @param {BigNum} output_coin
-   */
-  add_mint_asset_and_output(
-    policy_script: NativeScript,
-    asset_name: AssetName,
-    amount: Int,
-    output_builder: TransactionOutputAmountBuilder,
-    output_coin: BigNum
-  ): void;
-
-  /**
-   * Add a mint entry together with an output to this builder
-   * Using a PolicyID, AssetName, Int for amount, and Address objects
-   * The asset will be securely added to existing or new Mint in this builder
-   * A new output will be added with the specified Address and the minted asset
-   * The output will be set to contain the minimum required amount of Coin
-   * @param {NativeScript} policy_script
-   * @param {AssetName} asset_name
-   * @param {Int} amount
-   * @param {TransactionOutputAmountBuilder} output_builder
-   */
-  add_mint_asset_and_output_min_required_coin(
-    policy_script: NativeScript,
-    asset_name: AssetName,
-    amount: Int,
-    output_builder: TransactionOutputAmountBuilder
-  ): void;
 
   /**
    * @param {TransactionBuilderConfig} cfg
@@ -7588,9 +7104,9 @@ declare export class TransactionBuilder {
   script_data_hash(): ScriptDataHash | void;
 
   /**
-   * @param {TransactionInputs} collateral
+   * @param {InputBuilderResult} result
    */
-  set_collateral(collateral: TransactionInputs): void;
+  add_collateral(result: InputBuilderResult): void;
 
   /**
    * @returns {TransactionInputs | void}
@@ -7598,9 +7114,9 @@ declare export class TransactionBuilder {
   collateral(): TransactionInputs | void;
 
   /**
-   * @param {Ed25519KeyHashes} required_signers
+   * @param {Ed25519KeyHash} hash
    */
-  set_required_signers(required_signers: Ed25519KeyHashes): void;
+  add_required_signer(hash: Ed25519KeyHash): void;
 
   /**
    * @returns {Ed25519KeyHashes | void}
@@ -7630,10 +7146,16 @@ declare export class TransactionBuilder {
   get_implicit_input(): Value;
 
   /**
-   * Return explicit input plus implicit input plus mint minus burn
+   * Return explicit input plus implicit input plus mint
    * @returns {Value}
    */
   get_total_input(): Value;
+
+  /**
+   * Return explicit output plus implicit output plus burn (does not consider fee directly)
+   * @returns {Value}
+   */
+  get_total_output(): Value;
 
   /**
    * does not include fee
@@ -7681,7 +7203,7 @@ declare export class TransactionBuilder {
 
   /**
    * Returns full Transaction object with the body and the auxiliary data
-   * NOTE: witness_set will contain all mint_scripts if any been added or set
+   * NOTE: witness_set will contain all scripts, datums, etc. if any been added or set
    * NOTE: is_valid set to true
    * @returns {Transaction}
    */
@@ -7717,11 +7239,11 @@ declare export class TransactionBuilderConfigBuilder {
   fee_algo(fee_algo: LinearFee): TransactionBuilderConfigBuilder;
 
   /**
-   * @param {BigNum} coins_per_utxo_word
+   * @param {BigNum} coins_per_utxo_byte
    * @returns {TransactionBuilderConfigBuilder}
    */
-  coins_per_utxo_word(
-    coins_per_utxo_word: BigNum
+  coins_per_utxo_byte(
+    coins_per_utxo_byte: BigNum
   ): TransactionBuilderConfigBuilder;
 
   /**
@@ -7754,6 +7276,34 @@ declare export class TransactionBuilderConfigBuilder {
    */
   prefer_pure_change(
     prefer_pure_change: boolean
+  ): TransactionBuilderConfigBuilder;
+
+  /**
+   * @param {ExUnitPrices} ex_unit_prices
+   * @returns {TransactionBuilderConfigBuilder}
+   */
+  ex_unit_prices(ex_unit_prices: ExUnitPrices): TransactionBuilderConfigBuilder;
+
+  /**
+   * @param {Costmdls} costmdls
+   * @returns {TransactionBuilderConfigBuilder}
+   */
+  costmdls(costmdls: Costmdls): TransactionBuilderConfigBuilder;
+
+  /**
+   * @param {number} collateral_percentage
+   * @returns {TransactionBuilderConfigBuilder}
+   */
+  collateral_percentage(
+    collateral_percentage: number
+  ): TransactionBuilderConfigBuilder;
+
+  /**
+   * @param {number} max_collateral_inputs
+   * @returns {TransactionBuilderConfigBuilder}
+   */
+  max_collateral_inputs(
+    max_collateral_inputs: number
   ): TransactionBuilderConfigBuilder;
 
   /**

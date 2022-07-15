@@ -54,7 +54,7 @@ impl WitnessBuilders {
 // tx_body must be the result of building from tx_builder
 // constructs the rest of the Transaction using fake witness data of the correct length
 // for use in calculating the size of the final Transaction
-fn fake_full_tx(tx_builder: &NewTransactionBuilder, body: TransactionBody) -> Result<Transaction, JsError> {
+fn fake_full_tx(tx_builder: &TransactionBuilder, body: TransactionBody) -> Result<Transaction, JsError> {
     Ok(Transaction {
         body,
         witness_set: tx_builder.witness_builders.build_fake(),
@@ -63,7 +63,7 @@ fn fake_full_tx(tx_builder: &NewTransactionBuilder, body: TransactionBody) -> Re
     })
 }
 
-fn min_fee(tx_builder: &NewTransactionBuilder) -> Result<Coin, JsError> {
+fn min_fee(tx_builder: &TransactionBuilder) -> Result<Coin, JsError> {
     let full_tx = fake_full_tx(tx_builder, tx_builder.build()?)?;
     ledger::alonzo::fees::min_fee(&full_tx, &tx_builder.config.fee_algo, &tx_builder.config.ex_unit_prices)
 }
@@ -76,7 +76,7 @@ struct TxBuilderInput {
 }
 
 #[wasm_bindgen]
-pub enum NewCoinSelectionStrategyCIP2 {
+pub enum CoinSelectionStrategyCIP2 {
     /// Performs CIP2's Largest First ada-only selection. Will error if outputs contain non-ADA assets.
     LargestFirst,
     /// Performs CIP2's Random Improve ada-only selection. Will error if outputs contain non-ADA assets.
@@ -89,7 +89,7 @@ pub enum NewCoinSelectionStrategyCIP2 {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct NewTransactionBuilderConfig {
+pub struct TransactionBuilderConfig {
     fee_algo: LinearFee,
     pool_deposit: BigNum,      // protocol parameter
     key_deposit: BigNum,       // protocol parameter
@@ -105,7 +105,7 @@ pub struct NewTransactionBuilderConfig {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Default)]
-pub struct NewTransactionBuilderConfigBuilder {
+pub struct TransactionBuilderConfigBuilder {
     fee_algo: Option<LinearFee>,
     pool_deposit: Option<BigNum>,      // protocol parameter
     key_deposit: Option<BigNum>,       // protocol parameter
@@ -120,7 +120,7 @@ pub struct NewTransactionBuilderConfigBuilder {
 }
 
 #[wasm_bindgen]
-impl NewTransactionBuilderConfigBuilder {
+impl TransactionBuilderConfigBuilder {
     pub fn new() -> Self {
         // we have to provide new to expose it to WASM builds
         Self::default()
@@ -192,9 +192,9 @@ impl NewTransactionBuilderConfigBuilder {
         cfg
     }
 
-    pub fn build(&self) -> Result<NewTransactionBuilderConfig, JsError> {
+    pub fn build(&self) -> Result<TransactionBuilderConfig, JsError> {
         let cfg = self.clone();
-        Ok(NewTransactionBuilderConfig {
+        Ok(TransactionBuilderConfig {
             fee_algo: cfg.fee_algo.ok_or_else(|| JsError::from_str("uninitialized field: fee_algo"))?,
             pool_deposit: cfg.pool_deposit.ok_or_else(|| JsError::from_str("uninitialized field: pool_deposit"))?,
             key_deposit: cfg.key_deposit.ok_or_else(|| JsError::from_str("uninitialized field: key_deposit"))?,
@@ -224,8 +224,8 @@ impl NewTransactionBuilderConfigBuilder {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct NewTransactionBuilder {
-    config: NewTransactionBuilderConfig,
+pub struct TransactionBuilder {
+    config: TransactionBuilderConfig,
     inputs: Vec<TxBuilderInput>,
     outputs: TransactionOutputs,
     fee: Option<Coin>,
@@ -247,22 +247,22 @@ pub struct NewTransactionBuilder {
 }
 
 #[wasm_bindgen]
-impl NewTransactionBuilder {
+impl TransactionBuilder {
     /// This automatically selects and adds inputs from {inputs} consisting of just enough to cover
     /// the outputs that have already been added.
     /// This should be called after adding all certs/outputs/etc and will be an error otherwise.
     /// Uses CIP2: https://github.com/cardano-foundation/CIPs/blob/master/CIP-0002/CIP-0002.md
-    /// Adding a change output must be called after via NewTransactionBuilder::add_change_if_needed()
+    /// Adding a change output must be called after via TransactionBuilder::add_change_if_needed()
     /// This function, diverging from CIP2, takes into account fees and will attempt to add additional
     /// inputs to cover the minimum fees. This does not, however, set the txbuilder's fee.
-    pub fn select_utxos(&mut self, strategy: NewCoinSelectionStrategyCIP2) -> Result<(), JsError> {
+    pub fn select_utxos(&mut self, strategy: CoinSelectionStrategyCIP2) -> Result<(), JsError> {
         let available_inputs = &self.utxos.clone();
         let mut input_total = self.get_total_input()?;
         let mut output_total = self
             .get_total_output()?
             .checked_add(&Value::new(&self.min_fee()?))?;
         match strategy {
-            NewCoinSelectionStrategyCIP2::LargestFirst => {
+            CoinSelectionStrategyCIP2::LargestFirst => {
                 if self.outputs.0.iter().any(|output| output.amount.multiasset.is_some()) {
                     return Err(JsError::from_str("Multiasset values not supported by LargestFirst. Please use LargestFirstMultiAsset"));
                 }
@@ -273,7 +273,7 @@ impl NewTransactionBuilder {
                     &mut output_total,
                     |value| Some(value.coin))?;
             },
-            NewCoinSelectionStrategyCIP2::RandomImprove => {
+            CoinSelectionStrategyCIP2::RandomImprove => {
                 if self.outputs.0.iter().any(|output| output.amount.multiasset.is_some()) {
                     return Err(JsError::from_str("Multiasset values not supported by RandomImprove. Please use RandomImproveMultiAsset"));
                 }
@@ -296,13 +296,13 @@ impl NewTransactionBuilder {
                     let i = *available_indices.iter().nth(rng.gen_range(0..available_indices.len())).unwrap();
                     available_indices.remove(&i);
                     let input = &available_inputs[i];
-                    let input_fee = self.fee_for_input(&input)?;
-                    self.add_input(&input);
+                    let input_fee = self.fee_for_input(input)?;
+                    self.add_input(input);
                     input_total = input_total.checked_add(&input.utxo_info.amount)?;
                     output_total = output_total.checked_add(&Value::new(&input_fee))?;
                 }
             },
-            NewCoinSelectionStrategyCIP2::LargestFirstMultiAsset => {
+            CoinSelectionStrategyCIP2::LargestFirstMultiAsset => {
                 // indices into {available_inputs} for inputs that contain {policy_id}:{asset_name}
                 let mut available_indices = (0..available_inputs.len()).collect::<Vec<usize>>();
                 // run largest-fist by each asset type
@@ -326,7 +326,7 @@ impl NewTransactionBuilder {
                     &mut output_total,
                     |value| Some(value.coin))?;
             },
-            NewCoinSelectionStrategyCIP2::RandomImproveMultiAsset => {
+            CoinSelectionStrategyCIP2::RandomImproveMultiAsset => {
                 let mut rng = rand::thread_rng();
                 let mut available_indices = (0..available_inputs.len()).collect::<BTreeSet<usize>>();
                 // run random-improve by each asset type
@@ -704,7 +704,7 @@ impl NewTransactionBuilder {
         self.mint.clone()
     }
 
-    pub fn new(cfg: &NewTransactionBuilderConfig) -> Self {
+    pub fn new(cfg: &TransactionBuilderConfig) -> Self {
         Self {
             config: cfg.clone(),
             inputs: Vec::new(),
@@ -1096,7 +1096,7 @@ impl NewTransactionBuilder {
                         &self.config.coins_per_utxo_byte,
                     )?;
                     // no-asset case so we have no problem burning the rest if there is no other option
-                    fn burn_extra(builder: &mut NewTransactionBuilder, burn_amount: &BigNum) -> Result<bool, JsError> {
+                    fn burn_extra(builder: &mut TransactionBuilder, burn_amount: &BigNum) -> Result<bool, JsError> {
                         // recall: min_fee assumed the fee was the maximum possible so we definitely have enough input to cover whatever fee it ends up being
                         builder.set_fee(burn_amount);
                         Ok(false) // not enough input to covert the extra fee from adding an output so we just burn whatever is left
@@ -1264,8 +1264,8 @@ mod tests {
         key_deposit: u64,
         max_val_size: u32,
         coins_per_utxo_byte: u64,
-    ) -> NewTransactionBuilder {
-        let cfg = NewTransactionBuilderConfigBuilder::default()
+    ) -> TransactionBuilder {
+        let cfg = TransactionBuilderConfigBuilder::default()
             .fee_algo(linear_fee)
             .pool_deposit(&to_bignum(pool_deposit))
             .key_deposit(&to_bignum(key_deposit))
@@ -1282,7 +1282,7 @@ mod tests {
             .max_collateral_inputs(3)
             .build()
             .unwrap();
-        NewTransactionBuilder::new(&cfg)
+        TransactionBuilder::new(&cfg)
     }
 
     fn create_tx_builder(
@@ -1290,11 +1290,11 @@ mod tests {
         coins_per_utxo_byte: u64,
         pool_deposit: u64,
         key_deposit: u64,
-    ) -> NewTransactionBuilder {
+    ) -> TransactionBuilder {
         create_tx_builder_full(linear_fee, pool_deposit, key_deposit, MAX_VALUE_SIZE, coins_per_utxo_byte)
     }
 
-    fn create_reallistic_tx_builder() -> NewTransactionBuilder {
+    fn create_reallistic_tx_builder() -> TransactionBuilder {
         create_tx_builder(
             &create_linear_fee(44, 155381),
             COINS_PER_UTXO_BYTE,
@@ -1303,16 +1303,16 @@ mod tests {
         )
     }
 
-    fn create_tx_builder_with_fee_and_val_size(linear_fee: &LinearFee, max_val_size: u32) -> NewTransactionBuilder {
+    fn create_tx_builder_with_fee_and_val_size(linear_fee: &LinearFee, max_val_size: u32) -> TransactionBuilder {
         create_tx_builder_full(linear_fee, 1, 1, max_val_size, 1)
     }
 
-    fn create_tx_builder_with_fee(linear_fee: &LinearFee) -> NewTransactionBuilder {
+    fn create_tx_builder_with_fee(linear_fee: &LinearFee) -> TransactionBuilder {
         create_tx_builder(linear_fee, 1, 1, 1)
     }
 
-    fn create_tx_builder_with_fee_and_pure_change(linear_fee: &LinearFee) -> NewTransactionBuilder {
-        NewTransactionBuilder::new(&NewTransactionBuilderConfigBuilder::default()
+    fn create_tx_builder_with_fee_and_pure_change(linear_fee: &LinearFee) -> TransactionBuilder {
+        TransactionBuilder::new(&TransactionBuilderConfigBuilder::default()
             .fee_algo(linear_fee)
             .pool_deposit(&to_bignum(1))
             .key_deposit(&to_bignum(1))
@@ -1332,11 +1332,11 @@ mod tests {
             .unwrap())
     }
 
-    fn create_tx_builder_with_key_deposit(deposit: u64) -> NewTransactionBuilder {
+    fn create_tx_builder_with_key_deposit(deposit: u64) -> TransactionBuilder {
         create_tx_builder(&create_default_linear_fee(), 1, 1, deposit)
     }
 
-    fn create_default_tx_builder() -> NewTransactionBuilder {
+    fn create_default_tx_builder() -> TransactionBuilder {
         create_tx_builder_with_fee(&create_default_linear_fee())
     }
 
@@ -2560,7 +2560,7 @@ mod tests {
         tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(8000))));
         tx_builder.add_utxo(&make_input(3u8, Value::new(&to_bignum(4000))));
         tx_builder.add_utxo(&make_input(4u8, Value::new(&to_bignum(1000))));
-        tx_builder.select_utxos(NewCoinSelectionStrategyCIP2::LargestFirst).unwrap();
+        tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirst).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(change_added);
@@ -2590,7 +2590,7 @@ mod tests {
         tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(800))));
         tx_builder.add_utxo(&make_input(3u8, Value::new(&to_bignum(400))));
         tx_builder.add_utxo(&make_input(4u8, Value::new(&to_bignum(100))));
-        tx_builder.select_utxos(NewCoinSelectionStrategyCIP2::LargestFirst).unwrap();
+        tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirst).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(!change_added);
@@ -2675,7 +2675,7 @@ mod tests {
 
         // should not be taken
         tx_builder.add_utxo(&make_input(7u8, Value::new(&to_bignum(100))));
-        tx_builder.select_utxos(NewCoinSelectionStrategyCIP2::LargestFirstMultiAsset).unwrap();
+        tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirstMultiAsset).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(change_added);
@@ -2782,7 +2782,7 @@ mod tests {
         input9.utxo_info.amount.multiasset = Some(ma9);
         tx_builder.add_utxo(&input9);
 
-        tx_builder.select_utxos(NewCoinSelectionStrategyCIP2::RandomImproveMultiAsset).unwrap();
+        tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImproveMultiAsset).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(change_added);
@@ -2813,7 +2813,7 @@ mod tests {
         tx_builder.utxos.push(make_input(4u8, Value::new(&to_bignum(1000))));
         tx_builder.utxos.push(make_input(5u8, Value::new(&to_bignum(2000))));
         tx_builder.utxos.push(make_input(6u8, Value::new(&to_bignum(1500))));
-        let add_inputs_res = tx_builder.select_utxos(NewCoinSelectionStrategyCIP2::RandomImprove);
+        let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let add_change_res = tx_builder.add_change_if_needed(&change_addr);
@@ -2878,7 +2878,7 @@ mod tests {
     fn tx_builder_cip2_random_improve_when_using_all_available_inputs() {
         // we have a = 1 to test increasing fees when more inputs are added
         let linear_fee = LinearFee::new(&to_bignum(1), &to_bignum(0));
-        let cfg = NewTransactionBuilderConfigBuilder::default()
+        let cfg = TransactionBuilderConfigBuilder::default()
             .fee_algo(&linear_fee)
             .pool_deposit(&to_bignum(0))
             .key_deposit(&to_bignum(0))
@@ -2895,7 +2895,7 @@ mod tests {
             .max_collateral_inputs(3)
             .build()
             .unwrap();
-        let mut tx_builder = NewTransactionBuilder::new(&cfg);
+        let mut tx_builder = TransactionBuilder::new(&cfg);
         const COST: u64 = 1000;
         tx_builder.add_output(
             &TransactionOutputBuilder::new()
@@ -2906,7 +2906,7 @@ mod tests {
             ).unwrap();
         tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(800))));
         tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(800))));
-        let add_inputs_res = tx_builder.select_utxos(NewCoinSelectionStrategyCIP2::RandomImprove);
+        let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
     }
 
@@ -2914,7 +2914,7 @@ mod tests {
     fn tx_builder_cip2_random_improve_adds_enough_for_fees() {
         // we have a = 1 to test increasing fees when more inputs are added
         let linear_fee = LinearFee::new(&to_bignum(1), &to_bignum(0));
-        let cfg = NewTransactionBuilderConfigBuilder::default()
+        let cfg = TransactionBuilderConfigBuilder::default()
             .fee_algo(&linear_fee)
             .pool_deposit(&to_bignum(0))
             .key_deposit(&to_bignum(0))
@@ -2931,7 +2931,7 @@ mod tests {
             .max_collateral_inputs(3)
             .build()
             .unwrap();
-        let mut tx_builder = NewTransactionBuilder::new(&cfg);
+        let mut tx_builder = TransactionBuilder::new(&cfg);
         const COST: u64 = 100;
         tx_builder.add_output(
             &TransactionOutputBuilder::new()
@@ -2944,7 +2944,7 @@ mod tests {
         tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(150))));
         tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(150))));
         tx_builder.add_utxo(&make_input(3u8, Value::new(&to_bignum(150))));
-        let add_inputs_res = tx_builder.select_utxos(NewCoinSelectionStrategyCIP2::RandomImprove);
+        let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
         assert_eq!(tx_builder.min_fee().unwrap(), to_bignum(264));
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
@@ -3139,8 +3139,8 @@ mod tests {
     fn add_change_splits_change_into_multiple_outputs_when_nfts_overflow_output_size() {
         let linear_fee = LinearFee::new(&to_bignum(0), &to_bignum(1));
         let max_value_size = 100; // super low max output size to test with fewer assets
-        let mut tx_builder = NewTransactionBuilder::new(
-            &NewTransactionBuilderConfigBuilder::default()
+        let mut tx_builder = TransactionBuilder::new(
+            &TransactionBuilderConfigBuilder::default()
                 .fee_algo(&linear_fee)
                 .pool_deposit(&to_bignum(0))
                 .key_deposit(&to_bignum(0))

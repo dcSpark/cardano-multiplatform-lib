@@ -1,5 +1,5 @@
 use std::{collections::{HashSet, HashMap, BTreeMap}, fmt::Debug};
-use crate::*;
+use crate::{*, ledger::{common::hash::{ScriptHashNamespace, hash_plutus_data}, byron::witness::make_icarus_bootstrap_witness}};
 
 use super::{input_builder::InputBuilderResult, mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult, certificate_builder::CertificateBuilderResult};
 
@@ -65,14 +65,14 @@ impl UntaggedRedeemer {
 #[wasm_bindgen]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PartialPlutusWitness {
-    pub(crate) script: PlutusScriptWasm,
+    pub(crate) script: PlutusScript,
     pub(crate) untagged_redeemer: UntaggedRedeemer,
 }
 
 #[wasm_bindgen]
 impl PartialPlutusWitness {
     pub fn new(
-        script: &PlutusScriptWasm,
+        script: &PlutusScript,
         untagged_redeemer: &UntaggedRedeemer
     ) -> Self {
         Self {
@@ -81,7 +81,7 @@ impl PartialPlutusWitness {
         }
     }
 
-    pub fn script(&self) -> PlutusScriptWasm {
+    pub fn script(&self) -> PlutusScript {
         self.script.clone()
     }
 
@@ -152,7 +152,7 @@ impl RequiredWitnessSet {
         self.scripts.insert(script_hash.clone());
     }
 
-    pub fn add_plutus_script(&mut self, plutus_v1_script: &PlutusScriptWasm) {
+    pub fn add_plutus_script(&mut self, plutus_v1_script: &PlutusScript) {
         self.add_script_hash(&plutus_v1_script.hash());
     }
 
@@ -450,8 +450,8 @@ impl TransactionWitnessSetBuilder {
             }
             InputAggregateWitnessData::PlutusScript(witness, _info, option) => {
                 match &witness.script.0 {
-                    PlutusScript::PlutusV1(script) => self.add_plutus_v1_script(script),
-                    PlutusScript::PlutusV2(script) => self.add_plutus_v2_script(script)
+                    PlutusScriptEnum::PlutusV1(script) => self.add_plutus_v1_script(script),
+                    PlutusScriptEnum::PlutusV2(script) => self.add_plutus_v2_script(script)
                 }
                 if let Some(ref data) = option {
                     self.add_plutus_datum(data);
@@ -616,6 +616,8 @@ impl PlutusScriptWitnessInfo {
 
 #[cfg(test)]
 mod tests {
+    use crate::ledger::common::value::Value;
+
     use super::*;
 
     fn fake_private_key1() -> Bip32PrivateKey {
@@ -639,9 +641,9 @@ mod tests {
 
         let data = {
             let witness = {
-                let script = PlutusScript::from_v1(&PlutusV1Script::new(vec![0]));
+                let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
                 let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
-                PartialPlutusWitness::new(&PlutusScriptWasm(script), &untagged_redeemer)
+                PartialPlutusWitness::new(&PlutusScript(script), &untagged_redeemer)
             };
             let info = {
                 let key = fake_raw_key_public(0);
@@ -656,7 +658,7 @@ mod tests {
 
         let input_result = InputBuilderResult {
             input: TransactionInput { transaction_id: TransactionHash([1; 32]), index: 1u64.into() },
-            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), data: None, script_ref: None },
+            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), datum_option: None, script_ref: None },
             aggregate_witness: None,
             required_wits: RequiredWitnessSet::new(),
         };
@@ -665,7 +667,7 @@ mod tests {
 
         let input_result = InputBuilderResult {
             input: TransactionInput { transaction_id: TransactionHash([1; 32]), index: 0u64.into() },
-            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), data: None, script_ref: None },
+            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), datum_option: None, script_ref: None },
             aggregate_witness: None,
             required_wits: RequiredWitnessSet::new(),
         };
@@ -674,7 +676,7 @@ mod tests {
 
         let input_result = InputBuilderResult {
             input: TransactionInput { transaction_id: TransactionHash([0; 32]), index: 0u64.into() },
-            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), data: None, script_ref: None },
+            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), datum_option: None, script_ref: None },
             aggregate_witness: Some(data.clone()),
             required_wits: RequiredWitnessSet::new(),
         };
@@ -705,9 +707,9 @@ mod tests {
         let mut builder = TransactionWitnessSetBuilder::new();
         let data = {
             let witness = {
-                let script = PlutusScript::from_v1(&PlutusV1Script::new(vec![0]));
+                let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
                 let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
-                PartialPlutusWitness::new(&PlutusScriptWasm(script), &untagged_redeemer)
+                PartialPlutusWitness::new(&PlutusScript(script), &untagged_redeemer)
             };
             let info = {
                 let key = fake_raw_key_public(0);
@@ -732,9 +734,9 @@ mod tests {
 
         let data = {
             let witness = {
-                let script = PlutusScript::from_v1(&PlutusV1Script::new(vec![0]));
+                let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
                 let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
-                PartialPlutusWitness::new(&PlutusScriptWasm(script), &untagged_redeemer)
+                PartialPlutusWitness::new(&PlutusScript(script), &untagged_redeemer)
             };
             let info = {
                 let mut missing_signers = Ed25519KeyHashes::new();

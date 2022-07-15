@@ -1,4 +1,4 @@
-use crate::*;
+use crate::{*, ledger::babbage::min_ada::min_ada_required};
 
 /// We introduce a builder-pattern format for creating transaction outputs
 /// This is because:
@@ -9,8 +9,9 @@ use crate::*;
 #[wasm_bindgen]
 #[derive(Clone, Debug, Default)]
 pub struct TransactionOutputBuilder {
-    address: Option<Address>,
-    data_hash: Option<DataHash>,
+    pub(crate) address: Option<Address>,
+    pub(crate) datum: Option<DatumEnum>,
+    pub(crate) script_ref: Option<ScriptRef>,
 }
 
 #[wasm_bindgen]
@@ -26,9 +27,15 @@ impl TransactionOutputBuilder {
         cfg
     }
 
-    pub fn with_data_hash(&self, data_hash: &DataHash) -> Self {
+    pub fn with_data(&self, datum: &Datum) -> Self {
         let mut cfg = self.clone();
-        cfg.data_hash = Some(data_hash.clone());
+        cfg.datum = Some(datum.0.clone());
+        cfg
+    }
+
+    pub fn with_reference_script(&self, script_ref: &ScriptRef) -> Self {
+        let mut cfg = self.clone();
+        cfg.script_ref = Some(script_ref.clone());
         cfg
     }
 
@@ -36,7 +43,8 @@ impl TransactionOutputBuilder {
         Ok(TransactionOutputAmountBuilder {
             address: self.address.clone().ok_or_else(|| JsError::from_str("TransactionOutputBaseBuilder: Address missing"))?,
             amount: None,
-            data_hash: self.data_hash.clone(),
+            datum: self.datum.clone(),
+            script_ref: self.script_ref.clone(),
         })
     }
 }
@@ -46,7 +54,8 @@ impl TransactionOutputBuilder {
 pub struct TransactionOutputAmountBuilder {
     address: Address,
     amount: Option<Value>,
-    data_hash: Option<DataHash>,
+    datum: Option<DatumEnum>,
+    script_ref: Option<ScriptRef>,
 }
 
 #[wasm_bindgen]
@@ -74,15 +83,23 @@ impl TransactionOutputAmountBuilder {
         cfg
     }
 
-    pub fn with_asset_and_min_required_coin(&self, multiasset: &MultiAsset, coins_per_utxo_word: &Coin) -> Result<TransactionOutputAmountBuilder, JsError> {
-        let min_possible_coin = min_pure_ada(coins_per_utxo_word, self.data_hash.is_some())?;
+    pub fn with_asset_and_min_required_coin(&self, multiasset: &MultiAsset, coins_per_utxo_byte: &Coin) -> Result<TransactionOutputAmountBuilder, JsError> {
+        let mut min_output = TransactionOutput::new(
+            &self.address,
+            &self.amount.clone().unwrap_or(Value::new(&to_bignum(0))),
+        );
+        min_output.datum_option = self.datum.clone();
+        min_output.script_ref = self.script_ref.clone();
+        let min_possible_coin = min_ada_required(&min_output, &coins_per_utxo_byte)?;
+        
         let mut value = Value::new(&min_possible_coin);
         value.set_multiasset(multiasset);
-        let required_coin = min_ada_required(
-            &value,
-            self.data_hash.is_some(),
-            coins_per_utxo_word,
-        )?;
+
+        let mut check_output = TransactionOutput::new(&self.address, &value);
+        check_output.datum_option = self.datum.clone();
+        check_output.script_ref = self.script_ref.clone();
+
+        let required_coin = min_ada_required(&check_output, &coins_per_utxo_byte)?;
 
         Ok(self.with_coin_and_asset(&required_coin, multiasset))
     }
@@ -91,8 +108,8 @@ impl TransactionOutputAmountBuilder {
         Ok(TransactionOutput {
             address: self.address.clone(),
             amount: self.amount.clone().ok_or_else(|| JsError::from_str("TransactionOutputAmountBuilder: amount missing"))?,
-            data: self.data_hash.clone().map(TxOutputData::DatumHash),
-            script_ref: None,
+            datum_option: self.datum.clone(),
+            script_ref: self.script_ref.clone(),
         })
     }
 }

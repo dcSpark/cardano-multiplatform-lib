@@ -17,6 +17,9 @@ extern crate hex;
 use std::convert::TryInto;
 use std::io::{BufRead, Seek, Write};
 
+use crate::ledger::common::binary::Deserialize;
+use ledger::common::hash::{ScriptHashNamespace, hash_script};
+use ledger::common::value::{BigNum, Int, Coin, Value};
 #[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
 use noop_proc_macro::wasm_bindgen;
 
@@ -40,7 +43,6 @@ pub mod chain_core;
 pub mod chain_crypto;
 pub mod crypto;
 pub mod error;
-pub mod fees;
 pub mod genesis;
 pub mod impl_mockchain;
 pub mod legacy_address;
@@ -50,17 +52,16 @@ pub mod serialization;
 pub mod builders;
 pub mod typed_bytes;
 pub mod emip3;
-#[macro_use]
-pub mod utils;
+pub mod ledger;
 
 use address::*;
 use crypto::*;
 use error::*;
 use plutus::*;
 use metadata::*;
-use utils::*;
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
+use crate::ledger::common::value::to_bignum;
 use crate::traits::NoneOrEmpty;
 use schemars::JsonSchema;
 
@@ -337,7 +338,7 @@ impl TransactionBody {
     /// This function returns the mint value of the transaction
     /// Use `.mint()` instead.
     #[deprecated(
-        since = "10.0.0",
+        since = "0.4.0",
         note = "Weird naming. Use `.mint()`"
     )]
     pub fn multiassets(&self) -> Option<Mint> {
@@ -457,9 +458,56 @@ impl TransactionInput {
 }
 
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
-enum TxOutputData {
+enum DatumEnum {
     DatumHash(DataHash),
-    InlinedDatum(PlutusData),
+    InlineDatum(PlutusData),
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum DatumKind {
+    Hash,
+    Inline,
+}
+
+#[wasm_bindgen]
+#[derive(
+    Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema,
+)]
+pub struct Datum(DatumEnum);
+
+to_from_bytes!(Datum);
+to_from_json!(Datum);
+
+#[wasm_bindgen]
+impl Datum {
+    pub fn new_data_hash(data_hash: &DataHash) -> Self {
+        Self(DatumEnum::DatumHash(data_hash.clone()))
+    }
+    pub fn new_data(data: &PlutusData) -> Self {
+        Self(DatumEnum::InlineDatum(data.clone()))
+    }
+
+    pub fn kind(&self) -> DatumKind {
+        match &self.0 {
+            DatumEnum::DatumHash(_) => DatumKind::Hash,
+            DatumEnum::InlineDatum(_) => DatumKind::Inline,
+        }
+    }
+
+    pub fn as_data_hash(&self) -> Option<DataHash> {
+        match &self.0 {
+            DatumEnum::DatumHash(hash) => Some(hash.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn as_inline_data(&self) -> Option<PlutusData> {
+        match &self.0 {
+            DatumEnum::InlineDatum(data) => Some(data.clone()),
+            _ => None,
+        }
+    }
 }
 
 #[wasm_bindgen]
@@ -467,7 +515,7 @@ enum TxOutputData {
 pub struct TransactionOutput {
     address: Address,
     pub (crate) amount: Value,
-    data: Option<TxOutputData>,
+    datum_option: Option<DatumEnum>,
     script_ref: Option<ScriptRef>,
 }
 
@@ -485,22 +533,27 @@ impl TransactionOutput {
         self.amount.clone()
     }
 
-    pub fn data_hash(&self) -> Option<DataHash> {
-        match &self.data {
-            Some(TxOutputData::DatumHash(data_hash)) => Some(data_hash.clone()),
-            _ => None,
-        }
+    pub fn datum(&self) -> Option<Datum> {
+        self.datum_option.as_ref().map(|data| Datum(data.clone()))
     }
 
-    pub fn set_data_hash(&mut self, data_hash: &DataHash) {
-        self.data = Some(TxOutputData::DatumHash(data_hash.clone()));
+    pub fn set_datum(&mut self, data: &Datum) {
+        self.datum_option = Some(data.0.clone());
+    }
+
+    pub fn script_ref(&self) -> Option<ScriptRef> {
+        self.script_ref.clone()
+    }
+
+    pub fn set_script_ref(&mut self, script_ref: &ScriptRef) {
+        self.script_ref = Some(script_ref.clone());
     }
 
     pub fn new(address: &Address, amount: &Value) -> Self {
         Self {
             address: address.clone(),
             amount: amount.clone(),
-            data: None,
+            datum_option: None,
             script_ref: None,
         }
     }

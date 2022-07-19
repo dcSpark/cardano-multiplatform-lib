@@ -19,6 +19,9 @@ pub fn input_required_wits(utxo_info: &TransactionOutput, required_witnesses: &m
             }
         }
     };
+    if let Some(byron) = &utxo_info.address().as_byron() {
+        required_witnesses.add_bootstrap_address(byron);
+    }
 }
 
 #[wasm_bindgen]
@@ -46,58 +49,20 @@ impl SingleInputBuilder {
         }
     }
 
-    pub fn skip_witness(&self) -> Result<InputBuilderResult, JsError> {
+    pub fn payment_key(&self) -> Result<InputBuilderResult, JsError> {
         let mut required_wits = RequiredWitnessSet::default();
-        input_required_wits(&self.utxo_info, &mut required_wits);
+        input_required_wits(&self.utxo_info,&mut required_wits);
+        let mut required_wits_left = required_wits.clone();
+
+        
+        if required_wits_left.scripts.len() > 0 {
+            return Err(JsError::from_str(&format!("UTXO address was not a payment key: \n{:#?}", hex::encode(self.utxo_info.address.to_bytes()))));
+        }
 
         Ok(InputBuilderResult {
             input: self.input.clone(),
             utxo_info: self.utxo_info.clone(),
             aggregate_witness: None,
-            required_wits,
-        })
-    }
-
-    pub fn vkey(&self, vkey: &Vkey) -> Result<InputBuilderResult, JsError> {
-        let mut required_wits = RequiredWitnessSet::default();
-        input_required_wits(&self.utxo_info,&mut required_wits);
-        let mut required_wits_left = required_wits.clone();
-
-        let keyhash = vkey.public_key().hash();
-
-        // check the user provided all the required witnesses
-        required_wits_left.vkeys.remove(&keyhash);
-
-        if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str())));
-        }
-
-        Ok(InputBuilderResult {
-            input: self.input.clone(),
-            utxo_info: self.utxo_info.clone(),
-            aggregate_witness: Some(InputAggregateWitnessData::Vkeys(vec![vkey.clone()])),
-            required_wits,
-        })
-    }
-
-    pub fn bootstrap(&self, vkey: &Vkey, address: &ByronAddress) -> Result<InputBuilderResult, JsError> {
-        let mut required_wits = RequiredWitnessSet::default();
-        input_required_wits(&self.utxo_info,&mut required_wits);
-        let mut required_wits_left = required_wits.clone();
-
-        let keyhash = &vkey.public_key().hash();
-
-        // check the user provided all the required witnesses
-        required_wits_left.bootstraps.remove(keyhash);
-
-        if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str())));
-        }
-
-        Ok(InputBuilderResult {
-            input: self.input.clone(),
-            utxo_info: self.utxo_info.clone(),
-            aggregate_witness: Some(InputAggregateWitnessData::Bootstraps(vec![(vkey.clone(), address.clone())])),
             required_wits,
         })
     }

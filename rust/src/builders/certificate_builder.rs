@@ -115,31 +115,21 @@ impl SingleCertificateBuilder {
         }
     }
 
-    pub fn vkeys(&self, vkeys: &Vkeys) -> Result<CertificateBuilderResult, JsError> {
+    pub fn payment_key(&self) -> Result<CertificateBuilderResult, JsError> {
         let mut required_wits = RequiredWitnessSet::default();
         cert_required_wits(&self.cert, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
 
-        // the user may have provided more witnesses than required. Strip it down to just the required wits
-        // often happens because users aren't aware StakeRegistration doesn't require a witness
-        let provided_wit_subset: Vec<&Vkey> = vkeys.0.iter().filter(|vkey| required_wits_left.vkeys.contains(&vkey.public_key().hash())).collect();
-
-        // check the user provided all the required witnesses
-        provided_wit_subset.iter().for_each(|wit| { required_wits_left.vkeys.remove(&wit.public_key().hash()); });
-
-        if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str())));
+        if required_wits_left.scripts.len() > 0 {
+            return Err(JsError::from_str(&format!("Certificate required a script, not a payment key: \n{:#?}", self.cert.to_json())));
         }
+
 
         Ok(CertificateBuilderResult {
             cert: self.cert.clone(),
-            aggregate_witness: if !provided_wit_subset.is_empty() { Some(InputAggregateWitnessData::Vkeys(provided_wit_subset.into_iter().cloned().collect())) } else { None },
+            aggregate_witness: None,
             required_wits,
         })
-    }
-
-    pub fn vkey(&self, vkey: &Vkey) -> Result<CertificateBuilderResult, JsError> {
-        self.vkeys(&Vkeys(vec![vkey.clone()]))
     }
 
     /** Signer keys don't have to be set. You can leave it empty and then add the required witnesses later */

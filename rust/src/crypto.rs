@@ -1,5 +1,6 @@
 use cbor_event::{de::Deserializer, se::Serializer};
 use crate::byron::AddrAttributes;
+use crate::chain_crypto::derive::combine_pk_and_chaincode;
 use crate::impl_mockchain as chain;
 use crate::chain_crypto as crypto;
 use crate::ledger::common::binary::Deserialize;
@@ -8,6 +9,7 @@ use chain::key;
 use crypto::bech32::Bech32 as _;
 use bech32::ToBase32;
 use rand::rngs::OsRng;
+use std::convert::TryFrom;
 use std::io::{BufRead, Seek, Write};
 use std::str::FromStr;
 
@@ -561,6 +563,36 @@ impl BootstrapWitness {
             chain_code: chain_code,
             attributes: attributes.clone(),
         }
+    }
+
+    pub fn to_public_key(&self) -> Result<Bip32PublicKey, JsError> {
+        crypto::PublicKey::<crypto::ed25519_derive::Ed25519Bip32>::try_from(self.clone())
+            .map(Bip32PublicKey)
+            .map_err(|_| JsError::from_str("Invalid public key or byte code"))
+    }
+
+    pub fn to_address(&self) -> Result<ByronAddress, JsError> {
+        ExtendedAddr::try_from(self.clone())
+            .map(ByronAddress)
+            .map_err(|_| JsError::from_str("Invalid public key or byte code"))
+    }
+}
+
+impl TryFrom<BootstrapWitness> for crypto::PublicKey<crypto::ed25519_derive::Ed25519Bip32> {
+    type Error = ed25519_bip32::PublicKeyError;
+
+    fn try_from(wit: BootstrapWitness) -> Result<Self, Self::Error> {
+        combine_pk_and_chaincode(wit.vkey().public_key().0, &wit.chain_code())
+    }
+}
+
+impl TryFrom<BootstrapWitness> for ExtendedAddr {
+    type Error = ed25519_bip32::PublicKeyError;
+
+    fn try_from(wit: BootstrapWitness) -> Result<Self, Self::Error> {
+        let key = crypto::PublicKey::<crypto::ed25519_derive::Ed25519Bip32>::try_from(wit)?;
+        let extended_addr = ExtendedAddr::new_simple(&key, wit.attributes.0.protocol_magic);
+        Ok(extended_addr)
     }
 }
 

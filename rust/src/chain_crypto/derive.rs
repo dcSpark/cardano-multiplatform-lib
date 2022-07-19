@@ -3,7 +3,7 @@ use crate::chain_crypto::algorithms::{Ed25519, ed25519_derive::Ed25519Bip32, ed2
 use cryptoxide::hmac::Hmac;
 use cryptoxide::pbkdf2::pbkdf2;
 use cryptoxide::sha2::Sha512;
-use ed25519_bip32::{DerivationError, DerivationScheme};
+use ed25519_bip32::{DerivationError, DerivationScheme, PublicKeyError};
 use ed25519_bip32::{XPrv, XPRV_SIZE};
 use crate::chain_crypto::Ed25519Extended;
 
@@ -25,6 +25,14 @@ pub fn to_raw_sk(key: &SecretKey<Ed25519Bip32>) -> SecretKey<Ed25519Extended> {
 
 pub fn to_raw_pk(key: &PublicKey<Ed25519Bip32>) -> PublicKey<Ed25519> {
     PublicKey(Pub::from_xpub(&key.0))
+}
+
+pub fn combine_pk_and_chaincode(key: PublicKey<super::ed25519::Ed25519>, chaincode: &[u8]) -> Result<PublicKey<Ed25519Bip32>, PublicKeyError> {
+    let mut buf = [0; ed25519_bip32::XPUB_SIZE];
+    buf[0..cryptoxide::ed25519::PUBLIC_KEY_LENGTH].clone_from_slice(key.as_ref());
+    buf[cryptoxide::ed25519::PUBLIC_KEY_LENGTH..ed25519_bip32::XPUB_SIZE].clone_from_slice(&chaincode);
+    let xpub = ed25519_bip32::XPub::from_slice(&buf)?;
+    Ok(PublicKey(xpub))
 }
 
 pub fn from_bip39_entropy(entropy: &[u8], password: &[u8]) -> SecretKey<Ed25519Bip32> {

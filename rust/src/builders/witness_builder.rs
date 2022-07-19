@@ -92,9 +92,6 @@ impl PartialPlutusWitness {
 
 #[derive(Clone, Debug)]
 pub enum InputAggregateWitnessData {
-    // note: this struct may contains duplicates, but it will be de-duped later
-    Vkeys(Vec<Vkey>),
-    Bootstraps(Vec<(Vkey, ByronAddress)>),
     NativeScript(NativeScript, NativeScriptWitnessInfo),
     PlutusScript(PartialPlutusWitness, PlutusScriptWitnessInfo, Option<PlutusData>)
 }
@@ -116,7 +113,9 @@ pub struct RequiredWitnessSet {
     // note: the real key type for these is Vkey
     // but cryptographically these should be equivalent and Ed25519KeyHash is more flexible
     pub(crate) vkeys: HashSet<Ed25519KeyHash>,
-    pub(crate) bootstraps: HashSet<Ed25519KeyHash>,
+    // note: the real key type for these is Vkey
+    // but cryptographically these should be equivalent and HashedSpendingData can be determined just from an address
+    pub(crate) bootstraps: HashSet<HashedSpendingData>,
     // note: no way to differentiate Plutus script from native script
     pub(crate) scripts: HashSet<ScriptHash>,
     pub(crate) plutus_data: HashSet<DataHash>,
@@ -135,14 +134,14 @@ impl RequiredWitnessSet {
         self.vkeys.insert(hash.clone());
     }
 
-    pub fn add_bootstrap(&mut self, bootstrap: &BootstrapWitness) {
-        self.add_bootstrap_key(&bootstrap.vkey());
+    pub fn add_bootstrap(&mut self, bootstrap: &BootstrapWitness, protocol_magic: Option<ProtocolMagic>) -> Result<(), JsError> {
+        let pub_key = bootstrap.to_public_key()?;
+        let extended_addr = ExtendedAddr::new_simple(&pub_key.0, protocol_magic);
+        self.bootstraps.insert(extended_addr.addr);
+        Ok(())
     }
-    pub fn add_bootstrap_key(&mut self, bootstrap: &Vkey) {
-        self.add_bootstrap_key_hash(&bootstrap.public_key().hash());
-    }
-    pub fn add_bootstrap_key_hash(&mut self, hash: &Ed25519KeyHash) {
-        self.bootstraps.insert(hash.clone());
+    pub fn add_bootstrap_address(&mut self, address: &ByronAddress) {
+        self.bootstraps.insert(address.0.addr);
     }
 
     pub fn add_native_script(&mut self, native_script: &NativeScript) {
@@ -180,7 +179,7 @@ impl RequiredWitnessSet {
 
     pub (crate) fn to_str(&self) -> String {
         let vkeys = self.vkeys.iter().map(|key| format!("Vkey:{}", hex::encode(key.to_bytes()))).collect::<Vec<String>>().join(",");
-        let bootstraps = self.bootstraps.iter().map(|key| format!("Legacy Bootstraps:{}", hex::encode(key.to_bytes()))).collect::<Vec<String>>().join(",");
+        let bootstraps = self.bootstraps.iter().map(|data| format!("Legacy Bootstraps:{}", hex::encode(data.as_hash_bytes()))).collect::<Vec<String>>().join(",");
         let scripts = self.scripts.iter().map(|hash| format!("Script hash:{}", hex::encode(hash.to_bytes()))).collect::<Vec<String>>().join(",");
         let plutus_data = self.plutus_data.iter().map(|hash| format!("Plutus data hash:{}", hex::encode(hash.to_bytes()))).collect::<Vec<String>>().join(",");
         let redeemers = self.redeemers.iter().map(|key| format!("Redeemer:{}-{}", hex::encode(key.tag().to_bytes()), key.index().to_str())).collect::<Vec<String>>().join(",");
@@ -443,8 +442,6 @@ impl TransactionWitnessSetBuilder {
 
     pub(crate) fn add_input_aggregate_real_witness_data(&mut self, data: &InputAggregateWitnessData) {
         match data {
-            InputAggregateWitnessData::Vkeys(_vkeys) => {},
-            InputAggregateWitnessData::Bootstraps(_witnesseses) => {}
             InputAggregateWitnessData::NativeScript(script, _info) => {
                 self.add_native_script(script);
             }
@@ -461,8 +458,6 @@ impl TransactionWitnessSetBuilder {
     }
     pub(crate) fn add_input_aggregate_fake_witness_data(&mut self, data: &InputAggregateWitnessData) {
         match data {
-            InputAggregateWitnessData::Vkeys(vkeys) => self.add_fake_vkey_witnesses(vkeys),
-            InputAggregateWitnessData::Bootstraps(witnesses) => self.add_fake_bootstrap_witnesses(witnesses),
             InputAggregateWitnessData::NativeScript(script, info) => {
                 match info.0 {
                     NativeScriptWitnessInfoKind::Count(num) => self.add_fake_vkey_witnesses_by_num(num),
@@ -477,6 +472,7 @@ impl TransactionWitnessSetBuilder {
                 self.add_plutus_witness_info(info);
             }
         }
+        // TODO: add in required witnesses
     }
 
     fn add_plutus_witness_info(&mut self, info: &PlutusScriptWitnessInfo) {
@@ -525,7 +521,7 @@ impl TransactionWitnessSetBuilder {
         let mut remaining_wits = self.required_wits.clone();
 
         self.vkeys.keys().for_each(|key| { remaining_wits.vkeys.remove(&key.public_key().hash()); });
-        self.bootstraps.keys().for_each(|key| { remaining_wits.bootstraps.remove(&key.public_key().hash()); });
+        self.bootstraps.values().for_each(|wit| { remaining_wits.bootstraps.remove(&wit.to_address().unwrap().0.addr); });
         self.native_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
         self.plutus_v1_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
         self.plutus_v2_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });

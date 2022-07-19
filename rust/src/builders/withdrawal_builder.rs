@@ -41,34 +41,19 @@ impl SingleWithdrawalBuilder {
         }
     }
 
-    pub fn skip_witness(&self) -> WithdrawalBuilderResult {
-        let mut required_wits = RequiredWitnessSet::default();
-        withdrawal_required_wits(&self.address, &mut required_wits);
-
-        WithdrawalBuilderResult {
-            address: self.address.clone(),
-            amount: self.amount,
-            aggregate_witness: None,
-            required_wits,
-        }
-    }
-
-    pub fn vkey(&self, vkey: &Vkey) -> Result<WithdrawalBuilderResult, JsError> {
+    pub fn payment_key(&self) -> Result<WithdrawalBuilderResult, JsError> {
         let mut required_wits = RequiredWitnessSet::default();
         withdrawal_required_wits(&self.address, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
 
-        // check the user provided all the required witnesses
-        required_wits_left.vkeys.remove(&vkey.public_key().hash());
-
-        if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the withdrawal: \n{:#?}", required_wits_left.to_str())));
+        if required_wits_left.scripts.len() > 0 {
+            return Err(JsError::from_str(&format!("Withdrawal required a script, not a payment key: \n{:#?}", self.address.to_address().to_bech32(None))));
         }
 
         Ok(WithdrawalBuilderResult {
             address: self.address.clone(),
             amount: self.amount,
-            aggregate_witness: Some(InputAggregateWitnessData::Vkeys(vec![vkey.clone()])),
+            aggregate_witness: None,
             required_wits,
         })
     }

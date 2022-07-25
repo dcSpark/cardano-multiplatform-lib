@@ -1,5 +1,6 @@
 use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
+use crate::byron::ByronAddress;
 use crate::ledger::common::hash::hash_plutus_data;
 
 use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitnessInfo};

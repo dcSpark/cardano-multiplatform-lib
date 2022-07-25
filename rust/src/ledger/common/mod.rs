@@ -1,4 +1,3 @@
-#[macro_use]
 pub mod binary;
 pub mod value;
 pub mod utxo;

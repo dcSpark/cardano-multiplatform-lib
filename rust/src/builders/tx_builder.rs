@@ -1215,6 +1215,7 @@ impl TransactionBuilder {
 #[cfg(test)]
 mod tests {
     use crate::builders::{mint_builder::SingleMintBuilder, witness_builder::NativeScriptWitnessInfo, input_builder::SingleInputBuilder};
+    use crate::byron::{ByronAddress, AddressContent};
     use crate::ledger::common::hash::hash_transaction;
     use crate::ledger::shelley::witness::make_vkey_witness;
 
@@ -1686,7 +1687,7 @@ mod tests {
         tx_builder.add_input(&input);
 
         let input = {
-            let address = &ByronAddress::icarus_from_key(&spend, NetworkInfo::testnet().protocol_magic()).to_address();
+            let address = &AddressContent::icarus_from_key(&spend, NetworkInfo::testnet().protocol_magic()).to_address().to_address();
             let builder = SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&address, &Value::new(&to_bignum(1_000_000)))

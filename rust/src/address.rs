@@ -1,6 +1,6 @@
 use super::*;
 use bech32::ToBase32;
-use crate::{legacy_address::ExtendedAddr, genesis::byron::config::ProtocolMagic, ledger::common::{binary::Deserialize, value::{to_bignum, from_bignum}}};
+use crate::{ledger::common::{binary::*, value::{to_bignum, from_bignum}}, byron::{ProtocolMagic, ByronAddress}};
 
 // returns (Number represented, bytes read) if valid encoding
 // or None if decoding prematurely finished
@@ -167,7 +167,7 @@ impl Deserialize for StakeCredential {
 }
 
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
-enum AddrType {
+pub enum AddrType {
     Base(BaseAddress),
     Ptr(PointerAddress),
     Enterprise(EnterpriseAddress),
@@ -177,97 +177,10 @@ enum AddrType {
 
 #[wasm_bindgen]
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
-pub struct ByronAddress(pub (crate) ExtendedAddr);
-#[wasm_bindgen]
-impl ByronAddress {
-    pub fn to_base58(&self) -> String {
-        format!("{}", self.0)
-    }
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut addr_bytes = Serializer::new_vec();
-        self.0.serialize(&mut addr_bytes).unwrap();
-        addr_bytes.finalize()
-    }
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<ByronAddress, JsError> {
-        let mut raw = Deserializer::from(std::io::Cursor::new(bytes));
-        let extended_addr = ExtendedAddr::deserialize(&mut raw)?;
-        Ok(ByronAddress(extended_addr))
-    }
-    /// returns the byron protocol magic embedded in the address, or mainnet id if none is present
-    /// note: for bech32 addresses, you need to use network_id instead
-    pub fn byron_protocol_magic(&self) -> u32 {
-        match self.0.attributes.protocol_magic {
-            Some(x) => x.0,
-            None => NetworkInfo::mainnet().protocol_magic(), // mainnet is implied if omitted
-        }
-    }
-    pub fn attributes(&self) -> Vec<u8> {
-        let mut attributes_bytes = Serializer::new_vec();
-        self.0.attributes.serialize(&mut attributes_bytes).unwrap();
-        attributes_bytes.finalize()
-    }
-    pub fn network_id(&self) -> Result<u8, JsError> {
-        // premise: during the Byron-era, we had one mainnet (764824073) and many many testnets
-        // with each testnet getting a different protocol magic
-        // in Shelley, this changes so that:
-        // 1) all testnets use the same u8 protocol magic
-        // 2) mainnet is re-mapped to a single u8 protocol magic
-
-        // recall: in Byron mainnet, the network_id is omitted from the address to save a few bytes
-        // so here we return the mainnet id if none is found in the address
-
-        // mainnet is implied if omitted
-        let protocol_magic = self.byron_protocol_magic();
-        match protocol_magic {
-            magic if magic == NetworkInfo::mainnet().protocol_magic() => Ok(NetworkInfo::mainnet().network_id()),
-            magic if magic == NetworkInfo::testnet().protocol_magic() => Ok(NetworkInfo::testnet().network_id()),
-            _ => Err(JsError::from_str(&format! {"Unknown network {}", protocol_magic}))
-        }
-    }
-
-    pub fn from_base58(s: &str) -> Result<ByronAddress, JsError> {
-        use std::str::FromStr;
-        ExtendedAddr::from_str(s)
-            .map_err(|e| JsError::from_str(&format! {"{:?}", e}))
-            .map(ByronAddress)
-    }
-
-    // icarus-style address (Ae2)
-    pub fn icarus_from_key(key: &Bip32PublicKey, protocol_magic: u32) -> ByronAddress {
-        // need to ensure we use None for mainnet since Byron-era addresses omitted the network id
-        let filtered_protocol_magic = if protocol_magic == NetworkInfo::mainnet().protocol_magic() { None } else { Some(ProtocolMagic(protocol_magic)) };
-        ByronAddress(ExtendedAddr::new_simple(& key.0, filtered_protocol_magic))
-    }
-
-    pub fn is_valid(s: &str) -> bool {
-        use std::str::FromStr;
-        match ExtendedAddr::from_str(s) {
-            Ok(_v) => true,
-            Err(_err) => false,
-        }
-    }
-
-    pub fn to_address(&self) -> Address {
-        Address {
-            variant: AddrType::Byron(self.clone()),
-            trailing: None,
-        }
-    }
-
-    pub fn from_address(addr: &Address) -> Option<ByronAddress> {
-        match &addr.variant {
-            AddrType::Byron(byron) => Some(byron.clone()),
-            _ => None,
-        }
-    }
-}
-
-#[wasm_bindgen]
-#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Address {
-    variant: AddrType,
+    pub(crate) variant: AddrType,
     // we store this for consistent round-tripping. this should be None for most addresses
-    trailing: Option<Vec<u8>>,
+    pub(crate) trailing: Option<Vec<u8>>,
 }
 
 from_bytes!(Address, data, {
@@ -554,7 +467,7 @@ impl Address {
             AddrType::Enterprise(a) => Ok(a.network),
             AddrType::Ptr(a) => Ok(a.network),
             AddrType::Reward(a) => Ok(a.network),
-            AddrType::Byron(a) => a.network_id(),
+            AddrType::Byron(a) => a.address_content().network_id(),
         }
     }
 
@@ -865,7 +778,7 @@ impl PointerAddress {
 
 #[cfg(test)]
 mod tests {
-    use crate::ledger::common::hash::ScriptHashNamespace;
+    use crate::{ledger::common::hash::ScriptHashNamespace, byron::AddressContent};
 
     use super::*;
     use crypto::*;
@@ -964,19 +877,6 @@ mod tests {
     fn bech32_parsing() {
         let addr = Address::from_bech32("addr1u8pcjgmx7962w6hey5hhsd502araxp26kdtgagakhaqtq8sxy9w7g").unwrap();
         assert_eq!(addr.to_bech32(Some("foobar".to_string())).unwrap(), "foobar1u8pcjgmx7962w6hey5hhsd502araxp26kdtgagakhaqtq8s92n4tm");
-    }
-
-    #[test]
-    fn byron_magic_parsing() {
-        // mainnet address w/ protocol magic omitted
-        let addr = ByronAddress::from_base58("Ae2tdPwUPEZ4YjgvykNpoFeYUxoyhNj2kg8KfKWN2FizsSpLUPv68MpTVDo").unwrap();
-        assert_eq!(addr.byron_protocol_magic(), NetworkInfo::mainnet().protocol_magic());
-        assert_eq!(addr.network_id().unwrap(), NetworkInfo::mainnet().network_id());
-
-        // original Byron testnet address
-        let addr = ByronAddress::from_base58("2cWKMJemoBaipzQe9BArYdo2iPUfJQdZAjm4iCzDA1AfNxJSTgm9FZQTmFCYhKkeYrede").unwrap();
-        assert_eq!(addr.byron_protocol_magic(), NetworkInfo::testnet().protocol_magic());
-        assert_eq!(addr.network_id().unwrap(), NetworkInfo::testnet().network_id());
     }
 
     #[test]
@@ -1092,15 +992,6 @@ mod tests {
     }
 
     #[test]
-    fn parse_redeem_address() {
-        assert!(ByronAddress::is_valid("Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp"));
-        let byron_addr = ByronAddress::from_base58("Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp").unwrap();
-        assert_eq!(byron_addr.to_base58(), "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp");
-        let byron_addr2 = ByronAddress::from_bytes(byron_addr.to_bytes()).unwrap();
-        assert_eq!(byron_addr2.to_base58(), "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp");
-    }
-
-    #[test]
     fn bip32_15_byron() {
         let byron_key = root_key_15()
             .derive(harden(44))
@@ -1109,13 +1000,15 @@ mod tests {
             .derive(0)
             .derive(0)
             .to_public();
-        let byron_addr = ByronAddress::icarus_from_key(&byron_key, NetworkInfo::mainnet().protocol_magic());
-        assert_eq!(byron_addr.to_base58(), "Ae2tdPwUPEZHtBmjZBF4YpMkK9tMSPTE2ADEZTPN97saNkhG78TvXdp3GDk");
+        let byron_addr = AddressContent::icarus_from_key(&byron_key, NetworkInfo::mainnet().protocol_magic());
+        assert_eq!(byron_addr.to_address().to_base58(), "Ae2tdPwUPEZHtBmjZBF4YpMkK9tMSPTE2ADEZTPN97saNkhG78TvXdp3GDk");
         assert!(ByronAddress::is_valid("Ae2tdPwUPEZHtBmjZBF4YpMkK9tMSPTE2ADEZTPN97saNkhG78TvXdp3GDk"));
         assert_eq!(byron_addr.network_id().unwrap(), 0b0001);
 
-        let byron_addr_2 = ByronAddress::from_address(&Address::from_bytes(byron_addr.to_bytes()).unwrap()).unwrap();
-        assert_eq!(byron_addr.to_base58(), byron_addr_2.to_base58());
+        // round-trip from generic address type and back
+        let generic_addr = Address::from_bytes(byron_addr.to_address().to_bytes()).unwrap();
+        let byron_addr_2 = ByronAddress::from_address(&generic_addr).unwrap();
+        assert_eq!(byron_addr.to_address().to_base58(), byron_addr_2.to_base58());
     }
 
     #[test]

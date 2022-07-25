@@ -12,7 +12,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::{to_from_bytes, TransactionInput, TransactionOutput, error::{DeserializeFailure, DeserializeError}};
 
-use super::binary::Deserialize;
+use super::binary::*;
 
 
 #[wasm_bindgen]

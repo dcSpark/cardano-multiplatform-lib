@@ -12,7 +12,6 @@ use crate::error::{DeserializeError, DeserializeFailure};
 // Note: wasm-bindgen doesn't support macros inside impls, so we have to wrap these
 //       in their own impl and invoke the invoke the macro from global scope.
 // TODO: possibly write s generic version of this for other usages (e.g. PrivateKey, etc)
-#[macro_export]
 macro_rules! from_bytes {
     // Custom from_bytes() code
     ($name:ident, $data: ident, $body:block) => {
@@ -38,12 +37,12 @@ macro_rules! from_bytes {
         });
     };
 }
+pub(crate) use from_bytes;
 
 // There's no need to do wasm vs non-wasm as this call can't fail but
 // this is here just to provide a default Serialize-based impl
 // Note: Once again you can't use macros in impls with wasm-bindgen
 //       so make sure you invoke this outside of one
-#[macro_export]
 macro_rules! to_bytes {
     ($name:ident) => {
         #[wasm_bindgen]
@@ -56,16 +55,16 @@ macro_rules! to_bytes {
         }
     }
 }
+pub(crate) use to_bytes;
 
-#[macro_export]
 macro_rules! to_from_bytes {
     ($name:ident) => {
         to_bytes!($name);
         from_bytes!($name);
     }
 }
+pub(crate) use to_from_bytes;
 
-#[macro_export]
 macro_rules! to_from_json {
     ($name:ident) => {
         #[wasm_bindgen]
@@ -88,6 +87,7 @@ macro_rules! to_from_json {
         }
     }
 }
+pub(crate) use to_from_json;
 
 const BOUNDED_BYTES_CHUNK_SIZE: usize = 64;
 

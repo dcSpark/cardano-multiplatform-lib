@@ -4,77 +4,13 @@
 //! operability with the appropriate network or different option.
 //!
 
-use cbor_event::{self, de::Deserializer, se::Serializer};
 use std::{
     collections::BTreeMap,
-    fmt,
-    io::{BufRead, Write},
     time::{Duration, SystemTime},
 };
 
-use crate::{legacy_address, ledger::{alonzo::fees::LinearFee, common::value::Coin}, chain_crypto::{Ed25519Bip32, self, Ed25519}, crypto::BlockHeaderHash, genesis::network_info::NetworkInfo};
+use crate::{ledger::{alonzo::fees::LinearFee, common::value::Coin}, chain_crypto::{Ed25519Bip32, self, Ed25519}, crypto::BlockHeaderHash, byron::{ProtocolMagic, ByronAddress, StakeholderId}};
 
-
-/// this is the protocol magic number
-///
-/// it is meant to be used on some places in order to guarantee
-/// incompatibility between forks, test network and the main-net.
-///
-/// # Default
-///
-/// The default value is set to the mainnet
-///
-/// ```
-/// use cardano_multiplatform_lib::genesis::byron::config::ProtocolMagic;
-///
-/// assert_eq!(ProtocolMagic::default(), ProtocolMagic::new(0x2D964A09));
-/// ```
-///
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
-#[cfg_attr(feature = "generic-serialization", derive(Serialize, Deserialize))]
-#[repr(C)]
-pub struct ProtocolMagic(pub u32);
-impl ProtocolMagic {
-    #[deprecated]
-    pub fn new(val: u32) -> Self {
-        ProtocolMagic(val)
-    }
-}
-impl fmt::Display for ProtocolMagic {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-impl ::std::ops::Deref for ProtocolMagic {
-    type Target = u32;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl From<u32> for ProtocolMagic {
-    fn from(v: u32) -> Self {
-        ProtocolMagic(v)
-    }
-}
-impl Default for ProtocolMagic {
-    fn default() -> Self {
-        NetworkInfo::mainnet().protocol_magic()
-    }
-}
-impl cbor_event::se::Serialize for ProtocolMagic {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_unsigned_integer(self.0 as u64)
-    }
-}
-impl cbor_event::Deserialize for ProtocolMagic {
-    fn deserialize<R: BufRead>(reader: &mut Deserializer<R>) -> cbor_event::Result<Self> {
-        let v = reader.unsigned_integer()? as u32;
-        Ok(ProtocolMagic::from(v))
-    }
-}
 
 /// Configuration for the wallet-crypto
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -110,10 +46,9 @@ pub struct GenesisData {
     pub protocol_magic: ProtocolMagic,
     pub fee_policy: LinearFee,
     pub avvm_distr: BTreeMap<chain_crypto::PublicKey<Ed25519>, Coin>, // AVVM = Ada Voucher Vending Machine
-    // TODO: convert to ByronAddress without exposing a bunch of WASM stuff
     // note: order of the keys here is unspecified in the spec (anything order is valid)
-    pub non_avvm_balances: BTreeMap<legacy_address::Addr, Coin>,
-    pub boot_stakeholders: BTreeMap<legacy_address::StakeholderId, BootStakeholder>,
+    pub non_avvm_balances: BTreeMap<ByronAddress, Coin>,
+    pub boot_stakeholders: BTreeMap<StakeholderId, BootStakeholder>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

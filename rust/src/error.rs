@@ -37,6 +37,11 @@ pub enum DeserializeFailure {
     MandatoryFieldMissing(Key),
     Metadata(JsError),
     NoVariantMatched,
+    RangeCheck{
+        found: usize,
+        min: Option<isize>,
+        max: Option<isize>,
+    },
     OutOfRange{
         min: usize,
         max: usize,
@@ -100,6 +105,12 @@ impl std::fmt::Display for DeserializeError {
             DeserializeFailure::MandatoryFieldMissing(key) => write!(f, "Mandatory field {} not found", key),
             DeserializeFailure::Metadata(e) => write!(f, "Metadata error: {:?}", e),
             DeserializeFailure::NoVariantMatched => write!(f, "No variant matched"),
+            DeserializeFailure::RangeCheck{ found, min, max } => match (min, max) {
+                (Some(min), Some(max)) => write!(f, "{} not in range {} - {}", found, min, max),
+                (Some(min), None) => write!(f, "{} not at least {}", found, min),
+                (None, Some(max)) => write!(f, "{} not at most {}", found, max),
+                (None, None) => write!(f, "invalid range (no min nor max specified)"),
+            },
             DeserializeFailure::OutOfRange{ min, max, found } => write!(f, "Out of range: {} - must be in range {} - {}", found, min, max),
             DeserializeFailure::PublicKeyError(e) => write!(f, "PublicKeyError error: {}", e),
             DeserializeFailure::SignatureError(e) => write!(f, "Signature error: {}", e),

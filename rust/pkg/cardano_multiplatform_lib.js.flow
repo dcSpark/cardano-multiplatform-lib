@@ -1718,6 +1718,16 @@ declare export class BootstrapWitness {
     chain_code: Uint8Array,
     attributes: AddrAttributes
   ): BootstrapWitness;
+
+  /**
+   * @returns {Bip32PublicKey}
+   */
+  to_public_key(): Bip32PublicKey;
+
+  /**
+   * @returns {AddressContent}
+   */
+  to_address(): AddressContent;
 }
 /**
  */
@@ -5849,19 +5859,9 @@ declare export class RequiredWitnessSet {
   add_vkey_key_hash(hash: Ed25519KeyHash): void;
 
   /**
-   * @param {BootstrapWitness} bootstrap
+   * @param {ByronAddress} address
    */
-  add_bootstrap(bootstrap: BootstrapWitness): void;
-
-  /**
-   * @param {Vkey} bootstrap
-   */
-  add_bootstrap_key(bootstrap: Vkey): void;
-
-  /**
-   * @param {Ed25519KeyHash} hash
-   */
-  add_bootstrap_key_hash(hash: Ed25519KeyHash): void;
+  add_bootstrap(address: ByronAddress): void;
 
   /**
    * @param {NativeScript} native_script
@@ -6429,16 +6429,9 @@ declare export class SingleCertificateBuilder {
   skip_witness(): CertificateBuilderResult;
 
   /**
-   * @param {Vkeys} vkeys
    * @returns {CertificateBuilderResult}
    */
-  vkeys(vkeys: Vkeys): CertificateBuilderResult;
-
-  /**
-   * @param {Vkey} vkey
-   * @returns {CertificateBuilderResult}
-   */
-  vkey(vkey: Vkey): CertificateBuilderResult;
+  payment_key(): CertificateBuilderResult;
 
   /**
    * Signer keys don't have to be set. You can leave it empty and then add the required witnesses later
@@ -6583,20 +6576,7 @@ declare export class SingleInputBuilder {
   /**
    * @returns {InputBuilderResult}
    */
-  skip_witness(): InputBuilderResult;
-
-  /**
-   * @param {Vkey} vkey
-   * @returns {InputBuilderResult}
-   */
-  vkey(vkey: Vkey): InputBuilderResult;
-
-  /**
-   * @param {Vkey} vkey
-   * @param {ByronAddress} address
-   * @returns {InputBuilderResult}
-   */
-  bootstrap(vkey: Vkey, address: ByronAddress): InputBuilderResult;
+  payment_key(): InputBuilderResult;
 
   /**
    * @param {NativeScript} native_script
@@ -6715,13 +6695,7 @@ declare export class SingleWithdrawalBuilder {
   /**
    * @returns {WithdrawalBuilderResult}
    */
-  skip_witness(): WithdrawalBuilderResult;
-
-  /**
-   * @param {Vkey} vkey
-   * @returns {WithdrawalBuilderResult}
-   */
-  vkey(vkey: Vkey): WithdrawalBuilderResult;
+  payment_key(): WithdrawalBuilderResult;
 
   /**
    * @param {NativeScript} native_script

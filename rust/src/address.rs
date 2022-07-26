@@ -1,6 +1,7 @@
 use super::*;
+use cbor_event::{de::Deserializer, se::Serializer};
 use bech32::ToBase32;
-use crate::{ledger::common::{binary::*, value::{to_bignum, from_bignum}}, byron::{ProtocolMagic, ByronAddress}};
+use crate::{ledger::common::{value::{to_bignum, from_bignum}}, byron::{ProtocolMagic, ByronAddress}};
 
 // returns (Number represented, bytes read) if valid encoding
 // or None if decoding prematurely finished

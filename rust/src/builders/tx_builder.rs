@@ -13,17 +13,17 @@ use super::input_builder::InputBuilderResult;
 use super::mint_builder::MintBuilderResult;
 use super::certificate_builder::*;
 use super::withdrawal_builder::WithdrawalBuilderResult;
-use super::witness_builder::InputAggregateWitnessData;
 use super::witness_builder::RedeemerSetBuilder;
 use super::witness_builder::RequiredWitnessSet;
 use super::witness_builder::TransactionWitnessSetBuilder;
+use super::witness_builder::merge_fake_witness;
 use std::collections::{BTreeMap, BTreeSet};
 use rand::Rng;
 
 #[derive(Clone, Default, Debug)]
 struct WitnessBuilders {
     pub(crate) witness_set_builder: TransactionWitnessSetBuilder,
-    pub(crate) fake_witness_set_builder: TransactionWitnessSetBuilder,
+    pub(crate) fake_required_witnesses: RequiredWitnessSet,
     pub(crate) redeemer_set_builder: RedeemerSetBuilder,
 }
 impl WitnessBuilders {
@@ -34,7 +34,9 @@ impl WitnessBuilders {
         witness_set_clone.add_redeemers(&redeemers);
 
         if include_fake {
-            witness_set_clone.add_existing(&self.fake_witness_set_builder.build());
+            merge_fake_witness(&mut witness_set_clone, &self.fake_required_witnesses);
+            let own_requirements = witness_set_clone.required_wits.clone();
+            merge_fake_witness(&mut witness_set_clone, &own_requirements);
         }
 
         witness_set_clone
@@ -361,8 +363,8 @@ impl TransactionBuilder {
                     let i = *available_indices.iter().nth(rng.gen_range(0..available_indices.len())).unwrap();
                     available_indices.remove(&i);
                     let input = &available_inputs[i];
-                    let input_fee = self.fee_for_input(&input)?;
-                    self.add_input(&input);
+                    let input_fee = self.fee_for_input(input)?;
+                    self.add_input(input);
                     input_total = input_total.checked_add(&input.utxo_info.amount)?;
                     output_total = output_total.checked_add(&Value::new(&input_fee))?;
                 }
@@ -516,7 +518,7 @@ impl TransactionBuilder {
         });
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
         }
         self.witness_builders.redeemer_set_builder.add_spend(result);
         self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
@@ -607,7 +609,7 @@ impl TransactionBuilder {
         self.certs = Some(certs);
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
         }
         self.witness_builders.redeemer_set_builder.add_cert(result);
         self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
@@ -623,7 +625,7 @@ impl TransactionBuilder {
         self.withdrawals = Some(withdrawals);
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
         }
         self.witness_builders.redeemer_set_builder.add_reward(result);
         self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
@@ -693,7 +695,7 @@ impl TransactionBuilder {
         self.mint = Some(mint);
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
         }
         self.witness_builders.redeemer_set_builder.add_mint(result);
         self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
@@ -737,9 +739,8 @@ impl TransactionBuilder {
     }
 
     pub fn add_collateral(&mut self, result: &InputBuilderResult) -> Result<(), JsError>  {
-        match &result.aggregate_witness {
-            Some(InputAggregateWitnessData::Vkeys(_)) => {},
-            _ => return Err(JsError::from_str(
+        if result.aggregate_witness.is_some() {
+            return Err(JsError::from_str(
                 "Collateral can only be payment keys (scripts not allowed)",
             ))
         };
@@ -756,7 +757,7 @@ impl TransactionBuilder {
         
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
         }
         self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
 
@@ -1377,12 +1378,10 @@ mod tests {
         let ((spend, _), (_, stake_cred), addr_net_0) = create_account();
 
         let input = {
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(1_000_000)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
         tx_builder.add_output(
@@ -1422,12 +1421,10 @@ mod tests {
             .to_public();
         let ((spend, _), (_, stake_cred), addr_net_0) = create_account();
         let input = {
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(1_000_000)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
         tx_builder.add_output(
@@ -1466,27 +1463,22 @@ mod tests {
         let ((spend, _), (stake, stake_cred), addr_net_0) = create_account();
 
         let input = {
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(5_000_000)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
         tx_builder.set_ttl(&1000.into());
 
         let cert = SingleCertificateBuilder::new(&Certificate::new_stake_registration(&StakeRegistration::new(&stake_cred)))
-            .vkey(&Vkey::new(&stake.to_raw_key()))
-            .unwrap();
+            .payment_key().unwrap();
         tx_builder.add_cert(&cert);
 
         let cert = SingleCertificateBuilder::new(&Certificate::new_stake_delegation(&StakeDelegation::new(
             &stake_cred,
             &stake.to_raw_key().hash(), // in reality, this should be the pool owner's key, not ours
-        )))
-            .vkey(&Vkey::new(&stake.to_raw_key()))
-            .unwrap();
+        ))).payment_key().unwrap();
         tx_builder.add_cert(&cert);
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
@@ -1522,12 +1514,10 @@ mod tests {
         let ((spend, _), (_, stake_cred), addr_net_0) = create_account();
 
         let input = {
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(222)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -1564,12 +1554,10 @@ mod tests {
         let ((spend, _), (_, stake_cred), addr_net_0) = create_account();
 
         let input = {
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(542)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -1608,12 +1596,10 @@ mod tests {
         let ((spend, _), (stake, stake_cred), addr_net_0) = create_account();
 
         let input = {
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(5)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -1628,8 +1614,7 @@ mod tests {
 
         // add a cert which requires a deposit
         let cert = SingleCertificateBuilder::new(&Certificate::new_stake_registration(&StakeRegistration::new(&stake_cred)))
-            .vkey(&Vkey::new(&stake.to_raw_key()))
-            .unwrap();
+            .payment_key().unwrap();
         tx_builder.add_cert(&cert);
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
@@ -1650,24 +1635,20 @@ mod tests {
 
         let input = {
             let address = &EnterpriseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred).to_address();
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&address, &Value::new(&to_bignum(1_000_000)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+                &TransactionOutput::new(address, &Value::new(&to_bignum(1_000_000)))
+            ).payment_key().unwrap()
         };
         assert_eq!(tx_builder.fee_for_input(&input).unwrap().to_str(), "69500");
         tx_builder.add_input(&input);
 
         let input = {
             let address = &BaseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &stake_cred).to_address();
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&address, &Value::new(&to_bignum(1_000_000)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+                &TransactionOutput::new(address, &Value::new(&to_bignum(1_000_000)))
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -1677,23 +1658,19 @@ mod tests {
                 &spend_cred,
                 &Pointer::new(&to_bignum(0), &to_bignum(0), &to_bignum(0))
             ).to_address();
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&address, &Value::new(&to_bignum(1_000_000)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+                &TransactionOutput::new(address, &Value::new(&to_bignum(1_000_000)))
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
         let input = {
             let address = &AddressContent::icarus_from_key(&spend, NetworkInfo::testnet().protocol_magic()).to_address().to_address();
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&address, &Value::new(&to_bignum(1_000_000)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+                &TransactionOutput::new(address, &Value::new(&to_bignum(1_000_000)))
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -1714,12 +1691,10 @@ mod tests {
 
         let input = {
             let address = &EnterpriseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred).to_address();
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(address, &Value::new(&to_bignum(764)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -1789,12 +1764,10 @@ mod tests {
 
         let input = {
             let address = &EnterpriseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred).to_address();
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(address, &Value::new(&to_bignum(564)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -1899,12 +1872,10 @@ mod tests {
             input_amount.set_multiasset(multiasset);
 
             let input = {
-                let builder = SingleInputBuilder::new(
+                SingleInputBuilder::new(
                     &TransactionInput::new(&genesis_id(), &0.into()),
                     &TransactionOutput::new(&addr_net_0, &input_amount)
-                );
-                let vkey = Vkey::new(&spend.to_raw_key());
-                builder.vkey(&vkey).unwrap()
+                ).payment_key().unwrap()
             };
             tx_builder.add_input(&input);
         }
@@ -1993,12 +1964,10 @@ mod tests {
             input_amount.set_multiasset(multiasset);
 
             let input = {
-                let builder = SingleInputBuilder::new(
+                SingleInputBuilder::new(
                     &TransactionInput::new(&genesis_id(), &0.into()),
                     &TransactionOutput::new(&addr_net_0, &input_amount)
-                );
-                let vkey = Vkey::new(&spend.to_raw_key());
-                builder.vkey(&vkey).unwrap()
+                ).payment_key().unwrap()
             };
             tx_builder.add_input(&input);
         }
@@ -2103,12 +2072,10 @@ mod tests {
             input_amount.set_multiasset(multiasset);
 
             let input = {
-                let builder = SingleInputBuilder::new(
+                SingleInputBuilder::new(
                     &TransactionInput::new(&genesis_id(), &0.into()),
                     &TransactionOutput::new(&addr_net_0, &input_amount)
-                );
-                let vkey = Vkey::new(&spend.to_raw_key());
-                builder.vkey(&vkey).unwrap()
+                ).payment_key().unwrap()
             };
             tx_builder.add_input(&input);
         }
@@ -2186,12 +2153,10 @@ mod tests {
         });
         input_amount.set_multiasset(&input_multiasset);
         let input = {
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&addr_net_0, &input_amount)
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -2238,7 +2203,7 @@ mod tests {
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&address, &Value::new(&to_bignum(2_400_000)))
             );
-            builder.skip_witness().unwrap()
+            builder.payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -2278,7 +2243,7 @@ mod tests {
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&address, &input_value)
             );
-            builder.skip_witness().unwrap()
+            builder.payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -2320,7 +2285,7 @@ mod tests {
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&address, &input_amount)
             );
-            builder.skip_witness().unwrap()
+            builder.payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -2404,7 +2369,7 @@ mod tests {
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(address, &input_value)
             );
-            builder.skip_witness().unwrap()
+            builder.payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -2455,7 +2420,7 @@ mod tests {
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&address, &Value::new(&to_bignum(500)))
             );
-            builder.skip_witness().unwrap()
+            builder.payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -2511,7 +2476,7 @@ mod tests {
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(address, &input_value)
             );
-            builder.skip_witness().unwrap()
+            builder.payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -2533,16 +2498,14 @@ mod tests {
 
     fn make_input(input_hash_byte: u8, value: Value) -> InputBuilderResult {
         let ((spend, _), _, address) = create_account();
-        let builder = SingleInputBuilder::new(
+        SingleInputBuilder::new(
             &TransactionInput::new(&TransactionHash::from([input_hash_byte; 32]), &0.into()),
             &TransactionOutputBuilder::new()
                 .with_address(&address)
                 .next().unwrap()
                 .with_value(&value)
                 .build().unwrap()
-        );
-        let vkey = Vkey::new(&spend.to_raw_key());
-        builder.vkey(&vkey).unwrap()
+        ).payment_key().unwrap()
     }
 
     #[test]
@@ -2959,12 +2922,10 @@ mod tests {
         let ((spend, _), _, addr_net_0) = create_account();
 
         let input = {
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(1_000_000)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
         tx_builder.add_output(
@@ -3017,12 +2978,10 @@ mod tests {
         let addr_output = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
 
         let input = {
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&addr_multisig, &Value::new(&to_bignum(1_000_000)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -3083,12 +3042,10 @@ mod tests {
         let stake_cred = StakeCredential::from_keyhash(&stake.to_raw_key().hash());
         let addr_net_0 = BaseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &stake_cred).to_address();
         let input = {
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(1_000_000)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
         tx_builder.add_output(
@@ -3189,7 +3146,7 @@ mod tests {
                     &input_value
                 )
             );
-            builder.skip_witness().unwrap()
+            builder.payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -3805,12 +3762,10 @@ mod tests {
         // One input from an unrelated address
         let input = {
             let ((spend, _), _, address) = create_account();
-            let builder = SingleInputBuilder::new(
+            SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
                 &TransactionOutput::new(&address, &Value::new(&to_bignum(10_000_000)))
-            );
-            let vkey = Vkey::new(&spend.to_raw_key());
-            builder.vkey(&vkey).unwrap()
+            ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
 
@@ -3991,11 +3946,10 @@ mod tests {
             input_amount.set_multiasset(multiasset);
 
             let input = {
-                let builder = SingleInputBuilder::new(
+                SingleInputBuilder::new(
                     &TransactionInput::new(&genesis_id(), &0.into()),
                     &TransactionOutput::new(&addr_test_0, &input_amount)
-                );
-                builder.vkey(&Vkey::new(&spend.to_raw_key())).unwrap()
+                ).payment_key().unwrap()
             };
             tx_builder.add_input(&input);
         }

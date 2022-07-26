@@ -53,7 +53,7 @@ impl AddrAttributes {
 
 #[wasm_bindgen]
 impl AddressId {
-    pub fn new(addr_type: &AddrType, spending_data: &SpendingData, attrs: &AddrAttributes) -> Self {
+    pub fn new(addr_type: &ByronAddrType, spending_data: &SpendingData, attrs: &AddrAttributes) -> Self {
         // the reason for this unwrap is that we have to dynamically allocate 66 bytes
         // to serialize 64 bytes in cbor (2 bytes of cbor overhead).
         let buf = cbor!(&(&addr_type, spending_data, attrs))
@@ -66,7 +66,7 @@ impl AddressId {
 
 #[wasm_bindgen]
 impl AddressContent {
-    pub fn hash_and_create(addr_type: &AddrType, spending_data: &SpendingData, attributes:& AddrAttributes) -> AddressContent {
+    pub fn hash_and_create(addr_type: &ByronAddrType, spending_data: &SpendingData, attributes:& AddrAttributes) -> AddressContent {
         let address_id = AddressId::new(addr_type, spending_data, attributes);
         AddressContent::new(
             &address_id, 
@@ -81,7 +81,7 @@ impl AddressContent {
         let addr_type = AddrTypeEnum::ATRedeem;
         let spending_data = SpendingDataEnum::SpendingDataRedeemASD(SpendingDataRedeemASD::new(pubkey));
         
-        AddressContent::hash_and_create(&AddrType(addr_type), &SpendingData(spending_data), &attributes)
+        AddressContent::hash_and_create(&ByronAddrType(addr_type), &SpendingData(spending_data), &attributes)
     }
 
     // bootstrap era + no hdpayload address
@@ -90,7 +90,7 @@ impl AddressContent {
         let addr_type = AddrTypeEnum::ATPubKey;
         let spending_data = SpendingDataEnum::SpendingDataPubKeyASD(SpendingDataPubKeyASD::new(xpub));
 
-        AddressContent::hash_and_create(&AddrType(addr_type), &SpendingData(spending_data), &attributes)
+        AddressContent::hash_and_create(&ByronAddrType(addr_type), &SpendingData(spending_data), &attributes)
     }
 
     pub fn to_address(&self) -> ByronAddress {
@@ -140,7 +140,7 @@ impl AddressContent {
     pub fn identical_with_pubkey(&self, xpub: &Bip32PublicKey) -> bool {
         let addr_type = AddrTypeEnum::ATPubKey;
         let spending_data = SpendingDataEnum::SpendingDataPubKeyASD(SpendingDataPubKeyASD::new(xpub));
-        let newea = AddressContent::hash_and_create(&AddrType(addr_type), &SpendingData(spending_data), &self.addr_attr.clone());
+        let newea = AddressContent::hash_and_create(&ByronAddrType(addr_type), &SpendingData(spending_data), &self.addr_attr.clone());
         
         if self == &newea {
             // AddressMatchXPub::Yes

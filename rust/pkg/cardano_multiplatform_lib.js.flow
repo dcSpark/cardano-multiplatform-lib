@@ -26,6 +26,16 @@ declare export function decode_plutus_datum_to_json_str(
 ): string;
 
 /**
+ * @param {TransactionOutput} output
+ * @param {BigNum} coins_per_utxo_byte
+ * @returns {BigNum}
+ */
+declare export function min_ada_required(
+  output: TransactionOutput,
+  coins_per_utxo_byte: BigNum
+): BigNum;
+
+/**
  * @param {Uint8Array} bytes
  * @returns {TransactionMetadatum}
  */
@@ -106,6 +116,40 @@ declare export function make_icarus_bootstrap_witness(
 ): BootstrapWitness;
 
 /**
+ * @param {AuxiliaryData} auxiliary_data
+ * @returns {AuxiliaryDataHash}
+ */
+declare export function hash_auxiliary_data(
+  auxiliary_data: AuxiliaryData
+): AuxiliaryDataHash;
+
+/**
+ * @param {TransactionBody} tx_body
+ * @returns {TransactionHash}
+ */
+declare export function hash_transaction(
+  tx_body: TransactionBody
+): TransactionHash;
+
+/**
+ * @param {PlutusData} plutus_data
+ * @returns {DataHash}
+ */
+declare export function hash_plutus_data(plutus_data: PlutusData): DataHash;
+
+/**
+ * @param {Redeemers} redeemers
+ * @param {Costmdls} cost_models
+ * @param {PlutusList | void} datums
+ * @returns {ScriptDataHash}
+ */
+declare export function hash_script_data(
+  redeemers: Redeemers,
+  cost_models: Costmdls,
+  datums?: PlutusList
+): ScriptDataHash;
+
+/**
  * @param {string} password
  * @param {string} salt
  * @param {string} nonce
@@ -142,40 +186,6 @@ declare export function min_fee(
 ): BigNum;
 
 /**
- * @param {AuxiliaryData} auxiliary_data
- * @returns {AuxiliaryDataHash}
- */
-declare export function hash_auxiliary_data(
-  auxiliary_data: AuxiliaryData
-): AuxiliaryDataHash;
-
-/**
- * @param {TransactionBody} tx_body
- * @returns {TransactionHash}
- */
-declare export function hash_transaction(
-  tx_body: TransactionBody
-): TransactionHash;
-
-/**
- * @param {PlutusData} plutus_data
- * @returns {DataHash}
- */
-declare export function hash_plutus_data(plutus_data: PlutusData): DataHash;
-
-/**
- * @param {Redeemers} redeemers
- * @param {Costmdls} cost_models
- * @param {PlutusList | void} datums
- * @returns {ScriptDataHash}
- */
-declare export function hash_script_data(
-  redeemers: Redeemers,
-  cost_models: Costmdls,
-  datums?: PlutusList
-): ScriptDataHash;
-
-/**
  * @param {TransactionBody} txbody
  * @param {BigNum} pool_deposit
  * @param {BigNum} key_deposit
@@ -208,16 +218,6 @@ declare export function make_vkey_witness(
   tx_body_hash: TransactionHash,
   sk: PrivateKey
 ): Vkeywitness;
-
-/**
- * @param {TransactionOutput} output
- * @param {BigNum} coins_per_utxo_byte
- * @returns {BigNum}
- */
-declare export function min_ada_required(
-  output: TransactionOutput,
-  coins_per_utxo_byte: BigNum
-): BigNum;
 
 /**
  */
@@ -370,6 +370,46 @@ declare export var ScriptSchema: {|
 |};
 
 /**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
+ */
+
+declare export var ScriptHashNamespace: {|
+  +NativeScript: 0, // 0
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
+|};
+
+/**
+ */
+
+declare export var StakeDistributionKind: {|
+  +BootstrapEraDistr: 0, // 0
+  +SingleKeyDistr: 1, // 1
+|};
+
+/**
+ */
+
+declare export var AddrtypeKind: {|
+  +ATPubKey: 0, // 0
+  +ATScript: 1, // 1
+  +ATRedeem: 2, // 2
+|};
+
+/**
+ */
+
+declare export var SpendingDataKind: {|
+  +SpendingDataPubKeyASD: 0, // 0
+  +SpendingDataScriptASD: 1, // 1
+  +SpendingDataRedeemASD: 2, // 2
+|};
+
+/**
  */
 
 declare export var StakeCredKind: {|
@@ -398,20 +438,6 @@ declare export var AddressHeaderKind: {|
 |};
 
 /**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
- */
-
-declare export var ScriptHashNamespace: {|
-  +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
-|};
-
-/**
  */
 
 declare export var CoinSelectionStrategyCIP2: {|
@@ -419,32 +445,6 @@ declare export var CoinSelectionStrategyCIP2: {|
   +RandomImprove: 1, // 1
   +LargestFirstMultiAsset: 2, // 2
   +RandomImproveMultiAsset: 3, // 3
-|};
-
-/**
- */
-
-declare export var StakeDistributionKind: {|
-  +BootstrapEraDistr: 0, // 0
-  +SingleKeyDistr: 1, // 1
-|};
-
-/**
- */
-
-declare export var AddrtypeKind: {|
-  +ATPubKey: 0, // 0
-  +ATScript: 1, // 1
-  +ATRedeem: 2, // 2
-|};
-
-/**
- */
-
-declare export var SpendingDataKind: {|
-  +SpendingDataPubKeyASD: 0, // 0
-  +SpendingDataScriptASD: 1, // 1
-  +SpendingDataRedeemASD: 2, // 2
 |};
 
 /**
@@ -486,6 +486,22 @@ declare export class AddrAttributes {
   static from_bytes(bytes: Uint8Array): AddrAttributes;
 
   /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {AddrAttributesJSON}
+   */
+  to_js_value(): AddrAttributesJSON;
+
+  /**
+   * @param {string} json
+   * @returns {AddrAttributes}
+   */
+  static from_json(json: string): AddrAttributes;
+
+  /**
    * @param {StakeDistribution} stake_distribution
    */
   set_stake_distribution(stake_distribution: StakeDistribution): void;
@@ -519,42 +535,6 @@ declare export class AddrAttributes {
    * @returns {AddrAttributes}
    */
   static new(): AddrAttributes;
-}
-/**
- */
-declare export class AddrType {
-  free(): void;
-
-  /**
-   * @returns {Uint8Array}
-   */
-  to_bytes(): Uint8Array;
-
-  /**
-   * @param {Uint8Array} bytes
-   * @returns {AddrType}
-   */
-  static from_bytes(bytes: Uint8Array): AddrType;
-
-  /**
-   * @returns {AddrType}
-   */
-  static new_ATPubKey(): AddrType;
-
-  /**
-   * @returns {AddrType}
-   */
-  static new_ATScript(): AddrType;
-
-  /**
-   * @returns {AddrType}
-   */
-  static new_ATRedeem(): AddrType;
-
-  /**
-   * @returns {number}
-   */
-  kind(): number;
 }
 /**
  */
@@ -688,13 +668,13 @@ declare export class AddressContent {
   free(): void;
 
   /**
-   * @param {AddrType} addr_type
+   * @param {ByronAddrType} addr_type
    * @param {SpendingData} spending_data
    * @param {AddrAttributes} attributes
    * @returns {AddressContent}
    */
   static hash_and_create(
-    addr_type: AddrType,
+    addr_type: ByronAddrType,
     spending_data: SpendingData,
     attributes: AddrAttributes
   ): AddressContent;
@@ -765,6 +745,22 @@ declare export class AddressContent {
   static from_bytes(bytes: Uint8Array): AddressContent;
 
   /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {AddressContentJSON}
+   */
+  to_js_value(): AddressContentJSON;
+
+  /**
+   * @param {string} json
+   * @returns {AddressContent}
+   */
+  static from_json(json: string): AddressContent;
+
+  /**
    * @returns {AddressId}
    */
   address_id(): AddressId;
@@ -775,20 +771,20 @@ declare export class AddressContent {
   addr_attr(): AddrAttributes;
 
   /**
-   * @returns {AddrType}
+   * @returns {ByronAddrType}
    */
-  addr_type(): AddrType;
+  addr_type(): ByronAddrType;
 
   /**
    * @param {AddressId} address_id
    * @param {AddrAttributes} addr_attr
-   * @param {AddrType} addr_type
+   * @param {ByronAddrType} addr_type
    * @returns {AddressContent}
    */
   static new(
     address_id: AddressId,
     addr_attr: AddrAttributes,
-    addr_type: AddrType
+    addr_type: ByronAddrType
   ): AddressContent;
 }
 /**
@@ -797,13 +793,13 @@ declare export class AddressId {
   free(): void;
 
   /**
-   * @param {AddrType} addr_type
+   * @param {ByronAddrType} addr_type
    * @param {SpendingData} spending_data
    * @param {AddrAttributes} attrs
    * @returns {AddressId}
    */
   static new(
-    addr_type: AddrType,
+    addr_type: ByronAddrType,
     spending_data: SpendingData,
     attrs: AddrAttributes
   ): AddressId;
@@ -1637,6 +1633,22 @@ declare export class BootstrapEraDistr {
   static from_bytes(bytes: Uint8Array): BootstrapEraDistr;
 
   /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {BootstrapEraDistrJSON}
+   */
+  to_js_value(): BootstrapEraDistrJSON;
+
+  /**
+   * @param {string} json
+   * @returns {BootstrapEraDistr}
+   */
+  static from_json(json: string): BootstrapEraDistr;
+
+  /**
    * @returns {BootstrapEraDistr}
    */
   static new(): BootstrapEraDistr;
@@ -1735,6 +1747,58 @@ declare export class BootstrapWitnesses {
 }
 /**
  */
+declare export class ByronAddrType {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {ByronAddrType}
+   */
+  static from_bytes(bytes: Uint8Array): ByronAddrType;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {ByronAddrTypeJSON}
+   */
+  to_js_value(): ByronAddrTypeJSON;
+
+  /**
+   * @param {string} json
+   * @returns {ByronAddrType}
+   */
+  static from_json(json: string): ByronAddrType;
+
+  /**
+   * @returns {ByronAddrType}
+   */
+  static new_ATPubKey(): ByronAddrType;
+
+  /**
+   * @returns {ByronAddrType}
+   */
+  static new_ATScript(): ByronAddrType;
+
+  /**
+   * @returns {ByronAddrType}
+   */
+  static new_ATRedeem(): ByronAddrType;
+
+  /**
+   * @returns {number}
+   */
+  kind(): number;
+}
+/**
+ */
 declare export class ByronAddress {
   free(): void;
 
@@ -1781,6 +1845,22 @@ declare export class ByronAddress {
    * @returns {ByronAddress}
    */
   static from_bytes(bytes: Uint8Array): ByronAddress;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {ByronAddressJSON}
+   */
+  to_js_value(): ByronAddressJSON;
+
+  /**
+   * @param {string} json
+   * @returns {ByronAddress}
+   */
+  static from_json(json: string): ByronAddress;
 
   /**
    * @returns {Uint8Array}
@@ -6557,6 +6637,22 @@ declare export class SingleKeyDistr {
   static from_bytes(bytes: Uint8Array): SingleKeyDistr;
 
   /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {SingleKeyDistrJSON}
+   */
+  to_js_value(): SingleKeyDistrJSON;
+
+  /**
+   * @param {string} json
+   * @returns {SingleKeyDistr}
+   */
+  static from_json(json: string): SingleKeyDistr;
+
+  /**
    * @returns {StakeholderId}
    */
   stakeholder_id(): StakeholderId;
@@ -6772,6 +6868,22 @@ declare export class SpendingDataScriptASD {
    * @returns {SpendingDataScriptASD}
    */
   static from_bytes(bytes: Uint8Array): SpendingDataScriptASD;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {SpendingDataScriptASDJSON}
+   */
+  to_js_value(): SpendingDataScriptASDJSON;
+
+  /**
+   * @param {string} json
+   * @returns {SpendingDataScriptASD}
+   */
+  static from_json(json: string): SpendingDataScriptASD;
 
   /**
    * @returns {ByronScript}
@@ -7012,6 +7124,22 @@ declare export class StakeDistribution {
    * @returns {StakeDistribution}
    */
   static from_bytes(bytes: Uint8Array): StakeDistribution;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {StakeDistributionJSON}
+   */
+  to_js_value(): StakeDistributionJSON;
+
+  /**
+   * @param {string} json
+   * @returns {StakeDistribution}
+   */
+  static from_json(json: string): StakeDistribution;
 
   /**
    * @returns {StakeDistribution}
@@ -9344,7 +9472,17 @@ declare export class Withdrawals {
    */
   keys(): RewardAddresses;
 }
+export interface AddrAttributesJSON {
+  derivation_path?: HDAddressPayload | null;
+  protocol_magic?: ProtocolMagic | null;
+  stake_distribution?: StakeDistributionJSON | null;
+}
 export type AddressJSON = string;
+export interface AddressContentJSON {
+  addr_attr: AddrAttributesJSON;
+  addr_type: AddrTypeEnumJSON;
+  address_id: string;
+}
 export type AssetNameJSON = string;
 export type AssetNamesJSON = string[];
 export interface AssetsJSON {
@@ -9378,13 +9516,20 @@ export interface BlockJSON {
 export type BlockBodyHashJSON = string;
 export type BlockHashJSON = string;
 export type BlockHeaderHashJSON = string;
+export interface BootstrapEraDistrJSON {}
 export interface BootstrapWitnessJSON {
-  attributes: AddrAttributes;
+  attributes: AddrAttributesJSON;
   chain_code: number[];
   signature: string;
   vkey: VkeyJSON;
 }
 export type BootstrapWitnessesJSON = BootstrapWitnessJSON[];
+export type ByronAddrTypeJSON = AddrTypeEnumJSON;
+export type AddrTypeEnumJSON = "ATPubKey" | "ATScript" | "ATRedeem";
+export interface ByronAddressJSON {
+  addr: number[];
+  crc32: number;
+}
 export type CertificateJSON = CertificateEnumJSON;
 export type CertificateEnumJSON =
   | {
@@ -9752,6 +9897,12 @@ export interface SingleHostNameJSON {
   dns_name: DNSRecordAorAAAAJSON;
   port?: number | null;
 }
+export interface SingleKeyDistrJSON {
+  stakeholder_id: string;
+}
+export interface SpendingDataScriptASDJSON {
+  script: ByronScript;
+}
 export type StakeCredTypeJSON =
   | {
       Key: string,
@@ -9770,6 +9921,16 @@ export interface StakeDelegationJSON {
 export interface StakeDeregistrationJSON {
   stake_credential: StakeCredTypeJSON;
 }
+export type StakeDistributionJSON = StakeDistributionEnumJSON;
+export type StakeDistributionEnumJSON =
+  | {
+      BootstrapEraDistrJSON: BootstrapEraDistr,
+      ...
+    }
+  | {
+      SingleKeyDistrJSON: SingleKeyDistr,
+      ...
+    };
 export interface StakeRegistrationJSON {
   stake_credential: StakeCredTypeJSON;
 }

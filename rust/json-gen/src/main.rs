@@ -6,6 +6,7 @@ use cardano_multiplatform_lib::address::*;
 use cardano_multiplatform_lib::crypto::*;
 use cardano_multiplatform_lib::metadata::*;
 use cardano_multiplatform_lib::plutus::*;
+use cardano_multiplatform_lib::byron::*;
 use cardano_multiplatform_lib::ledger::common::value::*;
 
 //#[macro_export]
@@ -121,6 +122,16 @@ fn main() {
     gen_json_schema!(StakeCredType);
     gen_json_schema!(Address);
     gen_json_schema!(RewardAddress);
+
+    gen_json_schema!(AddrAttributes);
+    gen_json_schema!(StakeDistribution);
+    gen_json_schema!(ByronAddress);
+    gen_json_schema!(AddressContent);
+    gen_json_schema!(ByronAddrType);
+    gen_json_schema!(BootstrapEraDistr);
+    gen_json_schema!(SingleKeyDistr);
+    gen_json_schema!(SpendingDataScriptASD);
+
     // plutus.rs
     gen_json_schema!(PlutusV1Script);
     gen_json_schema!(PlutusV1Scripts);

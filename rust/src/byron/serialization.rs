@@ -214,7 +214,7 @@ impl Deserialize for AddressContent {
                 Ok(AddrAttributes::deserialize(raw)?)
             })().map_err(|e| e.annotate("addr_attr"))?;
             let addr_type = (|| -> Result<_, DeserializeError> {
-                Ok(AddrType::deserialize(raw)?)
+                Ok(ByronAddrType::deserialize(raw)?)
             })().map_err(|e| e.annotate("addr_type"))?;
             match len {
                 cbor_event::Len::Len(_) => (),
@@ -290,13 +290,13 @@ impl Deserialize for AddrTypeEnum {
     }
 }
 
-impl cbor_event::se::Serialize for AddrType {
+impl cbor_event::se::Serialize for ByronAddrType {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
         self.0.serialize(serializer)
     }
 }
 
-impl Deserialize for AddrType {
+impl Deserialize for ByronAddrType {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         Ok(Self(AddrTypeEnum::deserialize(raw)?))
     }

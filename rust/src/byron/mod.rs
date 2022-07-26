@@ -58,7 +58,7 @@ pub struct AddrAttributes {
 }
 
 to_from_bytes!(AddrAttributes);
-// to_from_json!(AddrAttributes);
+to_from_json!(AddrAttributes);
 
 #[wasm_bindgen]
 
@@ -116,7 +116,7 @@ enum StakeDistributionEnum {
 pub struct StakeDistribution(StakeDistributionEnum);
 
 to_from_bytes!(StakeDistribution);
-// to_from_json!(StakeDistribution);
+to_from_json!(StakeDistribution);
 
 #[wasm_bindgen]
 
@@ -162,7 +162,7 @@ pub struct ByronAddress {
 }
 
 to_from_bytes!(ByronAddress);
-// to_from_json!(ByronAddress);
+to_from_json!(ByronAddress);
 
 #[wasm_bindgen]
 
@@ -197,11 +197,11 @@ impl ByronAddress {
 pub struct AddressContent {
     address_id: AddressId,
     addr_attr: AddrAttributes,
-    addr_type: AddrType,
+    addr_type: ByronAddrType,
 }
 
 to_from_bytes!(AddressContent);
-// to_from_json!(AddressContent);
+to_from_json!(AddressContent);
 
 #[wasm_bindgen]
 
@@ -214,11 +214,11 @@ impl AddressContent {
         self.addr_attr.clone()
     }
 
-    pub fn addr_type(&self) -> AddrType {
+    pub fn addr_type(&self) -> ByronAddrType {
         self.addr_type.clone()
     }
 
-    pub fn new(address_id: &AddressId, addr_attr: &AddrAttributes, addr_type: &AddrType) -> Self {
+    pub fn new(address_id: &AddressId, addr_attr: &AddrAttributes, addr_type: &ByronAddrType) -> Self {
         Self {
             address_id: address_id.clone(),
             addr_attr: addr_attr.clone(),
@@ -246,14 +246,14 @@ pub enum AddrTypeEnum {
 #[wasm_bindgen]
 
 #[derive(Copy, Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
-pub struct AddrType(AddrTypeEnum);
+pub struct ByronAddrType(AddrTypeEnum);
 
-to_from_bytes!(AddrType);
-// to_from_json!(AddrType);
+to_from_bytes!(ByronAddrType);
+to_from_json!(ByronAddrType);
 
 #[wasm_bindgen]
 
-impl AddrType {
+impl ByronAddrType {
     pub fn new_ATPubKey() -> Self {
         Self(AddrTypeEnum::ATPubKey)
     }
@@ -282,7 +282,7 @@ pub struct BootstrapEraDistr {
 }
 
 to_from_bytes!(BootstrapEraDistr);
-// to_from_json!(BootstrapEraDistr);
+to_from_json!(BootstrapEraDistr);
 
 #[wasm_bindgen]
 
@@ -301,7 +301,7 @@ pub struct SingleKeyDistr {
 }
 
 to_from_bytes!(SingleKeyDistr);
-// to_from_json!(SingleKeyDistr);
+to_from_json!(SingleKeyDistr);
 
 #[wasm_bindgen]
 
@@ -448,7 +448,7 @@ pub struct SpendingDataScriptASD {
 }
 
 to_from_bytes!(SpendingDataScriptASD);
-// to_from_json!(SpendingDataScriptASD);
+to_from_json!(SpendingDataScriptASD);
 
 
 #[wasm_bindgen]

@@ -2,6 +2,7 @@ use crate::chain_crypto::bech32::{self, Bech32};
 use cbor_event::{de::Deserializer, se::Serializer};
 use hex::FromHexError;
 use rand::{CryptoRng, RngCore};
+use schemars::JsonSchema;
 use std::fmt;
 use std::hash::Hash;
 use std::str::FromStr;
@@ -108,6 +109,32 @@ impl<A: AsymmetricPublicKey> FromStr for PublicKey<A> {
         let bytes = hex::decode(hex).map_err(PublicKeyFromStrError::HexMalformed)?;
         Self::from_binary(&bytes).map_err(PublicKeyFromStrError::KeyInvalid)
     }
+}
+
+impl<A: AsymmetricPublicKey> serde::Serialize for PublicKey<A> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer {
+        serializer.serialize_str(&self.to_bech32_str())
+    }
+}
+
+impl <'de, A: AsymmetricPublicKey> serde::de::Deserialize<'de> for PublicKey<A> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
+    D: serde::de::Deserializer<'de> {
+        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        PublicKey::try_from_bech32_str(&s).map_err(|_e| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"bech32 public key string"))
+    }
+}
+
+impl JsonSchema for PublicKey<crate::chain_crypto::Ed25519> {
+    fn schema_name() -> String { String::from("Ed25519PublicKey") }
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
+    fn is_referenceable() -> bool { String::is_referenceable() }
+}
+impl JsonSchema for PublicKey<crate::chain_crypto::Ed25519Bip32> {
+    fn schema_name() -> String { String::from("Ed25519Bip32PublicKey") }
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
+    fn is_referenceable() -> bool { String::is_referenceable() }
 }
 
 impl<A: AsymmetricKey> FromStr for SecretKey<A> {

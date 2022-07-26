@@ -98,7 +98,7 @@ impl AddrAttributes {
 
 #[wasm_bindgen]
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub enum StakeDistributionKind {
     BootstrapEraDistr,
     SingleKeyDistr,
@@ -229,7 +229,7 @@ impl AddressContent {
 
 #[wasm_bindgen]
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub enum AddrtypeKind {
     ATPubKey,
     ATScript,
@@ -325,14 +325,14 @@ to_from_bytes!(ByronScript);
 
 #[wasm_bindgen]
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub enum SpendingDataKind {
     SpendingDataPubKeyASD,
     SpendingDataScriptASD,
     SpendingDataRedeemASD,
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 enum SpendingDataEnum {
     SpendingDataPubKeyASD(SpendingDataPubKeyASD),
     SpendingDataScriptASD(SpendingDataScriptASD),
@@ -341,11 +341,11 @@ enum SpendingDataEnum {
 
 #[wasm_bindgen]
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct SpendingData(SpendingDataEnum);
 
 to_from_bytes!(SpendingData);
-// to_from_json!(SpendingData);
+to_from_json!(SpendingData);
 
 #[wasm_bindgen]
 
@@ -394,13 +394,13 @@ impl SpendingData {
 
 #[wasm_bindgen]
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct SpendingDataPubKeyASD {
     public_ed25519_bip32: chain_crypto::PublicKey<Ed25519Bip32>,
 }
 
 to_from_bytes!(SpendingDataPubKeyASD);
-// to_from_json!(SpendingDataPubKeyASD);
+to_from_json!(SpendingDataPubKeyASD);
 
 #[wasm_bindgen]
 
@@ -418,13 +418,13 @@ impl SpendingDataPubKeyASD {
 
 #[wasm_bindgen]
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct SpendingDataRedeemASD {
     public_ed25519: chain_crypto::PublicKey<Ed25519>,
 }
 
 to_from_bytes!(SpendingDataRedeemASD);
-// to_from_json!(SpendingDataRedeemASD);
+to_from_json!(SpendingDataRedeemASD);
 
 #[wasm_bindgen]
 

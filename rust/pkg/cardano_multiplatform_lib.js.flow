@@ -370,20 +370,6 @@ declare export var ScriptSchema: {|
 |};
 
 /**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
- */
-
-declare export var ScriptHashNamespace: {|
-  +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
-|};
-
-/**
  */
 
 declare export var StakeDistributionKind: {|
@@ -407,6 +393,20 @@ declare export var SpendingDataKind: {|
   +SpendingDataPubKeyASD: 0, // 0
   +SpendingDataScriptASD: 1, // 1
   +SpendingDataRedeemASD: 2, // 2
+|};
+
+/**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
+ */
+
+declare export var ScriptHashNamespace: {|
+  +NativeScript: 0, // 0
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
 |};
 
 /**
@@ -6760,6 +6760,22 @@ declare export class SpendingData {
   static from_bytes(bytes: Uint8Array): SpendingData;
 
   /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {SpendingDataJSON}
+   */
+  to_js_value(): SpendingDataJSON;
+
+  /**
+   * @param {string} json
+   * @returns {SpendingData}
+   */
+  static from_json(json: string): SpendingData;
+
+  /**
    * @param {Bip32PublicKey} public_ed25519_bip32
    * @returns {SpendingData}
    */
@@ -6816,6 +6832,22 @@ declare export class SpendingDataPubKeyASD {
   static from_bytes(bytes: Uint8Array): SpendingDataPubKeyASD;
 
   /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {SpendingDataPubKeyASDJSON}
+   */
+  to_js_value(): SpendingDataPubKeyASDJSON;
+
+  /**
+   * @param {string} json
+   * @returns {SpendingDataPubKeyASD}
+   */
+  static from_json(json: string): SpendingDataPubKeyASD;
+
+  /**
    * @returns {Bip32PublicKey}
    */
   public_ed25519_bip32(): Bip32PublicKey;
@@ -6841,6 +6873,22 @@ declare export class SpendingDataRedeemASD {
    * @returns {SpendingDataRedeemASD}
    */
   static from_bytes(bytes: Uint8Array): SpendingDataRedeemASD;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {SpendingDataRedeemASDJSON}
+   */
+  to_js_value(): SpendingDataRedeemASDJSON;
+
+  /**
+   * @param {string} json
+   * @returns {SpendingDataRedeemASD}
+   */
+  static from_json(json: string): SpendingDataRedeemASD;
 
   /**
    * @returns {PublicKey}
@@ -9521,7 +9569,7 @@ export interface BootstrapWitnessJSON {
   attributes: AddrAttributesJSON;
   chain_code: number[];
   signature: string;
-  vkey: VkeyJSON;
+  vkey: PublicKeyJSON;
 }
 export type BootstrapWitnessesJSON = BootstrapWitnessJSON[];
 export type ByronAddrTypeJSON = AddrTypeEnumJSON;
@@ -9615,7 +9663,7 @@ export interface HeaderBodyJSON {
   block_body_hash: string;
   block_body_size: number;
   block_number: number;
-  issuer_vkey: VkeyJSON;
+  issuer_vkey: PublicKeyJSON;
   leader_vrf?: VRFCertJSON | null;
   nonce_vrf?: VRFCertJSON | null;
   operational_cert: OperationalCertJSON;
@@ -9830,6 +9878,9 @@ export interface ProtocolVersionJSON {
   major: number;
   minor: number;
 }
+/**
+ * ED25519 key used as public key
+ */
 export type PublicKeyJSON = string;
 export interface RedeemerJSON {
   data: PlutusDataJSON;
@@ -9899,6 +9950,26 @@ export interface SingleHostNameJSON {
 }
 export interface SingleKeyDistrJSON {
   stakeholder_id: string;
+}
+export type SpendingDataJSON = SpendingDataEnumJSON;
+export type SpendingDataEnumJSON =
+  | {
+      SpendingDataPubKeyASDJSON: SpendingDataPubKeyASD,
+      ...
+    }
+  | {
+      SpendingDataScriptASDJSON: SpendingDataScriptASD,
+      ...
+    }
+  | {
+      SpendingDataRedeemASDJSON: SpendingDataRedeemASD,
+      ...
+    };
+export interface SpendingDataPubKeyASDJSON {
+  public_ed25519_bip32: string;
+}
+export interface SpendingDataRedeemASDJSON {
+  public_ed25519: string;
 }
 export interface SpendingDataScriptASDJSON {
   script: ByronScript;
@@ -10015,10 +10086,13 @@ export interface ValueJSON {
   coin: string;
   multiasset?: MultiAssetJSON | null;
 }
-export type VkeyJSON = string;
+export type VkeyJSON = PublicKeyJSON;
+/**
+ * ED25519 key used as public key
+ */
 export interface VkeywitnessJSON {
   signature: string;
-  vkey: VkeyJSON;
+  vkey: PublicKeyJSON;
 }
 export type VkeywitnessesJSON = VkeywitnessJSON[];
 export interface WithdrawalsJSON {

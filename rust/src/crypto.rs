@@ -134,6 +134,7 @@ impl Bip32PrivateKey {
 }
 
 #[wasm_bindgen]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct Bip32PublicKey(pub(crate) crypto::PublicKey<crypto::Ed25519Bip32>);
 
 #[wasm_bindgen]
@@ -283,7 +284,7 @@ impl PrivateKey {
 
 /// ED25519 key used as public key
 #[wasm_bindgen]
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct PublicKey(pub(crate) crypto::PublicKey<crypto::Ed25519>);
 
 impl From<crypto::PublicKey<crypto::Ed25519>> for PublicKey {
@@ -326,27 +327,6 @@ impl PublicKey {
     pub fn hash(&self) -> Ed25519KeyHash {
         Ed25519KeyHash::from(blake2b224(self.as_bytes().as_ref()))
     }
-}
-
-impl serde::Serialize for PublicKey {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
-        serializer.serialize_str(&self.to_bech32())
-    }
-}
-
-impl <'de> serde::de::Deserialize<'de> for PublicKey {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
-    D: serde::de::Deserializer<'de> {
-        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        PublicKey::from_bech32(&s).map_err(|_e| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"bech32 public key string"))
-    }
-}
-
-impl JsonSchema for PublicKey {
-    fn schema_name() -> String { String::from("PublicKey") }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
-    fn is_referenceable() -> bool { String::is_referenceable() }
 }
 
 #[wasm_bindgen]

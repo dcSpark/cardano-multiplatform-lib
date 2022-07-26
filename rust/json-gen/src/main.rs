@@ -130,7 +130,11 @@ fn main() {
     gen_json_schema!(ByronAddrType);
     gen_json_schema!(BootstrapEraDistr);
     gen_json_schema!(SingleKeyDistr);
+    gen_json_schema!(SpendingData);
     gen_json_schema!(SpendingDataScriptASD);
+    gen_json_schema!(SpendingDataPubKeyASD);
+    gen_json_schema!(SpendingDataRedeemASD);
+
 
     // plutus.rs
     gen_json_schema!(PlutusV1Script);

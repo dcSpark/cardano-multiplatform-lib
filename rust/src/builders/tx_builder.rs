@@ -3954,31 +3954,47 @@ mod tests {
             tx_builder.add_input(&input);
         }
 
+        tx_builder.add_output(
+            &TransactionOutputBuilder::new()
+                .with_address(&byron_address())
+                .next().unwrap()
+                .with_coin(&to_bignum(208))
+                .build().unwrap()
+        ).unwrap();
+
         let total_input_before_mint = tx_builder.get_total_input().unwrap();
+        let total_output_before_mint = tx_builder.get_total_output().unwrap();
 
         assert_eq!(total_input_before_mint.coin, to_bignum(300));
-        let ma1 = total_input_before_mint.multiasset.unwrap();
-        assert_eq!(ma1.get(&policy_id1).unwrap().get(&name).unwrap(), to_bignum(360));
-        assert_eq!(ma1.get(&policy_id2).unwrap().get(&name).unwrap(), to_bignum(360));
+        assert_eq!(total_output_before_mint.coin, to_bignum(208));
+        let ma1_input = total_input_before_mint.multiasset.unwrap();
+        let ma1_output = total_output_before_mint.multiasset;
+        assert_eq!(ma1_input.get(&policy_id1).unwrap().get(&name).unwrap(), to_bignum(360));
+        assert_eq!(ma1_input.get(&policy_id2).unwrap().get(&name).unwrap(), to_bignum(360));
+        assert!(ma1_output.is_none());
 
+        // Adding mint
         let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name, Int::new_i32(40)))
             .native_script(&mint_script1, &NativeScriptWitnessInfo::assume_signature_count())
             .unwrap();
-
         tx_builder.add_mint(&result);
 
+        // Adding burn
         let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name, Int::new_i32(-40)))
             .native_script(&mint_script2, &NativeScriptWitnessInfo::assume_signature_count())
             .unwrap();
-
         tx_builder.add_mint(&result);
 
         let total_input_after_mint = tx_builder.get_total_input().unwrap();
+        let total_output_after_mint = tx_builder.get_total_output().unwrap();
 
         assert_eq!(total_input_after_mint.coin, to_bignum(300));
-        let ma2 = total_input_after_mint.multiasset.unwrap();
-        assert_eq!(ma2.get(&policy_id1).unwrap().get(&name).unwrap(), to_bignum(400));
-        assert_eq!(ma2.get(&policy_id2).unwrap().get(&name).unwrap(), to_bignum(360));
+        assert_eq!(total_output_before_mint.coin, to_bignum(208));
+        let ma2_input = total_input_after_mint.multiasset.unwrap();
+        let ma2_output = total_output_after_mint.multiasset.unwrap();
+        assert_eq!(ma2_input.get(&policy_id1).unwrap().get(&name).unwrap(), to_bignum(400));
+        assert_eq!(ma2_input.get(&policy_id2).unwrap().get(&name).unwrap(), to_bignum(360));
+        assert_eq!(ma2_output.get(&policy_id2).unwrap().get(&name).unwrap(), to_bignum(40));
     }
 
 }

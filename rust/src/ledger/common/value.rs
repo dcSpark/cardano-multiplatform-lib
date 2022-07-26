@@ -12,7 +12,7 @@ use cbor_event::Type as CBORType;
 
 use crate::{to_from_bytes, error::{JsError, DeserializeError, DeserializeFailure}, to_from_json, MultiAsset, Assets};
 use cbor_event::{self, de::Deserializer, se::{Serialize, Serializer}};
-use super::binary::{write_bounded_bytes, read_bounded_bytes, Deserialize};
+use super::binary::*;
 
 // Generic u64 wrapper for platforms that don't support u64 or BigInt/etc
 // This is an unsigned type - no negative numbers.

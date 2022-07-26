@@ -5,7 +5,7 @@ use cbor_event::{
 };
 use std::io::{BufRead, Write};
 
-use crate::genesis::byron::config::ProtocolMagic;
+use crate::byron::ProtocolMagic;
 
 use super::{Ed25519Bip32, Signature, byron_tags};
 

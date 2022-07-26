@@ -1,5 +1,5 @@
 use std::{collections::{HashSet, HashMap, BTreeMap}, fmt::Debug};
-use crate::{*, ledger::{common::hash::{ScriptHashNamespace, hash_plutus_data}, byron::witness::make_icarus_bootstrap_witness}};
+use crate::{*, ledger::{common::hash::{ScriptHashNamespace, hash_plutus_data}, byron::witness::make_icarus_bootstrap_witness}, byron::{ByronAddress}};
 
 use super::{input_builder::InputBuilderResult, mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult, certificate_builder::CertificateBuilderResult};
 

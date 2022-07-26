@@ -26,24 +26,14 @@ declare export function decode_plutus_datum_to_json_str(
 ): string;
 
 /**
- * Receives a script JSON string
- * and returns a NativeScript.
- * Cardano Wallet and Node styles are supported.
- *
- * * wallet: https://github.com/input-output-hk/cardano-wallet/blob/master/specifications/api/swagger.yaml
- * * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
- *
- * self_xpub is expected to be a Bip32PublicKey as hex-encoded bytes
- * @param {string} json
- * @param {string} self_xpub
- * @param {number} schema
- * @returns {NativeScript}
+ * @param {TransactionOutput} output
+ * @param {BigNum} coins_per_utxo_byte
+ * @returns {BigNum}
  */
-declare export function encode_json_str_to_native_script(
-  json: string,
-  self_xpub: string,
-  schema: number
-): NativeScript;
+declare export function min_ada_required(
+  output: TransactionOutput,
+  coins_per_utxo_byte: BigNum
+): BigNum;
 
 /**
  * @param {Uint8Array} bytes
@@ -82,6 +72,26 @@ declare export function decode_metadatum_to_json_str(
 ): string;
 
 /**
+ * Receives a script JSON string
+ * and returns a NativeScript.
+ * Cardano Wallet and Node styles are supported.
+ *
+ * * wallet: https://github.com/input-output-hk/cardano-wallet/blob/master/specifications/api/swagger.yaml
+ * * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
+ *
+ * self_xpub is expected to be a Bip32PublicKey as hex-encoded bytes
+ * @param {string} json
+ * @param {string} self_xpub
+ * @param {number} schema
+ * @returns {NativeScript}
+ */
+declare export function encode_json_str_to_native_script(
+  json: string,
+  self_xpub: string,
+  schema: number
+): NativeScript;
+
+/**
  * @param {TransactionHash} tx_body_hash
  * @param {ByronAddress} addr
  * @param {LegacyDaedalusPrivateKey} key
@@ -104,30 +114,6 @@ declare export function make_icarus_bootstrap_witness(
   addr: ByronAddress,
   key: Bip32PrivateKey
 ): BootstrapWitness;
-
-/**
- * @param {string} password
- * @param {string} salt
- * @param {string} nonce
- * @param {string} data
- * @returns {string}
- */
-declare export function encrypt_with_password(
-  password: string,
-  salt: string,
-  nonce: string,
-  data: string
-): string;
-
-/**
- * @param {string} password
- * @param {string} data
- * @returns {string}
- */
-declare export function decrypt_with_password(
-  password: string,
-  data: string
-): string;
 
 /**
  * @param {AuxiliaryData} auxiliary_data
@@ -164,6 +150,30 @@ declare export function hash_script_data(
 ): ScriptDataHash;
 
 /**
+ * @param {string} password
+ * @param {string} salt
+ * @param {string} nonce
+ * @param {string} data
+ * @returns {string}
+ */
+declare export function encrypt_with_password(
+  password: string,
+  salt: string,
+  nonce: string,
+  data: string
+): string;
+
+/**
+ * @param {string} password
+ * @param {string} data
+ * @returns {string}
+ */
+declare export function decrypt_with_password(
+  password: string,
+  data: string
+): string;
+
+/**
  * @param {Transaction} tx
  * @param {LinearFee} linear_fee
  * @param {ExUnitPrices} ex_unit_prices
@@ -197,16 +207,6 @@ declare export function get_deposit(
   txbody: TransactionBody,
   pool_deposit: BigNum,
   key_deposit: BigNum
-): BigNum;
-
-/**
- * @param {TransactionOutput} output
- * @param {BigNum} coins_per_utxo_byte
- * @returns {BigNum}
- */
-declare export function min_ada_required(
-  output: TransactionOutput,
-  coins_per_utxo_byte: BigNum
 ): BigNum;
 
 /**
@@ -341,15 +341,6 @@ declare export var PlutusDatumSchema: {|
 |};
 
 /**
- * Used to choose the schema for a script JSON string
- */
-
-declare export var ScriptSchema: {|
-  +Wallet: 0, // 0
-  +Node: 1, // 1
-|};
-
-/**
  */
 
 declare export var TransactionMetadatumKind: {|
@@ -367,6 +358,55 @@ declare export var MetadataJsonSchema: {|
   +NoConversions: 0, // 0
   +BasicConversions: 1, // 1
   +DetailedSchema: 2, // 2
+|};
+
+/**
+ * Used to choose the schema for a script JSON string
+ */
+
+declare export var ScriptSchema: {|
+  +Wallet: 0, // 0
+  +Node: 1, // 1
+|};
+
+/**
+ */
+
+declare export var StakeDistributionKind: {|
+  +BootstrapEraDistr: 0, // 0
+  +SingleKeyDistr: 1, // 1
+|};
+
+/**
+ */
+
+declare export var AddrtypeKind: {|
+  +ATPubKey: 0, // 0
+  +ATScript: 1, // 1
+  +ATRedeem: 2, // 2
+|};
+
+/**
+ */
+
+declare export var SpendingDataKind: {|
+  +SpendingDataPubKeyASD: 0, // 0
+  +SpendingDataScriptASD: 1, // 1
+  +SpendingDataRedeemASD: 2, // 2
+|};
+
+/**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
+ */
+
+declare export var ScriptHashNamespace: {|
+  +NativeScript: 0, // 0
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
 |};
 
 /**
@@ -398,20 +438,6 @@ declare export var AddressHeaderKind: {|
 |};
 
 /**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
- */
-
-declare export var ScriptHashNamespace: {|
-  +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
-|};
-
-/**
  */
 
 declare export var CoinSelectionStrategyCIP2: {|
@@ -421,6 +447,95 @@ declare export var CoinSelectionStrategyCIP2: {|
   +RandomImproveMultiAsset: 3, // 3
 |};
 
+/**
+ */
+declare export class AddrAttributes {
+  free(): void;
+
+  /**
+   * @param {HDAddressPayload | void} hdap
+   * @param {ProtocolMagic | void} protocol_magic
+   * @returns {AddrAttributes}
+   */
+  static new_bootstrap_era(
+    hdap?: HDAddressPayload,
+    protocol_magic?: ProtocolMagic
+  ): AddrAttributes;
+
+  /**
+   * @param {Bip32PublicKey} pubk
+   * @param {HDAddressPayload | void} hdap
+   * @param {ProtocolMagic} protocol_magic
+   * @returns {AddrAttributes}
+   */
+  static new_single_key(
+    pubk: Bip32PublicKey,
+    hdap: HDAddressPayload | void,
+    protocol_magic: ProtocolMagic
+  ): AddrAttributes;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {AddrAttributes}
+   */
+  static from_bytes(bytes: Uint8Array): AddrAttributes;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {AddrAttributesJSON}
+   */
+  to_js_value(): AddrAttributesJSON;
+
+  /**
+   * @param {string} json
+   * @returns {AddrAttributes}
+   */
+  static from_json(json: string): AddrAttributes;
+
+  /**
+   * @param {StakeDistribution} stake_distribution
+   */
+  set_stake_distribution(stake_distribution: StakeDistribution): void;
+
+  /**
+   * @returns {StakeDistribution | void}
+   */
+  stake_distribution(): StakeDistribution | void;
+
+  /**
+   * @param {HDAddressPayload} derivation_path
+   */
+  set_derivation_path(derivation_path: HDAddressPayload): void;
+
+  /**
+   * @returns {HDAddressPayload | void}
+   */
+  derivation_path(): HDAddressPayload | void;
+
+  /**
+   * @param {ProtocolMagic} protocol_magic
+   */
+  set_protocol_magic(protocol_magic: ProtocolMagic): void;
+
+  /**
+   * @returns {ProtocolMagic | void}
+   */
+  protocol_magic(): ProtocolMagic | void;
+
+  /**
+   * @returns {AddrAttributes}
+   */
+  static new(): AddrAttributes;
+}
 /**
  */
 declare export class Address {
@@ -546,6 +661,182 @@ declare export class Address {
    * @returns {StakeCredential | void}
    */
   staking_cred(): StakeCredential | void;
+}
+/**
+ */
+declare export class AddressContent {
+  free(): void;
+
+  /**
+   * @param {ByronAddrType} addr_type
+   * @param {SpendingData} spending_data
+   * @param {AddrAttributes} attributes
+   * @returns {AddressContent}
+   */
+  static hash_and_create(
+    addr_type: ByronAddrType,
+    spending_data: SpendingData,
+    attributes: AddrAttributes
+  ): AddressContent;
+
+  /**
+   * @param {PublicKey} pubkey
+   * @param {ProtocolMagic | void} protocol_magic
+   * @returns {AddressContent}
+   */
+  static new_redeem(
+    pubkey: PublicKey,
+    protocol_magic?: ProtocolMagic
+  ): AddressContent;
+
+  /**
+   * @param {Bip32PublicKey} xpub
+   * @param {ProtocolMagic | void} protocol_magic
+   * @returns {AddressContent}
+   */
+  static new_simple(
+    xpub: Bip32PublicKey,
+    protocol_magic?: ProtocolMagic
+  ): AddressContent;
+
+  /**
+   * @returns {ByronAddress}
+   */
+  to_address(): ByronAddress;
+
+  /**
+   * returns the byron protocol magic embedded in the address, or mainnet id if none is present
+   * note: for bech32 addresses, you need to use network_id instead
+   * @returns {number}
+   */
+  byron_protocol_magic(): number;
+
+  /**
+   * @returns {number}
+   */
+  network_id(): number;
+
+  /**
+   * @param {Bip32PublicKey} key
+   * @param {number} protocol_magic
+   * @returns {AddressContent}
+   */
+  static icarus_from_key(
+    key: Bip32PublicKey,
+    protocol_magic: number
+  ): AddressContent;
+
+  /**
+   * Check if the Addr can be reconstructed with a specific xpub
+   * @param {Bip32PublicKey} xpub
+   * @returns {boolean}
+   */
+  identical_with_pubkey(xpub: Bip32PublicKey): boolean;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {AddressContent}
+   */
+  static from_bytes(bytes: Uint8Array): AddressContent;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {AddressContentJSON}
+   */
+  to_js_value(): AddressContentJSON;
+
+  /**
+   * @param {string} json
+   * @returns {AddressContent}
+   */
+  static from_json(json: string): AddressContent;
+
+  /**
+   * @returns {AddressId}
+   */
+  address_id(): AddressId;
+
+  /**
+   * @returns {AddrAttributes}
+   */
+  addr_attr(): AddrAttributes;
+
+  /**
+   * @returns {ByronAddrType}
+   */
+  addr_type(): ByronAddrType;
+
+  /**
+   * @param {AddressId} address_id
+   * @param {AddrAttributes} addr_attr
+   * @param {ByronAddrType} addr_type
+   * @returns {AddressContent}
+   */
+  static new(
+    address_id: AddressId,
+    addr_attr: AddrAttributes,
+    addr_type: ByronAddrType
+  ): AddressContent;
+}
+/**
+ */
+declare export class AddressId {
+  free(): void;
+
+  /**
+   * @param {ByronAddrType} addr_type
+   * @param {SpendingData} spending_data
+   * @param {AddrAttributes} attrs
+   * @returns {AddressId}
+   */
+  static new(
+    addr_type: ByronAddrType,
+    spending_data: SpendingData,
+    attrs: AddrAttributes
+  ): AddressId;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {AddressId}
+   */
+  static from_bytes(bytes: Uint8Array): AddressId;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {string} prefix
+   * @returns {string}
+   */
+  to_bech32(prefix: string): string;
+
+  /**
+   * @param {string} bech_str
+   * @returns {AddressId}
+   */
+  static from_bech32(bech_str: string): AddressId;
+
+  /**
+   * @returns {string}
+   */
+  to_hex(): string;
+
+  /**
+   * @param {string} hex
+   * @returns {AddressId}
+   */
+  static from_hex(hex: string): AddressId;
 }
 /**
  */
@@ -1327,6 +1618,43 @@ declare export class BlockHeaderHash {
 }
 /**
  */
+declare export class BootstrapEraDistr {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {BootstrapEraDistr}
+   */
+  static from_bytes(bytes: Uint8Array): BootstrapEraDistr;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {BootstrapEraDistrJSON}
+   */
+  to_js_value(): BootstrapEraDistrJSON;
+
+  /**
+   * @param {string} json
+   * @returns {BootstrapEraDistr}
+   */
+  static from_json(json: string): BootstrapEraDistr;
+
+  /**
+   * @returns {BootstrapEraDistr}
+   */
+  static new(): BootstrapEraDistr;
+}
+/**
+ */
 declare export class BootstrapWitness {
   free(): void;
 
@@ -1373,22 +1701,22 @@ declare export class BootstrapWitness {
   chain_code(): Uint8Array;
 
   /**
-   * @returns {Uint8Array}
+   * @returns {AddrAttributes}
    */
-  attributes(): Uint8Array;
+  attributes(): AddrAttributes;
 
   /**
    * @param {Vkey} vkey
    * @param {Ed25519Signature} signature
    * @param {Uint8Array} chain_code
-   * @param {Uint8Array} attributes
+   * @param {AddrAttributes} attributes
    * @returns {BootstrapWitness}
    */
   static new(
     vkey: Vkey,
     signature: Ed25519Signature,
     chain_code: Uint8Array,
-    attributes: Uint8Array
+    attributes: AddrAttributes
   ): BootstrapWitness;
 }
 /**
@@ -1419,6 +1747,58 @@ declare export class BootstrapWitnesses {
 }
 /**
  */
+declare export class ByronAddrType {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {ByronAddrType}
+   */
+  static from_bytes(bytes: Uint8Array): ByronAddrType;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {ByronAddrTypeJSON}
+   */
+  to_js_value(): ByronAddrTypeJSON;
+
+  /**
+   * @param {string} json
+   * @returns {ByronAddrType}
+   */
+  static from_json(json: string): ByronAddrType;
+
+  /**
+   * @returns {ByronAddrType}
+   */
+  static new_ATPubKey(): ByronAddrType;
+
+  /**
+   * @returns {ByronAddrType}
+   */
+  static new_ATScript(): ByronAddrType;
+
+  /**
+   * @returns {ByronAddrType}
+   */
+  static new_ATRedeem(): ByronAddrType;
+
+  /**
+   * @returns {number}
+   */
+  kind(): number;
+}
+/**
+ */
 declare export class ByronAddress {
   free(): void;
 
@@ -1428,48 +1808,15 @@ declare export class ByronAddress {
   to_base58(): string;
 
   /**
-   * @returns {Uint8Array}
-   */
-  to_bytes(): Uint8Array;
-
-  /**
-   * @param {Uint8Array} bytes
-   * @returns {ByronAddress}
-   */
-  static from_bytes(bytes: Uint8Array): ByronAddress;
-
-  /**
-   * returns the byron protocol magic embedded in the address, or mainnet id if none is present
-   * note: for bech32 addresses, you need to use network_id instead
-   * @returns {number}
-   */
-  byron_protocol_magic(): number;
-
-  /**
-   * @returns {Uint8Array}
-   */
-  attributes(): Uint8Array;
-
-  /**
-   * @returns {number}
-   */
-  network_id(): number;
-
-  /**
    * @param {string} s
    * @returns {ByronAddress}
    */
   static from_base58(s: string): ByronAddress;
 
   /**
-   * @param {Bip32PublicKey} key
-   * @param {number} protocol_magic
-   * @returns {ByronAddress}
+   * @returns {AddressContent}
    */
-  static icarus_from_key(
-    key: Bip32PublicKey,
-    protocol_magic: number
-  ): ByronAddress;
+  address_content(): AddressContent;
 
   /**
    * @param {string} s
@@ -1487,6 +1834,66 @@ declare export class ByronAddress {
    * @returns {ByronAddress | void}
    */
   static from_address(addr: Address): ByronAddress | void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {ByronAddress}
+   */
+  static from_bytes(bytes: Uint8Array): ByronAddress;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {ByronAddressJSON}
+   */
+  to_js_value(): ByronAddressJSON;
+
+  /**
+   * @param {string} json
+   * @returns {ByronAddress}
+   */
+  static from_json(json: string): ByronAddress;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  addr(): Uint8Array;
+
+  /**
+   * @returns {BigInt}
+   */
+  crc32(): BigInt;
+
+  /**
+   * @param {Uint8Array} addr
+   * @param {BigInt} crc32
+   * @returns {ByronAddress}
+   */
+  static new(addr: Uint8Array, crc32: BigInt): ByronAddress;
+}
+/**
+ */
+declare export class ByronScript {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {ByronScript}
+   */
+  static from_bytes(bytes: Uint8Array): ByronScript;
 }
 /**
  */
@@ -2417,6 +2824,22 @@ declare export class GenesisKeyDelegation {
     genesis_delegate_hash: GenesisDelegateHash,
     vrf_keyhash: VRFKeyHash
   ): GenesisKeyDelegation;
+}
+/**
+ */
+declare export class HDAddressPayload {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {HDAddressPayload}
+   */
+  static from_bytes(bytes: Uint8Array): HDAddressPayload;
 }
 /**
  */
@@ -4711,6 +5134,22 @@ declare export class ProposedProtocolParameterUpdates {
 }
 /**
  */
+declare export class ProtocolMagic {
+  free(): void;
+
+  /**
+   * @param {number} val
+   * @returns {ProtocolMagic}
+   */
+  static new(val: number): ProtocolMagic;
+
+  /**
+   * @returns {number}
+   */
+  value(): number;
+}
+/**
+ */
 declare export class ProtocolParamUpdate {
   free(): void;
 
@@ -6183,6 +6622,49 @@ declare export class SingleInputBuilder {
 }
 /**
  */
+declare export class SingleKeyDistr {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {SingleKeyDistr}
+   */
+  static from_bytes(bytes: Uint8Array): SingleKeyDistr;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {SingleKeyDistrJSON}
+   */
+  to_js_value(): SingleKeyDistrJSON;
+
+  /**
+   * @param {string} json
+   * @returns {SingleKeyDistr}
+   */
+  static from_json(json: string): SingleKeyDistr;
+
+  /**
+   * @returns {StakeholderId}
+   */
+  stakeholder_id(): StakeholderId;
+
+  /**
+   * @param {StakeholderId} stakeholder_id
+   * @returns {SingleKeyDistr}
+   */
+  static new(stakeholder_id: StakeholderId): SingleKeyDistr;
+}
+/**
+ */
 declare export class SingleMintBuilder {
   free(): void;
 
@@ -6260,6 +6742,207 @@ declare export class SingleWithdrawalBuilder {
     partial_witness: PartialPlutusWitness,
     witness_info: PlutusScriptWitnessInfo
   ): WithdrawalBuilderResult;
+}
+/**
+ */
+declare export class SpendingData {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {SpendingData}
+   */
+  static from_bytes(bytes: Uint8Array): SpendingData;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {SpendingDataJSON}
+   */
+  to_js_value(): SpendingDataJSON;
+
+  /**
+   * @param {string} json
+   * @returns {SpendingData}
+   */
+  static from_json(json: string): SpendingData;
+
+  /**
+   * @param {Bip32PublicKey} public_ed25519_bip32
+   * @returns {SpendingData}
+   */
+  static new_spending_data_pub_key(
+    public_ed25519_bip32: Bip32PublicKey
+  ): SpendingData;
+
+  /**
+   * @param {ByronScript} script
+   * @returns {SpendingData}
+   */
+  static new_spending_data_script(script: ByronScript): SpendingData;
+
+  /**
+   * @param {PublicKey} public_ed25519
+   * @returns {SpendingData}
+   */
+  static new_spending_data_redeem(public_ed25519: PublicKey): SpendingData;
+
+  /**
+   * @returns {number}
+   */
+  kind(): number;
+
+  /**
+   * @returns {SpendingDataPubKeyASD | void}
+   */
+  as_spending_data_pub_key(): SpendingDataPubKeyASD | void;
+
+  /**
+   * @returns {SpendingDataScriptASD | void}
+   */
+  as_spending_data_script(): SpendingDataScriptASD | void;
+
+  /**
+   * @returns {SpendingDataRedeemASD | void}
+   */
+  as_spending_data_redeem(): SpendingDataRedeemASD | void;
+}
+/**
+ */
+declare export class SpendingDataPubKeyASD {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {SpendingDataPubKeyASD}
+   */
+  static from_bytes(bytes: Uint8Array): SpendingDataPubKeyASD;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {SpendingDataPubKeyASDJSON}
+   */
+  to_js_value(): SpendingDataPubKeyASDJSON;
+
+  /**
+   * @param {string} json
+   * @returns {SpendingDataPubKeyASD}
+   */
+  static from_json(json: string): SpendingDataPubKeyASD;
+
+  /**
+   * @returns {Bip32PublicKey}
+   */
+  public_ed25519_bip32(): Bip32PublicKey;
+
+  /**
+   * @param {Bip32PublicKey} public_ed25519_bip32
+   * @returns {SpendingDataPubKeyASD}
+   */
+  static new(public_ed25519_bip32: Bip32PublicKey): SpendingDataPubKeyASD;
+}
+/**
+ */
+declare export class SpendingDataRedeemASD {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {SpendingDataRedeemASD}
+   */
+  static from_bytes(bytes: Uint8Array): SpendingDataRedeemASD;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {SpendingDataRedeemASDJSON}
+   */
+  to_js_value(): SpendingDataRedeemASDJSON;
+
+  /**
+   * @param {string} json
+   * @returns {SpendingDataRedeemASD}
+   */
+  static from_json(json: string): SpendingDataRedeemASD;
+
+  /**
+   * @returns {PublicKey}
+   */
+  public_ed25519(): PublicKey;
+
+  /**
+   * @param {PublicKey} public_ed25519
+   * @returns {SpendingDataRedeemASD}
+   */
+  static new(public_ed25519: PublicKey): SpendingDataRedeemASD;
+}
+/**
+ */
+declare export class SpendingDataScriptASD {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {SpendingDataScriptASD}
+   */
+  static from_bytes(bytes: Uint8Array): SpendingDataScriptASD;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {SpendingDataScriptASDJSON}
+   */
+  to_js_value(): SpendingDataScriptASDJSON;
+
+  /**
+   * @param {string} json
+   * @returns {SpendingDataScriptASD}
+   */
+  static from_json(json: string): SpendingDataScriptASD;
+
+  /**
+   * @returns {ByronScript}
+   */
+  script(): ByronScript;
+
+  /**
+   * @param {ByronScript} script
+   * @returns {SpendingDataScriptASD}
+   */
+  static new(script: ByronScript): SpendingDataScriptASD;
 }
 /**
  */
@@ -6470,6 +7153,70 @@ declare export class StakeDeregistration {
 }
 /**
  */
+declare export class StakeDistribution {
+  free(): void;
+
+  /**
+   * @param {Bip32PublicKey} pubk
+   * @returns {StakeDistribution}
+   */
+  static new_single_key(pubk: Bip32PublicKey): StakeDistribution;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {StakeDistribution}
+   */
+  static from_bytes(bytes: Uint8Array): StakeDistribution;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {StakeDistributionJSON}
+   */
+  to_js_value(): StakeDistributionJSON;
+
+  /**
+   * @param {string} json
+   * @returns {StakeDistribution}
+   */
+  static from_json(json: string): StakeDistribution;
+
+  /**
+   * @returns {StakeDistribution}
+   */
+  static new_bootstrap_era_distr(): StakeDistribution;
+
+  /**
+   * @param {StakeholderId} stakeholder_id
+   * @returns {StakeDistribution}
+   */
+  static new_single_key_distr(stakeholder_id: StakeholderId): StakeDistribution;
+
+  /**
+   * @returns {number}
+   */
+  kind(): number;
+
+  /**
+   * @returns {BootstrapEraDistr | void}
+   */
+  as_bootstrap_era_distr(): BootstrapEraDistr | void;
+
+  /**
+   * @returns {SingleKeyDistr | void}
+   */
+  as_single_key_distr(): SingleKeyDistr | void;
+}
+/**
+ */
 declare export class StakeRegistration {
   free(): void;
 
@@ -6510,6 +7257,51 @@ declare export class StakeRegistration {
    * @returns {StakeRegistration}
    */
   static new(stake_credential: StakeCredential): StakeRegistration;
+}
+/**
+ */
+declare export class StakeholderId {
+  free(): void;
+
+  /**
+   * @param {Bip32PublicKey} pubk
+   * @returns {StakeholderId}
+   */
+  static new(pubk: Bip32PublicKey): StakeholderId;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {StakeholderId}
+   */
+  static from_bytes(bytes: Uint8Array): StakeholderId;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {string} prefix
+   * @returns {string}
+   */
+  to_bech32(prefix: string): string;
+
+  /**
+   * @param {string} bech_str
+   * @returns {StakeholderId}
+   */
+  static from_bech32(bech_str: string): StakeholderId;
+
+  /**
+   * @returns {string}
+   */
+  to_hex(): string;
+
+  /**
+   * @param {string} hex
+   * @returns {StakeholderId}
+   */
+  static from_hex(hex: string): StakeholderId;
 }
 /**
  */
@@ -8728,7 +9520,17 @@ declare export class Withdrawals {
    */
   keys(): RewardAddresses;
 }
+export interface AddrAttributesJSON {
+  derivation_path?: HDAddressPayload | null;
+  protocol_magic?: ProtocolMagic | null;
+  stake_distribution?: StakeDistributionJSON | null;
+}
 export type AddressJSON = string;
+export interface AddressContentJSON {
+  addr_attr: AddrAttributesJSON;
+  addr_type: AddrTypeEnumJSON;
+  address_id: string;
+}
 export type AssetNameJSON = string;
 export type AssetNamesJSON = string[];
 export interface AssetsJSON {
@@ -8762,13 +9564,20 @@ export interface BlockJSON {
 export type BlockBodyHashJSON = string;
 export type BlockHashJSON = string;
 export type BlockHeaderHashJSON = string;
+export interface BootstrapEraDistrJSON {}
 export interface BootstrapWitnessJSON {
-  attributes: number[];
+  attributes: AddrAttributesJSON;
   chain_code: number[];
   signature: string;
-  vkey: VkeyJSON;
+  vkey: PublicKeyJSON;
 }
 export type BootstrapWitnessesJSON = BootstrapWitnessJSON[];
+export type ByronAddrTypeJSON = AddrTypeEnumJSON;
+export type AddrTypeEnumJSON = "ATPubKey" | "ATScript" | "ATRedeem";
+export interface ByronAddressJSON {
+  addr: number[];
+  crc32: number;
+}
 export type CertificateJSON = CertificateEnumJSON;
 export type CertificateEnumJSON =
   | {
@@ -8854,7 +9663,7 @@ export interface HeaderBodyJSON {
   block_body_hash: string;
   block_body_size: number;
   block_number: number;
-  issuer_vkey: VkeyJSON;
+  issuer_vkey: PublicKeyJSON;
   leader_vrf?: VRFCertJSON | null;
   nonce_vrf?: VRFCertJSON | null;
   operational_cert: OperationalCertJSON;
@@ -9069,6 +9878,9 @@ export interface ProtocolVersionJSON {
   major: number;
   minor: number;
 }
+/**
+ * ED25519 key used as public key
+ */
 export type PublicKeyJSON = string;
 export interface RedeemerJSON {
   data: PlutusDataJSON;
@@ -9136,6 +9948,32 @@ export interface SingleHostNameJSON {
   dns_name: DNSRecordAorAAAAJSON;
   port?: number | null;
 }
+export interface SingleKeyDistrJSON {
+  stakeholder_id: string;
+}
+export type SpendingDataJSON = SpendingDataEnumJSON;
+export type SpendingDataEnumJSON =
+  | {
+      SpendingDataPubKeyASDJSON: SpendingDataPubKeyASD,
+      ...
+    }
+  | {
+      SpendingDataScriptASDJSON: SpendingDataScriptASD,
+      ...
+    }
+  | {
+      SpendingDataRedeemASDJSON: SpendingDataRedeemASD,
+      ...
+    };
+export interface SpendingDataPubKeyASDJSON {
+  public_ed25519_bip32: string;
+}
+export interface SpendingDataRedeemASDJSON {
+  public_ed25519: string;
+}
+export interface SpendingDataScriptASDJSON {
+  script: ByronScript;
+}
 export type StakeCredTypeJSON =
   | {
       Key: string,
@@ -9154,6 +9992,16 @@ export interface StakeDelegationJSON {
 export interface StakeDeregistrationJSON {
   stake_credential: StakeCredTypeJSON;
 }
+export type StakeDistributionJSON = StakeDistributionEnumJSON;
+export type StakeDistributionEnumJSON =
+  | {
+      BootstrapEraDistrJSON: BootstrapEraDistr,
+      ...
+    }
+  | {
+      SingleKeyDistrJSON: SingleKeyDistr,
+      ...
+    };
 export interface StakeRegistrationJSON {
   stake_credential: StakeCredTypeJSON;
 }
@@ -9238,10 +10086,13 @@ export interface ValueJSON {
   coin: string;
   multiasset?: MultiAssetJSON | null;
 }
-export type VkeyJSON = string;
+export type VkeyJSON = PublicKeyJSON;
+/**
+ * ED25519 key used as public key
+ */
 export interface VkeywitnessJSON {
   signature: string;
-  vkey: VkeyJSON;
+  vkey: PublicKeyJSON;
 }
 export type VkeywitnessesJSON = VkeywitnessJSON[];
 export interface WithdrawalsJSON {

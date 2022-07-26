@@ -4,7 +4,7 @@ use noop_proc_macro::wasm_bindgen;
 #[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
 use wasm_bindgen::prelude::*;
 
-use crate::{crypto::{TransactionHash, LegacyDaedalusPrivateKey, BootstrapWitness, Bip32PublicKey, Vkey, Bip32PrivateKey, Ed25519Signature}, address::ByronAddress};
+use crate::{crypto::{TransactionHash, LegacyDaedalusPrivateKey, BootstrapWitness, Bip32PublicKey, Vkey, Bip32PrivateKey, Ed25519Signature}, byron::ByronAddress};
 
 #[wasm_bindgen]
 pub fn make_daedalus_bootstrap_witness(
@@ -22,7 +22,7 @@ pub fn make_daedalus_bootstrap_witness(
         &vkey,
         &signature,
         chain_code,
-        addr.attributes(),
+        &addr.address_content().addr_attr(),
     )
 }
 
@@ -42,6 +42,6 @@ pub fn make_icarus_bootstrap_witness(
         &vkey,
         &signature,
         chain_code,
-        addr.attributes(),
+        &addr.address_content().addr_attr(),
     )
 }

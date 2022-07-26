@@ -5,14 +5,13 @@ use std::io::Read;
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 
+use crate::byron::{ProtocolMagic, StakeholderId, ByronAddress, AddressContent};
 use crate::chain_crypto::byron_proxy_key::ProxySecretKey;
 use crate::chain_crypto::{Ed25519, self, Ed25519Bip32, Signature, Blake2b256};
-use crate::crypto::{BlockHeaderHash, blake2b256, TransactionHash};
+use crate::crypto::{BlockHeaderHash, blake2b256, TransactionHash, self, Bip32PublicKey};
 use crate::ledger::alonzo::fees::LinearFee;
 use crate::ledger::common::value::{Coin, BigNum};
-use crate::legacy_address::{StakeholderId, ExtendedAddr};
 
-use super::config::ProtocolMagic;
 use super::{raw, config};
 
 pub fn parse<R: Read>(json: R) -> config::GenesisData {
@@ -24,7 +23,7 @@ pub fn parse<R: Read>(json: R) -> config::GenesisData {
     ).unwrap();
     let data: raw::GenesisData = serde_json::from_value(data_value.clone()).unwrap();
 
-    let protocol_magic = config::ProtocolMagic::from(data.protocolConsts.protocolMagic);
+    let protocol_magic = ProtocolMagic::from(data.protocolConsts.protocolMagic);
 
     let parse_fee_constant = |s: &str| -> BigNum {
         let n = s.parse::<u64>().unwrap();
@@ -53,7 +52,7 @@ pub fn parse<R: Read>(json: R) -> config::GenesisData {
     let mut non_avvm_balances = BTreeMap::new();
     for (address, balance) in &data.nonAvvmBalances {
         non_avvm_balances.insert(
-            ExtendedAddr::from_str(address).unwrap().into(),
+            ByronAddress::from_str(address).unwrap(),
             Coin::from(balance.parse::<u64>().unwrap()),
         );
     }
@@ -63,7 +62,7 @@ pub fn parse<R: Read>(json: R) -> config::GenesisData {
     for (stakeholder_id, weight) in &data.bootStakeholders {
         let heavy = data.heavyDelegation.get(stakeholder_id).unwrap();
 
-        let stakeholder_id = StakeholderId::from_str(stakeholder_id).unwrap();
+        let stakeholder_id = StakeholderId::from_hex(stakeholder_id).unwrap();
 
         let psk = ProxySecretKey {
             omega: 0,
@@ -75,7 +74,7 @@ pub fn parse<R: Read>(json: R) -> config::GenesisData {
         };
 
         // Check that the stakeholder ID corresponds to the issuer public key.
-        assert_eq!(stakeholder_id, StakeholderId::new(&psk.issuer_pk));
+        assert_eq!(stakeholder_id, StakeholderId::new(&Bip32PublicKey(psk.issuer_pk.clone())));
 
         // Check that the certificate is correct.
         assert!(psk.verify(protocol_magic));
@@ -115,8 +114,8 @@ pub fn canonicalize_json<R: Read>(json: R) -> String {
 pub fn redeem_pubkey_to_txid(
     pubkey: &chain_crypto::PublicKey<Ed25519>,
     protocol_magic: Option<ProtocolMagic>,
-) -> (TransactionHash, ExtendedAddr /* todo: change to ByronAddress */) {
-    let address = ExtendedAddr::new_redeem(pubkey, protocol_magic);
+) -> (TransactionHash, AddressContent) {
+    let address = AddressContent::new_redeem(&crypto::PublicKey(pubkey.clone()), protocol_magic);
     let txid = Blake2b256::new(&cbor!(&address).unwrap());
     (TransactionHash(*txid.as_hash_bytes()), address)
 }

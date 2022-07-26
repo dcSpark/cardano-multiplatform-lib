@@ -1,4 +1,5 @@
 use cbor_event::{de::Deserializer, se::Serializer};
+use crate::byron::AddrAttributes;
 use crate::impl_mockchain as chain;
 use crate::chain_crypto as crypto;
 use crate::ledger::common::binary::Deserialize;
@@ -133,6 +134,7 @@ impl Bip32PrivateKey {
 }
 
 #[wasm_bindgen]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct Bip32PublicKey(pub(crate) crypto::PublicKey<crypto::Ed25519Bip32>);
 
 #[wasm_bindgen]
@@ -282,8 +284,8 @@ impl PrivateKey {
 
 /// ED25519 key used as public key
 #[wasm_bindgen]
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct PublicKey(crypto::PublicKey<crypto::Ed25519>);
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, JsonSchema)]
+pub struct PublicKey(pub(crate) crypto::PublicKey<crypto::Ed25519>);
 
 impl From<crypto::PublicKey<crypto::Ed25519>> for PublicKey {
     fn from(key: crypto::PublicKey<crypto::Ed25519>) -> PublicKey {
@@ -325,27 +327,6 @@ impl PublicKey {
     pub fn hash(&self) -> Ed25519KeyHash {
         Ed25519KeyHash::from(blake2b224(self.as_bytes().as_ref()))
     }
-}
-
-impl serde::Serialize for PublicKey {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
-        serializer.serialize_str(&self.to_bech32())
-    }
-}
-
-impl <'de> serde::de::Deserialize<'de> for PublicKey {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
-    D: serde::de::Deserializer<'de> {
-        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        PublicKey::from_bech32(&s).map_err(|_e| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"bech32 public key string"))
-    }
-}
-
-impl JsonSchema for PublicKey {
-    fn schema_name() -> String { String::from("PublicKey") }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
-    fn is_referenceable() -> bool { String::is_referenceable() }
 }
 
 #[wasm_bindgen]
@@ -548,7 +529,7 @@ pub struct BootstrapWitness {
     vkey: Vkey,
     signature: Ed25519Signature,
     chain_code: Vec<u8>,
-    attributes: Vec<u8>,
+    attributes: AddrAttributes,
 }
 
 to_from_bytes!(BootstrapWitness);
@@ -569,16 +550,16 @@ impl BootstrapWitness {
         self.chain_code.clone()
     }
 
-    pub fn attributes(&self) -> Vec<u8> {
+    pub fn attributes(&self) -> AddrAttributes {
         self.attributes.clone()
     }
 
-    pub fn new(vkey: &Vkey, signature: &Ed25519Signature, chain_code: Vec<u8>, attributes: Vec<u8>) -> Self {
+    pub fn new(vkey: &Vkey, signature: &Ed25519Signature, chain_code: Vec<u8>, attributes: &AddrAttributes) -> Self {
         Self {
             vkey: vkey.clone(),
             signature: signature.clone(),
             chain_code: chain_code,
-            attributes: attributes,
+            attributes: attributes.clone(),
         }
     }
 }
@@ -589,7 +570,7 @@ impl cbor_event::se::Serialize for BootstrapWitness {
         self.vkey.serialize(serializer)?;
         self.signature.serialize(serializer)?;
         serializer.write_bytes(&self.chain_code)?;
-        serializer.write_bytes(&self.attributes)?;
+        self.attributes.serialize(serializer)?;
         Ok(serializer)
     }
 }
@@ -623,7 +604,7 @@ impl DeserializeEmbeddedGroup for BootstrapWitness {
             Ok(raw.bytes()?)
         })().map_err(|e| e.annotate("chain_code"))?;
         let attributes = (|| -> Result<_, DeserializeError> {
-            Ok(raw.bytes()?)
+            Ok(AddrAttributes::deserialize(raw)?)
         })().map_err(|e| e.annotate("attributes"))?;
         Ok(BootstrapWitness {
             vkey,
@@ -891,6 +872,7 @@ macro_rules! impl_hash_type {
         }
     }
 }
+pub(crate) use impl_hash_type;
 
 
 #[wasm_bindgen]

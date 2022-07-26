@@ -1,4 +1,4 @@
-use super::byron::config::ProtocolMagic;
+use crate::byron::ProtocolMagic;
 
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NetworkInfo {

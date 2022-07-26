@@ -17,7 +17,7 @@ extern crate hex;
 use std::convert::TryInto;
 use std::io::{BufRead, Seek, Write};
 
-use crate::ledger::common::binary::Deserialize;
+use crate::ledger::common::binary::*;
 use ledger::common::hash::{ScriptHashNamespace, hash_script};
 use ledger::common::value::{BigNum, Int, Coin, Value};
 #[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
@@ -45,7 +45,6 @@ pub mod crypto;
 pub mod error;
 pub mod genesis;
 pub mod impl_mockchain;
-pub mod legacy_address;
 pub mod metadata;
 pub mod plutus;
 pub mod serialization;
@@ -53,6 +52,7 @@ pub mod builders;
 pub mod typed_bytes;
 pub mod emip3;
 pub mod ledger;
+pub mod byron;
 
 use address::*;
 use crypto::*;

@@ -155,7 +155,7 @@ type Crc32 = u64;
 
 #[wasm_bindgen]
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Eq, Ord, Hash, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct ByronAddress {
     addr: Vec<u8>,
     crc32: Crc32,

@@ -16,13 +16,14 @@ use super::withdrawal_builder::WithdrawalBuilderResult;
 use super::witness_builder::RedeemerSetBuilder;
 use super::witness_builder::RequiredWitnessSet;
 use super::witness_builder::TransactionWitnessSetBuilder;
+use super::witness_builder::merge_fake_witness;
 use std::collections::{BTreeMap, BTreeSet};
 use rand::Rng;
 
 #[derive(Clone, Default, Debug)]
 struct WitnessBuilders {
     pub(crate) witness_set_builder: TransactionWitnessSetBuilder,
-    pub(crate) fake_witness_set_builder: TransactionWitnessSetBuilder,
+    pub(crate) fake_required_witnesses: RequiredWitnessSet,
     pub(crate) redeemer_set_builder: RedeemerSetBuilder,
 }
 impl WitnessBuilders {
@@ -33,7 +34,9 @@ impl WitnessBuilders {
         witness_set_clone.add_redeemers(&redeemers);
 
         if include_fake {
-            witness_set_clone.add_existing(&self.fake_witness_set_builder.build());
+            merge_fake_witness(&mut witness_set_clone, &self.fake_required_witnesses);
+            let own_requirements = witness_set_clone.required_wits.clone();
+            merge_fake_witness(&mut witness_set_clone, &own_requirements);
         }
 
         witness_set_clone
@@ -360,8 +363,8 @@ impl TransactionBuilder {
                     let i = *available_indices.iter().nth(rng.gen_range(0..available_indices.len())).unwrap();
                     available_indices.remove(&i);
                     let input = &available_inputs[i];
-                    let input_fee = self.fee_for_input(&input)?;
-                    self.add_input(&input);
+                    let input_fee = self.fee_for_input(input)?;
+                    self.add_input(input);
                     input_total = input_total.checked_add(&input.utxo_info.amount)?;
                     output_total = output_total.checked_add(&Value::new(&input_fee))?;
                 }
@@ -515,7 +518,7 @@ impl TransactionBuilder {
         });
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
         }
         self.witness_builders.redeemer_set_builder.add_spend(result);
         self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
@@ -606,7 +609,7 @@ impl TransactionBuilder {
         self.certs = Some(certs);
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
         }
         self.witness_builders.redeemer_set_builder.add_cert(result);
         self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
@@ -622,7 +625,7 @@ impl TransactionBuilder {
         self.withdrawals = Some(withdrawals);
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
         }
         self.witness_builders.redeemer_set_builder.add_reward(result);
         self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
@@ -692,7 +695,7 @@ impl TransactionBuilder {
         self.mint = Some(mint);
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
         }
         self.witness_builders.redeemer_set_builder.add_mint(result);
         self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
@@ -754,7 +757,7 @@ impl TransactionBuilder {
         
         if let Some(ref data) = result.aggregate_witness {
             self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_witness_set_builder.add_input_aggregate_fake_witness_data(data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
         }
         self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
 
@@ -1634,7 +1637,7 @@ mod tests {
             let address = &EnterpriseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred).to_address();
             SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&address, &Value::new(&to_bignum(1_000_000)))
+                &TransactionOutput::new(address, &Value::new(&to_bignum(1_000_000)))
             ).payment_key().unwrap()
         };
         assert_eq!(tx_builder.fee_for_input(&input).unwrap().to_str(), "69500");
@@ -1644,7 +1647,7 @@ mod tests {
             let address = &BaseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &stake_cred).to_address();
             SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&address, &Value::new(&to_bignum(1_000_000)))
+                &TransactionOutput::new(address, &Value::new(&to_bignum(1_000_000)))
             ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
@@ -1657,7 +1660,7 @@ mod tests {
             ).to_address();
             SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&address, &Value::new(&to_bignum(1_000_000)))
+                &TransactionOutput::new(address, &Value::new(&to_bignum(1_000_000)))
             ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);
@@ -1666,7 +1669,7 @@ mod tests {
             let address = &AddressContent::icarus_from_key(&spend, NetworkInfo::testnet().protocol_magic()).to_address().to_address();
             SingleInputBuilder::new(
                 &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&address, &Value::new(&to_bignum(1_000_000)))
+                &TransactionOutput::new(address, &Value::new(&to_bignum(1_000_000)))
             ).payment_key().unwrap()
         };
         tx_builder.add_input(&input);

@@ -1,5 +1,6 @@
 use cbor_event::{de::Deserializer, se::Serializer};
 use crate::byron::AddrAttributes;
+use crate::byron::AddressContent;
 use crate::chain_crypto::derive::combine_pk_and_chaincode;
 use crate::impl_mockchain as chain;
 use crate::chain_crypto as crypto;
@@ -560,7 +561,7 @@ impl BootstrapWitness {
         Self {
             vkey: vkey.clone(),
             signature: signature.clone(),
-            chain_code: chain_code,
+            chain_code,
             attributes: attributes.clone(),
         }
     }
@@ -571,9 +572,8 @@ impl BootstrapWitness {
             .map_err(|_| JsError::from_str("Invalid public key or byte code"))
     }
 
-    pub fn to_address(&self) -> Result<ByronAddress, JsError> {
-        ExtendedAddr::try_from(self.clone())
-            .map(ByronAddress)
+    pub fn to_address(&self) -> Result<AddressContent, JsError> {
+        AddressContent::try_from(self.clone())
             .map_err(|_| JsError::from_str("Invalid public key or byte code"))
     }
 }
@@ -586,13 +586,14 @@ impl TryFrom<BootstrapWitness> for crypto::PublicKey<crypto::ed25519_derive::Ed2
     }
 }
 
-impl TryFrom<BootstrapWitness> for ExtendedAddr {
+impl TryFrom<BootstrapWitness> for AddressContent {
     type Error = ed25519_bip32::PublicKeyError;
 
     fn try_from(wit: BootstrapWitness) -> Result<Self, Self::Error> {
+        let protocol_magic = wit.attributes.protocol_magic();
         let key = crypto::PublicKey::<crypto::ed25519_derive::Ed25519Bip32>::try_from(wit)?;
-        let extended_addr = ExtendedAddr::new_simple(&key, wit.attributes.0.protocol_magic);
-        Ok(extended_addr)
+        let address_content = AddressContent::new_simple(&Bip32PublicKey(key), protocol_magic);
+        Ok(address_content)
     }
 }
 

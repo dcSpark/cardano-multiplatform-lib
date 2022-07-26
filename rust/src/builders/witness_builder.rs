@@ -1,5 +1,5 @@
 use std::{collections::{HashSet, HashMap, BTreeMap}, fmt::Debug};
-use crate::{*, ledger::{common::hash::{ScriptHashNamespace, hash_plutus_data}, byron::witness::make_icarus_bootstrap_witness}, byron::{ByronAddress}};
+use crate::{*, ledger::{common::hash::{ScriptHashNamespace, hash_plutus_data}, byron::witness::make_icarus_bootstrap_witness}, byron::{ByronAddress, ProtocolMagic, AddressContent, AddressId}};
 
 use super::{input_builder::InputBuilderResult, mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult, certificate_builder::CertificateBuilderResult};
 
@@ -114,8 +114,9 @@ pub struct RequiredWitnessSet {
     // but cryptographically these should be equivalent and Ed25519KeyHash is more flexible
     pub(crate) vkeys: HashSet<Ed25519KeyHash>,
     // note: the real key type for these is Vkey
-    // but cryptographically these should be equivalent and HashedSpendingData can be determined just from an address
-    pub(crate) bootstraps: HashSet<HashedSpendingData>,
+    // but cryptographically these should be equivalent as ByronAddress contains an AddressId
+    // which is the hash of data that includes the public key
+    pub(crate) bootstraps: HashSet<ByronAddress>,
     // note: no way to differentiate Plutus script from native script
     pub(crate) scripts: HashSet<ScriptHash>,
     pub(crate) plutus_data: HashSet<DataHash>,
@@ -134,14 +135,8 @@ impl RequiredWitnessSet {
         self.vkeys.insert(hash.clone());
     }
 
-    pub fn add_bootstrap(&mut self, bootstrap: &BootstrapWitness, protocol_magic: Option<ProtocolMagic>) -> Result<(), JsError> {
-        let pub_key = bootstrap.to_public_key()?;
-        let extended_addr = ExtendedAddr::new_simple(&pub_key.0, protocol_magic);
-        self.bootstraps.insert(extended_addr.addr);
-        Ok(())
-    }
-    pub fn add_bootstrap_address(&mut self, address: &ByronAddress) {
-        self.bootstraps.insert(address.0.addr);
+    pub fn add_bootstrap(&mut self, address: &ByronAddress) {
+        self.bootstraps.insert(address.clone());
     }
 
     pub fn add_native_script(&mut self, native_script: &NativeScript) {
@@ -179,7 +174,7 @@ impl RequiredWitnessSet {
 
     pub (crate) fn to_str(&self) -> String {
         let vkeys = self.vkeys.iter().map(|key| format!("Vkey:{}", hex::encode(key.to_bytes()))).collect::<Vec<String>>().join(",");
-        let bootstraps = self.bootstraps.iter().map(|data| format!("Legacy Bootstraps:{}", hex::encode(data.as_hash_bytes()))).collect::<Vec<String>>().join(",");
+        let bootstraps = self.bootstraps.iter().map(|data| format!("Legacy Bootstraps addresses:{}", data.to_base58())).collect::<Vec<String>>().join(",");
         let scripts = self.scripts.iter().map(|hash| format!("Script hash:{}", hex::encode(hash.to_bytes()))).collect::<Vec<String>>().join(",");
         let plutus_data = self.plutus_data.iter().map(|hash| format!("Plutus data hash:{}", hex::encode(hash.to_bytes()))).collect::<Vec<String>>().join(",");
         let redeemers = self.redeemers.iter().map(|key| format!("Redeemer:{}-{}", hex::encode(key.tag().to_bytes()), key.index().to_str())).collect::<Vec<String>>().join(",");
@@ -193,6 +188,45 @@ impl RequiredWitnessSet {
             self.scripts.len() +
             self.plutus_data.len() +
             self.redeemers.len()
+    }
+
+
+    // This method add fake vkeys to calculate the fee.
+    // In order to prevent that fake keys get deduplicated when it is called more than once,
+    // its index starts from the current amount of vkeys.
+    // WARN: this function might fail at runtime when there are more than 255 witnesses,
+    // however this is unrealistic because the limit of transaction size. (101 bytes each witness)
+    pub(crate) fn add_fake_vkey_witnesses_by_num(&mut self, num: usize) {
+        for _ in 0..num {
+            self.add_vkey_key_hash(&fake_key_hash(self.vkeys.len() as u8));
+        }
+    }
+
+    pub(crate) fn add_input_aggregate_fake_witness_data(&mut self, data: &InputAggregateWitnessData) {
+        match data {
+            InputAggregateWitnessData::NativeScript(script, info) => {
+                match info.0 {
+                    NativeScriptWitnessInfoKind::Count(num) => self.add_fake_vkey_witnesses_by_num(num),
+                    NativeScriptWitnessInfoKind::Vkeys(ref vkeys) => { vkeys.iter().for_each(|vkey| self.add_vkey_key_hash(vkey)); },
+                    NativeScriptWitnessInfoKind::AssumeWorst => {
+                        // we get the size instead of the hashes themselves
+                        // since there is no way to know if any of these will actually be required to sign the tx
+                        let num = script.get_required_signers().len();
+                        self.add_fake_vkey_witnesses_by_num(num);
+                    }
+                }
+            }
+            InputAggregateWitnessData::PlutusScript(_witness, info, _option) => {
+                let known_signers = &info.known_signers.0;
+                let missing_signers = &info.missing_signers.0;
+
+                known_signers.iter().for_each(|vkey| self.add_vkey_key_hash(vkey));
+                self.add_fake_vkey_witnesses_by_num(
+                    // Exclude the missing signers whose key hashes are known.
+                    missing_signers.iter().filter(|hash| !self.vkeys.contains(hash)).count()
+                );
+            }
+        }
     }
 
     pub fn new() -> Self {
@@ -308,7 +342,7 @@ pub struct TransactionWitnessSetBuilder {
     /// witnesses that need to be added for the build function to succeed
     /// this allows checking that witnesses are present at build time (instead of when submitting to a node)
     /// This is useful for APIs that can keep track of which witnesses will be required (like transaction builders)
-    required_wits: RequiredWitnessSet,
+    pub(crate) required_wits: RequiredWitnessSet,
 }
 
 #[wasm_bindgen]
@@ -409,37 +443,6 @@ impl TransactionWitnessSetBuilder {
         }
     }
 
-    fn add_fake_vkey_witnesses(&mut self, vkeys: &Vec<Vkey>) {
-        let fake_sig = fake_raw_key_sig(0);
-        for vkey in vkeys {
-            let fake_vkey_witness = Vkeywitness::new(vkey, &fake_sig);
-            self.add_vkey(&fake_vkey_witness);
-        }
-    }
-
-    fn add_fake_bootstrap_witnesses(&mut self, entries: &Vec<(Vkey, ByronAddress)>) {
-        let fake_key = fake_key_private(0);
-        for entry in entries {
-            // picking icarus over daedalus for fake witness generation shouldn't matter
-            let bootstrap_wit = make_icarus_bootstrap_witness(
-                &TransactionHash::from([0u8; TransactionHash::BYTE_COUNT]),
-                &entry.1,
-                &fake_key
-            );
-            self.add_bootstrap(&bootstrap_wit);
-        }
-    }
-
-    // This method add fake vkeys to calculate the fee.
-    // In order to prevent the fake keys get deduplicated when it is called more than once,
-    // its index starts from the current amount of vkeys.
-    // WARN: this function might fail at runtime when there are more than 255 witnesses,
-    // however this is unrealistic because the limit of transaction size. (101 bytes each witness)
-    fn add_fake_vkey_witnesses_by_num(&mut self, num: usize) {
-        let vkeys: Vec<Vkey> = (0..num).into_iter().map(|i| Vkey::new(&fake_raw_key_public((i + self.vkeys.len()) as u8))).collect();
-        self.add_fake_vkey_witnesses(&vkeys);
-    }
-
     pub(crate) fn add_input_aggregate_real_witness_data(&mut self, data: &InputAggregateWitnessData) {
         match data {
             InputAggregateWitnessData::NativeScript(script, _info) => {
@@ -455,35 +458,6 @@ impl TransactionWitnessSetBuilder {
                 }
             }
         }
-    }
-    pub(crate) fn add_input_aggregate_fake_witness_data(&mut self, data: &InputAggregateWitnessData) {
-        match data {
-            InputAggregateWitnessData::NativeScript(script, info) => {
-                match info.0 {
-                    NativeScriptWitnessInfoKind::Count(num) => self.add_fake_vkey_witnesses_by_num(num),
-                    NativeScriptWitnessInfoKind::Vkeys(ref vkeys) => self.add_fake_vkey_witnesses(vkeys),
-                    NativeScriptWitnessInfoKind::AssumeWorst => {
-                        let num = script.get_required_signers().len();
-                        self.add_fake_vkey_witnesses_by_num(num);
-                    }
-                }
-            }
-            InputAggregateWitnessData::PlutusScript(_witness, info, _option) => {
-                self.add_plutus_witness_info(info);
-            }
-        }
-        // TODO: add in required witnesses
-    }
-
-    fn add_plutus_witness_info(&mut self, info: &PlutusScriptWitnessInfo) {
-        let known_signers = &info.known_signers.0;
-        let missing_signers = &info.missing_signers.0;
-
-        self.add_fake_vkey_witnesses(known_signers);
-        self.add_fake_vkey_witnesses_by_num(
-            // Exclude the missing signers whose key hashes are known.
-            missing_signers.iter().filter(|hash| !self.required_wits.vkeys.contains(hash)).count()
-        );
     }
 
     pub fn build(&self) -> TransactionWitnessSet {
@@ -521,7 +495,7 @@ impl TransactionWitnessSetBuilder {
         let mut remaining_wits = self.required_wits.clone();
 
         self.vkeys.keys().for_each(|key| { remaining_wits.vkeys.remove(&key.public_key().hash()); });
-        self.bootstraps.values().for_each(|wit| { remaining_wits.bootstraps.remove(&wit.to_address().unwrap().0.addr); });
+        self.bootstraps.values().for_each(|wit| { remaining_wits.bootstraps.remove(&wit.to_address().unwrap().to_address()); });
         self.native_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
         self.plutus_v1_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
         self.plutus_v2_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
@@ -539,6 +513,32 @@ impl TransactionWitnessSetBuilder {
         }
 
         Ok(self.build())
+    }
+}
+
+pub fn merge_fake_witness(builder: &mut TransactionWitnessSetBuilder, required_wits: &RequiredWitnessSet) {
+    let mut remaining_wits = required_wits.clone();
+    builder.vkeys.keys().for_each(|key| { remaining_wits.vkeys.remove(&key.public_key().hash()); });
+    builder.bootstraps.values().for_each(|wit| { remaining_wits.bootstraps.remove(&wit.to_address().unwrap().to_address()); });
+
+    // Ed25519KeyHash and AddressId are both (under no collision assumption) 1-1 mapping to the real keys
+    // so if all we care about is counting the number of witnesses,
+    // we can convert them to fake witnesses that just pad a dummy prefix to their 28byte size to get them to 32 bytes
+    let fake_prefix = [0u8; 4];
+
+    for remaining_vkey in remaining_wits.vkeys.iter() {
+        let fake_vkey = Vkey::new(&PublicKey::from_bytes(&[&fake_prefix, &remaining_vkey.0[..]].concat()).unwrap());
+        let fake_sig = fake_raw_key_sig(0);
+        let fake_vkey_witness = Vkeywitness::new(&fake_vkey, &fake_sig);
+        builder.add_vkey(&fake_vkey_witness);
+    }
+    for remaining_bootstrap in remaining_wits.bootstraps.iter() {
+        let address_content = remaining_bootstrap.address_content();
+        let fake_vkey = Vkey::new(&PublicKey::from_bytes(&[&fake_prefix, &address_content.address_id().0[..]].concat()).unwrap());
+        let fake_sig = fake_raw_key_sig(0);
+        let fake_chaincode = [0u8; 32]; // constant size so it won't affect the fee calculation
+        let fake_witness = BootstrapWitness::new(&fake_vkey, &fake_sig, fake_chaincode.to_vec(), &address_content.addr_attr());
+        builder.add_bootstrap(&fake_witness);
     }
 }
 
@@ -563,10 +563,16 @@ fn fake_key_private(id: u8) -> Bip32PrivateKey {
     ).unwrap()
 }
 
+fn fake_key_hash(x: u8) -> Ed25519KeyHash {
+    Ed25519KeyHash::from_bytes(
+        vec![x, 239, 181, 120, 142, 135, 19, 200, 68, 223, 211, 43, 46, 145, 222, 30, 48, 159, 239, 255, 213, 85, 248, 39, 204, 158, 225, 100]
+    ).unwrap()
+}
+
 #[derive(Clone, Debug)]
 pub enum NativeScriptWitnessInfoKind {
     Count(usize),
-    Vkeys(Vec<Vkey>),
+    Vkeys(Vec<Ed25519KeyHash>),
     AssumeWorst,
 }
 
@@ -581,7 +587,7 @@ impl NativeScriptWitnessInfo {
     }
 
     /// This native script will be witnessed by exactly these keys
-    pub fn vkeys(vkeys: &Vkeys) -> NativeScriptWitnessInfo {
+    pub fn vkeys(vkeys: &Ed25519KeyHashes) -> NativeScriptWitnessInfo {
         NativeScriptWitnessInfo(NativeScriptWitnessInfoKind::Vkeys(vkeys.0.clone()))
     }
 
@@ -595,12 +601,12 @@ impl NativeScriptWitnessInfo {
 #[derive(Clone, Debug)]
 pub struct PlutusScriptWitnessInfo {
     pub(crate) missing_signers: RequiredSigners,
-    pub(crate) known_signers: Vkeys,
+    pub(crate) known_signers: Ed25519KeyHashes,
 }
 
 impl PlutusScriptWitnessInfo {
     /// you can pass in an empty array if there are no required witnesses
-    pub fn set_required_signers(known_signers: &Vkeys, missing_signers: &RequiredSigners) -> PlutusScriptWitnessInfo {
+    pub fn set_required_signers(known_signers: &Ed25519KeyHashes, missing_signers: &RequiredSigners) -> PlutusScriptWitnessInfo {
         Self {
             missing_signers: missing_signers.clone(),
             known_signers: known_signers.clone()
@@ -645,7 +651,7 @@ mod tests {
                 let key = fake_raw_key_public(0);
                 let mut missing_signers = Ed25519KeyHashes::new();
                 missing_signers.add(&key.hash());
-                PlutusScriptWitnessInfo::set_required_signers(&Vkeys::new(), &missing_signers)
+                PlutusScriptWitnessInfo::set_required_signers(&Ed25519KeyHashes::new(), &missing_signers)
             };
             InputAggregateWitnessData::PlutusScript(witness, info, None)
         };
@@ -691,7 +697,7 @@ mod tests {
 
     #[test]
     fn test_add_fake_vkey_witnesses_by_num() {
-        let mut builder = TransactionWitnessSetBuilder::new();
+        let mut builder = RequiredWitnessSet::new();
         builder.add_fake_vkey_witnesses_by_num(2);
         assert_eq!(builder.vkeys.len(), 2);
         builder.add_fake_vkey_witnesses_by_num(1);
@@ -700,7 +706,7 @@ mod tests {
 
     #[test]
     fn test_add_input_aggregate_witness_data() {
-        let mut builder = TransactionWitnessSetBuilder::new();
+        let mut required_wits = RequiredWitnessSet::new();
         let data = {
             let witness = {
                 let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
@@ -711,22 +717,22 @@ mod tests {
                 let key = fake_raw_key_public(0);
                 let mut missing_signers = Ed25519KeyHashes::new();
                 missing_signers.add(&key.hash());
-                PlutusScriptWitnessInfo::set_required_signers(&Vkeys::new(), &missing_signers)
+                PlutusScriptWitnessInfo::set_required_signers(&Ed25519KeyHashes::new(), &missing_signers)
             };
             InputAggregateWitnessData::PlutusScript(witness, info, None)
         };
 
-        assert_eq!(builder.vkeys.len(), 0);
-        builder.add_input_aggregate_fake_witness_data(&data);
-        assert_eq!(builder.vkeys.len(), 1);
+        assert_eq!(required_wits.vkeys.len(), 0);
+        required_wits.add_input_aggregate_fake_witness_data(&data);
+        assert_eq!(required_wits.vkeys.len(), 1);
     }
 
     #[test]
     fn test_add_input_aggregate_witness_data_with_existing_key_hash() {
-        let mut builder = TransactionWitnessSetBuilder::new();
+        let mut required_wits = RequiredWitnessSet::new();
         let key = fake_raw_key_public(0);
         let hash = key.hash();
-        builder.required_wits.add_vkey_key_hash(&hash);
+        required_wits.add_vkey_key_hash(&hash);
 
         let data = {
             let witness = {
@@ -737,14 +743,14 @@ mod tests {
             let info = {
                 let mut missing_signers = Ed25519KeyHashes::new();
                 missing_signers.add(&hash);
-                PlutusScriptWitnessInfo::set_required_signers(&Vkeys::new(), &missing_signers)
+                PlutusScriptWitnessInfo::set_required_signers(&Ed25519KeyHashes::new(), &missing_signers)
             };
             InputAggregateWitnessData::PlutusScript(witness, info, None)
         };
 
-        assert_eq!(builder.vkeys.len(), 0);
-        builder.add_input_aggregate_fake_witness_data(&data);
-        assert_eq!(builder.vkeys.len(), 0);
+        assert_eq!(required_wits.vkeys.len(), 1);
+        required_wits.add_input_aggregate_fake_witness_data(&data);
+        assert_eq!(required_wits.vkeys.len(), 1);
     }
 
     #[test]

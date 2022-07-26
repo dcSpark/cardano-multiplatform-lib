@@ -1,7 +1,7 @@
 use super::*;
 use cbor_event::{de::Deserializer, se::Serializer};
 use bech32::ToBase32;
-use crate::{ledger::common::{binary::*, value::{to_bignum, from_bignum}}, byron::{ProtocolMagic, ByronAddress}};
+use crate::{ledger::common::{value::{to_bignum, from_bignum}}, byron::{ProtocolMagic, ByronAddress}};
 
 // returns (Number represented, bytes read) if valid encoding
 // or None if decoding prematurely finished
@@ -166,35 +166,6 @@ impl Deserialize for StakeCredential {
         })().map_err(|e| e.annotate("StakeCredential"))
     }
 }
-
-#[wasm_bindgen]
-#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
-pub struct ByronAddressAttributes(pub (crate) legacy_address::Attributes);
-
-impl ByronAddressAttributes {
-}
-
-impl cbor_event::se::Serialize for ByronAddressAttributes {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
-        self.serialize(serializer)
-    }
-}
-
-impl Deserialize for ByronAddressAttributes {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        Ok(Self(legacy_address::Attributes::deserialize(raw)?))
-    }
-}
-
-impl JsonSchema for ByronAddressAttributes {
-    fn schema_name() -> String { String::from("ByronAddressAttributes") }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
-    fn is_referenceable() -> bool { String::is_referenceable() }
-}
-
-to_from_bytes!(ByronAddressAttributes);
-
-to_from_json!(ByronAddressAttributes);
 
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub enum AddrType {

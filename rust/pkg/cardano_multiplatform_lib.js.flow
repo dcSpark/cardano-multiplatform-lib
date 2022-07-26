@@ -9518,6 +9518,7 @@ export interface AuxiliaryDataJSON {
   native_scripts?: NativeScriptsJSON | null;
   plutus_v1_scripts?: PlutusV1ScriptsJSON | null;
   plutus_v2_scripts?: PlutusV2ScriptsJSON | null;
+  prefer_alonzo_format: boolean;
 }
 export type AuxiliaryDataHashJSON = string;
 export interface AuxiliaryDataSetJSON {

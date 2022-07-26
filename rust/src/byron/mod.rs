@@ -161,6 +161,7 @@ pub struct ByronAddress {
     crc32: Crc32,
 }
 
+to_from_bytes!(ByronAddress);
 // to_from_json!(ByronAddress);
 
 #[wasm_bindgen]
@@ -174,12 +175,19 @@ impl ByronAddress {
         self.crc32.clone()
     }
 
-    pub fn new(addr: Vec<u8>, crc32: Crc32) -> Self {
-        // TODO: check that crc32 matches data
-        Self {
+    pub fn new(addr: Vec<u8>, crc32: Crc32) -> Result<ByronAddress, JsError> {
+        let found_crc = crate::byron::crc32::crc32(&addr);
+
+        if crc32 != found_crc as u64 {
+            return Err(JsError::from_str(&format!(
+                "Invalid CRC32: 0x{:x} but expected 0x{:x}",
+                crc32, found_crc
+            )));
+        }
+        Ok(Self {
             addr: addr,
             crc32: crc32,
-        }
+        })
     }
 }
 

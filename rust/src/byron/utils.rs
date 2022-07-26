@@ -1,6 +1,6 @@
 use cbor_event::cbor;
 
-use crate::{chain_crypto::{self, Ed25519Bip32, Sha3_256}, genesis::network_info::NetworkInfo, crypto::{Bip32PublicKey, PublicKey}, address::Address};
+use crate::{chain_crypto::{Sha3_256}, genesis::network_info::NetworkInfo, crypto::{Bip32PublicKey, PublicKey}, address::Address};
 use std::{convert::TryInto, fmt};
 use super::{*, cbor::util::encode_with_crc32_};
 
@@ -73,14 +73,13 @@ impl AddressContent {
             attributes,
             addr_type,
         )
-
     }
 
     // bootstrap era + no hdpayload address
     pub fn new_redeem(pubkey: &PublicKey, protocol_magic: Option<ProtocolMagic>) -> Self {
         let attributes = AddrAttributes::new_bootstrap_era(None, protocol_magic);
         let addr_type = AddrTypeEnum::ATRedeem;
-        let spending_data = SpendingDataEnum::SpendingDataRedeemASD(SpendingDataRedeemASD::new(&pubkey));
+        let spending_data = SpendingDataEnum::SpendingDataRedeemASD(SpendingDataRedeemASD::new(pubkey));
         
         AddressContent::hash_and_create(&AddrType(addr_type), &SpendingData(spending_data), &attributes)
     }
@@ -89,15 +88,14 @@ impl AddressContent {
     pub fn new_simple(xpub: &Bip32PublicKey, protocol_magic: Option<ProtocolMagic>) -> Self {
         let attributes = AddrAttributes::new_bootstrap_era(None, protocol_magic);
         let addr_type = AddrTypeEnum::ATPubKey;
-        let spending_data = SpendingDataEnum::SpendingDataPubKeyASD(SpendingDataPubKeyASD::new(&xpub));
+        let spending_data = SpendingDataEnum::SpendingDataPubKeyASD(SpendingDataPubKeyASD::new(xpub));
 
         AddressContent::hash_and_create(&AddrType(addr_type), &SpendingData(spending_data), &attributes)
     }
 
     pub fn to_address(&self) -> ByronAddress {
         let mut serializer = Serializer::new_vec();
-        let addr_bytes = cbor_event::Value::Bytes(self.address_id.0.as_ref().to_vec());
-        encode_with_crc32_(&(&addr_bytes, &self.addr_attr, &self.addr_type), &mut serializer).unwrap();
+        encode_with_crc32_(&self, &mut serializer).unwrap();
 
         let mut raw = Deserializer::from(std::io::Cursor::new(serializer.finalize()));
         ByronAddress::deserialize(&mut raw).unwrap()
@@ -141,7 +139,7 @@ impl AddressContent {
     /// Check if the Addr can be reconstructed with a specific xpub
     pub fn identical_with_pubkey(&self, xpub: &Bip32PublicKey) -> bool {
         let addr_type = AddrTypeEnum::ATPubKey;
-        let spending_data = SpendingDataEnum::SpendingDataPubKeyASD(SpendingDataPubKeyASD::new(&xpub));
+        let spending_data = SpendingDataEnum::SpendingDataPubKeyASD(SpendingDataPubKeyASD::new(xpub));
         let newea = AddressContent::hash_and_create(&AddrType(addr_type), &SpendingData(spending_data), &self.addr_attr.clone());
         
         if self == &newea {
@@ -162,22 +160,6 @@ pub enum AddressMatchXPub {
 
 #[wasm_bindgen]
 impl ByronAddress {
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut addr_bytes = Serializer::new_vec();
-        self.serialize(&mut addr_bytes).unwrap();
-        addr_bytes.finalize()
-    }
-
-    // explicitly specify from bytes since we need to check the crc32
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<ByronAddress, JsError> {
-        let mut checksum_raw = Deserializer::from(std::io::Cursor::new(&bytes));
-        if cbor::util::raw_with_crc32(&mut checksum_raw).is_err() {
-            return Err(JsError::from_str("ByronAddress crc32 checksum failed"))
-        }
-
-        let mut raw = Deserializer::from(std::io::Cursor::new(&bytes));
-        Ok(ByronAddress::deserialize(&mut raw)?)
-    }
 
     pub fn to_base58(&self) -> String {
         base58::encode(&self.to_bytes())

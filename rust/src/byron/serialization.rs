@@ -183,10 +183,10 @@ impl Deserialize for ByronAddress {
                     _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                 },
             }
-            Ok(ByronAddress {
-                addr,
+            ByronAddress::new(
+                addr.clone(),
                 crc32,
-            })
+            ).map_err(|_| DeserializeError::new("ByronAddress", DeserializeFailure::ChecksumMismatch { found: crc32, expected: crate::byron::crc32::crc32(&addr) as u64 }))
         })().map_err(|e| e.annotate("ByronAddress"))
     }
 }

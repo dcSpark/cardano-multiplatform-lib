@@ -42,6 +42,10 @@ pub enum DeserializeFailure {
         min: Option<isize>,
         max: Option<isize>,
     },
+    ChecksumMismatch{
+        found: u64,
+        expected: u64,
+    },
     OutOfRange{
         min: usize,
         max: usize,
@@ -78,6 +82,11 @@ impl DeserializeError {
             None => Self::new(location, self.failure),
         }
     }
+
+    // to match JsValue's API even though to_string() exists
+    pub fn as_string(&self) -> Option<String> {
+        Some(self.to_string())
+    }
 }
 
 impl std::fmt::Display for DeserializeError {
@@ -105,6 +114,7 @@ impl std::fmt::Display for DeserializeError {
             DeserializeFailure::MandatoryFieldMissing(key) => write!(f, "Mandatory field {} not found", key),
             DeserializeFailure::Metadata(e) => write!(f, "Metadata error: {:?}", e),
             DeserializeFailure::NoVariantMatched => write!(f, "No variant matched"),
+            DeserializeFailure::ChecksumMismatch{ found, expected } => write!(f, "Checksum mismatch. Expected {} found {}", expected, found),
             DeserializeFailure::RangeCheck{ found, min, max } => match (min, max) {
                 (Some(min), Some(max)) => write!(f, "{} not in range {} - {}", found, min, max),
                 (Some(min), None) => write!(f, "{} not at least {}", found, min),

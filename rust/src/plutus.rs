@@ -791,9 +791,7 @@ impl Redeemers {
     pub fn add(&mut self, elem: &Redeemer) {
         self.0.push(elem.clone());
     }
-}
 
-impl Redeemers {
     pub fn get_total_ex_units(&self) -> Result<ExUnits, JsError> {
         let mut sum = ExUnits::new(&BigNum::zero(), &BigNum::zero());
         for redeemer in &self.0 {

@@ -30,39 +30,45 @@ impl LinearFee {
 }
 
 #[wasm_bindgen]
+pub fn min_script_fee(tx: &Transaction, ex_unit_prices: &ExUnitPrices) -> Result<Coin, JsError> {
+    if let Some(redeemers) = tx.witness_set().redeemers() {
+        let total_ex_units = redeemers.get_total_ex_units()?;
+        let script_fee = to_bignum(
+            (
+                (
+                    Fraction::new(from_bignum(&total_ex_units.mem()), 1u64)
+                    * Fraction::new(
+                        from_bignum(&ex_unit_prices.mem_price().numerator),
+                        from_bignum(&ex_unit_prices.mem_price().denominator),
+                    )
+                )
+                +
+                (
+                    Fraction::new(from_bignum(&total_ex_units.steps()), 1u64)
+                    * Fraction::new(
+                        from_bignum(&ex_unit_prices.step_price().numerator),
+                        from_bignum(&ex_unit_prices.step_price().denominator),
+                    )
+                )
+            ).ceil().to_u64().unwrap(),
+        );
+        Ok(script_fee)
+    } else {
+        Ok(Coin::zero())
+    }
+}
+
+#[wasm_bindgen]
 pub fn min_fee(
     tx: &Transaction,
     linear_fee: &LinearFee,
     ex_unit_prices: &ExUnitPrices
 ) -> Result<Coin, JsError> {
-    // TODO: the fee should be 0 if all inputs are redeem addresses
+    // TODO: the fee should be 0 if all inputs are genesis redeem addresses
     let mut fee = to_bignum(tx.to_bytes().len() as u64)
         .checked_mul(&linear_fee.coefficient())?
         .checked_add(&linear_fee.constant())?;
-    if let Some(redeemers) = tx.witness_set().redeemers() {
-        let total_ex_units = redeemers.get_total_ex_units()?;
-        
-        // TODO: justification for the floating point arithmetic used here
-        // since we need to make sure it gives the same result as Haskell
-        let script_fee = to_bignum(
-            (from_bignum(&total_ex_units.mem()) as f64
-                * Fraction::new(
-                    from_bignum(&ex_unit_prices.mem_price().numerator),
-                    from_bignum(&ex_unit_prices.mem_price().denominator),
-                )
-                .to_f64()
-                .unwrap()
-                + from_bignum(&total_ex_units.steps()) as f64
-                    * Fraction::new(
-                        from_bignum(&ex_unit_prices.step_price().numerator),
-                        from_bignum(&ex_unit_prices.step_price().denominator),
-                    )
-                    .to_f64()
-                    .unwrap())
-            .ceil() as u64,
-        );
-        fee = fee.checked_add(&script_fee)?;
-    }
+    fee = fee.checked_add(&min_script_fee(tx, ex_unit_prices)?)?;
     Ok(fee)
 }
 

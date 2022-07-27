@@ -726,7 +726,7 @@ impl PublicKeys {
 macro_rules! impl_signature {
     ($name:ident, $signee_type:ty, $verifier_type:ty) => {
         #[wasm_bindgen]
-        #[derive(Clone, Debug)]
+        #[derive(Clone, Debug, Eq, PartialEq)]
         pub struct $name(crypto::Signature<$signee_type, $verifier_type>);
 
         #[wasm_bindgen]

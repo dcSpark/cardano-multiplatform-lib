@@ -265,6 +265,10 @@ impl RedeemerSetBuilder {
     pub fn new() -> Self {
         Self::default()
     }
+    
+    pub fn is_empty(&self) -> bool {
+        self.spend.is_empty() && self.mint.is_empty() && self.reward.is_empty() && self.cert.is_empty()
+    }
 
     pub fn add_spend(&mut self, result: &InputBuilderResult) {
         let untagged = {

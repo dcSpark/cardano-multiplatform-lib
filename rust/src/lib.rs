@@ -2646,7 +2646,7 @@ impl Header {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct OperationalCert {
     hot_vkey: KESVKey,
     sequence_number: u32,
@@ -2687,7 +2687,7 @@ impl OperationalCert {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Eq, Debug, PartialEq, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct HeaderBody {
     block_number: u32,
     slot: Slot,

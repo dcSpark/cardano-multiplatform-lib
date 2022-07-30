@@ -755,6 +755,11 @@ impl TransactionBuilder {
         match &mut self.collateral {
             None => { self.collateral = Some(vec![new_input]) },
             Some(collateral) => {
+                if self.config.max_collateral_inputs <= collateral.len().try_into().unwrap() {
+                    return Err(JsError::from_str(
+                        &format!("Max collateral input count ({}) exceeded", self.config.max_collateral_inputs),
+                    ))
+                }
                 collateral.push(new_input);
             }
         }

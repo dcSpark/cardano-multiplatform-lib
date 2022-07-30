@@ -255,7 +255,7 @@ to_from_bytes!(CostModel);
 
 #[wasm_bindgen]
 impl CostModel {
-    pub fn new(language: &Language) -> Self {
+    pub fn empty_model(language: &Language) -> Self {
         let op_count = cost_model_op_count(language.0);
         let mut op_costs = Vec::with_capacity(op_count);
         for _ in 0 .. op_count {
@@ -285,6 +285,14 @@ impl CostModel {
 
     pub fn language(&self) -> Language {
         self.language.clone()
+    }
+}
+impl CostModel {
+    pub fn new(language: &Language, op_costs: &Vec<Int>) -> Self {
+        Self {
+            language: language.clone(),
+            op_costs: op_costs.clone()
+        }
     }
 }
 
@@ -358,7 +366,6 @@ impl Costmdls {
             }
         }
         let out = serializer.finalize();
-        println!("language_views = {}", hex::encode(out.clone()));
         out
     }
 }
@@ -490,7 +497,7 @@ impl Language {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
-pub struct Languages(Vec<Language>);
+pub struct Languages(pub(crate) Vec<Language>);
 
 #[wasm_bindgen]
 impl Languages {
@@ -829,6 +836,16 @@ pub enum ScriptEnum {
     Native(NativeScript),
     PlutusV1(PlutusV1Script),
     PlutusV2(PlutusV2Script),
+}
+
+impl From<&ScriptEnum> for Option<Language> {
+    fn from(val: &ScriptEnum) -> Option<Language> {
+        match val {
+            ScriptEnum::Native(_) => None,
+            ScriptEnum::PlutusV1(_) => Some(Language::new_plutus_v1()),
+            ScriptEnum::PlutusV2(_) => Some(Language::new_plutus_v2()),
+        }
+    }
 }
 
 #[wasm_bindgen]
@@ -1998,10 +2015,7 @@ mod tests {
             1, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000,
             32, 150000, 32, 3345831, 1, 1,
         ];
-        let cm = arr.iter().fold((CostModel::new(&Language::new_plutus_v1()), 0), |(mut cm, i), x| {
-            cm.set(i, &Int::new_i32(x.clone())).unwrap();
-            (cm, i + 1)
-        }).0;
+        let cm = CostModel::new(&Language::new_plutus_v1(), &arr.iter().map(|&i| Int::from(i)).collect());
         let mut cms = Costmdls::new();
         cms.insert(&cm);
         assert_eq!(
@@ -2091,5 +2105,16 @@ mod tests {
         let json2 = decode_plutus_datum_to_json_str(&datum, PlutusDatumSchema::DetailedSchema).unwrap();
         let datum2 = encode_json_str_to_plutus_datum(&json2, PlutusDatumSchema::DetailedSchema).unwrap();
         assert_eq!(datum, datum2);
+    }
+
+    #[test]
+    fn test_same_datum_in_different_formats_with_expected_hashes() {
+        // This is a known datum with indefinite arrays and a known expected hash
+        let pdata1 = PlutusData::from_bytes(hex::decode("d8799fd8799f581ca183bf86925f66c579a3745c9517744399679b090927b8f6e2f2e1bb4f616461706541696c656e416d61746fffd8799f581c9a4e855293a0b9af5e50935a331d83e7982ab5b738ea0e6fc0f9e6564e4652414d455f36353030335f4c30ff581cbea1c521df58f4eeef60c647e5ebd88c6039915409f9fd6454a476b9ff").unwrap()).unwrap();
+        assert_eq!(hex::encode(hash_plutus_data(&pdata1).to_bytes()), "ec3028f46325b983a470893a8bdc1b4a100695b635fb1237d301c3490b23e89b");
+        // This is the same exact datum manually converted to definite arrays
+        // and it produces a different known expected hash because the format is preserved after deserialization
+        let pdata2 = PlutusData::from_bytes(hex::decode("d87983d87982581ca183bf86925f66c579a3745c9517744399679b090927b8f6e2f2e1bb4f616461706541696c656e416d61746fd87982581c9a4e855293a0b9af5e50935a331d83e7982ab5b738ea0e6fc0f9e6564e4652414d455f36353030335f4c30581cbea1c521df58f4eeef60c647e5ebd88c6039915409f9fd6454a476b9").unwrap()).unwrap();
+        assert_eq!(hex::encode(hash_plutus_data(&pdata2).to_bytes()), "816cdf6d4d8cba3ad0188ca643db95ddf0e03cdfc0e75a9550a72a82cb146222");
     }
 }

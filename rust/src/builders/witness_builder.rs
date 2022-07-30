@@ -1,5 +1,5 @@
 use std::{collections::{HashSet, HashMap, BTreeMap}, fmt::Debug};
-use crate::{*, ledger::{common::hash::{ScriptHashNamespace, hash_plutus_data}, byron::witness::make_icarus_bootstrap_witness}, byron::{ByronAddress, ProtocolMagic, AddressContent, AddressId}};
+use crate::{*, ledger::common::hash::hash_plutus_data, byron::ByronAddress};
 
 use super::{input_builder::InputBuilderResult, mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult, certificate_builder::CertificateBuilderResult};
 
@@ -93,7 +93,7 @@ impl PartialPlutusWitness {
 #[derive(Clone, Debug)]
 pub enum InputAggregateWitnessData {
     NativeScript(NativeScript, NativeScriptWitnessInfo),
-    PlutusScript(PartialPlutusWitness, PlutusScriptWitnessInfo, Option<PlutusData>)
+    PlutusScript(PartialPlutusWitness, RequiredSigners, Option<PlutusData>)
 }
 
 impl InputAggregateWitnessData {
@@ -140,7 +140,7 @@ impl RequiredWitnessSet {
     }
 
     pub fn add_native_script(&mut self, native_script: &NativeScript) {
-        self.add_script_hash(&native_script.hash(ScriptHashNamespace::NativeScript));
+        self.add_script_hash(&native_script.hash());
     }
     pub fn add_script_hash(&mut self, script_hash: &ScriptHash) {
         self.scripts.insert(script_hash.clone());
@@ -216,15 +216,8 @@ impl RequiredWitnessSet {
                     }
                 }
             }
-            InputAggregateWitnessData::PlutusScript(_witness, info, _option) => {
-                let known_signers = &info.known_signers.0;
-                let missing_signers = &info.missing_signers.0;
-
-                known_signers.iter().for_each(|vkey| self.add_vkey_key_hash(vkey));
-                self.add_fake_vkey_witnesses_by_num(
-                    // Exclude the missing signers whose key hashes are known.
-                    missing_signers.iter().filter(|hash| !self.vkeys.contains(hash)).count()
-                );
+            InputAggregateWitnessData::PlutusScript(_witness, required_signers, _option) => {
+                required_signers.0.iter().for_each(|vkey| self.add_vkey_key_hash(vkey));
             }
         }
     }
@@ -335,13 +328,11 @@ impl RedeemerSetBuilder {
 #[derive(Clone, Default, Debug)]
 pub struct TransactionWitnessSetBuilder {
     // See Alonzo spec section 3.1 which defines the keys for these types
-    vkeys: HashMap<Vkey, Vkeywitness>,
-    bootstraps: HashMap<Vkey, BootstrapWitness>,
-    native_scripts: HashMap<ScriptHash, NativeScript>,
-    plutus_v1_scripts: HashMap<ScriptHash, PlutusV1Script>,
-    plutus_v2_scripts: HashMap<ScriptHash, PlutusV2Script>,
-    plutus_data: HashMap<DataHash, PlutusData>,
-    redeemers: HashMap<RedeemerWitnessKey, Redeemer>,
+    pub(crate) vkeys: HashMap<Vkey, Vkeywitness>,
+    pub(crate) bootstraps: HashMap<Vkey, BootstrapWitness>,
+    pub(crate) scripts: HashMap<ScriptHash, ScriptEnum>,
+    pub(crate) plutus_data: HashMap<DataHash, PlutusData>,
+    pub(crate) redeemers: HashMap<RedeemerWitnessKey, Redeemer>,
 
     /// witnesses that need to be added for the build function to succeed
     /// this allows checking that witnesses are present at build time (instead of when submitting to a node)
@@ -368,27 +359,54 @@ impl TransactionWitnessSetBuilder {
     }
 
     pub fn add_native_script(&mut self, native_script: &NativeScript) {
-        self.native_scripts.insert(native_script.hash(ScriptHashNamespace::NativeScript), native_script.clone());
+        self.scripts.insert(native_script.hash(),  ScriptEnum::Native(native_script.clone()));
     }
 
     pub fn get_native_script(&self) -> NativeScripts {
-        NativeScripts(self.native_scripts.clone().into_values().collect())
+        let scripts: Vec<NativeScript> = self.scripts
+            .iter()
+            .fold(
+                Vec::<NativeScript>::new(),
+                |mut acc, script| match &script.1 {
+                    &ScriptEnum::Native(native_script) => { acc.push(native_script.clone()); acc },
+                    _ => acc
+                }
+            );
+        NativeScripts(scripts)
     }
 
     pub fn add_plutus_v1_script(&mut self, plutus_v1_script: &PlutusV1Script) {
-        self.plutus_v1_scripts.insert(plutus_v1_script.hash(), plutus_v1_script.clone());
+        self.scripts.insert(plutus_v1_script.hash(), ScriptEnum::PlutusV1(plutus_v1_script.clone()));
     }
 
     pub fn get_plutus_v1_script(&self) -> PlutusV1Scripts {
-        PlutusV1Scripts(self.plutus_v1_scripts.clone().into_values().collect())
+        let scripts: Vec<PlutusV1Script> = self.scripts
+            .iter()
+            .fold(
+                Vec::<PlutusV1Script>::new(),
+                |mut acc, script| match &script.1 {
+                    &ScriptEnum::PlutusV1(plutus_script) => { acc.push(plutus_script.clone()); acc },
+                    _ => acc
+                }
+            );
+            PlutusV1Scripts(scripts)
     }
 
     pub fn add_plutus_v2_script(&mut self, plutus_v2_script: &PlutusV2Script) {
-        self.plutus_v2_scripts.insert(plutus_v2_script.hash(), plutus_v2_script.clone());
+        self.scripts.insert(plutus_v2_script.hash(), ScriptEnum::PlutusV2(plutus_v2_script.clone()));
     }
 
     pub fn get_plutus_v2_script(&self) -> PlutusV2Scripts {
-        PlutusV2Scripts(self.plutus_v2_scripts.clone().into_values().collect())
+        let scripts: Vec<PlutusV2Script> = self.scripts
+            .iter()
+            .fold(
+                Vec::<PlutusV2Script>::new(),
+                |mut acc, script| match &script.1 {
+                    &ScriptEnum::PlutusV2(plutus_script) => { acc.push(plutus_script.clone()); acc },
+                    _ => acc
+                }
+            );
+        PlutusV2Scripts(scripts)
     }
 
     pub fn add_plutus_datum(&mut self, plutus_datum: &PlutusData) {
@@ -473,20 +491,27 @@ impl TransactionWitnessSetBuilder {
         if !self.bootstraps.is_empty() {
             result.set_bootstraps(&BootstrapWitnesses(self.bootstraps.values().cloned().collect()));
         }
-        if !self.native_scripts.is_empty() {
-            result.set_native_scripts(&NativeScripts(self.native_scripts.values().cloned().collect()));
+
+        {
+            let native_scripts = self.get_native_script();
+            if !native_scripts.0.is_empty() {
+                result.set_native_scripts(&native_scripts);
+            }
         }
-        if !self.plutus_v1_scripts.is_empty() {
-            result.set_plutus_v1_scripts(&PlutusV1Scripts(self.plutus_v1_scripts.values().cloned().collect()));
+        {
+            let plutus_scripts = self.get_plutus_v1_script();
+            if !plutus_scripts.0.is_empty() {
+                result.set_plutus_v1_scripts(&plutus_scripts);
+            }
         }
-        if !self.plutus_v2_scripts.is_empty() {
-            result.set_plutus_v2_scripts(&PlutusV2Scripts(self.plutus_v2_scripts.values().cloned().collect()));
+        {
+            let plutus_scripts = self.get_plutus_v2_script();
+            if !plutus_scripts.0.is_empty() {
+                result.set_plutus_v2_scripts(&plutus_scripts);
+            }
         }
         if !self.plutus_data.is_empty() {
-            result.set_plutus_data(&PlutusList {
-                elems: self.plutus_data.values().cloned().collect(),
-                definite_encoding: None,
-            });
+            result.set_plutus_data(&self.get_plutus_datum());
         }
         if !self.redeemers.is_empty() {
             result.set_redeemers(&Redeemers(self.redeemers.values().cloned().collect()));
@@ -500,9 +525,7 @@ impl TransactionWitnessSetBuilder {
 
         self.vkeys.keys().for_each(|key| { remaining_wits.vkeys.remove(&key.public_key().hash()); });
         self.bootstraps.values().for_each(|wit| { remaining_wits.bootstraps.remove(&wit.to_address().unwrap().to_address()); });
-        self.native_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
-        self.plutus_v1_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
-        self.plutus_v2_scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
+        self.scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
         self.plutus_data.keys().for_each(|hash| { remaining_wits.plutus_data.remove(hash); });
         self.redeemers.keys().for_each(|key| { remaining_wits.redeemers.remove(key); });
 
@@ -601,28 +624,9 @@ impl NativeScriptWitnessInfo {
     }
 }
 
-#[wasm_bindgen]
-#[derive(Clone, Debug)]
-pub struct PlutusScriptWitnessInfo {
-    pub(crate) missing_signers: RequiredSigners,
-    pub(crate) known_signers: Ed25519KeyHashes,
-}
-
-impl PlutusScriptWitnessInfo {
-    /// you can pass in an empty array if there are no required witnesses
-    pub fn set_required_signers(known_signers: &Ed25519KeyHashes, missing_signers: &RequiredSigners) -> PlutusScriptWitnessInfo {
-        Self {
-            missing_signers: missing_signers.clone(),
-            known_signers: known_signers.clone()
-        }
-    }
-}
-
-
-
 #[cfg(test)]
 mod tests {
-    use crate::ledger::common::value::Value;
+    use crate::ledger::{common::value::Value, byron::witness::make_icarus_bootstrap_witness};
 
     use super::*;
 
@@ -651,13 +655,13 @@ mod tests {
                 let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
                 PartialPlutusWitness::new(&PlutusScript(script), &untagged_redeemer)
             };
-            let info = {
+            let missing_signers = {
                 let key = fake_raw_key_public(0);
                 let mut missing_signers = Ed25519KeyHashes::new();
                 missing_signers.add(&key.hash());
-                PlutusScriptWitnessInfo::set_required_signers(&Ed25519KeyHashes::new(), &missing_signers)
+                missing_signers
             };
-            InputAggregateWitnessData::PlutusScript(witness, info, None)
+            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
         };
 
         let address = Address::from_bech32(&"addr1qxeqxcja25k8q05evyngf4f88xn89asl54x2zg3ephgj26ndyt5qk02xmmras5pe9jz2c7tc93wu4c96rqwvg6e2v50qlpmx70").unwrap();
@@ -717,13 +721,13 @@ mod tests {
                 let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
                 PartialPlutusWitness::new(&PlutusScript(script), &untagged_redeemer)
             };
-            let info = {
+            let missing_signers = {
                 let key = fake_raw_key_public(0);
                 let mut missing_signers = Ed25519KeyHashes::new();
                 missing_signers.add(&key.hash());
-                PlutusScriptWitnessInfo::set_required_signers(&Ed25519KeyHashes::new(), &missing_signers)
+                missing_signers
             };
-            InputAggregateWitnessData::PlutusScript(witness, info, None)
+            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
         };
 
         assert_eq!(required_wits.vkeys.len(), 0);
@@ -744,12 +748,12 @@ mod tests {
                 let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
                 PartialPlutusWitness::new(&PlutusScript(script), &untagged_redeemer)
             };
-            let info = {
+            let missing_signers = {
                 let mut missing_signers = Ed25519KeyHashes::new();
                 missing_signers.add(&hash);
-                PlutusScriptWitnessInfo::set_required_signers(&Ed25519KeyHashes::new(), &missing_signers)
+                missing_signers
             };
-            InputAggregateWitnessData::PlutusScript(witness, info, None)
+            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
         };
 
         assert_eq!(required_wits.vkeys.len(), 1);

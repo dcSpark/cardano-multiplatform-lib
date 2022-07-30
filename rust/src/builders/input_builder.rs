@@ -2,7 +2,7 @@ use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 use crate::ledger::common::hash::hash_plutus_data;
 
-use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitnessInfo};
+use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo};
 
 pub fn input_required_wits(utxo_info: &TransactionOutput, required_witnesses: &mut RequiredWitnessSet) {
     if let Some(cred) = &utxo_info.address().payment_cred() {
@@ -71,7 +71,7 @@ impl SingleInputBuilder {
         input_required_wits(&self.utxo_info,&mut required_wits);
         let mut required_wits_left = required_wits.clone();
 
-        let script_hash = &native_script.hash(ScriptHashNamespace::NativeScript);
+        let script_hash = &native_script.hash();
 
         // check the user provided all the required witnesses
         required_wits_left.scripts.remove(script_hash);
@@ -88,11 +88,14 @@ impl SingleInputBuilder {
         })
     }
 
-    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, witness_info: &PlutusScriptWitnessInfo, datum: &PlutusData) -> Result<InputBuilderResult, JsError> {
+    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, required_signers: &RequiredSigners, datum: &PlutusData) -> Result<InputBuilderResult, JsError> {
         let mut required_wits = RequiredWitnessSet::default();
-        witness_info.missing_signers.0.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer));
+        required_signers.0.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer));
         input_required_wits(&self.utxo_info,&mut required_wits);
         let mut required_wits_left = required_wits.clone();
+        
+        // no way to know these at this time
+        required_wits_left.vkeys.clear();
 
         let script_hash = partial_witness.script.hash();
 
@@ -107,7 +110,7 @@ impl SingleInputBuilder {
         Ok(InputBuilderResult {
             input: self.input.clone(),
             utxo_info: self.utxo_info.clone(),
-            aggregate_witness: Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), witness_info.clone(), Some(datum.clone()))),
+            aggregate_witness: Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), required_signers.clone(), Some(datum.clone()))),
             required_wits,
         })
     }

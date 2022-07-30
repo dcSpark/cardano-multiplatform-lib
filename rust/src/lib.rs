@@ -1867,8 +1867,8 @@ to_from_json!(NativeScript);
 
 #[wasm_bindgen]
 impl NativeScript {
-    pub fn hash(&self, namespace: ScriptHashNamespace) -> ScriptHash {
-        hash_script(namespace, self.to_bytes())
+    pub fn hash(&self) -> ScriptHash {
+        hash_script(ScriptHashNamespace::NativeScript, self.to_bytes())
     }
 
     pub fn new_script_pubkey(script_pubkey: &ScriptPubkey) -> Self {
@@ -2953,14 +2953,14 @@ impl MultiAsset {
 
     /// sets the asset {asset_name} to {value} under policy {policy_id}
     /// returns the previous amount if it was set, or else None (undefined in JS)
-    pub fn set_asset(&mut self, policy_id: &PolicyID, asset_name: &AssetName, value: BigNum) -> Option<BigNum> {
-        self.0.entry(policy_id.clone()).or_default().insert(asset_name, &value)
+    pub fn set_asset(&mut self, policy_id: &PolicyID, asset_name: &AssetName, value: &BigNum) -> Option<BigNum> {
+        self.0.entry(policy_id.clone()).or_default().insert(asset_name, value)
     }
 
     /// returns the amount of asset {asset_name} under policy {policy_id}
     /// If such an asset does not exist, 0 is returned.
     pub fn get_asset(&self, policy_id: &PolicyID, asset_name: &AssetName) -> BigNum {
-        (|| self.0.get(policy_id)?.get(asset_name))().unwrap_or(BigNum::zero())
+        (|| self.0.get(policy_id)?.get(asset_name))().unwrap_or_else(|| BigNum::zero())
     }
 
     /// returns all policy IDs used by assets in this multiasset
@@ -3225,7 +3225,7 @@ mod tests {
 
         let script = NativeScript::new_script_pubkey(&ScriptPubkey::new(&keyhash));
 
-        let script_hash = script.hash(ScriptHashNamespace::NativeScript);
+        let script_hash = script.hash();
 
         assert_eq!(hex::encode(&script_hash.to_bytes()), "187b8d3ddcb24013097c003da0b8d8f7ddcf937119d8f59dccd05a0f");
     }

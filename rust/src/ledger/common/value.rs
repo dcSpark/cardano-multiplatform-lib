@@ -427,7 +427,7 @@ impl Int {
     }
 
     pub fn new_i32(x: i32) -> Self {
-        Self(x as i128)
+        Self::from(x)
     }
 
     pub fn is_positive(&self) -> bool {
@@ -499,6 +499,12 @@ impl Int {
     pub fn from_str(string: &str) -> Result<Int, JsError> {
         // have to redefine so it's visible in WASM
         std::str::FromStr::from_str(string)
+    }
+}
+
+impl From<i32> for Int {
+    fn from(num: i32) -> Int {
+        Self(num as i128)
     }
 }
 

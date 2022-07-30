@@ -26,6 +26,54 @@ declare export function decode_plutus_datum_to_json_str(
 ): string;
 
 /**
+ * @param {AuxiliaryData} auxiliary_data
+ * @returns {AuxiliaryDataHash}
+ */
+declare export function hash_auxiliary_data(
+  auxiliary_data: AuxiliaryData
+): AuxiliaryDataHash;
+
+/**
+ * @param {TransactionBody} tx_body
+ * @returns {TransactionHash}
+ */
+declare export function hash_transaction(
+  tx_body: TransactionBody
+): TransactionHash;
+
+/**
+ * @param {PlutusData} plutus_data
+ * @returns {DataHash}
+ */
+declare export function hash_plutus_data(plutus_data: PlutusData): DataHash;
+
+/**
+ * @param {Redeemers} redeemers
+ * @param {Costmdls} cost_models
+ * @param {PlutusList | void} datums
+ * @returns {ScriptDataHash}
+ */
+declare export function hash_script_data(
+  redeemers: Redeemers,
+  cost_models: Costmdls,
+  datums?: PlutusList
+): ScriptDataHash;
+
+/**
+ * @param {Redeemers} redeemers
+ * @param {PlutusList} datums
+ * @param {Costmdls} cost_models
+ * @param {Languages} used_langs
+ * @returns {ScriptDataHash | void}
+ */
+declare export function calc_script_data_hash(
+  redeemers: Redeemers,
+  datums: PlutusList,
+  cost_models: Costmdls,
+  used_langs: Languages
+): ScriptDataHash | void;
+
+/**
  * @param {TransactionOutput} output
  * @param {BigNum} coins_per_utxo_byte
  * @returns {BigNum}
@@ -34,6 +82,30 @@ declare export function min_ada_required(
   output: TransactionOutput,
   coins_per_utxo_byte: BigNum
 ): BigNum;
+
+/**
+ * @param {TransactionHash} tx_body_hash
+ * @param {ByronAddress} addr
+ * @param {LegacyDaedalusPrivateKey} key
+ * @returns {BootstrapWitness}
+ */
+declare export function make_daedalus_bootstrap_witness(
+  tx_body_hash: TransactionHash,
+  addr: ByronAddress,
+  key: LegacyDaedalusPrivateKey
+): BootstrapWitness;
+
+/**
+ * @param {TransactionHash} tx_body_hash
+ * @param {ByronAddress} addr
+ * @param {Bip32PrivateKey} key
+ * @returns {BootstrapWitness}
+ */
+declare export function make_icarus_bootstrap_witness(
+  tx_body_hash: TransactionHash,
+  addr: ByronAddress,
+  key: Bip32PrivateKey
+): BootstrapWitness;
 
 /**
  * @param {Uint8Array} bytes
@@ -92,64 +164,6 @@ declare export function encode_json_str_to_native_script(
 ): NativeScript;
 
 /**
- * @param {TransactionHash} tx_body_hash
- * @param {ByronAddress} addr
- * @param {LegacyDaedalusPrivateKey} key
- * @returns {BootstrapWitness}
- */
-declare export function make_daedalus_bootstrap_witness(
-  tx_body_hash: TransactionHash,
-  addr: ByronAddress,
-  key: LegacyDaedalusPrivateKey
-): BootstrapWitness;
-
-/**
- * @param {TransactionHash} tx_body_hash
- * @param {ByronAddress} addr
- * @param {Bip32PrivateKey} key
- * @returns {BootstrapWitness}
- */
-declare export function make_icarus_bootstrap_witness(
-  tx_body_hash: TransactionHash,
-  addr: ByronAddress,
-  key: Bip32PrivateKey
-): BootstrapWitness;
-
-/**
- * @param {AuxiliaryData} auxiliary_data
- * @returns {AuxiliaryDataHash}
- */
-declare export function hash_auxiliary_data(
-  auxiliary_data: AuxiliaryData
-): AuxiliaryDataHash;
-
-/**
- * @param {TransactionBody} tx_body
- * @returns {TransactionHash}
- */
-declare export function hash_transaction(
-  tx_body: TransactionBody
-): TransactionHash;
-
-/**
- * @param {PlutusData} plutus_data
- * @returns {DataHash}
- */
-declare export function hash_plutus_data(plutus_data: PlutusData): DataHash;
-
-/**
- * @param {Redeemers} redeemers
- * @param {Costmdls} cost_models
- * @param {PlutusList | void} datums
- * @returns {ScriptDataHash}
- */
-declare export function hash_script_data(
-  redeemers: Redeemers,
-  cost_models: Costmdls,
-  datums?: PlutusList
-): ScriptDataHash;
-
-/**
  * @param {string} password
  * @param {string} salt
  * @param {string} nonce
@@ -172,6 +186,16 @@ declare export function decrypt_with_password(
   password: string,
   data: string
 ): string;
+
+/**
+ * @param {Transaction} tx
+ * @param {ExUnitPrices} ex_unit_prices
+ * @returns {BigNum}
+ */
+declare export function min_script_fee(
+  tx: Transaction,
+  ex_unit_prices: ExUnitPrices
+): BigNum;
 
 /**
  * @param {Transaction} tx
@@ -341,6 +365,20 @@ declare export var PlutusDatumSchema: {|
 |};
 
 /**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
+ */
+
+declare export var ScriptHashNamespace: {|
+  +NativeScript: 0, // 0
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
+|};
+
+/**
  */
 
 declare export var TransactionMetadatumKind: {|
@@ -393,20 +431,6 @@ declare export var SpendingDataKind: {|
   +SpendingDataPubKeyASD: 0, // 0
   +SpendingDataScriptASD: 1, // 1
   +SpendingDataRedeemASD: 2, // 2
-|};
-
-/**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
- */
-
-declare export var ScriptHashNamespace: {|
-  +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
 |};
 
 /**
@@ -2140,7 +2164,7 @@ declare export class CostModel {
    * @param {Language} language
    * @returns {CostModel}
    */
-  static new(language: Language): CostModel;
+  static empty_model(language: Language): CostModel;
 
   /**
    * @param {number} operation
@@ -3965,10 +3989,9 @@ declare export class NativeScript {
   static from_json(json: string): NativeScript;
 
   /**
-   * @param {number} namespace
    * @returns {ScriptHash}
    */
-  hash(namespace: number): ScriptHash;
+  hash(): ScriptHash;
 
   /**
    * @param {ScriptPubkey} script_pubkey
@@ -4448,11 +4471,6 @@ declare export class PlutusMap {
 /**
  */
 declare export class PlutusScript {
-  free(): void;
-}
-/**
- */
-declare export class PlutusScriptWitnessInfo {
   free(): void;
 }
 /**
@@ -5714,6 +5732,11 @@ declare export class Redeemers {
    * @param {Redeemer} elem
    */
   add(elem: Redeemer): void;
+
+  /**
+   * @returns {ExUnits}
+   */
+  get_total_ex_units(): ExUnits;
 }
 /**
  */
@@ -6446,12 +6469,12 @@ declare export class SingleCertificateBuilder {
 
   /**
    * @param {PartialPlutusWitness} partial_witness
-   * @param {PlutusScriptWitnessInfo} witness_info
+   * @param {Ed25519KeyHashes} required_signers
    * @returns {CertificateBuilderResult}
    */
   plutus_script(
     partial_witness: PartialPlutusWitness,
-    witness_info: PlutusScriptWitnessInfo
+    required_signers: Ed25519KeyHashes
   ): CertificateBuilderResult;
 }
 /**
@@ -6590,13 +6613,13 @@ declare export class SingleInputBuilder {
 
   /**
    * @param {PartialPlutusWitness} partial_witness
-   * @param {PlutusScriptWitnessInfo} witness_info
+   * @param {Ed25519KeyHashes} required_signers
    * @param {PlutusData} datum
    * @returns {InputBuilderResult}
    */
   plutus_script(
     partial_witness: PartialPlutusWitness,
-    witness_info: PlutusScriptWitnessInfo,
+    required_signers: Ed25519KeyHashes,
     datum: PlutusData
   ): InputBuilderResult;
 }
@@ -6672,12 +6695,12 @@ declare export class SingleMintBuilder {
 
   /**
    * @param {PartialPlutusWitness} partial_witness
-   * @param {PlutusScriptWitnessInfo} witness_info
+   * @param {Ed25519KeyHashes} required_signers
    * @returns {MintBuilderResult}
    */
   plutus_script(
     partial_witness: PartialPlutusWitness,
-    witness_info: PlutusScriptWitnessInfo
+    required_signers: Ed25519KeyHashes
   ): MintBuilderResult;
 }
 /**
@@ -6709,12 +6732,12 @@ declare export class SingleWithdrawalBuilder {
 
   /**
    * @param {PartialPlutusWitness} partial_witness
-   * @param {PlutusScriptWitnessInfo} witness_info
+   * @param {Ed25519KeyHashes} required_signers
    * @returns {WithdrawalBuilderResult}
    */
   plutus_script(
     partial_witness: PartialPlutusWitness,
-    witness_info: PlutusScriptWitnessInfo
+    required_signers: Ed25519KeyHashes
   ): WithdrawalBuilderResult;
 }
 /**
@@ -7872,16 +7895,6 @@ declare export class TransactionBuilder {
    * @returns {TransactionBuilder}
    */
   static new(cfg: TransactionBuilderConfig): TransactionBuilder;
-
-  /**
-   * @param {ScriptDataHash} script_data_hash
-   */
-  set_script_data_hash(script_data_hash: ScriptDataHash): void;
-
-  /**
-   * @returns {ScriptDataHash | void}
-   */
-  script_data_hash(): ScriptDataHash | void;
 
   /**
    * @param {InputBuilderResult} result

@@ -2,7 +2,7 @@ use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 use std::collections::{HashSet};
 
-use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitnessInfo};
+use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo};
 
 // comes from witsVKeyNeeded in the Ledger spec
 pub fn cert_required_wits(cert_enum: &Certificate, required_witnesses: &mut RequiredWitnessSet) {
@@ -118,9 +118,8 @@ impl SingleCertificateBuilder {
     pub fn payment_key(&self) -> Result<CertificateBuilderResult, JsError> {
         let mut required_wits = RequiredWitnessSet::default();
         cert_required_wits(&self.cert, &mut required_wits);
-        let mut required_wits_left = required_wits.clone();
 
-        if required_wits_left.scripts.len() > 0 {
+        if !required_wits.scripts.is_empty() {
             return Err(JsError::from_str(&format!("Certificate required a script, not a payment key: \n{:#?}", self.cert.to_json())));
         }
 
@@ -140,10 +139,10 @@ impl SingleCertificateBuilder {
 
         // the user may have provided more witnesses than required. Strip it down to just the required wits
         // often happens because users aren't aware StakeRegistration doesn't require a witness
-        let contains = required_wits_left.scripts.contains(&native_script.hash(ScriptHashNamespace::NativeScript));
+        let contains = required_wits_left.scripts.contains(&native_script.hash());
 
         // check the user provided all the required witnesses
-        required_wits_left.scripts.remove(&native_script.hash(ScriptHashNamespace::NativeScript));
+        required_wits_left.scripts.remove(&native_script.hash());
 
         if required_wits_left.len() > 0 {
             return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str()))); 
@@ -156,11 +155,14 @@ impl SingleCertificateBuilder {
         })
     }
 
-    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, witness_info: &PlutusScriptWitnessInfo) -> Result<CertificateBuilderResult, JsError> {
+    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, required_signers: &RequiredSigners) -> Result<CertificateBuilderResult, JsError> {
         let mut required_wits = RequiredWitnessSet::default();
-        witness_info.missing_signers.0.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(&required_signer));
+        required_signers.0.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer));
         cert_required_wits(&self.cert, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
+
+        // no way to know these at this time
+        required_wits_left.vkeys.clear();
 
         let script_hash = partial_witness.script.hash();
 
@@ -177,7 +179,7 @@ impl SingleCertificateBuilder {
 
         Ok(CertificateBuilderResult {
             cert: self.cert.clone(),
-            aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), witness_info.clone(), None)) } else { None },
+            aggregate_witness: if contains { Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), required_signers.clone(), None)) } else { None },
             required_wits,
         })
     }

@@ -1,10 +1,10 @@
-use std::{collections::{HashSet, HashMap, BTreeMap}, fmt::Debug};
+use std::{collections::{HashMap, BTreeMap}, fmt::Debug};
 use crate::{*, ledger::common::hash::hash_plutus_data, byron::ByronAddress};
 
 use super::{input_builder::InputBuilderResult, mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult, certificate_builder::CertificateBuilderResult};
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialOrd, Ord, Debug, PartialEq, Eq, Hash)]
 pub struct RedeemerWitnessKey {
     tag: RedeemerTag,
     index: BigNum,
@@ -112,15 +112,15 @@ impl InputAggregateWitnessData {
 pub struct RequiredWitnessSet {
     // note: the real key type for these is Vkey
     // but cryptographically these should be equivalent and Ed25519KeyHash is more flexible
-    pub(crate) vkeys: HashSet<Ed25519KeyHash>,
+    pub(crate) vkeys: BTreeSet<Ed25519KeyHash>,
     // note: the real key type for these is Vkey
     // but cryptographically these should be equivalent as ByronAddress contains an AddressId
     // which is the hash of data that includes the public key
-    pub(crate) bootstraps: HashSet<ByronAddress>,
+    pub(crate) bootstraps: BTreeSet<ByronAddress>,
     // note: no way to differentiate Plutus script from native script
-    pub(crate) scripts: HashSet<ScriptHash>,
-    pub(crate) plutus_data: HashSet<DataHash>,
-    pub(crate) redeemers: HashSet<RedeemerWitnessKey>,
+    pub(crate) scripts: BTreeSet<ScriptHash>,
+    pub(crate) plutus_data: BTreeSet<DataHash>,
+    pub(crate) redeemers: BTreeSet<RedeemerWitnessKey>,
 }
 
 #[wasm_bindgen]

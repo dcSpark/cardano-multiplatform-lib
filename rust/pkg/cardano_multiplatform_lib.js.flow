@@ -7977,6 +7977,11 @@ declare export class TransactionBuilder {
   add_change_if_needed(address: Address): boolean;
 
   /**
+   * @param {TransactionOutput} output
+   */
+  set_collateral_return(output: TransactionOutput): void;
+
+  /**
    * @returns {number}
    */
   full_size(): number;

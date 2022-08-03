@@ -1682,7 +1682,8 @@ impl Deserialize for PlutusMap {
         let mut table = std::collections::BTreeMap::new();
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
-            while match len { cbor_event::Len::Len(n) => table.len() < n as usize, cbor_event::Len::Indefinite => true, } {
+            let mut read = 0;
+            while match len { cbor_event::Len::Len(n) => read < n as usize, cbor_event::Len::Indefinite => true, } {
                 if raw.cbor_type()? == CBORType::Special {
                     assert_eq!(raw.special()?, CBORSpecial::Break);
                     break;
@@ -1690,8 +1691,10 @@ impl Deserialize for PlutusMap {
                 let key = PlutusData::deserialize(raw)?;
                 let value = PlutusData::deserialize(raw)?;
                 if table.insert(key.clone(), value).is_some() {
-                    return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
+                    // this is actually allowed on the blockchain (sadly)
+                    //return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
                 }
+                read += 1;
             }
             Ok(())
         })().map_err(|e| e.annotate("PlutusMap"))?;

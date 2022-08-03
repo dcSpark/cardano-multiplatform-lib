@@ -737,8 +737,17 @@ mod tests {
     }
 
     #[test]
-    fn tx_witness_set_roundtrip_test() {
+    fn byron_tx_witness_set_roundtrip_test() {
         let data = "a102818458205e8379f58f0838234af67f73738f0fee0d8185232e200b8e42887f4f06544a9a5840f5cfea560d2f8645ed624b65bf08cf83346eb5168ee4df0f63ce2d0d5f677db88fef2d5d9f032f09223889b5e85504ab44dd0a0cde1f1fd8f57deefde8c2080658202d3b7d9b806f88f10f1193e94ef97e5c02370c1464f61a30a8f1ac1a46115b2d5829a201581e581c072931653330243cf126aea85d39e73c6bd04601fe77424efb9e371002451a4170cb17";
+        let witness_set = TransactionWitnessSet::from_bytes(hex::decode(data).unwrap()).unwrap();
+        let round_trip = witness_set.to_bytes();
+
+        assert_eq!(data, hex::encode(&round_trip));
+    }
+
+    #[test]
+    fn plutus_tx_witness_set_roundtrip_test() {
+        let data = "a10481d8799fd8799f581ccf07540d800c4f1d657cb964dbaaaa6b0c8d8b1b963af7a7580270caff1a08f0d1800a01d8799f581c723df65c1030de6f6ebd937d9fa3970b39767d05e3361e9b3dc52a5dffd87a80d8799fa1581cf914e63b747bbbab11f8b32a810edb583b1e087cf53e9f77c573c888ab46666c756964310146666c756964370147666c75696431300146666c756964320146666c756964330146666c756964340146666c756964350146666c756964360146666c756964370146666c756964380146666c7569643901ffff";
         let witness_set = TransactionWitnessSet::from_bytes(hex::decode(data).unwrap()).unwrap();
         let round_trip = witness_set.to_bytes();
 

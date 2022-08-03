@@ -603,7 +603,7 @@ impl cbor_event::se::Serialize for BootstrapWitness {
         self.vkey.serialize(serializer)?;
         self.signature.serialize(serializer)?;
         serializer.write_bytes(&self.chain_code)?;
-        self.attributes.serialize(serializer)?;
+        cbor_event::se::serialize_cbor_in_cbor(&self.attributes, serializer)?;
         Ok(serializer)
     }
 }
@@ -637,7 +637,9 @@ impl DeserializeEmbeddedGroup for BootstrapWitness {
             Ok(raw.bytes()?)
         })().map_err(|e| e.annotate("chain_code"))?;
         let attributes = (|| -> Result<_, DeserializeError> {
-            Ok(AddrAttributes::deserialize(raw)?)
+            let bytes = raw.bytes()?;
+            let mut inner_cbor = Deserializer::from(std::io::Cursor::new(bytes));
+            Ok(AddrAttributes::deserialize(&mut inner_cbor)?)
         })().map_err(|e| e.annotate("attributes"))?;
         Ok(BootstrapWitness {
             vkey,

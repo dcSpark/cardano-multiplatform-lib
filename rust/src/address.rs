@@ -461,6 +461,21 @@ impl Address {
         let data: Vec<u8> = bech32::FromBase32::from_base32(&u5data).unwrap();
         Ok(Self::from_bytes_impl(data.as_ref())?)
     }
+    
+    pub fn is_shelley(bech_str: &str) -> bool {
+        return match Self::from_bech32(bech_str) {
+            Ok(v) => true,
+            Err(err) => false,
+        };
+    }
+
+    pub fn is_byron(bech_str: &str) -> bool {
+        return ByronAddress::is_valid(bech_str);
+    }
+
+    pub fn is_valid(bech_str: &str) -> bool {
+        return Self::is_shelley(bech_str) || Self::is_byron(bech_str);
+    }
 
     pub fn network_id(&self) -> Result<u8, JsError> {
         match &self.variant {

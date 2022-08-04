@@ -124,7 +124,11 @@ impl DeserializeEmbeddedGroup for Transaction {
         if !checked_auxiliary_data {
             // this branch is reached, if the 3rd argument was a bool. then it simply follows the rules for checking auxiliary data
             auxiliary_data = (|| -> Result<_, DeserializeError> {
-                Ok(match raw.cbor_type()? != CBORType::Special {
+                let cbor_type = match raw.cbor_type() {
+                    Ok(cbor_type) => cbor_type,
+                    Err(_) => return Ok(None)
+                };
+                Ok(match cbor_type != CBORType::Special {
                     true => {
                         Some(AuxiliaryData::deserialize(raw)?)
                     },

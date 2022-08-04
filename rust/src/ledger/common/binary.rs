@@ -4,7 +4,7 @@ use cbor_event::{de::Deserializer, se::Serializer};
 use cbor_event::Special as CBORSpecial;
 use cbor_event::Type as CBORType;
 
-use crate::error::{DeserializeError, DeserializeFailure};
+use crate::error::{DeserializeError, DeserializeFailure, JsError};
 
 // JsError can't be used by non-wasm targets so we use this macro to expose
 // either a DeserializeError or a JsError error depending on if we're on a

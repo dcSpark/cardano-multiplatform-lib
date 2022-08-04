@@ -179,7 +179,7 @@ impl From<chain_crypto::PublicKeyError> for DeserializeError {
 // since JsError panics when used for non-constants in non-wasm builds even just creating one
 
 #[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
-pub type JsError = JsValue;
+pub type JsError = wasm_bindgen::prelude::JsValue;
 
 #[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
 #[derive(Debug, Clone)]

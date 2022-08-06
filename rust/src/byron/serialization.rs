@@ -154,7 +154,7 @@ impl cbor_event::se::Serialize for ByronAddress {
         serializer.write_array(cbor_event::Len::Len(2))?;
         serializer.write_tag(24u64)?;
         serializer.write_bytes(&self.addr)?;
-        serializer.write_unsigned_integer(self.crc32)?;
+        serializer.write_unsigned_integer(self.crc32 as u64)?;
         Ok(serializer)
     }
 }
@@ -174,7 +174,7 @@ impl Deserialize for ByronAddress {
                 })
             })().map_err(|e| e.annotate("addr"))?;
             let crc32 = (|| -> Result<_, DeserializeError> {
-                Ok(u64::deserialize(raw)?)
+                Ok(u32::deserialize(raw)?)
             })().map_err(|e| e.annotate("crc32"))?;
             match len {
                 cbor_event::Len::Len(_) => (),
@@ -186,7 +186,7 @@ impl Deserialize for ByronAddress {
             ByronAddress::new(
                 addr.clone(),
                 crc32,
-            ).map_err(|_| DeserializeError::new("ByronAddress", DeserializeFailure::ChecksumMismatch { found: crc32, expected: crate::byron::crc32::crc32(&addr) as u64 }))
+            ).map_err(|_| DeserializeError::new("ByronAddress", DeserializeFailure::ChecksumMismatch { found: crc32, expected: crate::byron::crc32::crc32(&addr) }))
         })().map_err(|e| e.annotate("ByronAddress"))
     }
 }

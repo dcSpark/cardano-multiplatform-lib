@@ -43,8 +43,8 @@ pub enum DeserializeFailure {
         max: Option<isize>,
     },
     ChecksumMismatch{
-        found: u64,
-        expected: u64,
+        found: u32,
+        expected: u32,
     },
     OutOfRange{
         min: usize,

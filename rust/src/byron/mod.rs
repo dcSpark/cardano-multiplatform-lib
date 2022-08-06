@@ -151,7 +151,7 @@ impl StakeDistribution {
     }
 }
 
-type Crc32 = u64;
+type Crc32 = u32;
 
 #[wasm_bindgen]
 
@@ -178,7 +178,7 @@ impl ByronAddress {
     pub fn new(addr: Vec<u8>, crc32: Crc32) -> Result<ByronAddress, JsError> {
         let found_crc = crate::byron::crc32::crc32(&addr);
 
-        if crc32 != found_crc as u64 {
+        if crc32 != found_crc as u32 {
             return Err(JsError::from_str(&format!(
                 "Invalid CRC32: 0x{:x} but expected 0x{:x}",
                 crc32, found_crc

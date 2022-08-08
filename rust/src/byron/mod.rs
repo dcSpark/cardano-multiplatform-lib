@@ -29,10 +29,11 @@ use crate::{chain_crypto::hash::Blake2b224, crypto::impl_hash_type};
 use crate::error::{DeserializeError, DeserializeFailure};
 use bech32::ToBase32;
 
+pub use self::crc32::Crc32;
+
 mod serialization;
 mod utils;
 mod crc32;
-mod cbor;
 mod base58;
 
 #[wasm_bindgen]
@@ -151,8 +152,6 @@ impl StakeDistribution {
     }
 }
 
-type Crc32 = u64;
-
 #[wasm_bindgen]
 
 #[derive(Clone, Debug, Eq, Ord, Hash, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
@@ -175,18 +174,27 @@ impl ByronAddress {
         self.crc32.clone()
     }
 
-    pub fn new(addr: Vec<u8>, crc32: Crc32) -> Result<ByronAddress, JsError> {
+    pub fn checksum_from_bytes(addr: Vec<u8>) -> ByronAddress {
+        let crc32 = crate::byron::crc32::crc32(&addr);
+        
+        Self {
+            addr: addr,
+            crc32: crc32.into(),
+        }
+    }
+
+    pub fn new(addr: Vec<u8>, crc32: &Crc32) -> Result<ByronAddress, JsError> {
         let found_crc = crate::byron::crc32::crc32(&addr);
 
-        if crc32 != found_crc as u64 {
+        if crc32.0 != found_crc as u32 {
             return Err(JsError::from_str(&format!(
                 "Invalid CRC32: 0x{:x} but expected 0x{:x}",
-                crc32, found_crc
+                crc32.0, found_crc
             )));
         }
         Ok(Self {
             addr: addr,
-            crc32: crc32,
+            crc32: crc32.clone(),
         })
     }
 }

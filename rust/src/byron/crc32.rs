@@ -1,3 +1,6 @@
+use super::*;
+use schemars::JsonSchema;
+
 const CRC_TABLE: [u32; 256] = [
     0x00000000u32,
     0x77073096u32,
@@ -261,8 +264,24 @@ const CRC_TABLE: [u32; 256] = [
 ///
 /// This structure allows implements the `Write` trait making it easier
 /// to compute the crc32 of a stream.
-///
-pub struct Crc32(u32);
+#[wasm_bindgen]
+#[derive(Clone, Debug, Eq, Ord, Hash, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+pub struct Crc32(pub(crate) u32);
+
+to_from_bytes!(Crc32);
+to_from_json!(Crc32);
+
+#[wasm_bindgen]
+impl Crc32 {
+    pub fn from_val(val: u32) -> Crc32 {
+        Self(val)
+    }
+
+    pub fn val(&self) -> u32 {
+        self.0
+    }
+}
+
 impl Crc32 {
     /// initialise a new CRC32 state
     #[inline]
@@ -301,6 +320,12 @@ impl ::std::io::Write for Crc32 {
     #[inline]
     fn flush(&mut self) -> Result<(), std::io::Error> {
         Ok(())
+    }
+}
+
+impl From<u32> for Crc32 {
+    fn from(v: u32) -> Self {
+        Crc32(v)
     }
 }
 

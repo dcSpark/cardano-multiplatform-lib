@@ -154,7 +154,7 @@ impl cbor_event::se::Serialize for ByronAddress {
         serializer.write_array(cbor_event::Len::Len(2))?;
         serializer.write_tag(24u64)?;
         serializer.write_bytes(&self.addr)?;
-        serializer.write_unsigned_integer(self.crc32 as u64)?;
+        serializer.serialize(&self.crc32)?;
         Ok(serializer)
     }
 }
@@ -174,7 +174,7 @@ impl Deserialize for ByronAddress {
                 })
             })().map_err(|e| e.annotate("addr"))?;
             let crc32 = (|| -> Result<_, DeserializeError> {
-                Ok(u32::deserialize(raw)?)
+                Ok(Crc32::deserialize(raw)?)
             })().map_err(|e| e.annotate("crc32"))?;
             match len {
                 cbor_event::Len::Len(_) => (),
@@ -185,8 +185,8 @@ impl Deserialize for ByronAddress {
             }
             ByronAddress::new(
                 addr.clone(),
-                crc32,
-            ).map_err(|_| DeserializeError::new("ByronAddress", DeserializeFailure::ChecksumMismatch { found: crc32, expected: crate::byron::crc32::crc32(&addr) }))
+                &crc32,
+            ).map_err(|_| DeserializeError::new("ByronAddress", DeserializeFailure::ChecksumMismatch { found: crc32.0, expected: crate::byron::crc32::crc32(&addr) }))
         })().map_err(|e| e.annotate("ByronAddress"))
     }
 }
@@ -659,5 +659,20 @@ impl cbor_event::se::Serialize for ByronScript {
 impl Deserialize for ByronScript {
     fn deserialize<R: BufRead + Seek>(reader: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         <[u8; 32]>::deserialize(reader).map(ByronScript)
+    }
+}
+
+impl cbor_event::se::Serialize for Crc32 {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer(self.0 as u64)
+    }
+}
+impl Deserialize for Crc32 {
+    fn deserialize<R: BufRead + Seek>(reader: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let v = reader.unsigned_integer()? as u32;
+        Ok(Crc32::from(v))
     }
 }

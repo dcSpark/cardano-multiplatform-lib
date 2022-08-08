@@ -125,6 +125,7 @@ fn main() {
 
     gen_json_schema!(AddrAttributes);
     gen_json_schema!(StakeDistribution);
+    gen_json_schema!(Crc32);
     gen_json_schema!(ByronAddress);
     gen_json_schema!(AddressContent);
     gen_json_schema!(ByronAddrType);

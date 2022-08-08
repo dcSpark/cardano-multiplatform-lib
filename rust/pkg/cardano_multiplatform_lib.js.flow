@@ -6,26 +6,6 @@
  */
 
 /**
- * @param {string} json
- * @param {number} schema
- * @returns {PlutusData}
- */
-declare export function encode_json_str_to_plutus_datum(
-  json: string,
-  schema: number
-): PlutusData;
-
-/**
- * @param {PlutusData} datum
- * @param {number} schema
- * @returns {string}
- */
-declare export function decode_plutus_datum_to_json_str(
-  datum: PlutusData,
-  schema: number
-): string;
-
-/**
  * @param {AuxiliaryData} auxiliary_data
  * @returns {AuxiliaryDataHash}
  */
@@ -84,28 +64,24 @@ declare export function min_ada_required(
 ): BigNum;
 
 /**
- * @param {TransactionHash} tx_body_hash
- * @param {ByronAddress} addr
- * @param {LegacyDaedalusPrivateKey} key
- * @returns {BootstrapWitness}
+ * @param {string} json
+ * @param {number} schema
+ * @returns {PlutusData}
  */
-declare export function make_daedalus_bootstrap_witness(
-  tx_body_hash: TransactionHash,
-  addr: ByronAddress,
-  key: LegacyDaedalusPrivateKey
-): BootstrapWitness;
+declare export function encode_json_str_to_plutus_datum(
+  json: string,
+  schema: number
+): PlutusData;
 
 /**
- * @param {TransactionHash} tx_body_hash
- * @param {ByronAddress} addr
- * @param {Bip32PrivateKey} key
- * @returns {BootstrapWitness}
+ * @param {PlutusData} datum
+ * @param {number} schema
+ * @returns {string}
  */
-declare export function make_icarus_bootstrap_witness(
-  tx_body_hash: TransactionHash,
-  addr: ByronAddress,
-  key: Bip32PrivateKey
-): BootstrapWitness;
+declare export function decode_plutus_datum_to_json_str(
+  datum: PlutusData,
+  schema: number
+): string;
 
 /**
  * @param {Uint8Array} bytes
@@ -144,6 +120,30 @@ declare export function decode_metadatum_to_json_str(
 ): string;
 
 /**
+ * @param {TransactionHash} tx_body_hash
+ * @param {ByronAddress} addr
+ * @param {LegacyDaedalusPrivateKey} key
+ * @returns {BootstrapWitness}
+ */
+declare export function make_daedalus_bootstrap_witness(
+  tx_body_hash: TransactionHash,
+  addr: ByronAddress,
+  key: LegacyDaedalusPrivateKey
+): BootstrapWitness;
+
+/**
+ * @param {TransactionHash} tx_body_hash
+ * @param {ByronAddress} addr
+ * @param {Bip32PrivateKey} key
+ * @returns {BootstrapWitness}
+ */
+declare export function make_icarus_bootstrap_witness(
+  tx_body_hash: TransactionHash,
+  addr: ByronAddress,
+  key: Bip32PrivateKey
+): BootstrapWitness;
+
+/**
  * Receives a script JSON string
  * and returns a NativeScript.
  * Cardano Wallet and Node styles are supported.
@@ -162,6 +162,28 @@ declare export function encode_json_str_to_native_script(
   self_xpub: string,
   schema: number
 ): NativeScript;
+
+/**
+ * @param {Transaction} tx
+ * @param {ExUnitPrices} ex_unit_prices
+ * @returns {BigNum}
+ */
+declare export function min_script_fee(
+  tx: Transaction,
+  ex_unit_prices: ExUnitPrices
+): BigNum;
+
+/**
+ * @param {Transaction} tx
+ * @param {LinearFee} linear_fee
+ * @param {ExUnitPrices} ex_unit_prices
+ * @returns {BigNum}
+ */
+declare export function min_fee(
+  tx: Transaction,
+  linear_fee: LinearFee,
+  ex_unit_prices: ExUnitPrices
+): BigNum;
 
 /**
  * @param {string} password
@@ -186,28 +208,6 @@ declare export function decrypt_with_password(
   password: string,
   data: string
 ): string;
-
-/**
- * @param {Transaction} tx
- * @param {ExUnitPrices} ex_unit_prices
- * @returns {BigNum}
- */
-declare export function min_script_fee(
-  tx: Transaction,
-  ex_unit_prices: ExUnitPrices
-): BigNum;
-
-/**
- * @param {Transaction} tx
- * @param {LinearFee} linear_fee
- * @param {ExUnitPrices} ex_unit_prices
- * @returns {BigNum}
- */
-declare export function min_fee(
-  tx: Transaction,
-  linear_fee: LinearFee,
-  ex_unit_prices: ExUnitPrices
-): BigNum;
 
 /**
  * @param {TransactionBody} txbody
@@ -310,6 +310,20 @@ declare export var NetworkIdKind: {|
 |};
 
 /**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
+ */
+
+declare export var ScriptHashNamespace: {|
+  +NativeScript: 0, // 0
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
+|};
+
+/**
  */
 
 declare export var LanguageKind: {|
@@ -362,20 +376,6 @@ declare export var ScriptKind: {|
 declare export var PlutusDatumSchema: {|
   +BasicConversions: 0, // 0
   +DetailedSchema: 1, // 1
-|};
-
-/**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
- */
-
-declare export var ScriptHashNamespace: {|
-  +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
 |};
 
 /**
@@ -1902,16 +1902,22 @@ declare export class ByronAddress {
   addr(): Uint8Array;
 
   /**
-   * @returns {BigInt}
+   * @returns {Crc32}
    */
-  crc32(): BigInt;
+  crc32(): Crc32;
 
   /**
    * @param {Uint8Array} addr
-   * @param {BigInt} crc32
    * @returns {ByronAddress}
    */
-  static new(addr: Uint8Array, crc32: BigInt): ByronAddress;
+  static checksum_from_bytes(addr: Uint8Array): ByronAddress;
+
+  /**
+   * @param {Uint8Array} addr
+   * @param {Crc32} crc32
+   * @returns {ByronAddress}
+   */
+  static new(addr: Uint8Array, crc32: Crc32): ByronAddress;
 }
 /**
  */
@@ -2226,6 +2232,53 @@ declare export class Costmdls {
    * @returns {Languages}
    */
   keys(): Languages;
+}
+/**
+ * structure to compute the CRC32 of chunks of bytes.
+ *
+ * This structure allows implements the `Write` trait making it easier
+ * to compute the crc32 of a stream.
+ */
+declare export class Crc32 {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {Crc32}
+   */
+  static from_bytes(bytes: Uint8Array): Crc32;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {Crc32JSON}
+   */
+  to_js_value(): Crc32JSON;
+
+  /**
+   * @param {string} json
+   * @returns {Crc32}
+   */
+  static from_json(json: string): Crc32;
+
+  /**
+   * @param {number} val
+   * @returns {Crc32}
+   */
+  static from_val(val: number): Crc32;
+
+  /**
+   * @returns {number}
+   */
+  val(): number;
 }
 /**
  */
@@ -9569,7 +9622,7 @@ export type ByronAddrTypeJSON = AddrTypeEnumJSON;
 export type AddrTypeEnumJSON = "ATPubKey" | "ATScript" | "ATRedeem";
 export interface ByronAddressJSON {
   addr: number[];
-  crc32: number;
+  crc32: Crc32JSON;
 }
 export type CertificateJSON = CertificateEnumJSON;
 export type CertificateEnumJSON =
@@ -9613,6 +9666,12 @@ export interface CostModelJSON {
 export interface CostmdlsJSON {
   [k: string]: CostModelJSON;
 }
+/**
+ * structure to compute the CRC32 of chunks of bytes.
+ *
+ * This structure allows implements the `Write` trait making it easier to compute the crc32 of a stream.
+ */
+export type Crc32JSON = number;
 export type DNSRecordAorAAAAJSON = string;
 export type DNSRecordSRVJSON = string;
 export type DataHashJSON = string;

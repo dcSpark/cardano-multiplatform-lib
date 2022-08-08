@@ -2,7 +2,7 @@ use cbor_event::cbor;
 
 use crate::{chain_crypto::{Sha3_256}, genesis::network_info::NetworkInfo, crypto::{Bip32PublicKey, PublicKey}, address::Address};
 use std::{convert::TryInto, fmt};
-use super::{*, cbor::util::encode_with_crc32_};
+use super::*;
 
 #[wasm_bindgen]
 impl StakeDistribution {
@@ -94,11 +94,7 @@ impl AddressContent {
     }
 
     pub fn to_address(&self) -> ByronAddress {
-        let mut serializer = Serializer::new_vec();
-        encode_with_crc32_(&self, &mut serializer).unwrap();
-
-        let mut raw = Deserializer::from(std::io::Cursor::new(serializer.finalize()));
-        ByronAddress::deserialize(&mut raw).unwrap()
+        ByronAddress::checksum_from_bytes(self.to_bytes())
     }
 
     /// returns the byron protocol magic embedded in the address, or mainnet id if none is present

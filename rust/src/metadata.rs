@@ -346,6 +346,7 @@ pub struct AuxiliaryData {
     native_scripts: Option<NativeScripts>,
     plutus_v1_scripts: Option<PlutusV1Scripts>,
     plutus_v2_scripts: Option<PlutusV2Scripts>,
+    #[serde(skip)]
     prefer_alonzo_format: bool,
 }
 

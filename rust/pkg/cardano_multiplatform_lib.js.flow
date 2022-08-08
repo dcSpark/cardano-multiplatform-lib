@@ -6,26 +6,6 @@
  */
 
 /**
- * @param {string} json
- * @param {number} schema
- * @returns {PlutusData}
- */
-declare export function encode_json_str_to_plutus_datum(
-  json: string,
-  schema: number
-): PlutusData;
-
-/**
- * @param {PlutusData} datum
- * @param {number} schema
- * @returns {string}
- */
-declare export function decode_plutus_datum_to_json_str(
-  datum: PlutusData,
-  schema: number
-): string;
-
-/**
  * @param {AuxiliaryData} auxiliary_data
  * @returns {AuxiliaryDataHash}
  */
@@ -106,6 +86,26 @@ declare export function make_icarus_bootstrap_witness(
   addr: ByronAddress,
   key: Bip32PrivateKey
 ): BootstrapWitness;
+
+/**
+ * @param {string} json
+ * @param {number} schema
+ * @returns {PlutusData}
+ */
+declare export function encode_json_str_to_plutus_datum(
+  json: string,
+  schema: number
+): PlutusData;
+
+/**
+ * @param {PlutusData} datum
+ * @param {number} schema
+ * @returns {string}
+ */
+declare export function decode_plutus_datum_to_json_str(
+  datum: PlutusData,
+  schema: number
+): string;
 
 /**
  * @param {Uint8Array} bytes
@@ -310,6 +310,20 @@ declare export var NetworkIdKind: {|
 |};
 
 /**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
+ */
+
+declare export var ScriptHashNamespace: {|
+  +NativeScript: 0, // 0
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
+|};
+
+/**
  */
 
 declare export var LanguageKind: {|
@@ -362,20 +376,6 @@ declare export var ScriptKind: {|
 declare export var PlutusDatumSchema: {|
   +BasicConversions: 0, // 0
   +DetailedSchema: 1, // 1
-|};
-
-/**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
- */
-
-declare export var ScriptHashNamespace: {|
-  +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
 |};
 
 /**
@@ -436,6 +436,16 @@ declare export var SpendingDataKind: {|
 /**
  */
 
+declare export var CoinSelectionStrategyCIP2: {|
+  +LargestFirst: 0, // 0
+  +RandomImprove: 1, // 1
+  +LargestFirstMultiAsset: 2, // 2
+  +RandomImproveMultiAsset: 3, // 3
+|};
+
+/**
+ */
+
 declare export var StakeCredKind: {|
   +Key: 0, // 0
   +Script: 1, // 1
@@ -459,16 +469,6 @@ declare export var AddressHeaderKind: {|
   +Byron: 8, // 8
   +RewardKey: 9, // 9
   +RewardScript: 10, // 10
-|};
-
-/**
- */
-
-declare export var CoinSelectionStrategyCIP2: {|
-  +LargestFirst: 0, // 0
-  +RandomImprove: 1, // 1
-  +LargestFirstMultiAsset: 2, // 2
-  +RandomImproveMultiAsset: 3, // 3
 |};
 
 /**
@@ -9536,7 +9536,6 @@ export interface AuxiliaryDataJSON {
   native_scripts?: NativeScriptsJSON | null;
   plutus_v1_scripts?: PlutusV1ScriptsJSON | null;
   plutus_v2_scripts?: PlutusV2ScriptsJSON | null;
-  prefer_alonzo_format: boolean;
 }
 export type AuxiliaryDataHashJSON = string;
 export interface AuxiliaryDataSetJSON {

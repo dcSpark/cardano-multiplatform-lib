@@ -84,6 +84,26 @@ declare export function decode_plutus_datum_to_json_str(
 ): string;
 
 /**
+ * @param {string} json
+ * @param {number} schema
+ * @returns {PlutusData}
+ */
+declare export function encode_json_str_to_plutus_datum(
+  json: string,
+  schema: number
+): PlutusData;
+
+/**
+ * @param {PlutusData} datum
+ * @param {number} schema
+ * @returns {string}
+ */
+declare export function decode_plutus_datum_to_json_str(
+  datum: PlutusData,
+  schema: number
+): string;
+
+/**
  * @param {Uint8Array} bytes
  * @returns {TransactionMetadatum}
  */
@@ -436,6 +456,16 @@ declare export var SpendingDataKind: {|
 /**
  */
 
+declare export var CoinSelectionStrategyCIP2: {|
+  +LargestFirst: 0, // 0
+  +RandomImprove: 1, // 1
+  +LargestFirstMultiAsset: 2, // 2
+  +RandomImproveMultiAsset: 3, // 3
+|};
+
+/**
+ */
+
 declare export var StakeCredKind: {|
   +Key: 0, // 0
   +Script: 1, // 1
@@ -459,16 +489,6 @@ declare export var AddressHeaderKind: {|
   +Byron: 8, // 8
   +RewardKey: 9, // 9
   +RewardScript: 10, // 10
-|};
-
-/**
- */
-
-declare export var CoinSelectionStrategyCIP2: {|
-  +LargestFirst: 0, // 0
-  +RandomImprove: 1, // 1
-  +LargestFirstMultiAsset: 2, // 2
-  +RandomImproveMultiAsset: 3, // 3
 |};
 
 /**
@@ -9589,7 +9609,6 @@ export interface AuxiliaryDataJSON {
   native_scripts?: NativeScriptsJSON | null;
   plutus_v1_scripts?: PlutusV1ScriptsJSON | null;
   plutus_v2_scripts?: PlutusV2ScriptsJSON | null;
-  prefer_alonzo_format: boolean;
 }
 export type AuxiliaryDataHashJSON = string;
 export interface AuxiliaryDataSetJSON {

@@ -46,9 +46,9 @@ noop_proc_macro = "0.3.0"
 
 # wasm
 [target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies]
-wasm-bindgen = { version = "=0.2.78", features = ["serde-serialize"] }
+wasm-bindgen = { version = "=0.2.82", features = ["serde-serialize"] }
 rand_os = { version = "0.1", features = ["wasm-bindgen"] }
-js-sys = "=0.3.51"
+js-sys = "=0.3.59"
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.

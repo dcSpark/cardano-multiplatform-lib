@@ -183,6 +183,7 @@ pub struct ConstrPlutusData {
 }
 
 to_from_bytes!(ConstrPlutusData);
+to_from_json!(ConstrPlutusData);
 
 #[wasm_bindgen]
 impl ConstrPlutusData {
@@ -252,6 +253,7 @@ pub struct CostModel {
 }
 
 to_from_bytes!(CostModel);
+to_from_json!(CostModel);
 
 #[wasm_bindgen]
 impl CostModel {
@@ -301,6 +303,7 @@ impl CostModel {
 pub struct Costmdls(std::collections::BTreeMap<Language, CostModel>);
 
 to_from_bytes!(Costmdls);
+to_from_json!(Costmdls);
 
 #[wasm_bindgen]
 impl Costmdls {
@@ -415,6 +418,7 @@ pub struct ExUnitPrices {
 }
 
 to_from_bytes!(ExUnitPrices);
+to_from_json!(ExUnitPrices);
 
 #[wasm_bindgen]
 impl ExUnitPrices {
@@ -442,6 +446,7 @@ pub struct ExUnits {
 }
 
 to_from_bytes!(ExUnits);
+to_from_json!(ExUnits);
 
 #[wasm_bindgen]
 impl ExUnits {

@@ -147,11 +147,10 @@ declare export function decode_metadatum_to_json_str(
  * @param {number} schema
  * @returns {NativeScript}
  */
-declare export function encode_json_str_to_native_script(
-  json: string,
-  self_xpub: string,
-  schema: number
-): NativeScript;
+declare export function decrypt_with_password(
+  password: string,
+  data: string
+): string;
 
 /**
  * @param {string} password
@@ -244,6 +243,26 @@ declare export function make_vkey_witness(
 ): Vkeywitness;
 
 /**
+ * @param {string} json
+ * @param {number} schema
+ * @returns {PlutusData}
+ */
+declare export function encode_json_str_to_plutus_datum(
+  json: string,
+  schema: number
+): PlutusData;
+
+/**
+ * @param {PlutusData} datum
+ * @param {number} schema
+ * @returns {string}
+ */
+declare export function decode_plutus_datum_to_json_str(
+  datum: PlutusData,
+  schema: number
+): string;
+
+/**
  */
 
 declare export var DatumKind: {|
@@ -312,56 +331,9 @@ declare export var NetworkIdKind: {|
 /**
  */
 
-declare export var LanguageKind: {|
-  +PlutusV1: 0, // 0
-  +PlutusV2: 1, // 1
-|};
-
-/**
- */
-
-declare export var PlutusDataKind: {|
-  +ConstrPlutusData: 0, // 0
-  +Map: 1, // 1
-  +List: 2, // 2
-  +Integer: 3, // 3
-  +Bytes: 4, // 4
-|};
-
-/**
- */
-
-declare export var RedeemerTagKind: {|
-  +Spend: 0, // 0
-  +Mint: 1, // 1
-  +Cert: 2, // 2
-  +Reward: 3, // 3
-|};
-
-/**
- */
-
-declare export var ScriptKind: {|
-  +NativeScript: 0, // 0
-  +PlutusScriptV1: 1, // 1
-  +PlutusScriptV2: 2, // 2
-|};
-
-/**
- * JSON <-> PlutusData conversion schemas.
- * Follows ScriptDataJsonSchema in cardano-cli defined at:
- * https://github.com/input-output-hk/cardano-node/blob/master/cardano-api/src/Cardano/Api/ScriptData.hs#L254
- *
- * All methods here have the following restrictions due to limitations on dependencies:
- * * JSON numbers above u64::MAX (positive) or below i64::MIN (negative) will throw errors
- * * Hex strings for bytes don't accept odd-length (half-byte) strings.
- *       cardano-cli seems to support these however but it seems to be different than just 0-padding
- *       on either side when tested so proceed with caution
- */
-
-declare export var PlutusDatumSchema: {|
-  +BasicConversions: 0, // 0
-  +DetailedSchema: 1, // 1
+declare export var ScriptSchema: {|
+  +Wallet: 0, // 0
+  +Node: 1, // 1
 |};
 
 /**
@@ -396,15 +368,6 @@ declare export var MetadataJsonSchema: {|
   +NoConversions: 0, // 0
   +BasicConversions: 1, // 1
   +DetailedSchema: 2, // 2
-|};
-
-/**
- * Used to choose the schema for a script JSON string
- */
-
-declare export var ScriptSchema: {|
-  +Wallet: 0, // 0
-  +Node: 1, // 1
 |};
 
 /**
@@ -2152,6 +2115,22 @@ declare export class ConstrPlutusData {
   static from_bytes(bytes: Uint8Array): ConstrPlutusData;
 
   /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {ConstrPlutusDataJSON}
+   */
+  to_js_value(): ConstrPlutusDataJSON;
+
+  /**
+   * @param {string} json
+   * @returns {ConstrPlutusData}
+   */
+  static from_json(json: string): ConstrPlutusData;
+
+  /**
    * @returns {BigNum}
    */
   alternative(): BigNum;
@@ -2183,6 +2162,22 @@ declare export class CostModel {
    * @returns {CostModel}
    */
   static from_bytes(bytes: Uint8Array): CostModel;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {CostModelJSON}
+   */
+  to_js_value(): CostModelJSON;
+
+  /**
+   * @param {string} json
+   * @returns {CostModel}
+   */
+  static from_json(json: string): CostModel;
 
   /**
    * @param {Language} language
@@ -2223,6 +2218,22 @@ declare export class Costmdls {
    * @returns {Costmdls}
    */
   static from_bytes(bytes: Uint8Array): Costmdls;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {CostmdlsJSON}
+   */
+  to_js_value(): CostmdlsJSON;
+
+  /**
+   * @param {string} json
+   * @returns {Costmdls}
+   */
+  static from_json(json: string): Costmdls;
 
   /**
    * @returns {Costmdls}
@@ -2625,6 +2636,22 @@ declare export class ExUnitPrices {
   static from_bytes(bytes: Uint8Array): ExUnitPrices;
 
   /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {ExUnitPricesJSON}
+   */
+  to_js_value(): ExUnitPricesJSON;
+
+  /**
+   * @param {string} json
+   * @returns {ExUnitPrices}
+   */
+  static from_json(json: string): ExUnitPrices;
+
+  /**
    * @returns {UnitInterval}
    */
   mem_price(): UnitInterval;
@@ -2656,6 +2683,22 @@ declare export class ExUnits {
    * @returns {ExUnits}
    */
   static from_bytes(bytes: Uint8Array): ExUnits;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {ExUnitsJSON}
+   */
+  to_js_value(): ExUnitsJSON;
+
+  /**
+   * @param {string} json
+   * @returns {ExUnits}
+   */
+  static from_json(json: string): ExUnits;
 
   /**
    * @returns {BigNum}

@@ -114,10 +114,11 @@ pub fn canonicalize_json<R: Read>(json: R) -> String {
 pub fn redeem_pubkey_to_txid(
     pubkey: &chain_crypto::PublicKey<Ed25519>,
     protocol_magic: Option<ProtocolMagic>,
-) -> (TransactionHash, AddressContent) {
-    let address = AddressContent::new_redeem(&crypto::PublicKey(pubkey.clone()), protocol_magic);
-    let txid = Blake2b256::new(&cbor!(&address).unwrap());
-    (TransactionHash(*txid.as_hash_bytes()), address)
+) -> (TransactionHash, ByronAddress) {
+    let address_content = AddressContent::new_redeem(&crypto::PublicKey(pubkey.clone()), protocol_magic);
+    let byron_address = address_content.to_address();
+    let txid = Blake2b256::new(&cbor!(&byron_address).unwrap());
+    (TransactionHash(*txid.as_hash_bytes()), byron_address)
 }
 
 
@@ -127,6 +128,17 @@ mod test {
     use crate::{crypto::BlockHeaderHash};
 
     use super::*;
+
+    #[test]
+    pub fn calc_redeem_txid() {
+        let (hash, address) = redeem_pubkey_to_txid(
+            &chain_crypto::PublicKey::<Ed25519>::from_binary(&base64::decode_config("AAG3vJwTzCcL0zp2-1yfI-mn_7haYvSYJln2xR_aBS8=", base64::URL_SAFE).unwrap())
+                .unwrap(),
+            None,
+        );
+        assert_eq!(hash.to_hex(), "927edb96f3386ab91b5f5d85d84cb4253c65b1c2f65fa7df25f81fab1d62987a");
+        assert_eq!(address.to_base58(), "Ae2tdPwUPEZ9vtyppa1FdJzvqJZkEcXgdHxVYAzTWcPaoNycVq5rc36LC1S");
+    }
 
     #[test]
     pub fn parse_test_genesis_files() {

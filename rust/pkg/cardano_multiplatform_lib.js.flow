@@ -26,26 +26,6 @@ declare export function decode_plutus_datum_to_json_str(
 ): string;
 
 /**
- * Receives a script JSON string
- * and returns a NativeScript.
- * Cardano Wallet and Node styles are supported.
- *
- * * wallet: https://github.com/input-output-hk/cardano-wallet/blob/master/specifications/api/swagger.yaml
- * * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
- *
- * self_xpub is expected to be a Bip32PublicKey as hex-encoded bytes
- * @param {string} json
- * @param {string} self_xpub
- * @param {number} schema
- * @returns {NativeScript}
- */
-declare export function encode_json_str_to_native_script(
-  json: string,
-  self_xpub: string,
-  schema: number
-): NativeScript;
-
-/**
  * @param {AuxiliaryData} auxiliary_data
  * @returns {AuxiliaryDataHash}
  */
@@ -154,26 +134,24 @@ declare export function decode_metadatum_to_json_str(
 ): string;
 
 /**
- * @param {Transaction} tx
- * @param {ExUnitPrices} ex_unit_prices
- * @returns {BigNum}
+ * Receives a script JSON string
+ * and returns a NativeScript.
+ * Cardano Wallet and Node styles are supported.
+ *
+ * * wallet: https://github.com/input-output-hk/cardano-wallet/blob/master/specifications/api/swagger.yaml
+ * * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
+ *
+ * self_xpub is expected to be a Bip32PublicKey as hex-encoded bytes
+ * @param {string} json
+ * @param {string} self_xpub
+ * @param {number} schema
+ * @returns {NativeScript}
  */
-declare export function min_script_fee(
-  tx: Transaction,
-  ex_unit_prices: ExUnitPrices
-): BigNum;
-
-/**
- * @param {Transaction} tx
- * @param {LinearFee} linear_fee
- * @param {ExUnitPrices} ex_unit_prices
- * @returns {BigNum}
- */
-declare export function min_fee(
-  tx: Transaction,
-  linear_fee: LinearFee,
-  ex_unit_prices: ExUnitPrices
-): BigNum;
+declare export function encode_json_str_to_native_script(
+  json: string,
+  self_xpub: string,
+  schema: number
+): NativeScript;
 
 /**
  * @param {string} password
@@ -198,6 +176,28 @@ declare export function decrypt_with_password(
   password: string,
   data: string
 ): string;
+
+/**
+ * @param {Transaction} tx
+ * @param {ExUnitPrices} ex_unit_prices
+ * @returns {BigNum}
+ */
+declare export function min_script_fee(
+  tx: Transaction,
+  ex_unit_prices: ExUnitPrices
+): BigNum;
+
+/**
+ * @param {Transaction} tx
+ * @param {LinearFee} linear_fee
+ * @param {ExUnitPrices} ex_unit_prices
+ * @returns {BigNum}
+ */
+declare export function min_fee(
+  tx: Transaction,
+  linear_fee: LinearFee,
+  ex_unit_prices: ExUnitPrices
+): BigNum;
 
 /**
  * @param {TransactionBody} txbody
@@ -365,15 +365,6 @@ declare export var PlutusDatumSchema: {|
 |};
 
 /**
- * Used to choose the schema for a script JSON string
- */
-
-declare export var ScriptSchema: {|
-  +Wallet: 0, // 0
-  +Node: 1, // 1
-|};
-
-/**
  * Each new language uses a different namespace for hashing its script
  * This is because you could have a language where the same bytes have different semantics
  * So this avoids scripts in different languages mapping to the same hash
@@ -405,6 +396,15 @@ declare export var MetadataJsonSchema: {|
   +NoConversions: 0, // 0
   +BasicConversions: 1, // 1
   +DetailedSchema: 2, // 2
+|};
+
+/**
+ * Used to choose the schema for a script JSON string
+ */
+
+declare export var ScriptSchema: {|
+  +Wallet: 0, // 0
+  +Node: 1, // 1
 |};
 
 /**
@@ -1920,16 +1920,22 @@ declare export class ByronAddress {
   addr(): Uint8Array;
 
   /**
-   * @returns {BigInt}
+   * @returns {Crc32}
    */
-  crc32(): BigInt;
+  crc32(): Crc32;
 
   /**
    * @param {Uint8Array} addr
-   * @param {BigInt} crc32
    * @returns {ByronAddress}
    */
-  static new(addr: Uint8Array, crc32: BigInt): ByronAddress;
+  static checksum_from_bytes(addr: Uint8Array): ByronAddress;
+
+  /**
+   * @param {Uint8Array} addr
+   * @param {Crc32} crc32
+   * @returns {ByronAddress}
+   */
+  static new(addr: Uint8Array, crc32: Crc32): ByronAddress;
 }
 /**
  */
@@ -2244,6 +2250,53 @@ declare export class Costmdls {
    * @returns {Languages}
    */
   keys(): Languages;
+}
+/**
+ * structure to compute the CRC32 of chunks of bytes.
+ *
+ * This structure allows implements the `Write` trait making it easier
+ * to compute the crc32 of a stream.
+ */
+declare export class Crc32 {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {Crc32}
+   */
+  static from_bytes(bytes: Uint8Array): Crc32;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {Crc32JSON}
+   */
+  to_js_value(): Crc32JSON;
+
+  /**
+   * @param {string} json
+   * @returns {Crc32}
+   */
+  static from_json(json: string): Crc32;
+
+  /**
+   * @param {number} val
+   * @returns {Crc32}
+   */
+  static from_val(val: number): Crc32;
+
+  /**
+   * @returns {number}
+   */
+  val(): number;
 }
 /**
  */
@@ -9554,7 +9607,6 @@ export interface AuxiliaryDataJSON {
   native_scripts?: NativeScriptsJSON | null;
   plutus_v1_scripts?: PlutusV1ScriptsJSON | null;
   plutus_v2_scripts?: PlutusV2ScriptsJSON | null;
-  prefer_alonzo_format: boolean;
 }
 export type AuxiliaryDataHashJSON = string;
 export interface AuxiliaryDataSetJSON {
@@ -9586,7 +9638,7 @@ export type ByronAddrTypeJSON = AddrTypeEnumJSON;
 export type AddrTypeEnumJSON = "ATPubKey" | "ATScript" | "ATRedeem";
 export interface ByronAddressJSON {
   addr: number[];
-  crc32: number;
+  crc32: Crc32JSON;
 }
 export type CertificateJSON = CertificateEnumJSON;
 export type CertificateEnumJSON =
@@ -9630,6 +9682,12 @@ export interface CostModelJSON {
 export interface CostmdlsJSON {
   [k: string]: CostModelJSON;
 }
+/**
+ * structure to compute the CRC32 of chunks of bytes.
+ *
+ * This structure allows implements the `Write` trait making it easier to compute the crc32 of a stream.
+ */
+export type Crc32JSON = number;
 export type DNSRecordAorAAAAJSON = string;
 export type DNSRecordSRVJSON = string;
 export type DataHashJSON = string;

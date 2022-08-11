@@ -461,6 +461,24 @@ impl Address {
         let data: Vec<u8> = bech32::FromBase32::from_base32(&u5data).unwrap();
         Ok(Self::from_bytes_impl(data.as_ref())?)
     }
+    
+    /**
+     * Note: bech32-encoded Byron addresses will also pass validation here
+     */
+    pub fn is_valid_bech32(bech_str: &str) -> bool {
+        match Self::from_bech32(bech_str) {
+            Ok(_v) => true,
+            Err(_err) => false,
+        }
+    }
+
+    pub fn is_valid_byron(base58: &str) -> bool {
+        ByronAddress::is_valid(base58)
+    }
+
+    pub fn is_valid(bech_str: &str) -> bool {
+        Self::is_valid_bech32(bech_str) || Self::is_valid_byron(bech_str)
+    }
 
     pub fn network_id(&self) -> Result<u8, JsError> {
         match &self.variant {

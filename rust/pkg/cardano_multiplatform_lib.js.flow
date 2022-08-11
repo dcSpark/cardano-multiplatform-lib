@@ -6,6 +6,26 @@
  */
 
 /**
+ * @param {string} json
+ * @param {number} schema
+ * @returns {PlutusData}
+ */
+declare export function encode_json_str_to_plutus_datum(
+  json: string,
+  schema: number
+): PlutusData;
+
+/**
+ * @param {PlutusData} datum
+ * @param {number} schema
+ * @returns {string}
+ */
+declare export function decode_plutus_datum_to_json_str(
+  datum: PlutusData,
+  schema: number
+): string;
+
+/**
  * @param {AuxiliaryData} auxiliary_data
  * @returns {AuxiliaryDataHash}
  */
@@ -54,54 +74,28 @@ declare export function calc_script_data_hash(
 ): ScriptDataHash | void;
 
 /**
- * @param {TransactionOutput} output
- * @param {BigNum} coins_per_utxo_byte
- * @returns {BigNum}
+ * @param {TransactionHash} tx_body_hash
+ * @param {ByronAddress} addr
+ * @param {LegacyDaedalusPrivateKey} key
+ * @returns {BootstrapWitness}
  */
-declare export function min_ada_required(
-  output: TransactionOutput,
-  coins_per_utxo_byte: BigNum
-): BigNum;
+declare export function make_daedalus_bootstrap_witness(
+  tx_body_hash: TransactionHash,
+  addr: ByronAddress,
+  key: LegacyDaedalusPrivateKey
+): BootstrapWitness;
 
 /**
- * @param {string} json
- * @param {number} schema
- * @returns {PlutusData}
+ * @param {TransactionHash} tx_body_hash
+ * @param {ByronAddress} addr
+ * @param {Bip32PrivateKey} key
+ * @returns {BootstrapWitness}
  */
-declare export function encode_json_str_to_plutus_datum(
-  json: string,
-  schema: number
-): PlutusData;
-
-/**
- * @param {PlutusData} datum
- * @param {number} schema
- * @returns {string}
- */
-declare export function decode_plutus_datum_to_json_str(
-  datum: PlutusData,
-  schema: number
-): string;
-
-/**
- * @param {string} json
- * @param {number} schema
- * @returns {PlutusData}
- */
-declare export function encode_json_str_to_plutus_datum(
-  json: string,
-  schema: number
-): PlutusData;
-
-/**
- * @param {PlutusData} datum
- * @param {number} schema
- * @returns {string}
- */
-declare export function decode_plutus_datum_to_json_str(
-  datum: PlutusData,
-  schema: number
-): string;
+declare export function make_icarus_bootstrap_witness(
+  tx_body_hash: TransactionHash,
+  addr: ByronAddress,
+  key: Bip32PrivateKey
+): BootstrapWitness;
 
 /**
  * @param {Uint8Array} bytes
@@ -140,30 +134,6 @@ declare export function decode_metadatum_to_json_str(
 ): string;
 
 /**
- * @param {TransactionHash} tx_body_hash
- * @param {ByronAddress} addr
- * @param {LegacyDaedalusPrivateKey} key
- * @returns {BootstrapWitness}
- */
-declare export function make_daedalus_bootstrap_witness(
-  tx_body_hash: TransactionHash,
-  addr: ByronAddress,
-  key: LegacyDaedalusPrivateKey
-): BootstrapWitness;
-
-/**
- * @param {TransactionHash} tx_body_hash
- * @param {ByronAddress} addr
- * @param {Bip32PrivateKey} key
- * @returns {BootstrapWitness}
- */
-declare export function make_icarus_bootstrap_witness(
-  tx_body_hash: TransactionHash,
-  addr: ByronAddress,
-  key: Bip32PrivateKey
-): BootstrapWitness;
-
-/**
  * Receives a script JSON string
  * and returns a NativeScript.
  * Cardano Wallet and Node styles are supported.
@@ -182,28 +152,6 @@ declare export function encode_json_str_to_native_script(
   self_xpub: string,
   schema: number
 ): NativeScript;
-
-/**
- * @param {Transaction} tx
- * @param {ExUnitPrices} ex_unit_prices
- * @returns {BigNum}
- */
-declare export function min_script_fee(
-  tx: Transaction,
-  ex_unit_prices: ExUnitPrices
-): BigNum;
-
-/**
- * @param {Transaction} tx
- * @param {LinearFee} linear_fee
- * @param {ExUnitPrices} ex_unit_prices
- * @returns {BigNum}
- */
-declare export function min_fee(
-  tx: Transaction,
-  linear_fee: LinearFee,
-  ex_unit_prices: ExUnitPrices
-): BigNum;
 
 /**
  * @param {string} password
@@ -230,6 +178,28 @@ declare export function decrypt_with_password(
 ): string;
 
 /**
+ * @param {Transaction} tx
+ * @param {ExUnitPrices} ex_unit_prices
+ * @returns {BigNum}
+ */
+declare export function min_script_fee(
+  tx: Transaction,
+  ex_unit_prices: ExUnitPrices
+): BigNum;
+
+/**
+ * @param {Transaction} tx
+ * @param {LinearFee} linear_fee
+ * @param {ExUnitPrices} ex_unit_prices
+ * @returns {BigNum}
+ */
+declare export function min_fee(
+  tx: Transaction,
+  linear_fee: LinearFee,
+  ex_unit_prices: ExUnitPrices
+): BigNum;
+
+/**
  * @param {TransactionBody} txbody
  * @param {BigNum} pool_deposit
  * @param {BigNum} key_deposit
@@ -251,6 +221,16 @@ declare export function get_deposit(
   txbody: TransactionBody,
   pool_deposit: BigNum,
   key_deposit: BigNum
+): BigNum;
+
+/**
+ * @param {TransactionOutput} output
+ * @param {BigNum} coins_per_utxo_byte
+ * @returns {BigNum}
+ */
+declare export function min_ada_required(
+  output: TransactionOutput,
+  coins_per_utxo_byte: BigNum
 ): BigNum;
 
 /**
@@ -330,20 +310,6 @@ declare export var NetworkIdKind: {|
 |};
 
 /**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
- */
-
-declare export var ScriptHashNamespace: {|
-  +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
-|};
-
-/**
  */
 
 declare export var LanguageKind: {|
@@ -399,6 +365,20 @@ declare export var PlutusDatumSchema: {|
 |};
 
 /**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
+ */
+
+declare export var ScriptHashNamespace: {|
+  +NativeScript: 0, // 0
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
+|};
+
+/**
  */
 
 declare export var TransactionMetadatumKind: {|
@@ -425,6 +405,34 @@ declare export var MetadataJsonSchema: {|
 declare export var ScriptSchema: {|
   +Wallet: 0, // 0
   +Node: 1, // 1
+|};
+
+/**
+ */
+
+declare export var StakeCredKind: {|
+  +Key: 0, // 0
+  +Script: 1, // 1
+|};
+
+/**
+ * Careful: this enum doesn't include the network ID part of the header
+ * ex: base address isn't 0b0000_0000 but instead 0b0000
+ * Use `header_matches_kind` if you don't want to implement the bitwise operators yourself
+ */
+
+declare export var AddressHeaderKind: {|
+  +BasePaymentKeyStakeKey: 0, // 0
+  +BasePaymentScriptStakeKey: 1, // 1
+  +BasePaymentKeyStakeScript: 2, // 2
+  +BasePaymentScriptStakeScript: 3, // 3
+  +PointerKey: 4, // 4
+  +PointerScript: 5, // 5
+  +EnterpriseKey: 6, // 6
+  +EnterpriseScript: 7, // 7
+  +Byron: 8, // 8
+  +RewardKey: 9, // 9
+  +RewardScript: 10, // 10
 |};
 
 /**
@@ -461,34 +469,6 @@ declare export var CoinSelectionStrategyCIP2: {|
   +RandomImprove: 1, // 1
   +LargestFirstMultiAsset: 2, // 2
   +RandomImproveMultiAsset: 3, // 3
-|};
-
-/**
- */
-
-declare export var StakeCredKind: {|
-  +Key: 0, // 0
-  +Script: 1, // 1
-|};
-
-/**
- * Careful: this enum doesn't include the network ID part of the header
- * ex: base address isn't 0b0000_0000 but instead 0b0000
- * Use `header_matches_kind` if you don't want to implement the bitwise operators yourself
- */
-
-declare export var AddressHeaderKind: {|
-  +BasePaymentKeyStakeKey: 0, // 0
-  +BasePaymentScriptStakeKey: 1, // 1
-  +BasePaymentKeyStakeScript: 2, // 2
-  +BasePaymentScriptStakeScript: 3, // 3
-  +PointerKey: 4, // 4
-  +PointerScript: 5, // 5
-  +EnterpriseKey: 6, // 6
-  +EnterpriseScript: 7, // 7
-  +Byron: 8, // 8
-  +RewardKey: 9, // 9
-  +RewardScript: 10, // 10
 |};
 
 /**
@@ -662,6 +642,24 @@ declare export class Address {
    * @returns {Address}
    */
   static from_bech32(bech_str: string): Address;
+
+  /**
+   * @param {string} bech_str
+   * @returns {boolean}
+   */
+  static is_shelley(bech_str: string): boolean;
+
+  /**
+   * @param {string} bech_str
+   * @returns {boolean}
+   */
+  static is_byron(bech_str: string): boolean;
+
+  /**
+   * @param {string} bech_str
+   * @returns {boolean}
+   */
+  static is_valid(bech_str: string): boolean;
 
   /**
    * @returns {number}
@@ -9627,7 +9625,6 @@ export interface BlockJSON {
   transaction_witness_sets: TransactionWitnessSetsJSON;
 }
 export type BlockBodyHashJSON = string;
-export type BlockHashJSON = string;
 export type BlockHeaderHashJSON = string;
 export interface BootstrapEraDistrJSON {}
 export interface BootstrapWitnessJSON {
@@ -9701,7 +9698,7 @@ export type DatumEnumJSON =
       ...
     }
   | {
-      InlineDatum: PlutusDataJSON,
+      InlineDatum: PlutusData,
       ...
     };
 export type Ed25519KeyHashJSON = string;
@@ -9876,19 +9873,13 @@ export interface OperationalCertJSON {
   sequence_number: number;
   sigma: string;
 }
-export interface PlutusDataJSON {
-  datum: PlutusDataEnum;
-  original_bytes?: number[] | null;
-}
 export interface PlutusListJSON {
   definite_encoding?: boolean | null;
-  elems: PlutusDataJSON[];
+  elems: PlutusData[];
 }
 export interface PlutusMapJSON {
-  [k: string]: PlutusDataJSON;
+  [k: string]: PlutusData;
 }
-export type PlutusScriptJSON = string;
-export type PlutusScriptsJSON = string[];
 export type PlutusV1ScriptJSON = string;
 export type PlutusV1ScriptsJSON = string[];
 export type PlutusV2ScriptJSON = string;
@@ -9954,7 +9945,7 @@ export interface ProtocolVersionJSON {
  */
 export type PublicKeyJSON = string;
 export interface RedeemerJSON {
-  data: PlutusDataJSON;
+  data: PlutusData;
   ex_units: ExUnitsJSON;
   index: string;
   tag: RedeemerTagJSON;

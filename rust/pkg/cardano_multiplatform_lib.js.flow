@@ -6,26 +6,6 @@
  */
 
 /**
- * @param {string} json
- * @param {number} schema
- * @returns {PlutusData}
- */
-declare export function encode_json_str_to_plutus_datum(
-  json: string,
-  schema: number
-): PlutusData;
-
-/**
- * @param {PlutusData} datum
- * @param {number} schema
- * @returns {string}
- */
-declare export function decode_plutus_datum_to_json_str(
-  datum: PlutusData,
-  schema: number
-): string;
-
-/**
  * @param {AuxiliaryData} auxiliary_data
  * @returns {AuxiliaryDataHash}
  */
@@ -72,6 +52,36 @@ declare export function calc_script_data_hash(
   cost_models: Costmdls,
   used_langs: Languages
 ): ScriptDataHash | void;
+
+/**
+ * @param {TransactionOutput} output
+ * @param {BigNum} coins_per_utxo_byte
+ * @returns {BigNum}
+ */
+declare export function min_ada_required(
+  output: TransactionOutput,
+  coins_per_utxo_byte: BigNum
+): BigNum;
+
+/**
+ * Receives a script JSON string
+ * and returns a NativeScript.
+ * Cardano Wallet and Node styles are supported.
+ *
+ * * wallet: https://github.com/input-output-hk/cardano-wallet/blob/master/specifications/api/swagger.yaml
+ * * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
+ *
+ * self_xpub is expected to be a Bip32PublicKey as hex-encoded bytes
+ * @param {string} json
+ * @param {string} self_xpub
+ * @param {number} schema
+ * @returns {NativeScript}
+ */
+declare export function encode_json_str_to_native_script(
+  json: string,
+  self_xpub: string,
+  schema: number
+): NativeScript;
 
 /**
  * @param {TransactionHash} tx_body_hash
@@ -132,26 +142,6 @@ declare export function decode_metadatum_to_json_str(
   metadatum: TransactionMetadatum,
   schema: number
 ): string;
-
-/**
- * Receives a script JSON string
- * and returns a NativeScript.
- * Cardano Wallet and Node styles are supported.
- *
- * * wallet: https://github.com/input-output-hk/cardano-wallet/blob/master/specifications/api/swagger.yaml
- * * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
- *
- * self_xpub is expected to be a Bip32PublicKey as hex-encoded bytes
- * @param {string} json
- * @param {string} self_xpub
- * @param {number} schema
- * @returns {NativeScript}
- */
-declare export function encode_json_str_to_native_script(
-  json: string,
-  self_xpub: string,
-  schema: number
-): NativeScript;
 
 /**
  * @param {string} password
@@ -224,16 +214,6 @@ declare export function get_deposit(
 ): BigNum;
 
 /**
- * @param {TransactionOutput} output
- * @param {BigNum} coins_per_utxo_byte
- * @returns {BigNum}
- */
-declare export function min_ada_required(
-  output: TransactionOutput,
-  coins_per_utxo_byte: BigNum
-): BigNum;
-
-/**
  * @param {TransactionHash} tx_body_hash
  * @param {PrivateKey} sk
  * @returns {Vkeywitness}
@@ -242,6 +222,26 @@ declare export function make_vkey_witness(
   tx_body_hash: TransactionHash,
   sk: PrivateKey
 ): Vkeywitness;
+
+/**
+ * @param {string} json
+ * @param {number} schema
+ * @returns {PlutusData}
+ */
+declare export function encode_json_str_to_plutus_datum(
+  json: string,
+  schema: number
+): PlutusData;
+
+/**
+ * @param {PlutusData} datum
+ * @param {number} schema
+ * @returns {string}
+ */
+declare export function decode_plutus_datum_to_json_str(
+  datum: PlutusData,
+  schema: number
+): string;
 
 /**
  */
@@ -310,6 +310,113 @@ declare export var NetworkIdKind: {|
 |};
 
 /**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
+ */
+
+declare export var ScriptHashNamespace: {|
+  +NativeScript: 0, // 0
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
+|};
+
+/**
+ * Used to choose the schema for a script JSON string
+ */
+
+declare export var ScriptSchema: {|
+  +Wallet: 0, // 0
+  +Node: 1, // 1
+|};
+
+/**
+ */
+
+declare export var TransactionMetadatumKind: {|
+  +MetadataMap: 0, // 0
+  +MetadataList: 1, // 1
+  +Int: 2, // 2
+  +Bytes: 3, // 3
+  +Text: 4, // 4
+|};
+
+/**
+ */
+
+declare export var MetadataJsonSchema: {|
+  +NoConversions: 0, // 0
+  +BasicConversions: 1, // 1
+  +DetailedSchema: 2, // 2
+|};
+
+/**
+ */
+
+declare export var StakeDistributionKind: {|
+  +BootstrapEraDistr: 0, // 0
+  +SingleKeyDistr: 1, // 1
+|};
+
+/**
+ */
+
+declare export var AddrtypeKind: {|
+  +ATPubKey: 0, // 0
+  +ATScript: 1, // 1
+  +ATRedeem: 2, // 2
+|};
+
+/**
+ */
+
+declare export var SpendingDataKind: {|
+  +SpendingDataPubKeyASD: 0, // 0
+  +SpendingDataScriptASD: 1, // 1
+  +SpendingDataRedeemASD: 2, // 2
+|};
+
+/**
+ */
+
+declare export var StakeCredKind: {|
+  +Key: 0, // 0
+  +Script: 1, // 1
+|};
+
+/**
+ * Careful: this enum doesn't include the network ID part of the header
+ * ex: base address isn't 0b0000_0000 but instead 0b0000
+ * Use `header_matches_kind` if you don't want to implement the bitwise operators yourself
+ */
+
+declare export var AddressHeaderKind: {|
+  +BasePaymentKeyStakeKey: 0, // 0
+  +BasePaymentScriptStakeKey: 1, // 1
+  +BasePaymentKeyStakeScript: 2, // 2
+  +BasePaymentScriptStakeScript: 3, // 3
+  +PointerKey: 4, // 4
+  +PointerScript: 5, // 5
+  +EnterpriseKey: 6, // 6
+  +EnterpriseScript: 7, // 7
+  +Byron: 8, // 8
+  +RewardKey: 9, // 9
+  +RewardScript: 10, // 10
+|};
+
+/**
+ */
+
+declare export var CoinSelectionStrategyCIP2: {|
+  +LargestFirst: 0, // 0
+  +RandomImprove: 1, // 1
+  +LargestFirstMultiAsset: 2, // 2
+  +RandomImproveMultiAsset: 3, // 3
+|};
+
+/**
  */
 
 declare export var LanguageKind: {|
@@ -362,113 +469,6 @@ declare export var ScriptKind: {|
 declare export var PlutusDatumSchema: {|
   +BasicConversions: 0, // 0
   +DetailedSchema: 1, // 1
-|};
-
-/**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
- */
-
-declare export var ScriptHashNamespace: {|
-  +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
-|};
-
-/**
- */
-
-declare export var TransactionMetadatumKind: {|
-  +MetadataMap: 0, // 0
-  +MetadataList: 1, // 1
-  +Int: 2, // 2
-  +Bytes: 3, // 3
-  +Text: 4, // 4
-|};
-
-/**
- */
-
-declare export var MetadataJsonSchema: {|
-  +NoConversions: 0, // 0
-  +BasicConversions: 1, // 1
-  +DetailedSchema: 2, // 2
-|};
-
-/**
- * Used to choose the schema for a script JSON string
- */
-
-declare export var ScriptSchema: {|
-  +Wallet: 0, // 0
-  +Node: 1, // 1
-|};
-
-/**
- */
-
-declare export var StakeCredKind: {|
-  +Key: 0, // 0
-  +Script: 1, // 1
-|};
-
-/**
- * Careful: this enum doesn't include the network ID part of the header
- * ex: base address isn't 0b0000_0000 but instead 0b0000
- * Use `header_matches_kind` if you don't want to implement the bitwise operators yourself
- */
-
-declare export var AddressHeaderKind: {|
-  +BasePaymentKeyStakeKey: 0, // 0
-  +BasePaymentScriptStakeKey: 1, // 1
-  +BasePaymentKeyStakeScript: 2, // 2
-  +BasePaymentScriptStakeScript: 3, // 3
-  +PointerKey: 4, // 4
-  +PointerScript: 5, // 5
-  +EnterpriseKey: 6, // 6
-  +EnterpriseScript: 7, // 7
-  +Byron: 8, // 8
-  +RewardKey: 9, // 9
-  +RewardScript: 10, // 10
-|};
-
-/**
- */
-
-declare export var StakeDistributionKind: {|
-  +BootstrapEraDistr: 0, // 0
-  +SingleKeyDistr: 1, // 1
-|};
-
-/**
- */
-
-declare export var AddrtypeKind: {|
-  +ATPubKey: 0, // 0
-  +ATScript: 1, // 1
-  +ATRedeem: 2, // 2
-|};
-
-/**
- */
-
-declare export var SpendingDataKind: {|
-  +SpendingDataPubKeyASD: 0, // 0
-  +SpendingDataScriptASD: 1, // 1
-  +SpendingDataRedeemASD: 2, // 2
-|};
-
-/**
- */
-
-declare export var CoinSelectionStrategyCIP2: {|
-  +LargestFirst: 0, // 0
-  +RandomImprove: 1, // 1
-  +LargestFirstMultiAsset: 2, // 2
-  +RandomImproveMultiAsset: 3, // 3
 |};
 
 /**
@@ -644,16 +644,17 @@ declare export class Address {
   static from_bech32(bech_str: string): Address;
 
   /**
+   * * Note: bech32-encoded Byron addresses will also pass validation here
    * @param {string} bech_str
    * @returns {boolean}
    */
-  static is_shelley(bech_str: string): boolean;
+  static is_valid_bech32(bech_str: string): boolean;
 
   /**
-   * @param {string} bech_str
+   * @param {string} base58
    * @returns {boolean}
    */
-  static is_byron(bech_str: string): boolean;
+  static is_valid_byron(base58: string): boolean;
 
   /**
    * @param {string} bech_str
@@ -2185,6 +2186,22 @@ declare export class CostModel {
   static from_bytes(bytes: Uint8Array): CostModel;
 
   /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {CostModelJSON}
+   */
+  to_js_value(): CostModelJSON;
+
+  /**
+   * @param {string} json
+   * @returns {CostModel}
+   */
+  static from_json(json: string): CostModel;
+
+  /**
    * @param {Language} language
    * @returns {CostModel}
    */
@@ -2223,6 +2240,22 @@ declare export class Costmdls {
    * @returns {Costmdls}
    */
   static from_bytes(bytes: Uint8Array): Costmdls;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {CostmdlsJSON}
+   */
+  to_js_value(): CostmdlsJSON;
+
+  /**
+   * @param {string} json
+   * @returns {Costmdls}
+   */
+  static from_json(json: string): Costmdls;
 
   /**
    * @returns {Costmdls}
@@ -2625,6 +2658,22 @@ declare export class ExUnitPrices {
   static from_bytes(bytes: Uint8Array): ExUnitPrices;
 
   /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {ExUnitPricesJSON}
+   */
+  to_js_value(): ExUnitPricesJSON;
+
+  /**
+   * @param {string} json
+   * @returns {ExUnitPrices}
+   */
+  static from_json(json: string): ExUnitPrices;
+
+  /**
    * @returns {UnitInterval}
    */
   mem_price(): UnitInterval;
@@ -2656,6 +2705,22 @@ declare export class ExUnits {
    * @returns {ExUnits}
    */
   static from_bytes(bytes: Uint8Array): ExUnits;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {ExUnitsJSON}
+   */
+  to_js_value(): ExUnitsJSON;
+
+  /**
+   * @param {string} json
+   * @returns {ExUnits}
+   */
+  static from_json(json: string): ExUnits;
 
   /**
    * @returns {BigNum}
@@ -9625,6 +9690,7 @@ export interface BlockJSON {
   transaction_witness_sets: TransactionWitnessSetsJSON;
 }
 export type BlockBodyHashJSON = string;
+export type BlockHashJSON = string;
 export type BlockHeaderHashJSON = string;
 export interface BootstrapEraDistrJSON {}
 export interface BootstrapWitnessJSON {
@@ -9698,7 +9764,7 @@ export type DatumEnumJSON =
       ...
     }
   | {
-      InlineDatum: PlutusData,
+      InlineDatum: PlutusDataJSON,
       ...
     };
 export type Ed25519KeyHashJSON = string;
@@ -9873,13 +9939,19 @@ export interface OperationalCertJSON {
   sequence_number: number;
   sigma: string;
 }
+export interface PlutusDataJSON {
+  datum: PlutusDataEnum;
+  original_bytes?: number[] | null;
+}
 export interface PlutusListJSON {
   definite_encoding?: boolean | null;
-  elems: PlutusData[];
+  elems: PlutusDataJSON[];
 }
 export interface PlutusMapJSON {
-  [k: string]: PlutusData;
+  [k: string]: PlutusDataJSON;
 }
+export type PlutusScriptJSON = string;
+export type PlutusScriptsJSON = string[];
 export type PlutusV1ScriptJSON = string;
 export type PlutusV1ScriptsJSON = string[];
 export type PlutusV2ScriptJSON = string;
@@ -9945,7 +10017,7 @@ export interface ProtocolVersionJSON {
  */
 export type PublicKeyJSON = string;
 export interface RedeemerJSON {
-  data: PlutusData;
+  data: PlutusDataJSON;
   ex_units: ExUnitsJSON;
   index: string;
   tag: RedeemerTagJSON;

@@ -3634,7 +3634,26 @@ mod tests {
 
     #[test]
     fn add_json_metadata_with_existing_auxiliary() {
+        let mut tx_builder = create_default_tx_builder();
         
+        let key1 = to_bignum(42);
+        tx_builder.set_auxiliary_data(&create_aux_with_metadata(&key1));
+
+        let key2 = to_bignum(84);
+        tx_builder.add_metadata(
+            &TxMetadataBuilder::new().add_json_metadatum_with_schema(&key2, create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap()
+        );
+
+        let aux = tx_builder.auxiliary_data.unwrap();
+        assert!(aux.metadata().is_some());
+        assert!(aux.native_scripts().is_some());
+        assert!(aux.plutus_v1_scripts().is_none());
+        assert!(aux.plutus_v2_scripts().is_none()); 
+
+        let met = aux.metadata().unwrap();
+        assert_eq!(met.len(), 2);
+        assert_json_metadatum(&met.get(&key1).unwrap());
+        assert_json_metadatum(&met.get(&key2).unwrap());  
     }
 
     fn create_asset_name() -> AssetName {

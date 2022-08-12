@@ -342,12 +342,12 @@ impl JsonSchema for GeneralTransactionMetadata {
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct AuxiliaryData {
-    metadata: Option<GeneralTransactionMetadata>,
-    native_scripts: Option<NativeScripts>,
-    plutus_v1_scripts: Option<PlutusV1Scripts>,
-    plutus_v2_scripts: Option<PlutusV2Scripts>,
+    pub(crate) metadata: Option<GeneralTransactionMetadata>,
+    pub(crate) native_scripts: Option<NativeScripts>,
+    pub(crate) plutus_v1_scripts: Option<PlutusV1Scripts>,
+    pub(crate) plutus_v2_scripts: Option<PlutusV2Scripts>,
     #[serde(skip)]
-    prefer_alonzo_format: bool,
+    pub(crate) prefer_alonzo_format: bool,
 }
 
 to_from_bytes!(AuxiliaryData);

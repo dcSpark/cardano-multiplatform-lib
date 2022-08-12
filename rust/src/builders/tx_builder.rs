@@ -672,52 +672,19 @@ impl TransactionBuilder {
         self.auxiliary_data.clone()
     }
 
-    /// Set explicit auxiliary data via an AuxiliaryData object
-    /// It might contain some metadata plus native or Plutus scripts
-    pub fn set_auxiliary_data(&mut self, auxiliary_data: &AuxiliaryData) {
-        self.auxiliary_data = Some(auxiliary_data.clone())
+    pub fn set_auxiliary_data(&mut self, new_aux_data: &AuxiliaryData) {
+        self.auxiliary_data = Some(new_aux_data.clone())
     }
 
-    /// Set metadata using a GeneralTransactionMetadata object
-    /// It will be set to the existing or new auxiliary data in this builder
-    pub fn set_metadata(&mut self, metadata: &GeneralTransactionMetadata) {
-        let mut aux = self.auxiliary_data.as_ref().cloned().unwrap_or_else(AuxiliaryData::new);
-        aux.set_metadata(metadata);
-        self.set_auxiliary_data(&aux);
-    }
-
-    /// Add a single metadatum using TransactionMetadatumLabel and TransactionMetadatum objects
-    /// It will be securely added to existing or new metadata in this builder
-    pub fn add_metadatum(&mut self, key: &TransactionMetadatumLabel, val: &TransactionMetadatum) {
-        let mut metadata = self.auxiliary_data.as_ref()
-            .map(|aux| { aux.metadata().as_ref().cloned() })
-            .unwrap_or(None)
-            .unwrap_or_else(GeneralTransactionMetadata::new);
-        metadata.insert(key, val);
-        self.set_metadata(&metadata);
-    }
-
-    /// Add a single JSON metadatum using a TransactionMetadatumLabel and a String
-    /// It will be securely added to existing or new metadata in this builder
-    pub fn add_json_metadatum(
-        &mut self,
-        key: &TransactionMetadatumLabel,
-        val: String,
-    ) -> Result<(), JsError> {
-        self.add_json_metadatum_with_schema(key, val, MetadataJsonSchema::NoConversions)
-    }
-
-    /// Add a single JSON metadatum using a TransactionMetadatumLabel, a String, and a MetadataJsonSchema object
-    /// It will be securely added to existing or new metadata in this builder
-    pub fn add_json_metadatum_with_schema(
-        &mut self,
-        key: &TransactionMetadatumLabel,
-        val: String,
-        schema: MetadataJsonSchema,
-    ) -> Result<(), JsError> {
-        let metadatum = encode_json_str_to_metadatum(val, schema)?;
-        self.add_metadatum(key, &metadatum);
-        Ok(())
+    pub fn add_auxiliary_data(&mut self, new_aux_data: &AuxiliaryData) {
+        match self.auxiliary_data.as_mut() {
+            Some(data) => { data.add(new_aux_data); },
+            None => {
+                let mut new_base = AuxiliaryData::new();
+                new_base.add(new_aux_data);
+                self.auxiliary_data = Some(new_base);
+            }
+        }
     }
 
     pub fn add_mint(&mut self, result: &MintBuilderResult) {
@@ -3294,7 +3261,7 @@ mod tests {
         pubkey_native_scripts.add(&NativeScript::new_script_pubkey(&ScriptPubkey::new(&spending_hash)));
         oneof_native_scripts.add(&NativeScript::new_script_n_of_k(&ScriptNOfK::new(1, &pubkey_native_scripts)));
         auxiliary_data.set_native_scripts(&oneof_native_scripts);
-        tx_builder.set_auxiliary_data(&auxiliary_data);
+        tx_builder.add_auxiliary_data(&auxiliary_data);
 
 
         assert_eq!(tx_builder.outputs.len(), 1);
@@ -3357,7 +3324,7 @@ mod tests {
         pubkey_native_scripts.add(&NativeScript::new_script_pubkey(&ScriptPubkey::new(&spending_hash)));
         oneof_native_scripts.add(&NativeScript::new_script_n_of_k(&ScriptNOfK::new(1, &pubkey_native_scripts)));
         auxiliary_data.set_native_scripts(&oneof_native_scripts);
-        tx_builder.set_auxiliary_data(&auxiliary_data);
+        tx_builder.add_auxiliary_data(&auxiliary_data);
 
 
         let body = tx_builder.build_body().unwrap();
@@ -3504,9 +3471,14 @@ mod tests {
         ).unwrap()
     }
 
-    fn create_aux_with_metadata(metadatum_key: &TransactionMetadatumLabel) -> AuxiliaryData {
+    fn create_general_metadata(metadatum_key: &TransactionMetadatumLabel) -> GeneralTransactionMetadata {
         let mut metadata = GeneralTransactionMetadata::new();
         metadata.insert(metadatum_key, &create_json_metadatum());
+        metadata
+    }
+
+    fn create_aux_with_metadata(metadatum_key: &TransactionMetadatumLabel) -> AuxiliaryData {
+        let metadata = create_general_metadata(metadatum_key);
 
         let mut aux = AuxiliaryData::new();
         aux.set_metadata(&metadata);
@@ -3535,7 +3507,12 @@ mod tests {
         let mut tx_builder = create_default_tx_builder();
 
         let num = to_bignum(42);
-        tx_builder.set_metadata(&create_aux_with_metadata(&num).metadata().unwrap());
+        {
+            let general_metadata = create_general_metadata(&num);
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.add_auxiliary_data(&aux_data);
+        }
 
         assert!(tx_builder.auxiliary_data.is_some());
 
@@ -3556,14 +3533,19 @@ mod tests {
         let mut tx_builder = create_default_tx_builder();
 
         let num1 = to_bignum(42);
-        tx_builder.set_auxiliary_data(&create_aux_with_metadata(&num1));
+        tx_builder.add_auxiliary_data(&create_aux_with_metadata(&num1));
 
         let num2 = to_bignum(84);
-        tx_builder.set_metadata(&create_aux_with_metadata(&num2).metadata().unwrap());
+        {
+            let general_metadata = create_general_metadata(&num2);
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.set_auxiliary_data(&aux_data);
+        }
 
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
-        assert!(aux.native_scripts().is_some());
+        assert!(aux.native_scripts().is_none());
         assert!(aux.plutus_v1_scripts().is_none());
         assert!(aux.plutus_v2_scripts().is_none());
 
@@ -3578,7 +3560,14 @@ mod tests {
         let mut tx_builder = create_default_tx_builder();
 
         let num = to_bignum(42);
-        tx_builder.add_metadatum(&num, &create_json_metadatum());
+        {
+            let metadatum = encode_json_str_to_metadatum(create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap();
+            let mut general_metadata = GeneralTransactionMetadata::new();
+            general_metadata.insert(&num, &metadatum);
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.add_auxiliary_data(&aux_data);
+        }
 
         assert!(tx_builder.auxiliary_data.is_some());
 
@@ -3599,10 +3588,17 @@ mod tests {
         let mut tx_builder = create_default_tx_builder();
 
         let num1 = to_bignum(42);
-        tx_builder.set_auxiliary_data(&create_aux_with_metadata(&num1));
+        tx_builder.add_auxiliary_data(&create_aux_with_metadata(&num1));
 
         let num2 = to_bignum(84);
-        tx_builder.add_metadatum(&num2, &create_json_metadatum());
+        {
+            let metadatum = encode_json_str_to_metadatum(create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap();
+            let mut general_metadata = GeneralTransactionMetadata::new();
+            general_metadata.insert(&num2, &metadatum);
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.add_auxiliary_data(&aux_data);
+        }
 
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
@@ -3621,7 +3617,14 @@ mod tests {
         let mut tx_builder = create_default_tx_builder();
 
         let num = to_bignum(42);
-        tx_builder.add_json_metadatum(&num, create_json_metadatum_string()).unwrap();
+        {
+            let metadatum = encode_json_str_to_metadatum(create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap();
+            let mut general_metadata = GeneralTransactionMetadata::new();
+            general_metadata.insert(&num, &metadatum);
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.add_auxiliary_data(&aux_data);
+        }
 
         assert!(tx_builder.auxiliary_data.is_some());
 
@@ -3642,10 +3645,17 @@ mod tests {
         let mut tx_builder = create_default_tx_builder();
 
         let num1 = to_bignum(42);
-        tx_builder.set_auxiliary_data(&create_aux_with_metadata(&num1));
+        tx_builder.add_auxiliary_data(&create_aux_with_metadata(&num1));
 
         let num2 = to_bignum(84);
-        tx_builder.add_json_metadatum(&num2, create_json_metadatum_string()).unwrap();
+        {
+            let metadatum = encode_json_str_to_metadatum(create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap();
+            let mut general_metadata = GeneralTransactionMetadata::new();
+            general_metadata.insert(&num2, &metadatum);
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.add_auxiliary_data(&aux_data);
+        }
 
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
@@ -3657,6 +3667,114 @@ mod tests {
         assert_eq!(met.len(), 2);
         assert_json_metadatum(&met.get(&num1).unwrap());
         assert_json_metadatum(&met.get(&num2).unwrap());
+    }
+
+    #[test]
+    fn add_metadata_with_empty_auxiliary() {
+        let mut tx_builder = create_default_tx_builder();
+
+        let key = to_bignum(42);
+        let value = TransactionMetadatum::new_text("Hello World".to_string()).unwrap();
+        {
+            let mut general_metadata = GeneralTransactionMetadata::new();
+            general_metadata.insert(&key, &value);
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.add_auxiliary_data(&aux_data);
+        }
+
+        let aux = tx_builder.auxiliary_data.unwrap();
+        assert!(aux.metadata().is_some());
+        assert!(aux.native_scripts().is_none());
+        assert!(aux.plutus_v1_scripts().is_none());
+        assert!(aux.plutus_v2_scripts().is_none());
+
+        let met = aux.metadata().unwrap();
+        assert_eq!(met.len(), 1);
+        assert_eq!(met.get(&key).unwrap(), value);
+    }
+
+    #[test]
+    fn add_json_metadata_with_empty_auxiliary() {
+        let mut tx_builder = create_default_tx_builder();
+         
+        let key = to_bignum(42);
+        {
+            let metadatum = encode_json_str_to_metadatum(create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap();
+            let mut general_metadata = GeneralTransactionMetadata::new();
+            general_metadata.insert(&key, &metadatum);
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.add_auxiliary_data(&aux_data);
+        }
+
+        let aux = tx_builder.auxiliary_data.unwrap();
+        assert!(aux.metadata().is_some());
+        assert!(aux.native_scripts().is_none());
+        assert!(aux.plutus_v1_scripts().is_none());
+        assert!(aux.plutus_v2_scripts().is_none());
+
+        let met = aux.metadata().unwrap();
+        assert_eq!(met.len(), 1);
+        assert_json_metadatum( &met.get(&key).unwrap());
+    }
+
+    #[test]
+    fn add_metadata_with_existing_auxiliary() {
+        let mut tx_builder = create_default_tx_builder();
+        
+        let key1 = to_bignum(42);
+        tx_builder.add_auxiliary_data(&create_aux_with_metadata(&key1));
+
+        let key2 = to_bignum(84);
+        let val2 = TransactionMetadatum::new_text("Hello World".to_string()).unwrap();
+        {   
+            let mut general_metadata = GeneralTransactionMetadata::new();
+            general_metadata.insert(&key2, &val2);
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.add_auxiliary_data(&aux_data);
+        }
+        
+        let aux = tx_builder.auxiliary_data.unwrap();
+        assert!(aux.metadata().is_some());
+        assert!(aux.native_scripts().is_some());
+        assert!(aux.plutus_v1_scripts().is_none());
+        assert!(aux.plutus_v2_scripts().is_none()); 
+
+        let met = aux.metadata().unwrap();
+        assert_eq!(met.len(), 2);
+        assert_json_metadatum(&met.get(&key1).unwrap());
+        assert_eq!(met.get(&key2).unwrap(), val2); 
+    }
+
+    #[test]
+    fn add_json_metadata_with_existing_auxiliary() {
+        let mut tx_builder = create_default_tx_builder();
+        
+        let key1 = to_bignum(42);
+        tx_builder.add_auxiliary_data(&create_aux_with_metadata(&key1));
+
+        let key2 = to_bignum(84);
+        {
+            let metadatum = encode_json_str_to_metadatum(create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap();
+            let mut general_metadata = GeneralTransactionMetadata::new();
+            general_metadata.insert(&key2, &metadatum);
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.add_auxiliary_data(&aux_data);
+        }
+
+        let aux = tx_builder.auxiliary_data.unwrap();
+        assert!(aux.metadata().is_some());
+        assert!(aux.native_scripts().is_some());
+        assert!(aux.plutus_v1_scripts().is_none());
+        assert!(aux.plutus_v2_scripts().is_none()); 
+
+        let met = aux.metadata().unwrap();
+        assert_eq!(met.len(), 2);
+        assert_json_metadatum(&met.get(&key1).unwrap());
+        assert_json_metadatum(&met.get(&key2).unwrap());  
     }
 
     fn create_asset_name() -> AssetName {
@@ -4304,10 +4422,14 @@ mod tests {
                 &TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()).unwrap()
             );
 
-            tx_builder.add_metadatum(
+            let mut general_metadata = GeneralTransactionMetadata::new();
+            general_metadata.insert(
                 &BigNum::from_str("405").unwrap(),
                 &TransactionMetadatum::new_map(&map)
             );
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.add_auxiliary_data(&aux_data);
         }
 
         tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
@@ -4443,10 +4565,14 @@ mod tests {
                 &TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()).unwrap()
             );
 
-            tx_builder.add_metadatum(
+            let mut general_metadata = GeneralTransactionMetadata::new();
+            general_metadata.insert(
                 &BigNum::from_str("405").unwrap(),
                 &TransactionMetadatum::new_map(&map)
             );
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.add_auxiliary_data(&aux_data);
         }
 
         tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
@@ -4591,10 +4717,14 @@ mod tests {
                 &TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()).unwrap()
             );
 
-            tx_builder.add_metadatum(
+            let mut general_metadata = GeneralTransactionMetadata::new();
+            general_metadata.insert(
                 &BigNum::from_str("405").unwrap(),
                 &TransactionMetadatum::new_map(&map)
             );
+            let mut aux_data = AuxiliaryData::new();
+            aux_data.set_metadata(&general_metadata);
+            tx_builder.add_auxiliary_data(&aux_data);
         }
 
         tx_builder.set_collateral_return(

@@ -12,6 +12,7 @@ use crate::ledger::common::value::Value;
 use crate::ledger::common::value::from_bignum;
 use super::input_builder::InputBuilderResult;
 use super::mint_builder::MintBuilderResult;
+use super::metadata_builder::TxMetadataBuilderResult;
 use super::certificate_builder::*;
 use super::utils::force_u64;
 use super::withdrawal_builder::WithdrawalBuilderResult;
@@ -712,6 +713,25 @@ impl TransactionBuilder {
         Ok(())
     }
 
+    pub fn add_metadata(&mut self, result: &TxMetadataBuilderResult) {
+        let mut metadata = self.auxiliary_data.as_ref()
+            .and_then(|aux| { aux.metadata() })
+            .unwrap_or_else(GeneralTransactionMetadata::new);
+        
+        // Combine metadata
+        for idx in 0..result.metadata.len() {
+            let key = result.metadata.keys().get(idx);
+            if let Some(val) =  result.metadata.get(&key) {
+                metadata.insert(&key, &val);
+            }
+        }
+
+        // Update auxiliary_data
+        let mut aux_data = self.auxiliary_data.as_ref().cloned().unwrap_or_else(AuxiliaryData::new);
+        aux_data.set_metadata(&metadata);
+        self.set_auxiliary_data(&aux_data);
+    }
+
     pub fn add_mint(&mut self, result: &MintBuilderResult) {
         let mut mint = self.get_mint().unwrap_or_else(Mint::new);
         let assets = {
@@ -1392,7 +1412,7 @@ impl SignedTxBuilder {
 #[cfg(test)]
 mod tests {
     use crate::builders::witness_builder::{UntaggedRedeemer, PartialPlutusWitness};
-    use crate::builders::{mint_builder::SingleMintBuilder, witness_builder::NativeScriptWitnessInfo, input_builder::SingleInputBuilder};
+    use crate::builders::{mint_builder::SingleMintBuilder, witness_builder::NativeScriptWitnessInfo, input_builder::SingleInputBuilder, metadata_builder::TxMetadataBuilder};
     use crate::byron::{ByronAddress, AddressContent};
     use crate::genesis::network_info::plutus_alonzo_cost_models;
     use crate::ledger::babbage::min_ada::min_ada_required;
@@ -3546,6 +3566,75 @@ mod tests {
         assert_eq!(met.len(), 2);
         assert_json_metadatum(&met.get(&num1).unwrap());
         assert_json_metadatum(&met.get(&num2).unwrap());
+    }
+
+    #[test]
+    fn add_metadata_with_empty_auxiliary() {
+        let mut tx_builder = create_default_tx_builder();
+
+        let key = to_bignum(42);
+        let value = TransactionMetadatum::new_text("Hello World".to_string()).unwrap();
+        tx_builder.add_metadata(
+            &TxMetadataBuilder::new().add_metadatum(&key, &value)
+        );
+
+        let aux = tx_builder.auxiliary_data.unwrap();
+        assert!(aux.metadata().is_some());
+        assert!(aux.native_scripts().is_none());
+        assert!(aux.plutus_v1_scripts().is_none());
+        assert!(aux.plutus_v2_scripts().is_none());
+
+        let met = aux.metadata().unwrap();
+        assert_eq!(met.len(), 1);
+        assert_eq!(met.get(&key).unwrap(), value);
+    }
+
+    #[test]
+    fn add_json_metadata_with_empty_auxiliary() {
+        let mut tx_builder = create_default_tx_builder();
+         
+        let key = to_bignum(42);
+        tx_builder.add_metadata(
+            &TxMetadataBuilder::new().add_json_metadatum_with_schema(&key,create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap()
+        );
+
+        let aux = tx_builder.auxiliary_data.unwrap();
+        assert!(aux.metadata().is_some());
+        assert!(aux.native_scripts().is_none());
+        assert!(aux.plutus_v1_scripts().is_none());
+        assert!(aux.plutus_v2_scripts().is_none());
+
+        let met = aux.metadata().unwrap();
+        assert_eq!(met.len(), 1);
+        assert_json_metadatum( &met.get(&key).unwrap());
+    }
+
+    #[test]
+    fn add_metadata_with_existing_auxiliary() {
+        let mut tx_builder = create_default_tx_builder();
+        
+        let key1 = to_bignum(42);
+        tx_builder.set_auxiliary_data(&create_aux_with_metadata(&key1));
+
+        let key2 = to_bignum(84);
+        let val2 = TransactionMetadatum::new_text("Hello World".to_string()).unwrap();
+        tx_builder.add_metadatum(&key2, &val2);
+        
+        let aux = tx_builder.auxiliary_data.unwrap();
+        assert!(aux.metadata().is_some());
+        assert!(aux.native_scripts().is_some());
+        assert!(aux.plutus_v1_scripts().is_none());
+        assert!(aux.plutus_v2_scripts().is_none()); 
+
+        let met = aux.metadata().unwrap();
+        assert_eq!(met.len(), 2);
+        assert_json_metadatum(&met.get(&key1).unwrap());
+        assert_eq!(met.get(&key2).unwrap(), val2); 
+    }
+
+    #[test]
+    fn add_json_metadata_with_existing_auxiliary() {
+        
     }
 
     fn create_asset_name() -> AssetName {

@@ -183,7 +183,6 @@ pub struct ConstrPlutusData {
 }
 
 to_from_bytes!(ConstrPlutusData);
-to_from_json!(ConstrPlutusData);
 
 #[wasm_bindgen]
 impl ConstrPlutusData {

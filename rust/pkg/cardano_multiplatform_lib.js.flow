@@ -6,26 +6,6 @@
  */
 
 /**
- * @param {string} json
- * @param {number} schema
- * @returns {PlutusData}
- */
-declare export function encode_json_str_to_plutus_datum(
-  json: string,
-  schema: number
-): PlutusData;
-
-/**
- * @param {PlutusData} datum
- * @param {number} schema
- * @returns {string}
- */
-declare export function decode_plutus_datum_to_json_str(
-  datum: PlutusData,
-  schema: number
-): string;
-
-/**
  * @param {AuxiliaryData} auxiliary_data
  * @returns {AuxiliaryDataHash}
  */
@@ -72,6 +52,36 @@ declare export function calc_script_data_hash(
   cost_models: Costmdls,
   used_langs: Languages
 ): ScriptDataHash | void;
+
+/**
+ * @param {TransactionOutput} output
+ * @param {BigNum} coins_per_utxo_byte
+ * @returns {BigNum}
+ */
+declare export function min_ada_required(
+  output: TransactionOutput,
+  coins_per_utxo_byte: BigNum
+): BigNum;
+
+/**
+ * Receives a script JSON string
+ * and returns a NativeScript.
+ * Cardano Wallet and Node styles are supported.
+ *
+ * * wallet: https://github.com/input-output-hk/cardano-wallet/blob/master/specifications/api/swagger.yaml
+ * * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
+ *
+ * self_xpub is expected to be a Bip32PublicKey as hex-encoded bytes
+ * @param {string} json
+ * @param {string} self_xpub
+ * @param {number} schema
+ * @returns {NativeScript}
+ */
+declare export function encode_json_str_to_native_script(
+  json: string,
+  self_xpub: string,
+  schema: number
+): NativeScript;
 
 /**
  * @param {TransactionHash} tx_body_hash
@@ -131,25 +141,6 @@ declare export function encode_json_str_to_metadatum(
 declare export function decode_metadatum_to_json_str(
   metadatum: TransactionMetadatum,
   schema: number
-): string;
-
-/**
- * Receives a script JSON string
- * and returns a NativeScript.
- * Cardano Wallet and Node styles are supported.
- *
- * * wallet: https://github.com/input-output-hk/cardano-wallet/blob/master/specifications/api/swagger.yaml
- * * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
- *
- * self_xpub is expected to be a Bip32PublicKey as hex-encoded bytes
- * @param {string} json
- * @param {string} self_xpub
- * @param {number} schema
- * @returns {NativeScript}
- */
-declare export function decrypt_with_password(
-  password: string,
-  data: string
 ): string;
 
 /**
@@ -220,16 +211,6 @@ declare export function get_deposit(
   txbody: TransactionBody,
   pool_deposit: BigNum,
   key_deposit: BigNum
-): BigNum;
-
-/**
- * @param {TransactionOutput} output
- * @param {BigNum} coins_per_utxo_byte
- * @returns {BigNum}
- */
-declare export function min_ada_required(
-  output: TransactionOutput,
-  coins_per_utxo_byte: BigNum
 ): BigNum;
 
 /**
@@ -329,14 +310,6 @@ declare export var NetworkIdKind: {|
 |};
 
 /**
- */
-
-declare export var ScriptSchema: {|
-  +Wallet: 0, // 0
-  +Node: 1, // 1
-|};
-
-/**
  * Each new language uses a different namespace for hashing its script
  * This is because you could have a language where the same bytes have different semantics
  * So this avoids scripts in different languages mapping to the same hash
@@ -348,6 +321,15 @@ declare export var ScriptHashNamespace: {|
   +NativeScript: 0, // 0
   +PlutusV1: 1, // 1
   +PlutusV2: 2, // 2
+|};
+
+/**
+ * Used to choose the schema for a script JSON string
+ */
+
+declare export var ScriptSchema: {|
+  +Wallet: 0, // 0
+  +Node: 1, // 1
 |};
 
 /**
@@ -368,6 +350,32 @@ declare export var MetadataJsonSchema: {|
   +NoConversions: 0, // 0
   +BasicConversions: 1, // 1
   +DetailedSchema: 2, // 2
+|};
+
+/**
+ */
+
+declare export var StakeDistributionKind: {|
+  +BootstrapEraDistr: 0, // 0
+  +SingleKeyDistr: 1, // 1
+|};
+
+/**
+ */
+
+declare export var AddrtypeKind: {|
+  +ATPubKey: 0, // 0
+  +ATScript: 1, // 1
+  +ATRedeem: 2, // 2
+|};
+
+/**
+ */
+
+declare export var SpendingDataKind: {|
+  +SpendingDataPubKeyASD: 0, // 0
+  +SpendingDataScriptASD: 1, // 1
+  +SpendingDataRedeemASD: 2, // 2
 |};
 
 /**
@@ -401,37 +409,66 @@ declare export var AddressHeaderKind: {|
 /**
  */
 
-declare export var StakeDistributionKind: {|
-  +BootstrapEraDistr: 0, // 0
-  +SingleKeyDistr: 1, // 1
-|};
-
-/**
- */
-
-declare export var AddrtypeKind: {|
-  +ATPubKey: 0, // 0
-  +ATScript: 1, // 1
-  +ATRedeem: 2, // 2
-|};
-
-/**
- */
-
-declare export var SpendingDataKind: {|
-  +SpendingDataPubKeyASD: 0, // 0
-  +SpendingDataScriptASD: 1, // 1
-  +SpendingDataRedeemASD: 2, // 2
-|};
-
-/**
- */
-
 declare export var CoinSelectionStrategyCIP2: {|
   +LargestFirst: 0, // 0
   +RandomImprove: 1, // 1
   +LargestFirstMultiAsset: 2, // 2
   +RandomImproveMultiAsset: 3, // 3
+|};
+
+/**
+ */
+
+declare export var LanguageKind: {|
+  +PlutusV1: 0, // 0
+  +PlutusV2: 1, // 1
+|};
+
+/**
+ */
+
+declare export var PlutusDataKind: {|
+  +ConstrPlutusData: 0, // 0
+  +Map: 1, // 1
+  +List: 2, // 2
+  +Integer: 3, // 3
+  +Bytes: 4, // 4
+|};
+
+/**
+ */
+
+declare export var RedeemerTagKind: {|
+  +Spend: 0, // 0
+  +Mint: 1, // 1
+  +Cert: 2, // 2
+  +Reward: 3, // 3
+|};
+
+/**
+ */
+
+declare export var ScriptKind: {|
+  +NativeScript: 0, // 0
+  +PlutusScriptV1: 1, // 1
+  +PlutusScriptV2: 2, // 2
+|};
+
+/**
+ * JSON <-> PlutusData conversion schemas.
+ * Follows ScriptDataJsonSchema in cardano-cli defined at:
+ * https://github.com/input-output-hk/cardano-node/blob/master/cardano-api/src/Cardano/Api/ScriptData.hs#L254
+ *
+ * All methods here have the following restrictions due to limitations on dependencies:
+ * * JSON numbers above u64::MAX (positive) or below i64::MIN (negative) will throw errors
+ * * Hex strings for bytes don't accept odd-length (half-byte) strings.
+ *       cardano-cli seems to support these however but it seems to be different than just 0-padding
+ *       on either side when tested so proceed with caution
+ */
+
+declare export var PlutusDatumSchema: {|
+  +BasicConversions: 0, // 0
+  +DetailedSchema: 1, // 1
 |};
 
 /**
@@ -607,16 +644,17 @@ declare export class Address {
   static from_bech32(bech_str: string): Address;
 
   /**
+   * * Note: bech32-encoded Byron addresses will also pass validation here
    * @param {string} bech_str
    * @returns {boolean}
    */
-  static is_shelley(bech_str: string): boolean;
+  static is_valid_bech32(bech_str: string): boolean;
 
   /**
-   * @param {string} bech_str
+   * @param {string} base58
    * @returns {boolean}
    */
-  static is_byron(bech_str: string): boolean;
+  static is_valid_byron(base58: string): boolean;
 
   /**
    * @param {string} bech_str
@@ -2113,22 +2151,6 @@ declare export class ConstrPlutusData {
    * @returns {ConstrPlutusData}
    */
   static from_bytes(bytes: Uint8Array): ConstrPlutusData;
-
-  /**
-   * @returns {string}
-   */
-  to_json(): string;
-
-  /**
-   * @returns {ConstrPlutusDataJSON}
-   */
-  to_js_value(): ConstrPlutusDataJSON;
-
-  /**
-   * @param {string} json
-   * @returns {ConstrPlutusData}
-   */
-  static from_json(json: string): ConstrPlutusData;
 
   /**
    * @returns {BigNum}
@@ -9668,6 +9690,7 @@ export interface BlockJSON {
   transaction_witness_sets: TransactionWitnessSetsJSON;
 }
 export type BlockBodyHashJSON = string;
+export type BlockHashJSON = string;
 export type BlockHeaderHashJSON = string;
 export interface BootstrapEraDistrJSON {}
 export interface BootstrapWitnessJSON {
@@ -9741,7 +9764,7 @@ export type DatumEnumJSON =
       ...
     }
   | {
-      InlineDatum: PlutusData,
+      InlineDatum: PlutusDataJSON,
       ...
     };
 export type Ed25519KeyHashJSON = string;
@@ -9916,13 +9939,19 @@ export interface OperationalCertJSON {
   sequence_number: number;
   sigma: string;
 }
+export interface PlutusDataJSON {
+  datum: PlutusDataEnum;
+  original_bytes?: number[] | null;
+}
 export interface PlutusListJSON {
   definite_encoding?: boolean | null;
-  elems: PlutusData[];
+  elems: PlutusDataJSON[];
 }
 export interface PlutusMapJSON {
-  [k: string]: PlutusData;
+  [k: string]: PlutusDataJSON;
 }
+export type PlutusScriptJSON = string;
+export type PlutusScriptsJSON = string[];
 export type PlutusV1ScriptJSON = string;
 export type PlutusV1ScriptsJSON = string[];
 export type PlutusV2ScriptJSON = string;
@@ -9988,7 +10017,7 @@ export interface ProtocolVersionJSON {
  */
 export type PublicKeyJSON = string;
 export interface RedeemerJSON {
-  data: PlutusData;
+  data: PlutusDataJSON;
   ex_units: ExUnitsJSON;
   index: string;
   tag: RedeemerTagJSON;

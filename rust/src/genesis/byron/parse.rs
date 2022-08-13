@@ -165,8 +165,8 @@ mod test {
         assert_eq!(genesis_data.slot_duration.as_secs(), 20);
         assert_eq!(genesis_data.slot_duration.subsec_millis(), 0);
         assert_eq!(genesis_data.protocol_magic, 633343913.into());
-        assert_eq!(u64::from(genesis_data.fee_policy.coefficient), 43946 * 1_000_000u64);
-        assert_eq!(u64::from(genesis_data.fee_policy.constant), 155381 * 1_000_000_000u64);
+        assert_eq!(u64::from(genesis_data.fee_policy.coefficient()), 43946 * 1_000_000u64);
+        assert_eq!(u64::from(genesis_data.fee_policy.constant()), 155381 * 1_000_000_000u64);
 
         assert_eq!(
             base64::encode_config(

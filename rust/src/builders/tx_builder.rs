@@ -2,6 +2,7 @@ use crate::*;
 use crate::builders::output_builder::TransactionOutputBuilder;
 use crate::ledger;
 use crate::ledger::alonzo::fees::LinearFee;
+use crate::ledger::babbage::min_ada::compatible_min_ada_required;
 use crate::ledger::babbage::min_ada::min_ada_required;
 use crate::ledger::babbage::min_ada::min_pure_ada;
 use crate::ledger::common::deposit::internal_get_deposit;
@@ -99,6 +100,8 @@ pub struct TransactionBuilderConfig {
     key_deposit: BigNum,       // protocol parameter
     max_value_size: u32,       // protocol parameter
     max_tx_size: u32,          // protocol parameter
+    /// TODO: remove once Babbage is on mainnet
+    coins_per_utxo_word: Option<Coin>, // protocol parameter
     coins_per_utxo_byte: Coin, // protocol parameter
     ex_unit_prices: ExUnitPrices, // protocol parameter
     costmdls: Costmdls,           // protocol parameter
@@ -115,6 +118,8 @@ pub struct TransactionBuilderConfigBuilder {
     key_deposit: Option<BigNum>,       // protocol parameter
     max_value_size: Option<u32>,       // protocol parameter
     max_tx_size: Option<u32>,          // protocol parameter
+    /// TODO: remove once Babbage is on mainnet
+    coins_per_utxo_word: Option<Coin>, // protocol parameter
     coins_per_utxo_byte: Option<Coin>, // protocol parameter
     ex_unit_prices: Option<ExUnitPrices>, // protocol parameter
     costmdls: Option<Costmdls>,           // protocol parameter
@@ -139,6 +144,17 @@ impl TransactionBuilderConfigBuilder {
     pub fn coins_per_utxo_byte(&self, coins_per_utxo_byte: &Coin) -> Self {
         let mut cfg = self.clone();
         cfg.coins_per_utxo_byte = Some(*coins_per_utxo_byte);
+        cfg
+    }
+
+    /// TODO: remove once Babbage is on mainnet
+    #[deprecated(
+        since = "1.0.0",
+        note = "If you don't need to support Alonzo, you don't need this function. Use coins_per_utxo_byte instead"
+    )]
+    pub fn coins_per_utxo_word(&self, coins_per_utxo_word: &Coin) -> Self {
+        let mut cfg = self.clone();
+        cfg.coins_per_utxo_word = Some(*coins_per_utxo_word);
         cfg
     }
 
@@ -207,6 +223,8 @@ impl TransactionBuilderConfigBuilder {
             coins_per_utxo_byte: cfg.coins_per_utxo_byte.ok_or_else(|| JsError::from_str(
                 "uninitialized field: coins_per_utxo_byte",
             ))?,
+            /// TODO: remove once Babbage is on mainnet
+            coins_per_utxo_word: cfg.coins_per_utxo_word,
             ex_unit_prices: cfg
                 .ex_unit_prices
                 .ok_or_else(|| JsError::from_str("uninitialized field: ex_unit_prices"))?,
@@ -246,6 +264,24 @@ pub struct TransactionBuilder {
     utxos: Vec<InputBuilderResult>,
     collateral_return: Option<TransactionOutput>,
     reference_inputs: Option<TransactionInputs>,
+}
+
+#[deprecated(
+    since = "1.0.0",
+    note = "If you don't need to support Alonzo, you don't need this function"
+)]
+fn calc_min_ada(output: &TransactionOutput, coins_per_utxo_byte: &BigNum, coins_per_utxo_word: Option<&BigNum>) -> Result<BigNum, JsError> {
+    match coins_per_utxo_word {
+        Some(coins_per_utxo_word) => compatible_min_ada_required(
+            output,
+            coins_per_utxo_byte,
+            coins_per_utxo_word
+        ),
+        None => min_ada_required(
+            output,
+            coins_per_utxo_byte,
+        )
+    }
 }
 
 #[wasm_bindgen]
@@ -558,9 +594,10 @@ impl TransactionBuilder {
                 value_size
             )));
         }
-        let min_ada = min_ada_required(
+        let min_ada = calc_min_ada(
             output,
             &self.config.coins_per_utxo_byte,
+            self.config.coins_per_utxo_word.as_ref(),
         )?;
         if output.amount().coin() < min_ada {
             Err(JsError::from_str(&format!(
@@ -912,7 +949,7 @@ impl TransactionBuilder {
                 }
                 let change_estimator = input_total.checked_sub(&output_total)?;
                 if has_assets(change_estimator.multiasset()) {
-                    fn will_adding_asset_make_output_overflow(output: &TransactionOutput, current_assets: &Assets, asset_to_add: (PolicyID, AssetName, BigNum), max_value_size: u32, coins_per_utxo_byte: &Coin) -> bool {
+                    fn will_adding_asset_make_output_overflow(output: &TransactionOutput, current_assets: &Assets, asset_to_add: (PolicyID, AssetName, BigNum), max_value_size: u32, coins_per_utxo_byte: &Coin, coins_per_utxo_word: Option<&Coin>) -> bool {
                         let (policy, asset_name, value) = asset_to_add;
                         let mut current_assets_clone = current_assets.clone();
                         current_assets_clone.insert(&asset_name, &value);
@@ -928,12 +965,12 @@ impl TransactionBuilder {
                         output_clone.amount = val;
 
                         // calculate minADA for more precise max value size
-                        let min_ada = min_ada_required(&output_clone, coins_per_utxo_byte).unwrap();
+                        let min_ada = calc_min_ada(&output_clone, coins_per_utxo_byte, coins_per_utxo_word).unwrap();
                         amount_clone.set_coin(&min_ada);
 
                         amount_clone.to_bytes().len() > max_value_size as usize
                     }
-                    fn pack_nfts_for_change(max_value_size: u32, coins_per_utxo_byte: &Coin, change_address: &Address, change_estimator: &Value, datum: Option<Datum>, script_ref: &Option<ScriptRef>) -> Result<Vec<MultiAsset>, JsError> {
+                    fn pack_nfts_for_change(max_value_size: u32, coins_per_utxo_byte: &Coin, coins_per_utxo_word: Option<&Coin>, change_address: &Address, change_estimator: &Value, datum: Option<Datum>, script_ref: &Option<ScriptRef>) -> Result<Vec<MultiAsset>, JsError> {
                         // we insert the entire available ADA temporarily here since that could potentially impact the size
                         // as it could be 1, 2 3 or 4 bytes for Coin.
                         let mut change_assets: Vec<MultiAsset> = Vec::new();
@@ -980,7 +1017,7 @@ impl TransactionBuilder {
                                 let asset_name = asset_names.get(n);
                                 let value = assets.get(&asset_name).unwrap();
 
-                                if will_adding_asset_make_output_overflow(&output, &rebuilt_assets, (policy.clone(), asset_name.clone(), value), max_value_size, coins_per_utxo_byte) {
+                                if will_adding_asset_make_output_overflow(&output, &rebuilt_assets, (policy.clone(), asset_name.clone(), value), max_value_size, coins_per_utxo_byte, coins_per_utxo_word) {
                                     // if we got here, this means we will run into a overflow error,
                                     // so we want to split into multiple outputs, for that we...
 
@@ -1018,7 +1055,7 @@ impl TransactionBuilder {
                             // calculate minADA for more precise max value size
                             let mut output_copy = output.clone();
                             output_copy.amount = val;
-                            let min_ada = min_ada_required(&output_copy, coins_per_utxo_byte).unwrap();
+                            let min_ada = calc_min_ada(&output_copy, coins_per_utxo_byte, coins_per_utxo_word).unwrap();
 
                             let mut amount_clone = output.amount.clone();
                             amount_clone.set_coin(&min_ada);
@@ -1036,7 +1073,7 @@ impl TransactionBuilder {
                     // which surpass the max UTXO size limit
                     let minimum_utxo_val = min_pure_ada(&self.config.coins_per_utxo_byte, address, &datum, &script_ref)?;
                     while let Some(Ordering::Greater) = change_left.multiasset.as_ref().map_or_else(|| None, |ma| ma.partial_cmp(&MultiAsset::new())) {
-                        let nft_changes = pack_nfts_for_change(self.config.max_value_size, &self.config.coins_per_utxo_byte, address, &change_left, datum.clone(), &script_ref)?;
+                        let nft_changes = pack_nfts_for_change(self.config.max_value_size, &self.config.coins_per_utxo_byte, self.config.coins_per_utxo_word.as_ref(), address, &change_left, datum.clone(), &script_ref)?;
                         if nft_changes.is_empty() {
                             // this likely should never happen
                             return Err(JsError::from_str("NFTs too large for change output"));
@@ -1093,7 +1130,7 @@ impl TransactionBuilder {
                     }
                     Ok(true)
                 } else {
-                    let min_ada = min_ada_required(
+                    let min_ada = calc_min_ada(
                         &TransactionOutput {
                             address: address.clone(),
                             amount: change_estimator.clone(),
@@ -1101,6 +1138,7 @@ impl TransactionBuilder {
                             script_ref: script_ref.clone(),
                         },
                         &self.config.coins_per_utxo_byte,
+                        self.config.coins_per_utxo_word.as_ref(),
                     )?;
                     // no-asset case so we have no problem burning the rest if there is no other option
                     fn burn_extra(builder: &mut TransactionBuilder, burn_amount: &BigNum) -> Result<bool, JsError> {

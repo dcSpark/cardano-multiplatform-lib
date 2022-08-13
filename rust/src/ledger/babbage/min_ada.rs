@@ -4,8 +4,6 @@ use noop_proc_macro::wasm_bindgen;
 #[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
 use wasm_bindgen::prelude::*;
 
-use std::cmp;
-
 use crate::Datum;
 use crate::TransactionOutput;
 use crate::address::Address;
@@ -15,6 +13,22 @@ use crate::ledger::common::value::Coin;
 use crate::ledger::common::value::Value;
 use crate::ledger::common::value::to_bignum;
 use crate::plutus::ScriptRef;
+
+/// Provide backwards compatibility to Alonzo by taking the max min value of both er
+#[deprecated(
+    since = "1.0.0",
+    note = "If you don't need to support Alonzo, you don't need this function"
+)]
+#[wasm_bindgen]
+pub fn compatible_min_ada_required(
+    output: &TransactionOutput,
+    coins_per_utxo_byte: &BigNum, // protocol parameter (in lovelace)
+    coins_per_utxo_word: &BigNum, // protocol parameter (in lovelace)
+) -> Result<Coin, JsError> {
+    let babbage_min = min_ada_required(output, coins_per_utxo_byte)?;
+    let alonzo_min = crate::ledger::alonzo::min_ada::min_ada_required(&output.amount(), output.datum_option.is_some(), coins_per_utxo_word)?;
+    Ok(std::cmp::max(babbage_min, alonzo_min))
+}
 
 #[wasm_bindgen]
 pub fn min_ada_required(

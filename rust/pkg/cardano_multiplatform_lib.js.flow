@@ -158,28 +158,6 @@ declare export function decrypt_with_password(
 ): string;
 
 /**
- * @param {Transaction} tx
- * @param {ExUnitPrices} ex_unit_prices
- * @returns {BigNum}
- */
-declare export function min_script_fee(
-  tx: Transaction,
-  ex_unit_prices: ExUnitPrices
-): BigNum;
-
-/**
- * @param {Transaction} tx
- * @param {LinearFee} linear_fee
- * @param {ExUnitPrices} ex_unit_prices
- * @returns {BigNum}
- */
-declare export function min_fee(
-  tx: Transaction,
-  linear_fee: LinearFee,
-  ex_unit_prices: ExUnitPrices
-): BigNum;
-
-/**
  * Provide backwards compatibility to Alonzo by taking the max min value of both er
  * @param {TransactionOutput} output
  * @param {BigNum} coins_per_utxo_byte
@@ -200,6 +178,38 @@ declare export function compatible_min_ada_required(
 declare export function min_ada_required(
   output: TransactionOutput,
   coins_per_utxo_byte: BigNum
+): BigNum;
+
+/**
+ * @param {TransactionHash} tx_body_hash
+ * @param {PrivateKey} sk
+ * @returns {Vkeywitness}
+ */
+declare export function make_vkey_witness(
+  tx_body_hash: TransactionHash,
+  sk: PrivateKey
+): Vkeywitness;
+
+/**
+ * @param {Transaction} tx
+ * @param {ExUnitPrices} ex_unit_prices
+ * @returns {BigNum}
+ */
+declare export function min_script_fee(
+  tx: Transaction,
+  ex_unit_prices: ExUnitPrices
+): BigNum;
+
+/**
+ * @param {Transaction} tx
+ * @param {LinearFee} linear_fee
+ * @param {ExUnitPrices} ex_unit_prices
+ * @returns {BigNum}
+ */
+declare export function min_fee(
+  tx: Transaction,
+  linear_fee: LinearFee,
+  ex_unit_prices: ExUnitPrices
 ): BigNum;
 
 /**
@@ -225,16 +235,6 @@ declare export function get_deposit(
   pool_deposit: BigNum,
   key_deposit: BigNum
 ): BigNum;
-
-/**
- * @param {TransactionHash} tx_body_hash
- * @param {PrivateKey} sk
- * @returns {Vkeywitness}
- */
-declare export function make_vkey_witness(
-  tx_body_hash: TransactionHash,
-  sk: PrivateKey
-): Vkeywitness;
 
 /**
  * @param {string} json
@@ -3538,14 +3538,6 @@ declare export class LinearFee {
    * @returns {LinearFee}
    */
   static new(coefficient: BigNum, constant: BigNum): LinearFee;
-
-  /**
-   */
-  coefficient: BigNum;
-
-  /**
-   */
-  constant: BigNum;
 }
 /**
  */
@@ -8191,6 +8183,15 @@ declare export class TransactionBuilderConfigBuilder {
    */
   coins_per_utxo_byte(
     coins_per_utxo_byte: BigNum
+  ): TransactionBuilderConfigBuilder;
+
+  /**
+   * TODO: remove once Babbage is on mainnet
+   * @param {BigNum} coins_per_utxo_word
+   * @returns {TransactionBuilderConfigBuilder}
+   */
+  coins_per_utxo_word(
+    coins_per_utxo_word: BigNum
   ): TransactionBuilderConfigBuilder;
 
   /**

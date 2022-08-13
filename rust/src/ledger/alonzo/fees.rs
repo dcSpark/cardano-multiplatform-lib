@@ -7,8 +7,8 @@ use super::super::super::*;
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct LinearFee {
-    pub constant: Coin,
-    pub coefficient: Coin,
+    constant: Coin,
+    coefficient: Coin,
 }
 
 #[wasm_bindgen]

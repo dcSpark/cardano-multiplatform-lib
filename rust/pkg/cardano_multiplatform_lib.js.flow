@@ -9704,7 +9704,6 @@ export interface BlockJSON {
   transaction_witness_sets: TransactionWitnessSetsJSON;
 }
 export type BlockBodyHashJSON = string;
-export type BlockHashJSON = string;
 export type BlockHeaderHashJSON = string;
 export interface BootstrapEraDistrJSON {}
 export interface BootstrapWitnessJSON {
@@ -9778,7 +9777,7 @@ export type DatumEnumJSON =
       ...
     }
   | {
-      InlineDatum: PlutusDataJSON,
+      InlineDatum: PlutusData,
       ...
     };
 export type Ed25519KeyHashJSON = string;
@@ -9953,19 +9952,13 @@ export interface OperationalCertJSON {
   sequence_number: number;
   sigma: string;
 }
-export interface PlutusDataJSON {
-  datum: PlutusDataEnum;
-  original_bytes?: number[] | null;
-}
 export interface PlutusListJSON {
   definite_encoding?: boolean | null;
-  elems: PlutusDataJSON[];
+  elems: PlutusData[];
 }
 export interface PlutusMapJSON {
-  [k: string]: PlutusDataJSON;
+  [k: string]: PlutusData;
 }
-export type PlutusScriptJSON = string;
-export type PlutusScriptsJSON = string[];
 export type PlutusV1ScriptJSON = string;
 export type PlutusV1ScriptsJSON = string[];
 export type PlutusV2ScriptJSON = string;
@@ -10031,7 +10024,7 @@ export interface ProtocolVersionJSON {
  */
 export type PublicKeyJSON = string;
 export interface RedeemerJSON {
-  data: PlutusDataJSON;
+  data: PlutusData;
   ex_units: ExUnitsJSON;
   index: string;
   tag: RedeemerTagJSON;

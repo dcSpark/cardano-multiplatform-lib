@@ -134,6 +134,29 @@ declare export function decode_metadatum_to_json_str(
 ): string;
 
 /**
+ * Provide backwards compatibility to Alonzo by taking the max min value of both er
+ * @param {TransactionOutput} output
+ * @param {BigNum} coins_per_utxo_byte
+ * @param {BigNum} coins_per_utxo_word
+ * @returns {BigNum}
+ */
+declare export function compatible_min_ada_required(
+  output: TransactionOutput,
+  coins_per_utxo_byte: BigNum,
+  coins_per_utxo_word: BigNum
+): BigNum;
+
+/**
+ * @param {TransactionOutput} output
+ * @param {BigNum} coins_per_utxo_byte
+ * @returns {BigNum}
+ */
+declare export function min_ada_required(
+  output: TransactionOutput,
+  coins_per_utxo_byte: BigNum
+): BigNum;
+
+/**
  * @param {string} password
  * @param {string} salt
  * @param {string} nonce
@@ -156,29 +179,6 @@ declare export function decrypt_with_password(
   password: string,
   data: string
 ): string;
-
-/**
- * Provide backwards compatibility to Alonzo by taking the max min value of both er
- * @param {TransactionOutput} output
- * @param {BigNum} coins_per_utxo_byte
- * @param {BigNum} coins_per_utxo_word
- * @returns {BigNum}
- */
-declare export function compatible_min_ada_required(
-  output: TransactionOutput,
-  coins_per_utxo_byte: BigNum,
-  coins_per_utxo_word: BigNum
-): BigNum;
-
-/**
- * @param {TransactionOutput} output
- * @param {BigNum} coins_per_utxo_byte
- * @returns {BigNum}
- */
-declare export function min_ada_required(
-  output: TransactionOutput,
-  coins_per_utxo_byte: BigNum
-): BigNum;
 
 /**
  * @param {TransactionHash} tx_body_hash
@@ -394,6 +394,16 @@ declare export var SpendingDataKind: {|
 /**
  */
 
+declare export var CoinSelectionStrategyCIP2: {|
+  +LargestFirst: 0, // 0
+  +RandomImprove: 1, // 1
+  +LargestFirstMultiAsset: 2, // 2
+  +RandomImproveMultiAsset: 3, // 3
+|};
+
+/**
+ */
+
 declare export var StakeCredKind: {|
   +Key: 0, // 0
   +Script: 1, // 1
@@ -417,16 +427,6 @@ declare export var AddressHeaderKind: {|
   +Byron: 8, // 8
   +RewardKey: 9, // 9
   +RewardScript: 10, // 10
-|};
-
-/**
- */
-
-declare export var CoinSelectionStrategyCIP2: {|
-  +LargestFirst: 0, // 0
-  +RandomImprove: 1, // 1
-  +LargestFirstMultiAsset: 2, // 2
-  +RandomImproveMultiAsset: 3, // 3
 |};
 
 /**
@@ -6577,6 +6577,72 @@ declare export class ScriptRef {
 }
 /**
  */
+declare export class SignedTxBuilder {
+  free(): void;
+
+  /**
+   * @param {TransactionBody} body
+   * @param {TransactionWitnessSetBuilder} witness_set
+   * @param {boolean} is_valid
+   * @param {AuxiliaryData} auxiliary_data
+   * @returns {SignedTxBuilder}
+   */
+  static new_with_data(
+    body: TransactionBody,
+    witness_set: TransactionWitnessSetBuilder,
+    is_valid: boolean,
+    auxiliary_data: AuxiliaryData
+  ): SignedTxBuilder;
+
+  /**
+   * @param {TransactionBody} body
+   * @param {TransactionWitnessSetBuilder} witness_set
+   * @param {boolean} is_valid
+   * @returns {SignedTxBuilder}
+   */
+  static new_without_data(
+    body: TransactionBody,
+    witness_set: TransactionWitnessSetBuilder,
+    is_valid: boolean
+  ): SignedTxBuilder;
+
+  /**
+   * @returns {Transaction}
+   */
+  build_checked(): Transaction;
+
+  /**
+   * @returns {Transaction}
+   */
+  build_unchecked(): Transaction;
+
+  /**
+   * @param {Vkeywitness} vkey
+   */
+  add_vkey(vkey: Vkeywitness): void;
+
+  /**
+   * @param {BootstrapWitness} bootstrap
+   */
+  add_bootstrap(bootstrap: BootstrapWitness): void;
+
+  /**
+   * @returns {TransactionBody}
+   */
+  body(): TransactionBody;
+
+  /**
+   * @returns {boolean}
+   */
+  is_valid(): boolean;
+
+  /**
+   * @returns {AuxiliaryData | void}
+   */
+  auxiliary_data(): AuxiliaryData | void;
+}
+/**
+ */
 declare export class SingleCertificateBuilder {
   free(): void;
 
@@ -8133,20 +8199,11 @@ declare export class TransactionBuilder {
   output_sizes(): Uint32Array;
 
   /**
-   * Returns object the body of the new transaction
-   * Auxiliary data itself is not included
-   * You can use `get_auxiliary_data` or `build_tx`
-   * @returns {TransactionBody}
-   */
-  build(): TransactionBody;
-
-  /**
-   * Returns full Transaction object with the body and the auxiliary data
-   * NOTE: witness_set will contain all scripts, datums, etc. if any been added or set
+   * Builds the transaction and moves to the next step where any extra witness can be added
    * NOTE: is_valid set to true
-   * @returns {Transaction}
+   * @returns {SignedTxBuilder}
    */
-  build_tx(): Transaction;
+  build(): SignedTxBuilder;
 
   /**
    * warning: sum of all parts of a transaction must equal 0. You cannot just set the fee to the min value and forget about it

@@ -50,9 +50,9 @@ impl WitnessBuilders {
         self.merge_data(true).build()
     }
 
-    /// build without including fake witnesses used for fee estimation
-    pub fn build_real(&self) -> Result<TransactionWitnessSet, JsError> {
-        self.merge_data(false).try_build()
+    /// build without including fake witnesses used for fee estimation. Allows missing witnesses
+    pub fn build_unchecked(&self) -> TransactionWitnessSetBuilder {
+        self.merge_data(false)
     }
 }
 
@@ -69,7 +69,7 @@ fn fake_full_tx(tx_builder: &TransactionBuilder, body: TransactionBody) -> Resul
 }
 
 fn min_fee(tx_builder: &TransactionBuilder) -> Result<Coin, JsError> {
-    let full_tx = fake_full_tx(tx_builder, tx_builder.build()?)?;
+    let full_tx = fake_full_tx(tx_builder, tx_builder.build_body()?)?;
     ledger::alonzo::fees::min_fee(&full_tx, &tx_builder.config.fee_algo, &tx_builder.config.ex_unit_prices)
 }
 
@@ -1263,9 +1263,7 @@ impl TransactionBuilder {
     }
 
     /// Returns object the body of the new transaction
-    /// Auxiliary data itself is not included
-    /// You can use `get_auxiliary_data` or `build_tx`
-    pub fn build(&self) -> Result<TransactionBody, JsError> {
+    fn build_body(&self) -> Result<TransactionBody, JsError> {
         let (body, full_tx_size) = self.build_and_size()?;
         if full_tx_size > self.config.max_tx_size as usize {
             Err(JsError::from_str(&format!(
@@ -1278,13 +1276,12 @@ impl TransactionBuilder {
         }
     }
 
-    /// Returns full Transaction object with the body and the auxiliary data
-    /// NOTE: witness_set will contain all scripts, datums, etc. if any been added or set
+    /// Builds the transaction and moves to the next step where any extra witness can be added
     /// NOTE: is_valid set to true
-    pub fn build_tx(&self) -> Result<Transaction, JsError> {
-        Ok(Transaction {
-            body: self.build()?,
-            witness_set: self.witness_builders.build_real()?,
+    pub fn build(&self) -> Result<SignedTxBuilder, JsError> {
+        Ok(SignedTxBuilder {
+            body: self.build_body()?,
+            witness_set: self.witness_builders.build_unchecked(),
             is_valid: true,
             auxiliary_data: self.auxiliary_data.clone(),
         })
@@ -1297,6 +1294,93 @@ impl TransactionBuilder {
         let mut self_copy = self.clone();
         self_copy.set_fee(&to_bignum(0x1_00_00_00_00));
         min_fee(&self_copy)
+    }
+}
+
+#[wasm_bindgen]
+pub struct SignedTxBuilder {
+    body: TransactionBody,
+    witness_set: TransactionWitnessSetBuilder,
+    is_valid: bool,
+    auxiliary_data: Option<AuxiliaryData>,
+}
+
+#[wasm_bindgen]
+impl SignedTxBuilder {
+    pub fn new_with_data(
+        body: &TransactionBody,
+        witness_set: &TransactionWitnessSetBuilder,
+        is_valid: bool,
+        auxiliary_data: &AuxiliaryData
+    ) -> SignedTxBuilder {
+        SignedTxBuilder {
+            body: body.clone(),
+            witness_set: witness_set.clone(),
+            is_valid,
+            auxiliary_data: Some(auxiliary_data.clone()),
+        }
+    }
+
+    pub fn new_without_data(
+        body: &TransactionBody,
+        witness_set: &TransactionWitnessSetBuilder,
+        is_valid: bool,
+    ) -> SignedTxBuilder {
+        SignedTxBuilder {
+            body: body.clone(),
+            witness_set: witness_set.clone(),
+            is_valid,
+            auxiliary_data: None,
+        }
+    }
+
+    pub fn build_checked(&self) -> Result<Transaction, JsError> {
+        Ok(Transaction {
+            body: self.body.clone(),
+            witness_set: self.witness_set.try_build()?,
+            is_valid: self.is_valid,
+            auxiliary_data: self.auxiliary_data.clone(),
+        })
+    }
+
+    pub fn build_unchecked(&self) -> Transaction {
+        Transaction {
+            body: self.body.clone(),
+            witness_set: self.witness_set.build(),
+            is_valid: self.is_valid,
+            auxiliary_data: self.auxiliary_data.clone(),
+        }
+    }
+
+    // Note: we only allow adding vkey & bootstraps at this stage
+    // This is because other witness kinds increase the tx size
+    // so they should have been added during the TransactionBuilder step
+    //
+    // However, if you manually set the fee during the TransactionBuilder step
+    // to allow adding some extra witnesses later,
+    // use `build_unchecked`
+    //
+    // Note: can't easily check inside the `add_vkey` or `add_bootstrap` functions if the user added a wrong witness
+    // This is because scripts may require keys that weren't known exactly during the tx building phase
+
+    pub fn add_vkey(&mut self, vkey: &Vkeywitness) {
+        self.witness_set.add_vkey(vkey);
+    }
+
+    pub fn add_bootstrap(&mut self, bootstrap: &BootstrapWitness) {
+        self.witness_set.add_bootstrap(bootstrap);
+    }
+
+    pub fn body(&self) -> TransactionBody {
+        self.body.clone()
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.is_valid
+    }
+
+    pub fn auxiliary_data(&self) -> Option<AuxiliaryData> {
+        self.auxiliary_data.clone()
     }
 }
 
@@ -1626,7 +1710,7 @@ mod tests {
             &change_addr
         ).unwrap();
         assert!(!added_change);
-        let final_tx = tx_builder.build().unwrap();
+        let final_tx = tx_builder.build_body().unwrap();
         assert_eq!(final_tx.outputs().len(), 1);
     }
 
@@ -1666,7 +1750,7 @@ mod tests {
             &change_addr
         ).unwrap();
         assert!(added_change);
-        let final_tx = tx_builder.build().unwrap();
+        let final_tx = tx_builder.build_body().unwrap();
         assert_eq!(final_tx.outputs().len(), 2);
         assert_eq!(final_tx.outputs().get(1).amount().coin().to_str(), "320");
     }
@@ -1991,7 +2075,7 @@ mod tests {
 
         let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(added_change);
-        let final_tx = tx_builder.build().unwrap();
+        let final_tx = tx_builder.build_body().unwrap();
         assert_eq!(final_tx.outputs().len(), 2);
         assert_eq!(
             final_tx
@@ -2083,7 +2167,7 @@ mod tests {
 
         let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(added_change);
-        let final_tx = tx_builder.build().unwrap();
+        let final_tx = tx_builder.build_body().unwrap();
         assert_eq!(final_tx.outputs().len(), 3);
         assert_eq!(
             final_tx.outputs().get(0).amount().coin(),
@@ -2191,7 +2275,7 @@ mod tests {
 
         let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(added_change);
-        let final_tx = tx_builder.build().unwrap();
+        let final_tx = tx_builder.build_body().unwrap();
         assert_eq!(final_tx.outputs().len(), 2);
         assert_eq!(
             final_tx.outputs().get(0).amount().coin(),
@@ -2270,7 +2354,7 @@ mod tests {
             tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap(),
             tx_builder.get_explicit_output().unwrap().checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap()
         );
-        let _final_tx = tx_builder.build(); // just test that it doesn't throw
+        let _final_tx = tx_builder.build_body(); // just test that it doesn't throw
     }
 
     #[test]
@@ -2309,7 +2393,7 @@ mod tests {
             tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap(),
             tx_builder.get_explicit_output().unwrap().checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap()
         );
-        let _final_tx = tx_builder.build(); // just test that it doesn't throw
+        let _final_tx = tx_builder.build_body(); // just test that it doesn't throw
     }
 
     #[test]
@@ -2349,7 +2433,7 @@ mod tests {
             tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap().coin(),
             tx_builder.get_explicit_output().unwrap().checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap().coin()
         );
-        let _final_tx = tx_builder.build(); // just test that it doesn't throw
+        let _final_tx = tx_builder.build_body(); // just test that it doesn't throw
     }
 
     #[test]
@@ -2406,7 +2490,7 @@ mod tests {
         );
         assert!(added_change.unwrap());
         assert_eq!(tx_builder.outputs.len(), 2);
-        let final_tx = tx_builder.build().unwrap();
+        let final_tx = tx_builder.build_body().unwrap();
         let change_output = final_tx.outputs().get(1);
         let change_assets = change_output.amount().multiasset();
 
@@ -2478,7 +2562,7 @@ mod tests {
 
         let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(added_change);
-        let final_tx = tx_builder.build().unwrap();
+        let final_tx = tx_builder.build_body().unwrap();
         assert_eq!(final_tx.outputs().len(), 3);
         for (policy_id, asset_name) in policy_ids.iter().zip(names.iter()) {
             assert!(final_tx
@@ -2618,7 +2702,7 @@ mod tests {
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(change_added);
-        let tx = tx_builder.build().unwrap();
+        let tx = tx_builder.build_body().unwrap();
         // change needed
         assert_eq!(2, tx.outputs().len());
         assert_eq!(2, tx.inputs().len());
@@ -2648,7 +2732,7 @@ mod tests {
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(!change_added);
-        let tx = tx_builder.build().unwrap();
+        let tx = tx_builder.build_body().unwrap();
         // change not needed - should be exact
         assert_eq!(1, tx.outputs().len());
         assert_eq!(2, tx.inputs().len());
@@ -2733,7 +2817,7 @@ mod tests {
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(change_added);
-        let tx = tx_builder.build().unwrap();
+        let tx = tx_builder.build_body().unwrap();
 
         assert_eq!(2, tx.outputs().len());
         assert_eq!(4, tx.inputs().len());
@@ -2840,7 +2924,7 @@ mod tests {
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
         assert!(change_added);
-        let tx = tx_builder.build().unwrap();
+        let tx = tx_builder.build_body().unwrap();
 
         assert_eq!(2, tx.outputs().len());
 
@@ -2872,7 +2956,7 @@ mod tests {
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let add_change_res = tx_builder.add_change_if_needed(&change_addr);
         assert!(add_change_res.is_ok(), "{:?}", add_change_res.err());
-        let tx_build_res = tx_builder.build();
+        let tx_build_res = tx_builder.build_body();
         assert!(tx_build_res.is_ok(), "{:?}", tx_build_res.err());
         let tx = tx_build_res.unwrap();
         // we need to look up the values to ensure there's enough
@@ -3035,7 +3119,7 @@ mod tests {
         );
 
 
-        let  _final_tx = tx_builder.build().unwrap();
+        let  _final_tx = tx_builder.build_body().unwrap();
         let _deser_t = TransactionBody::from_bytes(_final_tx.to_bytes()).unwrap();
 
         assert_eq!(_deser_t.to_bytes(), _final_tx.to_bytes());
@@ -3103,7 +3187,7 @@ mod tests {
         );
 
 
-        let  _final_tx = tx_builder.build().unwrap();
+        let  _final_tx = tx_builder.build_body().unwrap();
         let _deser_t = TransactionBody::from_bytes(_final_tx.to_bytes()).unwrap();
 
         assert_eq!(_deser_t.to_bytes(), _final_tx.to_bytes());
@@ -3159,7 +3243,7 @@ mod tests {
         tx_builder.set_auxiliary_data(&auxiliary_data);
 
 
-        let body = tx_builder.build().unwrap();
+        let body = tx_builder.build_body().unwrap();
 
         assert_eq!(tx_builder.outputs.len(), 1);
         assert_eq!(
@@ -4209,7 +4293,7 @@ mod tests {
 
         tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
 
-        let tx = tx_builder.build().unwrap();
+        let tx = tx_builder.build_body().unwrap();
         assert_eq!(tx.to_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9").unwrap());
     }
 
@@ -4339,7 +4423,7 @@ mod tests {
 
         tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
 
-        let tx = tx_builder.build().unwrap();
+        let tx = tx_builder.build_body().unwrap();
         assert_eq!(tx.total_collateral, Some(Coin::from_str("3000000").unwrap()));
     }
 }

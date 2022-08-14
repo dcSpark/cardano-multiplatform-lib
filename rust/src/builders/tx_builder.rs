@@ -1375,6 +1375,10 @@ impl SignedTxBuilder {
         self.body.clone()
     }
 
+    pub fn witness_set(&self) -> TransactionWitnessSetBuilder {
+        self.witness_set.clone()
+    }
+
     pub fn is_valid(&self) -> bool {
         self.is_valid
     }

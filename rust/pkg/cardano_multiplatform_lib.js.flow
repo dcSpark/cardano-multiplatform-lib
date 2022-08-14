@@ -6632,6 +6632,11 @@ declare export class SignedTxBuilder {
   body(): TransactionBody;
 
   /**
+   * @returns {TransactionWitnessSetBuilder}
+   */
+  witness_set(): TransactionWitnessSetBuilder;
+
+  /**
    * @returns {boolean}
    */
   is_valid(): boolean;

@@ -397,6 +397,8 @@ impl PlutusScriptEnum {
 #[wasm_bindgen]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct PlutusScript(pub(crate) PlutusScriptEnum);
+
+#[wasm_bindgen]
 impl PlutusScript {
     pub fn from_v1(script: &PlutusV1Script) -> PlutusScript {
         PlutusScript(PlutusScriptEnum::PlutusV1(script.clone()))

@@ -230,7 +230,6 @@ impl RequiredWitnessSet {
 
 /// In order to calculate the index from the sorted set, "add_*" methods in this builder
 /// must be called along with the "add_*" methods in transaction builder.
-#[wasm_bindgen]
 #[derive(Clone, Default, Debug)]
 pub struct RedeemerSetBuilder {
     // the set of inputs is an ordered set (according to the order defined on the type TxIn) -

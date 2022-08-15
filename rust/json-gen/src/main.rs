@@ -142,7 +142,6 @@ fn main() {
     gen_json_schema!(PlutusV1Scripts);
     gen_json_schema!(PlutusV2Script);
     gen_json_schema!(PlutusV2Scripts);
-    gen_json_schema!(ConstrPlutusData);
     gen_json_schema!(CostModel);
     gen_json_schema!(Costmdls);
     gen_json_schema!(ExUnitPrices);
@@ -150,8 +149,6 @@ fn main() {
     gen_json_schema!(Language);
     gen_json_schema!(LanguageKind);
     gen_json_schema!(Languages);
-    gen_json_schema!(PlutusMap);
-    gen_json_schema!(PlutusList);
     // these types instead use decode_plutus_datum_to_json_value
     // gen_json_schema!(PlutusData);
     // gen_json_schema!(PlutusDataEnum);

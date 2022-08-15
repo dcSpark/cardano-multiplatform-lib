@@ -176,7 +176,7 @@ impl PlutusV2Scripts {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ConstrPlutusData {
     alternative: BigNum,
     data: PlutusList,
@@ -530,7 +530,7 @@ impl Languages {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct PlutusMap(std::collections::BTreeMap<PlutusData, PlutusData>);
 
 to_from_bytes!(PlutusMap);
@@ -571,7 +571,7 @@ pub enum PlutusDataKind {
     Bytes,
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum PlutusDataEnum {
     ConstrPlutusData(ConstrPlutusData),
     Map(PlutusMap),
@@ -581,7 +581,7 @@ pub enum PlutusDataEnum {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct PlutusData {
     datum: PlutusDataEnum,
     // We should always preserve the original datums when deserialized as this is NOT canonicized
@@ -672,6 +672,32 @@ impl PlutusData {
             _ => None,
         }
     }
+}
+
+impl serde::Serialize for PlutusData {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer {
+        let json_str = decode_plutus_datum_to_json_str(self, PlutusDatumSchema::DetailedSchema)
+            .map_err(|e| serde::ser::Error::custom(&format!("{:?}", e)))?;
+        serializer.serialize_str(&json_str)
+    }
+}
+
+impl <'de> serde::de::Deserialize<'de> for PlutusData {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
+    D: serde::de::Deserializer<'de> {
+        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        encode_json_str_to_plutus_datum(&s, PlutusDatumSchema::DetailedSchema)
+            .map_err(|e| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &format!("{:?}", e).as_str()))
+    }
+}
+
+// just for now we'll do json-in-json until I can figure this out better
+// TODO: maybe not generate this? or how do we do this?
+impl JsonSchema for PlutusData {
+    fn schema_name() -> String { String::from("PlutusData") }
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
+    fn is_referenceable() -> bool { String::is_referenceable() }
 }
 
 #[wasm_bindgen]
@@ -2135,5 +2161,18 @@ mod tests {
         // and it produces a different known expected hash because the format is preserved after deserialization
         let pdata2 = PlutusData::from_bytes(hex::decode("d87983d87982581ca183bf86925f66c579a3745c9517744399679b090927b8f6e2f2e1bb4f616461706541696c656e416d61746fd87982581c9a4e855293a0b9af5e50935a331d83e7982ab5b738ea0e6fc0f9e6564e4652414d455f36353030335f4c30581cbea1c521df58f4eeef60c647e5ebd88c6039915409f9fd6454a476b9").unwrap()).unwrap();
         assert_eq!(hex::encode(hash_plutus_data(&pdata2).to_bytes()), "816cdf6d4d8cba3ad0188ca643db95ddf0e03cdfc0e75a9550a72a82cb146222");
+    }
+
+    #[test]
+    fn plutus_json_map() {
+        let mut map = PlutusMap::new();
+        let mut arr = PlutusList::new();
+        arr.add(&PlutusData::new_integer(&BigInt::from_str("-1").unwrap()));
+        arr.add(&PlutusData::new_list(&arr.clone()));
+        map.insert(&PlutusData::new_constr_plutus_data(&ConstrPlutusData::new(&to_bignum(10), &arr)), &PlutusData::new_list(&arr));
+        let data = PlutusData::new_map(&map);
+        let json_str = serde_json::to_string_pretty(&data).unwrap();
+        let data_back = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(data, data_back);
     }
 }

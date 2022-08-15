@@ -4217,6 +4217,26 @@ declare export class NativeScript {
  */
 declare export class NativeScriptWitnessInfo {
   free(): void;
+
+  /**
+   * Unsure which keys will sign, but you know the exact number to save on tx fee
+   * @param {number} num
+   * @returns {NativeScriptWitnessInfo}
+   */
+  static num_signatures(num: number): NativeScriptWitnessInfo;
+
+  /**
+   * This native script will be witnessed by exactly these keys
+   * @param {Ed25519KeyHashes} vkeys
+   * @returns {NativeScriptWitnessInfo}
+   */
+  static vkeys(vkeys: Ed25519KeyHashes): NativeScriptWitnessInfo;
+
+  /**
+   * You don't know how many keys will sign, so the maximum possible case will be assumed
+   * @returns {NativeScriptWitnessInfo}
+   */
+  static assume_signature_count(): NativeScriptWitnessInfo;
 }
 /**
  */

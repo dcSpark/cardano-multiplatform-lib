@@ -607,6 +607,7 @@ pub enum NativeScriptWitnessInfoKind {
 #[derive(Clone, Debug)]
 pub struct NativeScriptWitnessInfo(NativeScriptWitnessInfoKind);
 
+#[wasm_bindgen]
 impl NativeScriptWitnessInfo {
     /// Unsure which keys will sign, but you know the exact number to save on tx fee
     pub fn num_signatures(num: usize) -> NativeScriptWitnessInfo {

@@ -2757,6 +2757,12 @@ declare export class ExUnits {
    * @returns {ExUnits}
    */
   checked_add(other: ExUnits): ExUnits;
+
+  /**
+   * used to create a dummy ExUnits that takes up the maximum size possible in cbor to provide an upper bound on tx size
+   * @returns {ExUnits}
+   */
+  static dummy(): ExUnits;
 }
 /**
  */
@@ -8234,6 +8240,19 @@ declare export class TransactionBuilder {
   output_sizes(): Uint32Array;
 
   /**
+   * used to override the exunit values initially provided when adding inputs
+   * @param {RedeemerWitnessKey} redeemer
+   * @param {ExUnits} ex_units
+   */
+  set_exunits(redeemer: RedeemerWitnessKey, ex_units: ExUnits): void;
+
+  /**
+   * Returns object the body of the new transaction
+   * @returns {TransactionBody}
+   */
+  build_body(): TransactionBody;
+
+  /**
    * Builds the transaction and moves to the next step where any extra witness can be added
    * NOTE: is_valid set to true
    * @returns {SignedTxBuilder}
@@ -8741,11 +8760,13 @@ declare export class TransactionOutputAmountBuilder {
   /**
    * @param {MultiAsset} multiasset
    * @param {BigNum} coins_per_utxo_byte
+   * @param {BigNum | void} coins_per_utxo_word
    * @returns {TransactionOutputAmountBuilder}
    */
   with_asset_and_min_required_coin(
     multiasset: MultiAsset,
-    coins_per_utxo_byte: BigNum
+    coins_per_utxo_byte: BigNum,
+    coins_per_utxo_word?: BigNum
   ): TransactionOutputAmountBuilder;
 
   /**

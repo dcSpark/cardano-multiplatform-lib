@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, BTreeMap}, fmt::Debug};
+use std::{collections::{HashMap, BTreeMap}, fmt::Debug, ops::IndexMut};
 use crate::{*, ledger::common::hash::hash_plutus_data, byron::ByronAddress};
 
 use super::{input_builder::InputBuilderResult, mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult, certificate_builder::CertificateBuilderResult};
@@ -235,22 +235,22 @@ pub struct RedeemerSetBuilder {
     // the set of inputs is an ordered set (according to the order defined on the type TxIn) -
     // this also is the order in which the elements of the set are indexed (lex order on the pair of TxId and Ix).
     // All inputs of a transaction are included in the set being indexed (not just the ones that point to a Plutus script UTxO)
-    spend: BTreeMap<TransactionInput, Option<UntaggedRedeemer>>,
+    spend: BTreeMap<TransactionInput, UntaggedRedeemer>,
 
     // the set of policy IDs is ordered according to the order defined on PolicyID (lex).
     // The index of a PolicyID in this set of policy IDs is computed according to this order.
     // Note that at the use site, the set of policy IDs passed to indexof is the (unfiltered)
     // domain of the Value map in the mint field of the transaction.
-    mint: BTreeMap<PolicyID, Option<UntaggedRedeemer>>,
+    mint: BTreeMap<PolicyID, UntaggedRedeemer>,
 
     // the index of a reward account ract in the reward withdrawals map is the index of ract as a key in the (unfiltered) map.
     // The keys of the Wdrl map are arranged in the order defined on the RewardAcnt type, which is a lexicographical (abbrv. lex)
     // order on the pair of the Network and the Credential.
-    reward: BTreeMap<RewardAddress, Option<UntaggedRedeemer>>,
+    reward: BTreeMap<RewardAddress, UntaggedRedeemer>,
 
     // certificates in the DCert list are indexed in the order in which they arranged in the (full, unfiltered)
     // list of certificates inside the transaction
-    cert: Vec<Option<UntaggedRedeemer>>,
+    cert: Vec<UntaggedRedeemer>,
 }
 
 impl RedeemerSetBuilder {
@@ -262,32 +262,50 @@ impl RedeemerSetBuilder {
         self.spend.is_empty() && self.mint.is_empty() && self.reward.is_empty() && self.cert.is_empty()
     }
 
+    pub fn update_ex_units(&mut self, key: &RedeemerWitnessKey, ex_units: &ExUnits) {
+        let mut untagged_redeemer = match key.tag().kind() {
+            RedeemerTagKind::Spend => self.spend.iter_mut().nth(u64::from(key.index()) as usize).unwrap().1,
+            RedeemerTagKind::Mint => self.mint.iter_mut().nth(u64::from(key.index()) as usize).unwrap().1,
+            RedeemerTagKind::Cert => self.cert.index_mut(u64::from(key.index()) as usize),
+            RedeemerTagKind::Reward => self.reward.iter_mut().nth(u64::from(key.index()) as usize).unwrap().1,
+        };
+        untagged_redeemer.ex_units = ex_units.clone();
+    }
+
     pub fn add_spend(&mut self, result: &InputBuilderResult) {
         let untagged = {
             result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
         };
-        self.spend.insert(result.input.clone(), untagged);
+        if let Some(redeemer) = untagged {
+            self.spend.insert(result.input.clone(), redeemer);
+        }
     }
 
     pub fn add_mint(&mut self, result: &MintBuilderResult) {
         let untagged = {
             result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
         };
-        self.mint.insert(result.policy_id.clone(), untagged);
+        if let Some(redeemer) = untagged {
+            self.mint.insert(result.policy_id.clone(), redeemer);
+        }
     }
 
     pub fn add_reward(&mut self, result: &WithdrawalBuilderResult) {
         let untagged = {
             result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
         };
-        self.reward.insert(result.address.clone(), untagged);
+        if let Some(redeemer) = untagged {
+            self.reward.insert(result.address.clone(), redeemer);
+        }
     }
 
     pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
         let untagged = {
             result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
         };
-        self.cert.push(untagged);
+        if let Some(redeemer) = untagged {
+            self.cert.push(redeemer);
+        }
     }
 
     pub fn build(&self) -> Redeemers {
@@ -301,21 +319,19 @@ impl RedeemerSetBuilder {
         Redeemers(redeemers)
     }
 
-    fn values<K>(map: &BTreeMap<K, Option<UntaggedRedeemer>>) -> Vec<Option<UntaggedRedeemer>> {
+    fn values<K>(map: &BTreeMap<K, UntaggedRedeemer>) -> Vec<UntaggedRedeemer> {
         map.values().cloned().collect()
     }
 
-    fn tag_redeemer(tag: &RedeemerTag, untagged_redeemers: &[Option<UntaggedRedeemer>]) -> Vec<Redeemer> {
+    fn tag_redeemer(tag: &RedeemerTag, untagged_redeemers: &[UntaggedRedeemer]) -> Vec<Redeemer> {
         let mut result = Vec::new();
 
         for (index, value) in untagged_redeemers.iter().enumerate() {
-            if let Some(untagged) = value {
-                let redeemer = {
-                    let index = index as u64;
-                    Redeemer::new(tag, &index.into(), &untagged.data, &untagged.ex_units)
-                };
-                result.push(redeemer);
-            }
+            let redeemer = {
+                let index = index as u64;
+                Redeemer::new(tag, &index.into(), &value.data, &value.ex_units)
+            };
+            result.push(redeemer);
         }
 
         result

@@ -1,5 +1,5 @@
 use std::io::{BufRead, Seek, Write};
-use crate::ledger::common::{binary::*, value::{from_bignum, to_bignum, BigInt}};
+use crate::{ledger::common::{binary::*, value::{from_bignum, to_bignum, BigInt}}, builders::utils::force_u64};
 
 use super::*;
 
@@ -470,6 +470,11 @@ impl ExUnits {
         let mem = self.mem.checked_add(&other.mem())?;
         let step = self.steps.checked_add(&other.steps())?;
         Ok(ExUnits::new(&mem, &step))
+    }
+
+     /// used to create a dummy ExUnits that takes up the maximum size possible in cbor to provide an upper bound on tx size
+     pub fn dummy() -> ExUnits {
+        ExUnits::new(&to_bignum(force_u64), &to_bignum(force_u64))
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::{*, ledger::babbage::min_ada::min_ada_required};
+use crate::{*, ledger::babbage::min_ada::{min_ada_required, compatible_min_ada_required}};
 
 /// We introduce a builder-pattern format for creating transaction outputs
 /// This is because:
@@ -83,14 +83,14 @@ impl TransactionOutputAmountBuilder {
         cfg
     }
 
-    pub fn with_asset_and_min_required_coin(&self, multiasset: &MultiAsset, coins_per_utxo_byte: &Coin) -> Result<TransactionOutputAmountBuilder, JsError> {
+    pub fn with_asset_and_min_required_coin(&self, multiasset: &MultiAsset, coins_per_utxo_byte: &Coin, coins_per_utxo_word: Option<Coin>) -> Result<TransactionOutputAmountBuilder, JsError> {
         let mut min_output = TransactionOutput::new(
             &self.address,
             &self.amount.clone().unwrap_or_else(|| Value::new(&to_bignum(0))),
         );
         min_output.datum_option = self.datum.clone();
         min_output.script_ref = self.script_ref.clone();
-        let min_possible_coin = min_ada_required(&min_output, coins_per_utxo_byte)?;
+        let min_possible_coin = calc_min_ada(&min_output, coins_per_utxo_byte, coins_per_utxo_word.as_ref())?;
         
         let mut value = Value::new(&min_possible_coin);
         value.set_multiasset(multiasset);
@@ -99,7 +99,7 @@ impl TransactionOutputAmountBuilder {
         check_output.datum_option = self.datum.clone();
         check_output.script_ref = self.script_ref.clone();
 
-        let required_coin = min_ada_required(&check_output, coins_per_utxo_byte)?;
+        let required_coin = calc_min_ada(&check_output, coins_per_utxo_byte, coins_per_utxo_word.as_ref())?;
 
         Ok(self.with_coin_and_asset(&required_coin, multiasset))
     }
@@ -111,5 +111,23 @@ impl TransactionOutputAmountBuilder {
             datum_option: self.datum.clone(),
             script_ref: self.script_ref.clone(),
         })
+    }
+}
+
+#[deprecated(
+    since = "1.0.0",
+    note = "If you don't need to support Alonzo, you don't need this function"
+)]
+pub(crate) fn calc_min_ada(output: &TransactionOutput, coins_per_utxo_byte: &BigNum, coins_per_utxo_word: Option<&BigNum>) -> Result<BigNum, JsError> {
+    match coins_per_utxo_word {
+        Some(coins_per_utxo_word) => compatible_min_ada_required(
+            output,
+            coins_per_utxo_byte,
+            coins_per_utxo_word
+        ),
+        None => min_ada_required(
+            output,
+            coins_per_utxo_byte,
+        )
     }
 }

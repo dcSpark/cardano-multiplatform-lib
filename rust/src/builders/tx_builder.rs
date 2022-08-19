@@ -1,9 +1,8 @@
 use crate::*;
 use crate::builders::output_builder::TransactionOutputBuilder;
+use crate::builders::output_builder::calc_min_ada;
 use crate::ledger;
 use crate::ledger::alonzo::fees::LinearFee;
-use crate::ledger::babbage::min_ada::compatible_min_ada_required;
-use crate::ledger::babbage::min_ada::min_ada_required;
 use crate::ledger::babbage::min_ada::min_pure_ada;
 use crate::ledger::common::deposit::internal_get_deposit;
 use crate::ledger::common::deposit::internal_get_implicit_input;
@@ -264,24 +263,6 @@ pub struct TransactionBuilder {
     utxos: Vec<InputBuilderResult>,
     collateral_return: Option<TransactionOutput>,
     reference_inputs: Option<TransactionInputs>,
-}
-
-#[deprecated(
-    since = "1.0.0",
-    note = "If you don't need to support Alonzo, you don't need this function"
-)]
-fn calc_min_ada(output: &TransactionOutput, coins_per_utxo_byte: &BigNum, coins_per_utxo_word: Option<&BigNum>) -> Result<BigNum, JsError> {
-    match coins_per_utxo_word {
-        Some(coins_per_utxo_word) => compatible_min_ada_required(
-            output,
-            coins_per_utxo_byte,
-            coins_per_utxo_word
-        ),
-        None => min_ada_required(
-            output,
-            coins_per_utxo_byte,
-        )
-    }
 }
 
 #[wasm_bindgen]
@@ -1086,7 +1067,7 @@ impl TransactionBuilder {
                                 script_ref: script_ref.clone()
                             })
                                 .next()?
-                                .with_asset_and_min_required_coin(nft_change,  &self.config.coins_per_utxo_byte)?
+                                .with_asset_and_min_required_coin(nft_change,  &self.config.coins_per_utxo_byte, self.config.coins_per_utxo_word.clone())?
                                 .build()?;
                             
                             // increase fee
@@ -1394,6 +1375,7 @@ mod tests {
     use crate::builders::{mint_builder::SingleMintBuilder, witness_builder::NativeScriptWitnessInfo, input_builder::SingleInputBuilder};
     use crate::byron::{ByronAddress, AddressContent};
     use crate::genesis::network_info::plutus_alonzo_cost_models;
+    use crate::ledger::babbage::min_ada::min_ada_required;
     use crate::ledger::common::hash::hash_transaction;
     use crate::ledger::shelley::witness::make_vkey_witness;
 
@@ -3768,7 +3750,7 @@ mod tests {
             &TransactionOutputBuilder::new()
                 .with_address(&address)
                 .next().unwrap()
-                .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_byte).unwrap()
+                .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_byte, tx_builder.config.coins_per_utxo_word.clone()).unwrap()
                 .build().unwrap()
             ).unwrap();
 
@@ -3881,7 +3863,7 @@ mod tests {
             .with_address(&address)
             .next()
             .unwrap()
-            .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_byte)
+            .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_byte, tx_builder.config.coins_per_utxo_word.clone())
             .unwrap()
             .build()
             .unwrap();

@@ -13,6 +13,7 @@ pub fn input_required_wits(utxo_info: &TransactionOutput, required_witnesses: &m
             required_witnesses.add_script_hash(script_hash);
             // TODO: my understand is that inline datums in inputs also need to be added to the witness
             // but I still need to confirm this by actually submitting a transaction that tests this
+            // see same comment in add_reference_input
             if let Some(data_hash) = &utxo_info.datum().and_then(|datum| datum.as_data_hash()) {
                 required_witnesses.add_plutus_datum_hash(data_hash);
                 // note: redeemer is required as well
@@ -78,7 +79,7 @@ impl SingleInputBuilder {
         // check the user provided all the required witnesses
         required_wits_left.scripts.remove(script_hash);
 
-        if required_wits_left.scripts.len() > 0 {
+        if !required_wits_left.scripts.is_empty() {
             return Err(JsError::from_str(&format!("Missing the following witnesses for the input: \n{:#?}", required_wits_left.to_str())));
         }
 

@@ -871,7 +871,7 @@ pub enum ScriptKind {
 
 #[wasm_bindgen]
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
-pub struct Script(ScriptEnum);
+pub struct Script(pub(crate) ScriptEnum);
 
 to_from_bytes!(Script);
 
@@ -917,6 +917,14 @@ impl Script {
         match &self.0 {
             ScriptEnum::PlutusV2(plutus_script) => Some(plutus_script.clone()),
             _ => None,
+        }
+    }
+
+    pub fn hash(&self) -> ScriptHash {
+        match &self.0 {
+            ScriptEnum::Native(native_script) => native_script.hash(),
+            ScriptEnum::PlutusV1(plutus_script) => plutus_script.hash(),
+            ScriptEnum::PlutusV2(plutus_script) => plutus_script.hash(),
         }
     }
 }

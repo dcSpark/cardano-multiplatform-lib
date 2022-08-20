@@ -121,6 +121,7 @@ pub struct RequiredWitnessSet {
     pub(crate) scripts: BTreeSet<ScriptHash>,
     pub(crate) plutus_data: BTreeSet<DataHash>,
     pub(crate) redeemers: BTreeSet<RedeemerWitnessKey>,
+    pub(crate) script_refs: BTreeSet<ScriptHash>,
 }
 
 #[wasm_bindgen]
@@ -139,11 +140,20 @@ impl RequiredWitnessSet {
         self.bootstraps.insert(address.clone());
     }
 
+    pub fn add_script_ref(&mut self, script_hash: &ScriptHash) {
+        self.script_refs.insert(script_hash.clone());
+        self.scripts.remove(script_hash);
+    }
+
     pub fn add_native_script(&mut self, native_script: &NativeScript) {
         self.add_script_hash(&native_script.hash());
     }
+
     pub fn add_script_hash(&mut self, script_hash: &ScriptHash) {
-        self.scripts.insert(script_hash.clone());
+        match self.script_refs.get(script_hash) {
+            None => { self.scripts.insert(script_hash.clone()); },
+            Some(_) => {}
+        }
     }
 
     pub fn add_plutus_script(&mut self, plutus_v1_script: &PlutusScript) {
@@ -373,6 +383,14 @@ impl TransactionWitnessSetBuilder {
         Vkeys(self.bootstraps.clone().into_keys().collect())
     }
 
+    pub fn add_script(&mut self, script: &Script) {
+        match &script.0 {
+            ScriptEnum::Native(native) => self.add_native_script(native),
+            ScriptEnum::PlutusV1(plutus_v1) => self.add_plutus_v1_script(plutus_v1),
+            ScriptEnum::PlutusV2(plutus_v2) => self.add_plutus_v2_script(plutus_v2),
+        }
+    }
+
     pub fn add_native_script(&mut self, native_script: &NativeScript) {
         self.scripts.insert(native_script.hash(),  ScriptEnum::Native(native_script.clone()));
     }
@@ -380,6 +398,7 @@ impl TransactionWitnessSetBuilder {
     pub fn get_native_script(&self) -> NativeScripts {
         let scripts: Vec<NativeScript> = self.scripts
             .iter()
+            .filter(|entry| self.required_wits.script_refs.get(entry.0).is_none())
             .fold(
                 Vec::<NativeScript>::new(),
                 |mut acc, script| match &script.1 {
@@ -397,6 +416,7 @@ impl TransactionWitnessSetBuilder {
     pub fn get_plutus_v1_script(&self) -> PlutusV1Scripts {
         let scripts: Vec<PlutusV1Script> = self.scripts
             .iter()
+            .filter(|entry| self.required_wits.script_refs.get(entry.0).is_none())
             .fold(
                 Vec::<PlutusV1Script>::new(),
                 |mut acc, script| match &script.1 {
@@ -414,6 +434,7 @@ impl TransactionWitnessSetBuilder {
     pub fn get_plutus_v2_script(&self) -> PlutusV2Scripts {
         let scripts: Vec<PlutusV2Script> = self.scripts
             .iter()
+            .filter(|entry| self.required_wits.script_refs.get(entry.0).is_none())
             .fold(
                 Vec::<PlutusV2Script>::new(),
                 |mut acc, script| match &script.1 {

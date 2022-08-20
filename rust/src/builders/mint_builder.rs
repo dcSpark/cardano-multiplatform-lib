@@ -26,34 +26,30 @@ impl SingleMintBuilder {
         }
     }
 
-    pub fn skip_witness(&self, policy_id: &PolicyID) -> MintBuilderResult {
-        MintBuilderResult {
-            assets: self.assets.clone(),
-            policy_id: policy_id.clone(),
-            aggregate_witness: None,
-            required_wits: RequiredWitnessSet::default(),
-        }
-    }
-
     pub fn native_script(&self, native_script: &NativeScript, witness_info: &NativeScriptWitnessInfo) -> Result<MintBuilderResult, JsError> {
+        let mut required_wits = RequiredWitnessSet::default();
+        required_wits.add_script_hash(&native_script.hash());
+        
         Ok(MintBuilderResult {
             assets: self.assets.clone(),
             policy_id: native_script.hash(),
             aggregate_witness: Some(InputAggregateWitnessData::NativeScript(native_script.clone(), witness_info.clone())),
-            required_wits: RequiredWitnessSet::default(),
+            required_wits,
         })
     }
 
     pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, required_signers: &RequiredSigners) -> Result<MintBuilderResult, JsError> {
-        let script_hash = partial_witness.script.hash();
         let mut required_wits = RequiredWitnessSet::default();
+
+        let script_hash = partial_witness.script.hash();
+        required_signers.0.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer));
         required_wits.add_script_hash(&script_hash);
 
         Ok(MintBuilderResult {
             assets: self.assets.clone(),
             policy_id: script_hash,
             aggregate_witness: Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), required_signers.clone(), None)),
-            required_wits: RequiredWitnessSet::default(),
+            required_wits,
         })
     }
 }

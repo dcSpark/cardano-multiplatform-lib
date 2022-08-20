@@ -44,7 +44,7 @@ impl SingleWithdrawalBuilder {
         let mut required_wits = RequiredWitnessSet::default();
         withdrawal_required_wits(&self.address, &mut required_wits);
 
-        if required_wits.scripts.len() > 0 {
+        if !required_wits.scripts.is_empty() {
             return Err(JsError::from_str(&format!("Withdrawal required a script, not a payment key: \n{:#?}", self.address.to_address().to_bech32(None))));
         }
 
@@ -64,7 +64,7 @@ impl SingleWithdrawalBuilder {
         // check the user provided all the required witnesses
         required_wits_left.scripts.remove(&native_script.hash());
 
-        if required_wits_left.len() > 0 {
+        if !required_wits_left.scripts.is_empty() {
             return Err(JsError::from_str(&format!("Missing the following witnesses for the withdrawal: \n{:#?}", required_wits_left.to_str())));
         }
 

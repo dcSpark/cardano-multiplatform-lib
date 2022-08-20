@@ -673,6 +673,7 @@ impl TransactionBuilder {
 
     /// Set metadata using a GeneralTransactionMetadata object
     /// It will be set to the existing or new auxiliary data in this builder
+    #[deprecated(since = "1.0.0-beta.10", note = "Please use `add_metadata` method with `TxMetadataBuilder`")]
     pub fn set_metadata(&mut self, metadata: &GeneralTransactionMetadata) {
         let mut aux = self.auxiliary_data.as_ref().cloned().unwrap_or_else(AuxiliaryData::new);
         aux.set_metadata(metadata);
@@ -681,6 +682,7 @@ impl TransactionBuilder {
 
     /// Add a single metadatum using TransactionMetadatumLabel and TransactionMetadatum objects
     /// It will be securely added to existing or new metadata in this builder
+    #[deprecated(since = "1.0.0-beta.10", note = "Please use `add_metadata` method with `TxMetadataBuilder`")]
     pub fn add_metadatum(&mut self, key: &TransactionMetadatumLabel, val: &TransactionMetadatum) {
         let mut metadata = self.auxiliary_data.as_ref()
             .map(|aux| { aux.metadata().as_ref().cloned() })
@@ -692,6 +694,7 @@ impl TransactionBuilder {
 
     /// Add a single JSON metadatum using a TransactionMetadatumLabel and a String
     /// It will be securely added to existing or new metadata in this builder
+    #[deprecated(since = "1.0.0-beta.10", note = "Please use `add_metadata` method with `TxMetadataBuilder`")]
     pub fn add_json_metadatum(
         &mut self,
         key: &TransactionMetadatumLabel,
@@ -702,6 +705,7 @@ impl TransactionBuilder {
 
     /// Add a single JSON metadatum using a TransactionMetadatumLabel, a String, and a MetadataJsonSchema object
     /// It will be securely added to existing or new metadata in this builder
+    #[deprecated(since = "1.0.0-beta.10", note = "Please use `add_metadata` method with `TxMetadataBuilder`")]
     pub fn add_json_metadatum_with_schema(
         &mut self,
         key: &TransactionMetadatumLabel,

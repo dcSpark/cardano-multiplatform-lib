@@ -1365,6 +1365,7 @@ impl TxRedeemerBuilder {
         self.witness_builders.redeemer_set_builder.update_ex_units(redeemer, ex_units);
     }
 
+    /// Transaction body with a dummy values for redeemers & script_data_hash
     pub fn draft_body(&self) -> TransactionBody {
         self.draft_body.clone()
     }

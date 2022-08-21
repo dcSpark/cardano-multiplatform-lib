@@ -9221,6 +9221,7 @@ declare export class TxRedeemerBuilder {
   set_exunits(redeemer: RedeemerWitnessKey, ex_units: ExUnits): void;
 
   /**
+   * Transaction body with a dummy values for redeemers & script_data_hash
    * @returns {TransactionBody}
    */
   draft_body(): TransactionBody;

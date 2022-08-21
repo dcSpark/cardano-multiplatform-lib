@@ -532,7 +532,6 @@ mod tests {
         let data = {
             let witness = {
                 let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
-                //  &ExUnits::new(&to_bignum(10), &to_bignum(10));
                 PartialPlutusWitness::new(&PlutusScript(script), &PlutusData::new_integer(&0u64.into()))
             };
             let missing_signers = {
@@ -559,7 +558,6 @@ mod tests {
         let data = {
             let witness = {
                 let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
-                // &ExUnits::new(&to_bignum(10), &to_bignum(10));
                 PartialPlutusWitness::new(&PlutusScript(script), &PlutusData::new_integer(&0u64.into()))
             };
             let missing_signers = {

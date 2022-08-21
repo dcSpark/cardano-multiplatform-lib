@@ -490,28 +490,6 @@ declare export class AddrAttributes {
   free(): void;
 
   /**
-   * @param {HDAddressPayload | void} hdap
-   * @param {ProtocolMagic | void} protocol_magic
-   * @returns {AddrAttributes}
-   */
-  static new_bootstrap_era(
-    hdap?: HDAddressPayload,
-    protocol_magic?: ProtocolMagic
-  ): AddrAttributes;
-
-  /**
-   * @param {Bip32PublicKey} pubk
-   * @param {HDAddressPayload | void} hdap
-   * @param {ProtocolMagic} protocol_magic
-   * @returns {AddrAttributes}
-   */
-  static new_single_key(
-    pubk: Bip32PublicKey,
-    hdap: HDAddressPayload | void,
-    protocol_magic: ProtocolMagic
-  ): AddrAttributes;
-
-  /**
    * @returns {Uint8Array}
    */
   to_bytes(): Uint8Array;
@@ -572,6 +550,28 @@ declare export class AddrAttributes {
    * @returns {AddrAttributes}
    */
   static new(): AddrAttributes;
+
+  /**
+   * @param {HDAddressPayload | void} hdap
+   * @param {ProtocolMagic | void} protocol_magic
+   * @returns {AddrAttributes}
+   */
+  static new_bootstrap_era(
+    hdap?: HDAddressPayload,
+    protocol_magic?: ProtocolMagic
+  ): AddrAttributes;
+
+  /**
+   * @param {Bip32PublicKey} pubk
+   * @param {HDAddressPayload | void} hdap
+   * @param {ProtocolMagic} protocol_magic
+   * @returns {AddrAttributes}
+   */
+  static new_single_key(
+    pubk: Bip32PublicKey,
+    hdap: HDAddressPayload | void,
+    protocol_magic: ProtocolMagic
+  ): AddrAttributes;
 }
 /**
  */
@@ -724,6 +724,60 @@ declare export class AddressContent {
   free(): void;
 
   /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {AddressContent}
+   */
+  static from_bytes(bytes: Uint8Array): AddressContent;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {AddressContentJSON}
+   */
+  to_js_value(): AddressContentJSON;
+
+  /**
+   * @param {string} json
+   * @returns {AddressContent}
+   */
+  static from_json(json: string): AddressContent;
+
+  /**
+   * @returns {AddressId}
+   */
+  address_id(): AddressId;
+
+  /**
+   * @returns {AddrAttributes}
+   */
+  addr_attr(): AddrAttributes;
+
+  /**
+   * @returns {ByronAddrType}
+   */
+  addr_type(): ByronAddrType;
+
+  /**
+   * @param {AddressId} address_id
+   * @param {AddrAttributes} addr_attr
+   * @param {ByronAddrType} addr_type
+   * @returns {AddressContent}
+   */
+  static new(
+    address_id: AddressId,
+    addr_attr: AddrAttributes,
+    addr_type: ByronAddrType
+  ): AddressContent;
+
+  /**
    * @param {ByronAddrType} addr_type
    * @param {SpendingData} spending_data
    * @param {AddrAttributes} attributes
@@ -788,77 +842,11 @@ declare export class AddressContent {
    * @returns {boolean}
    */
   identical_with_pubkey(xpub: Bip32PublicKey): boolean;
-
-  /**
-   * @returns {Uint8Array}
-   */
-  to_bytes(): Uint8Array;
-
-  /**
-   * @param {Uint8Array} bytes
-   * @returns {AddressContent}
-   */
-  static from_bytes(bytes: Uint8Array): AddressContent;
-
-  /**
-   * @returns {string}
-   */
-  to_json(): string;
-
-  /**
-   * @returns {AddressContentJSON}
-   */
-  to_js_value(): AddressContentJSON;
-
-  /**
-   * @param {string} json
-   * @returns {AddressContent}
-   */
-  static from_json(json: string): AddressContent;
-
-  /**
-   * @returns {AddressId}
-   */
-  address_id(): AddressId;
-
-  /**
-   * @returns {AddrAttributes}
-   */
-  addr_attr(): AddrAttributes;
-
-  /**
-   * @returns {ByronAddrType}
-   */
-  addr_type(): ByronAddrType;
-
-  /**
-   * @param {AddressId} address_id
-   * @param {AddrAttributes} addr_attr
-   * @param {ByronAddrType} addr_type
-   * @returns {AddressContent}
-   */
-  static new(
-    address_id: AddressId,
-    addr_attr: AddrAttributes,
-    addr_type: ByronAddrType
-  ): AddressContent;
 }
 /**
  */
 declare export class AddressId {
   free(): void;
-
-  /**
-   * @param {ByronAddrType} addr_type
-   * @param {SpendingData} spending_data
-   * @param {AddrAttributes} attrs
-   * @returns {AddressId}
-   */
-  static new(
-    addr_type: ByronAddrType,
-    spending_data: SpendingData,
-    attrs: AddrAttributes
-  ): AddressId;
 
   /**
    * @param {Uint8Array} bytes
@@ -893,6 +881,18 @@ declare export class AddressId {
    * @returns {AddressId}
    */
   static from_hex(hex: string): AddressId;
+
+  /**
+   * @param {ByronAddrType} addr_type
+   * @param {SpendingData} spending_data
+   * @param {AddrAttributes} attrs
+   * @returns {AddressId}
+   */
+  static new(
+    addr_type: ByronAddrType,
+    spending_data: SpendingData,
+    attrs: AddrAttributes
+  ): AddressId;
 }
 /**
  */
@@ -1869,39 +1869,6 @@ declare export class ByronAddress {
   free(): void;
 
   /**
-   * @returns {string}
-   */
-  to_base58(): string;
-
-  /**
-   * @param {string} s
-   * @returns {ByronAddress}
-   */
-  static from_base58(s: string): ByronAddress;
-
-  /**
-   * @returns {AddressContent}
-   */
-  address_content(): AddressContent;
-
-  /**
-   * @param {string} s
-   * @returns {boolean}
-   */
-  static is_valid(s: string): boolean;
-
-  /**
-   * @returns {Address}
-   */
-  to_address(): Address;
-
-  /**
-   * @param {Address} addr
-   * @returns {ByronAddress | void}
-   */
-  static from_address(addr: Address): ByronAddress | void;
-
-  /**
    * @returns {Uint8Array}
    */
   to_bytes(): Uint8Array;
@@ -1950,6 +1917,39 @@ declare export class ByronAddress {
    * @returns {ByronAddress}
    */
   static new(addr: Uint8Array, crc32: Crc32): ByronAddress;
+
+  /**
+   * @returns {string}
+   */
+  to_base58(): string;
+
+  /**
+   * @param {string} s
+   * @returns {ByronAddress}
+   */
+  static from_base58(s: string): ByronAddress;
+
+  /**
+   * @returns {AddressContent}
+   */
+  address_content(): AddressContent;
+
+  /**
+   * @param {string} s
+   * @returns {boolean}
+   */
+  static is_valid(s: string): boolean;
+
+  /**
+   * @returns {Address}
+   */
+  to_address(): Address;
+
+  /**
+   * @param {Address} addr
+   * @returns {ByronAddress | void}
+   */
+  static from_address(addr: Address): ByronAddress | void;
 }
 /**
  */
@@ -4458,13 +4458,10 @@ declare export class PartialPlutusWitness {
 
   /**
    * @param {PlutusScript} script
-   * @param {UntaggedRedeemer} untagged_redeemer
+   * @param {PlutusData} data
    * @returns {PartialPlutusWitness}
    */
-  static new(
-    script: PlutusScript,
-    untagged_redeemer: UntaggedRedeemer
-  ): PartialPlutusWitness;
+  static new(script: PlutusScript, data: PlutusData): PartialPlutusWitness;
 
   /**
    * @returns {PlutusScript}
@@ -4472,9 +4469,9 @@ declare export class PartialPlutusWitness {
   script(): PlutusScript;
 
   /**
-   * @returns {UntaggedRedeemer}
+   * @returns {PlutusData}
    */
-  untagged_redeemer(): UntaggedRedeemer;
+  data(): PlutusData;
 }
 /**
  */
@@ -7406,12 +7403,6 @@ declare export class StakeDistribution {
   free(): void;
 
   /**
-   * @param {Bip32PublicKey} pubk
-   * @returns {StakeDistribution}
-   */
-  static new_single_key(pubk: Bip32PublicKey): StakeDistribution;
-
-  /**
    * @returns {Uint8Array}
    */
   to_bytes(): Uint8Array;
@@ -7463,6 +7454,12 @@ declare export class StakeDistribution {
    * @returns {SingleKeyDistr | void}
    */
   as_single_key_distr(): SingleKeyDistr | void;
+
+  /**
+   * @param {Bip32PublicKey} pubk
+   * @returns {StakeDistribution}
+   */
+  static new_single_key(pubk: Bip32PublicKey): StakeDistribution;
 }
 /**
  */
@@ -7513,12 +7510,6 @@ declare export class StakeholderId {
   free(): void;
 
   /**
-   * @param {Bip32PublicKey} pubk
-   * @returns {StakeholderId}
-   */
-  static new(pubk: Bip32PublicKey): StakeholderId;
-
-  /**
    * @param {Uint8Array} bytes
    * @returns {StakeholderId}
    */
@@ -7551,6 +7542,12 @@ declare export class StakeholderId {
    * @returns {StakeholderId}
    */
   static from_hex(hex: string): StakeholderId;
+
+  /**
+   * @param {Bip32PublicKey} pubk
+   * @returns {StakeholderId}
+   */
+  static new(pubk: Bip32PublicKey): StakeholderId;
 }
 /**
  */
@@ -8249,24 +8246,11 @@ declare export class TransactionBuilder {
   output_sizes(): Uint32Array;
 
   /**
-   * used to override the exunit values initially provided when adding inputs
-   * @param {RedeemerWitnessKey} redeemer
-   * @param {ExUnits} ex_units
-   */
-  set_exunits(redeemer: RedeemerWitnessKey, ex_units: ExUnits): void;
-
-  /**
-   * Returns object the body of the new transaction
-   * @returns {TransactionBody}
-   */
-  build_body(): TransactionBody;
-
-  /**
-   * Builds the transaction and moves to the next step where any extra witness can be added
+   * Builds the transaction and moves to the next step where any real witness can be added
    * NOTE: is_valid set to true
-   * @returns {SignedTxBuilder}
+   * @returns {TxRedeemerBuilder}
    */
-  build(): SignedTxBuilder;
+  build(): TxRedeemerBuilder;
 
   /**
    * warning: sum of all parts of a transaction must equal 0. You cannot just set the fee to the min value and forget about it
@@ -9216,6 +9200,35 @@ declare export class TransactionWitnessSets {
    * @param {TransactionWitnessSet} elem
    */
   add(elem: TransactionWitnessSet): void;
+}
+/**
+ */
+declare export class TxRedeemerBuilder {
+  free(): void;
+
+  /**
+   * Builds the transaction and moves to the next step where any real witness can be added
+   * NOTE: is_valid set to true
+   * @returns {SignedTxBuilder}
+   */
+  build(): SignedTxBuilder;
+
+  /**
+   * used to override the exunit values initially provided when adding inputs
+   * @param {RedeemerWitnessKey} redeemer
+   * @param {ExUnits} ex_units
+   */
+  set_exunits(redeemer: RedeemerWitnessKey, ex_units: ExUnits): void;
+
+  /**
+   * @returns {TransactionBody}
+   */
+  draft_body(): TransactionBody;
+
+  /**
+   * @returns {AuxiliaryData | void}
+   */
+  auxiliary_data(): AuxiliaryData | void;
 }
 /**
  */

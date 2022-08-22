@@ -1,62 +1,7 @@
-use std::{collections::{HashMap, BTreeMap}, fmt::Debug, ops::IndexMut};
+use std::{collections::{HashMap}, fmt::Debug};
 use crate::{*, ledger::common::hash::hash_plutus_data, byron::ByronAddress};
 
-use super::{input_builder::InputBuilderResult, mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult, certificate_builder::CertificateBuilderResult};
-
-#[wasm_bindgen]
-#[derive(Clone, Copy, PartialOrd, Ord, Debug, PartialEq, Eq, Hash)]
-pub struct RedeemerWitnessKey {
-    tag: RedeemerTag,
-    index: BigNum,
-}
-
-#[wasm_bindgen]
-impl RedeemerWitnessKey {
-
-    pub fn tag(&self) -> RedeemerTag {
-        self.tag
-    }
-
-    pub fn index(&self) -> BigNum {
-        self.index
-    }
-
-    pub fn new(tag: &RedeemerTag, index: &BigNum) -> Self {
-        Self {
-            tag: *tag,
-            index: *index,
-        }
-    }
-}
-
-/// Redeemer without the tag of index
-/// This allows builder code to return partial redeemers
-/// and then later have them placed in the right context
-#[wasm_bindgen]
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct UntaggedRedeemer {
-    data: PlutusData,
-    ex_units: ExUnits,
-}
-
-#[wasm_bindgen]
-impl UntaggedRedeemer {
-
-    pub fn datum(&self) -> PlutusData {
-        self.data.clone()
-    }
-
-    pub fn ex_units(&self) -> ExUnits {
-        self.ex_units.clone()
-    }
-
-    pub fn new(data: &PlutusData, ex_units: &ExUnits) -> Self {
-        Self {
-            data: data.clone(),
-            ex_units: ex_units.clone(),
-        }
-    }
-}
+use super::redeemer_builder::RedeemerWitnessKey;
 
 /// A partial Plutus witness
 /// It contains all the information needed to witness the Plutus script execution
@@ -66,18 +11,18 @@ impl UntaggedRedeemer {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PartialPlutusWitness {
     pub(crate) script: PlutusScript,
-    pub(crate) untagged_redeemer: UntaggedRedeemer,
+    pub(crate) data: PlutusData,
 }
 
 #[wasm_bindgen]
 impl PartialPlutusWitness {
     pub fn new(
         script: &PlutusScript,
-        untagged_redeemer: &UntaggedRedeemer
+        data: &PlutusData
     ) -> Self {
         Self {
             script: script.clone(),
-            untagged_redeemer: untagged_redeemer.clone(),
+            data: data.clone(),
         }
     }
 
@@ -85,8 +30,8 @@ impl PartialPlutusWitness {
         self.script.clone()
     }
 
-    pub fn untagged_redeemer(&self) -> UntaggedRedeemer {
-        self.untagged_redeemer.clone()
+    pub fn data(&self) -> PlutusData {
+        self.data.clone()
     }
 }
 
@@ -97,10 +42,10 @@ pub enum InputAggregateWitnessData {
 }
 
 impl InputAggregateWitnessData {
-    fn untagged_redeemer(&self) -> Option<UntaggedRedeemer> {
+    pub fn plutus_data(&self) -> Option<PlutusData> {
         match self {
             InputAggregateWitnessData::PlutusScript(witness, _, _) => {
-                Some(witness.untagged_redeemer())
+                Some(witness.data())
             }
             _ => None
         }
@@ -235,116 +180,6 @@ impl RequiredWitnessSet {
     pub fn new() -> Self {
         // have to expose new so it's visible in WASM
         Self::default()
-    }
-}
-
-/// In order to calculate the index from the sorted set, "add_*" methods in this builder
-/// must be called along with the "add_*" methods in transaction builder.
-#[derive(Clone, Default, Debug)]
-pub struct RedeemerSetBuilder {
-    // the set of inputs is an ordered set (according to the order defined on the type TxIn) -
-    // this also is the order in which the elements of the set are indexed (lex order on the pair of TxId and Ix).
-    // All inputs of a transaction are included in the set being indexed (not just the ones that point to a Plutus script UTxO)
-    spend: BTreeMap<TransactionInput, UntaggedRedeemer>,
-
-    // the set of policy IDs is ordered according to the order defined on PolicyID (lex).
-    // The index of a PolicyID in this set of policy IDs is computed according to this order.
-    // Note that at the use site, the set of policy IDs passed to indexof is the (unfiltered)
-    // domain of the Value map in the mint field of the transaction.
-    mint: BTreeMap<PolicyID, UntaggedRedeemer>,
-
-    // the index of a reward account ract in the reward withdrawals map is the index of ract as a key in the (unfiltered) map.
-    // The keys of the Wdrl map are arranged in the order defined on the RewardAcnt type, which is a lexicographical (abbrv. lex)
-    // order on the pair of the Network and the Credential.
-    reward: BTreeMap<RewardAddress, UntaggedRedeemer>,
-
-    // certificates in the DCert list are indexed in the order in which they arranged in the (full, unfiltered)
-    // list of certificates inside the transaction
-    cert: Vec<UntaggedRedeemer>,
-}
-
-impl RedeemerSetBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    
-    pub fn is_empty(&self) -> bool {
-        self.spend.is_empty() && self.mint.is_empty() && self.reward.is_empty() && self.cert.is_empty()
-    }
-
-    pub fn update_ex_units(&mut self, key: &RedeemerWitnessKey, ex_units: &ExUnits) {
-        let mut untagged_redeemer = match key.tag().kind() {
-            RedeemerTagKind::Spend => self.spend.iter_mut().nth(u64::from(key.index()) as usize).unwrap().1,
-            RedeemerTagKind::Mint => self.mint.iter_mut().nth(u64::from(key.index()) as usize).unwrap().1,
-            RedeemerTagKind::Cert => self.cert.index_mut(u64::from(key.index()) as usize),
-            RedeemerTagKind::Reward => self.reward.iter_mut().nth(u64::from(key.index()) as usize).unwrap().1,
-        };
-        untagged_redeemer.ex_units = ex_units.clone();
-    }
-
-    pub fn add_spend(&mut self, result: &InputBuilderResult) {
-        let untagged = {
-            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
-        };
-        if let Some(redeemer) = untagged {
-            self.spend.insert(result.input.clone(), redeemer);
-        }
-    }
-
-    pub fn add_mint(&mut self, result: &MintBuilderResult) {
-        let untagged = {
-            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
-        };
-        if let Some(redeemer) = untagged {
-            self.mint.insert(result.policy_id.clone(), redeemer);
-        }
-    }
-
-    pub fn add_reward(&mut self, result: &WithdrawalBuilderResult) {
-        let untagged = {
-            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
-        };
-        if let Some(redeemer) = untagged {
-            self.reward.insert(result.address.clone(), redeemer);
-        }
-    }
-
-    pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
-        let untagged = {
-            result.aggregate_witness.as_ref().and_then(|data| data.untagged_redeemer())
-        };
-        if let Some(redeemer) = untagged {
-            self.cert.push(redeemer);
-        }
-    }
-
-    pub fn build(&self) -> Redeemers {
-        let mut redeemers = Vec::new();
-
-        redeemers.append(&mut Self::tag_redeemer(&RedeemerTag::new_spend(), &Self::values(&self.spend)));
-        redeemers.append(&mut Self::tag_redeemer(&RedeemerTag::new_mint(), &Self::values(&self.mint)));
-        redeemers.append(&mut Self::tag_redeemer(&RedeemerTag::new_reward(), &Self::values(&self.reward)));
-        redeemers.append(&mut Self::tag_redeemer(&RedeemerTag::new_cert(), &self.cert));
-
-        Redeemers(redeemers)
-    }
-
-    fn values<K>(map: &BTreeMap<K, UntaggedRedeemer>) -> Vec<UntaggedRedeemer> {
-        map.values().cloned().collect()
-    }
-
-    fn tag_redeemer(tag: &RedeemerTag, untagged_redeemers: &[UntaggedRedeemer]) -> Vec<Redeemer> {
-        let mut result = Vec::new();
-
-        for (index, value) in untagged_redeemers.iter().enumerate() {
-            let redeemer = {
-                let index = index as u64;
-                Redeemer::new(tag, &index.into(), &value.data, &value.ex_units)
-            };
-            result.push(redeemer);
-        }
-
-        result
     }
 }
 
@@ -593,7 +428,11 @@ pub fn merge_fake_witness(builder: &mut TransactionWitnessSetBuilder, required_w
         let fake_vkey = Vkey::new(&PublicKey::from_bytes(&[&fake_prefix, &remaining_vkey.0[..]].concat()).unwrap());
         let fake_sig = fake_raw_key_sig(0);
         let fake_vkey_witness = Vkeywitness::new(&fake_vkey, &fake_sig);
-        builder.add_vkey(&fake_vkey_witness);
+        
+        // avoid accidentally overriding real witness
+        if !builder.vkeys.contains_key(&fake_vkey_witness.vkey()) {
+            builder.add_vkey(&fake_vkey_witness);
+        }
     }
     for remaining_bootstrap in remaining_wits.bootstraps.iter() {
         let address_content = remaining_bootstrap.address_content();
@@ -601,28 +440,17 @@ pub fn merge_fake_witness(builder: &mut TransactionWitnessSetBuilder, required_w
         let fake_sig = fake_raw_key_sig(0);
         let fake_chaincode = [0u8; 32]; // constant size so it won't affect the fee calculation
         let fake_witness = BootstrapWitness::new(&fake_vkey, &fake_sig, fake_chaincode.to_vec(), &address_content.addr_attr());
-        builder.add_bootstrap(&fake_witness);
+        
+        // avoid accidentally overriding real witness
+        if !builder.bootstraps.contains_key(&fake_witness.vkey()) {
+            builder.add_bootstrap(&fake_witness);
+        }
     }
 }
 
 fn fake_raw_key_sig(id: u8) -> Ed25519Signature {
     Ed25519Signature::from_bytes(
         vec![id, 248, 153, 211, 155, 23, 253, 93, 102, 193, 146, 196, 181, 13, 52, 62, 66, 247, 35, 91, 48, 80, 76, 138, 231, 97, 159, 147, 200, 40, 220, 109, 206, 69, 104, 221, 105, 23, 124, 85, 24, 40, 73, 45, 119, 122, 103, 39, 253, 102, 194, 251, 204, 189, 168, 194, 174, 237, 146, 3, 44, 153, 121, 10]
-    ).unwrap()
-}
-
-fn fake_raw_key_public(id: u8) -> PublicKey {
-    PublicKey::from_bytes(
-        &[id, 118, 57, 154, 33, 13, 232, 114, 14, 159, 168, 148, 228, 94, 65, 226, 154, 181, 37, 227, 11, 196, 2, 128, 28, 7, 98, 80, 209, 88, 91, 205]
-    ).unwrap()
-}
-
-fn fake_key_private(id: u8) -> Bip32PrivateKey {
-    Bip32PrivateKey::from_bytes(
-        &[0xb8, id, 0xbe, 0xce, 0x9b, 0xdf, 0xe2, 0xb0, 0x28, 0x2f, 0x5b, 0xad, 0x70, 0x55, 0x62, 0xac, 0x99, 0x6e, 0xfb, 0x6a, 0xf9, 0x6b, 0x64, 0x8f,
-            0x44, 0x45, 0xec, 0x44, 0xf4, 0x7a, 0xd9, 0x5c, 0x10, 0xe3, 0xd7, 0x2f, 0x26, 0xed, 0x07, 0x54, 0x22, 0xa3, 0x6e, 0xd8, 0x58, 0x5c, 0x74, 0x5a,
-            0x0e, 0x11, 0x50, 0xbc, 0xce, 0xba, 0x23, 0x57, 0xd0, 0x58, 0x63, 0x69, 0x91, 0xf3, 0x8a, 0x37, 0x91, 0xe2, 0x48, 0xde, 0x50, 0x9c, 0x07, 0x0d,
-            0x81, 0x2a, 0xb2, 0xfd, 0xa5, 0x78, 0x60, 0xac, 0x87, 0x6b, 0xc4, 0x89, 0x19, 0x2c, 0x1e, 0xf4, 0xce, 0x25, 0x3c, 0x19, 0x7e, 0xe2, 0x19, 0xa4]
     ).unwrap()
 }
 
@@ -663,9 +491,15 @@ impl NativeScriptWitnessInfo {
 
 #[cfg(test)]
 mod tests {
-    use crate::ledger::{common::value::Value, byron::witness::make_icarus_bootstrap_witness};
+    use crate::ledger::byron::witness::make_icarus_bootstrap_witness;
 
     use super::*;
+
+    fn fake_raw_key_public(id: u8) -> PublicKey {
+        PublicKey::from_bytes(
+            &[id, 118, 57, 154, 33, 13, 232, 114, 14, 159, 168, 148, 228, 94, 65, 226, 154, 181, 37, 227, 11, 196, 2, 128, 28, 7, 98, 80, 209, 88, 91, 205]
+        ).unwrap()
+    }
 
     fn fake_private_key1() -> Bip32PrivateKey {
         Bip32PrivateKey::from_bytes(
@@ -683,64 +517,6 @@ mod tests {
     }
 
     #[test]
-    fn test_redeemer_set_builder() {
-        let mut builder = RedeemerSetBuilder::new();
-
-        let data = {
-            let witness = {
-                let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
-                let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
-                PartialPlutusWitness::new(&PlutusScript(script), &untagged_redeemer)
-            };
-            let missing_signers = {
-                let key = fake_raw_key_public(0);
-                let mut missing_signers = Ed25519KeyHashes::new();
-                missing_signers.add(&key.hash());
-                missing_signers
-            };
-            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
-        };
-
-        let address = Address::from_bech32(&"addr1qxeqxcja25k8q05evyngf4f88xn89asl54x2zg3ephgj26ndyt5qk02xmmras5pe9jz2c7tc93wu4c96rqwvg6e2v50qlpmx70").unwrap();
-
-        let input_result = InputBuilderResult {
-            input: TransactionInput { transaction_id: TransactionHash([1; 32]), index: 1u64.into() },
-            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), datum_option: None, script_ref: None },
-            aggregate_witness: None,
-            required_wits: RequiredWitnessSet::new(),
-        };
-
-        builder.add_spend(&input_result);
-
-        let input_result = InputBuilderResult {
-            input: TransactionInput { transaction_id: TransactionHash([1; 32]), index: 0u64.into() },
-            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), datum_option: None, script_ref: None },
-            aggregate_witness: None,
-            required_wits: RequiredWitnessSet::new(),
-        };
-
-        builder.add_spend(&input_result);
-
-        let input_result = InputBuilderResult {
-            input: TransactionInput { transaction_id: TransactionHash([0; 32]), index: 0u64.into() },
-            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), datum_option: None, script_ref: None },
-            aggregate_witness: Some(data.clone()),
-            required_wits: RequiredWitnessSet::new(),
-        };
-
-        builder.add_spend(&input_result);
-
-        let redeemers = builder.build();
-
-        assert_eq!(redeemers.len(), 1);
-
-        let spend_redeemer = &redeemers.0[0];
-
-        assert_eq!(spend_redeemer.tag(), RedeemerTag::new_spend());
-        assert_eq!(spend_redeemer.index(), BigNum::from(0u64));
-    }
-
-    #[test]
     fn test_add_fake_vkey_witnesses_by_num() {
         let mut builder = RequiredWitnessSet::new();
         builder.add_fake_vkey_witnesses_by_num(2);
@@ -755,8 +531,7 @@ mod tests {
         let data = {
             let witness = {
                 let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
-                let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
-                PartialPlutusWitness::new(&PlutusScript(script), &untagged_redeemer)
+                PartialPlutusWitness::new(&PlutusScript(script), &PlutusData::new_integer(&0u64.into()))
             };
             let missing_signers = {
                 let key = fake_raw_key_public(0);
@@ -782,8 +557,7 @@ mod tests {
         let data = {
             let witness = {
                 let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
-                let untagged_redeemer = UntaggedRedeemer::new(&PlutusData::new_integer(&0u64.into()), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
-                PartialPlutusWitness::new(&PlutusScript(script), &untagged_redeemer)
+                PartialPlutusWitness::new(&PlutusScript(script), &PlutusData::new_integer(&0u64.into()))
             };
             let missing_signers = {
                 let mut missing_signers = Ed25519KeyHashes::new();

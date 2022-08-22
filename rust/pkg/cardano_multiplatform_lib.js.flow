@@ -6,52 +6,24 @@
  */
 
 /**
- * @param {AuxiliaryData} auxiliary_data
- * @returns {AuxiliaryDataHash}
+ * @param {string} json
+ * @param {number} schema
+ * @returns {PlutusData}
  */
-declare export function hash_auxiliary_data(
-  auxiliary_data: AuxiliaryData
-): AuxiliaryDataHash;
+declare export function encode_json_str_to_plutus_datum(
+  json: string,
+  schema: number
+): PlutusData;
 
 /**
- * @param {TransactionBody} tx_body
- * @returns {TransactionHash}
+ * @param {PlutusData} datum
+ * @param {number} schema
+ * @returns {string}
  */
-declare export function hash_transaction(
-  tx_body: TransactionBody
-): TransactionHash;
-
-/**
- * @param {PlutusData} plutus_data
- * @returns {DataHash}
- */
-declare export function hash_plutus_data(plutus_data: PlutusData): DataHash;
-
-/**
- * @param {Redeemers} redeemers
- * @param {Costmdls} cost_models
- * @param {PlutusList | void} datums
- * @returns {ScriptDataHash}
- */
-declare export function hash_script_data(
-  redeemers: Redeemers,
-  cost_models: Costmdls,
-  datums?: PlutusList
-): ScriptDataHash;
-
-/**
- * @param {Redeemers} redeemers
- * @param {PlutusList} datums
- * @param {Costmdls} cost_models
- * @param {Languages} used_langs
- * @returns {ScriptDataHash | void}
- */
-declare export function calc_script_data_hash(
-  redeemers: Redeemers,
-  datums: PlutusList,
-  cost_models: Costmdls,
-  used_langs: Languages
-): ScriptDataHash | void;
+declare export function decode_plutus_datum_to_json_str(
+  datum: PlutusData,
+  schema: number
+): string;
 
 /**
  * Receives a script JSON string
@@ -227,6 +199,54 @@ declare export function get_deposit(
 ): BigNum;
 
 /**
+ * @param {AuxiliaryData} auxiliary_data
+ * @returns {AuxiliaryDataHash}
+ */
+declare export function hash_auxiliary_data(
+  auxiliary_data: AuxiliaryData
+): AuxiliaryDataHash;
+
+/**
+ * @param {TransactionBody} tx_body
+ * @returns {TransactionHash}
+ */
+declare export function hash_transaction(
+  tx_body: TransactionBody
+): TransactionHash;
+
+/**
+ * @param {PlutusData} plutus_data
+ * @returns {DataHash}
+ */
+declare export function hash_plutus_data(plutus_data: PlutusData): DataHash;
+
+/**
+ * @param {Redeemers} redeemers
+ * @param {Costmdls} cost_models
+ * @param {PlutusList | void} datums
+ * @returns {ScriptDataHash}
+ */
+declare export function hash_script_data(
+  redeemers: Redeemers,
+  cost_models: Costmdls,
+  datums?: PlutusList
+): ScriptDataHash;
+
+/**
+ * @param {Redeemers} redeemers
+ * @param {PlutusList} datums
+ * @param {Costmdls} cost_models
+ * @param {Languages} used_langs
+ * @returns {ScriptDataHash | void}
+ */
+declare export function calc_script_data_hash(
+  redeemers: Redeemers,
+  datums: PlutusList,
+  cost_models: Costmdls,
+  used_langs: Languages
+): ScriptDataHash | void;
+
+/**
  * @param {TransactionHash} tx_body_hash
  * @param {PrivateKey} sk
  * @returns {Vkeywitness}
@@ -235,26 +255,6 @@ declare export function make_vkey_witness(
   tx_body_hash: TransactionHash,
   sk: PrivateKey
 ): Vkeywitness;
-
-/**
- * @param {string} json
- * @param {number} schema
- * @returns {PlutusData}
- */
-declare export function encode_json_str_to_plutus_datum(
-  json: string,
-  schema: number
-): PlutusData;
-
-/**
- * @param {PlutusData} datum
- * @param {number} schema
- * @returns {string}
- */
-declare export function decode_plutus_datum_to_json_str(
-  datum: PlutusData,
-  schema: number
-): string;
 
 /**
  */
@@ -323,17 +323,58 @@ declare export var NetworkIdKind: {|
 |};
 
 /**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
  */
 
-declare export var ScriptHashNamespace: {|
+declare export var LanguageKind: {|
+  +PlutusV1: 0, // 0
+  +PlutusV2: 1, // 1
+|};
+
+/**
+ */
+
+declare export var PlutusDataKind: {|
+  +ConstrPlutusData: 0, // 0
+  +Map: 1, // 1
+  +List: 2, // 2
+  +Integer: 3, // 3
+  +Bytes: 4, // 4
+|};
+
+/**
+ */
+
+declare export var RedeemerTagKind: {|
+  +Spend: 0, // 0
+  +Mint: 1, // 1
+  +Cert: 2, // 2
+  +Reward: 3, // 3
+|};
+
+/**
+ */
+
+declare export var ScriptKind: {|
   +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
+  +PlutusScriptV1: 1, // 1
+  +PlutusScriptV2: 2, // 2
+|};
+
+/**
+ * JSON <-> PlutusData conversion schemas.
+ * Follows ScriptDataJsonSchema in cardano-cli defined at:
+ * https://github.com/input-output-hk/cardano-node/blob/master/cardano-api/src/Cardano/Api/ScriptData.hs#L254
+ *
+ * All methods here have the following restrictions due to limitations on dependencies:
+ * * JSON numbers above u64::MAX (positive) or below i64::MIN (negative) will throw errors
+ * * Hex strings for bytes don't accept odd-length (half-byte) strings.
+ *       cardano-cli seems to support these however but it seems to be different than just 0-padding
+ *       on either side when tested so proceed with caution
+ */
+
+declare export var PlutusDatumSchema: {|
+  +BasicConversions: 0, // 0
+  +DetailedSchema: 1, // 1
 |};
 
 /**
@@ -430,58 +471,17 @@ declare export var AddressHeaderKind: {|
 |};
 
 /**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
  */
 
-declare export var LanguageKind: {|
-  +PlutusV1: 0, // 0
-  +PlutusV2: 1, // 1
-|};
-
-/**
- */
-
-declare export var PlutusDataKind: {|
-  +ConstrPlutusData: 0, // 0
-  +Map: 1, // 1
-  +List: 2, // 2
-  +Integer: 3, // 3
-  +Bytes: 4, // 4
-|};
-
-/**
- */
-
-declare export var RedeemerTagKind: {|
-  +Spend: 0, // 0
-  +Mint: 1, // 1
-  +Cert: 2, // 2
-  +Reward: 3, // 3
-|};
-
-/**
- */
-
-declare export var ScriptKind: {|
+declare export var ScriptHashNamespace: {|
   +NativeScript: 0, // 0
-  +PlutusScriptV1: 1, // 1
-  +PlutusScriptV2: 2, // 2
-|};
-
-/**
- * JSON <-> PlutusData conversion schemas.
- * Follows ScriptDataJsonSchema in cardano-cli defined at:
- * https://github.com/input-output-hk/cardano-node/blob/master/cardano-api/src/Cardano/Api/ScriptData.hs#L254
- *
- * All methods here have the following restrictions due to limitations on dependencies:
- * * JSON numbers above u64::MAX (positive) or below i64::MIN (negative) will throw errors
- * * Hex strings for bytes don't accept odd-length (half-byte) strings.
- *       cardano-cli seems to support these however but it seems to be different than just 0-padding
- *       on either side when tested so proceed with caution
- */
-
-declare export var PlutusDatumSchema: {|
-  +BasicConversions: 0, // 0
-  +DetailedSchema: 1, // 1
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
 |};
 
 /**
@@ -9931,7 +9931,7 @@ export type DatumEnumJSON =
       ...
     }
   | {
-      InlineDatum: PlutusData,
+      InlineDatum: string,
       ...
     };
 export type Ed25519KeyHashJSON = string;
@@ -10178,7 +10178,7 @@ export interface ProtocolVersionJSON {
  */
 export type PublicKeyJSON = string;
 export interface RedeemerJSON {
-  data: PlutusData;
+  data: string;
   ex_units: ExUnitsJSON;
   index: string;
   tag: RedeemerTagJSON;

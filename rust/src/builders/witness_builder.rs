@@ -495,6 +495,12 @@ mod tests {
 
     use super::*;
 
+    fn fake_raw_key_public(id: u8) -> PublicKey {
+        PublicKey::from_bytes(
+            &[id, 118, 57, 154, 33, 13, 232, 114, 14, 159, 168, 148, 228, 94, 65, 226, 154, 181, 37, 227, 11, 196, 2, 128, 28, 7, 98, 80, 209, 88, 91, 205]
+        ).unwrap()
+    }
+
     fn fake_private_key1() -> Bip32PrivateKey {
         Bip32PrivateKey::from_bytes(
             &[0xb8, 0xf2, 0xbe, 0xce, 0x9b, 0xdf, 0xe2, 0xb0, 0x28, 0x2f, 0x5b, 0xad, 0x70, 0x55, 0x62, 0xac, 0x99, 0x6e, 0xfb, 0x6a, 0xf9, 0x6b, 0x64, 0x8f,

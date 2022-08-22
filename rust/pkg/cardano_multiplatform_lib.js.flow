@@ -54,50 +54,6 @@ declare export function calc_script_data_hash(
 ): ScriptDataHash | void;
 
 /**
- * Receives a script JSON string
- * and returns a NativeScript.
- * Cardano Wallet and Node styles are supported.
- *
- * * wallet: https://github.com/input-output-hk/cardano-wallet/blob/master/specifications/api/swagger.yaml
- * * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
- *
- * self_xpub is expected to be a Bip32PublicKey as hex-encoded bytes
- * @param {string} json
- * @param {string} self_xpub
- * @param {number} schema
- * @returns {NativeScript}
- */
-declare export function encode_json_str_to_native_script(
-  json: string,
-  self_xpub: string,
-  schema: number
-): NativeScript;
-
-/**
- * @param {TransactionHash} tx_body_hash
- * @param {ByronAddress} addr
- * @param {LegacyDaedalusPrivateKey} key
- * @returns {BootstrapWitness}
- */
-declare export function make_daedalus_bootstrap_witness(
-  tx_body_hash: TransactionHash,
-  addr: ByronAddress,
-  key: LegacyDaedalusPrivateKey
-): BootstrapWitness;
-
-/**
- * @param {TransactionHash} tx_body_hash
- * @param {ByronAddress} addr
- * @param {Bip32PrivateKey} key
- * @returns {BootstrapWitness}
- */
-declare export function make_icarus_bootstrap_witness(
-  tx_body_hash: TransactionHash,
-  addr: ByronAddress,
-  key: Bip32PrivateKey
-): BootstrapWitness;
-
-/**
  * @param {Uint8Array} bytes
  * @returns {TransactionMetadatum}
  */
@@ -132,6 +88,50 @@ declare export function decode_metadatum_to_json_str(
   metadatum: TransactionMetadatum,
   schema: number
 ): string;
+
+/**
+ * @param {TransactionHash} tx_body_hash
+ * @param {ByronAddress} addr
+ * @param {LegacyDaedalusPrivateKey} key
+ * @returns {BootstrapWitness}
+ */
+declare export function make_daedalus_bootstrap_witness(
+  tx_body_hash: TransactionHash,
+  addr: ByronAddress,
+  key: LegacyDaedalusPrivateKey
+): BootstrapWitness;
+
+/**
+ * @param {TransactionHash} tx_body_hash
+ * @param {ByronAddress} addr
+ * @param {Bip32PrivateKey} key
+ * @returns {BootstrapWitness}
+ */
+declare export function make_icarus_bootstrap_witness(
+  tx_body_hash: TransactionHash,
+  addr: ByronAddress,
+  key: Bip32PrivateKey
+): BootstrapWitness;
+
+/**
+ * Receives a script JSON string
+ * and returns a NativeScript.
+ * Cardano Wallet and Node styles are supported.
+ *
+ * * wallet: https://github.com/input-output-hk/cardano-wallet/blob/master/specifications/api/swagger.yaml
+ * * node: https://github.com/input-output-hk/cardano-node/blob/master/doc/reference/simple-scripts.md
+ *
+ * self_xpub is expected to be a Bip32PublicKey as hex-encoded bytes
+ * @param {string} json
+ * @param {string} self_xpub
+ * @param {number} schema
+ * @returns {NativeScript}
+ */
+declare export function encode_json_str_to_native_script(
+  json: string,
+  self_xpub: string,
+  schema: number
+): NativeScript;
 
 /**
  * Provide backwards compatibility to Alonzo by taking the max min value of both er
@@ -181,16 +181,6 @@ declare export function decrypt_with_password(
 ): string;
 
 /**
- * @param {TransactionHash} tx_body_hash
- * @param {PrivateKey} sk
- * @returns {Vkeywitness}
- */
-declare export function make_vkey_witness(
-  tx_body_hash: TransactionHash,
-  sk: PrivateKey
-): Vkeywitness;
-
-/**
  * @param {Transaction} tx
  * @param {ExUnitPrices} ex_unit_prices
  * @returns {BigNum}
@@ -235,6 +225,16 @@ declare export function get_deposit(
   pool_deposit: BigNum,
   key_deposit: BigNum
 ): BigNum;
+
+/**
+ * @param {TransactionHash} tx_body_hash
+ * @param {PrivateKey} sk
+ * @returns {Vkeywitness}
+ */
+declare export function make_vkey_witness(
+  tx_body_hash: TransactionHash,
+  sk: PrivateKey
+): Vkeywitness;
 
 /**
  * @param {string} json
@@ -337,15 +337,6 @@ declare export var ScriptHashNamespace: {|
 |};
 
 /**
- * Used to choose the schema for a script JSON string
- */
-
-declare export var ScriptSchema: {|
-  +Wallet: 0, // 0
-  +Node: 1, // 1
-|};
-
-/**
  */
 
 declare export var TransactionMetadatumKind: {|
@@ -363,6 +354,15 @@ declare export var MetadataJsonSchema: {|
   +NoConversions: 0, // 0
   +BasicConversions: 1, // 1
   +DetailedSchema: 2, // 2
+|};
+
+/**
+ * Used to choose the schema for a script JSON string
+ */
+
+declare export var ScriptSchema: {|
+  +Wallet: 0, // 0
+  +Node: 1, // 1
 |};
 
 /**
@@ -1126,6 +1126,11 @@ declare export class AuxiliaryData {
    * @param {PlutusV2Scripts} plutus_v2_scripts
    */
   set_plutus_v2_scripts(plutus_v2_scripts: PlutusV2Scripts): void;
+
+  /**
+   * @param {AuxiliaryData} other
+   */
+  add(other: AuxiliaryData): void;
 }
 /**
  */
@@ -2823,6 +2828,11 @@ declare export class GeneralTransactionMetadata {
    * @returns {TransactionMetadatumLabels}
    */
   keys(): TransactionMetadatumLabels;
+
+  /**
+   * @param {GeneralTransactionMetadata} other
+   */
+  add(other: GeneralTransactionMetadata): void;
 }
 /**
  */
@@ -8085,47 +8095,14 @@ declare export class TransactionBuilder {
   get_auxiliary_data(): AuxiliaryData | void;
 
   /**
-   * Set explicit auxiliary data via an AuxiliaryData object
-   * It might contain some metadata plus native or Plutus scripts
-   * @param {AuxiliaryData} auxiliary_data
+   * @param {AuxiliaryData} new_aux_data
    */
-  set_auxiliary_data(auxiliary_data: AuxiliaryData): void;
+  set_auxiliary_data(new_aux_data: AuxiliaryData): void;
 
   /**
-   * Set metadata using a GeneralTransactionMetadata object
-   * It will be set to the existing or new auxiliary data in this builder
-   * @param {GeneralTransactionMetadata} metadata
+   * @param {AuxiliaryData} new_aux_data
    */
-  set_metadata(metadata: GeneralTransactionMetadata): void;
-
-  /**
-   * Add a single metadatum using TransactionMetadatumLabel and TransactionMetadatum objects
-   * It will be securely added to existing or new metadata in this builder
-   * @param {BigNum} key
-   * @param {TransactionMetadatum} val
-   */
-  add_metadatum(key: BigNum, val: TransactionMetadatum): void;
-
-  /**
-   * Add a single JSON metadatum using a TransactionMetadatumLabel and a String
-   * It will be securely added to existing or new metadata in this builder
-   * @param {BigNum} key
-   * @param {string} val
-   */
-  add_json_metadatum(key: BigNum, val: string): void;
-
-  /**
-   * Add a single JSON metadatum using a TransactionMetadatumLabel, a String, and a MetadataJsonSchema object
-   * It will be securely added to existing or new metadata in this builder
-   * @param {BigNum} key
-   * @param {string} val
-   * @param {number} schema
-   */
-  add_json_metadatum_with_schema(
-    key: BigNum,
-    val: string,
-    schema: number
-  ): void;
+  add_auxiliary_data(new_aux_data: AuxiliaryData): void;
 
   /**
    * @param {MintBuilderResult} result

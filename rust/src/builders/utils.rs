@@ -17,10 +17,53 @@ impl GeneralTransactionMetadata {
             }
         }
     }
+
+    /// Add a single JSON metadatum using a MetadataJsonSchema object and MetadataJsonScehma object.
+    pub fn add_json_metadatum_with_schema(
+        &mut self,
+        key: &TransactionMetadatumLabel,
+        val: String,
+        schema: MetadataJsonSchema,
+    ) -> Result<(), JsError> {
+        let metadatum = encode_json_str_to_metadatum(val, schema)?;
+        self.insert(key, &metadatum);
+        Ok(())
+    }
 }
 
 #[wasm_bindgen]
 impl AuxiliaryData {
+
+    /// Add a single metadatum using TransactionMetadatum object under `key` TranscactionMetadatumLabel
+    pub fn add_metadatum(
+        &mut self,
+        key: &TransactionMetadatumLabel,
+        value: &TransactionMetadatum,
+    ) {
+        match self.metadata.as_mut() {
+            Some(metadata) => {
+                metadata.insert(key, value);
+            },
+            None => {
+                let mut general_metadata = GeneralTransactionMetadata::new();
+                general_metadata.insert(key, value);
+                self.metadata = Some(general_metadata)
+            }
+        }
+    }
+
+    /// Add a single JSON metadatum using a MetadataJsonSchema object and MetadataJsonScehma object.
+    pub fn add_json_metadatum_with_schema(
+        &mut self,
+        key: &TransactionMetadatumLabel,
+        val: String,
+        schema: MetadataJsonSchema,
+    ) -> Result<(), JsError> {
+        let metadatum = encode_json_str_to_metadatum(val, schema)?;
+        self.add_metadatum(key, &metadatum);
+        Ok(())
+    }
+
     pub fn add(&mut self, other: &AuxiliaryData) {
         match (self.metadata.as_mut(), other.metadata.as_ref()) {
             (None, None) => {},

@@ -73,7 +73,8 @@ fn fake_full_tx(tx_builder: &TransactionBuilder, body: TransactionBody) -> Resul
 
 fn min_fee(tx_builder: &TransactionBuilder) -> Result<Coin, JsError> {
     let full_tx = fake_full_tx(tx_builder, tx_builder.build_body()?)?;
-    ledger::alonzo::fees::min_fee(&full_tx, &tx_builder.config.fee_algo, &tx_builder.config.ex_unit_prices)
+    // we can't know the of scripts yet as they can't be calculated until we build the tx
+    ledger::alonzo::fees::min_no_script_fee(&full_tx, &tx_builder.config.fee_algo)
 }
 
 #[wasm_bindgen]
@@ -4406,6 +4407,8 @@ mod tests {
             tx_builder.add_auxiliary_data(&aux_data);
         }
 
+        let original_tx_fee = tx_builder.min_fee().unwrap();
+        assert_eq!(original_tx_fee.to_str(), "469673");
         tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
 
         let mut tx_redeemer_builder = tx_builder.build().unwrap();

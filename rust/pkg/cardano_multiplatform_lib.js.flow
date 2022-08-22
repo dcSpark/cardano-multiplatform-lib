@@ -165,6 +165,16 @@ declare export function min_script_fee(
 /**
  * @param {Transaction} tx
  * @param {LinearFee} linear_fee
+ * @returns {BigNum}
+ */
+declare export function min_no_script_fee(
+  tx: Transaction,
+  linear_fee: LinearFee
+): BigNum;
+
+/**
+ * @param {Transaction} tx
+ * @param {LinearFee} linear_fee
  * @param {ExUnitPrices} ex_unit_prices
  * @returns {BigNum}
  */

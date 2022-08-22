@@ -59,15 +59,23 @@ pub fn min_script_fee(tx: &Transaction, ex_unit_prices: &ExUnitPrices) -> Result
 }
 
 #[wasm_bindgen]
+pub fn min_no_script_fee(
+    tx: &Transaction,
+    linear_fee: &LinearFee,
+) -> Result<Coin, JsError> {
+    to_bignum(tx.to_bytes().len() as u64)
+        .checked_mul(&linear_fee.coefficient())?
+        .checked_add(&linear_fee.constant())
+}
+
+#[wasm_bindgen]
 pub fn min_fee(
     tx: &Transaction,
     linear_fee: &LinearFee,
     ex_unit_prices: &ExUnitPrices
 ) -> Result<Coin, JsError> {
     // TODO: the fee should be 0 if all inputs are genesis redeem addresses
-    let mut fee = to_bignum(tx.to_bytes().len() as u64)
-        .checked_mul(&linear_fee.coefficient())?
-        .checked_add(&linear_fee.constant())?;
+    let mut fee = min_no_script_fee(tx, linear_fee)?;
     fee = fee.checked_add(&min_script_fee(tx, ex_unit_prices)?)?;
     Ok(fee)
 }

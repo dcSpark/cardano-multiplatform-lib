@@ -24,6 +24,7 @@ use super::witness_builder::TransactionWitnessSetBuilder;
 use super::witness_builder::merge_fake_witness;
 use std::collections::{BTreeMap, BTreeSet};
 use rand::Rng;
+use std::iter::FromIterator;
 
 #[derive(Clone, Default, Debug)]
 struct WitnessBuilders {
@@ -514,14 +515,6 @@ impl TransactionBuilder {
         }
 
         Ok(())
-    }
-
-    pub fn get_witness_set_builder(&self) -> TransactionWitnessSetBuilder {
-        self.witness_builders.witness_set_builder.clone()
-    }
-
-    pub fn set_witness_set_builder(&mut self, witness_set_builder: TransactionWitnessSetBuilder) {
-        self.witness_builders.witness_set_builder = witness_set_builder;
     }
 
     pub fn add_input(&mut self, result: &InputBuilderResult) {
@@ -1296,14 +1289,33 @@ impl TxRedeemerBuilder {
     /// Builds the transaction and moves to the next step where any real witness can be added
     /// NOTE: is_valid set to true
     pub fn build(&self) -> Result<SignedTxBuilder, JsError> {
+        let mut witness_set = self.witness_builders.build_unchecked();
+        witness_set.vkeys.clear(); // remove temporary required signers
+
         if self.witness_builders.redeemer_set_builder.is_empty() {
             Ok(SignedTxBuilder {
                 body: self.draft_body.clone(),
-                witness_set: self.witness_builders.build_unchecked(),
+                witness_set,
                 is_valid: true,
                 auxiliary_data: self.auxiliary_data.clone(),
             })
         } else {
+            if let Some(required_signers) = self.draft_body.required_signers.as_ref() {
+                let existing_wits = BTreeSet::<Ed25519KeyHash>::from_iter(
+                    self.witness_builders.witness_set_builder.get_vkeys().0.iter().map(|key| key.public_key().hash())
+                );
+
+                let mut missing_signers: Vec<String> = vec![];
+                for required_signer in &required_signers.0 {
+                    if !existing_wits.contains(required_signer) {
+                        missing_signers.push(required_signer.to_hex());
+                    }
+                }
+                if !missing_signers.is_empty() {
+                    return Err(JsError::from_str(&format!("Missing draft tx body signers: {:?}", missing_signers)));
+                }
+
+            }
             let redeemers = self.witness_builders.redeemer_set_builder
                 .build(true)
                 .map_err(|err| JsError::from_str(&format!("{}", err)))?;
@@ -1353,12 +1365,24 @@ impl TxRedeemerBuilder {
 
             Ok(SignedTxBuilder {
                 body: built,
-                witness_set: self.witness_builders.build_unchecked(),
+                witness_set,
                 is_valid: true,
                 auxiliary_data: self.auxiliary_data.clone(),
             })
         }
     }
+
+    /// Plutus script execution may have "required signers" that need to be added to calculate the exunits correctly
+    /// However, we don't know what the tx body hash will be until after we've calculated the exunits
+    /// So the signatures added here are just temporary and will have to be re-added in the SignedTxBuilder
+    pub fn add_temporary_required_signer(&mut self, vkey: &Vkeywitness) {
+        if let Some(required_signers) = self.draft_body.required_signers.as_ref() {
+            if required_signers.0.contains(&vkey.vkey().public_key().hash()) {
+                self.witness_builders.witness_set_builder.add_vkey(vkey);
+            }
+        }
+    }
+
 
     /// used to override the exunit values initially provided when adding inputs
     pub fn set_exunits(&mut self, redeemer: &RedeemerWitnessKey, ex_units: &ExUnits) {
@@ -1366,11 +1390,24 @@ impl TxRedeemerBuilder {
     }
 
     /// Transaction body with a dummy values for redeemers & script_data_hash
+    /// Used for calculating exunits or required signers
     pub fn draft_body(&self) -> TransactionBody {
         self.draft_body.clone()
     }
     pub fn auxiliary_data(&self) -> Option<AuxiliaryData> {
         self.auxiliary_data.clone()
+    }
+
+    /// Transaction body with a dummy values for redeemers & script_data_hash and padded with dummy witnesses
+    /// Used for calculating exunits
+    /// note: is_valid set to true
+    pub fn draft_tx(&self) -> Transaction {
+        Transaction {
+            body: self.draft_body.clone(),
+            witness_set: self.witness_builders.build_fake(),
+            is_valid: true,
+            auxiliary_data: self.auxiliary_data.clone(),
+        }
     }
 }
 
@@ -4172,10 +4209,16 @@ mod tests {
             &BigNum::from_str("1").unwrap()
         );
 
+        // not the real private key used for the tx on Cardano mainnet
+        let private_key = &PrivateKey::from_normal_bytes(
+            &hex::decode("c660e50315d76a53d80732efda7630cae8885dfb85c46378684b3c6103e1284a").unwrap()
+        ).unwrap();
+
         // add input
         {
             let mut required_signers = RequiredSigners::new();
-            required_signers.add(&Ed25519KeyHash::from_bytes(hex::decode("5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9").unwrap()).unwrap());
+            // real tx was using 5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9 instead
+            required_signers.add(&private_key.to_public().hash());
 
             let input_utxo = TransactionOutputBuilder::new()
                 .with_address(&Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
@@ -4270,18 +4313,28 @@ mod tests {
         tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
 
         let mut tx_redeemer_builder = tx_builder.build().unwrap();
-        tx_redeemer_builder.set_exunits(
-            &RedeemerWitnessKey::new(
-                &RedeemerTag::new_spend(),
-                &BigNum::from(0)
-            ),
-            &ExUnits::new(
-                &BigNum::from_str("5000000").unwrap(),
-                &BigNum::from_str("2000000000").unwrap()
-            )
-        );
+        {
+            tx_redeemer_builder.set_exunits(
+                &RedeemerWitnessKey::new(
+                    &RedeemerTag::new_spend(),
+                    &BigNum::from(0)
+                ),
+                &ExUnits::new(
+                    &BigNum::from_str("5000000").unwrap(),
+                    &BigNum::from_str("2000000000").unwrap()
+                )
+            );
+
+            let draft_body = tx_redeemer_builder.draft_body();
+            tx_redeemer_builder.add_temporary_required_signer(
+                &make_vkey_witness(
+                    &hash_transaction(&draft_body),
+                    private_key
+                )
+            );
+        }
         let tx = tx_redeemer_builder.build().unwrap();
-        assert_eq!(tx.body().to_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9").unwrap());
+        assert_eq!(tx.body().to_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c").unwrap());
     }
 
     #[test]
@@ -4295,10 +4348,16 @@ mod tests {
             &BigNum::from_str("1").unwrap()
         );
 
+        // not the real private key used for the tx on Cardano mainnet
+        let private_key = &PrivateKey::from_normal_bytes(
+            &hex::decode("c660e50315d76a53d80732efda7630cae8885dfb85c46378684b3c6103e1284a").unwrap()
+        ).unwrap();
+
         // add input
         {
             let mut required_signers = RequiredSigners::new();
-            required_signers.add(&Ed25519KeyHash::from_bytes(hex::decode("5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9").unwrap()).unwrap());
+            // real tx was using 5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9 instead
+            required_signers.add(&private_key.to_public().hash());
 
             let input_utxo = TransactionOutputBuilder::new()
                 .with_address(&Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
@@ -4392,23 +4451,36 @@ mod tests {
 
         tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
 
-        let fake_script_hash = tx_builder.build_body().unwrap().script_data_hash().unwrap();
-        assert_eq!(fake_script_hash.to_hex(), "0000000000000000000000000000000000000000000000000000000000000000");
-
         let mut tx_redeemer_builder = tx_builder.build().unwrap();
-        tx_redeemer_builder.set_exunits(
-            &RedeemerWitnessKey::new(&RedeemerTag::new_spend(), &BigNum::from(0)),
-            &ExUnits::new(
-                &BigNum::from_str("5000000").unwrap(),
-                &BigNum::from_str("2000000000").unwrap()
-            )
-        );
+
+        let fake_script_hash = tx_redeemer_builder.draft_body().script_data_hash().unwrap();
+        assert_eq!(fake_script_hash.to_hex(), "0000000000000000000000000000000000000000000000000000000000000000");
+        {
+            tx_redeemer_builder.set_exunits(
+                &RedeemerWitnessKey::new(
+                    &RedeemerTag::new_spend(),
+                    &BigNum::from(0)
+                ),
+                &ExUnits::new(
+                    &BigNum::from_str("5000000").unwrap(),
+                    &BigNum::from_str("2000000000").unwrap()
+                )
+            );
+
+            let draft_body = tx_redeemer_builder.draft_body();
+            tx_redeemer_builder.add_temporary_required_signer(
+                &make_vkey_witness(
+                    &hash_transaction(&draft_body),
+                    private_key
+                )
+            );
+        }
         let signed_tx_builder = tx_redeemer_builder.build().unwrap();
         let real_script_hash = signed_tx_builder.body().script_data_hash().unwrap();
         assert_eq!(real_script_hash.to_hex(), "684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d9");
 
         let tx = signed_tx_builder.body();
-        assert_eq!(tx.to_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9").unwrap());
+        assert_eq!(tx.to_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c").unwrap());
     }
 
     #[test]
@@ -4424,10 +4496,16 @@ mod tests {
             &BigNum::from_str("1").unwrap()
         );
 
+        // not the real private key used for the tx on Cardano mainnet
+        let private_key = &PrivateKey::from_normal_bytes(
+            &hex::decode("c660e50315d76a53d80732efda7630cae8885dfb85c46378684b3c6103e1284a").unwrap()
+        ).unwrap();
+
         // add input
         {
             let mut required_signers = RequiredSigners::new();
-            required_signers.add(&Ed25519KeyHash::from_bytes(hex::decode("5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9").unwrap()).unwrap());
+            // real tx was using 5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9 instead
+            required_signers.add(&private_key.to_public().hash());
 
             let input_utxo = TransactionOutputBuilder::new()
                 .with_address(&Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
@@ -4532,13 +4610,26 @@ mod tests {
         tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
 
         let mut tx_redeemer_builder = tx_builder.build().unwrap();
-        tx_redeemer_builder.set_exunits(
-            &RedeemerWitnessKey::new(&RedeemerTag::new_spend(), &BigNum::from(0)),
-            &ExUnits::new(
-                &BigNum::from_str("5000000").unwrap(),
-                &BigNum::from_str("2000000000").unwrap()
-            )
-        );
+        {
+            tx_redeemer_builder.set_exunits(
+                &RedeemerWitnessKey::new(
+                    &RedeemerTag::new_spend(),
+                    &BigNum::from(0)
+                ),
+                &ExUnits::new(
+                    &BigNum::from_str("5000000").unwrap(),
+                    &BigNum::from_str("2000000000").unwrap()
+                )
+            );
+
+            let draft_body = tx_redeemer_builder.draft_body();
+            tx_redeemer_builder.add_temporary_required_signer(
+                &make_vkey_witness(
+                    &hash_transaction(&draft_body),
+                    private_key
+                )
+            );
+        }
         let signed_tx_builder = tx_redeemer_builder.build().unwrap();
         assert_eq!(signed_tx_builder.body().total_collateral, Some(Coin::from_str("3000000").unwrap()));
     }

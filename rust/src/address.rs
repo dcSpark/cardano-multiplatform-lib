@@ -77,7 +77,7 @@ pub enum StakeCredKind {
 }
 
 #[wasm_bindgen]
-#[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd, JsonSchema)]
 pub struct StakeCredential(StakeCredType);
 
 #[wasm_bindgen]
@@ -122,6 +122,26 @@ impl StakeCredential {
 to_from_bytes!(StakeCredential);
 
 to_from_json!(StakeCredential);
+
+impl serde::Serialize for StakeCredential {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer {
+        serializer.serialize_str(&hex::encode(self.to_bytes()))
+    }
+}
+
+impl <'de> serde::de::Deserialize<'de> for StakeCredential {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
+    D: serde::de::Deserializer<'de> {
+        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        if let Ok(hex_bytes) = hex::decode(s.clone()) {
+            if let Ok(sig) = StakeCredential::from_bytes(hex_bytes) {
+                return Ok(sig);
+            }
+        }
+        Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"hex bytes for StakeCredential"))
+    }
+}
 
 impl cbor_event::se::Serialize for StakeCredential {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {

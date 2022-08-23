@@ -3468,4 +3468,21 @@ mod tests {
         assert!(pks4.contains(&keyhash2));
         assert!(pks4.contains(&keyhash3));
     }
+
+    #[test]
+    fn mir_json_roundtrip() {
+        let mut cred = MIRToStakeCredentials::new();
+        cred.insert(
+        &StakeCredential::from_keyhash(
+            &Ed25519KeyHash::from_bytes(
+                hex::decode("b861eeadde300385d88aaa98cad0f0ed1f95419bbb9971a0fb7c96fb").unwrap()
+            ).unwrap()
+        ),
+        &Int::from_str("5").unwrap()
+        );
+        println!("{}", cred.to_json().unwrap());
+
+        let test = StakeCredential::from_bytes(hex::decode("8200581cb861eeadde300385d88aaa98cad0f0ed1f95419bbb9971a0fb7c96fb").unwrap()).unwrap();
+        assert_eq!(hex::encode(test.to_bytes()), "8200581cb861eeadde300385d88aaa98cad0f0ed1f95419bbb9971a0fb7c96fb");
+    }
 }

@@ -9955,12 +9955,9 @@ export interface BootstrapWitnessJSON {
 export type BootstrapWitnessesJSON = BootstrapWitnessJSON[];
 export type ByronAddrTypeJSON = AddrTypeEnumJSON;
 export type AddrTypeEnumJSON = "ATPubKey" | "ATScript" | "ATRedeem";
-export interface ByronAddressJSON {
-  addr: number[];
-  crc32: Crc32JSON;
-}
+export type ByronAddressJSON = string;
 export interface ByronTxoutJSON {
-  address: ByronAddressJSON;
+  address: string;
   amount: string;
 }
 export type CertificateJSON = CertificateEnumJSON;

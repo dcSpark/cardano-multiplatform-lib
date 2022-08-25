@@ -155,7 +155,7 @@ impl StakeDistribution {
 
 #[wasm_bindgen]
 
-#[derive(Clone, Debug, Eq, Ord, Hash, PartialEq, PartialOrd, JsonSchema)]
+#[derive(Clone, Debug, Eq, Ord, Hash, PartialEq, PartialOrd)]
 pub struct ByronAddress {
     addr: Vec<u8>,
     crc32: Crc32,
@@ -198,6 +198,12 @@ impl ByronAddress {
             crc32: crc32.clone(),
         })
     }
+}
+
+impl JsonSchema for ByronAddress {
+    fn schema_name() -> String { String::from("ByronAddress") }
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
+    fn is_referenceable() -> bool { String::is_referenceable() }
 }
 
 #[wasm_bindgen]

@@ -1256,9 +1256,26 @@ pub struct TxRedeemerBuilder {
 impl TxRedeemerBuilder {
     /// Builds the transaction and moves to the next step where any real witness can be added
     /// NOTE: is_valid set to true
-    pub fn build(&self) -> Result<SignedTxBuilder, JsError> {
-        let mut witness_set = self.witness_builders.build_unchecked();
-        witness_set.vkeys.clear(); // remove temporary required signers
+    /// WILL require you to have set required signers & witnesses
+    pub fn build_checked(&self) -> Result<SignedTxBuilder, JsError> {
+        let witness_set = self.witness_builders.build_unchecked();
+        witness_set.try_build()?; // make sure all witnesses are present
+        self.build(witness_set)
+    }
+
+    /// Builds the transaction and moves to the next step where any real witness can be added
+    /// NOTE: is_valid set to true
+    /// Will NOT require you to have set required signers & witnesses
+    pub fn build_unchecked(&self) -> Result<SignedTxBuilder, JsError> {
+        let witness_set = self.witness_builders.build_unchecked();
+        self.build(witness_set)
+    }
+
+    fn build(&self, witness_set_builder: TransactionWitnessSetBuilder) -> Result<SignedTxBuilder, JsError> {
+        let mut witness_set = witness_set_builder;
+        // remove temporary required signers & witnesses
+        witness_set.vkeys.clear();
+        witness_set.bootstraps.clear();
 
         if self.witness_builders.redeemer_set_builder.is_empty() {
             Ok(SignedTxBuilder {
@@ -1268,22 +1285,6 @@ impl TxRedeemerBuilder {
                 auxiliary_data: self.auxiliary_data.clone(),
             })
         } else {
-            if let Some(required_signers) = self.draft_body.required_signers.as_ref() {
-                let existing_wits = BTreeSet::<Ed25519KeyHash>::from_iter(
-                    self.witness_builders.witness_set_builder.get_vkeys().0.iter().map(|key| key.public_key().hash())
-                );
-
-                let mut missing_signers: Vec<String> = vec![];
-                for required_signer in &required_signers.0 {
-                    if !existing_wits.contains(required_signer) {
-                        missing_signers.push(required_signer.to_hex());
-                    }
-                }
-                if !missing_signers.is_empty() {
-                    return Err(JsError::from_str(&format!("Missing draft tx body signers: {:?}", missing_signers)));
-                }
-
-            }
             let redeemers = self.witness_builders.redeemer_set_builder
                 .build(true)
                 .map_err(|err| JsError::from_str(&format!("{}", err)))?;
@@ -1349,6 +1350,19 @@ impl TxRedeemerBuilder {
                 self.witness_builders.witness_set_builder.add_vkey(vkey);
             }
         }
+    }
+    /// Used if you need real witnesses for executing a Plutus contract
+    /// However, we don't know what the tx body hash will be until after we've calculated the exunits
+    /// So the signatures added here are just temporary and will have to be re-added in the SignedTxBuilder
+    pub fn add_temporary_vkey(&mut self, vkey: &Vkeywitness) {
+        self.witness_builders.witness_set_builder.add_vkey(vkey);
+    }
+
+    /// Used if you need real witnesses for executing a Plutus contract
+    /// However, we don't know what the tx body hash will be until after we've calculated the exunits
+    /// So the signatures added here are just temporary and will have to be re-added in the SignedTxBuilder
+    pub fn add_temporary_bootstrap(&mut self, bootstrap: &BootstrapWitness) {
+        self.witness_builders.witness_set_builder.add_bootstrap(bootstrap);
     }
 
 
@@ -4432,7 +4446,7 @@ mod tests {
                 )
             );
         }
-        let tx = tx_redeemer_builder.build().unwrap();
+        let tx = tx_redeemer_builder.build_unchecked().unwrap();
         assert_eq!(tx.body().to_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c").unwrap());
     }
 
@@ -4576,7 +4590,7 @@ mod tests {
                 )
             );
         }
-        let signed_tx_builder = tx_redeemer_builder.build().unwrap();
+        let signed_tx_builder = tx_redeemer_builder.build_unchecked().unwrap();
         let real_script_hash = signed_tx_builder.body().script_data_hash().unwrap();
         assert_eq!(real_script_hash.to_hex(), "684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d9");
 
@@ -4733,7 +4747,7 @@ mod tests {
                 )
             );
         }
-        let signed_tx_builder = tx_redeemer_builder.build().unwrap();
+        let signed_tx_builder = tx_redeemer_builder.build_unchecked().unwrap();
         assert_eq!(signed_tx_builder.body().total_collateral, Some(Coin::from_str("3000000").unwrap()));
     }
 
@@ -4791,7 +4805,7 @@ mod tests {
             &change_addr
         ).unwrap();
         assert_eq!(tx_builder.outputs.len(), 2);
-        let final_tx = tx_builder.build().unwrap().build().unwrap().build_unchecked();
+        let final_tx = tx_builder.build().unwrap().build_unchecked().unwrap().build_unchecked();
 
         assert_eq!(final_tx.body().reference_inputs().unwrap().len(), 1);
         assert!(final_tx.witness_set().plutus_v1_scripts().is_none());

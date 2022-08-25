@@ -14,6 +14,7 @@ use crate::ledger::common::value::from_bignum;
 use super::input_builder::InputBuilderResult;
 use super::mint_builder::MintBuilderResult;
 use super::certificate_builder::*;
+use super::output_builder::SingleOutputBuilderResult;
 use super::utils::force_u64;
 use super::withdrawal_builder::WithdrawalBuilderResult;
 use super::witness_builder::InputAggregateWitnessData;
@@ -24,7 +25,6 @@ use super::witness_builder::TransactionWitnessSetBuilder;
 use super::witness_builder::merge_fake_witness;
 use std::collections::{BTreeMap, BTreeSet};
 use rand::Rng;
-use std::iter::FromIterator;
 
 #[derive(Clone, Default, Debug)]
 struct WitnessBuilders {
@@ -577,7 +577,8 @@ impl TransactionBuilder {
 
 
     /// Add explicit output via a TransactionOutput object
-    pub fn add_output(&mut self, output: &TransactionOutput) -> Result<(), JsError> {
+    pub fn add_output(&mut self, builder_result: &SingleOutputBuilderResult) -> Result<(), JsError> {
+        let output = &builder_result.output();
         let value_size = output.amount.to_bytes().len();
         if value_size > self.config.max_value_size as usize {
             return Err(JsError::from_str(&format!(
@@ -598,13 +599,16 @@ impl TransactionBuilder {
                 from_bignum(&min_ada)
             )))
         } else {
+            if let Some(datum) = builder_result.communication_datum().as_ref() {
+                self.witness_builders.witness_set_builder.add_plutus_datum(datum);
+            }
             self.outputs.add(output);
             Ok(())
         }
     }
 
     /// calculates how much the fee would increase if you added a given output
-    pub fn fee_for_output(&self, output: &TransactionOutput) -> Result<Coin, JsError> {
+    pub fn fee_for_output(&self, builder: &SingleOutputBuilderResult) -> Result<Coin, JsError> {
         let mut self_copy = self.clone();
 
         // we need some value for these for it to be a a valid transaction
@@ -614,7 +618,7 @@ impl TransactionBuilder {
 
         let fee_before = min_fee(&self_copy)?;
 
-        self_copy.add_output(output)?;
+        self_copy.add_output(builder)?;
         let fee_after = min_fee(&self_copy)?;
         fee_after.checked_sub(&fee_before)
     }
@@ -891,6 +895,7 @@ impl TransactionBuilder {
         // because we don't know how many change outputs will need to be created
         let datum = None;
         let script_ref = None;
+        let communication_datum = None;
 
         let input_total = self.get_total_input()?;
 
@@ -931,7 +936,7 @@ impl TransactionBuilder {
 
                         amount_clone.to_bytes().len() > max_value_size as usize
                     }
-                    fn pack_nfts_for_change(max_value_size: u32, coins_per_utxo_byte: &Coin, coins_per_utxo_word: Option<&Coin>, change_address: &Address, change_estimator: &Value, datum: Option<Datum>, script_ref: &Option<ScriptRef>) -> Result<Vec<MultiAsset>, JsError> {
+                    fn pack_nfts_for_change(max_value_size: u32, coins_per_utxo_byte: &Coin, coins_per_utxo_word: Option<&Coin>, change_address: &Address, change_estimator: &Value, datum: Option<Datum>, script_ref: &Option<ScriptRef>, communication_datum: &Option<PlutusData>) -> Result<Vec<MultiAsset>, JsError> {
                         // we insert the entire available ADA temporarily here since that could potentially impact the size
                         // as it could be 1, 2 3 or 4 bytes for Coin.
                         let mut change_assets: Vec<MultiAsset> = Vec::new();
@@ -1034,7 +1039,7 @@ impl TransactionBuilder {
                     // which surpass the max UTXO size limit
                     let minimum_utxo_val = min_pure_ada(&self.config.coins_per_utxo_byte, address, &datum, &script_ref)?;
                     while let Some(Ordering::Greater) = change_left.multiasset.as_ref().map_or_else(|| None, |ma| ma.partial_cmp(&MultiAsset::new())) {
-                        let nft_changes = pack_nfts_for_change(self.config.max_value_size, &self.config.coins_per_utxo_byte, self.config.coins_per_utxo_word.as_ref(), address, &change_left, datum.clone(), &script_ref)?;
+                        let nft_changes = pack_nfts_for_change(self.config.max_value_size, &self.config.coins_per_utxo_byte, self.config.coins_per_utxo_word.as_ref(), address, &change_left, datum.clone(), &script_ref, &communication_datum)?;
                         if nft_changes.is_empty() {
                             // this likely should never happen
                             return Err(JsError::from_str("NFTs too large for change output"));
@@ -1044,6 +1049,7 @@ impl TransactionBuilder {
                             let change_output = (TransactionOutputBuilder {
                                 address: Some(address.clone()),
                                 datum: datum.as_ref().map(|d| d.0.clone()),
+                                communication_datum: communication_datum.clone(),
                                 script_ref: script_ref.clone()
                             })
                                 .next()?
@@ -1053,10 +1059,10 @@ impl TransactionBuilder {
                             // increase fee
                             let fee_for_change = self.fee_for_output(&change_output)?;
                             new_fee = new_fee.checked_add(&fee_for_change)?;
-                            if change_left.coin() < change_output.amount.coin().checked_add(&new_fee)? {
+                            if change_left.coin() < change_output.output().amount.coin().checked_add(&new_fee)? {
                                 return Err(JsError::from_str("Not enough ADA leftover to include non-ADA assets in a change address"));
                             }
-                            change_left = change_left.checked_sub(&change_output.amount)?;
+                            change_left = change_left.checked_sub(&change_output.output().amount)?;
                             self.add_output(&change_output)?;
                         }
                     }
@@ -1064,24 +1070,24 @@ impl TransactionBuilder {
                     // add potentially a separate pure ADA change output
                     let left_above_minimum = change_left.coin.compare(&minimum_utxo_val) > 0;
                     if self.config.prefer_pure_change && left_above_minimum {
-                        let pure_output = TransactionOutput {
+                        let pure_output = &SingleOutputBuilderResult::new(&TransactionOutput {
                             address: address.clone(),
                             amount: change_left.clone(),
                             datum_option: datum.as_ref().map(|d| d.0.clone()),
                             script_ref: script_ref.clone(),
-                        };
+                        });
                         let additional_fee = self.fee_for_output(&pure_output)?;
                         let potential_pure_value = change_left.checked_sub(&Value::new(&additional_fee))?;
                         let potential_pure_above_minimum = potential_pure_value.coin.compare(&minimum_utxo_val) > 0;
                         if potential_pure_above_minimum {
                             new_fee = new_fee.checked_add(&additional_fee)?;
                             change_left = Value::zero();
-                            self.add_output(&TransactionOutput {
+                            self.add_output(&SingleOutputBuilderResult::new(&TransactionOutput {
                                 address: address.clone(),
                                 amount: potential_pure_value.clone(),
                                 datum_option: datum.as_ref().map(|d| d.0.clone()),
                                 script_ref: script_ref.clone(),
-                            })?;
+                            }))?;
                         }
                     }
                     self.set_fee(&new_fee);
@@ -1111,12 +1117,12 @@ impl TransactionBuilder {
                         false => burn_extra(self, &change_estimator.coin()),
                         true => {
                             // check how much the fee would increase if we added a change output
-                            let fee_for_change = self.fee_for_output(&TransactionOutput {
+                            let fee_for_change = self.fee_for_output(&SingleOutputBuilderResult::new(&TransactionOutput {
                                 address: address.clone(),
                                 amount: change_estimator.clone(),
                                 datum_option: datum.as_ref().map(|d| d.0.clone()),
                                 script_ref: script_ref.clone(),
-                            })?;
+                            }))?;
 
                             let new_fee = fee.checked_add(&fee_for_change)?;
                             match change_estimator.coin() >= min_ada.checked_add(&Value::new(&new_fee).coin())? {
@@ -1125,12 +1131,12 @@ impl TransactionBuilder {
                                     // recall: min_fee assumed the fee was the maximum possible so we definitely have enough input to cover whatever fee it ends up being
                                     self.set_fee(&new_fee);
 
-                                    self.add_output(&TransactionOutput {
+                                    self.add_output(&SingleOutputBuilderResult::new(&TransactionOutput {
                                         address: address.clone(),
                                         amount: change_estimator.checked_sub(&Value::new(&new_fee.clone()))?,
                                         datum_option: datum.as_ref().map(|d| d.0.clone()),
                                         script_ref: script_ref.clone(),
-                                    })?;
+                                    }))?;
 
                                     Ok(true)
                                 }
@@ -2777,7 +2783,7 @@ mod tests {
                 .with_address(&address)
                 .next().unwrap()
                 .with_value(&value)
-                .build().unwrap()
+                .build().unwrap().output()
         ).payment_key().unwrap()
     }
 
@@ -2857,10 +2863,10 @@ mod tests {
         output_ma.set_asset(&pid2, &asset_name2, &to_bignum(2));
         output_ma.set_asset(&pid2, &asset_name3, &to_bignum(4));
         output_value.set_multiasset(&output_ma);
-        tx_builder.add_output(&TransactionOutput::new(
+        tx_builder.add_output(&SingleOutputBuilderResult::new(&TransactionOutput::new(
             &Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap(),
             &output_value
-        )).unwrap();
+        ))).unwrap();
 
         // should not be taken
         tx_builder.add_utxo(&make_input(0u8, Value::new(&to_bignum(150))));
@@ -2960,10 +2966,10 @@ mod tests {
         output_ma.set_asset(&pid2, &asset_name2, &to_bignum(2));
         output_ma.set_asset(&pid2, &asset_name3, &to_bignum(4));
         output_value.set_multiasset(&output_ma);
-        tx_builder.add_output(&TransactionOutput::new(
+        tx_builder.add_output(&SingleOutputBuilderResult::new(&TransactionOutput::new(
             &Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap(),
             &output_value
-        )).unwrap();
+        ))).unwrap();
 
         tx_builder.add_utxo(&make_input(0u8, Value::new(&to_bignum(150))));
 
@@ -4344,7 +4350,7 @@ mod tests {
                     &TransactionHash::from_hex("473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c").unwrap(),
                     &TransactionIndex::from_str("0").unwrap()
                 ),
-                &input_utxo
+                &input_utxo.output()
             ).plutus_script(
                 &PartialPlutusWitness::new(
                     &PlutusScript::from_v1(
@@ -4401,7 +4407,7 @@ mod tests {
                     &TransactionHash::from_hex("a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b").unwrap(),
                     &TransactionIndex::from_str("0").unwrap()
                 ),
-                &input_utxo
+                &input_utxo.output()
             ).payment_key().unwrap()).unwrap();
         }
 
@@ -4487,7 +4493,7 @@ mod tests {
                     &TransactionHash::from_hex("473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c").unwrap(),
                     &TransactionIndex::from_str("0").unwrap()
                 ),
-                &input_utxo
+                &input_utxo.output()
             ).plutus_script(
                 &PartialPlutusWitness::new(
                     &PlutusScript::from_v1(
@@ -4544,7 +4550,7 @@ mod tests {
                     &TransactionHash::from_hex("a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b").unwrap(),
                     &TransactionIndex::from_str("0").unwrap()
                 ),
-                &input_utxo
+                &input_utxo.output()
             ).payment_key().unwrap()).unwrap();
         }
 
@@ -4637,7 +4643,7 @@ mod tests {
                     &TransactionHash::from_hex("473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c").unwrap(),
                     &TransactionIndex::from_str("0").unwrap()
                 ),
-                &input_utxo
+                &input_utxo.output()
             ).plutus_script(
                 &PartialPlutusWitness::new(
                     &PlutusScript::from_v1(
@@ -4694,7 +4700,7 @@ mod tests {
                     &TransactionHash::from_hex("a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b").unwrap(),
                     &TransactionIndex::from_str("0").unwrap()
                 ),
-                &input_utxo
+                &input_utxo.output()
             ).payment_key().unwrap()).unwrap();
         }
 
@@ -4722,6 +4728,7 @@ mod tests {
                 .with_coin(&Coin::from_str("2000000").unwrap())
                 .build()
                 .unwrap()
+                .output()
         );
 
         tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
@@ -4788,7 +4795,7 @@ mod tests {
             
             tx_builder.add_reference_input(&TransactionUnspentOutput::new(
                 &TransactionInput::new(&genesis_id(), &1.into()),
-                output,
+                &output.output(),
             ));
         }
         tx_builder.add_output(

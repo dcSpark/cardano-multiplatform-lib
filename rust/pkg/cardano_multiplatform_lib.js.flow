@@ -185,30 +185,6 @@ declare export function min_fee(
 ): BigNum;
 
 /**
- * @param {TransactionBody} txbody
- * @param {BigNum} pool_deposit
- * @param {BigNum} key_deposit
- * @returns {Value}
- */
-declare export function get_implicit_input(
-  txbody: TransactionBody,
-  pool_deposit: BigNum,
-  key_deposit: BigNum
-): Value;
-
-/**
- * @param {TransactionBody} txbody
- * @param {BigNum} pool_deposit
- * @param {BigNum} key_deposit
- * @returns {BigNum}
- */
-declare export function get_deposit(
-  txbody: TransactionBody,
-  pool_deposit: BigNum,
-  key_deposit: BigNum
-): BigNum;
-
-/**
  * @param {AuxiliaryData} auxiliary_data
  * @returns {AuxiliaryDataHash}
  */
@@ -255,6 +231,30 @@ declare export function calc_script_data_hash(
   cost_models: Costmdls,
   used_langs: Languages
 ): ScriptDataHash | void;
+
+/**
+ * @param {TransactionBody} txbody
+ * @param {BigNum} pool_deposit
+ * @param {BigNum} key_deposit
+ * @returns {Value}
+ */
+declare export function get_implicit_input(
+  txbody: TransactionBody,
+  pool_deposit: BigNum,
+  key_deposit: BigNum
+): Value;
+
+/**
+ * @param {TransactionBody} txbody
+ * @param {BigNum} pool_deposit
+ * @param {BigNum} key_deposit
+ * @returns {BigNum}
+ */
+declare export function get_deposit(
+  txbody: TransactionBody,
+  pool_deposit: BigNum,
+  key_deposit: BigNum
+): BigNum;
 
 /**
  * @param {TransactionHash} tx_body_hash
@@ -7054,6 +7054,32 @@ declare export class SingleMintBuilder {
 }
 /**
  */
+declare export class SingleOutputBuilderResult {
+  free(): void;
+
+  /**
+   * @param {TransactionOutput} output
+   * @returns {SingleOutputBuilderResult}
+   */
+  static new(output: TransactionOutput): SingleOutputBuilderResult;
+
+  /**
+   * @param {PlutusData} datum
+   */
+  set_communication_datum(datum: PlutusData): void;
+
+  /**
+   * @returns {TransactionOutput}
+   */
+  output(): TransactionOutput;
+
+  /**
+   * @returns {PlutusData | void}
+   */
+  communication_datum(): PlutusData | void;
+}
+/**
+ */
 declare export class SingleWithdrawalBuilder {
   free(): void;
 
@@ -8127,16 +8153,16 @@ declare export class TransactionBuilder {
 
   /**
    * Add explicit output via a TransactionOutput object
-   * @param {TransactionOutput} output
+   * @param {SingleOutputBuilderResult} builder_result
    */
-  add_output(output: TransactionOutput): void;
+  add_output(builder_result: SingleOutputBuilderResult): void;
 
   /**
    * calculates how much the fee would increase if you added a given output
-   * @param {TransactionOutput} output
+   * @param {SingleOutputBuilderResult} builder
    * @returns {BigNum}
    */
-  fee_for_output(output: TransactionOutput): BigNum;
+  fee_for_output(builder: SingleOutputBuilderResult): BigNum;
 
   /**
    * @param {BigNum} fee
@@ -8818,9 +8844,9 @@ declare export class TransactionOutputAmountBuilder {
   ): TransactionOutputAmountBuilder;
 
   /**
-   * @returns {TransactionOutput}
+   * @returns {SingleOutputBuilderResult}
    */
-  build(): TransactionOutput;
+  build(): SingleOutputBuilderResult;
 }
 /**
  * We introduce a builder-pattern format for creating transaction outputs
@@ -8842,6 +8868,14 @@ declare export class TransactionOutputBuilder {
    * @returns {TransactionOutputBuilder}
    */
   with_address(address: Address): TransactionOutputBuilder;
+
+  /**
+   * A communication datum is one where the data hash is used in the tx output
+   * Yet the full datum is included in the witness of the same transaction
+   * @param {PlutusData} datum
+   * @returns {TransactionOutputBuilder}
+   */
+  with_communication_data(datum: PlutusData): TransactionOutputBuilder;
 
   /**
    * @param {Datum} datum
@@ -9264,7 +9298,7 @@ declare export class TxRedeemerBuilder {
   /**
    * Builds the transaction and moves to the next step where any real witness can be added
    * NOTE: is_valid set to true
-   * Will NOT require you to have set required signers & witnesses
+   * WILL require you to have set required signers & witnesses
    * @returns {SignedTxBuilder}
    */
   build_checked(): SignedTxBuilder;

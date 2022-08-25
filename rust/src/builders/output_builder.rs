@@ -1,4 +1,4 @@
-use crate::{*, ledger::babbage::min_ada::{min_ada_required, compatible_min_ada_required}};
+use crate::{*, ledger::{babbage::min_ada::{min_ada_required, compatible_min_ada_required}, common::hash::hash_plutus_data}};
 
 /// We introduce a builder-pattern format for creating transaction outputs
 /// This is because:
@@ -11,6 +11,7 @@ use crate::{*, ledger::babbage::min_ada::{min_ada_required, compatible_min_ada_r
 pub struct TransactionOutputBuilder {
     pub(crate) address: Option<Address>,
     pub(crate) datum: Option<DatumEnum>,
+    pub(crate) communication_datum: Option<PlutusData>,
     pub(crate) script_ref: Option<ScriptRef>,
 }
 
@@ -27,9 +28,18 @@ impl TransactionOutputBuilder {
         cfg
     }
 
+    /// A communication datum is one where the data hash is used in the tx output
+    /// Yet the full datum is included in the witness of the same transaction
+    pub fn with_communication_data(&self, datum: &PlutusData) -> Self {
+        let mut cfg = self.clone();
+        cfg.datum = Some(DatumEnum::DatumHash(hash_plutus_data(datum)));
+        cfg.communication_datum = Some(datum.clone());
+        cfg
+    }
     pub fn with_data(&self, datum: &Datum) -> Self {
         let mut cfg = self.clone();
         cfg.datum = Some(datum.0.clone());
+        cfg.communication_datum = None;
         cfg
     }
 
@@ -45,6 +55,7 @@ impl TransactionOutputBuilder {
             amount: None,
             datum: self.datum.clone(),
             script_ref: self.script_ref.clone(),
+            communication_datum: self.communication_datum.clone(),
         })
     }
 }
@@ -56,6 +67,7 @@ pub struct TransactionOutputAmountBuilder {
     amount: Option<Value>,
     datum: Option<DatumEnum>,
     script_ref: Option<ScriptRef>,
+    communication_datum: Option<PlutusData>,
 }
 
 #[wasm_bindgen]
@@ -104,16 +116,48 @@ impl TransactionOutputAmountBuilder {
         Ok(self.with_coin_and_asset(&required_coin, multiasset))
     }
 
-    pub fn build(&self) -> Result<TransactionOutput, JsError> {
-        Ok(TransactionOutput {
+    pub fn build(&self) -> Result<SingleOutputBuilderResult, JsError> {
+        let output = TransactionOutput {
             address: self.address.clone(),
             amount: self.amount.clone().ok_or_else(|| JsError::from_str("TransactionOutputAmountBuilder: amount missing"))?,
             datum_option: self.datum.clone(),
             script_ref: self.script_ref.clone(),
+        };
+        Ok(SingleOutputBuilderResult {
+            output,
+            communication_datum: self.communication_datum.clone()
         })
     }
 }
 
+#[wasm_bindgen]
+#[derive(Clone, Debug)]
+pub struct SingleOutputBuilderResult {
+    output: TransactionOutput,
+    communication_datum: Option<PlutusData>,
+}
+#[wasm_bindgen]
+impl SingleOutputBuilderResult {
+    pub fn new(output: &TransactionOutput) -> SingleOutputBuilderResult {
+        Self {
+            output: output.clone(),
+            communication_datum: None,
+        }
+    }
+
+    pub fn set_communication_datum(&mut self, datum: &PlutusData) {
+        self.communication_datum = Some(datum.clone());
+    }
+
+    pub fn output(&self) -> TransactionOutput {
+        self.output.clone()
+    }
+
+    pub fn communication_datum(&self) -> Option<PlutusData> {
+        self.communication_datum.clone()
+    }
+}
+    
 #[deprecated(
     since = "1.0.0",
     note = "If you don't need to support Alonzo, you don't need this function"

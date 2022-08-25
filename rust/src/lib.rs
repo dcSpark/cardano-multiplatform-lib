@@ -1099,9 +1099,9 @@ impl <'de> serde::de::Deserialize<'de> for MIRToStakeCredentials {
 impl JsonSchema for MIRToStakeCredentials {
     fn schema_name() -> String { String::from("MIRToStakeCredentials") }
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        std::collections::BTreeMap::<GenesisHash, ProtocolParamUpdate>::json_schema(gen)
+        std::collections::BTreeMap::<StakeCredential, DeltaCoin>::json_schema(gen)
     }
-    fn is_referenceable() -> bool { std::collections::BTreeMap::<GenesisHash, ProtocolParamUpdate>::is_referenceable() }
+    fn is_referenceable() -> bool { std::collections::BTreeMap::<StakeCredential, DeltaCoin>::is_referenceable() }
 }
 
 #[wasm_bindgen]

@@ -9298,42 +9298,10 @@ declare export class TxRedeemerBuilder {
   /**
    * Builds the transaction and moves to the next step where any real witness can be added
    * NOTE: is_valid set to true
-   * WILL require you to have set required signers & witnesses
-   * @returns {SignedTxBuilder}
-   */
-  build_checked(): SignedTxBuilder;
-
-  /**
-   * Builds the transaction and moves to the next step where any real witness can be added
-   * NOTE: is_valid set to true
    * Will NOT require you to have set required signers & witnesses
    * @returns {SignedTxBuilder}
    */
-  build_unchecked(): SignedTxBuilder;
-
-  /**
-   * Plutus script execution may have "required signers" that need to be added to calculate the exunits correctly
-   * However, we don't know what the tx body hash will be until after we've calculated the exunits
-   * So the signatures added here are just temporary and will have to be re-added in the SignedTxBuilder
-   * @param {Vkeywitness} vkey
-   */
-  add_temporary_required_signer(vkey: Vkeywitness): void;
-
-  /**
-   * Used if you need real witnesses for executing a Plutus contract
-   * However, we don't know what the tx body hash will be until after we've calculated the exunits
-   * So the signatures added here are just temporary and will have to be re-added in the SignedTxBuilder
-   * @param {Vkeywitness} vkey
-   */
-  add_temporary_vkey(vkey: Vkeywitness): void;
-
-  /**
-   * Used if you need real witnesses for executing a Plutus contract
-   * However, we don't know what the tx body hash will be until after we've calculated the exunits
-   * So the signatures added here are just temporary and will have to be re-added in the SignedTxBuilder
-   * @param {BootstrapWitness} bootstrap
-   */
-  add_temporary_bootstrap(bootstrap: BootstrapWitness): void;
+  build(): SignedTxBuilder;
 
   /**
    * used to override the exunit values initially provided when adding inputs

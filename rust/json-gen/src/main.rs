@@ -135,6 +135,7 @@ fn main() {
     gen_json_schema!(SpendingDataScriptASD);
     gen_json_schema!(SpendingDataPubKeyASD);
     gen_json_schema!(SpendingDataRedeemASD);
+    gen_json_schema!(ByronTxout);
 
 
     // plutus.rs

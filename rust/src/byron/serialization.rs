@@ -676,3 +676,57 @@ impl Deserialize for Crc32 {
         Ok(Crc32::from(v))
     }
 }
+
+impl cbor_event::se::Serialize for ByronTxout {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array(cbor_event::Len::Len(2))?;
+        self.address.serialize(serializer)?;
+        self.amount.serialize(serializer)?;
+        Ok(serializer)
+    }
+}
+
+impl Deserialize for ByronTxout {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let len = raw.array()?;
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            let address = (|| -> Result<_, DeserializeError> {
+                Ok(ByronAddress::deserialize(raw)?)
+            })().map_err(|e| e.annotate("address"))?;
+            let amount = (|| -> Result<_, DeserializeError> {
+                Ok(Coin::deserialize(raw)?)
+            })().map_err(|e| e.annotate("amount"))?;
+            match len {
+                cbor_event::Len::Len(_) => (),
+                cbor_event::Len::Indefinite => match raw.special()? {
+                    CBORSpecial::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            Ok(ByronTxout {
+                address,
+                amount,
+            })
+        })().map_err(|e| e.annotate("ByronTxout"))
+    }
+}
+
+
+impl serde::Serialize for ByronAddress {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer {
+        let base58 = self.to_base58();
+        serializer.serialize_str(&base58)
+    }
+}
+
+impl <'de> serde::de::Deserialize<'de> for ByronAddress {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
+    D: serde::de::Deserializer<'de> {
+        let base58 = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        ByronAddress::from_base58(&base58)
+            .map_err(|_e| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&base58), &"base58 address string"))
+    }
+}

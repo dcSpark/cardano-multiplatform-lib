@@ -15,6 +15,7 @@ use crate::JsError;
 use crate::crypto::Bip32PublicKey;
 use crate::crypto::PublicKey;
 use crate::ledger::common::binary::*;
+use crate::ledger::common::value::Coin;
 
 // This library was code-generated using an experimental CDDL to rust tool:
 // https://github.com/Emurgo/cddl-codegen
@@ -154,7 +155,7 @@ impl StakeDistribution {
 
 #[wasm_bindgen]
 
-#[derive(Clone, Debug, Eq, Ord, Hash, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Eq, Ord, Hash, PartialEq, PartialOrd, JsonSchema)]
 pub struct ByronAddress {
     addr: Vec<u8>,
     crc32: Crc32,
@@ -470,5 +471,49 @@ impl SpendingDataScriptASD {
         Self {
             script: script.clone(),
         }
+    }
+}
+
+to_from_bytes!(ByronTxout);
+to_from_json!(ByronTxout);
+
+
+#[wasm_bindgen]
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
+pub struct ByronTxout {
+    address: ByronAddress,
+    amount: Coin,
+}
+
+#[wasm_bindgen]
+impl ByronTxout {
+    pub fn address(&self) -> ByronAddress {
+        self.address.clone()
+    }
+
+    pub fn amount(&self) -> Coin {
+        self.amount.clone()
+    }
+
+    pub fn new(address: &ByronAddress, amount: &Coin) -> Self {
+        Self {
+            address: address.clone(),
+            amount: amount.clone(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tx_output_decoding() {
+        let tx_out = ByronTxout::from_bytes(
+            hex::decode("8282d818582183581cc6eb29e2cbb7b616b28c83da505a08253c33ec371319261ad93e558ca0001a1102942c1b00000005f817ddfc").unwrap()
+        ).unwrap();
+        assert_eq!(tx_out.address().to_base58(), "Ae2tdPwUPEZGexC4LXgsr1BJ1PppXk71zpuRkboFopVpSDcykQvpyYJXCJf");
+        assert!(tx_out.to_json().unwrap().contains("Ae2tdPwUPEZGexC4LXgsr1BJ1PppXk71zpuRkboFopVpSDcykQvpyYJXCJf"));
     }
 }

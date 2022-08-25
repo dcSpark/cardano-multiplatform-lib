@@ -1256,7 +1256,7 @@ pub struct TxRedeemerBuilder {
 impl TxRedeemerBuilder {
     /// Builds the transaction and moves to the next step where any real witness can be added
     /// NOTE: is_valid set to true
-    /// Will NOT require you to have set required signers & witnesses
+    /// WILL require you to have set required signers & witnesses
     pub fn build_checked(&self) -> Result<SignedTxBuilder, JsError> {
         let witness_set = self.witness_builders.build_unchecked();
         witness_set.try_build()?; // make sure all witnesses are present

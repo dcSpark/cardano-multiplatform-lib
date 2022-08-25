@@ -2003,6 +2003,55 @@ declare export class ByronScript {
 }
 /**
  */
+declare export class ByronTxout {
+  free(): void;
+
+  /**
+   * @returns {Uint8Array}
+   */
+  to_bytes(): Uint8Array;
+
+  /**
+   * @param {Uint8Array} bytes
+   * @returns {ByronTxout}
+   */
+  static from_bytes(bytes: Uint8Array): ByronTxout;
+
+  /**
+   * @returns {string}
+   */
+  to_json(): string;
+
+  /**
+   * @returns {ByronTxoutJSON}
+   */
+  to_js_value(): ByronTxoutJSON;
+
+  /**
+   * @param {string} json
+   * @returns {ByronTxout}
+   */
+  static from_json(json: string): ByronTxout;
+
+  /**
+   * @returns {ByronAddress}
+   */
+  address(): ByronAddress;
+
+  /**
+   * @returns {BigNum}
+   */
+  amount(): BigNum;
+
+  /**
+   * @param {ByronAddress} address
+   * @param {BigNum} amount
+   * @returns {ByronTxout}
+   */
+  static new(address: ByronAddress, amount: BigNum): ByronTxout;
+}
+/**
+ */
 declare export class Certificate {
   free(): void;
 
@@ -9882,6 +9931,10 @@ export type AddrTypeEnumJSON = "ATPubKey" | "ATScript" | "ATRedeem";
 export interface ByronAddressJSON {
   addr: number[];
   crc32: Crc32JSON;
+}
+export interface ByronTxoutJSON {
+  address: ByronAddressJSON;
+  amount: string;
 }
 export type CertificateJSON = CertificateEnumJSON;
 export type CertificateEnumJSON =

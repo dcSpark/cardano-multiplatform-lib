@@ -947,10 +947,7 @@ impl TransactionBuilder {
                         )
                 )?,
             }
-        
-        
-       
-            
+
         };
         let built = TransactionBody {
             inputs: TransactionInputs(self.inputs.iter().map(|tx_builder_input| tx_builder_input.input.clone()).collect()),
@@ -1001,19 +998,25 @@ impl TransactionBuilder {
         }
     }
 
+    fn add_change_if_needed_for_tests(&mut self, change_address: &Address) -> Result<bool, JsError>{
+        choose_change_selection_algo(ChangeSelectionAlgo::Default)(self, change_address, false)
+    }
+
     // TODO: switch from ChangeSelectionAlgo to ChangeSelectionBuilder
-    /// Builds the transaction and moves to the next step where any real witness can be added
+    /// Builds the transaction and moves to the next step redeemer units can be added and a draft tx can
+    /// be evaluated
     /// NOTE: is_valid set to true
     pub fn build_for_evaluation(&self, algo: ChangeSelectionAlgo, change_address: &Address) -> Result<TxRedeemerBuilder, JsError> {
         // First we finish change selection
-        choose_change_selection_algo(algo)(&mut self.clone(), change_address, false);
+
+        let mut tx = self.clone();
+        choose_change_selection_algo(algo)(&mut tx, change_address, false)?;
 
 
         Ok(TxRedeemerBuilder {
-            draft_body: self.build_body()?,
-            witness_builders: self.witness_builders.clone(),
-            auxiliary_data: self.auxiliary_data.clone(), 
-            config: self.config.clone(),
+            draft_body: tx.build_body()?,
+            witness_builders: tx.witness_builders.clone(),
+            auxiliary_data: tx.auxiliary_data.clone(), 
         })
     }
 
@@ -1023,7 +1026,7 @@ impl TransactionBuilder {
     pub fn build(&mut self, algo: ChangeSelectionAlgo, change_address: &Address) -> Result<SignedTxBuilder, JsError> {
 
         // First we finish change selection
-        choose_change_selection_algo(algo)(self, change_address, true);
+        choose_change_selection_algo(algo)(self, change_address, true)?;
 
         Ok(SignedTxBuilder {
             body: self.build_body()?,
@@ -1062,7 +1065,6 @@ pub struct TxRedeemerBuilder {
     draft_body: TransactionBody,
     witness_builders: WitnessBuilders,
     auxiliary_data: Option<AuxiliaryData>,
-    config: TransactionBuilderConfig,
 }
 
 #[wasm_bindgen]
@@ -1194,8 +1196,8 @@ impl SignedTxBuilder {
         self.auxiliary_data.clone()
     }
 }
-
-enum ChangeSelectionAlgo {
+#[wasm_bindgen]
+pub enum ChangeSelectionAlgo {
     Default,
 }
 
@@ -1216,9 +1218,7 @@ pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address,
         None => builder.min_fee(include_exunits),
         // generating the change output involves changing the fee
         Some(_x) => {
-            return Err(JsError::from_str(
-                "Cannot calculate change if fee was explicitly specified",
-            ))
+            return Ok(false)
         }
     }?;
 
@@ -1670,7 +1670,7 @@ mod tests {
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
-        let added_change = tx_builder.add_change_if_needed(
+        let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr
         );
         assert!(added_change.unwrap());
@@ -1681,7 +1681,7 @@ mod tests {
         );
         assert_eq!(tx_builder.full_size().unwrap(), 285);
         assert_eq!(tx_builder.output_sizes(), vec![62, 65]);
-        let _final_tx = tx_builder.build(); // just test that it doesn't throw
+        let _final_tx = tx_builder.build(ChangeSelectionAlgo::Default, &change_addr); // just test that it doesn't throw
     }
 
     #[test]
@@ -1713,7 +1713,7 @@ mod tests {
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
-        let added_change = tx_builder.add_change_if_needed(
+        let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr
         );
         assert!(!added_change.unwrap());
@@ -1722,7 +1722,7 @@ mod tests {
             tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap(),
             tx_builder.get_explicit_output().unwrap().checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap()
         );
-        let _final_tx = tx_builder.build(); // just test that it doesn't throw
+        let _final_tx = tx_builder.build(ChangeSelectionAlgo::Default, &change_addr); // just test that it doesn't throw
     }
 
     #[test]
@@ -1758,10 +1758,10 @@ mod tests {
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
-        tx_builder.add_change_if_needed(
+        tx_builder.add_change_if_needed_for_tests(
             &change_addr
         ).unwrap();
-        assert_eq!(tx_builder.min_fee().unwrap().to_str(), "214002");
+        assert_eq!(tx_builder.min_fee(false).unwrap().to_str(), "214002");
         assert_eq!(tx_builder.get_fee_if_set().unwrap().to_str(), "214002");
         assert_eq!(tx_builder.get_deposit().unwrap().to_str(), "1000000");
         assert_eq!(tx_builder.outputs.len(), 1);
@@ -1772,7 +1772,7 @@ mod tests {
                 .checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap()
                 .checked_add(&Value::new(&tx_builder.get_deposit().unwrap())).unwrap()
         );
-        let _final_tx = tx_builder.build(); // just test that it doesn't throw
+        let _final_tx = tx_builder.build(ChangeSelectionAlgo::Default, &change_addr); // just test that it doesn't throw
     }
 
     #[test]
@@ -1807,7 +1807,7 @@ mod tests {
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
-        let added_change = tx_builder.add_change_if_needed(
+        let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr
         ).unwrap();
         assert!(!added_change);
@@ -1847,7 +1847,7 @@ mod tests {
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
-        let added_change = tx_builder.add_change_if_needed(
+        let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr
         ).unwrap();
         assert!(added_change);
@@ -1900,7 +1900,7 @@ mod tests {
         )
         .to_address();
 
-        tx_builder.add_change_if_needed(&change_addr).unwrap();
+        tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
     }
 
     #[test]
@@ -2014,7 +2014,7 @@ mod tests {
         )
         .to_address();
 
-        let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
+        let added_change = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(added_change);
         assert_eq!(tx_builder.outputs.len(), 2);
 
@@ -2088,7 +2088,7 @@ mod tests {
         )
         .to_address();
 
-        let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
+        let added_change = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(added_change);
         assert_eq!(tx_builder.outputs.len(), 2);
 
@@ -2172,7 +2172,7 @@ mod tests {
         )
         .to_address();
 
-        let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
+        let added_change = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(added_change);
         let final_tx = tx_builder.build_body().unwrap();
         assert_eq!(final_tx.outputs().len(), 2);
@@ -2264,7 +2264,7 @@ mod tests {
         )
         .to_address();
 
-        let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
+        let added_change = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(added_change);
         let final_tx = tx_builder.build_body().unwrap();
         assert_eq!(final_tx.outputs().len(), 3);
@@ -2372,7 +2372,7 @@ mod tests {
         )
         .to_address();
 
-        let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
+        let added_change = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(added_change);
         let final_tx = tx_builder.build_body().unwrap();
         assert_eq!(final_tx.outputs().len(), 2);
@@ -2444,7 +2444,7 @@ mod tests {
 
         let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
-        let added_change = tx_builder.add_change_if_needed(
+        let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr
         );
         assert!(!added_change.unwrap());
@@ -2483,7 +2483,7 @@ mod tests {
         tx_builder.set_ttl(&1.into());
 
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap();
-        let added_change = tx_builder.add_change_if_needed(
+        let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr.to_address()
         );
         assert!(!added_change.unwrap());
@@ -2523,7 +2523,7 @@ mod tests {
         tx_builder.set_ttl(&1.into());
 
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap();
-        let added_change = tx_builder.add_change_if_needed(
+        let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr.to_address()
         );
         assert!(!added_change.unwrap());
@@ -2584,7 +2584,7 @@ mod tests {
         tx_builder.set_ttl(&1.into());
 
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap();
-        let added_change = tx_builder.add_change_if_needed(
+        let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr.to_address()
         );
         assert!(added_change.unwrap());
@@ -2659,7 +2659,7 @@ mod tests {
 
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
 
-        let added_change = tx_builder.add_change_if_needed(&change_addr).unwrap();
+        let added_change = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(added_change);
         let final_tx = tx_builder.build_body().unwrap();
         assert_eq!(final_tx.outputs().len(), 3);
@@ -2766,7 +2766,7 @@ mod tests {
 
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
 
-        assert!(tx_builder.add_change_if_needed(&change_addr).is_err())
+        assert!(tx_builder.add_change_if_needed_for_tests(&change_addr).is_err())
     }
 
     fn make_input(input_hash_byte: u8, value: Value) -> InputBuilderResult {
@@ -2799,7 +2799,7 @@ mod tests {
         tx_builder.add_utxo(&make_input(4u8, Value::new(&to_bignum(1000))));
         tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirst).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
-        let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
+        let change_added = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(change_added);
         let tx = tx_builder.build_body().unwrap();
         // change needed
@@ -2829,7 +2829,7 @@ mod tests {
         tx_builder.add_utxo(&make_input(4u8, Value::new(&to_bignum(100))));
         tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirst).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
-        let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
+        let change_added = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(!change_added);
         let tx = tx_builder.build_body().unwrap();
         // change not needed - should be exact
@@ -2914,7 +2914,7 @@ mod tests {
         tx_builder.add_utxo(&make_input(7u8, Value::new(&to_bignum(100))));
         tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirstMultiAsset).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
-        let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
+        let change_added = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(change_added);
         let tx = tx_builder.build_body().unwrap();
 
@@ -3021,7 +3021,7 @@ mod tests {
 
         tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImproveMultiAsset).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
-        let change_added = tx_builder.add_change_if_needed(&change_addr).unwrap();
+        let change_added = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(change_added);
         let tx = tx_builder.build_body().unwrap();
 
@@ -3053,7 +3053,7 @@ mod tests {
         let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
-        let add_change_res = tx_builder.add_change_if_needed(&change_addr);
+        let add_change_res = tx_builder.add_change_if_needed_for_tests(&change_addr);
         assert!(add_change_res.is_ok(), "{:?}", add_change_res.err());
         let tx_build_res = tx_builder.build_body();
         assert!(tx_build_res.is_ok(), "{:?}", tx_build_res.err());
@@ -3073,7 +3073,7 @@ mod tests {
             let value = input_values.get(&txid).unwrap();
             input_total = input_total.checked_add(value).unwrap();
         }
-        assert!(input_total >= Value::new(&tx_builder.min_fee().unwrap().checked_add(&to_bignum(COST)).unwrap()));
+        assert!(input_total >= Value::new(&tx_builder.min_fee(false).unwrap().checked_add(&to_bignum(COST)).unwrap()));
     }
 
     #[test]
@@ -3093,7 +3093,7 @@ mod tests {
         let mut output_total = tx_builder
             .get_explicit_output().unwrap()
             .checked_add(&Value::new(&tx_builder.get_deposit().unwrap())).unwrap()
-            .checked_add(&Value::new(&tx_builder.min_fee().unwrap())).unwrap();
+            .checked_add(&Value::new(&tx_builder.min_fee(false).unwrap())).unwrap();
         let available_inputs = tx_builder.utxos.clone();
         let mut available_indices: BTreeSet<usize> = (0..available_inputs.len()).collect();
         assert!(available_indices.len() == 2);
@@ -3177,15 +3177,15 @@ mod tests {
                 .with_coin(&to_bignum(COST))
                 .build().unwrap()
             ).unwrap();
-        assert_eq!(tx_builder.min_fee().unwrap(), to_bignum(53));
+        assert_eq!(tx_builder.min_fee(false).unwrap(), to_bignum(53));
         tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(150))));
         tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(150))));
         tx_builder.add_utxo(&make_input(3u8, Value::new(&to_bignum(150))));
         let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
-        assert_eq!(tx_builder.min_fee().unwrap(), to_bignum(264));
+        assert_eq!(tx_builder.min_fee(false).unwrap(), to_bignum(264));
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
-        let add_change_res = tx_builder.add_change_if_needed(&change_addr);
+        let add_change_res = tx_builder.add_change_if_needed_for_tests(&change_addr);
         assert!(add_change_res.is_ok(), "{:?}", add_change_res.err());
     }
 
@@ -3436,7 +3436,7 @@ mod tests {
 
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
 
-        let add_change_result = tx_builder.add_change_if_needed(&change_addr);
+        let add_change_result = tx_builder.add_change_if_needed_for_tests(&change_addr);
         assert!(add_change_result.is_ok());
         assert_eq!(tx_builder.outputs.len(), 4);
 
@@ -3935,7 +3935,7 @@ mod tests {
         };
         tx_builder.add_input(&input);
 
-        let original_tx_fee = tx_builder.min_fee().unwrap();
+        let original_tx_fee = tx_builder.min_fee(false).unwrap();
         assert_eq!(original_tx_fee, to_bignum(164502));
 
         let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name1, amount.clone()))
@@ -4421,13 +4421,12 @@ mod tests {
             tx_builder.add_auxiliary_data(&aux_data);
         }
 
-        let original_tx_fee = tx_builder.min_fee().unwrap();
+        let original_tx_fee = tx_builder.min_fee(false).unwrap();
         assert_eq!(original_tx_fee.to_str(), "469673");
         tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
 
-        let mut tx_redeemer_builder = tx_builder.build().unwrap();
         {
-            tx_redeemer_builder.set_exunits(
+            tx_builder.set_exunits(
                 &RedeemerWitnessKey::new(
                     &RedeemerTag::new_spend(),
                     &BigNum::from(0)
@@ -4438,7 +4437,7 @@ mod tests {
                 )
             );
         }
-        let tx = tx_redeemer_builder.build().unwrap();
+        let tx = tx_builder.build(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap()).unwrap();
         assert_eq!(tx.body().to_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c").unwrap());
     }
 
@@ -4558,7 +4557,7 @@ mod tests {
 
         tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
 
-        let mut tx_redeemer_builder = tx_builder.build().unwrap();
+        let mut tx_redeemer_builder = tx_builder.build_for_evaluation(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap()).unwrap();
 
         let fake_script_hash = tx_redeemer_builder.draft_body().script_data_hash().unwrap();
         assert_eq!(fake_script_hash.to_hex(), "0000000000000000000000000000000000000000000000000000000000000000");
@@ -4573,8 +4572,18 @@ mod tests {
                     &BigNum::from_str("2000000000").unwrap()
                 )
             );
+            tx_builder.set_exunits(
+                &RedeemerWitnessKey::new(
+                    &RedeemerTag::new_spend(),
+                    &BigNum::from(0)
+                ),
+                &ExUnits::new(
+                    &BigNum::from_str("5000000").unwrap(),
+                    &BigNum::from_str("2000000000").unwrap()
+                )
+            );
         }
-        let signed_tx_builder = tx_redeemer_builder.build().unwrap();
+        let signed_tx_builder = tx_builder.build(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap()).unwrap();
         let real_script_hash = signed_tx_builder.body().script_data_hash().unwrap();
         assert_eq!(real_script_hash.to_hex(), "684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d9");
 
@@ -4711,9 +4720,9 @@ mod tests {
 
         tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
 
-        let mut tx_redeemer_builder = tx_builder.build().unwrap();
+
         {
-            tx_redeemer_builder.set_exunits(
+            tx_builder.set_exunits(
                 &RedeemerWitnessKey::new(
                     &RedeemerTag::new_spend(),
                     &BigNum::from(0)
@@ -4724,7 +4733,7 @@ mod tests {
                 )
             );
         }
-        let signed_tx_builder = tx_redeemer_builder.build().unwrap();
+        let signed_tx_builder = tx_builder.build(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap()).unwrap();
         assert_eq!(signed_tx_builder.body().total_collateral, Some(Coin::from_str("3000000").unwrap()));
     }
 
@@ -4778,11 +4787,11 @@ mod tests {
         tx_builder.set_ttl(&1000.into());
 
         let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
-        tx_builder.add_change_if_needed(
+        tx_builder.add_change_if_needed_for_tests(
             &change_addr
         ).unwrap();
         assert_eq!(tx_builder.outputs.len(), 2);
-        let final_tx = tx_builder.build().unwrap().build().unwrap().build_unchecked();
+        let final_tx = tx_builder.build(ChangeSelectionAlgo::Default, &change_addr).unwrap().build_unchecked();
 
         assert_eq!(final_tx.body().reference_inputs().unwrap().len(), 1);
         assert!(final_tx.witness_set().plutus_v1_scripts().is_none());

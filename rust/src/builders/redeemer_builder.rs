@@ -85,22 +85,22 @@ pub struct RedeemerSetBuilder {
     // the set of inputs is an ordered set (according to the order defined on the type TxIn) -
     // this also is the order in which the elements of the set are indexed (lex order on the pair of TxId and Ix).
     // All inputs of a transaction are included in the set being indexed (not just the ones that point to a Plutus script UTxO)
-    spend: BTreeMap<TransactionInput, UntaggedRedeemerPlaceholder>,
+    spend: BTreeMap<TransactionInput, Option<UntaggedRedeemerPlaceholder>>,
 
     // the set of policy IDs is ordered according to the order defined on PolicyID (lex).
     // The index of a PolicyID in this set of policy IDs is computed according to this order.
     // Note that at the use site, the set of policy IDs passed to indexof is the (unfiltered)
     // domain of the Value map in the mint field of the transaction.
-    mint: BTreeMap<PolicyID, UntaggedRedeemerPlaceholder>,
+    mint: BTreeMap<PolicyID, Option<UntaggedRedeemerPlaceholder>>,
 
     // the index of a reward account ract in the reward withdrawals map is the index of ract as a key in the (unfiltered) map.
     // The keys of the Wdrl map are arranged in the order defined on the RewardAcnt type, which is a lexicographical (abbrv. lex)
     // order on the pair of the Network and the Credential.
-    reward: BTreeMap<RewardAddress, UntaggedRedeemerPlaceholder>,
+    reward: BTreeMap<RewardAddress, Option<UntaggedRedeemerPlaceholder>>,
 
     // certificates in the DCert list are indexed in the order in which they arranged in the (full, unfiltered)
     // list of certificates inside the transaction
-    cert: Vec<UntaggedRedeemerPlaceholder>,
+    cert: Vec<Option<UntaggedRedeemerPlaceholder>>,
 }
 
 impl RedeemerSetBuilder {
@@ -121,19 +121,19 @@ impl RedeemerSetBuilder {
         match key.tag().kind() {
             RedeemerTagKind::Spend => {
                 let entry = self.spend.iter_mut().nth(u64::from(key.index()) as usize).unwrap();
-                *entry.1 = replace_placeholder(entry.1)
+                *entry.1 = Some(replace_placeholder(&mut entry.1.clone().unwrap()))
             },
             RedeemerTagKind::Mint => {
                 let entry = self.mint.iter_mut().nth(u64::from(key.index()) as usize).unwrap();
-                *entry.1 = replace_placeholder(entry.1)
+                *entry.1 = Some(replace_placeholder(&mut entry.1.clone().unwrap()))
             },
             RedeemerTagKind::Cert => {
                 let entry = self.cert.iter_mut().nth(u64::from(key.index()) as usize).unwrap();
-                *entry = replace_placeholder(entry)
+                *entry = Some(replace_placeholder(&mut entry.clone().unwrap()))
             },
             RedeemerTagKind::Reward => {
                 let entry = self.reward.iter_mut().nth(u64::from(key.index()) as usize).unwrap();
-                *entry.1 = replace_placeholder(entry.1)
+                *entry.1 = Some(replace_placeholder(&mut entry.1.clone().unwrap()))
             },
         };
     }
@@ -143,7 +143,9 @@ impl RedeemerSetBuilder {
             result.aggregate_witness.as_ref().and_then(|data| data.plutus_data())
         };
         if let Some(data) = plutus_data {
-            self.spend.insert(result.input.clone(), UntaggedRedeemerPlaceholder::JustData(data));
+            self.spend.insert(result.input.clone(), Some(UntaggedRedeemerPlaceholder::JustData(data)));
+        } else {
+            self.spend.insert(result.input.clone(), None);
         }
     }
 
@@ -152,7 +154,10 @@ impl RedeemerSetBuilder {
             result.aggregate_witness.as_ref().and_then(|data| data.plutus_data())
         };
         if let Some(data) = plutus_data {
-            self.mint.insert(result.policy_id.clone(), UntaggedRedeemerPlaceholder::JustData(data));
+            self.mint.insert(result.policy_id.clone(), Some(UntaggedRedeemerPlaceholder::JustData(data)));
+        }
+        else {
+            self.mint.insert(result.policy_id.clone(), None);
         }
     }
 
@@ -161,8 +166,12 @@ impl RedeemerSetBuilder {
             result.aggregate_witness.as_ref().and_then(|data| data.plutus_data())
         };
         if let Some(data) = plutus_data {
-            self.reward.insert(result.address.clone(), UntaggedRedeemerPlaceholder::JustData(data));
+            self.reward.insert(result.address.clone(), Some(UntaggedRedeemerPlaceholder::JustData(data)));
+        } 
+        else {
+            self.reward.insert(result.address.clone(), None);
         }
+        
     }
 
     pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
@@ -170,7 +179,10 @@ impl RedeemerSetBuilder {
             result.aggregate_witness.as_ref().and_then(|data| data.plutus_data())
         };
         if let Some(data) = plutus_data {
-            self.cert.push(UntaggedRedeemerPlaceholder::JustData(data));
+            self.cert.push(Some(UntaggedRedeemerPlaceholder::JustData(data)));
+        }
+        else {
+            self.cert.push(None);
         }
     }
 
@@ -208,7 +220,7 @@ impl RedeemerSetBuilder {
     fn remove_placeholders_and_tag<'a, K: Debug + Clone>(
         &self, redeemers: &mut Vec<Redeemer>,
         tag: &RedeemerTag,
-        entries: &mut dyn Iterator<Item = (&'a K, &'a UntaggedRedeemerPlaceholder)>,
+        entries: &mut dyn Iterator<Item = (&'a K, &'a Option<UntaggedRedeemerPlaceholder>)>,
         default_to_dummy_exunits: bool
     ) -> Result<(), MissingExunitError> {
         let mut result = vec![];
@@ -216,14 +228,15 @@ impl RedeemerSetBuilder {
             let key = (tag, i, entry.0);
 
             let redeemer = match entry.1 {
-                UntaggedRedeemerPlaceholder::JustData(data) => {
+                Some(UntaggedRedeemerPlaceholder::JustData(data)) => {
                     if !default_to_dummy_exunits {
                         Err(MissingExunitError::Key((key.0.clone(), key.1, format!("{:?}", key.2))))
                     } else {
-                        Ok(UntaggedRedeemer::new(data, &ExUnits::dummy()))
+                        Ok(Some(UntaggedRedeemer::new(data, &ExUnits::dummy())))
                     }
                 },
-                UntaggedRedeemerPlaceholder::Full(untagged_redeemer) => Ok(untagged_redeemer.clone())
+                Some(UntaggedRedeemerPlaceholder::Full(untagged_redeemer)) => Ok(Some(untagged_redeemer.clone())),
+                None => Ok(None),
             }?;
             result.push(redeemer);
         }
@@ -234,17 +247,21 @@ impl RedeemerSetBuilder {
         Ok(())
     }
 
-    fn tag_redeemer(tag: &RedeemerTag, untagged_redeemers: &[UntaggedRedeemer]) -> Vec<Redeemer> {
+    fn tag_redeemer(tag: &RedeemerTag, untagged_redeemers: &[Option<UntaggedRedeemer>]) -> Vec<Redeemer> {
         let mut result = Vec::new();
 
         for (index, value) in untagged_redeemers.iter().enumerate() {
-            let redeemer = {
-                let index = index as u64;
-                Redeemer::new(tag, &index.into(), &value.data, &value.ex_units)
+            match value {
+                Some(val) => {
+                    let redeemer = {
+                        let index = index as u64;
+                        Redeemer::new(tag, &index.into(), &val.data, &val.ex_units)
+                    };
+                    result.push(redeemer);
+                }
+                None => ()
             };
-            result.push(redeemer);
         }
-
         result
     }
 }

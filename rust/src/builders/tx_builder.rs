@@ -949,7 +949,7 @@ impl TransactionBuilder {
             }
 
         };
-        let built = TransactionBody {
+        let mut built = TransactionBody {
             inputs: TransactionInputs(self.inputs.iter().map(|tx_builder_input| tx_builder_input.input.clone()).collect()),
             outputs: self.outputs.clone(),
             fee,
@@ -970,6 +970,14 @@ impl TransactionBuilder {
             total_collateral: self.calc_collateral_total()?,
             reference_inputs: self.reference_inputs.as_ref().map(|inputs| TransactionInputs(inputs.iter().map(|utxo| utxo.input.clone()).collect())),
         };
+
+        built.inputs.0.sort_by(|a, b| {
+            match a.transaction_id.cmp(&b.transaction_id){
+                Ordering::Equal => a.index.cmp(&b.index),
+                rest => rest
+            }
+        });
+
         // we must build a tx with fake data (of correct size) to check the final Transaction size
         let full_tx = fake_full_tx(self, built)?;
         let full_tx_size = full_tx.to_bytes().len();

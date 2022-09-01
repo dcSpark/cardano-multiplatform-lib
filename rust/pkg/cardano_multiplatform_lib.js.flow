@@ -9926,15 +9926,9 @@ export interface AddrAttributesJSON {
   derivation_path?: HDAddressPayload | null;
   protocol_magic?: ProtocolMagic | null;
   stake_distribution?: StakeDistributionJSON | null;
-  derivation_path?: HDAddressPayload | null;
-  protocol_magic?: ProtocolMagic | null;
-  stake_distribution?: StakeDistributionJSON | null;
 }
 export type AddressJSON = string;
 export interface AddressContentJSON {
-  addr_attr: AddrAttributesJSON;
-  addr_type: AddrTypeEnumJSON;
-  address_id: string;
   addr_attr: AddrAttributesJSON;
   addr_type: AddrTypeEnumJSON;
   address_id: string;
@@ -9943,16 +9937,8 @@ export type AssetNameJSON = string;
 export type AssetNamesJSON = string[];
 export interface AssetsJSON {
   [k: string]: string;
-  [k: string]: string;
 }
 export interface AuxiliaryDataJSON {
-  metadata?: {
-    [k: string]: string,
-    ...
-  } | null;
-  native_scripts?: NativeScriptsJSON | null;
-  plutus_v1_scripts?: PlutusV1ScriptsJSON | null;
-  plutus_v2_scripts?: PlutusV2ScriptsJSON | null;
   metadata?: {
     [k: string]: string,
     ...
@@ -9964,19 +9950,10 @@ export interface AuxiliaryDataJSON {
 export type AuxiliaryDataHashJSON = string;
 export interface AuxiliaryDataSetJSON {
   [k: string]: AuxiliaryDataJSON;
-  [k: string]: AuxiliaryDataJSON;
 }
 export type BigIntJSON = string;
 export type BigNumJSON = string;
 export interface BlockJSON {
-  auxiliary_data_set: {
-    [k: string]: AuxiliaryDataJSON,
-    ...
-  };
-  header: HeaderJSON;
-  invalid_transactions: TransactionIndexes;
-  transaction_bodies: TransactionBodiesJSON;
-  transaction_witness_sets: TransactionWitnessSetsJSON;
   auxiliary_data_set: {
     [k: string]: AuxiliaryDataJSON,
     ...
@@ -9994,18 +9971,12 @@ export interface BootstrapWitnessJSON {
   chain_code: number[];
   signature: string;
   vkey: PublicKeyJSON;
-  attributes: AddrAttributesJSON;
-  chain_code: number[];
-  signature: string;
-  vkey: PublicKeyJSON;
 }
 export type BootstrapWitnessesJSON = BootstrapWitnessJSON[];
 export type ByronAddrTypeJSON = AddrTypeEnumJSON;
 export type AddrTypeEnumJSON = "ATPubKey" | "ATScript" | "ATRedeem";
 export type ByronAddressJSON = string;
 export interface ByronTxoutJSON {
-  address: string;
-  amount: string;
   address: string;
   amount: string;
 }
@@ -10043,17 +10014,12 @@ export type CertificatesJSON = CertificateJSON[];
 export interface ConstrPlutusDataJSON {
   alternative: string;
   data: PlutusListJSON;
-  alternative: string;
-  data: PlutusListJSON;
 }
 export interface CostModelJSON {
   language: LanguageJSON;
   op_costs: string[];
-  language: LanguageJSON;
-  op_costs: string[];
 }
 export interface CostmdlsJSON {
-  [k: string]: CostModelJSON;
   [k: string]: CostModelJSON;
 }
 /**
@@ -10081,17 +10047,12 @@ export type Ed25519SignatureJSON = string;
 export interface ExUnitPricesJSON {
   mem_price: UnitIntervalJSON;
   step_price: UnitIntervalJSON;
-  mem_price: UnitIntervalJSON;
-  step_price: UnitIntervalJSON;
 }
 export interface ExUnitsJSON {
   mem: string;
   steps: string;
-  mem: string;
-  steps: string;
 }
 export interface GeneralTransactionMetadataJSON {
-  [k: string]: string;
   [k: string]: string;
 }
 export type GenesisDelegateHashJSON = string;
@@ -10101,29 +10062,12 @@ export interface GenesisKeyDelegationJSON {
   genesis_delegate_hash: string;
   genesishash: string;
   vrf_keyhash: string;
-  genesis_delegate_hash: string;
-  genesishash: string;
-  vrf_keyhash: string;
 }
 export interface HeaderJSON {
   body_signature: string;
   header_body: HeaderBodyJSON;
-  body_signature: string;
-  header_body: HeaderBodyJSON;
 }
 export interface HeaderBodyJSON {
-  block_body_hash: string;
-  block_body_size: number;
-  block_number: number;
-  issuer_vkey: PublicKeyJSON;
-  leader_vrf?: VRFCertJSON | null;
-  nonce_vrf?: VRFCertJSON | null;
-  operational_cert: OperationalCertJSON;
-  prev_hash?: string | null;
-  protocol_version: ProtocolVersionJSON;
-  slot: string;
-  vrf_result?: VRFCertJSON | null;
-  vrf_vkey: string;
   block_body_hash: string;
   block_body_size: number;
   block_number: number;
@@ -10176,32 +10120,24 @@ export type MIREnumJSON =
 export type MIRPotJSON = "Reserves" | "Treasury";
 export interface MIRToStakeCredentialsJSON {
   [k: string]: string;
-  [k: string]: string;
 }
 export interface MintJSON {
   [k: string]: MintAssetsJSON;
-  [k: string]: MintAssetsJSON;
 }
 export interface MintAssetsJSON {
-  [k: string]: string;
   [k: string]: string;
 }
 export interface MoveInstantaneousRewardJSON {
   pot: MIRPotJSON;
   variant: MIREnumJSON;
-  pot: MIRPotJSON;
-  variant: MIREnumJSON;
 }
 export interface MoveInstantaneousRewardsCertJSON {
-  move_instantaneous_reward: MoveInstantaneousRewardJSON;
   move_instantaneous_reward: MoveInstantaneousRewardJSON;
 }
 export interface MultiAssetJSON {
   [k: string]: AssetsJSON;
-  [k: string]: AssetsJSON;
 }
 export interface MultiHostNameJSON {
-  dns_name: DNSRecordSRVJSON;
   dns_name: DNSRecordSRVJSON;
 }
 export type NativeScriptJSON = NativeScript1JSON;
@@ -10270,48 +10206,8 @@ export interface NonceJSON {
         number
       ]
     | null;
-  hash?:
-    | [
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number
-      ]
-    | null;
 }
 export interface OperationalCertJSON {
-  hot_vkey: string;
-  kes_period: number;
-  sequence_number: number;
-  sigma: string;
   hot_vkey: string;
   kes_period: number;
   sequence_number: number;
@@ -10320,11 +10216,8 @@ export interface OperationalCertJSON {
 export interface PlutusListJSON {
   definite_encoding?: boolean | null;
   elems: PlutusData[];
-  definite_encoding?: boolean | null;
-  elems: PlutusData[];
 }
 export interface PlutusMapJSON {
-  [k: string]: PlutusData;
   [k: string]: PlutusData;
 }
 export type PlutusV1ScriptJSON = string;
@@ -10332,8 +10225,6 @@ export type PlutusV1ScriptsJSON = string[];
 export type PlutusV2ScriptJSON = string;
 export type PlutusV2ScriptsJSON = string[];
 export interface PoolMetadataJSON {
-  pool_metadata_hash: string;
-  url: URLJSON;
   pool_metadata_hash: string;
   url: URLJSON;
 }
@@ -10348,55 +10239,18 @@ export interface PoolParamsJSON {
   relays: RelaysJSON;
   reward_account: string;
   vrf_keyhash: string;
-  cost: string;
-  margin: UnitIntervalJSON;
-  operator: string;
-  pledge: string;
-  pool_metadata?: PoolMetadataJSON | null;
-  pool_owners: Ed25519KeyHashesJSON;
-  relays: RelaysJSON;
-  reward_account: string;
-  vrf_keyhash: string;
 }
 export interface PoolRegistrationJSON {
-  pool_params: PoolParamsJSON;
   pool_params: PoolParamsJSON;
 }
 export interface PoolRetirementJSON {
   epoch: number;
   pool_keyhash: string;
-  epoch: number;
-  pool_keyhash: string;
 }
 export interface ProposedProtocolParameterUpdatesJSON {
   [k: string]: ProtocolParamUpdateJSON;
-  [k: string]: ProtocolParamUpdateJSON;
 }
 export interface ProtocolParamUpdateJSON {
-  ada_per_utxo_byte?: string | null;
-  collateral_percentage?: number | null;
-  cost_models?: CostmdlsJSON | null;
-  d?: UnitIntervalJSON | null;
-  execution_costs?: ExUnitPricesJSON | null;
-  expansion_rate?: UnitIntervalJSON | null;
-  extra_entropy?: NonceJSON | null;
-  key_deposit?: string | null;
-  max_block_body_size?: number | null;
-  max_block_ex_units?: ExUnitsJSON | null;
-  max_block_header_size?: number | null;
-  max_collateral_inputs?: number | null;
-  max_epoch?: number | null;
-  max_tx_ex_units?: ExUnitsJSON | null;
-  max_tx_size?: number | null;
-  max_value_size?: number | null;
-  min_pool_cost?: string | null;
-  minfee_a?: string | null;
-  minfee_b?: string | null;
-  n_opt?: number | null;
-  pool_deposit?: string | null;
-  pool_pledge_influence?: UnitIntervalJSON | null;
-  protocol_version?: ProtocolVersionJSON | null;
-  treasury_growth_rate?: UnitIntervalJSON | null;
   ada_per_utxo_byte?: string | null;
   collateral_percentage?: number | null;
   cost_models?: CostmdlsJSON | null;
@@ -10425,18 +10279,12 @@ export interface ProtocolParamUpdateJSON {
 export interface ProtocolVersionJSON {
   major: number;
   minor: number;
-  major: number;
-  minor: number;
 }
 /**
  * ED25519 key used as public key
  */
 export type PublicKeyJSON = string;
 export interface RedeemerJSON {
-  data: string;
-  ex_units: ExUnitsJSON;
-  index: string;
-  tag: RedeemerTagJSON;
   data: string;
   ex_units: ExUnitsJSON;
   index: string;
@@ -10478,10 +10326,8 @@ export type ScriptEnumJSON =
     };
 export interface ScriptAllJSON {
   native_scripts: NativeScriptsJSON;
-  native_scripts: NativeScriptsJSON;
 }
 export interface ScriptAnyJSON {
-  native_scripts: NativeScriptsJSON;
   native_scripts: NativeScriptsJSON;
 }
 export type ScriptDataHashJSON = string;
@@ -10490,11 +10336,8 @@ export type ScriptHashesJSON = string[];
 export interface ScriptNOfKJSON {
   n: number;
   native_scripts: NativeScriptsJSON;
-  n: number;
-  native_scripts: NativeScriptsJSON;
 }
 export interface ScriptPubkeyJSON {
-  addr_keyhash: string;
   addr_keyhash: string;
 }
 export type ScriptRefJSON = ScriptJSON;
@@ -10502,18 +10345,12 @@ export interface SingleHostAddrJSON {
   ipv4?: Ipv4JSON | null;
   ipv6?: Ipv6JSON | null;
   port?: number | null;
-  ipv4?: Ipv4JSON | null;
-  ipv6?: Ipv6JSON | null;
-  port?: number | null;
 }
 export interface SingleHostNameJSON {
   dns_name: DNSRecordAorAAAAJSON;
   port?: number | null;
-  dns_name: DNSRecordAorAAAAJSON;
-  port?: number | null;
 }
 export interface SingleKeyDistrJSON {
-  stakeholder_id: string;
   stakeholder_id: string;
 }
 export type SpendingDataJSON = SpendingDataEnumJSON;
@@ -10532,14 +10369,11 @@ export type SpendingDataEnumJSON =
     };
 export interface SpendingDataPubKeyASDJSON {
   public_ed25519_bip32: string;
-  public_ed25519_bip32: string;
 }
 export interface SpendingDataRedeemASDJSON {
   public_ed25519: string;
-  public_ed25519: string;
 }
 export interface SpendingDataScriptASDJSON {
-  script: ByronScript;
   script: ByronScript;
 }
 export type StakeCredTypeJSON =
@@ -10556,11 +10390,8 @@ export type StakeCredentialsJSON = StakeCredTypeJSON[];
 export interface StakeDelegationJSON {
   pool_keyhash: string;
   stake_credential: StakeCredTypeJSON;
-  pool_keyhash: string;
-  stake_credential: StakeCredTypeJSON;
 }
 export interface StakeDeregistrationJSON {
-  stake_credential: StakeCredTypeJSON;
   stake_credential: StakeCredTypeJSON;
 }
 export type StakeDistributionJSON = StakeDistributionEnumJSON;
@@ -10575,21 +10406,14 @@ export type StakeDistributionEnumJSON =
     };
 export interface StakeRegistrationJSON {
   stake_credential: StakeCredTypeJSON;
-  stake_credential: StakeCredTypeJSON;
 }
 export interface TimelockExpiryJSON {
-  slot: string;
   slot: string;
 }
 export interface TimelockStartJSON {
   slot: string;
-  slot: string;
 }
 export interface TransactionJSON {
-  auxiliary_data?: AuxiliaryDataJSON | null;
-  body: TransactionBodyJSON;
-  is_valid: boolean;
-  witness_set: TransactionWitnessSetJSON;
   auxiliary_data?: AuxiliaryDataJSON | null;
   body: TransactionBodyJSON;
   is_valid: boolean;
@@ -10617,41 +10441,15 @@ export interface TransactionBodyJSON {
     [k: string]: ProtocolParamUpdateJSON,
     ...
   } | null;
-  auxiliary_data_hash?: string | null;
-  certs?: CertificatesJSON | null;
-  collateral?: TransactionInputsJSON | null;
-  collateral_return?: TransactionOutputJSON | null;
-  fee: string;
-  inputs: TransactionInputsJSON;
-  mint?: MintJSON | null;
-  network_id?: NetworkIdJSON | null;
-  outputs: TransactionOutputsJSON;
-  reference_inputs?: TransactionInputsJSON | null;
-  required_signers?: Ed25519KeyHashesJSON | null;
-  script_data_hash?: string | null;
-  total_collateral?: string | null;
-  ttl?: string | null;
-  update?: UpdateJSON | null;
-  validity_start_interval?: string | null;
-  withdrawals?: {
-    [k: string]: ProtocolParamUpdateJSON,
-    ...
-  } | null;
 }
 export type TransactionHashJSON = string;
 export interface TransactionInputJSON {
-  index: string;
-  transaction_id: string;
   index: string;
   transaction_id: string;
 }
 export type TransactionInputsJSON = TransactionInputJSON[];
 export type TransactionMetadatumJSON = string;
 export interface TransactionOutputJSON {
-  address: string;
-  amount: ValueJSON;
-  datum_option?: DatumEnumJSON | null;
-  script_ref?: ScriptJSON | null;
   address: string;
   amount: ValueJSON;
   datum_option?: DatumEnumJSON | null;
@@ -10666,19 +10464,10 @@ export interface TransactionWitnessSetJSON {
   plutus_v2_scripts?: PlutusV2ScriptsJSON | null;
   redeemers?: RedeemersJSON | null;
   vkeys?: VkeywitnessesJSON | null;
-  bootstraps?: BootstrapWitnessesJSON | null;
-  native_scripts?: NativeScriptsJSON | null;
-  plutus_data?: PlutusListJSON | null;
-  plutus_v1_scripts?: PlutusV1ScriptsJSON | null;
-  plutus_v2_scripts?: PlutusV2ScriptsJSON | null;
-  redeemers?: RedeemersJSON | null;
-  vkeys?: VkeywitnessesJSON | null;
 }
 export type TransactionWitnessSetsJSON = TransactionWitnessSetJSON[];
 export type URLJSON = string;
 export interface UnitIntervalJSON {
-  denominator: string;
-  numerator: string;
   denominator: string;
   numerator: string;
 }
@@ -10688,23 +10477,14 @@ export interface UpdateJSON {
     [k: string]: ProtocolParamUpdateJSON,
     ...
   };
-  epoch: number;
-  proposed_protocol_parameter_updates: {
-    [k: string]: ProtocolParamUpdateJSON,
-    ...
-  };
 }
 export interface VRFCertJSON {
-  output: number[];
-  proof: number[];
   output: number[];
   proof: number[];
 }
 export type VRFKeyHashJSON = string;
 export type VRFVKeyJSON = string;
 export interface ValueJSON {
-  coin: string;
-  multiasset?: MultiAssetJSON | null;
   coin: string;
   multiasset?: MultiAssetJSON | null;
 }
@@ -10715,11 +10495,8 @@ export type VkeyJSON = PublicKeyJSON;
 export interface VkeywitnessJSON {
   signature: string;
   vkey: PublicKeyJSON;
-  signature: string;
-  vkey: PublicKeyJSON;
 }
 export type VkeywitnessesJSON = VkeywitnessJSON[];
 export interface WithdrawalsJSON {
-  [k: string]: ProtocolParamUpdateJSON;
   [k: string]: ProtocolParamUpdateJSON;
 }

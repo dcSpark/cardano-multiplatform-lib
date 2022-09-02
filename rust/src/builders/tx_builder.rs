@@ -971,6 +971,8 @@ impl TransactionBuilder {
             reference_inputs: self.reference_inputs.as_ref().map(|inputs| TransactionInputs(inputs.iter().map(|utxo| utxo.input.clone()).collect())),
         };
 
+        // We sort inputs and withdrawals only since certs remain in the order given and
+        // mint is sorted as items are added (by the nature of BTreeMaps)
         built.inputs.0.sort_by(|a, b| {
             match a.transaction_id.cmp(&b.transaction_id){
                 Ordering::Equal => a.index.cmp(&b.index),

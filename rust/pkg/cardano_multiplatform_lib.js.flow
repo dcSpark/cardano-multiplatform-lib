@@ -6,28 +6,52 @@
  */
 
 /**
- * @param {TransactionHash} tx_body_hash
- * @param {ByronAddress} addr
- * @param {LegacyDaedalusPrivateKey} key
- * @returns {BootstrapWitness}
+ * @param {AuxiliaryData} auxiliary_data
+ * @returns {AuxiliaryDataHash}
  */
-declare export function make_daedalus_bootstrap_witness(
-  tx_body_hash: TransactionHash,
-  addr: ByronAddress,
-  key: LegacyDaedalusPrivateKey
-): BootstrapWitness;
+declare export function hash_auxiliary_data(
+  auxiliary_data: AuxiliaryData
+): AuxiliaryDataHash;
 
 /**
- * @param {TransactionHash} tx_body_hash
- * @param {ByronAddress} addr
- * @param {Bip32PrivateKey} key
- * @returns {BootstrapWitness}
+ * @param {TransactionBody} tx_body
+ * @returns {TransactionHash}
  */
-declare export function make_icarus_bootstrap_witness(
-  tx_body_hash: TransactionHash,
-  addr: ByronAddress,
-  key: Bip32PrivateKey
-): BootstrapWitness;
+declare export function hash_transaction(
+  tx_body: TransactionBody
+): TransactionHash;
+
+/**
+ * @param {PlutusData} plutus_data
+ * @returns {DataHash}
+ */
+declare export function hash_plutus_data(plutus_data: PlutusData): DataHash;
+
+/**
+ * @param {Redeemers} redeemers
+ * @param {Costmdls} cost_models
+ * @param {PlutusList | void} datums
+ * @returns {ScriptDataHash}
+ */
+declare export function hash_script_data(
+  redeemers: Redeemers,
+  cost_models: Costmdls,
+  datums?: PlutusList
+): ScriptDataHash;
+
+/**
+ * @param {Redeemers} redeemers
+ * @param {PlutusList} datums
+ * @param {Costmdls} cost_models
+ * @param {Languages} used_langs
+ * @returns {ScriptDataHash | void}
+ */
+declare export function calc_script_data_hash(
+  redeemers: Redeemers,
+  datums: PlutusList,
+  cost_models: Costmdls,
+  used_langs: Languages
+): ScriptDataHash | void;
 
 /**
  * @param {string} json
@@ -104,6 +128,30 @@ declare export function encode_json_str_to_native_script(
   self_xpub: string,
   schema: number
 ): NativeScript;
+
+/**
+ * @param {TransactionHash} tx_body_hash
+ * @param {ByronAddress} addr
+ * @param {LegacyDaedalusPrivateKey} key
+ * @returns {BootstrapWitness}
+ */
+declare export function make_daedalus_bootstrap_witness(
+  tx_body_hash: TransactionHash,
+  addr: ByronAddress,
+  key: LegacyDaedalusPrivateKey
+): BootstrapWitness;
+
+/**
+ * @param {TransactionHash} tx_body_hash
+ * @param {ByronAddress} addr
+ * @param {Bip32PrivateKey} key
+ * @returns {BootstrapWitness}
+ */
+declare export function make_icarus_bootstrap_witness(
+  tx_body_hash: TransactionHash,
+  addr: ByronAddress,
+  key: Bip32PrivateKey
+): BootstrapWitness;
 
 /**
  * Provide backwards compatibility to Alonzo by taking the max min value of both er
@@ -209,54 +257,6 @@ declare export function get_deposit(
 ): BigNum;
 
 /**
- * @param {AuxiliaryData} auxiliary_data
- * @returns {AuxiliaryDataHash}
- */
-declare export function hash_auxiliary_data(
-  auxiliary_data: AuxiliaryData
-): AuxiliaryDataHash;
-
-/**
- * @param {TransactionBody} tx_body
- * @returns {TransactionHash}
- */
-declare export function hash_transaction(
-  tx_body: TransactionBody
-): TransactionHash;
-
-/**
- * @param {PlutusData} plutus_data
- * @returns {DataHash}
- */
-declare export function hash_plutus_data(plutus_data: PlutusData): DataHash;
-
-/**
- * @param {Redeemers} redeemers
- * @param {Costmdls} cost_models
- * @param {PlutusList | void} datums
- * @returns {ScriptDataHash}
- */
-declare export function hash_script_data(
-  redeemers: Redeemers,
-  cost_models: Costmdls,
-  datums?: PlutusList
-): ScriptDataHash;
-
-/**
- * @param {Redeemers} redeemers
- * @param {PlutusList} datums
- * @param {Costmdls} cost_models
- * @param {Languages} used_langs
- * @returns {ScriptDataHash | void}
- */
-declare export function calc_script_data_hash(
-  redeemers: Redeemers,
-  datums: PlutusList,
-  cost_models: Costmdls,
-  used_langs: Languages
-): ScriptDataHash | void;
-
-/**
  * @param {TransactionHash} tx_body_hash
  * @param {PrivateKey} sk
  * @returns {Vkeywitness}
@@ -330,6 +330,20 @@ declare export var NativeScriptKind: {|
 declare export var NetworkIdKind: {|
   +Testnet: 0, // 0
   +Mainnet: 1, // 1
+|};
+
+/**
+ * Each new language uses a different namespace for hashing its script
+ * This is because you could have a language where the same bytes have different semantics
+ * So this avoids scripts in different languages mapping to the same hash
+ * Note that the enum value here is different than the enum value for deciding the cost model of a script
+ * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
+ */
+
+declare export var ScriptHashNamespace: {|
+  +NativeScript: 0, // 0
+  +PlutusV1: 1, // 1
+  +PlutusV2: 2, // 2
 |};
 
 /**
@@ -445,6 +459,23 @@ declare export var SpendingDataKind: {|
 /**
  */
 
+declare export var CoinSelectionStrategyCIP2: {|
+  +LargestFirst: 0, // 0
+  +RandomImprove: 1, // 1
+  +LargestFirstMultiAsset: 2, // 2
+  +RandomImproveMultiAsset: 3, // 3
+|};
+
+/**
+ */
+
+declare export var ChangeSelectionAlgo: {|
+  +Default: 0, // 0
+|};
+
+/**
+ */
+
 declare export var StakeCredKind: {|
   +Key: 0, // 0
   +Script: 1, // 1
@@ -468,37 +499,6 @@ declare export var AddressHeaderKind: {|
   +Byron: 8, // 8
   +RewardKey: 9, // 9
   +RewardScript: 10, // 10
-|};
-
-/**
- */
-
-declare export var CoinSelectionStrategyCIP2: {|
-  +LargestFirst: 0, // 0
-  +RandomImprove: 1, // 1
-  +LargestFirstMultiAsset: 2, // 2
-  +RandomImproveMultiAsset: 3, // 3
-|};
-
-/**
- */
-
-declare export var ChangeSelectionAlgo: {|
-  +Default: 0, // 0
-|};
-
-/**
- * Each new language uses a different namespace for hashing its script
- * This is because you could have a language where the same bytes have different semantics
- * So this avoids scripts in different languages mapping to the same hash
- * Note that the enum value here is different than the enum value for deciding the cost model of a script
- * https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
- */
-
-declare export var ScriptHashNamespace: {|
-  +NativeScript: 0, // 0
-  +PlutusV1: 1, // 1
-  +PlutusV2: 2, // 2
 |};
 
 /**

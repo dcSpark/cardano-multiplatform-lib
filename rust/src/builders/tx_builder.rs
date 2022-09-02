@@ -949,7 +949,7 @@ impl TransactionBuilder {
             }
 
         };
-        let built = TransactionBody {
+        let mut built = TransactionBody {
             inputs: TransactionInputs(self.inputs.iter().map(|tx_builder_input| tx_builder_input.input.clone()).collect()),
             outputs: self.outputs.clone(),
             fee,
@@ -970,6 +970,31 @@ impl TransactionBuilder {
             total_collateral: self.calc_collateral_total()?,
             reference_inputs: self.reference_inputs.as_ref().map(|inputs| TransactionInputs(inputs.iter().map(|utxo| utxo.input.clone()).collect())),
         };
+
+        // indices for redeemers in smart contract txs require fields to be sorted
+        { 
+            // We sort inputs and withdrawals only since certs remain in the order given and
+            // mint is sorted as items are added (by the nature of BTreeMaps)
+            built.inputs.0.sort_by(|a, b| {
+                match a.transaction_id.cmp(&b.transaction_id){
+                    Ordering::Equal => a.index.cmp(&b.index),
+                    rest => rest
+                }
+            });
+
+            if let Some(withdrawals) = built.withdrawals {
+                let mut sorted_keys = withdrawals.keys().0;
+                sorted_keys.sort();
+
+                let mut sorted_linked_hashmap = Withdrawals::new();
+                sorted_linked_hashmap = sorted_keys.iter().fold(sorted_linked_hashmap, |mut accum, key| {
+                    accum.insert(key, &withdrawals.get(key).unwrap());
+                    accum
+                });
+                built.withdrawals = Some(sorted_linked_hashmap)
+            };
+        }
+
         // we must build a tx with fake data (of correct size) to check the final Transaction size
         let full_tx = fake_full_tx(self, built)?;
         let full_tx_size = full_tx.to_bytes().len();
@@ -1030,6 +1055,7 @@ impl TransactionBuilder {
 
         Ok(SignedTxBuilder {
             body: self.build_body()?,
+            // Side note: redeemer indices are calculated every time witness builder is built
             witness_set: self.witness_builders.build_unchecked(),
             is_valid: true,
             auxiliary_data: self.auxiliary_data.clone(),
@@ -1099,6 +1125,7 @@ impl TxRedeemerBuilder {
     pub fn draft_tx(&self) -> Transaction {
         Transaction {
             body: self.draft_body.clone(),
+            // Side note: redeemer indices are calculated every time witness builder is built
             witness_set: self.witness_builders.build_fake(),
             is_valid: true,
             auxiliary_data: self.auxiliary_data.clone(),

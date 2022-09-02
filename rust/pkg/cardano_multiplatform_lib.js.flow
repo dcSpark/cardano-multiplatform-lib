@@ -459,6 +459,23 @@ declare export var SpendingDataKind: {|
 /**
  */
 
+declare export var CoinSelectionStrategyCIP2: {|
+  +LargestFirst: 0, // 0
+  +RandomImprove: 1, // 1
+  +LargestFirstMultiAsset: 2, // 2
+  +RandomImproveMultiAsset: 3, // 3
+|};
+
+/**
+ */
+
+declare export var ChangeSelectionAlgo: {|
+  +Default: 0, // 0
+|};
+
+/**
+ */
+
 declare export var StakeCredKind: {|
   +Key: 0, // 0
   +Script: 1, // 1
@@ -482,23 +499,6 @@ declare export var AddressHeaderKind: {|
   +Byron: 8, // 8
   +RewardKey: 9, // 9
   +RewardScript: 10, // 10
-|};
-
-/**
- */
-
-declare export var CoinSelectionStrategyCIP2: {|
-  +LargestFirst: 0, // 0
-  +RandomImprove: 1, // 1
-  +LargestFirstMultiAsset: 2, // 2
-  +RandomImproveMultiAsset: 3, // 3
-|};
-
-/**
- */
-
-declare export var ChangeSelectionAlgo: {|
-  +Default: 0, // 0
 |};
 
 /**

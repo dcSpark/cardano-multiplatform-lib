@@ -188,7 +188,7 @@ impl RedeemerSetBuilder {
 
     pub fn build(&self, default_to_dummy_exunits: bool) -> Result<Redeemers, MissingExunitError> {
         let mut redeemers = Vec::new();
-
+        // Calling iter on a BTreeMap returns a list of sorted keys
         self.remove_placeholders_and_tag(
             &mut redeemers,
             &RedeemerTag::new_spend(),

@@ -978,6 +978,18 @@ impl TransactionBuilder {
             }
         });
 
+        if let Some(withdrawals) = built.withdrawals {
+            let mut sorted_keys = withdrawals.keys().0;
+            sorted_keys.sort();
+
+            let mut sorted_linked_hashmap = Withdrawals::new();
+            sorted_linked_hashmap = sorted_keys.iter().fold(sorted_linked_hashmap, |mut accum, key| {
+                accum.insert(key, &withdrawals.get(key).unwrap());
+                accum
+            });
+            built.withdrawals = Some(sorted_linked_hashmap)
+        };
+
         // we must build a tx with fake data (of correct size) to check the final Transaction size
         let full_tx = fake_full_tx(self, built)?;
         let full_tx_size = full_tx.to_bytes().len();
@@ -1038,6 +1050,7 @@ impl TransactionBuilder {
 
         Ok(SignedTxBuilder {
             body: self.build_body()?,
+            // Side note: redeemer indices are calculated every time witness builder is built
             witness_set: self.witness_builders.build_unchecked(),
             is_valid: true,
             auxiliary_data: self.auxiliary_data.clone(),
@@ -1107,6 +1120,7 @@ impl TxRedeemerBuilder {
     pub fn draft_tx(&self) -> Transaction {
         Transaction {
             body: self.draft_body.clone(),
+            // Side note: redeemer indices are calculated every time witness builder is built
             witness_set: self.witness_builders.build_fake(),
             is_valid: true,
             auxiliary_data: self.auxiliary_data.clone(),

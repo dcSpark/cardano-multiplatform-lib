@@ -971,26 +971,29 @@ impl TransactionBuilder {
             reference_inputs: self.reference_inputs.as_ref().map(|inputs| TransactionInputs(inputs.iter().map(|utxo| utxo.input.clone()).collect())),
         };
 
-        // We sort inputs and withdrawals only since certs remain in the order given and
-        // mint is sorted as items are added (by the nature of BTreeMaps)
-        built.inputs.0.sort_by(|a, b| {
-            match a.transaction_id.cmp(&b.transaction_id){
-                Ordering::Equal => a.index.cmp(&b.index),
-                rest => rest
-            }
-        });
-
-        if let Some(withdrawals) = built.withdrawals {
-            let mut sorted_keys = withdrawals.keys().0;
-            sorted_keys.sort();
-
-            let mut sorted_linked_hashmap = Withdrawals::new();
-            sorted_linked_hashmap = sorted_keys.iter().fold(sorted_linked_hashmap, |mut accum, key| {
-                accum.insert(key, &withdrawals.get(key).unwrap());
-                accum
+        // indices for redeemers in smart contract txs require fields to be sorted
+        { 
+            // We sort inputs and withdrawals only since certs remain in the order given and
+            // mint is sorted as items are added (by the nature of BTreeMaps)
+            built.inputs.0.sort_by(|a, b| {
+                match a.transaction_id.cmp(&b.transaction_id){
+                    Ordering::Equal => a.index.cmp(&b.index),
+                    rest => rest
+                }
             });
-            built.withdrawals = Some(sorted_linked_hashmap)
-        };
+
+            if let Some(withdrawals) = built.withdrawals {
+                let mut sorted_keys = withdrawals.keys().0;
+                sorted_keys.sort();
+
+                let mut sorted_linked_hashmap = Withdrawals::new();
+                sorted_linked_hashmap = sorted_keys.iter().fold(sorted_linked_hashmap, |mut accum, key| {
+                    accum.insert(key, &withdrawals.get(key).unwrap());
+                    accum
+                });
+                built.withdrawals = Some(sorted_linked_hashmap)
+            };
+        }
 
         // we must build a tx with fake data (of correct size) to check the final Transaction size
         let full_tx = fake_full_tx(self, built)?;

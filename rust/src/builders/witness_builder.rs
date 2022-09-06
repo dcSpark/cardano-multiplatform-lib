@@ -3,21 +3,55 @@ use crate::{*, ledger::common::hash::hash_plutus_data, byron::ByronAddress};
 
 use super::redeemer_builder::RedeemerWitnessKey;
 
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
+pub enum PlutusScriptWitnessEnum {
+    Ref(ScriptHash),
+    Script(PlutusScript),
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct PlutusScriptWitness(pub(crate) PlutusScriptWitnessEnum);
+
+#[wasm_bindgen]
+impl PlutusScriptWitness {
+
+    pub fn from_script(script: PlutusScript) -> Self {
+        PlutusScriptWitness(PlutusScriptWitnessEnum::Script(script))
+    }
+
+    pub fn from_ref(hash: ScriptHash) -> Self {
+        PlutusScriptWitness(PlutusScriptWitnessEnum::Ref(hash))
+    }
+
+    pub fn script(&self) -> Option<PlutusScript> {
+        match &self.0 {
+            PlutusScriptWitnessEnum::Ref(_) => None,
+            PlutusScriptWitnessEnum::Script(script) => Some(script.clone()),
+}
+    }
+    pub fn hash(&self) -> ScriptHash {
+        match &self.0 {
+            PlutusScriptWitnessEnum::Ref(hash) => hash.clone(),
+            PlutusScriptWitnessEnum::Script(script) => script.hash(),
+}
+    }
+}
 /// A partial Plutus witness
 /// It contains all the information needed to witness the Plutus script execution
 /// except for the redeemer tag and index
 /// Note: no datum is attached because only input script types have datums
 #[wasm_bindgen]
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug)]
 pub struct PartialPlutusWitness {
-    pub(crate) script: PlutusScript,
+    pub(crate) script: PlutusScriptWitness,
     pub(crate) data: PlutusData,
 }
 
 #[wasm_bindgen]
 impl PartialPlutusWitness {
     pub fn new(
-        script: &PlutusScript,
+        script: &PlutusScriptWitness,
         data: &PlutusData
     ) -> Self {
         Self {
@@ -26,7 +60,7 @@ impl PartialPlutusWitness {
         }
     }
 
-    pub fn script(&self) -> PlutusScript {
+    pub fn script(&self) -> PlutusScriptWitness {
         self.script.clone()
     }
 
@@ -336,15 +370,20 @@ impl TransactionWitnessSetBuilder {
         }
     }
 
-    pub(crate) fn add_input_aggregate_real_witness_data(&mut self, data: &InputAggregateWitnessData) {
+    pub(crate) fn add_input_aggregate_real_witness_data(&mut self, data: &InputAggregateWitnessData, ) {
         match data {
             InputAggregateWitnessData::NativeScript(script, _info) => {
                 self.add_native_script(script);
             }
             InputAggregateWitnessData::PlutusScript(witness, _info, option) => {
-                match &witness.script.0 {
-                    PlutusScriptEnum::PlutusV1(script) => self.add_plutus_v1_script(script),
-                    PlutusScriptEnum::PlutusV2(script) => self.add_plutus_v2_script(script)
+                match &witness.script {
+                    PlutusScriptWitness(PlutusScriptWitnessEnum::Script(plutus_script))=>
+                    match &plutus_script.0 {
+                        PlutusScriptEnum::PlutusV1(script) => self.add_plutus_v1_script(script),
+                        PlutusScriptEnum::PlutusV2(script) => self.add_plutus_v2_script(script)
+                    }
+                    // We don't add the script references to the witness set
+                    _ => (), 
                 }
                 if let Some(ref data) = option {
                     self.add_plutus_datum(data);
@@ -531,7 +570,7 @@ mod tests {
         let data = {
             let witness = {
                 let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
-                PartialPlutusWitness::new(&PlutusScript(script), &PlutusData::new_integer(&0u64.into()))
+                PartialPlutusWitness::new(&PlutusScriptWitness::from_script(PlutusScript(script)), &PlutusData::new_integer(&0u64.into()))
             };
             let missing_signers = {
                 let key = fake_raw_key_public(0);
@@ -557,7 +596,7 @@ mod tests {
         let data = {
             let witness = {
                 let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
-                PartialPlutusWitness::new(&PlutusScript(script), &PlutusData::new_integer(&0u64.into()))
+                PartialPlutusWitness::new(&PlutusScriptWitness::from_script(PlutusScript(script)), &PlutusData::new_integer(&0u64.into()))
             };
             let missing_signers = {
                 let mut missing_signers = Ed25519KeyHashes::new();

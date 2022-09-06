@@ -2,7 +2,7 @@ use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 use std::collections::{HashSet};
 
-use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo};
+use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitness};
 
 // comes from witsVKeyNeeded in the Ledger spec
 pub fn cert_required_wits(cert_enum: &Certificate, required_witnesses: &mut RequiredWitnessSet) {

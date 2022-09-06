@@ -268,7 +268,7 @@ impl RedeemerSetBuilder {
 
 #[cfg(test)]
 mod tests {
-    use crate::builders::witness_builder::{PartialPlutusWitness, InputAggregateWitnessData, RequiredWitnessSet};
+    use crate::builders::witness_builder::{PartialPlutusWitness, InputAggregateWitnessData, RequiredWitnessSet, PlutusScriptWitness};
 
     use super::*;
 
@@ -285,7 +285,7 @@ mod tests {
         let data = {
             let witness = {
                 let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
-                PartialPlutusWitness::new(&PlutusScript(script), &PlutusData::new_integer(&0u64.into()))
+                PartialPlutusWitness::new(&PlutusScriptWitness::from_script(PlutusScript(script)), &PlutusData::new_integer(&0u64.into()))
             };
             let missing_signers = {
                 let key = fake_raw_key_public(0);

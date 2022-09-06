@@ -4564,16 +4564,19 @@ declare export class PartialPlutusWitness {
   free(): void;
 
   /**
-   * @param {PlutusScript} script
+   * @param {PlutusScriptWitness} script
    * @param {PlutusData} data
    * @returns {PartialPlutusWitness}
    */
-  static new(script: PlutusScript, data: PlutusData): PartialPlutusWitness;
+  static new(
+    script: PlutusScriptWitness,
+    data: PlutusData
+  ): PartialPlutusWitness;
 
   /**
-   * @returns {PlutusScript}
+   * @returns {PlutusScriptWitness}
    */
-  script(): PlutusScript;
+  script(): PlutusScriptWitness;
 
   /**
    * @returns {PlutusData}
@@ -4755,6 +4758,33 @@ declare export class PlutusScript {
    * @returns {PlutusScript}
    */
   static from_v2(script: PlutusV2Script): PlutusScript;
+
+  /**
+   * @returns {ScriptHash}
+   */
+  hash(): ScriptHash;
+}
+/**
+ */
+declare export class PlutusScriptWitness {
+  free(): void;
+
+  /**
+   * @param {PlutusScript} script
+   * @returns {PlutusScriptWitness}
+   */
+  static from_script(script: PlutusScript): PlutusScriptWitness;
+
+  /**
+   * @param {ScriptHash} hash
+   * @returns {PlutusScriptWitness}
+   */
+  static from_ref(hash: ScriptHash): PlutusScriptWitness;
+
+  /**
+   * @returns {PlutusScript | void}
+   */
+  script(): PlutusScript | void;
 
   /**
    * @returns {ScriptHash}

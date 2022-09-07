@@ -2,7 +2,7 @@ use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 use crate::ledger::common::hash::hash_plutus_data;
 
-use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo};
+use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitness};
 
 pub fn input_required_wits(utxo_info: &TransactionOutput, required_witnesses: &mut RequiredWitnessSet) {
     if let Some(cred) = &utxo_info.address().payment_cred() {

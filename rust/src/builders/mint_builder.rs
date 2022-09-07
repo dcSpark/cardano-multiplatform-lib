@@ -1,7 +1,7 @@
 use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 
-use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo};
+use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitness};
 
 #[wasm_bindgen]
 #[derive(Clone)]
@@ -42,6 +42,7 @@ impl SingleMintBuilder {
         let mut required_wits = RequiredWitnessSet::default();
 
         let script_hash = partial_witness.script.hash();
+        
         required_signers.0.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer));
         required_wits.add_script_hash(&script_hash);
 

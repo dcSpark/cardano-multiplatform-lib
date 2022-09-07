@@ -1,7 +1,7 @@
 use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 
-use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo};
+use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitness};
 
 // comes from witsVKeyNeeded in the Ledger spec
 pub fn withdrawal_required_wits(address: &RewardAddress, required_witnesses: &mut RequiredWitnessSet) {

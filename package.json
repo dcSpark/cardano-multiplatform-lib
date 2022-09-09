@@ -1,6 +1,6 @@
 {
   "name": "cardano-multiplatform-lib",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Multiplatform SDK for core Cardano blockchain functionality",
   "scripts": {
     "rust:build-nodejs": "(rimraf ./rust/pkg && cd rust; wasm-pack build --target=nodejs; cd ..; npm run js:ts-json-gen; cd rust; wasm-pack pack) && npm run js:flowgen",

@@ -944,30 +944,40 @@ impl TransactionBuilder {
             // we make that dummy exunits set a dummy script_data_hash to ensure the tx fails if submitted to a node
             false => match has_dummy_exunit {
                 true =>  Some(ScriptDataHash::from([0u8; ScriptDataHash::BYTE_COUNT])),
-                false =>  calc_script_data_hash(
-                    &redeemers,
-                    &self.witness_builders.witness_set_builder.get_plutus_datum(),
-                    &self.config.costmdls,
-                    &Languages(
-                        self.witness_builders.witness_set_builder.scripts
-                            .values()
-                            .fold(
-                                BTreeSet::<Language>::new(),
-                                |mut langs, script| {
-                                    if let Some(lang) = &Option::<Language>::from(script) {
-                                        langs.insert(*lang);
-                                        langs
-                                    } else {
-                                        langs
-                                    }
+                false => {  
+                    let scripts = self.witness_builders.witness_set_builder.scripts.values();
+                    let mut languages = scripts.fold(BTreeSet::<Language>::new(), |mut langs, script| {
+                        if let Some(lang) = &Option::<Language>::from(script) {
+                            langs.insert(*lang);
+                        } 
+                        langs
+                    });
+                    if let Some(reference_inputs) = self.reference_inputs.as_ref() {
+                        reference_inputs.iter().fold(&mut languages, |langs, input| {
+                            if let Some(script_ref) = &input.output.script_ref.as_ref() {
+                                if let Some(lang) = &Option::<Language>::from(&script_ref.script().0) {
+                                    langs.insert(lang.clone());
                                 }
-                            )
-                            .into_iter()
-                            .collect()
-                        )
-                )?,
+                            }
+                            langs
+                        });
+                    };
+                    self.inputs.clone().iter().fold(&mut languages, |langs, input| {
+                        if let Some(script_ref) = &input.output.script_ref.as_ref() {
+                            if let Some(lang) = &Option::<Language>::from(&script_ref.script().0) {
+                                langs.insert(lang.clone());
+                            } 
+                        }
+                        langs
+                    });
+                    calc_script_data_hash(
+                        &redeemers,
+                        &self.witness_builders.witness_set_builder.get_plutus_datum(),
+                        &self.config.costmdls,
+                        &Languages(languages.into_iter().collect())
+                    )?
+                },
             }
-
         };
         let mut built = TransactionBody {
             inputs: TransactionInputs(self.inputs.iter().map(|tx_builder_input| tx_builder_input.input.clone()).collect()),

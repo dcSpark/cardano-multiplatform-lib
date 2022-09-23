@@ -1,4 +1,7 @@
 use std::{collections::{HashMap}, fmt::Debug};
+use itertools::Itertools;
+use linked_hash_map::LinkedHashMap;
+
 use crate::{*, ledger::common::hash::hash_plutus_data, byron::ByronAddress};
 
 use super::redeemer_builder::RedeemerWitnessKey;
@@ -225,8 +228,8 @@ pub struct TransactionWitnessSetBuilder {
     pub(crate) vkeys: HashMap<Vkey, Vkeywitness>,
     pub(crate) bootstraps: HashMap<Vkey, BootstrapWitness>,
     pub(crate) scripts: HashMap<ScriptHash, ScriptEnum>,
-    pub(crate) plutus_data: HashMap<DataHash, PlutusData>,
-    pub(crate) redeemers: HashMap<RedeemerWitnessKey, Redeemer>,
+    pub(crate) plutus_data: LinkedHashMap<DataHash, PlutusData>,
+    pub(crate) redeemers: LinkedHashMap<RedeemerWitnessKey, Redeemer>,
 
     /// witnesses that need to be added for the build function to succeed
     /// this allows checking that witnesses are present at build time (instead of when submitting to a node)
@@ -320,7 +323,9 @@ impl TransactionWitnessSetBuilder {
 
     pub fn get_plutus_datum(&self) -> PlutusList {
         PlutusList {
-            elems: self.plutus_data.clone().into_values().collect(),
+            elems: self.plutus_data.clone().iter().map(|i|{
+                i.1.clone()
+            }).collect_vec(),
             definite_encoding: None
         }
     }
@@ -337,7 +342,9 @@ impl TransactionWitnessSetBuilder {
     }
 
     pub fn get_redeemer(&self) -> Redeemers {
-        Redeemers(self.redeemers.clone().into_values().collect())
+        Redeemers(self.redeemers.clone().iter().map(|i|{
+            i.1.clone()
+        }).collect_vec())
     }
 
     pub fn add_required_wits(&mut self, required_wits: &RequiredWitnessSet) {

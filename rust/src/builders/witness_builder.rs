@@ -323,7 +323,7 @@ impl TransactionWitnessSetBuilder {
 
     pub fn get_plutus_datum(&self) -> PlutusList {
         PlutusList {
-            elems: self.plutus_data.clone().iter().map(|i|{
+            elems: self.plutus_data.iter().map(|i|{
                 i.1.clone()
             }).collect_vec(),
             definite_encoding: None
@@ -342,7 +342,7 @@ impl TransactionWitnessSetBuilder {
     }
 
     pub fn get_redeemer(&self) -> Redeemers {
-        Redeemers(self.redeemers.clone().iter().map(|i|{
+        Redeemers(self.redeemers.iter().map(|i|{
             i.1.clone()
         }).collect_vec())
     }

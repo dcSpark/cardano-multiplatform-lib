@@ -176,9 +176,9 @@ dependencies = [
 
 [[package]]
 name = "fraction"
-version = "0.10.0"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bb65943183b6b3cbf00f64c181e8178217e30194381b150e4f87ec59864c803"
+checksum = "ad18174c73e668720cf9961281ea94a10a8c4003c2b2ad7117252109e5423a3f"
 dependencies = [
  "lazy_static",
  "num",

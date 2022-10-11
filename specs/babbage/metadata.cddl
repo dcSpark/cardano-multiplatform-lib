@@ -1,0 +1,25 @@
+transaction_metadatum =
+    { * transaction_metadatum => transaction_metadatum }
+  / [ * transaction_metadatum ]
+  / int
+  / bytes .size (0..64)
+  / text .size (0..64)
+
+metadata = { * transaction_metadatum_label => transaction_metadatum }
+
+shelley_aux_data = metadata
+shelley_ma_aux_data = [ transaction_metadata: metadata ; Shelley-ma
+    , auxiliary_scripts: [ * native_script ]
+    ]
+
+; Alonzo and beyond
+alonzo_aux_data = #6.259({
+	? 0 => metadata ; @name metadata        
+      , ? 1 => [ * native_script ] ; @name native_scripts
+      , ? 2 => [ * plutus_v1_script ] ; @name plutus_v1_scripts
+      , ? 3 => [ * plutus_v2_script ] ; @name plutus_v2_scripts
+      })
+auxiliary_data =
+  shelley_aux_data
+  / shelley_ma_aux_data
+  / alonzo_aux_data

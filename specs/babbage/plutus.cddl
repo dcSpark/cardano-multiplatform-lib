@@ -1,0 +1,32 @@
+plutus_v1_script = bytes
+plutus_v2_script = bytes
+
+plutus_data =
+    constr_plutus_data
+  / { * plutus_data => plutus_data }
+  / [ * plutus_data ]
+  / big_int
+  / bounded_bytes
+
+big_int = [0, 1]
+
+constr_plutus_data = #6.102([uint, [* plutus_data]])
+
+redeemer = [ tag: redeemer_tag, index: uint, data: plutus_data, ex_units: ex_units ]
+redeemer_tag =
+    0 ; @name inputTag "Spend"
+  / 1 ; @name mintTag  "Mint"
+  / 2 ; @name certTag  "Cert"
+  / 3 ; @name wdrlTag  "Reward"
+ex_units = [mem: uint, steps: uint]
+
+ex_unit_prices =
+  [ mem_price: sub_coin, step_price: sub_coin ]
+
+language = 0 ; @name plutus_v1
+         / 1 ; @name plutus_v2
+
+costmdls =
+  { ? 0 : [ 166*166 int ] ; @name plutus_v1
+  , ? 1 : [ 175*175 int ] ; @name plutus_v2
+  }

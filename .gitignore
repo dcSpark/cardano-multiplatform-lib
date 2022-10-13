@@ -5,3 +5,9 @@ rust/target
 .idea
 rust/.idea
 binaryen/
+
+rust/core/target/**
+rust/core/Cargo.lock
+rust/wasm/target/**
+rust/wasm/Cargo.lock
+rust/json-gen-split/target/**

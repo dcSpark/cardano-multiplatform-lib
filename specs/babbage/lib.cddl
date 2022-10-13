@@ -1,0 +1,88 @@
+coin = uint
+delta_coin = int
+transaction_index = uint .size 2
+port = uint .le 65535
+epoch = uint
+transaction_metadatum_label = uint
+
+unit_interval = #6.30([uint, uint])
+  ; real unit_interval is: #6.30([uint, uint])
+  ; but this produces numbers outside the unit interval
+  ; and can also produce a zero in the denominator
+
+rational =  #6.30(
+   [ numerator   : uint
+   , denominator : uint
+   ])
+  ; real rational is: #6.30([uint, uint])
+  ; but this produces numbers outside the unit interval
+  ; and can also produce a zero in the denominator
+
+positive_interval = #6.30([1, 2])
+  ; fractional positive_interval is: #6.30([uint, uint])
+  ; but this can produce a zero in the denominator
+
+withdrawals = { * reward_account => coin }
+
+update = [ proposed_protocol_parameter_updates
+         , epoch
+         ]
+
+proposed_protocol_parameter_updates =
+  { * genesishash => protocol_param_update }
+
+protocol_version_struct = [protocol_version]
+
+protocol_param_update =
+  { ? 0:  uint               ; @name minfee_a
+  , ? 1:  uint               ; @name minfee_b
+  , ? 2:  uint               ; @name max_block_body_size
+  , ? 3:  uint               ; @name max_transaction_size
+  , ? 4:  uint               ; @name max_block_header_size
+  , ? 5:  coin               ; @name key_deposit
+  , ? 6:  coin               ; @name pool_deposit
+  , ? 7: epoch               ; @name maximum_epoch
+  , ? 8: uint                ; @name n_opt desired number of stake pools
+  , ? 9: rational            ; @name pool_pledge_influence
+  , ? 10: unit_interval      ; @name expansion_rate
+  , ? 11: unit_interval      ; @name treasury_growth_rate
+  , ? 14: protocol_version_struct ; @name protocol_version
+  , ? 16: coin               ; @name min_pool_cost
+  , ? 17: coin               ; @name ada_per_utxo_byte
+  , ? 18: costmdls           ; @name cost_models_for_script_languages
+  , ? 19: ex_unit_prices     ; @name execution_costs
+  , ? 20: ex_units           ; @name max_tx_ex_units
+  , ? 21: ex_units           ; @name max_block_ex_units
+  , ? 22: uint               ; @name max_value_size
+  , ? 23: uint               ; @name collateral_percentage
+  , ? 24: uint               ; @name max_collateral_inputs
+  }
+
+bounded_bytes = bytes
+
+
+
+vkeywitness = [ $vkey, $signature ]
+
+bootstrap_witness =
+  [ public_key : $vkey
+  , signature  : $signature
+  , chain_code : bytes .size 32
+  , attributes : bytes
+  ]
+
+
+sub_coin = positive_interval
+
+multiasset = { * policy_id => { * asset_name => uint } }
+
+policy_id = scripthash
+asset_name = bytes .size (0..32)
+
+value = [coin,multiasset]
+mint = { * policy_id => { * asset_name => int64 } }
+
+int64 = -9223372036854775808 .. 9223372036854775807
+
+network_id = 0 / 1
+

@@ -1,0 +1,10 @@
+[package]
+name = "cddl-lib-json-schema-gen"
+version = "0.0.1"
+edition = "2018"
+
+
+[dependencies]
+serde_json = "1.0.57"
+schemars = "0.8.8"
+cddl-lib-core = { path = "../core" }

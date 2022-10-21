@@ -1,5 +1,5 @@
 [package]
-name = "cddl-lib-wasm"
+name = "cardano-multiplatform-lib-wasm"
 version = "0.1.0"
 edition = "2018"
 
@@ -7,7 +7,7 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-core = { path = "../core", package = "cddl-lib-core" }
+core = { path = "../core", package = "cardano-multiplatform-lib-core" }
 cbor_event = "2.2.0"
 wasm-bindgen = { version = "0.2", features=["serde-serialize"] }
 linked-hash-map = "0.5.3"

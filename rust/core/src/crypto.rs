@@ -1,3 +1,22 @@
+pub use crate::serialization::{Deserialize, StringEncoding};
+pub use derivative::{Derivative};
+use cryptoxide::blake2b::Blake2b;
+use super::*;
+
+#[derive(Debug, thiserror::Error)]
+pub enum CryptoError {
+    #[error("Bech32: {0}")]
+    Bech32(#[from] bech32::Error),
+    #[error("ByronError: {0}")]
+    Hex(#[from] hex::FromHexError),
+    #[error("Deserialization: {0}")]
+    Deserialization(#[from] error::DeserializeError),
+    #[error("SecretKeyError: {0}")]
+    SecretKey(#[from] chain_crypto::SecretKeyError),
+    #[error("SignatureFromStr: {0}")]
+    SignatureFromStr(#[from] chain_crypto::SignatureFromStrError),
+}
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Hash28 {
@@ -302,10 +321,6 @@ impl From<VrfVkey> for Vec<u8> {
     }
 }
 
-
-use cryptoxide::blake2b::Blake2b;
-
-use super::*;
 
 pub (crate) fn blake2b224(data: &[u8]) -> [u8; 28] {
     let mut out = [0; 28];
@@ -621,7 +636,6 @@ impl PublicKey {
     }
 }
 
-
 #[wasm_bindgen]
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct BootstrapWitness {
@@ -747,52 +761,155 @@ impl DeserializeEmbeddedGroup for BootstrapWitness {
 }
 
 
-impl_signature!(Ed25519Signature, Vec<u8>, crypto::Ed25519);
-macro_rules! impl_hash_type {
-    ($name:ident, $byte_count:expr) => {
-        #[wasm_bindgen]
-        #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-        pub struct $name(pub (crate) [u8; $byte_count]);
-
-        // hash types are the only types in this library to not expect the entire CBOR structure.
-        // There is no CBOR binary tag here just the raw hash bytes.
-        from_bytes!($name, bytes, {
-            use std::convert::TryInto;
-            match bytes.len() {
-                $byte_count => Ok($name(bytes[..$byte_count].try_into().unwrap())),
-                other_len => {
-                    let cbor_error = cbor_event::Error::WrongLen($byte_count, cbor_event::Len::Len(other_len as u64), "hash length");
-                    Err(DeserializeError::new(stringify!($name), DeserializeFailure::CBOR(cbor_error)))
-                },
-            }
-        });
+macro_rules! impl_signature {
+    ($name:ident, $signee_type:ty, $verifier_type:ty) => {
+        #[derive(Debug, Clone)]
+        pub struct $name{
+            sig: chain_crypto::Signature<$signee_type, $verifier_type>,
+            encoding: StringEncoding,
+        }
 
         #[wasm_bindgen]
         impl $name {
-            // hash types are the only types in this library to not give the entire CBOR structure.
-            // There is no CBOR binary tag here just the raw hash bytes.
-            pub fn to_bytes(&self) -> Vec<u8> {
-                self.0.to_vec()
+            pub fn to_raw_bytes(&self) -> Vec<u8> {
+                self.sig.as_ref().to_vec()
             }
 
-            pub fn to_bech32(&self, prefix: &str) -> Result<String, JsError> {
-                bech32::encode(&prefix, self.to_bytes().to_base32())
-                    .map_err(|e| JsError::from_str(&format! {"{:?}", e}))
-            }
-        
-            pub fn from_bech32(bech_str: &str) -> Result<$name, JsError> {
-                let (_hrp, u5data) = bech32::decode(bech_str).map_err(|e| JsError::from_str(&e.to_string()))?;
-                let data: Vec<u8> = bech32::FromBase32::from_base32(&u5data).unwrap();
-                Ok(Self::from_bytes(data)?)
+            pub fn to_bech32(&self) -> String {
+                use crate::chain_crypto::bech32::Bech32;
+                self.sig.to_bech32_str()
             }
 
             pub fn to_hex(&self) -> String {
-                hex::encode(&self.0)
+                hex::encode(&self.sig.as_ref())
             }
 
-            pub fn from_hex(hex: &str) -> Result<$name, JsError> {
-                let bytes = hex::decode(hex).map_err(|e| JsError::from_str(&format!("hex decode failed: {}", e)))?;
-                Self::from_bytes(bytes).map_err(|e| JsError::from_str(&format!("{:?}", e)))
+            pub fn from_bech32(bech32_str: &str) -> Result<$name, CryptoError> {
+                use crate::chain_crypto::bech32::Bech32;
+                let sig = chain_crypto::Signature::try_from_bech32_str(&bech32_str)?;
+                Ok($name {
+                    sig,
+                    encoding: StringEncoding::default(),
+                })
+            }
+
+            pub fn from_hex(input: &str) -> Result<$name, CryptoError> {
+                use crate::chain_core::property::FromStr;
+                let sig = chain_crypto::Signature::from_str(input)?;
+                Ok($name {
+                    sig,
+                    encoding: StringEncoding::default(),
+                })
+            }
+        }
+
+        fn from_raw_bytes(bytes: &[u8]) -> Result<$name, DeserializeError> {
+            let sig = chain_crypto::Signature::from_binary(bytes.as_ref())
+                .map_err(|e| DeserializeError::new(stringify!($name), DeserializeFailure::SignatureError(e)))?;
+            Ok($name {
+                sig,
+                encoding: StringEncoding::default(),
+            })
+        }
+
+        impl Serialize for $name {
+            fn serialize<'se, W: std::io::Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
+                serializer.write_bytes_sz(self.sig.as_ref(), self.encoding.to_str_len_sz(self.sig.as_ref().len() as u64, force_canonical))
+            }
+        }
+
+        impl Deserialize for $name {
+            fn deserialize<R: std::io::BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+                let (bytes, encoding) = raw.bytes_sz()?;
+                Ok(Self {
+                    sig: chain_crypto::Signature::from_binary(bytes.as_ref())?,
+                    encoding: encoding.into(),
+                })
+            }
+        }
+
+        impl serde::Serialize for $name {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+                serializer.serialize_str(&self.to_hex())
+            }
+        }
+        
+        impl <'de> serde::de::Deserialize<'de> for $name {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
+            D: serde::de::Deserializer<'de> {
+                let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+                $name::from_hex(&s).map_err(|_e| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"hex bytes for signature"))
+            }
+        }
+        
+        impl JsonSchema for $name {
+            fn schema_name() -> String { String::from(stringify!($name)) }
+            fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
+            fn is_referenceable() -> bool { String::is_referenceable() }
+        }
+
+        impl std::hash::Hash for $name {
+            fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                self.sig.as_ref().hash(state)
+            }
+        }
+    };
+}
+
+impl_signature!(Ed25519Signature, Vec<u8>, chain_crypto::Ed25519);
+macro_rules! impl_hash_type {
+    ($name:ident, $byte_count:expr) => {
+        #[derive(Debug, Clone, derivative::Derivative)]
+        #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
+        pub struct $name{
+            pub (crate) data: [u8; $byte_count],
+            #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
+            encoding: StringEncoding,
+        }
+
+        impl $name {
+            // hash types are the only types in this library to not give the entire CBOR structure.
+            // There is no CBOR binary tag here just the raw hash bytes.
+            pub fn to_raw_bytes(&self) -> Vec<u8> {
+                self.data.to_vec()
+            }
+
+            // hash types are the only types in this library to not expect the entire CBOR structure.
+            // There is no CBOR binary tag here just the raw hash bytes.
+            fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
+                use std::convert::TryInto;
+                match bytes.len() {
+                    $byte_count => Ok($name {
+                        data: bytes[..$byte_count].try_into().unwrap(),
+                        encoding: StringEncoding::default(),
+                    }),
+                    other_len => {
+                        let cbor_error = cbor_event::Error::WrongLen($byte_count, cbor_event::Len::Len(other_len as u64), "hash length");
+                        Err(DeserializeError::new(stringify!($name), DeserializeFailure::CBOR(cbor_error)))
+                    },
+                }
+            }
+
+            pub fn to_bech32(&self, prefix: &str) -> Result<String, CryptoError> {
+                use bech32::ToBase32;
+                Ok(bech32::encode(&prefix, self.to_raw_bytes().to_base32())?)
+            }
+        
+            pub fn from_bech32(bech_str: &str) -> Result<$name, CryptoError> {
+                use bech32::FromBase32;
+                let (_hrp, u5data) = bech32::decode(bech_str)?;
+                let data: Vec<u8> = bech32::FromBase32::from_base32(&u5data)?;
+                Ok(Self::from_raw_bytes(&data)?)
+            }
+
+            pub fn to_hex(&self) -> String {
+                hex::encode(&self.data)
+            }
+
+            pub fn from_hex(hex: &str) -> Result<$name, CryptoError> {
+                let bytes = hex::decode(hex)?;
+                Ok(Self::from_raw_bytes(&bytes)?)
             }
         }
 
@@ -807,16 +924,18 @@ macro_rules! impl_hash_type {
             }
         }
 
-        // can't expose [T; N] to wasm for new() but it's useful internally so we implement From trait
         impl From<[u8; $byte_count]> for $name {
             fn from(bytes: [u8; $byte_count]) -> Self {
-                Self(bytes)
+                Self {
+                    data: bytes,
+                    encoding: StringEncoding::default(),
+                }
             }
         }
 
-        impl cbor_event::se::Serialize for $name {
-            fn serialize<'se, W: std::io::Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
-                serializer.write_bytes(self.0)
+        impl Serialize for $name {
+            fn serialize<'se, W: std::io::Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
+                serializer.write_bytes_sz(&self.data, self.encoding.to_str_len_sz(self.data.len() as u64, force_canonical))
             }
         }
 
@@ -824,11 +943,14 @@ macro_rules! impl_hash_type {
             fn deserialize<R: std::io::BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
                 use std::convert::TryInto;
                 (|| -> Result<Self, DeserializeError> {
-                    let bytes = raw.bytes()?;
+                    let (bytes, encoding) = raw.bytes_sz()?;
                     if bytes.len() != $byte_count {
                         return Err(DeserializeFailure::CBOR(cbor_event::Error::WrongLen($byte_count, cbor_event::Len::Len(bytes.len() as u64), "hash length")).into());
                     }
-                    Ok($name(bytes[..$byte_count].try_into().unwrap()))
+                    Ok($name {
+                        data: bytes[..$byte_count].try_into().unwrap(),
+                        encoding: encoding.into(),
+                    })
                 })().map_err(|e| e.annotate(stringify!($name)))
             }
         }
@@ -857,6 +979,7 @@ macro_rules! impl_hash_type {
 }
 pub(crate) use impl_hash_type;
 
+
 #[wasm_bindgen]
 pub struct LegacyDaedalusPrivateKey(pub (crate) chain_crypto::SecretKey<chain_crypto::LegacyDaedalus>);
 
@@ -878,8 +1001,6 @@ impl LegacyDaedalusPrivateKey {
         self.0.as_ref()[ED25519_PRIVATE_KEY_LENGTH..XPRV_SIZE].to_vec()
     }
 }
-
-
 
 impl_hash_type!(Ed25519KeyHash, 28);
 impl_hash_type!(ScriptHash, 28);

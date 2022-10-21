@@ -11,8 +11,9 @@ pub mod bech32;
 pub mod derive;
 pub mod digest;
 pub mod hash;
-pub mod byron_tags;
-pub mod byron_proxy_key;
+// TODO: these will be brought over later
+//pub mod byron_tags;
+//pub mod byron_proxy_key;
 pub(crate) mod securemem;
 mod sign;
 mod key;

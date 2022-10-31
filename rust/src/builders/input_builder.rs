@@ -29,10 +29,10 @@ pub fn input_required_wits(utxo_info: &TransactionOutput, required_witnesses: &m
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct InputBuilderResult {
-    pub(crate) input: TransactionInput,
-    pub(crate) utxo_info: TransactionOutput,
-    pub(crate) aggregate_witness: Option<InputAggregateWitnessData>,
-    pub(crate) required_wits: RequiredWitnessSet,
+    pub input: TransactionInput,
+    pub utxo_info: TransactionOutput,
+    pub aggregate_witness: Option<InputAggregateWitnessData>,
+    pub required_wits: RequiredWitnessSet,
 }
 
 #[wasm_bindgen]

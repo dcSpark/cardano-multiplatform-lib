@@ -960,15 +960,15 @@ impl cbor_event::se::Serialize for Script {
         serializer.write_array(cbor_event::Len::Len(2))?;
         match &self.0 {
             ScriptEnum::Native(ns) => {
-                serializer.write_tag(0u64)?;
+                serializer.write_unsigned_integer(0u64)?;
                 ns.serialize(serializer)
             },
             ScriptEnum::PlutusV1(ps1) => {
-                serializer.write_tag(1u64)?;
+                serializer.write_unsigned_integer(1u64)?;
                 ps1.serialize(serializer)
             },
             ScriptEnum::PlutusV2(ps2) => {
-                serializer.write_tag(2u64)?;
+                serializer.write_unsigned_integer(2u64)?;
                 ps2.serialize(serializer)
             },
         }
@@ -2174,5 +2174,15 @@ mod tests {
         let json_str = serde_json::to_string_pretty(&data).unwrap();
         let data_back = serde_json::from_str(&json_str).unwrap();
         assert_eq!(data, data_back);
+    }
+
+    #[test]
+    fn script_serialization() {
+        let plutus_script = &PlutusV1Script::from_bytes(
+            hex::decode("581e581c01000033223232222350040071235002353003001498498480048005").unwrap()
+          ).unwrap();
+        println!("plutus_script: {:?}", hex::encode(plutus_script.to_bytes()));
+        let generic_script = Script::new_plutus_v1(plutus_script);
+        assert_eq!(hex::encode(generic_script.to_bytes()), "8201581e581c01000033223232222350040071235002353003001498498480048005");
     }
 }

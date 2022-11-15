@@ -1,6 +1,6 @@
 use super::*;
 use cbor_event::{de::Deserializer, se::Serializer};
-use bech32::ToBase32;
+use bech32::{ToBase32, Variant};
 use crate::{ledger::common::{value::{to_bignum, from_bignum}}, byron::{ProtocolMagic, ByronAddress}};
 
 // returns (Number represented, bytes read) if valid encoding
@@ -472,12 +472,12 @@ impl Address {
                 format!("{}{}", prefix_header, prefix_tail)
             }
         };
-        bech32::encode(&final_prefix, self.to_bytes().to_base32())
+        bech32::encode(&final_prefix, self.to_bytes().to_base32(), Variant::Bech32)
             .map_err(|e| JsError::from_str(&format! {"{:?}", e}))
     }
 
     pub fn from_bech32(bech_str: &str) -> Result<Address, JsError> {
-        let (_hrp, u5data) = bech32::decode(bech_str).map_err(|e| JsError::from_str(&e.to_string()))?;
+        let (_hrp, u5data, _) = bech32::decode(bech_str).map_err(|e| JsError::from_str(&e.to_string()))?;
         let data: Vec<u8> = bech32::FromBase32::from_base32(&u5data).unwrap();
         Ok(Self::from_bytes_impl(data.as_ref())?)
     }

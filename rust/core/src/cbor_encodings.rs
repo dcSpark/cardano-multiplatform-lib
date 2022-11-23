@@ -418,13 +418,7 @@ pub struct SingleHostNameEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct StakeCredential0Encoding {
-    pub len_encoding: LenEncoding,
-    pub index_0_encoding: Option<cbor_event::Sz>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct StakeCredential1Encoding {
+pub struct StakeCredentialEncoding {
     pub len_encoding: LenEncoding,
     pub index_0_encoding: Option<cbor_event::Sz>,
 }
@@ -474,7 +468,7 @@ pub struct TransactionBodyEncoding {
     pub key_8_encoding: Option<cbor_event::Sz>,
     pub key_8_key_encoding: Option<cbor_event::Sz>,
     pub key_9_encoding: LenEncoding,
-    pub key_9_value_encodings: BTreeMap<Hash28, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
+    pub key_9_value_encodings: BTreeMap<PolicyId, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
     pub key_9_key_encoding: Option<cbor_event::Sz>,
     pub key_11_key_encoding: Option<cbor_event::Sz>,
     pub key_13_encoding: LenEncoding,
@@ -541,12 +535,12 @@ pub struct ValueEncoding {
     pub len_encoding: LenEncoding,
     pub coin_encoding: Option<cbor_event::Sz>,
     pub multiasset_encoding: LenEncoding,
-    pub multiasset_value_encodings: BTreeMap<Hash28, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
+    pub multiasset_value_encodings: BTreeMap<PolicyId, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct VkeyEncoding {
-    pub inner_encoding: StringEncoding,
+    pub pubkey_bytes_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]

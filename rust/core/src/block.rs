@@ -44,12 +44,12 @@ impl Header {
 pub struct HeaderBody {
     pub block_number: u64,
     pub slot: u64,
-    pub prev_hash: Option<Hash32>,
+    pub prev_hash: Option<BlockHeaderHash>,
     pub issuer_vkey: Vkey,
     pub vrf_vkey: VrfVkey,
     pub vrf_result: VrfCert,
     pub block_body_size: u64,
-    pub block_body_hash: Hash32,
+    pub block_body_hash: BlockBodyHash,
     pub operational_cert: OperationalCert,
     pub protocol_version: ProtocolVersion,
     #[serde(skip)]
@@ -57,7 +57,7 @@ pub struct HeaderBody {
 }
 
 impl HeaderBody {
-    pub fn new(block_number: u64, slot: u64, prev_hash: Option<Hash32>, issuer_vkey: Vkey, vrf_vkey: VrfVkey, vrf_result: VrfCert, block_body_size: u64, block_body_hash: Hash32, operational_cert: OperationalCert, protocol_version: ProtocolVersion) -> Self {
+    pub fn new(block_number: u64, slot: u64, prev_hash: Option<BlockHeaderHash>, issuer_vkey: Vkey, vrf_vkey: VrfVkey, vrf_result: VrfCert, block_body_size: u64, block_body_hash: BlockBodyHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion) -> Self {
         Self {
             block_number,
             slot,
@@ -79,13 +79,13 @@ pub struct OperationalCert {
     pub hot_vkey: KesVkey,
     pub sequence_number: u64,
     pub kes_period: u64,
-    pub sigma: Signature,
+    pub sigma: Ed25519Signature,
     #[serde(skip)]
     pub encodings: Option<OperationalCertEncoding>,
 }
 
 impl OperationalCert {
-    pub fn new(hot_vkey: KesVkey, sequence_number: u64, kes_period: u64, sigma: Signature) -> Self {
+    pub fn new(hot_vkey: KesVkey, sequence_number: u64, kes_period: u64, sigma: Ed25519Signature) -> Self {
         Self {
             hot_vkey,
             sequence_number,

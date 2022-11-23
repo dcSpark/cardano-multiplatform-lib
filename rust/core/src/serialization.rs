@@ -167,6 +167,22 @@ pub trait Serialize {
         serializer: &'a mut Serializer<W>,
         force_canonical: bool,
     ) -> cbor_event::Result<&'a mut Serializer<W>>;
+
+    /// Bytes of a structure using the CBOR bytes as per the CDDL spec
+    /// which for foo = bytes will include the CBOR bytes type/len, etc.
+    fn to_cbor_bytes(&self, force_canonical: bool) -> Vec<u8> {
+        let mut buf = Serializer::new_vec();
+        self.serialize(&mut buf, force_canonical).unwrap();
+        buf.finalize()
+    }
+
+    /// Generic to-bytes when one does not care what kind of bytes
+    /// e.g. CBOR encoded or the raw inner bytes of a buffer when applicable.
+    /// This is auto-implemented using to_cbor_bytes but can be overrided
+    /// for things like signatures, hashes, etc where the CBOR bytes are not commonly used.
+    fn to_bytes(&self) -> Vec<u8> {
+        self.to_cbor_bytes(false)
+    }
 }
 
 impl<T: cbor_event::se::Serialize> Serialize for T {
@@ -187,57 +203,69 @@ pub trait SerializeEmbeddedGroup {
     ) -> cbor_event::Result<&'a mut Serializer<W>>;
 }
 
+pub trait Deserialize {
+    fn deserialize<R: BufRead + Seek>(
+        raw: &mut Deserializer<R>,
+    ) -> Result<Self, DeserializeError> where Self: Sized;
 
+    /// from-bytes using the exact CBOR format specified in the CDDL binary spec.
+    /// For hashes/addresses/etc this will include the CBOR bytes type/len/etc.
+    fn from_cbor_bytes(data: &[u8]) -> Result<Self, DeserializeError> where Self: Sized {
+        let mut raw = Deserializer::from(std::io::Cursor::new(data));
+        Self::deserialize(&mut raw)
+    }
+
+    /// Generic from-bytes when one does not care what kind of bytes
+    /// e.g. CBOR encoded or the raw inner bytes of a buffer when applicable.
+    /// This is auto-implemented using from_cbor_bytes but can be overrided
+    /// for things like signatures, hashes, etc where the CBOR bytes are not commonly used.
+    fn from_bytes(data: &[u8]) -> Result<Self, DeserializeError> where Self: Sized {
+        Self::from_cbor_bytes(data)
+    }
+}
+
+impl<T: cbor_event::de::Deserialize> Deserialize for T {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<T, DeserializeError> {
+        T::deserialize(raw).map_err(|e| DeserializeError::from(e))
+    }
+}
+
+// TODO: remove ToBytes / FromBytes after we regenerate the WASM wrappers.
+// This is just so the existing generated to/from bytes code works
 pub trait ToBytes {
     fn to_bytes(&self, force_canonical: bool) -> Vec<u8>;
 }
 
 impl<T: Serialize> ToBytes for T {
-    fn to_bytes(&self, force_canonical: bool) -> Vec<u8> {
-        let mut buf = Serializer::new_vec();
-        self.serialize(&mut buf, force_canonical).unwrap();
-        buf.finalize()
+    fn to_bytes(&self, _force_canonical: bool) -> Vec<u8> {
+        Serialize::to_bytes(self)
     }
 }
+
+pub trait FromBytes {
+    fn from_bytes(data: Vec<u8>) -> Result<Self, DeserializeError> where Self: Sized;
+}
+
+impl<T: Deserialize> FromBytes for T {
+    fn from_bytes(data: Vec<u8>) -> Result<Self, DeserializeError> where Self: Sized {
+        Deserialize::from_bytes(data.as_ref())
+    }
+}
+
 use super::*;
 use std::io::{Seek, SeekFrom};
 
 impl Serialize for Address {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(1, force_canonical))?;
-        serializer.write_unsigned_integer_sz(0u64, fit_sz(0u64, self.encodings.as_ref().map(|encs| encs.index_0_encoding.clone()).unwrap_or_default(), force_canonical))?;
-        self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().end(serializer, force_canonical)
+        let raw_bytes = self.to_raw_bytes();
+        serializer.write_bytes_sz(&raw_bytes, self.encoding().map(|encs| encs.bytes_encoding.clone()).unwrap_or_default().to_str_len_sz(raw_bytes.len() as u64, force_canonical))
     }
 }
 
 impl Deserialize for Address {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        (|| -> Result<_, DeserializeError> {
-            let len = raw.array_sz()?;
-            let len_encoding: LenEncoding = len.into();
-            let mut read_len = CBORReadLen::new(len);
-            read_len.read_elems(1)?;
-            let index_0_encoding = (|| -> Result<_, DeserializeError> {
-                let (index_0_value, index_0_encoding) = raw.unsigned_integer_sz()?;
-                if index_0_value != 0 {
-                    return Err(DeserializeFailure::FixedValueMismatch{ found: Key::Uint(index_0_value), expected: Key::Uint(0) }.into());
-                }
-                Ok(Some(index_0_encoding))
-            })().map_err(|e| e.annotate("index_0"))?;
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    CBORSpecial::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
-            Ok(Address {
-                encodings: Some(AddressEncoding {
-                    len_encoding,
-                    index_0_encoding,
-                }),
-            })
-        })().map_err(|e| e.annotate("Address"))
+    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let (raw_bytes, encoding) = raw.bytes_sz()?;
+        Self::from_bytes_impl(raw_bytes.as_ref(), Some(encoding.into()))
     }
 }
 
@@ -511,7 +539,7 @@ impl Deserialize for AlonzoTxOut {
                 Ok(Value::deserialize(raw)?)
             })().map_err(|e| e.annotate("amount"))?;
             let datum_hash = (|| -> Result<_, DeserializeError> {
-                Ok(Hash32::deserialize(raw)?)
+                Ok(DataHash::deserialize(raw)?)
             })().map_err(|e| e.annotate("datum_hash"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
@@ -992,7 +1020,7 @@ impl Deserialize for Block {
 impl Serialize for BootstrapWitness {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(4, force_canonical))?;
-        self.public_key.serialize(serializer, force_canonical)?;
+        self.vkey.serialize(serializer, force_canonical)?;
         self.signature.serialize(serializer, force_canonical)?;
         serializer.write_bytes_sz(&self.chain_code, self.encodings.as_ref().map(|encs| encs.chain_code_encoding.clone()).unwrap_or_default().to_str_len_sz(self.chain_code.len() as u64, force_canonical))?;
         serializer.write_bytes_sz(&self.attributes, self.encodings.as_ref().map(|encs| encs.attributes_encoding.clone()).unwrap_or_default().to_str_len_sz(self.attributes.len() as u64, force_canonical))?;
@@ -1007,11 +1035,11 @@ impl Deserialize for BootstrapWitness {
             let len_encoding: LenEncoding = len.into();
             let mut read_len = CBORReadLen::new(len);
             read_len.read_elems(4)?;
-            let public_key = (|| -> Result<_, DeserializeError> {
+            let vkey = (|| -> Result<_, DeserializeError> {
                 Ok(Vkey::deserialize(raw)?)
-            })().map_err(|e| e.annotate("public_key"))?;
+            })().map_err(|e| e.annotate("vkey"))?;
             let signature = (|| -> Result<_, DeserializeError> {
-                Ok(Signature::deserialize(raw)?)
+                Ok(Ed25519Signature::deserialize(raw)?)
             })().map_err(|e| e.annotate("signature"))?;
             let (chain_code, chain_code_encoding) = (|| -> Result<_, DeserializeError> {
                 Ok(raw.bytes_sz().map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?)
@@ -1027,7 +1055,7 @@ impl Deserialize for BootstrapWitness {
                 },
             }
             Ok(BootstrapWitness {
-                public_key,
+                vkey,
                 signature,
                 chain_code,
                 attributes,
@@ -1400,7 +1428,7 @@ impl DeserializeEmbeddedGroup for DatumOption0 {
             Ok(Some(index_0_encoding))
         })().map_err(|e| e.annotate("index_0"))?;
         let hash32 = (|| -> Result<_, DeserializeError> {
-            Ok(Hash32::deserialize(raw)?)
+            Ok(DataHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("hash32"))?;
         Ok(DatumOption0 {
             hash32,
@@ -1633,13 +1661,13 @@ impl DeserializeEmbeddedGroup for GenesisKeyDelegation {
             Ok(Some(index_0_encoding))
         })().map_err(|e| e.annotate("index_0"))?;
         let genesishash = (|| -> Result<_, DeserializeError> {
-            Ok(Hash28::deserialize(raw)?)
+            Ok(GenesisHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("genesishash"))?;
         let genesis_delegate_hash = (|| -> Result<_, DeserializeError> {
-            Ok(Hash28::deserialize(raw)?)
+            Ok(GenesisDelegateHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("genesis_delegate_hash"))?;
         let vrf_keyhash = (|| -> Result<_, DeserializeError> {
-            Ok(Hash32::deserialize(raw)?)
+            Ok(VRFKeyHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("vrf_keyhash"))?;
         Ok(GenesisKeyDelegation {
             genesishash,
@@ -1648,48 +1676,6 @@ impl DeserializeEmbeddedGroup for GenesisKeyDelegation {
             encodings: Some(GenesisKeyDelegationEncoding {
                 len_encoding,
                 index_0_encoding,
-            }),
-        })
-    }
-}
-
-impl Serialize for Hash28 {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes_sz(&self.inner, self.encodings.as_ref().map(|encs| encs.inner_encoding.clone()).unwrap_or_default().to_str_len_sz(self.inner.len() as u64, force_canonical))
-    }
-}
-
-impl Deserialize for Hash28 {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw.bytes_sz().map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() != 28 {
-            return Err(DeserializeError::new("Hash28", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(28), max: Some(28) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(Hash28Encoding {
-                inner_encoding,
-            }),
-        })
-    }
-}
-
-impl Serialize for Hash32 {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes_sz(&self.inner, self.encodings.as_ref().map(|encs| encs.inner_encoding.clone()).unwrap_or_default().to_str_len_sz(self.inner.len() as u64, force_canonical))
-    }
-}
-
-impl Deserialize for Hash32 {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw.bytes_sz().map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() != 32 {
-            return Err(DeserializeError::new("Hash32", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(32), max: Some(32) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(Hash32Encoding {
-                inner_encoding,
             }),
         })
     }
@@ -1773,7 +1759,7 @@ impl Deserialize for HeaderBody {
             let prev_hash = (|| -> Result<_, DeserializeError> {
                 Ok(match raw.cbor_type()? != CBORType::Special {
                     true => {
-                        Some(Hash32::deserialize(raw)?)
+                        Some(BlockHeaderHash::deserialize(raw)?)
                     },
                     false => {
                         if raw.special()? != CBORSpecial::Null {
@@ -1796,7 +1782,7 @@ impl Deserialize for HeaderBody {
                 Ok(raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?)
             })().map_err(|e| e.annotate("block_body_size"))?;
             let block_body_hash = (|| -> Result<_, DeserializeError> {
-                Ok(Hash32::deserialize(raw)?)
+                Ok(BlockBodyHash::deserialize(raw)?)
             })().map_err(|e| e.annotate("block_body_hash"))?;
             let operational_cert = (|| -> Result<_, DeserializeError> {
                 Ok(OperationalCert::deserialize_as_embedded_group(raw, &mut read_len, len)?)
@@ -2626,7 +2612,7 @@ impl DeserializeEmbeddedGroup for OperationalCert {
             Ok(raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?)
         })().map_err(|e| e.annotate("kes_period"))?;
         let sigma = (|| -> Result<_, DeserializeError> {
-            Ok(Signature::deserialize(raw)?)
+            Ok(Ed25519Signature::deserialize(raw)?)
         })().map_err(|e| e.annotate("sigma"))?;
         Ok(OperationalCert {
             hot_vkey,
@@ -2783,7 +2769,7 @@ impl Deserialize for PoolMetadata {
                 Ok(Url::deserialize(raw)?)
             })().map_err(|e| e.annotate("url"))?;
             let pool_metadata_hash = (|| -> Result<_, DeserializeError> {
-                Ok(Hash32::deserialize(raw)?)
+                Ok(PoolMetadataHash::deserialize(raw)?)
             })().map_err(|e| e.annotate("pool_metadata_hash"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
@@ -2861,10 +2847,10 @@ impl DeserializeEmbeddedGroup for PoolParams {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, read_len: &mut CBORReadLen, len: cbor_event::LenSz) -> Result<Self, DeserializeError> {
         let len_encoding = len.into();
         let operator = (|| -> Result<_, DeserializeError> {
-            Ok(Hash28::deserialize(raw)?)
+            Ok(Ed25519KeyHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("operator"))?;
         let vrf_keyhash = (|| -> Result<_, DeserializeError> {
-            Ok(Hash32::deserialize(raw)?)
+            Ok(VRFKeyHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("vrf_keyhash"))?;
         let (pledge, pledge_encoding) = (|| -> Result<_, DeserializeError> {
             Ok(raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?)
@@ -2887,7 +2873,7 @@ impl DeserializeEmbeddedGroup for PoolParams {
                     assert_eq!(raw.special()?, CBORSpecial::Break);
                     break;
                 }
-                pool_owners_arr.push(Hash28::deserialize(raw)?);
+                pool_owners_arr.push(Ed25519KeyHash::deserialize(raw)?);
             }
             Ok((pool_owners_arr, pool_owners_encoding))
         })().map_err(|e| e.annotate("pool_owners"))?;
@@ -3041,7 +3027,7 @@ impl DeserializeEmbeddedGroup for PoolRetirement {
             Ok(Some(index_0_encoding))
         })().map_err(|e| e.annotate("index_0"))?;
         let pool_keyhash = (|| -> Result<_, DeserializeError> {
-            Ok(Hash28::deserialize(raw)?)
+            Ok(Ed25519KeyHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("pool_keyhash"))?;
         let (epoch, epoch_encoding) = (|| -> Result<_, DeserializeError> {
             Ok(raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?)
@@ -3983,7 +3969,7 @@ impl Deserialize for RequiredSigners {
             let mut read_len = CBORReadLen::new(len);
             read_len.read_elems(1)?;
             let addr_keyhash = (|| -> Result<_, DeserializeError> {
-                Ok(Hash28::deserialize(raw)?)
+                Ok(Ed25519KeyHash::deserialize(raw)?)
             })().map_err(|e| e.annotate("addr_keyhash"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
@@ -4004,40 +3990,18 @@ impl Deserialize for RequiredSigners {
 
 impl Serialize for RewardAccount {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(1, force_canonical))?;
-        serializer.write_unsigned_integer_sz(1u64, fit_sz(1u64, self.encodings.as_ref().map(|encs| encs.index_0_encoding.clone()).unwrap_or_default(), force_canonical))?;
-        self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().end(serializer, force_canonical)
+        self.clone().to_address().serialize(serializer, force_canonical)
     }
 }
 
 impl Deserialize for RewardAccount {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        (|| -> Result<_, DeserializeError> {
-            let len = raw.array_sz()?;
-            let len_encoding: LenEncoding = len.into();
-            let mut read_len = CBORReadLen::new(len);
-            read_len.read_elems(1)?;
-            let index_0_encoding = (|| -> Result<_, DeserializeError> {
-                let (index_0_value, index_0_encoding) = raw.unsigned_integer_sz()?;
-                if index_0_value != 1 {
-                    return Err(DeserializeFailure::FixedValueMismatch{ found: Key::Uint(index_0_value), expected: Key::Uint(1) }.into());
-                }
-                Ok(Some(index_0_encoding))
-            })().map_err(|e| e.annotate("index_0"))?;
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    CBORSpecial::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
-            Ok(RewardAccount {
-                encodings: Some(RewardAccountEncoding {
-                    len_encoding,
-                    index_0_encoding,
-                }),
-            })
-        })().map_err(|e| e.annotate("RewardAccount"))
+    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let (raw_bytes, encoding) = raw.bytes_sz()?;
+        match Address::from_bytes_impl(raw_bytes.as_ref(), Some(encoding.into()))? {
+            Address::Reward(reward_address) => Ok(reward_address),
+            // first byte must exist or else from_bytes_impl would have errored
+            _ => Err(DeserializeFailure::BadAddressType(raw_bytes[0]).into())
+        }
     }
 }
 
@@ -4531,7 +4495,7 @@ impl DeserializeEmbeddedGroup for ScriptPubkey {
             Ok(Some(index_0_encoding))
         })().map_err(|e| e.annotate("index_0"))?;
         let addr_keyhash = (|| -> Result<_, DeserializeError> {
-            Ok(Hash28::deserialize(raw)?)
+            Ok(Ed25519KeyHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("addr_keyhash"))?;
         Ok(ScriptPubkey {
             addr_keyhash,
@@ -4672,27 +4636,6 @@ impl Deserialize for ShelleyTxOut {
                 }),
             })
         })().map_err(|e| e.annotate("ShelleyTxOut"))
-    }
-}
-
-impl Serialize for Signature {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes_sz(&self.inner, self.encodings.as_ref().map(|encs| encs.inner_encoding.clone()).unwrap_or_default().to_str_len_sz(self.inner.len() as u64, force_canonical))
-    }
-}
-
-impl Deserialize for Signature {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw.bytes_sz().map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() != 16 {
-            return Err(DeserializeError::new("Signature", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(16), max: Some(16) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(SignatureEncoding {
-                inner_encoding,
-            }),
-        })
     }
 }
 
@@ -4911,8 +4854,8 @@ impl DeserializeEmbeddedGroup for SingleHostName {
 impl Serialize for StakeCredential {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
-            StakeCredential::StakeCredential0(stake_credential0) => stake_credential0.serialize(serializer, force_canonical),
-            StakeCredential::StakeCredential1(stake_credential1) => stake_credential1.serialize(serializer, force_canonical),
+            StakeCredential::Key(stake_credential0) => stake_credential0.serialize(serializer, force_canonical),
+            StakeCredential::Script(stake_credential1) => stake_credential1.serialize(serializer, force_canonical),
         }
     }
 }
@@ -4925,17 +4868,17 @@ impl Deserialize for StakeCredential {
             let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                Ok(StakeCredential0::deserialize_as_embedded_group(raw, &mut read_len, len)?)
+                Ok(KeyStakeCredential::deserialize_as_embedded_group(raw, &mut read_len, len)?)
             })(raw)
             {
-                Ok(stake_credential0) => return Ok(Self::StakeCredential0(stake_credential0)),
+                Ok(stake_credential0) => return Ok(Self::Key(stake_credential0)),
                 Err(_) => raw.as_mut_ref().seek(SeekFrom::Start(initial_position)).unwrap(),
             };
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                Ok(StakeCredential1::deserialize_as_embedded_group(raw, &mut read_len, len)?)
+                Ok(ScriptStakeCredential::deserialize_as_embedded_group(raw, &mut read_len, len)?)
             })(raw)
             {
-                Ok(stake_credential1) => return Ok(Self::StakeCredential1(stake_credential1)),
+                Ok(stake_credential1) => return Ok(Self::Script(stake_credential1)),
                 Err(_) => raw.as_mut_ref().seek(SeekFrom::Start(initial_position)).unwrap(),
             };
             match len {
@@ -4950,14 +4893,14 @@ impl Deserialize for StakeCredential {
     }
 }
 
-impl Serialize for StakeCredential0 {
+impl Serialize for KeyStakeCredential {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(2, force_canonical))?;
         self.serialize_as_embedded_group(serializer, force_canonical)
     }
 }
 
-impl SerializeEmbeddedGroup for StakeCredential0 {
+impl SerializeEmbeddedGroup for KeyStakeCredential {
     fn serialize_as_embedded_group<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_unsigned_integer_sz(0u64, fit_sz(0u64, self.encodings.as_ref().map(|encs| encs.index_0_encoding.clone()).unwrap_or_default(), force_canonical))?;
         self.addr_keyhash.serialize(serializer, force_canonical)?;
@@ -4965,7 +4908,7 @@ impl SerializeEmbeddedGroup for StakeCredential0 {
     }
 }
 
-impl Deserialize for StakeCredential0 {
+impl Deserialize for KeyStakeCredential {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
@@ -4980,11 +4923,11 @@ impl Deserialize for StakeCredential0 {
                 },
             }
             ret
-        })().map_err(|e| e.annotate("StakeCredential0"))
+        })().map_err(|e| e.annotate("KeyStakeCredential"))
     }
 }
 
-impl DeserializeEmbeddedGroup for StakeCredential0 {
+impl DeserializeEmbeddedGroup for KeyStakeCredential {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, read_len: &mut CBORReadLen, len: cbor_event::LenSz) -> Result<Self, DeserializeError> {
         let len_encoding = len.into();
         let index_0_encoding = (|| -> Result<_, DeserializeError> {
@@ -4995,11 +4938,11 @@ impl DeserializeEmbeddedGroup for StakeCredential0 {
             Ok(Some(index_0_encoding))
         })().map_err(|e| e.annotate("index_0"))?;
         let addr_keyhash = (|| -> Result<_, DeserializeError> {
-            Ok(Hash28::deserialize(raw)?)
+            Ok(Ed25519KeyHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("addr_keyhash"))?;
-        Ok(StakeCredential0 {
+        Ok(KeyStakeCredential {
             addr_keyhash,
-            encodings: Some(StakeCredential0Encoding {
+            encodings: Some(StakeCredentialEncoding {
                 len_encoding,
                 index_0_encoding,
             }),
@@ -5007,14 +4950,14 @@ impl DeserializeEmbeddedGroup for StakeCredential0 {
     }
 }
 
-impl Serialize for StakeCredential1 {
+impl Serialize for ScriptStakeCredential {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(2, force_canonical))?;
         self.serialize_as_embedded_group(serializer, force_canonical)
     }
 }
 
-impl SerializeEmbeddedGroup for StakeCredential1 {
+impl SerializeEmbeddedGroup for ScriptStakeCredential {
     fn serialize_as_embedded_group<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_unsigned_integer_sz(1u64, fit_sz(1u64, self.encodings.as_ref().map(|encs| encs.index_0_encoding.clone()).unwrap_or_default(), force_canonical))?;
         self.scripthash.serialize(serializer, force_canonical)?;
@@ -5022,7 +4965,7 @@ impl SerializeEmbeddedGroup for StakeCredential1 {
     }
 }
 
-impl Deserialize for StakeCredential1 {
+impl Deserialize for ScriptStakeCredential {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
@@ -5037,11 +4980,11 @@ impl Deserialize for StakeCredential1 {
                 },
             }
             ret
-        })().map_err(|e| e.annotate("StakeCredential1"))
+        })().map_err(|e| e.annotate("ScriptStakeCredential"))
     }
 }
 
-impl DeserializeEmbeddedGroup for StakeCredential1 {
+impl DeserializeEmbeddedGroup for ScriptStakeCredential {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, read_len: &mut CBORReadLen, len: cbor_event::LenSz) -> Result<Self, DeserializeError> {
         let len_encoding = len.into();
         let index_0_encoding = (|| -> Result<_, DeserializeError> {
@@ -5052,11 +4995,11 @@ impl DeserializeEmbeddedGroup for StakeCredential1 {
             Ok(Some(index_0_encoding))
         })().map_err(|e| e.annotate("index_0"))?;
         let scripthash = (|| -> Result<_, DeserializeError> {
-            Ok(Hash28::deserialize(raw)?)
+            Ok(ScriptHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("scripthash"))?;
-        Ok(StakeCredential1 {
+        Ok(ScriptStakeCredential {
             scripthash,
-            encodings: Some(StakeCredential1Encoding {
+            encodings: Some(StakeCredentialEncoding {
                 len_encoding,
                 index_0_encoding,
             }),
@@ -5113,7 +5056,7 @@ impl DeserializeEmbeddedGroup for StakeDelegation {
             Ok(StakeCredential::deserialize(raw)?)
         })().map_err(|e| e.annotate("stake_credential"))?;
         let pool_keyhash = (|| -> Result<_, DeserializeError> {
-            Ok(Hash28::deserialize(raw)?)
+            Ok(Ed25519KeyHash::deserialize(raw)?)
         })().map_err(|e| e.annotate("pool_keyhash"))?;
         Ok(StakeDelegation {
             stake_credential,
@@ -5667,7 +5610,7 @@ impl Deserialize for TransactionBody {
                             }
                             let tmp_key_7 = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                Ok(Hash32::deserialize(raw)?)
+                                Ok(AuxiliaryDataHash::deserialize(raw)?)
                             })().map_err(|e| e.annotate("key_7"))?;
                             key_7 = Some(tmp_key_7);
                             key_7_key_encoding = Some(key_enc);
@@ -5701,7 +5644,7 @@ impl Deserialize for TransactionBody {
                                         assert_eq!(raw.special()?, CBORSpecial::Break);
                                         break;
                                     }
-                                    let key_9_key = Hash28::deserialize(raw)?;
+                                    let key_9_key = PolicyId::deserialize(raw)?;
                                     let mut key_9_value_table = OrderedHashMap::new();
                                     let key_9_value_len = raw.map_sz()?;
                                     let key_9_value_encoding = key_9_value_len.into();
@@ -5747,7 +5690,7 @@ impl Deserialize for TransactionBody {
                             }
                             let tmp_key_11 = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                Ok(Hash32::deserialize(raw)?)
+                                Ok(ScriptDataHash::deserialize(raw)?)
                             })().map_err(|e| e.annotate("key_11"))?;
                             key_11 = Some(tmp_key_11);
                             key_11_key_encoding = Some(key_enc);
@@ -5954,7 +5897,7 @@ impl Deserialize for TransactionInput {
             let mut read_len = CBORReadLen::new(len);
             read_len.read_elems(2)?;
             let transaction_id = (|| -> Result<_, DeserializeError> {
-                Ok(Hash32::deserialize(raw)?)
+                Ok(TransactionHash::deserialize(raw)?)
             })().map_err(|e| e.annotate("transaction_id"))?;
             let (index, index_encoding) = (|| -> Result<_, DeserializeError> {
                 Ok(raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?)
@@ -6566,7 +6509,7 @@ impl Deserialize for Update {
                         assert_eq!(raw.special()?, CBORSpecial::Break);
                         break;
                     }
-                    let proposed_protocol_parameter_updates_key = Hash28::deserialize(raw)?;
+                    let proposed_protocol_parameter_updates_key = GenesisHash::deserialize(raw)?;
                     let proposed_protocol_parameter_updates_value = ProtocolParamUpdate::deserialize(raw)?;
                     if proposed_protocol_parameter_updates_table.insert(proposed_protocol_parameter_updates_key.clone(), proposed_protocol_parameter_updates_value).is_some() {
                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
@@ -6685,7 +6628,7 @@ impl Deserialize for Value {
                         assert_eq!(raw.special()?, CBORSpecial::Break);
                         break;
                     }
-                    let multiasset_key = Hash28::deserialize(raw)?;
+                    let multiasset_key = PolicyId::deserialize(raw)?;
                     let mut multiasset_value_table = OrderedHashMap::new();
                     let multiasset_value_len = raw.map_sz()?;
                     let multiasset_value_encoding = multiasset_value_len.into();
@@ -6733,20 +6676,21 @@ impl Deserialize for Value {
 
 impl Serialize for Vkey {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes_sz(&self.inner, self.encodings.as_ref().map(|encs| encs.inner_encoding.clone()).unwrap_or_default().to_str_len_sz(self.inner.len() as u64, force_canonical))
+        let pubkey_bytes = self.pubkey.as_bytes();
+        serializer.write_bytes_sz(&pubkey_bytes, self.encodings.as_ref().map(|encs| encs.pubkey_bytes_encoding.clone()).unwrap_or_default().to_str_len_sz(pubkey_bytes.len() as u64, force_canonical))
     }
 }
 
 impl Deserialize for Vkey {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw.bytes_sz().map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() != 8 {
-            return Err(DeserializeError::new("Vkey", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(8), max: Some(8) }));
-        }
+        let (pubkey_bytes, pubkey_bytes_encoding) = raw.bytes_sz().map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
+        let pubkey = chain_crypto::PublicKey::from_binary(pubkey_bytes.as_ref())
+            .map(PublicKey)
+            .map_err(DeserializeFailure::PublicKeyError)?;
         Ok(Self {
-            inner,
+            pubkey,
             encodings: Some(VkeyEncoding {
-                inner_encoding,
+                pubkey_bytes_encoding,
             }),
         })
     }
@@ -6772,7 +6716,7 @@ impl Deserialize for Vkeywitness {
                 Ok(Vkey::deserialize(raw)?)
             })().map_err(|e| e.annotate("vkey"))?;
             let signature = (|| -> Result<_, DeserializeError> {
-                Ok(Signature::deserialize(raw)?)
+                Ok(Ed25519Signature::deserialize(raw)?)
             })().map_err(|e| e.annotate("signature"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),

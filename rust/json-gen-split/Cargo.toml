@@ -1,5 +1,5 @@
 [package]
-name = "cddl-lib-json-schema-gen"
+name = "cardano-multiplatform-lib-json-schema-gen"
 version = "0.0.1"
 edition = "2018"
 

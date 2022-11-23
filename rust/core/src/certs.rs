@@ -1,3 +1,5 @@
+use super::*;
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum Certificate {
     StakeRegistration(StakeRegistration),
@@ -18,7 +20,7 @@ impl Certificate {
         Self::StakeDeregistration(StakeDeregistration::new(stake_credential))
     }
 
-    pub fn new_stake_delegation(stake_credential: StakeCredential, pool_keyhash: PoolKeyhash) -> Self {
+    pub fn new_stake_delegation(stake_credential: StakeCredential, pool_keyhash: Ed25519KeyHash) -> Self {
         Self::StakeDelegation(StakeDelegation::new(stake_credential, pool_keyhash))
     }
 
@@ -26,11 +28,11 @@ impl Certificate {
         Self::PoolRegistration(PoolRegistration::new(pool_params))
     }
 
-    pub fn new_pool_retirement(pool_keyhash: PoolKeyhash, epoch: Epoch) -> Self {
+    pub fn new_pool_retirement(pool_keyhash: Ed25519KeyHash, epoch: Epoch) -> Self {
         Self::PoolRetirement(PoolRetirement::new(pool_keyhash, epoch))
     }
 
-    pub fn new_genesis_key_delegation(genesishash: Genesishash, genesis_delegate_hash: GenesisDelegateHash, vrf_keyhash: VrfKeyhash) -> Self {
+    pub fn new_genesis_key_delegation(genesishash: GenesisHash, genesis_delegate_hash: GenesisDelegateHash, vrf_keyhash: VRFKeyHash) -> Self {
         Self::GenesisKeyDelegation(GenesisKeyDelegation::new(genesishash, genesis_delegate_hash, vrf_keyhash))
     }
 
@@ -78,15 +80,15 @@ impl From<DnsName> for String {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct GenesisKeyDelegation {
-    pub genesishash: Genesishash,
+    pub genesishash: GenesisHash,
     pub genesis_delegate_hash: GenesisDelegateHash,
-    pub vrf_keyhash: VrfKeyhash,
+    pub vrf_keyhash: VRFKeyHash,
     #[serde(skip)]
     pub encodings: Option<GenesisKeyDelegationEncoding>,
 }
 
 impl GenesisKeyDelegation {
-    pub fn new(genesishash: Genesishash, genesis_delegate_hash: GenesisDelegateHash, vrf_keyhash: VrfKeyhash) -> Self {
+    pub fn new(genesishash: GenesisHash, genesis_delegate_hash: GenesisDelegateHash, vrf_keyhash: VRFKeyHash) -> Self {
         Self {
             genesishash,
             genesis_delegate_hash,
@@ -242,8 +244,8 @@ impl PoolMetadata {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct PoolParams {
-    pub operator: PoolKeyhash,
-    pub vrf_keyhash: VrfKeyhash,
+    pub operator: Ed25519KeyHash,
+    pub vrf_keyhash: VRFKeyHash,
     pub pledge: Coin,
     pub cost: Coin,
     pub margin: UnitInterval,
@@ -256,7 +258,7 @@ pub struct PoolParams {
 }
 
 impl PoolParams {
-    pub fn new(operator: PoolKeyhash, vrf_keyhash: VrfKeyhash, pledge: Coin, cost: Coin, margin: UnitInterval, reward_account: RewardAccount, pool_owners: Vec<AddrKeyhash>, relays: Vec<Relay>, pool_metadata: Option<PoolMetadata>) -> Self {
+    pub fn new(operator: Ed25519KeyHash, vrf_keyhash: VRFKeyHash, pledge: Coin, cost: Coin, margin: UnitInterval, reward_account: RewardAccount, pool_owners: Vec<AddrKeyhash>, relays: Vec<Relay>, pool_metadata: Option<PoolMetadata>) -> Self {
         Self {
             operator,
             vrf_keyhash,
@@ -290,14 +292,14 @@ impl PoolRegistration {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct PoolRetirement {
-    pub pool_keyhash: PoolKeyhash,
+    pub pool_keyhash: Ed25519KeyHash,
     pub epoch: Epoch,
     #[serde(skip)]
     pub encodings: Option<PoolRetirementEncoding>,
 }
 
 impl PoolRetirement {
-    pub fn new(pool_keyhash: PoolKeyhash, epoch: Epoch) -> Self {
+    pub fn new(pool_keyhash: Ed25519KeyHash, epoch: Epoch) -> Self {
         Self {
             pool_keyhash,
             epoch,
@@ -365,33 +367,16 @@ impl SingleHostName {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
-#[derivative(Eq, PartialEq, Ord="feature_allow_slow_enum", PartialOrd="feature_allow_slow_enum", Hash)]
-pub enum StakeCredential {
-    StakeCredential0(StakeCredential0),
-    StakeCredential1(StakeCredential1),
-}
-
-impl StakeCredential {
-    pub fn new_stake_credential0(addr_keyhash: AddrKeyhash) -> Self {
-        Self::StakeCredential0(StakeCredential0::new(addr_keyhash))
-    }
-
-    pub fn new_stake_credential1(scripthash: Scripthash) -> Self {
-        Self::StakeCredential1(StakeCredential1::new(scripthash))
-    }
-}
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct StakeDelegation {
     pub stake_credential: StakeCredential,
-    pub pool_keyhash: PoolKeyhash,
+    pub pool_keyhash: Ed25519KeyHash,
     #[serde(skip)]
     pub encodings: Option<StakeDelegationEncoding>,
 }
 
 impl StakeDelegation {
-    pub fn new(stake_credential: StakeCredential, pool_keyhash: PoolKeyhash) -> Self {
+    pub fn new(stake_credential: StakeCredential, pool_keyhash: Ed25519KeyHash) -> Self {
         Self {
             stake_credential,
             pool_keyhash,
@@ -468,5 +453,3 @@ impl From<Url> for String {
         wrapper.inner
     }
 }
-
-use super::*;

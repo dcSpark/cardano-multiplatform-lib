@@ -1,5 +1,4 @@
-use cbor_event::{self, de::Deserializer, se::{Serialize, Serializer}};
-use std::io::{BufRead, Seek, Write};
+use std::io::{BufRead, Seek};
 use crate::serialization::CBORReadLen;
 use crate::chain_crypto;
 
@@ -71,6 +70,8 @@ impl DeserializeError {
         }
     }
 }
+
+impl std::error::Error for DeserializeError {}
 
 impl std::fmt::Display for DeserializeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

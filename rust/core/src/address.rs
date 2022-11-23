@@ -177,19 +177,25 @@ impl Address {
     /// bits 7-4: 1000
     /// bits 3-0: unrelated data (recall: no network ID in Byron addresses)
     pub fn header(&self) -> u8 {
-        match &self.variant {
-            Self::Base(base) => ((base.payment.kind() as u8) << 4)
-                | ((base.stake.kind() as u8) << 5)
+        fn stake_cred_bit(cred: &StakeCredential) -> u8 {
+            match cred {
+                StakeCredential::Key(_) => 0,
+                StakeCredential::Script(_) => 1,
+            }
+        }
+        match self {
+            Self::Base(base) => (stake_cred_bit(&base.payment) << 4)
+                | (stake_cred_bit(&base.stake) << 5)
                 | (base.network & 0xF),
             Self::Ptr(ptr) => 0b0100_0000
-                | ((ptr.payment.kind() as u8) << 4)
+                | (stake_cred_bit(&ptr.payment) << 4)
                 | (ptr.network & 0xF),
             Self::Enterprise(enterprise) => 0b0110_0000
-                | ((enterprise.payment.kind() as u8) << 4)
+                | (stake_cred_bit(&enterprise.payment) << 4)
                 | (enterprise.network & 0xF),
-            Self::Byron(_) => 0b1000 << 4, // note: no network ID for Byron
+            //Self::Byron(_) => 0b1000 << 4, // note: no network ID for Byron
             Self::Reward(reward) => 0b1110_0000
-                | ((reward.payment.kind() as u8) << 4)
+                | (stake_cred_bit(&reward.payment) << 4)
                 | (reward.network & 0xF),
         }
     }
@@ -199,9 +205,9 @@ impl Address {
     }
 
     /// The raw bytes of the Address - does not include any wrapping CBOR
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn to_raw_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
-        match &self.variant {
+        match self {
             Self::Base(base) => {
                 buf.push(self.header());
                 buf.extend(base.payment.to_raw_bytes());
@@ -226,10 +232,14 @@ impl Address {
             //    buf.extend(byron.to_bytes())
             //},
         }
-        if let Some(trailing_bytes) = &self.trailing {
-            buf.extend(trailing_bytes);
+        if let Some(Some(trailing_bytes)) = self.encoding().map(|enc| &enc.trailing) {
+            buf.extend(trailing_bytes.iter());
         }
         buf
+    }
+
+    pub fn from_raw_bytes(data: &[u8]) -> Result<Address, DeserializeError> {
+        Self::from_bytes_impl(data, None)
     }
 
     pub(crate) fn from_bytes_impl(data: &[u8], bytes_encoding: Option<StringEncoding>) -> Result<Address, DeserializeError> {
@@ -246,9 +256,9 @@ impl Address {
             let read_addr_cred = |bit: u8, pos: usize| {
                 let hash_bytes: [u8; HASH_LEN] = data[pos..pos+HASH_LEN].try_into().unwrap();
                 if header & (1 << bit)  == 0 {
-                    StakeCredential::from_keyhash(&Ed25519KeyHash::from(hash_bytes))
+                    StakeCredential::Key(KeyStakeCredential::new(Ed25519KeyHash::from(hash_bytes)))
                 } else {
-                    StakeCredential::from_scripthash(&ScriptHash::from(hash_bytes))
+                    StakeCredential::Script(ScriptStakeCredential::new(ScriptHash::from(hash_bytes)))
                 }
             };
             fn make_encoding(bytes_encoding: Option<StringEncoding>, trailing: Option<Vec<u8>>) -> Result<Option<AddressEncoding>, DeserializeError> {
@@ -265,7 +275,7 @@ impl Address {
                         }
                     }
                     Ok(Some(AddressEncoding {
-                        trailing_bytes: trailing,
+                        trailing,
                         bytes_encoding: bytes_encoding.unwrap_or_default(),
                     }))
                 } else {
@@ -274,7 +284,7 @@ impl Address {
             }
             fn len_check_trailing(data: &[u8], addr_size: usize) -> Result<Option<Vec<u8>>, DeserializeFailure> {
                 if data.len() < addr_size {
-                    Err(cbor_event::Error::NotEnough(data.len(), addr_size).into())
+                    Err(DeserializeFailure::CBOR(cbor_event::Error::NotEnough(data.len(), addr_size)))
                 } else if data.len() > addr_size {
                     Ok(Some(data[addr_size..].to_vec()))
                 } else {
@@ -286,12 +296,12 @@ impl Address {
                 0b0000 | 0b0001 | 0b0010 | 0b0011 => {
                     const BASE_ADDR_SIZE: usize = 1 + HASH_LEN * 2;
                     let trailing = len_check_trailing(data, BASE_ADDR_SIZE)?;
-                    Address::Base(BaseAddress {
+                    Ok(Address::Base(BaseAddress {
                         network,
                         payment: read_addr_cred(4, 1),
                         stake: read_addr_cred(5, 1 + HASH_LEN),
                         encoding: make_encoding(bytes_encoding, trailing)?,
-                    })
+                    }))
                 },
                 // pointer
                 0b0100 | 0b0101 => {
@@ -318,53 +328,53 @@ impl Address {
                     } else {
                         None
                     };
-                    Address::Ptr(PointerAddress {
+                    Ok(Address::Ptr(PointerAddress {
                         network,
-                        payment_cred,
-                        pointer: Pointer {
+                        payment: payment_cred,
+                        stake: Pointer {
                             slot,
                             tx_index,
                             cert_index
                         },
                         encoding: make_encoding(bytes_encoding, trailing)?,
-                    })
+                    }))
                 },
                 // enterprise
                 0b0110 | 0b0111 => {
                     const ENTERPRISE_ADDR_SIZE: usize = 1 + HASH_LEN;
                     let trailing = len_check_trailing(data, ENTERPRISE_ADDR_SIZE)?;
-                    Address::Enterprise(EnterpriseAddress {
+                    Ok(Address::Enterprise(EnterpriseAddress {
                         network,
                         payment: read_addr_cred(4, 1),
                         encoding: make_encoding(bytes_encoding, trailing)?,
-                    })
+                    }))
                 },
                 // reward
                 0b1110 | 0b1111 => {
                     const REWARD_ADDR_SIZE: usize = 1 + HASH_LEN;
                     let trailing = len_check_trailing(data, REWARD_ADDR_SIZE)?;
-                    Address::Reward(RewardAddress {
+                    Ok(Address::Reward(RewardAddress {
                         network,
                         payment: read_addr_cred(4, 1),
                         encoding: make_encoding(bytes_encoding, trailing)?,
-                    })
+                    }))
                 }
                 // byron
                 0b1000 => {
                     // note: 0b1000 was chosen because all existing Byron addresses actually start with 0b1000
                     // Therefore you can re-use Byron addresses as-is
                     // match ByronAddress::from_bytes(data.to_vec()) {
-                    //     Ok(addr) => Address::Byron(addr),
-                    //     Err(e) => return Err(cbor_event::Error::CustomError(e.as_string().unwrap_or_default()).into()),
+                    //     Ok(addr) => Ok(Address::Byron(addr)),
+                    //     Err(e) => Err(cbor_event::Error::CustomError(e.as_string().unwrap_or_default()).into()),
                     // }
                     todo!();
                 },
-                _ => return Err(DeserializeFailure::BadAddressType(header).into()),
+                _ => Err(DeserializeFailure::BadAddressType(header).into()),
             }
         })().map_err(|e| e.annotate("Address"))
     }
 
-    pub fn to_bech32(&self, prefix: Option<&str>) -> Result<String, AddressError> {
+    pub fn to_bech32(&self, prefix: Option<String>) -> Result<String, AddressError> {
         let final_prefix = match prefix {
             Some(prefix) => prefix,
             None => {
@@ -377,10 +387,10 @@ impl Address {
                     id if id == NetworkInfo::testnet().network_id() => "_test",
                     _ => "",
                 };
-                &format!("{}{}", prefix_header, prefix_tail)
+                format!("{}{}", prefix_header, prefix_tail)
             }
         };
-        bech32::encode(&final_prefix, self.to_bytes().to_base32()).map_err(|e| e.into())
+        bech32::encode(&final_prefix, self.to_raw_bytes().to_base32()).map_err(|e| e.into())
     }
 
     pub fn from_bech32(bech_str: &str) -> Result<Address, AddressError> {
@@ -404,7 +414,7 @@ impl Address {
     //}
 
     pub fn is_valid(bech_str: &str) -> bool {
-        Self::is_valid_bech32(bech_str) || Self::is_valid_byron(bech_str)
+        Self::is_valid_bech32(bech_str)// || Self::is_valid_byron(bech_str)
     }
 
     pub fn network_id(&self) -> Result<u8, AddressError> {
@@ -550,6 +560,7 @@ impl serde::Serialize for RewardAddress {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: serde::Serializer {
         let bech32 = self
+            .clone()
             .to_address()
             .to_bech32(None)
             .map_err(|e| serde::ser::Error::custom(format!("to_bech32: {:?}", e)))?;
@@ -1013,7 +1024,7 @@ mod tests {
     fn long_address() {
         let long = Address::from_bech32("addr1q9d66zzs27kppmx8qc8h43q7m4hkxp5d39377lvxefvxd8j7eukjsdqc5c97t2zg5guqadepqqx6rc9m7wtnxy6tajjvk4a0kze4ljyuvvrpexg5up2sqxj33363v35gtew").unwrap();
         let long_trimmed = Address::from_bech32("addr1q9d66zzs27kppmx8qc8h43q7m4hkxp5d39377lvxefvxd8j7eukjsdqc5c97t2zg5guqadepqqx6rc9m7wtnxy6tajjq6r54x9").unwrap();
-        assert_eq!(long.variant, long_trimmed.variant);
+        assert_eq!(long, long_trimmed);
         assert_eq!(long.trailing, Some(vec![203u8, 87, 175, 176, 179, 95, 200, 156, 99, 6, 28, 153, 20, 224, 85, 0, 26, 81, 140, 117, 22]));
         assert_eq!(long_trimmed.trailing, None);
         assert_eq!(long.to_bytes(), hex::decode("015bad085057ac10ecc7060f7ac41edd6f63068d8963ef7d86ca58669e5ecf2d283418a60be5a848a2380eb721000da1e0bbf39733134beca4cb57afb0b35fc89c63061c9914e055001a518c7516").unwrap());

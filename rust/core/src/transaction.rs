@@ -2,13 +2,13 @@
 pub struct AlonzoTxOut {
     pub address: Address,
     pub amount: Value,
-    pub datum_hash: Hash32,
+    pub datum_hash: DataHash,
     #[serde(skip)]
     pub encodings: Option<AlonzoTxOutEncoding>,
 }
 
 impl AlonzoTxOut {
-    pub fn new(address: Address, amount: Value, datum_hash: Hash32) -> Self {
+    pub fn new(address: Address, amount: Value, datum_hash: DataHash) -> Self {
         Self {
             address,
             amount,
@@ -47,7 +47,7 @@ pub enum DatumOption {
 }
 
 impl DatumOption {
-    pub fn new_datum_option0(hash32: Hash32) -> Self {
+    pub fn new_datum_option0(hash32: DataHash) -> Self {
         Self::DatumOption0(DatumOption0::new(hash32))
     }
 
@@ -317,14 +317,14 @@ impl TransactionBody {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct TransactionInput {
-    pub transaction_id: Hash32,
+    pub transaction_id: TransactionHash,
     pub index: u64,
     #[serde(skip)]
     pub encodings: Option<TransactionInputEncoding>,
 }
 
 impl TransactionInput {
-    pub fn new(transaction_id: Hash32, index: u64) -> Self {
+    pub fn new(transaction_id: TransactionHash, index: u64) -> Self {
         Self {
             transaction_id,
             index,

@@ -1,5 +1,5 @@
 use std::io::{BufRead, Seek, Write};
-use prelude::*;
+pub use error::*;
 
 // This library was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
@@ -15,12 +15,22 @@ use serialization::*;
 use std::collections::BTreeMap;
 
 use std::convert::{From, TryFrom};
+use schemars::JsonSchema;
 
-pub mod prelude;
+#[macro_use]
+extern crate cfg_if;
+
+pub mod error;
 
 pub mod serialization;
 
 pub mod ordered_hash_map;
+
+pub mod chain_core;
+pub mod chain_crypto;
+pub mod impl_mockchain;
+//pub mod legacy_address;
+pub mod typed_bytes;
 
 use ordered_hash_map::OrderedHashMap;
 
@@ -32,30 +42,32 @@ use cbor_encodings::*;
 
 extern crate derivative;
 
-use derivative::Derivative;
+pub(crate) use derivative::Derivative;
 
-pub type AddrKeyhash = Hash28;
-
-pub type AuxiliaryDataHash = Hash32;
+// TODO: for regen, change babbage's cddl to have our own names in the first place
+pub type AddrKeyhash = Ed25519KeyHash;
 
 pub type BoundedBytes = Vec<u8>;
 
 pub type Coin = u64;
 
+// see comment on ScriptRef declaration
 pub type Data = Vec<u8>;
 
-pub type DatumHash = Hash32;
+// TODO: for regen, change babbage's cddl to have our own names in the first place
+pub type DatumHash = DataHash;
 
 pub type DeltaCoin = Int;
 
 pub type Epoch = u64;
 
-pub type GenesisDelegateHash = Hash28;
+pub type Slot = u64;
 
-pub type Genesishash = Hash28;
+pub type CertificateIndex = u64;
 
-pub type Genesishashs = Vec<Genesishash>;
+pub type Genesishashs = Vec<GenesisHash>;
 
+// TODO: fix cddl-codegen to avoid generating this and make it a direct alias not a declared one
 pub type Int64 = i64;
 
 pub type Metadata = OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>;
@@ -64,31 +76,28 @@ pub type Mint = OrderedHashMap<PolicyId, OrderedHashMap<AssetName, Int64>>;
 
 pub type Multiasset = OrderedHashMap<PolicyId, OrderedHashMap<AssetName, u64>>;
 
+// TODO for regen: why was this in babbage/crypto.cddl? it's not in babbage.cddl.
 pub type Natural = Vec<u8>;
 
+// we might want dedicated types for this anyway?
 pub type PlutusV1Script = Vec<u8>;
 
 pub type PlutusV2Script = Vec<u8>;
 
-pub type PolicyId = Hash28;
+pub type PolicyId = ScriptHash;
 
 pub type PolicyIds = Vec<PolicyId>;
 
-pub type PoolKeyhash = Hash28;
-
-pub type PoolMetadataHash = Hash32;
-
 pub type Port = u16;
 
-pub type ProposedProtocolParameterUpdates = OrderedHashMap<Genesishash, ProtocolParamUpdate>;
+pub type ProposedProtocolParameterUpdates = OrderedHashMap<GenesisHash, ProtocolParamUpdate>;
 
 pub type RewardAccounts = Vec<RewardAccount>;
 
-pub type ScriptDataHash = Hash32;
-
+// TODO: this should NOT be generating an alias! (it's both tagged and a .cbor script)
+// we should investigate cddl-codegen and open an issue there if it's still happening
+// (top-level .cbor was recently being worked on and this is tagged but even then it should NOT be bytes here)
 pub type ScriptRef = Vec<u8>;
-
-pub type Scripthash = Hash28;
 
 pub type ShelleyAuxData = OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>;
 
@@ -98,9 +107,10 @@ pub type TransactionIndex = u16;
 
 pub type TransactionMetadatumLabel = u64;
 
-pub type VrfKeyhash = Hash32;
-
 pub type Withdrawals = OrderedHashMap<RewardAccount, Coin>;
+
+// for enums + byron. see comment in Cargo.toml
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
 #[derivative(Eq, PartialEq, Ord="feature_allow_slow_enum", PartialOrd="feature_allow_slow_enum", Hash)]
@@ -247,37 +257,16 @@ impl From<AssetName> for Vec<u8> {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct BootstrapWitness {
-    pub public_key: Vkey,
-    pub signature: Signature,
-    pub chain_code: Vec<u8>,
-    pub attributes: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<BootstrapWitnessEncoding>,
-}
-
-impl BootstrapWitness {
-    pub fn new(public_key: Vkey, signature: Signature, chain_code: Vec<u8>, attributes: Vec<u8>) -> Self {
-        Self {
-            public_key,
-            signature,
-            chain_code,
-            attributes,
-            encodings: None,
-        }
-    }
-}
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct DatumOption0 {
-    pub hash32: Hash32,
+    pub hash32: DataHash,
     #[serde(skip)]
     pub encodings: Option<DatumOption0Encoding>,
 }
 
 impl DatumOption0 {
-    pub fn new(hash32: Hash32) -> Self {
+    pub fn new(hash32: DataHash) -> Self {
         Self {
             hash32,
             encodings: None,
@@ -529,14 +518,14 @@ impl Script2 {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct StakeCredential0 {
+pub struct KeyStakeCredential {
     pub addr_keyhash: AddrKeyhash,
     #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
     #[serde(skip)]
-    pub encodings: Option<StakeCredential0Encoding>,
+    pub encodings: Option<StakeCredentialEncoding>,
 }
 
-impl StakeCredential0 {
+impl KeyStakeCredential {
     pub fn new(addr_keyhash: AddrKeyhash) -> Self {
         Self {
             addr_keyhash,
@@ -547,18 +536,42 @@ impl StakeCredential0 {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct StakeCredential1 {
-    pub scripthash: Scripthash,
+pub struct ScriptStakeCredential {
+    pub scripthash: ScriptHash,
     #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
     #[serde(skip)]
-    pub encodings: Option<StakeCredential1Encoding>,
+    pub encodings: Option<StakeCredentialEncoding>,
 }
 
-impl StakeCredential1 {
-    pub fn new(scripthash: Scripthash) -> Self {
+impl ScriptStakeCredential {
+    pub fn new(scripthash: ScriptHash) -> Self {
         Self {
             scripthash,
             encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
+#[derivative(Eq, PartialEq, Ord="feature_allow_slow_enum", PartialOrd="feature_allow_slow_enum", Hash)]
+pub enum StakeCredential {
+    Key(KeyStakeCredential),
+    Script(ScriptStakeCredential),
+}
+
+impl StakeCredential {
+    pub fn new_key(addr_keyhash: Ed25519KeyHash) -> Self {
+        Self::Key(KeyStakeCredential::new(addr_keyhash))
+    }
+
+    pub fn new_script(scripthash: ScriptHash) -> Self {
+        Self::Script(ScriptStakeCredential::new(scripthash))
+    }
+
+    pub fn to_raw_bytes(&self) -> &[u8] {
+        match self {
+            Self::Key(key) => key.addr_keyhash.to_raw_bytes(),
+            Self::Script(script) => script.scripthash.to_raw_bytes(),
         }
     }
 }
@@ -620,13 +633,13 @@ impl Value {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct Vkeywitness {
     pub vkey: Vkey,
-    pub signature: Signature,
+    pub signature: Ed25519Signature,
     #[serde(skip)]
     pub encodings: Option<VkeywitnessEncoding>,
 }
 
 impl Vkeywitness {
-    pub fn new(vkey: Vkey, signature: Signature) -> Self {
+    pub fn new(vkey: Vkey, signature: Ed25519Signature) -> Self {
         Self {
             vkey,
             signature,

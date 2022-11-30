@@ -1,3 +1,5 @@
+use super::*;
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AlonzoTxOut {
     pub address: Address,

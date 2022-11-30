@@ -1,5 +1,8 @@
 use wasm_bindgen::prelude::*;
 
+// TODO: remove after regen
+use core::{ToBytes, FromBytes};
+
 use std::collections::BTreeMap;
 
 pub type AssetNameV1 = String64;
@@ -212,12 +215,10 @@ pub struct FilesDetails(core::FilesDetails);
 
 impl FilesDetails {
     pub fn to_bytes(&self) -> Vec<u8> {
-        use core::serialization::ToBytes;
         ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<FilesDetails, JsValue> {
-        use core::prelude::FromBytes;
         FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
 
@@ -471,12 +472,10 @@ pub struct LabelMetadata(core::LabelMetadata);
 
 impl LabelMetadata {
     pub fn to_bytes(&self) -> Vec<u8> {
-        use core::serialization::ToBytes;
         ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<LabelMetadata, JsValue> {
-        use core::prelude::FromBytes;
         FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
 
@@ -545,12 +544,10 @@ pub struct LabelMetadataV2(core::LabelMetadataV2);
 
 impl LabelMetadataV2 {
     pub fn to_bytes(&self) -> Vec<u8> {
-        use core::serialization::ToBytes;
         ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<LabelMetadataV2, JsValue> {
-        use core::prelude::FromBytes;
         FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
 
@@ -596,12 +593,10 @@ pub struct Metadata(core::Metadata);
 
 impl Metadata {
     pub fn to_bytes(&self) -> Vec<u8> {
-        use core::serialization::ToBytes;
         ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<Metadata, JsValue> {
-        use core::prelude::FromBytes;
         FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
 
@@ -647,12 +642,10 @@ pub struct MetadataDetails(core::MetadataDetails);
 
 impl MetadataDetails {
     pub fn to_bytes(&self) -> Vec<u8> {
-        use core::serialization::ToBytes;
         ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<MetadataDetails, JsValue> {
-        use core::prelude::FromBytes;
         FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
 
@@ -726,12 +719,10 @@ pub struct String64(core::String64);
 
 impl String64 {
     pub fn to_bytes(&self) -> Vec<u8> {
-        use core::serialization::ToBytes;
         ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<String64, JsValue> {
-        use core::prelude::FromBytes;
         FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
 
@@ -780,12 +771,10 @@ pub struct String64OrArrString64(core::String64OrArrString64);
 
 impl String64OrArrString64 {
     pub fn to_bytes(&self) -> Vec<u8> {
-        use core::serialization::ToBytes;
         ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<String64OrArrString64, JsValue> {
-        use core::prelude::FromBytes;
         FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
 

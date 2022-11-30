@@ -1,3 +1,5 @@
+use super::*;
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct BigInt {

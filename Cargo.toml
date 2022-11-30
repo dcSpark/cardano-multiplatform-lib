@@ -1,0 +1,10 @@
+[workspace]
+
+# this is for the new crate structure. The legacy code (current CML) still resides in the `rust` directory.
+members = [
+    "core",
+    "crypto",
+    "cip25",
+    "cip25-wasm",
+    "wasm"
+]

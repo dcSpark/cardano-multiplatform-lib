@@ -3,12 +3,31 @@ use crate::chain_crypto::{
     bech32::Bech32,
     derive::combine_pk_and_chaincode
 };
-pub use crate::serialization::{Deserialize, StringEncoding};
+pub use cardano_multiplatform_lib_core::{
+    error::{DeserializeError, DeserializeFailure},
+    serialization::{Serialize, Deserialize, StringEncoding}
+};
 pub use derivative::{Derivative};
 use cryptoxide::blake2b::Blake2b;
 use impl_mockchain::key;
 use rand::rngs::OsRng;
-use super::*;
+use std::convert::{From, TryFrom};
+use cbor_event::{self, de::Deserializer, se::Serializer};
+
+pub mod cbor_encodings;
+mod serialization;
+
+// brought over from old IOHK code
+mod chain_core;
+mod chain_crypto;
+mod impl_mockchain;
+mod typed_bytes;
+
+// used in chain_core / chain_crypto
+#[macro_use]
+extern crate cfg_if;
+
+use cbor_encodings::*;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CryptoError {
@@ -17,7 +36,7 @@ pub enum CryptoError {
     #[error("ByronError: {0}")]
     Hex(#[from] hex::FromHexError),
     #[error("Deserialization: {0}")]
-    Deserialization(#[from] error::DeserializeError),
+    Deserialization(#[from] DeserializeError),
     #[error("SecretKeyError: {0}")]
     SecretKey(#[from] chain_crypto::SecretKeyError),
     #[error("PublicKeyError: {0}")]
@@ -111,14 +130,29 @@ impl From<KesVkey> for Vec<u8> {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct Nonce1 {
+    pub bytes: Vec<u8>,
+    #[serde(skip)]
+    pub encodings: Option<Nonce1Encoding>,
+}
+
+impl Nonce1 {
+    pub fn new(bytes: Vec<u8>) -> Self {
+        Self {
+            bytes,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum Nonce {
     I0 {
         #[serde(skip)]
         i0_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
         outer_len_encoding: LenEncoding,
-    }
-    ,
+    },
     Nonce1(Nonce1),
 }
 
@@ -250,6 +284,24 @@ impl From<VrfVkey> for Vec<u8> {
     }
 }
 
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct Vkeywitness {
+    pub vkey: Vkey,
+    pub signature: Ed25519Signature,
+    #[serde(skip)]
+    pub encodings: Option<VkeywitnessEncoding>,
+}
+
+impl Vkeywitness {
+    pub fn new(vkey: Vkey, signature: Ed25519Signature) -> Self {
+        Self {
+            vkey,
+            signature,
+            encodings: None,
+        }
+    }
+}
+
 
 pub (crate) fn blake2b224(data: &[u8]) -> [u8; 28] {
     let mut out = [0; 28];
@@ -365,7 +417,7 @@ impl Bip32PrivateKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 pub struct Bip32PublicKey(pub(crate) chain_crypto::PublicKey<chain_crypto::Ed25519Bip32>);
 
 impl Bip32PublicKey {
@@ -505,7 +557,7 @@ impl PrivateKey {
 }
 
 /// ED25519 key used as public key
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 pub struct PublicKey(pub(crate) chain_crypto::PublicKey<chain_crypto::Ed25519>);
 
 impl From<chain_crypto::PublicKey<chain_crypto::Ed25519>> for PublicKey {
@@ -644,7 +696,7 @@ macro_rules! impl_signature {
 
             pub fn from_raw_bytes(bytes: &[u8]) -> Result<$name, DeserializeError> {
                 let sig = chain_crypto::Signature::from_binary(bytes.as_ref())
-                    .map_err(|e| DeserializeError::new(stringify!($name), DeserializeFailure::SignatureError(e)))?;
+                    .map_err(|e| DeserializeError::new(stringify!($name), DeserializeFailure::InvalidStructure(Box::new(e))))?;
                 Ok($name {
                     sig,
                     encoding: StringEncoding::default(),
@@ -662,7 +714,8 @@ macro_rules! impl_signature {
             fn deserialize<R: std::io::BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
                 let (bytes, encoding) = raw.bytes_sz()?;
                 Ok(Self {
-                    sig: chain_crypto::Signature::from_binary(bytes.as_ref()).map_err(DeserializeFailure::SignatureError)?,
+                    sig: chain_crypto::Signature::from_binary(bytes.as_ref())
+                        .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?,
                     encoding: encoding.into(),
                 })
             }
@@ -683,7 +736,7 @@ macro_rules! impl_signature {
             }
         }
         
-        impl JsonSchema for $name {
+        impl schemars::JsonSchema for $name {
             fn schema_name() -> String { String::from(stringify!($name)) }
             fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
             fn is_referenceable() -> bool { String::is_referenceable() }
@@ -827,7 +880,7 @@ macro_rules! impl_hash_type {
             }
         }
         
-        impl JsonSchema for $name {
+        impl schemars::JsonSchema for $name {
             fn schema_name() -> String { String::from(stringify!($name)) }
             fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
             fn is_referenceable() -> bool { String::is_referenceable() }

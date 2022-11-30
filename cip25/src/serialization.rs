@@ -1,71 +1,4 @@
-pub struct CBORReadLen {
-  deser_len: cbor_event::Len,
-  read: u64,
-}
-
-impl CBORReadLen {
-  pub fn new(len: cbor_event::Len) -> Self {
-      Self {
-          deser_len: len,
-          read: 0,
-      }
-  }
-
-  // Marks {n} values as being read, and if we go past the available definite length
-  // given by the CBOR, we return an error.
-  pub fn read_elems(&mut self, count: usize) -> Result<(), DeserializeFailure> {
-      match self.deser_len {
-          cbor_event::Len::Len(n) => {
-              self.read += count as u64;
-              if self.read > n {
-                  Err(DeserializeFailure::DefiniteLenMismatch(n, None))
-              } else {
-                  Ok(())
-              }
-          },
-          cbor_event::Len::Indefinite => Ok(()),
-      }
-  }
-
-  pub fn finish(&self) -> Result<(), DeserializeFailure> {
-      match self.deser_len {
-          cbor_event::Len::Len(n) => {
-              if self.read == n {
-                  Ok(())
-              } else {
-                  Err(DeserializeFailure::DefiniteLenMismatch(n, Some(self.read)))
-              }
-          },
-          cbor_event::Len::Indefinite => Ok(()),
-      }
-  }
-}
-
-pub trait DeserializeEmbeddedGroup {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
-        read_len: &mut CBORReadLen,
-        len: cbor_event::Len,
-    ) -> Result<Self, DeserializeError> where Self: Sized;
-}
-pub trait SerializeEmbeddedGroup {
-    fn serialize_as_embedded_group<'a, W: Write + Sized>(
-        &self,
-        serializer: &'a mut Serializer<W>,
-    ) -> cbor_event::Result<&'a mut Serializer<W>>;
-}
-
-pub trait ToBytes {
-  fn to_bytes(&self) -> Vec<u8>;
-}
-
-impl<T: cbor_event::se::Serialize> ToBytes for T {
-  fn to_bytes(&self) -> Vec<u8> {
-      let mut buf = Serializer::new_vec();
-      self.serialize(&mut buf).unwrap();
-      buf.finalize()
-  }
-}use super::*;
+use super::*;
 use std::io::{Seek, SeekFrom};
 
 impl cbor_event::se::Serialize for FilesDetails {
@@ -85,7 +18,10 @@ impl Deserialize for FilesDetails {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
-            let mut read_len = CBORReadLen::new(len);
+            let mut read_len = CBORReadLen::new(match len {
+                cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, cbor_event::Sz::canonical(n)),
+                cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
+            });
             read_len.read_elems(3)?;
             let mut src = None;
             let mut name = None;
@@ -250,7 +186,10 @@ impl Deserialize for LabelMetadataV2 {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
-            let mut read_len = CBORReadLen::new(len);
+            let mut read_len = CBORReadLen::new(match len {
+                cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, cbor_event::Sz::canonical(n)),
+                cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
+            });
             read_len.read_elems(2)?;
             let mut data = None;
             let mut version_present = false;
@@ -348,7 +287,10 @@ impl Deserialize for Metadata {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
-            let mut read_len = CBORReadLen::new(len);
+            let mut read_len = CBORReadLen::new(match len {
+                cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, cbor_event::Sz::canonical(n)),
+                cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
+            });
             read_len.read_elems(1)?;
             let mut key_721 = None;
             let mut read = 0;
@@ -418,7 +360,10 @@ impl Deserialize for MetadataDetails {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
-            let mut read_len = CBORReadLen::new(len);
+            let mut read_len = CBORReadLen::new(match len {
+                cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, cbor_event::Sz::canonical(n)),
+                cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
+            });
             read_len.read_elems(2)?;
             let mut name = None;
             let mut files = None;

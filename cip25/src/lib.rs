@@ -1,5 +1,9 @@
 use std::io::{BufRead, Seek, Write};
-use prelude::*;
+
+pub use cardano_multiplatform_lib_core::{
+    serialization::*,
+    error::*,
+};
 
 // This library was code-generated using an experimental CDDL to rust tool:
 // https://github.com/Emurgo/cddl-codegen
@@ -10,9 +14,6 @@ use cbor_event::Type as CBORType;
 
 use cbor_event::Special as CBORSpecial;
 
-use serialization::*;
-
-pub mod prelude;
 
 pub mod serialization;
 

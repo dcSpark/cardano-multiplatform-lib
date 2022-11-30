@@ -1,4 +1,8 @@
 use super::*;
+use cardano_multiplatform_lib_core::{
+    serialization::{LenEncoding, StringEncoding},
+};
+use cbor_event::Sz;
 
 #[derive(Clone, Debug, Default)]
 pub struct AddressEncoding {
@@ -63,13 +67,6 @@ pub struct BlockEncoding {
     pub auxiliary_data_set_key_encodings: BTreeMap<u16, Option<cbor_event::Sz>>,
     pub invalid_transactions_encoding: LenEncoding,
     pub invalid_transactions_elem_encodings: Vec<Option<cbor_event::Sz>>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct BootstrapWitnessEncoding {
-    pub len_encoding: LenEncoding,
-    pub chain_code_encoding: StringEncoding,
-    pub attributes_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -176,16 +173,6 @@ pub struct Ipv6Encoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct KesSignatureEncoding {
-    pub inner_encoding: StringEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct KesVkeyEncoding {
-    pub inner_encoding: StringEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
 pub struct MoveInstantaneousRewardEncoding {
     pub len_encoding: LenEncoding,
     pub index_1_encoding: LenEncoding,
@@ -202,13 +189,6 @@ pub struct MoveInstantaneousRewardsCertEncoding {
 pub struct MultiHostNameEncoding {
     pub len_encoding: LenEncoding,
     pub index_0_encoding: Option<cbor_event::Sz>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct Nonce1Encoding {
-    pub len_encoding: LenEncoding,
-    pub index_0_encoding: Option<cbor_event::Sz>,
-    pub bytes_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -394,16 +374,6 @@ pub struct ShelleyTxOutEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct SignatureEncoding {
-    pub inner_encoding: StringEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct SignkeyKESEncoding {
-    pub inner_encoding: StringEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
 pub struct SingleHostAddrEncoding {
     pub len_encoding: LenEncoding,
     pub index_0_encoding: Option<cbor_event::Sz>,
@@ -536,26 +506,4 @@ pub struct ValueEncoding {
     pub coin_encoding: Option<cbor_event::Sz>,
     pub multiasset_encoding: LenEncoding,
     pub multiasset_value_encodings: BTreeMap<PolicyId, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct VkeyEncoding {
-    pub pubkey_bytes_encoding: StringEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct VkeywitnessEncoding {
-    pub len_encoding: LenEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct VrfCertEncoding {
-    pub len_encoding: LenEncoding,
-    pub index_0_encoding: StringEncoding,
-    pub bytes_encoding: StringEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct VrfVkeyEncoding {
-    pub inner_encoding: StringEncoding,
 }

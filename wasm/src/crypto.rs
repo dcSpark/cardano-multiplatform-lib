@@ -1,9 +1,12 @@
 use super::*;
 
-use core::CryptoError;
+use core_crypto::CryptoError;
+
+// for to/from bytes
+use core::serialization::{Serialize, Deserialize};
 
 #[wasm_bindgen]
-pub struct Bip32PrivateKey(core::Bip32PrivateKey);
+pub struct Bip32PrivateKey(core_crypto::Bip32PrivateKey);
 
 #[wasm_bindgen]
 impl Bip32PrivateKey {
@@ -39,7 +42,7 @@ impl Bip32PrivateKey {
     /// so be careful if you see the term "xprv" as it could refer to either one
     /// our library does not require the pub (instead we compute the pub key when needed)
     pub fn from_128_xprv(bytes: &[u8]) -> Result<Bip32PrivateKey, JsError> {
-        core::Bip32PrivateKey::from_128_xprv(bytes).map(Self).map_err(Into::into)
+        core_crypto::Bip32PrivateKey::from_128_xprv(bytes).map(Self).map_err(Into::into)
     }
     /// see from_128_xprv
     pub fn to_128_xprv(&self) -> Vec<u8> {
@@ -47,7 +50,7 @@ impl Bip32PrivateKey {
     }
 
     pub fn generate_ed25519_bip32() -> Bip32PrivateKey {
-        Self(core::Bip32PrivateKey::generate_ed25519_bip32())
+        Self(core_crypto::Bip32PrivateKey::generate_ed25519_bip32())
     }
 
     pub fn to_raw_key(&self) -> PrivateKey {
@@ -59,7 +62,7 @@ impl Bip32PrivateKey {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Bip32PrivateKey, JsError> {
-        core::Bip32PrivateKey::from_bytes(bytes).map(Self).map_err(Into::into)
+        core_crypto::Bip32PrivateKey::from_bytes(bytes).map(Self).map_err(Into::into)
     }
 
     pub fn as_bytes(&self) -> Vec<u8> {
@@ -67,7 +70,7 @@ impl Bip32PrivateKey {
     }
 
     pub fn from_bech32(bech32_str: &str) -> Result<Bip32PrivateKey, JsError> {
-        core::Bip32PrivateKey::from_bech32(bech32_str).map(Self).map_err(Into::into)
+        core_crypto::Bip32PrivateKey::from_bech32(bech32_str).map(Self).map_err(Into::into)
     }
 
     pub fn to_bech32(&self) -> String {
@@ -75,7 +78,7 @@ impl Bip32PrivateKey {
     }
 
     pub fn from_bip39_entropy(entropy: &[u8], password: &[u8]) -> Self {
-        Self(core::Bip32PrivateKey::from_bip39_entropy(entropy, password))
+        Self(core_crypto::Bip32PrivateKey::from_bip39_entropy(entropy, password))
     }
 
     pub fn chaincode(&self) -> Vec<u8> {
@@ -83,13 +86,13 @@ impl Bip32PrivateKey {
     }
 }
 
-impl From<core::Bip32PrivateKey> for Bip32PrivateKey {
-    fn from(inner: core::Bip32PrivateKey) -> Self {
+impl From<core_crypto::Bip32PrivateKey> for Bip32PrivateKey {
+    fn from(inner: core_crypto::Bip32PrivateKey) -> Self {
         Self(inner)
     }
 }
 
-impl From<Bip32PrivateKey> for core::Bip32PrivateKey {
+impl From<Bip32PrivateKey> for core_crypto::Bip32PrivateKey {
     fn from(wrapper: Bip32PrivateKey) -> Self {
         wrapper.0
     }
@@ -97,7 +100,7 @@ impl From<Bip32PrivateKey> for core::Bip32PrivateKey {
 
 
 #[wasm_bindgen]
-pub struct Bip32PublicKey(core::Bip32PublicKey);
+pub struct Bip32PublicKey(core_crypto::Bip32PublicKey);
 
 #[wasm_bindgen]
 impl Bip32PublicKey {
@@ -134,7 +137,7 @@ impl Bip32PublicKey {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Bip32PublicKey, JsError> {
-        core::Bip32PublicKey::from_bytes(bytes).map(Self).map_err(Into::into)
+        core_crypto::Bip32PublicKey::from_bytes(bytes).map(Self).map_err(Into::into)
     }
 
     pub fn as_bytes(&self) -> Vec<u8> {
@@ -142,7 +145,7 @@ impl Bip32PublicKey {
     }
 
     pub fn from_bech32(bech32_str: &str) -> Result<Bip32PublicKey, JsError> {
-        core::Bip32PublicKey::from_bech32(bech32_str).map(Self).map_err(Into::into)
+        core_crypto::Bip32PublicKey::from_bech32(bech32_str).map(Self).map_err(Into::into)
     }
 
     pub fn to_bech32(&self) -> String {
@@ -154,20 +157,20 @@ impl Bip32PublicKey {
     }
 }
 
-impl From<core::Bip32PublicKey> for Bip32PublicKey {
-    fn from(inner: core::Bip32PublicKey) -> Self {
+impl From<core_crypto::Bip32PublicKey> for Bip32PublicKey {
+    fn from(inner: core_crypto::Bip32PublicKey) -> Self {
         Self(inner)
     }
 }
 
-impl From<Bip32PublicKey> for core::Bip32PublicKey {
+impl From<Bip32PublicKey> for core_crypto::Bip32PublicKey {
     fn from(wrapper: Bip32PublicKey) -> Self {
         wrapper.0
     }
 }
 
 #[wasm_bindgen]
-pub struct PrivateKey(core::PrivateKey);
+pub struct PrivateKey(core_crypto::PrivateKey);
 
 #[wasm_bindgen]
 impl PrivateKey {
@@ -176,11 +179,11 @@ impl PrivateKey {
     }
 
     pub fn generate_ed25519() -> Self {
-        Self(core::PrivateKey::generate_ed25519())
+        Self(core_crypto::PrivateKey::generate_ed25519())
     }
 
     pub fn generate_ed25519extended() -> Self {
-        Self(core::PrivateKey::generate_ed25519extended())
+        Self(core_crypto::PrivateKey::generate_ed25519extended())
     }
 
     /// Get private key from its bech32 representation
@@ -192,7 +195,7 @@ impl PrivateKey {
     /// PrivateKey.from_bech32(&#39;ed25519e_sk1gqwl4szuwwh6d0yk3nsqcc6xxc3fpvjlevgwvt60df59v8zd8f8prazt8ln3lmz096ux3xvhhvm3ca9wj2yctdh3pnw0szrma07rt5gl748fp&#39;);
     /// ```
     pub fn from_bech32(bech32_str: &str) -> Result<PrivateKey, JsError> {
-        core::PrivateKey::from_bech32(bech32_str).map(Self).map_err(Into::into)
+        core_crypto::PrivateKey::from_bech32(bech32_str).map(Self).map_err(Into::into)
     }
 
     pub fn to_bech32(&self) -> String {
@@ -204,11 +207,11 @@ impl PrivateKey {
     }
 
     pub fn from_extended_bytes(bytes: &[u8]) -> Result<PrivateKey, JsError> {
-        core::PrivateKey::from_extended_bytes(bytes).map(Self).map_err(Into::into)
+        core_crypto::PrivateKey::from_extended_bytes(bytes).map(Self).map_err(Into::into)
     }
 
     pub fn from_normal_bytes(bytes: &[u8]) -> Result<PrivateKey, JsError> {
-        core::PrivateKey::from_normal_bytes(bytes).map(Self).map_err(Into::into)
+        core_crypto::PrivateKey::from_normal_bytes(bytes).map(Self).map_err(Into::into)
     }
 
     pub fn sign(&self, message: &[u8]) -> Ed25519Signature {
@@ -216,13 +219,13 @@ impl PrivateKey {
     }
 }
 
-impl From<core::PrivateKey> for PrivateKey {
-    fn from(inner: core::PrivateKey) -> Self {
+impl From<core_crypto::PrivateKey> for PrivateKey {
+    fn from(inner: core_crypto::PrivateKey) -> Self {
         Self(inner)
     }
 }
 
-impl From<PrivateKey> for core::PrivateKey {
+impl From<PrivateKey> for core_crypto::PrivateKey {
     fn from(wrapper: PrivateKey) -> Self {
         wrapper.0
     }
@@ -231,7 +234,7 @@ impl From<PrivateKey> for core::PrivateKey {
 
 /// ED25519 key used as public key
 #[wasm_bindgen]
-pub struct PublicKey(core::PublicKey);
+pub struct PublicKey(core_crypto::PublicKey);
 
 #[wasm_bindgen]
 impl PublicKey {
@@ -241,7 +244,7 @@ impl PublicKey {
     /// const pkey = PublicKey.from_bech32(&#39;ed25519_pk1dgaagyh470y66p899txcl3r0jaeaxu6yd7z2dxyk55qcycdml8gszkxze2&#39;);
     /// ```
     pub fn from_bech32(bech32_str: &str) -> Result<PublicKey, JsError> {
-        core::PublicKey::from_bech32(bech32_str).map(Self).map_err(Into::into)
+        core_crypto::PublicKey::from_bech32(bech32_str).map(Self).map_err(Into::into)
     }
 
     pub fn to_bech32(&self) -> String {
@@ -253,7 +256,7 @@ impl PublicKey {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, JsError> {
-        core::PublicKey::from_bytes(bytes).map(Self).map_err(Into::into)
+        core_crypto::PublicKey::from_bytes(bytes).map(Self).map_err(Into::into)
     }
 
     pub fn verify(&self, data: &[u8], signature: &Ed25519Signature) -> bool {
@@ -265,13 +268,13 @@ impl PublicKey {
     }
 }
 
-impl From<core::PublicKey> for PublicKey {
-    fn from(inner: core::PublicKey) -> Self {
+impl From<core_crypto::PublicKey> for PublicKey {
+    fn from(inner: core_crypto::PublicKey) -> Self {
         Self(inner)
     }
 }
 
-impl From<PublicKey> for core::PublicKey {
+impl From<PublicKey> for core_crypto::PublicKey {
     fn from(wrapper: PublicKey) -> Self {
         wrapper.0
     }
@@ -281,7 +284,7 @@ macro_rules! impl_signature {
     ($name:ident) => {
         #[wasm_bindgen]
         #[derive(Debug, Clone)]
-        pub struct $name(core::$name);
+        pub struct $name(core_crypto::$name);
 
         #[wasm_bindgen]
         impl $name {
@@ -298,15 +301,15 @@ macro_rules! impl_signature {
             }
 
             pub fn from_bech32(bech32_str: &str) -> Result<$name, JsError> {
-                core::$name::from_bech32(bech32_str).map(Self).map_err(Into::into)
+                core_crypto::$name::from_bech32(bech32_str).map(Self).map_err(Into::into)
             }
 
             pub fn from_hex(input: &str) -> Result<$name, JsError> {
-                core::$name::from_hex(input).map(Self).map_err(Into::into)
+                core_crypto::$name::from_hex(input).map(Self).map_err(Into::into)
             }
 
             pub fn from_raw_bytes(bytes: &[u8]) -> Result<$name, JsError> {
-                core::$name::from_raw_bytes(bytes).map(Self).map_err(Into::into)
+                core_crypto::$name::from_raw_bytes(bytes).map(Self).map_err(Into::into)
             }
 
             pub fn to_json(&self) -> Result<String, JsValue> {
@@ -323,14 +326,14 @@ macro_rules! impl_signature {
         }
 
 
-        impl From<core::$name> for $name {
-            fn from(inner: core::$name) -> Self {
+        impl From<core_crypto::$name> for $name {
+            fn from(inner: core_crypto::$name) -> Self {
                 Self(inner)
             }
         }
 
-        impl From<$name> for core::$name {
-            fn from(wrapper: $name) -> core::$name {
+        impl From<$name> for core_crypto::$name {
+            fn from(wrapper: $name) -> core_crypto::$name {
                 wrapper.0
             }
         }
@@ -343,7 +346,7 @@ macro_rules! impl_hash_type {
     ($name:ident) => {
         #[wasm_bindgen]
         #[derive(Debug, Clone)]
-        pub struct $name(core::$name);
+        pub struct $name(core_crypto::$name);
 
         #[wasm_bindgen]
         impl $name {
@@ -360,15 +363,15 @@ macro_rules! impl_hash_type {
             }
 
             pub fn from_bech32(bech32_str: &str) -> Result<$name, JsError> {
-                core::$name::from_bech32(bech32_str).map(Self).map_err(Into::into)
+                core_crypto::$name::from_bech32(bech32_str).map(Self).map_err(Into::into)
             }
 
             pub fn from_hex(input: &str) -> Result<$name, JsError> {
-                core::$name::from_hex(input).map(Self).map_err(Into::into)
+                core_crypto::$name::from_hex(input).map(Self).map_err(Into::into)
             }
 
             pub fn from_raw_bytes(bytes: &[u8]) -> Result<$name, JsError> {
-                core::$name::from_raw_bytes(bytes).map(Self).map_err(Into::into)
+                core_crypto::$name::from_raw_bytes(bytes).map(Self).map_err(Into::into)
             }
 
             pub fn to_json(&self) -> Result<String, JsValue> {
@@ -384,14 +387,14 @@ macro_rules! impl_hash_type {
             }
         }
 
-        impl From<core::$name> for $name {
-            fn from(inner: core::$name) -> Self {
+        impl From<core_crypto::$name> for $name {
+            fn from(inner: core_crypto::$name) -> Self {
                 Self(inner)
             }
         }
 
-        impl From<$name> for core::$name {
-            fn from(wrapper: $name) -> core::$name {
+        impl From<$name> for core_crypto::$name {
+            fn from(wrapper: $name) -> core_crypto::$name {
                 wrapper.0
             }
         }
@@ -417,18 +420,16 @@ impl_hash_type!(KESVKey);
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct KesSignature(pub(crate) core::KesSignature);
+pub struct KesSignature(pub(crate) core_crypto::KesSignature);
 
 #[wasm_bindgen]
 impl KesSignature {
-    pub fn to_bytes(&self, force_canonical: bool) -> Vec<u8> {
-        use core::serialization::ToBytes;
-        ToBytes::to_bytes(&self.0, force_canonical)
+    pub fn to_bytes(&self) -> Vec<u8> {
+        Serialize::to_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: Vec<u8>) -> Result<KesSignature, JsValue> {
-        use core::serialization::FromBytes;
-        FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_bytes(data: &[u8]) -> Result<KesSignature, JsValue> {
+        Deserialize::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {
@@ -448,13 +449,13 @@ impl KesSignature {
     }
 }
 
-impl From<core::KesSignature> for KesSignature {
-    fn from(native: core::KesSignature) -> Self {
+impl From<core_crypto::KesSignature> for KesSignature {
+    fn from(native: core_crypto::KesSignature) -> Self {
         Self(native)
     }
 }
 
-impl From<KesSignature> for core::KesSignature {
+impl From<KesSignature> for core_crypto::KesSignature {
     fn from(wasm: KesSignature) -> Self {
         wasm.0
     }
@@ -462,18 +463,16 @@ impl From<KesSignature> for core::KesSignature {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct Vkey(pub(crate) core::Vkey);
+pub struct Vkey(pub(crate) core_crypto::Vkey);
 
 #[wasm_bindgen]
 impl Vkey {
-    pub fn to_bytes(&self, force_canonical: bool) -> Vec<u8> {
-        use core::serialization::ToBytes;
-        ToBytes::to_bytes(&self.0, force_canonical)
+    pub fn to_bytes(&self) -> Vec<u8> {
+        Serialize::to_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: Vec<u8>) -> Result<Vkey, JsValue> {
-        use core::serialization::FromBytes;
-        FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_bytes(data: &[u8]) -> Result<Vkey, JsValue> {
+        Deserialize::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {
@@ -489,13 +488,13 @@ impl Vkey {
     }
 }
 
-impl From<core::Vkey> for Vkey {
-    fn from(native: core::Vkey) -> Self {
+impl From<core_crypto::Vkey> for Vkey {
+    fn from(native: core_crypto::Vkey) -> Self {
         Self(native)
     }
 }
 
-impl From<Vkey> for core::Vkey {
+impl From<Vkey> for core_crypto::Vkey {
     fn from(wasm: Vkey) -> Self {
         wasm.0
     }
@@ -503,18 +502,16 @@ impl From<Vkey> for core::Vkey {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct VrfCert(pub(crate) core::VrfCert);
+pub struct VrfCert(pub(crate) core_crypto::VrfCert);
 
 #[wasm_bindgen]
 impl VrfCert {
-    pub fn to_bytes(&self, force_canonical: bool) -> Vec<u8> {
-        use core::serialization::ToBytes;
-        ToBytes::to_bytes(&self.0, force_canonical)
+    pub fn to_bytes(&self) -> Vec<u8> {
+        Serialize::to_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: Vec<u8>) -> Result<VrfCert, JsValue> {
-        use core::serialization::FromBytes;
-        FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_bytes(data: &[u8]) -> Result<VrfCert, JsValue> {
+        Deserialize::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {
@@ -538,17 +535,17 @@ impl VrfCert {
     }
 
     pub fn new(index_0: Vec<u8>, bytes: Vec<u8>) -> Self {
-        Self(core::VrfCert::new(index_0, bytes))
+        Self(core_crypto::VrfCert::new(index_0, bytes))
     }
 }
 
-impl From<core::VrfCert> for VrfCert {
-    fn from(native: core::VrfCert) -> Self {
+impl From<core_crypto::VrfCert> for VrfCert {
+    fn from(native: core_crypto::VrfCert) -> Self {
         Self(native)
     }
 }
 
-impl From<VrfCert> for core::VrfCert {
+impl From<VrfCert> for core_crypto::VrfCert {
     fn from(wasm: VrfCert) -> Self {
         wasm.0
     }
@@ -556,18 +553,16 @@ impl From<VrfCert> for core::VrfCert {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct VrfVkey(pub(crate) core::VrfVkey);
+pub struct VrfVkey(pub(crate) core_crypto::VrfVkey);
 
 #[wasm_bindgen]
 impl VrfVkey {
-    pub fn to_bytes(&self, force_canonical: bool) -> Vec<u8> {
-        use core::serialization::ToBytes;
-        ToBytes::to_bytes(&self.0, force_canonical)
+    pub fn to_bytes(&self) -> Vec<u8> {
+        Serialize::to_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: Vec<u8>) -> Result<VrfVkey, JsValue> {
-        use core::serialization::FromBytes;
-        FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_bytes(data: &[u8]) -> Result<VrfVkey, JsValue> {
+        Deserialize::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {
@@ -587,13 +582,13 @@ impl VrfVkey {
     }
 }
 
-impl From<core::VrfVkey> for VrfVkey {
-    fn from(native: core::VrfVkey) -> Self {
+impl From<core_crypto::VrfVkey> for VrfVkey {
+    fn from(native: core_crypto::VrfVkey) -> Self {
         Self(native)
     }
 }
 
-impl From<VrfVkey> for core::VrfVkey {
+impl From<VrfVkey> for core_crypto::VrfVkey {
     fn from(wasm: VrfVkey) -> Self {
         wasm.0
     }

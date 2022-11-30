@@ -1,40 +1,49 @@
 use std::io::{BufRead, Seek, Write};
-pub use error::*;
 
-// This library was code-generated using an experimental CDDL to rust tool:
-// https://github.com/dcSpark/cddl-codegen
 
 use cbor_event::{self, de::Deserializer, se::Serializer};
-
 use cbor_event::Type as CBORType;
-
 use cbor_event::Special as CBORSpecial;
-
-use serialization::*;
-
 use std::collections::BTreeMap;
-
 use std::convert::{From, TryFrom};
-use schemars::JsonSchema;
-
-#[macro_use]
-extern crate cfg_if;
-
-pub mod error;
 
 pub mod serialization;
 
-pub mod ordered_hash_map;
-
-pub mod chain_core;
-pub mod chain_crypto;
-pub mod impl_mockchain;
 //pub mod legacy_address;
-pub mod typed_bytes;
 
-use ordered_hash_map::OrderedHashMap;
+pub use cardano_multiplatform_lib_core::{
+    ordered_hash_map::OrderedHashMap,
+    error::{DeserializeError, DeserializeFailure},
+    serialization::{Serialize, Deserialize, StringEncoding, LenEncoding},
+};
 
-use cbor_event::{Sz, LenSz, StringLenSz};
+use cardano_multiplatform_lib_crypto::{
+    BootstrapWitness,
+    KesSignature,
+    KesVkey,
+    Nonce,
+    SignkeyKES,
+    Vkey,
+    Vkeywitness,
+    VrfCert,
+    VrfVkey,
+    // auto-gened hashes/sigs:
+    Ed25519Signature,
+    Ed25519KeyHash,
+    ScriptHash,
+    TransactionHash,
+    GenesisDelegateHash,
+    GenesisHash,
+    AuxiliaryDataHash,
+    PoolMetadataHash,
+    VRFKeyHash,
+    BlockBodyHash,
+    BlockHeaderHash,
+    DataHash,
+    ScriptDataHash,
+    VRFVKey,
+    KESVKey,
+};
 
 pub mod cbor_encodings;
 
@@ -43,6 +52,9 @@ use cbor_encodings::*;
 extern crate derivative;
 
 pub(crate) use derivative::Derivative;
+
+// This library was code-generated using an experimental CDDL to rust tool:
+// https://github.com/dcSpark/cddl-codegen
 
 // TODO: for regen, change babbage's cddl to have our own names in the first place
 pub type AddrKeyhash = Ed25519KeyHash;
@@ -200,9 +212,9 @@ pub mod certs;
 pub use certs::*;
 
 
-pub mod crypto;
+//pub mod crypto;
 
-pub use crypto::*;
+//pub use crypto::*;
 
 
 pub mod metadata;
@@ -342,22 +354,6 @@ impl NetworkId {
     pub fn new_i1() -> Self {
         Self::I1 {
             i1_encoding: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Nonce1 {
-    pub bytes: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<Nonce1Encoding>,
-}
-
-impl Nonce1 {
-    pub fn new(bytes: Vec<u8>) -> Self {
-        Self {
-            bytes,
-            encodings: None,
         }
     }
 }
@@ -625,24 +621,6 @@ impl Value {
         Self {
             coin,
             multiasset,
-            encodings: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Vkeywitness {
-    pub vkey: Vkey,
-    pub signature: Ed25519Signature,
-    #[serde(skip)]
-    pub encodings: Option<VkeywitnessEncoding>,
-}
-
-impl Vkeywitness {
-    pub fn new(vkey: Vkey, signature: Ed25519Signature) -> Self {
-        Self {
-            vkey,
-            signature,
             encodings: None,
         }
     }

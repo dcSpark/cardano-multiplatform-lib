@@ -8,6 +8,10 @@ use std::collections::BTreeMap;
 use std::convert::{From, TryFrom};
 
 pub mod serialization;
+pub mod crypto;
+
+
+use crypto::*;
 
 //pub mod legacy_address;
 
@@ -15,34 +19,6 @@ pub use cardano_multiplatform_lib_core::{
     ordered_hash_map::OrderedHashMap,
     error::{DeserializeError, DeserializeFailure},
     serialization::{Serialize, Deserialize, StringEncoding, LenEncoding},
-};
-
-use cardano_multiplatform_lib_crypto::{
-    BootstrapWitness,
-    KesSignature,
-    KesVkey,
-    Nonce,
-    SignkeyKES,
-    Vkey,
-    Vkeywitness,
-    VrfCert,
-    VrfVkey,
-    // auto-gened hashes/sigs:
-    Ed25519Signature,
-    Ed25519KeyHash,
-    ScriptHash,
-    TransactionHash,
-    GenesisDelegateHash,
-    GenesisHash,
-    AuxiliaryDataHash,
-    PoolMetadataHash,
-    VRFKeyHash,
-    BlockBodyHash,
-    BlockHeaderHash,
-    DataHash,
-    ScriptDataHash,
-    VRFVKey,
-    KESVKey,
 };
 
 pub mod cbor_encodings;
@@ -565,6 +541,7 @@ impl StakeCredential {
     }
 
     pub fn to_raw_bytes(&self) -> &[u8] {
+        use cardano_multiplatform_lib_crypto::RawBytesEncoding;
         match self {
             Self::Key(key) => key.addr_keyhash.to_raw_bytes(),
             Self::Script(script) => script.scripthash.to_raw_bytes(),

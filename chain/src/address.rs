@@ -7,6 +7,7 @@ use derivative::Derivative;
 //use crate::genesis::network_info::NetworkInfo;
 use std::convert::TryInto;
 
+use cardano_multiplatform_lib_crypto as cml_crypto;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Hash, Copy, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct ProtocolMagic(pub(crate) u32);
@@ -249,16 +250,16 @@ impl Address {
         (|| -> Result<Self, DeserializeError> {
             let header = data[0];
             let network = header & 0x0F;
-            const HASH_LEN: usize = Ed25519KeyHash::BYTE_COUNT;
+            const HASH_LEN: usize = cml_crypto::Ed25519KeyHash::BYTE_COUNT;
             // should be static assert but it's maybe not worth importing a whole external crate for it now
-            assert_eq!(ScriptHash::BYTE_COUNT, HASH_LEN);
+            assert_eq!(cml_crypto::ScriptHash::BYTE_COUNT, HASH_LEN);
             // checks the /bit/ bit of the header for key vs scripthash then reads the credential starting at byte position /pos/
             let read_addr_cred = |bit: u8, pos: usize| {
                 let hash_bytes: [u8; HASH_LEN] = data[pos..pos+HASH_LEN].try_into().unwrap();
                 if header & (1 << bit)  == 0 {
-                    StakeCredential::Key(KeyStakeCredential::new(Ed25519KeyHash::from(hash_bytes)))
+                    StakeCredential::Key(KeyStakeCredential::new(cml_crypto::Ed25519KeyHash::from(hash_bytes).into()))
                 } else {
-                    StakeCredential::Script(ScriptStakeCredential::new(ScriptHash::from(hash_bytes)))
+                    StakeCredential::Script(ScriptStakeCredential::new(cml_crypto::ScriptHash::from(hash_bytes).into()))
                 }
             };
             fn make_encoding(bytes_encoding: Option<StringEncoding>, trailing: Option<Vec<u8>>) -> Result<Option<AddressEncoding>, DeserializeError> {

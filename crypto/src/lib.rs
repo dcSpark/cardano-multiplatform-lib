@@ -14,9 +14,6 @@ use rand::rngs::OsRng;
 use std::convert::{From, TryFrom};
 use cbor_event::{self, de::Deserializer, se::Serializer};
 
-pub mod cbor_encodings;
-mod serialization;
-
 // brought over from old IOHK code
 mod chain_core;
 mod chain_crypto;
@@ -27,7 +24,20 @@ mod typed_bytes;
 #[macro_use]
 extern crate cfg_if;
 
-use cbor_encodings::*;
+pub trait RawBytesEncoding {
+    fn to_raw_bytes(&self) -> &[u8];
+
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> where Self: Sized;
+
+    fn to_raw_hex(&self) -> String {
+        hex::encode(self.to_raw_bytes())
+    }
+
+    fn from_raw_hex(hex_str: &str) -> Result<Self, CryptoError> where Self: Sized {
+        let bytes = hex::decode(hex_str)?;
+        Self::from_raw_bytes(bytes.as_ref())
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum CryptoError {
@@ -45,6 +55,8 @@ pub enum CryptoError {
     SignatureFromStr(#[from] chain_crypto::SignatureFromStrError),
     #[error("BootStrapCombine: {0}")]
     BootstrapCombine(#[from] ed25519_bip32::PublicKeyError),
+    #[error("SignatureError: {0}")]
+    SignatureError(#[from] chain_crypto::SignatureError),
 }
 
 // otherwise with 2 Froms (bech32::Error -> chain_crypto::bech32::Error -> CryptoError)
@@ -54,254 +66,6 @@ impl From<bech32::Error> for CryptoError {
         chain_crypto::bech32::Error::Bech32Malformed(e).into()
     }
 }
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct KesSignature {
-    pub inner: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<KesSignatureEncoding>,
-}
-
-impl KesSignature {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
-    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
-        if inner.len() != 32 {
-            return Err(DeserializeError::new("KesSignature", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(32), max: Some(32) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: None,
-        })
-    }
-}
-
-impl TryFrom<Vec<u8>> for KesSignature {
-    type Error = DeserializeError;
-
-    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
-        KesSignature::new(inner)
-    }
-}
-
-impl From<KesSignature> for Vec<u8> {
-    fn from(wrapper: KesSignature) -> Self {
-        wrapper.inner
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct KesVkey {
-    pub inner: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<KesVkeyEncoding>,
-}
-
-impl KesVkey {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
-    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
-        if inner.len() != 8 {
-            return Err(DeserializeError::new("KesVkey", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(8), max: Some(8) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: None,
-        })
-    }
-}
-
-impl TryFrom<Vec<u8>> for KesVkey {
-    type Error = DeserializeError;
-
-    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
-        KesVkey::new(inner)
-    }
-}
-
-impl From<KesVkey> for Vec<u8> {
-    fn from(wrapper: KesVkey) -> Self {
-        wrapper.inner
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Nonce1 {
-    pub bytes: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<Nonce1Encoding>,
-}
-
-impl Nonce1 {
-    pub fn new(bytes: Vec<u8>) -> Self {
-        Self {
-            bytes,
-            encodings: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub enum Nonce {
-    I0 {
-        #[serde(skip)]
-        i0_encoding: Option<cbor_event::Sz>,
-        #[serde(skip)]
-        outer_len_encoding: LenEncoding,
-    },
-    Nonce1(Nonce1),
-}
-
-impl Nonce {
-    pub fn new_i0() -> Self {
-        Self::I0 {
-            i0_encoding: None,
-            outer_len_encoding: LenEncoding::default(),
-        }
-    }
-
-    pub fn new_nonce1(bytes: Vec<u8>) -> Self {
-        Self::Nonce1(Nonce1::new(bytes))
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct SignkeyKES {
-    pub inner: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<SignkeyKESEncoding>,
-}
-
-impl SignkeyKES {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
-    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
-        if inner.len() != 16 {
-            return Err(DeserializeError::new("SignkeyKES", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(16), max: Some(16) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: None,
-        })
-    }
-}
-
-impl TryFrom<Vec<u8>> for SignkeyKES {
-    type Error = DeserializeError;
-
-    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
-        SignkeyKES::new(inner)
-    }
-}
-
-impl From<SignkeyKES> for Vec<u8> {
-    fn from(wrapper: SignkeyKES) -> Self {
-        wrapper.inner
-    }
-}
-
-/// On-chain verification key (pubkey)
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Vkey {
-    pub pubkey: PublicKey,
-    #[serde(skip)]
-    pub encodings: Option<VkeyEncoding>,
-}
-
-impl Vkey {
-    pub fn new(pubkey: PublicKey) -> Self {
-        Self {
-            pubkey,
-            encodings: None,
-        }
-    }
-}
-
-impl From<PublicKey> for Vkey {
-    fn from(pubkey: PublicKey) -> Self {
-        Self::new(pubkey)
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct VrfCert {
-    pub index_0: Vec<u8>,
-    pub bytes: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<VrfCertEncoding>,
-}
-
-impl VrfCert {
-    pub fn new(index_0: Vec<u8>, bytes: Vec<u8>) -> Self {
-        Self {
-            index_0,
-            bytes,
-            encodings: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct VrfVkey {
-    pub inner: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<VrfVkeyEncoding>,
-}
-
-impl VrfVkey {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
-    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
-        if inner.len() != 8 {
-            return Err(DeserializeError::new("VrfVkey", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(8), max: Some(8) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: None,
-        })
-    }
-}
-
-impl TryFrom<Vec<u8>> for VrfVkey {
-    type Error = DeserializeError;
-
-    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
-        VrfVkey::new(inner)
-    }
-}
-
-impl From<VrfVkey> for Vec<u8> {
-    fn from(wrapper: VrfVkey) -> Self {
-        wrapper.inner
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Vkeywitness {
-    pub vkey: Vkey,
-    pub signature: Ed25519Signature,
-    #[serde(skip)]
-    pub encodings: Option<VkeywitnessEncoding>,
-}
-
-impl Vkeywitness {
-    pub fn new(vkey: Vkey, signature: Ed25519Signature) -> Self {
-        Self {
-            vkey,
-            signature,
-            encodings: None,
-        }
-    }
-}
-
 
 pub (crate) fn blake2b224(data: &[u8]) -> [u8; 28] {
     let mut out = [0; 28];
@@ -357,12 +121,14 @@ impl Bip32PrivateKey {
         buf[0..64].clone_from_slice(&bytes[0..64]);
         buf[64..96].clone_from_slice(&bytes[96..128]);
 
-        Bip32PrivateKey::from_bytes(&buf)
+        Bip32PrivateKey::from_raw_bytes(&buf)
     }
     /// see from_128_xprv
     pub fn to_128_xprv(&self) -> Vec<u8> {
-        let prv_key = self.to_raw_key().as_bytes();
-        let pub_key = self.to_public().to_raw_key().as_bytes();
+        let raw_key = self.to_raw_key();
+        let prv_key = raw_key.to_raw_bytes();
+        let raw_pub_key = self.to_public().to_raw_key();
+        let pub_key = raw_pub_key.to_raw_bytes();
         let cc = self.chaincode();
 
         let mut buf = [0; 128];
@@ -386,16 +152,6 @@ impl Bip32PrivateKey {
         Bip32PublicKey(self.0.to_public().into())
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Bip32PrivateKey, CryptoError> {
-        chain_crypto::SecretKey::<chain_crypto::Ed25519Bip32>::from_binary(bytes)
-            .map_err(Into::into)
-            .map(Bip32PrivateKey)
-    }
-
-    pub fn as_bytes(&self) -> Vec<u8> {
-        self.0.as_ref().to_vec()
-    }
-
     pub fn from_bech32(bech32_str: &str) -> Result<Bip32PrivateKey, CryptoError> {
         chain_crypto::SecretKey::try_from_bech32_str(&bech32_str)
             .map(Bip32PrivateKey)
@@ -414,6 +170,18 @@ impl Bip32PrivateKey {
         const ED25519_PRIVATE_KEY_LENGTH: usize = 64;
         const XPRV_SIZE: usize = 96;
         self.0.as_ref()[ED25519_PRIVATE_KEY_LENGTH..XPRV_SIZE].to_vec()
+    }
+}
+
+impl RawBytesEncoding for Bip32PrivateKey {
+    fn to_raw_bytes(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
+        chain_crypto::SecretKey::<chain_crypto::Ed25519Bip32>::from_binary(bytes)
+            .map_err(Into::into)
+            .map(Bip32PrivateKey)
     }
 }
 
@@ -454,16 +222,6 @@ impl Bip32PublicKey {
         PublicKey(chain_crypto::derive::to_raw_pk(&self.0))
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Bip32PublicKey, CryptoError> {
-        chain_crypto::PublicKey::<chain_crypto::Ed25519Bip32>::from_binary(bytes)
-            .map_err(Into::into)
-            .map(Bip32PublicKey)
-    }
-
-    pub fn as_bytes(&self) -> Vec<u8> {
-        self.0.as_ref().to_vec()
-    }
-
     pub fn from_bech32(bech32_str: &str) -> Result<Bip32PublicKey, CryptoError> {
         chain_crypto::PublicKey::try_from_bech32_str(&bech32_str)
             .map(Bip32PublicKey)
@@ -478,6 +236,18 @@ impl Bip32PublicKey {
         const ED25519_PUBLIC_KEY_LENGTH: usize = 32;
         const XPUB_SIZE: usize = 64;
         self.0.as_ref()[ED25519_PUBLIC_KEY_LENGTH..XPUB_SIZE].to_vec()
+    }
+}
+
+impl RawBytesEncoding for Bip32PublicKey {
+    fn to_raw_bytes(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
+        chain_crypto::PublicKey::<chain_crypto::Ed25519Bip32>::from_binary(bytes)
+            .map_err(Into::into)
+            .map(Bip32PublicKey)
     }
 }
 
@@ -530,13 +300,6 @@ impl PrivateKey {
         }
     }
 
-    pub fn as_bytes(&self) -> Vec<u8> {
-        match self.0 {
-            key::EitherEd25519SecretKey::Normal(ref secret) => secret.as_ref().to_vec(),
-            key::EitherEd25519SecretKey::Extended(ref secret) => secret.as_ref().to_vec(),
-        }
-    }
-
     pub fn from_extended_bytes(bytes: &[u8]) -> Result<PrivateKey, CryptoError> {
         chain_crypto::SecretKey::from_binary(bytes)
             .map(key::EitherEd25519SecretKey::Extended)
@@ -553,6 +316,20 @@ impl PrivateKey {
 
     pub fn sign(&self, message: &[u8]) -> Ed25519Signature {
         Ed25519Signature::from(self.0.sign(&message.to_vec()))
+    }
+}
+
+impl RawBytesEncoding for PrivateKey {
+    fn to_raw_bytes(&self) -> &[u8] {
+        match self.0 {
+            key::EitherEd25519SecretKey::Normal(ref secret) => secret.as_ref(),
+            key::EitherEd25519SecretKey::Extended(ref secret) => secret.as_ref(),
+        }
+    }
+
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
+        Self::from_normal_bytes(bytes)
+            .or_else(|_| Self::from_extended_bytes(bytes))
     }
 }
 
@@ -582,142 +359,68 @@ impl PublicKey {
         self.0.to_bech32_str()
     }
 
-    pub fn as_bytes(&self) -> Vec<u8> {
-        self.0.as_ref().to_vec()
+    pub fn verify(&self, data: &[u8], signature: &Ed25519Signature) -> bool {
+        signature.0.verify_slice(&self.0, data) == chain_crypto::Verification::Success
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, CryptoError> {
+    pub fn hash(&self) -> Ed25519KeyHash {
+        Ed25519KeyHash::from(blake2b224(self.to_raw_bytes().as_ref()))
+    }
+}
+
+impl RawBytesEncoding for PublicKey {
+    fn to_raw_bytes(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
         chain_crypto::PublicKey::from_binary(bytes)
             .map_err(Into::into)
             .map(PublicKey)
     }
-
-    pub fn verify(&self, data: &[u8], signature: &Ed25519Signature) -> bool {
-        signature.sig.verify_slice(&self.0, data) == chain_crypto::Verification::Success
-    }
-
-    pub fn hash(&self) -> Ed25519KeyHash {
-        Ed25519KeyHash::from(blake2b224(self.as_bytes().as_ref()))
-    }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct BootstrapWitness {
-    pub vkey: Vkey,
-    pub signature: Ed25519Signature,
-    pub chain_code: Vec<u8>,
-    // TODO: this should be replaced by AddrAttributes when Byron is brought over
-    pub attributes: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<BootstrapWitnessEncoding>,
-}
 
-impl BootstrapWitness {
-    pub fn new(vkey: Vkey, signature: Ed25519Signature, chain_code: Vec<u8>, attributes: Vec<u8>) -> Self {
-        Self {
-            vkey,
-            signature,
-            chain_code,
-            attributes,
-            encodings: None,
-        }
-    }
-
-    pub fn to_public_key(&self) -> Result<Bip32PublicKey, CryptoError> {
-        chain_crypto::PublicKey::<chain_crypto::ed25519_derive::Ed25519Bip32>::try_from(self.clone())
-            .map(Bip32PublicKey)
-            .map_err(Into::into)
-    }
-
-    // pub fn to_address(&self) -> Result<AddressContent, CryptoError> {
-    //     AddressContent::try_from(self.clone())
-    //         .map_err(Into::into)
-    // }
-}
-
-impl TryFrom<BootstrapWitness> for chain_crypto::PublicKey<chain_crypto::ed25519_derive::Ed25519Bip32> {
-    type Error = ed25519_bip32::PublicKeyError;
-
-    fn try_from(wit: BootstrapWitness) -> Result<Self, Self::Error> {
-        combine_pk_and_chaincode(wit.vkey.pubkey.0, &wit.chain_code)
-    }
-}
-
-// impl TryFrom<BootstrapWitness> for AddressContent {
-//     type Error = ed25519_bip32::PublicKeyError;
-
-//     fn try_from(wit: BootstrapWitness) -> Result<Self, Self::Error> {
-//         let protocol_magic = wit.attributes.protocol_magic;
-//         let key = chain_crypto::PublicKey::<chain_crypto::ed25519_derive::Ed25519Bip32>::try_from(wit)?;
-//         let address_content = AddressContent::new_simple(&Bip32PublicKey(key), protocol_magic);
-//         Ok(address_content)
-//     }
-// }
 
 macro_rules! impl_signature {
     ($name:ident, $signee_type:ty, $verifier_type:ty) => {
         #[derive(Debug, Clone)]
-        pub struct $name{
-            sig: chain_crypto::Signature<$signee_type, $verifier_type>,
-            encoding: StringEncoding,
-        }
+        pub struct $name(chain_crypto::Signature<$signee_type, $verifier_type>);
 
         impl $name {
-            pub fn to_raw_bytes(&self) -> Vec<u8> {
-                self.sig.as_ref().to_vec()
-            }
-
             pub fn to_bech32(&self) -> String {
                 use crate::chain_crypto::bech32::Bech32;
-                self.sig.to_bech32_str()
+                self.0.to_bech32_str()
             }
 
             pub fn to_hex(&self) -> String {
-                hex::encode(&self.sig.as_ref())
+                hex::encode(&self.0.as_ref())
             }
 
-            pub fn from_bech32(bech32_str: &str) -> Result<$name, CryptoError> {
+            pub fn from_bech32(bech32_str: &str) -> Result<Self, CryptoError> {
                 use crate::chain_crypto::bech32::Bech32;
-                let sig = chain_crypto::Signature::try_from_bech32_str(&bech32_str)?;
-                Ok($name {
-                    sig,
-                    encoding: StringEncoding::default(),
-                })
+                chain_crypto::Signature::try_from_bech32_str(&bech32_str)
+                    .map(Self)
+                    .map_err(Into::into)
             }
 
-            pub fn from_hex(input: &str) -> Result<$name, CryptoError> {
+            pub fn from_hex(input: &str) -> Result<Self, CryptoError> {
                 use crate::chain_core::property::FromStr;
-                let sig = chain_crypto::Signature::from_str(input)?;
-                Ok($name {
-                    sig,
-                    encoding: StringEncoding::default(),
-                })
-            }
-
-            pub fn from_raw_bytes(bytes: &[u8]) -> Result<$name, DeserializeError> {
-                let sig = chain_crypto::Signature::from_binary(bytes.as_ref())
-                    .map_err(|e| DeserializeError::new(stringify!($name), DeserializeFailure::InvalidStructure(Box::new(e))))?;
-                Ok($name {
-                    sig,
-                    encoding: StringEncoding::default(),
-                })
-            }
-    }
-
-        impl Serialize for $name {
-            fn serialize<'se, W: std::io::Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-                serializer.write_bytes_sz(self.sig.as_ref(), self.encoding.to_str_len_sz(self.sig.as_ref().len() as u64, force_canonical))
+                chain_crypto::Signature::from_str(input)
+                    .map(Self)
+                    .map_err(Into::into)
             }
         }
 
-        impl Deserialize for $name {
-            fn deserialize<R: std::io::BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-                let (bytes, encoding) = raw.bytes_sz()?;
-                Ok(Self {
-                    sig: chain_crypto::Signature::from_binary(bytes.as_ref())
-                        .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?,
-                    encoding: encoding.into(),
-                })
+        impl RawBytesEncoding for $name {
+            fn to_raw_bytes(&self) -> &[u8] {
+                self.0.as_ref()
+            }
+
+            fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
+                chain_crypto::Signature::from_binary(bytes.as_ref())
+                    .map(Self)
+                    .map_err(Into::into)
             }
         }
 
@@ -744,16 +447,13 @@ macro_rules! impl_signature {
 
         impl std::hash::Hash for $name {
             fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-                self.sig.as_ref().hash(state)
+                self.0.as_ref().hash(state)
             }
         }
 
         impl From<chain_crypto::Signature<$signee_type, $verifier_type>> for $name {
             fn from(sig: chain_crypto::Signature<$signee_type, $verifier_type>) -> Self {
-                Self {
-                    sig,
-                    encoding: StringEncoding::default(),
-                }
+                Self(sig)
             }
         }
     };
@@ -762,45 +462,18 @@ macro_rules! impl_signature {
 impl_signature!(Ed25519Signature, Vec<u8>, chain_crypto::Ed25519);
 macro_rules! impl_hash_type {
     ($name:ident, $byte_count:expr) => {
-        #[derive(Debug, Clone, derivative::Derivative)]
-        #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
-        pub struct $name{
-            pub (crate) data: [u8; $byte_count],
-            #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
-            encoding: StringEncoding,
-        }
+        #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+        pub struct $name([u8; $byte_count]);
 
         impl $name {
             pub const BYTE_COUNT: usize = $byte_count;
 
-            // hash types are the only types in this library to not give the entire CBOR structure.
-            // There is no CBOR binary tag here just the raw hash bytes.
-            pub fn to_raw_bytes(&self) -> &[u8] {
-                self.data.as_ref()
-            }
-
-            // hash types are the only types in this library to not expect the entire CBOR structure.
-            // There is no CBOR binary tag here just the raw hash bytes.
-            pub fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
-                use std::convert::TryInto;
-                match bytes.len() {
-                    $byte_count => Ok($name {
-                        data: bytes[..$byte_count].try_into().unwrap(),
-                        encoding: StringEncoding::default(),
-                    }),
-                    other_len => {
-                        let cbor_error = cbor_event::Error::WrongLen($byte_count, cbor_event::Len::Len(other_len as u64), "hash length");
-                        Err(DeserializeError::new(stringify!($name), DeserializeFailure::CBOR(cbor_error)))
-                    },
-                }
-            }
-
             pub fn to_bech32(&self, prefix: &str) -> Result<String, CryptoError> {
                 use bech32::ToBase32;
-                bech32::encode(&prefix, self.to_raw_bytes().to_base32())
+                bech32::encode(&prefix, self.0.as_ref().to_base32())
                     .map_err(Into::into)
             }
-        
+
             pub fn from_bech32(bech_str: &str) -> Result<$name, CryptoError> {
                 let (_hrp, u5data) = bech32::decode(bech_str)
                     .map_err(chain_crypto::bech32::Error::Bech32Malformed)?;
@@ -809,106 +482,39 @@ macro_rules! impl_hash_type {
                 Self::from_raw_bytes(&data)
                     .map_err(Into::into)
             }
-
-            pub fn to_hex(&self) -> String {
-                hex::encode(&self.data)
-            }
-
-            pub fn from_hex(hex: &str) -> Result<$name, CryptoError> {
-                let bytes = hex::decode(hex)?;
-                Ok(Self::from_raw_bytes(&bytes)?)
-            }
         }
 
         impl std::fmt::Display for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}", self.to_hex())
+                write!(f, "{}", self.to_raw_hex())
             }
         }
 
         impl From<[u8; $byte_count]> for $name {
             fn from(bytes: [u8; $byte_count]) -> Self {
-                Self {
-                    data: bytes,
-                    encoding: StringEncoding::default(),
+                Self(bytes)
+            }
+        }
+
+        impl RawBytesEncoding for $name {
+            fn to_raw_bytes(&self) -> &[u8] {
+                self.0.as_ref()
+            }
+
+            fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
+                use std::convert::TryInto;
+                match bytes.len() {
+                    $byte_count => Ok($name(bytes[..$byte_count].try_into().unwrap())),
+                    other_len => {
+                        let cbor_error = cbor_event::Error::WrongLen($byte_count, cbor_event::Len::Len(other_len as u64), "hash length");
+                        Err(DeserializeError::new(stringify!($name), DeserializeFailure::CBOR(cbor_error)).into())
+                    },
                 }
             }
-        }
-
-        impl Serialize for $name {
-            fn serialize<'se, W: std::io::Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-                serializer.write_bytes_sz(&self.data, self.encoding.to_str_len_sz(self.data.len() as u64, force_canonical))
-            }
-
-            fn to_bytes(&self) -> Vec<u8> {
-                self.to_raw_bytes().to_vec()
-            }
-        }
-
-        impl Deserialize for $name {
-            fn deserialize<R: std::io::BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-                use std::convert::TryInto;
-                (|| -> Result<Self, DeserializeError> {
-                    let (bytes, encoding) = raw.bytes_sz()?;
-                    if bytes.len() != $byte_count {
-                        return Err(DeserializeFailure::CBOR(cbor_event::Error::WrongLen($byte_count, cbor_event::Len::Len(bytes.len() as u64), "hash length")).into());
-                    }
-                    Ok($name {
-                        data: bytes[..$byte_count].try_into().unwrap(),
-                        encoding: encoding.into(),
-                    })
-                })().map_err(|e| e.annotate(stringify!($name)))
-            }
-            
-            fn from_bytes(data: &[u8]) -> Result<Self, DeserializeError> {
-                Self::from_raw_bytes(data)
-            }
-        }
-
-        impl serde::Serialize for $name {
-            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-            where S: serde::Serializer {
-                serializer.serialize_str(&self.to_hex())
-            }
-        }
-        
-        impl <'de> serde::de::Deserialize<'de> for $name {
-            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
-            D: serde::de::Deserializer<'de> {
-                let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-                $name::from_hex(&s).map_err(|_e| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"hex bytes for hash"))
-            }
-        }
-        
-        impl schemars::JsonSchema for $name {
-            fn schema_name() -> String { String::from(stringify!($name)) }
-            fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
-            fn is_referenceable() -> bool { String::is_referenceable() }
         }
     }
 }
 pub(crate) use impl_hash_type;
-
-
-pub struct LegacyDaedalusPrivateKey(pub (crate) chain_crypto::SecretKey<chain_crypto::LegacyDaedalus>);
-
-impl LegacyDaedalusPrivateKey {
-    pub fn from_bytes(bytes: &[u8]) -> Result<LegacyDaedalusPrivateKey, CryptoError> {
-        chain_crypto::SecretKey::<chain_crypto::LegacyDaedalus>::from_binary(bytes)
-            .map(LegacyDaedalusPrivateKey)
-            .map_err(|e| e.into())
-    }
-
-    pub fn as_bytes(&self) -> Vec<u8> {
-        self.0.as_ref().to_vec()
-    }
-
-    pub fn chaincode(&self) -> Vec<u8> {
-        const ED25519_PRIVATE_KEY_LENGTH: usize = 64;
-        const XPRV_SIZE: usize = 96;
-        self.0.as_ref()[ED25519_PRIVATE_KEY_LENGTH..XPRV_SIZE].to_vec()
-    }
-}
 
 impl_hash_type!(Ed25519KeyHash, 28);
 impl_hash_type!(ScriptHash, 28);
@@ -928,3 +534,26 @@ impl_hash_type!(VRFVKey, 32);
 impl_hash_type!(KESVKey, 32);
 // same for this signature
 //impl_hash_type!(KESSignature, 448);
+
+
+pub struct LegacyDaedalusPrivateKey(pub (crate) chain_crypto::SecretKey<chain_crypto::LegacyDaedalus>);
+
+impl LegacyDaedalusPrivateKey {
+    pub fn chaincode(&self) -> Vec<u8> {
+        const ED25519_PRIVATE_KEY_LENGTH: usize = 64;
+        const XPRV_SIZE: usize = 96;
+        self.0.as_ref()[ED25519_PRIVATE_KEY_LENGTH..XPRV_SIZE].to_vec()
+    }
+}
+
+impl RawBytesEncoding for LegacyDaedalusPrivateKey {
+    fn to_raw_bytes(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+
+    fn from_raw_bytes(bytes: &[u8]) -> Result<LegacyDaedalusPrivateKey, CryptoError> {
+        chain_crypto::SecretKey::<chain_crypto::LegacyDaedalus>::from_binary(bytes)
+            .map(LegacyDaedalusPrivateKey)
+            .map_err(|e| e.into())
+    }
+}

@@ -53,6 +53,7 @@ pub mod typed_bytes;
 pub mod emip3;
 pub mod ledger;
 pub mod byron;
+mod json_serialize;
 
 use address::*;
 use crypto::*;

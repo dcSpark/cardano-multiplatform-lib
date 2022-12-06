@@ -1,7 +1,7 @@
 //use crate::byron::{AddrAttributes, AddressContent};
 use crate::chain_crypto::{
     bech32::Bech32,
-    derive::combine_pk_and_chaincode
+//    derive::combine_pk_and_chaincode
 };
 pub use cardano_multiplatform_lib_core::{
     error::{DeserializeError, DeserializeFailure},
@@ -11,8 +11,8 @@ pub use derivative::{Derivative};
 use cryptoxide::blake2b::Blake2b;
 use impl_mockchain::key;
 use rand::rngs::OsRng;
-use std::convert::{From, TryFrom};
-use cbor_event::{self, de::Deserializer, se::Serializer};
+use std::convert::{From};
+use cbor_event::{self};
 
 // brought over from old IOHK code
 mod chain_core;
@@ -67,13 +67,13 @@ impl From<bech32::Error> for CryptoError {
     }
 }
 
-pub (crate) fn blake2b224(data: &[u8]) -> [u8; 28] {
+pub fn blake2b224(data: &[u8]) -> [u8; 28] {
     let mut out = [0; 28];
     Blake2b::blake2b(&mut out, data, &[]);
     out
 }
 
-pub (crate) fn blake2b256(data: &[u8]) -> [u8; 32] {
+pub fn blake2b256(data: &[u8]) -> [u8; 32] {
     let mut out = [0; 32];
     Blake2b::blake2b(&mut out, data, &[]);
     out
@@ -532,7 +532,7 @@ impl_hash_type!(ScriptDataHash, 32);
 // We might want to make these two vkeys normal classes later but for now it's just arbitrary bytes for us (used in block parsing)
 impl_hash_type!(VRFVKey, 32);
 impl_hash_type!(KESVKey, 32);
-// same for this signature
+// same for this signature (but lots of traits aren't implemented for [u8; 448] so we can't)
 //impl_hash_type!(KESSignature, 448);
 
 

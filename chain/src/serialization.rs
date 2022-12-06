@@ -1479,7 +1479,7 @@ impl Deserialize for HeaderBody {
                 Ok(Vkey::deserialize(raw)?)
             })().map_err(|e| e.annotate("issuer_vkey"))?;
             let vrf_vkey = (|| -> Result<_, DeserializeError> {
-                Ok(VrfVkey::deserialize(raw)?)
+                Ok(VRFVKey::deserialize(raw)?)
             })().map_err(|e| e.annotate("vrf_vkey"))?;
             let vrf_result = (|| -> Result<_, DeserializeError> {
                 Ok(VrfCert::deserialize(raw)?)
@@ -2155,7 +2155,7 @@ impl DeserializeEmbeddedGroup for OperationalCert {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, read_len: &mut CBORReadLen, len: cbor_event::LenSz) -> Result<Self, DeserializeError> {
         let len_encoding = len.into();
         let hot_vkey = (|| -> Result<_, DeserializeError> {
-            Ok(KesVkey::deserialize(raw)?)
+            Ok(KESVKey::deserialize(raw)?)
         })().map_err(|e| e.annotate("hot_vkey"))?;
         let (sequence_number, sequence_number_encoding) = (|| -> Result<_, DeserializeError> {
             Ok(raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?)
@@ -6278,34 +6278,13 @@ impl Deserialize for KesSignature {
         })
     }
 }
-  
-impl Serialize for KesVkey {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes_sz(&self.inner, self.encodings.as_ref().map(|encs| encs.inner_encoding.clone()).unwrap_or_default().to_str_len_sz(self.inner.len() as u64, force_canonical))
-    }
-}
-  
-impl Deserialize for KesVkey {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw.bytes_sz().map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() != 8 {
-            return Err(DeserializeError::new("KesVkey", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(8), max: Some(8) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(KesVkeyEncoding {
-                inner_encoding,
-            }),
-        })
-    }
-}
-  
+
 impl Serialize for SignkeyKES {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_bytes_sz(&self.inner, self.encodings.as_ref().map(|encs| encs.inner_encoding.clone()).unwrap_or_default().to_str_len_sz(self.inner.len() as u64, force_canonical))
     }
 }
-  
+
 impl Deserialize for SignkeyKES {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let (inner, inner_encoding) = raw.bytes_sz().map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
@@ -6320,7 +6299,7 @@ impl Deserialize for SignkeyKES {
         })
     }
 }
-  
+
 impl Serialize for Nonce {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
@@ -6334,7 +6313,7 @@ impl Serialize for Nonce {
         }
     }
 }
-  
+
 impl Deserialize for Nonce {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
@@ -6374,14 +6353,14 @@ impl Deserialize for Nonce {
         })().map_err(|e| e.annotate("Nonce"))
     }
 }
-  
+
 impl Serialize for Nonce1 {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(2, force_canonical))?;
         self.serialize_as_embedded_group(serializer, force_canonical)
     }
 }
-  
+
 impl SerializeEmbeddedGroup for Nonce1 {
     fn serialize_as_embedded_group<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_unsigned_integer_sz(1u64, fit_sz(1u64, self.encodings.as_ref().map(|encs| encs.index_0_encoding.clone()).unwrap_or_default(), force_canonical))?;
@@ -6389,7 +6368,7 @@ impl SerializeEmbeddedGroup for Nonce1 {
         self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().end(serializer, force_canonical)
     }
 }
-  
+
 impl Deserialize for Nonce1 {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
@@ -6408,7 +6387,7 @@ impl Deserialize for Nonce1 {
         })().map_err(|e| e.annotate("Nonce1"))
     }
 }
-  
+
 impl DeserializeEmbeddedGroup for Nonce1 {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, read_len: &mut CBORReadLen, len: cbor_event::LenSz) -> Result<Self, DeserializeError> {
         let len_encoding = len.into();
@@ -6442,7 +6421,7 @@ impl Serialize for Vkeywitness {
         self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().end(serializer, force_canonical)
     }
 }
-  
+
 impl Deserialize for Vkeywitness {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
@@ -6473,7 +6452,7 @@ impl Deserialize for Vkeywitness {
         })().map_err(|e| e.annotate("Vkeywitness"))
     }
 }
-  
+
 impl Serialize for VrfCert {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(2, force_canonical))?;
@@ -6482,7 +6461,7 @@ impl Serialize for VrfCert {
         self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().end(serializer, force_canonical)
     }
 }
-  
+
 impl Deserialize for VrfCert {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
@@ -6513,26 +6492,5 @@ impl Deserialize for VrfCert {
                 }),
             })
         })().map_err(|e| e.annotate("VrfCert"))
-    }
-}
-  
-impl Serialize for VrfVkey {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes_sz(&self.inner, self.encodings.as_ref().map(|encs| encs.inner_encoding.clone()).unwrap_or_default().to_str_len_sz(self.inner.len() as u64, force_canonical))
-    }
-}
-  
-impl Deserialize for VrfVkey {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw.bytes_sz().map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() != 8 {
-            return Err(DeserializeError::new("VrfVkey", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(8), max: Some(8) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(VrfVkeyEncoding {
-                inner_encoding,
-            }),
-        })
     }
 }

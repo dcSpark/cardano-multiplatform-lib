@@ -14,8 +14,13 @@ core/Cargo.lock
 crypto/target/**
 crypto/Cargo.lock
 
+crypto-wasm/target/**
+crypto-wasm/Cargo.lock
+crypto-wasm/pkg/**
+
 wasm/target/**
 wasm/Cargo.lock
+wasm/pkg/**
 
 cip25/target/**
 cip25/Cargo.lock

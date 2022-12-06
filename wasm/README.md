@@ -1,3 +1,3 @@
 # wasm
 
-WASM bindings covering the `chain` and `crypto` crates. We will need to try to split this off into separate bindings crates later if that is possible.
+WASM bindings covering the `chain` crate. Includes the `crypto` crate as a dependency so you do not need to use both as both are output in WASM builds.

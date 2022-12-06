@@ -18,11 +18,11 @@ pub struct StakeCredential(core::StakeCredential);
 
 #[wasm_bindgen]
 impl StakeCredential {
-    pub fn new_key(addr_keyhash: &Ed25519KeyHash) -> Self {
+    pub fn new_key(addr_keyhash: &Ed25519KeyHashOnChain) -> Self {
         core::StakeCredential::new_key(addr_keyhash.clone().into()).into()
     }
 
-    pub fn new_script(scripthash: &ScriptHash) -> Self {
+    pub fn new_script(scripthash: &ScriptHashOnChain) -> Self {
         core::StakeCredential::new_script(scripthash.clone().into()).into()
     }
 }

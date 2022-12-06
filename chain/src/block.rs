@@ -48,7 +48,7 @@ pub struct HeaderBody {
     pub slot: u64,
     pub prev_hash: Option<BlockHeaderHash>,
     pub issuer_vkey: Vkey,
-    pub vrf_vkey: VrfVkey,
+    pub vrf_vkey: VRFVKey,
     pub vrf_result: VrfCert,
     pub block_body_size: u64,
     pub block_body_hash: BlockBodyHash,
@@ -59,7 +59,7 @@ pub struct HeaderBody {
 }
 
 impl HeaderBody {
-    pub fn new(block_number: u64, slot: u64, prev_hash: Option<BlockHeaderHash>, issuer_vkey: Vkey, vrf_vkey: VrfVkey, vrf_result: VrfCert, block_body_size: u64, block_body_hash: BlockBodyHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion) -> Self {
+    pub fn new(block_number: u64, slot: u64, prev_hash: Option<BlockHeaderHash>, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VrfCert, block_body_size: u64, block_body_hash: BlockBodyHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion) -> Self {
         Self {
             block_number,
             slot,
@@ -78,7 +78,7 @@ impl HeaderBody {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct OperationalCert {
-    pub hot_vkey: KesVkey,
+    pub hot_vkey: KESVKey,
     pub sequence_number: u64,
     pub kes_period: u64,
     pub sigma: Ed25519Signature,
@@ -87,7 +87,7 @@ pub struct OperationalCert {
 }
 
 impl OperationalCert {
-    pub fn new(hot_vkey: KesVkey, sequence_number: u64, kes_period: u64, sigma: Ed25519Signature) -> Self {
+    pub fn new(hot_vkey: KESVKey, sequence_number: u64, kes_period: u64, sigma: Ed25519Signature) -> Self {
         Self {
             hot_vkey,
             sequence_number,

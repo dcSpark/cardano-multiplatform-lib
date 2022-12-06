@@ -42,43 +42,6 @@ impl From<KesSignature> for Vec<u8> {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct KesVkey {
-    pub inner: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<KesVkeyEncoding>,
-}
-
-impl KesVkey {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
-    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
-        if inner.len() != 8 {
-            return Err(DeserializeError::new("KesVkey", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(8), max: Some(8) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: None,
-        })
-    }
-}
-
-impl TryFrom<Vec<u8>> for KesVkey {
-    type Error = DeserializeError;
-
-    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
-        KesVkey::new(inner)
-    }
-}
-
-impl From<KesVkey> for Vec<u8> {
-    fn from(wrapper: KesVkey) -> Self {
-        wrapper.inner
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct Nonce1 {
     pub bytes: Vec<u8>,
     #[serde(skip)]
@@ -170,43 +133,6 @@ impl VrfCert {
             bytes,
             encodings: None,
         }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct VrfVkey {
-    pub inner: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<VrfVkeyEncoding>,
-}
-
-impl VrfVkey {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
-    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
-        if inner.len() != 8 {
-            return Err(DeserializeError::new("VrfVkey", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(8), max: Some(8) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: None,
-        })
-    }
-}
-
-impl TryFrom<Vec<u8>> for VrfVkey {
-    type Error = DeserializeError;
-
-    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
-        VrfVkey::new(inner)
-    }
-}
-
-impl From<VrfVkey> for Vec<u8> {
-    fn from(wrapper: VrfVkey) -> Self {
-        wrapper.inner
     }
 }
 

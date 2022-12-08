@@ -964,8 +964,10 @@ mod tests {
             "{}{}",
             "nul",
             "\"\"\"",
-            "\"",
+            "\"\\\"",
             "\\\"\\\"",
+            "\\\"
+            \\\"",
         ];
         for case in cases.into_iter() {
             let computed_tokens = tokenize_string(case.to_string());
@@ -1006,6 +1008,8 @@ mod tests {
             (" {\"kek\": []}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![]))]))),
             ("{\"kek\":[{\"\":[{}]}]}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Object(BTreeMap::new())]))]))]))]))),
             ("{\"kek\":[{\"\":[1]}]}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))]))),
+            ("[{\"kek\":[{\"\":[1, \"{}[]:,\\\"{}[]:,\\\"\"\
+            ]}]},{\"kek\":[{\"\":[1]}]}]", Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1)),Value::String("{}[]:,\"{}[]:,\"".to_string())]))]))]))])), Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))]))])),
             ("[{\"kek\":[{\"\":[1]}]},{\"kek\":[{\"\":[1]}]}]", Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))])), Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))]))])),
             ("[\
                 {\

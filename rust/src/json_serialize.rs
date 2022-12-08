@@ -54,6 +54,22 @@ enum JsonToken {
     },
 }
 
+impl JsonToken {
+    fn is_quote(&self) -> bool {
+        match self {
+            JsonToken::Quote => true,
+            _ => false,
+        }
+    }
+
+    fn is_string(&self) -> bool {
+        match self {
+            JsonToken::String { .. } => true,
+            _ => false,
+        }
+    }
+}
+
 impl Serialize for Value {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         let string = self.clone().to_string().map_err(|err| serde::ser::Error::custom(format!("serialize: {:?}", err)))?;
@@ -108,11 +124,49 @@ impl Display for JsonParseError {
 }
 
 fn tokenize_string(string: String) -> Vec<JsonToken> {
+    fn are_we_inside_string(tokens: &Vec<JsonToken>) -> bool {
+        if tokens.len() == 0 {
+            return false;
+        }
+        if tokens.len() == 1 {
+            let is_last_token_quote = tokens.last().map(|t| t.is_quote()).unwrap_or(false);
+            return is_last_token_quote;
+        }
+        let last_token = tokens.get(tokens.len() - 1);
+        let token_before_last_token = tokens.get(tokens.len() - 2);
+        let is_token_before_last_string_or_quote = token_before_last_token.map(|t| t.is_quote() || t.is_string()).unwrap_or(false);
+        let is_last_token_quote = last_token.map(|t| t.is_quote()).unwrap_or(false);
+
+        return !is_token_before_last_string_or_quote && is_last_token_quote;
+        /*
+
+         This works because of the following:
+         We either have:
+           - string without quote on right (which could be invalid as well)
+           - string with quote on right
+
+         If we had a string with quote on right before current position, the tokens will be:
+         [.., String, Quote, <current pos>]
+         or in case of empty string:
+         [.., Quote, Quote, <current pos>].
+
+         We never have 2 strings in a row [.., String, String, ..], so we won't face situation
+         when we consider we're in / not in the string incorrectly
+
+         If we had a string without quote on right than it's just current string and it's not pushed.
+         This way we will have [.., Quote, <current pos>]
+
+         if before quote there was another string - this is invalid json
+
+         */
+    }
+
     let mut tokens = Vec::<JsonToken>::new();
     let mut current_string: String = String::new();
     for char in string.graphemes(true) {
         let (reset_string, token) = match char {
             "\"" => {
+                // if we have backslashed quotes in a string they're in the string already
                 if !current_string.is_empty() && current_string.clone().graphemes(true).last().clone().unwrap() == "\\" {
                     let graphemes_count = current_string.clone().graphemes(true).count();
                     current_string = current_string.graphemes(true).take(graphemes_count - 1).collect();
@@ -121,6 +175,10 @@ fn tokenize_string(string: String) -> Vec<JsonToken> {
                 } else {
                     (true, Some(JsonToken::Quote))
                 }
+            }
+            "{" | "}" | "[" | "]" | ":" | "," if are_we_inside_string(&tokens) => {
+                current_string += char;
+                (false, None)
             }
             "{" => {
                 (true, Some(JsonToken::ObjectStart))
@@ -143,40 +201,10 @@ fn tokenize_string(string: String) -> Vec<JsonToken> {
             _ => {
                 let splitted: Vec<&str> = char.split_whitespace().into_iter().collect();
                 let is_whitespace = splitted.is_empty() || (splitted.len() == 1 && splitted.first().cloned().unwrap_or("").is_empty());
-                if !is_whitespace {
+                if !is_whitespace || are_we_inside_string(&tokens) {
                     current_string += char;
-                    (false, None)
-                } else {
-                    if tokens.len() == 0 {
-                        // can be starting whitespace
-                        (false, None)
-                    } else if tokens.len() == 1 && tokens.last().map(|token| match token {
-                        JsonToken::Quote => true,
-                        _ => false,
-                    }).unwrap_or(false) {
-                        // part of the string
-                        current_string += char;
-                        (false, None)
-                    } else if tokens.len() > 1 {
-                        let last_token = tokens.get(tokens.len() - 1);
-                        let token_before_last_token = tokens.get(tokens.len() - 2);
-                        if /* check if this is not beginning of other string */ token_before_last_token.map(|token| match token {
-                            JsonToken::String { .. } | JsonToken::Quote => false,
-                            _ => true,
-                        }).unwrap_or(true) && last_token.map(|token| match token {
-                            JsonToken::Quote => true,
-                            _ => false,
-                        }).unwrap_or(false) {
-                            // part of the string
-                            current_string += char;
-                            (false, None)
-                        } else {
-                            (false, None)
-                        }
-                    } else {
-                        (false, None)
-                    }
                 }
+                (false, None)
             }
         };
 
@@ -937,6 +965,7 @@ mod tests {
             "nul",
             "\"\"\"",
             "\"",
+            "\\\"\\\"",
         ];
         for case in cases.into_iter() {
             let computed_tokens = tokenize_string(case.to_string());
@@ -950,6 +979,7 @@ mod tests {
         let cases = vec![
             ("[]", Value::Array(vec![])),
             ("{}", Value::Object(BTreeMap::new())),
+            ("\"{}[]:,\"", Value::String("{}[]:,".to_string())),
             ("null", Value::Null),
             ("null ", Value::Null),
             (" null ", Value::Null),

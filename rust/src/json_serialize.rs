@@ -10,6 +10,14 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::JsError;
 use crate::ledger::common::value::BigInt;
 
+/**
+ * Value replaces traditional serde_json::Value in some places.
+ *
+ * Main reason for custom type is the fact that serde_json::Value doesn't support big integers,
+ * while we need them in metadata and plutus structs.
+ *
+ * If we move from integers to String we will no longer support the JSON format that cardano-node uses.
+ */
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Value {
     Null,
@@ -49,6 +57,7 @@ enum JsonToken {
     ParsedValue {
         value: Value,
     },
+    // This is an object's key when [Quote, String, Quote, Colon] or [Quote, Quote, Colon] are parsed
     ParsedKey {
         key: String,
     },
@@ -167,8 +176,8 @@ fn tokenize_string(string: String) -> Vec<JsonToken> {
         let (reset_string, token) = match char {
             "\"" => {
                 // if we have backslashed quotes in a string they're in the string already
-                if !current_string.is_empty() && current_string.clone().graphemes(true).last().clone().unwrap() == "\\" {
-                    let graphemes_count = current_string.clone().graphemes(true).count();
+                if !current_string.is_empty() && current_string.graphemes(true).last().clone().unwrap() == "\\" {
+                    let graphemes_count = current_string.graphemes(true).count();
                     current_string = current_string.graphemes(true).take(graphemes_count - 1).collect();
                     current_string += "\"";
                     (false, None)
@@ -638,12 +647,13 @@ mod tests {
         serde_arr
     }
 
+    // serde_json::Value didn't support big integers like that
     fn generate_array_of_primitives_with_unsupported() -> Vec<Value> {
         let mut cml_arr = vec![Value::Null];
         cml_arr.extend(vec![true, false].into_iter().map(|b| Value::Bool(b)));
         cml_arr.extend(vec![0, u64::MAX].into_iter().map(|integer| Value::Number(BigInt::from(integer))));
         cml_arr.extend(vec![0, i64::MAX, i64::MIN].into_iter().map(|integer| Value::Number(BigInt::from(integer))));
-        cml_arr.extend(vec![BigInt::from_str("980949788381070983313748912887").unwrap()].into_iter().map(|integer| Value::Number(integer)));
+        cml_arr.extend(vec![BigInt::from_str("980949788381070983313748912887").unwrap(), BigInt::from_str("-980949788381070983313748912887").unwrap()].into_iter().map(|integer| Value::Number(integer)));
         cml_arr.extend(vec!["supported_string", ""].into_iter().map(|str| Value::String(String::from(str))));
         cml_arr
     }
@@ -653,7 +663,7 @@ mod tests {
         let cml_arr = generate_array_of_primitives_with_unsupported();
         assert_eq!(
             Value::Array(cml_arr).to_string().unwrap(),
-            "[null,true,false,0,18446744073709551615,0,9223372036854775807,-9223372036854775808,980949788381070983313748912887,\"supported_string\",\"\"]"
+            "[null,true,false,0,18446744073709551615,0,9223372036854775807,-9223372036854775808,980949788381070983313748912887,-980949788381070983313748912887,\"supported_string\",\"\"]"
         );
     }
 
@@ -764,7 +774,7 @@ mod tests {
 
         assert_eq!(
             Value::Object(cml_map).to_string().unwrap(),
-            "{\"0\":null,\"1\":true,\"10\":[null,true,false,0,18446744073709551615,0,9223372036854775807,-9223372036854775808,\"supported_string\",\"\"],\"11\":980949788381070983313748912887,\"12\":[null,true,false,0,18446744073709551615,0,9223372036854775807,-9223372036854775808,980949788381070983313748912887,\"supported_string\",\"\"],\"13\":{\"0\":null,\"1\":true,\"10\":[null,true,false,0,18446744073709551615,0,9223372036854775807,-9223372036854775808,\"supported_string\",\"\"],\"2\":false,\"3\":0,\"4\":18446744073709551615,\"5\":0,\"6\":9223372036854775807,\"7\":-9223372036854775808,\"8\":\"supported_string\",\"9\":\"\"},\"2\":false,\"3\":0,\"4\":18446744073709551615,\"5\":0,\"6\":9223372036854775807,\"7\":-9223372036854775808,\"8\":\"supported_string\",\"9\":\"\"}"
+            "{\"0\":null,\"1\":true,\"10\":[null,true,false,0,18446744073709551615,0,9223372036854775807,-9223372036854775808,\"supported_string\",\"\"],\"11\":980949788381070983313748912887,\"12\":[null,true,false,0,18446744073709551615,0,9223372036854775807,-9223372036854775808,980949788381070983313748912887,-980949788381070983313748912887,\"supported_string\",\"\"],\"13\":{\"0\":null,\"1\":true,\"10\":[null,true,false,0,18446744073709551615,0,9223372036854775807,-9223372036854775808,\"supported_string\",\"\"],\"2\":false,\"3\":0,\"4\":18446744073709551615,\"5\":0,\"6\":9223372036854775807,\"7\":-9223372036854775808,\"8\":\"supported_string\",\"9\":\"\"},\"2\":false,\"3\":0,\"4\":18446744073709551615,\"5\":0,\"6\":9223372036854775807,\"7\":-9223372036854775808,\"8\":\"supported_string\",\"9\":\"\"}"
         );
     }
 
@@ -906,7 +916,7 @@ mod tests {
             generate_array(generate_objects()),
             generate_array(generate_arrays()),
             generate_object(generate_arrays()),
-            generate_object(generate_arrays()),
+            generate_object(generate_objects()),
         ];
 
         run_cases(cases);
@@ -1009,7 +1019,7 @@ mod tests {
             ("{\"kek\":[{\"\":[{}]}]}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Object(BTreeMap::new())]))]))]))]))),
             ("{\"kek\":[{\"\":[1]}]}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))]))),
             ("[{\"kek\":[{\"\":[1, \"{}[]:,\\\"{}[]:,\\\"\"\
-            ]}]},{\"kek\":[{\"\":[1]}]}]", Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1)),Value::String("{}[]:,\"{}[]:,\"".to_string())]))]))]))])), Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))]))])),
+            ]}]},{\"kek\":[{\"\":[1]}]}]", Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1)), Value::String("{}[]:,\"{}[]:,\"".to_string())]))]))]))])), Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))]))])),
             ("[{\"kek\":[{\"\":[1]}]},{\"kek\":[{\"\":[1]}]}]", Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))])), Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))]))])),
             ("[\
                 {\

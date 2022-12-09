@@ -1242,7 +1242,7 @@ pub fn encode_json_value_to_plutus_datum(value: json_serialize::Value, schema: P
                     Ok(PlutusData::new_constr_plutus_data(&ConstrPlutusData::new(&variant, &fields)))
                 }
             },
-            _ => Err(JsError::from_str(&format!("DetailedSchema requires ALL JSON to be tagged objects, found: {}", value))),
+            _ => Err(JsError::from_str(&format!("DetailedSchema requires ALL JSON to be tagged objects, found: {:?}", value))),
         },
     }
 }
@@ -1250,7 +1250,7 @@ pub fn encode_json_value_to_plutus_datum(value: json_serialize::Value, schema: P
 #[wasm_bindgen]
 pub fn decode_plutus_datum_to_json_str(datum: &PlutusData, schema: PlutusDatumSchema) -> Result<String, JsError> {
     let value = decode_plutus_datum_to_json_value(datum, schema)?;
-    value.to_string().map_err(|e| JsError::from_str(&e.to_string()))
+    value.to_string()
 }
 
 pub fn decode_plutus_datum_to_json_value(datum: &PlutusData, schema: PlutusDatumSchema) -> Result<json_serialize::Value, JsError> {

@@ -28,12 +28,6 @@ pub enum Value {
     Object(BTreeMap<String, Value>),
 }
 
-impl Display for Value {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.serialize_str(self.clone().to_string().map_err(|err| std::fmt::Error::custom(format!("Can't serialize {:?}", err)))?.as_str())
-    }
-}
-
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 enum JsonToken {
     ArrayStart,
@@ -81,7 +75,7 @@ impl JsonToken {
 
 impl Serialize for Value {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        let string = self.clone().to_string().map_err(|err| serde::ser::Error::custom(format!("serialize: {:?}", err)))?;
+        let string = self.clone().to_string().map_err(|err| serde::ser::Error::custom(&format!("{:?}", err)))?;
 
         serializer.serialize_str(string.as_str())
     }
@@ -90,7 +84,7 @@ impl Serialize for Value {
 impl<'de> Deserialize<'de> for Value {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        Value::from_string(s).map_err(|err| serde::de::Error::custom(format!("Can't deserialize json string: {}", err)))
+        Value::from_string(s).map_err(|err| serde::de::Error::custom(&format!("{:?}", err)))
     }
 }
 
@@ -523,16 +517,16 @@ impl Value {
     pub fn to_string(self) -> Result<String, JsError> {
         let result = match self {
             Value::Null => {
-                serde_json::to_string(&serde_json::Value::Null).map_err(|err| JsError::from_str(format!("Can't convert null to string: {:?}", err).as_str()))?
+                serde_json::to_string(&serde_json::Value::Null).map_err(|err| JsError::from_str(&format!("Can't convert null to string: {:?}", err)))?
             }
             Value::Bool(b) => {
-                serde_json::to_string(&serde_json::Value::Bool(b)).map_err(|err| JsError::from_str(format!("Can't convert bool to string: {:?}", err).as_str()))?
+                serde_json::to_string(&serde_json::Value::Bool(b)).map_err(|err| JsError::from_str(&format!("Can't convert bool to string: {:?}", err)))?
             }
             Value::Number(bigint) => {
                 bigint.to_str()
             }
             Value::String(str) => {
-                serde_json::to_string(&serde_json::Value::String(str)).map_err(|err| JsError::from_str(format!("Can't convert string to string: {:?}", err).as_str()))?
+                serde_json::to_string(&serde_json::Value::String(str)).map_err(|err| JsError::from_str(&format!("Can't convert string to string: {:?}", err)))?
             }
             Value::Array(arr) => {
                 let mut arr_serialized = vec![String::new(); arr.len()];
@@ -554,7 +548,7 @@ impl Value {
 
     pub fn from_string(from: String) -> Result<Self, JsError> {
         let tokens = tokenize_string(from);
-        parse_json(tokens).map_err(|err| JsError::from_str(format!("Can't parse json: {}", err).as_str()))
+        parse_json(tokens).map_err(|err| JsError::from_str(&format!("Can't parse json: {}", err)))
     }
 }
 
@@ -866,8 +860,8 @@ mod tests {
 
         let count = cases.len();
         for (number, (test, tokens, parsed)) in cases.into_iter().enumerate() {
-            test_string += format!("\"{}\":", number).as_str();
-            test_string += test.as_str();
+            test_string += &format!("\"{}\":", number);
+            test_string += &test;
             correct_tokens.extend(vec![JsonToken::Quote, JsonToken::String { raw: number.to_string() }, JsonToken::Quote, JsonToken::Colon]);
             correct_tokens.extend(tokens);
             correct_value.insert(number.to_string(), parsed);

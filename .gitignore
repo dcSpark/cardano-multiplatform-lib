@@ -11,3 +11,4 @@ rust/core/Cargo.lock
 rust/wasm/target/**
 rust/wasm/Cargo.lock
 rust/json-gen-split/target/**
+tools/metadata-cddl-checker/Cargo.lock

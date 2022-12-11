@@ -1,7 +1,10 @@
+use std::collections::BTreeMap;
 use crate::ledger::common::binary::*;
 
 use super::*;
 use linked_hash_map::LinkedHashMap;
+use crate::ledger::common::value;
+use crate::ledger::common::value::BigInt;
 
 const MD_MAX_LEN: usize = 64;
 
@@ -485,21 +488,11 @@ fn bytes_to_hex_string(bytes: &[u8]) -> String {
 // Converts JSON to Metadata according to MetadataJsonSchema
 #[wasm_bindgen]
 pub fn encode_json_str_to_metadatum(json: String, schema: MetadataJsonSchema) -> Result<TransactionMetadatum, JsError> {
-    let value = serde_json::from_str(&json).map_err(|e| JsError::from_str(&e.to_string()))?;
+    let value = json_serialize::Value::from_string(json)?;
     encode_json_value_to_metadatum(value, schema)
 }
 
-pub fn encode_json_value_to_metadatum(value: serde_json::Value, schema: MetadataJsonSchema) -> Result<TransactionMetadatum, JsError> {
-    use serde_json::Value;
-    fn encode_number(x: serde_json::Number) -> Result<TransactionMetadatum, JsError> {
-        if let Some(x) = x.as_u64() {
-            Ok(TransactionMetadatum::new_int(&Int::new(&to_bignum(x))))
-        } else if let Some(x) = x.as_i64() {
-            Ok(TransactionMetadatum::new_int(&Int::new_negative(&to_bignum(-x as u64))))
-        } else {
-            Err(JsError::from_str("floats not allowed in metadata"))
-        }
-    }
+pub fn encode_json_value_to_metadatum(value: json_serialize::Value, schema: MetadataJsonSchema) -> Result<TransactionMetadatum, JsError> {
     fn encode_string(s: String, schema: MetadataJsonSchema) -> Result<TransactionMetadatum, JsError> {
         if schema == MetadataJsonSchema::BasicConversions {
             match hex_string_to_bytes(&s) {
@@ -510,7 +503,7 @@ pub fn encode_json_value_to_metadatum(value: serde_json::Value, schema: Metadata
             TransactionMetadatum::new_text(s)
         }
     }
-    fn encode_array(json_arr: Vec<Value>, schema: MetadataJsonSchema) -> Result<TransactionMetadatum, JsError> {
+    fn encode_array(json_arr: Vec<json_serialize::Value>, schema: MetadataJsonSchema) -> Result<TransactionMetadatum, JsError> {
         let mut arr = MetadataList::new();
         for value in json_arr {
             arr.add(&encode_json_value_to_metadatum(value, schema)?);
@@ -520,12 +513,12 @@ pub fn encode_json_value_to_metadatum(value: serde_json::Value, schema: Metadata
     match schema {
         MetadataJsonSchema::NoConversions |
         MetadataJsonSchema::BasicConversions => match value {
-            Value::Null => Err(JsError::from_str("null not allowed in metadata")),
-            Value::Bool(_) => Err(JsError::from_str("bools not allowed in metadata")),
-            Value::Number(x) => encode_number(x),
-            Value::String(s) => encode_string(s, schema),
-            Value::Array(json_arr) => encode_array(json_arr, schema),
-            Value::Object(json_obj) => {
+            json_serialize::Value::Null => Err(JsError::from_str("null not allowed in metadata")),
+            json_serialize::Value::Bool(_) => Err(JsError::from_str("bools not allowed in metadata")),
+            json_serialize::Value::Number(x) => Ok(TransactionMetadatum::new_int(&Int::from_str(x.to_str().as_str())?)),
+            json_serialize::Value::String(s) => encode_string(s, schema),
+            json_serialize::Value::Array(json_arr) => encode_array(json_arr, schema),
+            json_serialize::Value::Object(json_obj) => {
                 let mut map = MetadataMap::new();
                 for (raw_key, value) in json_obj {
                     let key = if schema == MetadataJsonSchema::BasicConversions {
@@ -543,29 +536,55 @@ pub fn encode_json_value_to_metadatum(value: serde_json::Value, schema: Metadata
         },
         // we rely on tagged objects to control parsing here instead
         MetadataJsonSchema::DetailedSchema => match value {
-            Value::Object(obj) if obj.len() == 1 => {
+            json_serialize::Value::Object(obj) if obj.len() == 1 => {
                 let (k, v) = obj.into_iter().next().unwrap();
                 fn tag_mismatch() -> JsError {
                     JsError::from_str("key does not match type")
                 }
                 match k.as_str() {
                     "int" => match v {
-                        Value::Number(x) => encode_number(x),
+                        json_serialize::Value::Number(x) => Ok(TransactionMetadatum::new_int(&Int::from_str(x.to_str().as_str())?)),
                         _ => Err(tag_mismatch()),
                     },
-                    "string" => encode_string(v.as_str().ok_or_else(tag_mismatch)?.to_owned(), schema),
-                    "bytes" => match hex::decode(v.as_str().ok_or_else(tag_mismatch)?) {
-                        Ok(bytes) => TransactionMetadatum::new_bytes(bytes),
-                        Err(_) => Err(JsError::from_str("invalid hex string in tagged byte-object")),
+                    "string" => match v {
+                        json_serialize::Value::String(string) => {
+                            encode_string(string, schema)
+                        },
+                        _ => Err(tag_mismatch()),
+                    }
+                    "bytes" => match v {
+                        json_serialize::Value::String(string) => {
+                            match hex::decode(string) {
+                                Ok(bytes) => TransactionMetadatum::new_bytes(bytes),
+                                Err(_) => Err(JsError::from_str("invalid hex string in tagged byte-object")),
+                            }
+                        },
+                        _ => Err(tag_mismatch()),
                     },
-                    "list" => encode_array(v.as_array().ok_or_else(tag_mismatch)?.clone(), schema),
+                    "list" => match v {
+                        json_serialize::Value::Array(array) => {
+                            encode_array(array, schema)
+                        },
+                        _ => Err(tag_mismatch()),
+                    }
                     "map" => {
                         let mut map = MetadataMap::new();
                         fn map_entry_err() -> JsError {
                             JsError::from_str("entry format in detailed schema map object not correct. Needs to be of form {\"k\": \"key\", \"v\": value}")
                         }
-                        for entry in v.as_array().ok_or_else(tag_mismatch)? {
-                            let entry_obj = entry.as_object().ok_or_else(map_entry_err)?;
+                        let array = match v {
+                            json_serialize::Value::Array(array) => {
+                                Ok(array)
+                            },
+                            _ => Err(tag_mismatch()),
+                        }?;
+                        for entry in array {
+                            let entry_obj = match entry {
+                                json_serialize::Value::Object(obj) => {
+                                    Ok(obj)
+                                },
+                                _ => Err(map_entry_err()),
+                            }?;
                             let raw_key = entry_obj
                                 .get("k")
                                 .ok_or_else(map_entry_err)?;
@@ -587,10 +606,10 @@ pub fn encode_json_value_to_metadatum(value: serde_json::Value, schema: Metadata
 #[wasm_bindgen]
 pub fn decode_metadatum_to_json_str(metadatum: &TransactionMetadatum, schema: MetadataJsonSchema) -> Result<String, JsError> {
     let value = decode_metadatum_to_json_value(metadatum, schema)?;
-    serde_json::to_string(&value).map_err(|e| JsError::from_str(&e.to_string()))
+    value.to_string()
 }
 
-pub fn decode_metadatum_to_json_value(metadatum: &TransactionMetadatum, schema: MetadataJsonSchema) -> Result<serde_json::Value, JsError> {
+pub fn decode_metadatum_to_json_value(metadatum: &TransactionMetadatum, schema: MetadataJsonSchema) -> Result<json_serialize::Value, JsError> {
     use serde_json::Value;
     use std::convert::TryFrom;
     fn decode_key(key: &TransactionMetadatum, schema: MetadataJsonSchema) -> Result<String, JsError> {
@@ -598,12 +617,7 @@ pub fn decode_metadatum_to_json_value(metadatum: &TransactionMetadatum, schema: 
             TransactionMetadatumEnum::Text(s) => Ok(s.clone()),
             TransactionMetadatumEnum::Bytes(b) if schema != MetadataJsonSchema::NoConversions => Ok(bytes_to_hex_string(b.as_ref())),
             TransactionMetadatumEnum::Int(i) if schema != MetadataJsonSchema::NoConversions => {
-                let int_str = if i.0 >= 0 {
-                    u64::try_from(i.0).map(|x| x.to_string())
-                } else {
-                    i64::try_from(i.0).map(|x| x.to_string())
-                };
-                int_str.map_err(|e| JsError::from_str(&e.to_string()))
+                Ok(i.to_str())
             },
             TransactionMetadatumEnum::MetadataList(list) if schema == MetadataJsonSchema::DetailedSchema => decode_metadatum_to_json_str(&TransactionMetadatum::new_list(&list), schema),
             TransactionMetadatumEnum::MetadataMap(map) if schema == MetadataJsonSchema::DetailedSchema => decode_metadatum_to_json_str(&TransactionMetadatum::new_map(&map), schema),
@@ -615,51 +629,47 @@ pub fn decode_metadatum_to_json_value(metadatum: &TransactionMetadatum, schema: 
             MetadataJsonSchema::NoConversions |
             MetadataJsonSchema::BasicConversions => {
                 // treats maps directly as JSON maps
-                let mut json_map = serde_json::map::Map::with_capacity(map.len());
+                let mut json_map = BTreeMap::new();
                 for (key, value) in map.0.iter() {
                     json_map.insert(
                         decode_key(key, schema)?,
                         decode_metadatum_to_json_value(value, schema)?
                     );
                 }
-                ("map", Value::from(json_map))
+                ("map", json_serialize::Value::from(json_map))
             },
             
-            MetadataJsonSchema::DetailedSchema => ("map", Value::from(map.0.iter().map(|(key, value)| {
+            MetadataJsonSchema::DetailedSchema => ("map", json_serialize::Value::from(map.0.iter().map(|(key, value)| {
                 // must encode maps as JSON lists of objects with k/v keys
                 // also in these schemas we support more key types than strings
                 let k = decode_metadatum_to_json_value(key, schema)?;
                 let v = decode_metadatum_to_json_value(value, schema)?;
-                let mut kv_obj = serde_json::map::Map::with_capacity(2);
-                kv_obj.insert(String::from("k"), Value::from(k));
+                let mut kv_obj = BTreeMap::new();
+                kv_obj.insert(String::from("k"), json_serialize::Value::from(k));
                 kv_obj.insert(String::from("v"), v);
-                Ok(Value::from(kv_obj))
+                Ok(json_serialize::Value::from(kv_obj))
             }).collect::<Result<Vec<_>, JsError>>()?))
         },
         TransactionMetadatumEnum::MetadataList(arr) => {
-            ("list", Value::from(arr.0.iter().map(|e| {
+            ("list", json_serialize::Value::from(arr.0.iter().map(|e| {
                 decode_metadatum_to_json_value(e, schema)
             }).collect::<Result<Vec<_>, JsError>>()?))
         },
-        TransactionMetadatumEnum::Int(x) => ("int", if x.0 >= 0 {
-            Value::from(u64::try_from(x.0).map_err(|e| JsError::from_str(&e.to_string()))?)
-        } else {
-            Value::from(i64::try_from(x.0).map_err(|e| JsError::from_str(&e.to_string()))?)
-        }),
+        TransactionMetadatumEnum::Int(x) => ("int", json_serialize::Value::Number(BigInt::from_str(&x.to_str())?)),
         TransactionMetadatumEnum::Bytes(bytes) => ("bytes", match schema {
             MetadataJsonSchema::NoConversions => Err(JsError::from_str("bytes not allowed in JSON in specified schema")),
             // 0x prefix
-            MetadataJsonSchema::BasicConversions => Ok(Value::from(bytes_to_hex_string(bytes.as_ref()))),
+            MetadataJsonSchema::BasicConversions => Ok(json_serialize::Value::from(bytes_to_hex_string(bytes.as_ref()))),
             // no prefix
-            MetadataJsonSchema::DetailedSchema => Ok(Value::from(hex::encode(bytes))),
+            MetadataJsonSchema::DetailedSchema => Ok(json_serialize::Value::from(hex::encode(bytes))),
         }?),
-        TransactionMetadatumEnum::Text(s) => ("string", Value::from(s.clone())),
+        TransactionMetadatumEnum::Text(s) => ("string", json_serialize::Value::from(s.clone())),
     };
     // potentially wrap value in a keyed map to represent more types
     if supports_tagged_values(schema) {
-        let mut wrapper = serde_json::map::Map::with_capacity(1);
+        let mut wrapper = BTreeMap::new();
         wrapper.insert(String::from(type_key), value);
-        Ok(Value::from(wrapper))
+        Ok(json_serialize::Value::from(wrapper))
     } else {
         Ok(value)
     }

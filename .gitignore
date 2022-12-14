@@ -32,3 +32,4 @@ json-gen-split/target/**
 
 cip25-json-gen/target/**
 
+tools/metadata-cddl-checker/Cargo.lock

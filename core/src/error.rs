@@ -1,7 +1,3 @@
-use std::io::{BufRead, Seek};
-use crate::serialization::CBORReadLen;
-use crate::chain_crypto;
-
 #[derive(Debug)]
 pub enum Key {
     Str(String),
@@ -30,6 +26,8 @@ pub enum DeserializeFailure {
         found: Key,
         expected: Key,
     },
+    /// Invalid internal structure imposed on top of the CBOR format
+    InvalidStructure(Box<dyn std::error::Error>),
     MandatoryFieldMissing(Key),
     NoVariantMatched,
     RangeCheck{
@@ -37,8 +35,6 @@ pub enum DeserializeFailure {
         min: Option<isize>,
         max: Option<isize>,
     },
-    PublicKeyError(chain_crypto::PublicKeyError),
-    SignatureError(chain_crypto::SignatureError),
     TagMismatch{
         found: u64,
         expected: u64,
@@ -94,6 +90,7 @@ impl std::fmt::Display for DeserializeError {
             DeserializeFailure::EndingBreakMissing => write!(f, "Missing ending CBOR Break"),
             DeserializeFailure::ExpectedNull => write!(f, "Expected null, found other type"),
             DeserializeFailure::FixedValueMismatch{ found, expected } => write!(f, "Expected fixed value {} found {}", expected, found),
+            DeserializeFailure::InvalidStructure(e) => write!(f, "Invalid internal structure: {}", e),
             DeserializeFailure::MandatoryFieldMissing(key) => write!(f, "Mandatory field {} not found", key),
             DeserializeFailure::NoVariantMatched => write!(f, "No variant matched"),
             DeserializeFailure::RangeCheck{ found, min, max } => match (min, max) {
@@ -102,8 +99,6 @@ impl std::fmt::Display for DeserializeError {
                 (None, Some(max)) => write!(f, "{} not at most {}", found, max),
                 (None, None) => write!(f, "invalid range (no min nor max specified)"),
             },
-            DeserializeFailure::PublicKeyError(e) => write!(f, "PublicKeyError error: {}", e),
-            DeserializeFailure::SignatureError(e) => write!(f, "Signature error: {}", e),
             DeserializeFailure::TagMismatch{ found, expected } => write!(f, "Expected tag {}, found {}", expected, found),
             DeserializeFailure::UnknownKey(key) => write!(f, "Found unexpected key {}", key),
             DeserializeFailure::UnexpectedKeyType(ty) => write!(f, "Found unexpected key of CBOR type {:?}", ty),

@@ -1,0 +1,17 @@
+[package]
+name = "cardano-multiplatform-lib-wasm"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+core = { path = "../chain", package = "cardano-multiplatform-lib-chain" }
+# TODO: remove this dependency if possible to reduce confusion? maybe pub export necessary things in crypto-wasm?
+core_crypto = { path = "../crypto", package = "cardano-multiplatform-lib-crypto" }
+wasm_crypto = { path = "../crypto-wasm", package = "cardano-multiplatform-lib-crypto-wasm" }
+cbor_event = "2.2.0"
+wasm-bindgen = { version = "0.2", features=["serde-serialize"] }
+linked-hash-map = "0.5.3"
+serde_json = "1.0.57"

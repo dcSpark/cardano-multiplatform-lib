@@ -1,0 +1,31 @@
+string64 = text .size (0..64)
+
+policy_id_v1 = string64
+asset_name_v1 = string64 ; utf-8
+
+policy_id_v2 = bytes ; no longer in text
+asset_name_v2 = bytes ; no longer in text and utf-8
+
+files_details = 
+  {
+    name : string64,
+    mediaType : string64,
+    src : string64 / [* string64]
+  }
+
+metadata_details = 
+  {
+    name : string64,
+    image : string64 / [* string64], 
+    ? mediaType : string64,
+    ? description : string64 / [* string64],
+    ? files : [* files_details]
+  }
+
+label_metadata_v1 = { * policy_id_v1 => { * asset_name_v1 => metadata_details } }
+data = { * policy_id_v2 => { * asset_name_v2 => metadata_details } }
+label_metadata_v2 = { data: data, version: 2 } ; version 2
+
+label_metadata = label_metadata_v1 / label_metadata_v2
+
+metadata = { 721 : label_metadata }

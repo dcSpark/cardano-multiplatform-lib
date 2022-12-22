@@ -1,205 +1,9 @@
-pub struct CBORReadLen {
-    deser_len: cbor_event::LenSz,
-    read: u64,
-}
-
-impl CBORReadLen {
-    pub fn new(len: cbor_event::LenSz) -> Self {
-        Self {
-            deser_len: len,
-            read: 0,
-        }
-    }
-
-    // Marks {n} values as being read, and if we go past the available definite length
-    // given by the CBOR, we return an error.
-    pub fn read_elems(&mut self, count: usize) -> Result<(), DeserializeFailure> {
-        match self.deser_len {
-            cbor_event::LenSz::Len(n, _) => {
-                self.read += count as u64;
-                if self.read > n {
-                    Err(DeserializeFailure::DefiniteLenMismatch(n, None))
-                } else {
-                    Ok(())
-                }
-            },
-            cbor_event::LenSz::Indefinite => Ok(()),
-        }
-    }
-
-    pub fn finish(&self) -> Result<(), DeserializeFailure> {
-        match self.deser_len {
-            cbor_event::LenSz::Len(n, _) => {
-                if self.read == n {
-                    Ok(())
-                } else {
-                    Err(DeserializeFailure::DefiniteLenMismatch(n, Some(self.read)))
-                }
-            },
-            cbor_event::LenSz::Indefinite => Ok(()),
-        }
-    }
-}
-
-pub trait DeserializeEmbeddedGroup {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
-        read_len: &mut CBORReadLen,
-        len: cbor_event::LenSz,
-    ) -> Result<Self, DeserializeError> where Self: Sized;
-}
-
-#[inline]
-fn sz_max(sz: cbor_event::Sz) -> u64 {
-    match sz {
-        Sz::Inline => 23u64,
-        Sz::One => u8::MAX as u64,
-        Sz::Two => u16::MAX as u64,
-        Sz::Four => u32::MAX as u64,
-        Sz::Eight => u64::MAX,
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub enum LenEncoding {
-    Canonical,
-    Definite(cbor_event::Sz),
-    Indefinite,
-}
-
-impl Default for LenEncoding {
-    fn default() -> Self {
-        Self::Canonical
-    }
-}
-
-impl From<cbor_event::LenSz> for LenEncoding {
-    fn from(len_sz: cbor_event::LenSz) -> Self {
-        match len_sz {
-            cbor_event::LenSz::Len(len, sz) => if cbor_event::Sz::canonical(len) == sz {
-                Self::Canonical
-            } else {
-                Self::Definite(sz)
-            },
-            cbor_event::LenSz::Indefinite => Self::Indefinite,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum StringEncoding {
-    Canonical,
-    Indefinite(Vec<(u64, Sz)>),
-    Definite(Sz),
-}
-
-impl Default for StringEncoding {
-    fn default() -> Self {
-        Self::Canonical
-    }
-}
-
-impl From<cbor_event::StringLenSz> for StringEncoding {
-    fn from(len_sz: cbor_event::StringLenSz) -> Self {
-        match len_sz {
-            cbor_event::StringLenSz::Len(sz) => Self::Definite(sz),
-            cbor_event::StringLenSz::Indefinite(lens) => Self::Indefinite(lens),
-        }
-    }
-}#[inline]
-fn fit_sz(len: u64, sz: Option<cbor_event::Sz>, force_canonical: bool) -> Sz {
-    match sz {
-        Some(sz) => if !force_canonical && len <= sz_max(sz) {
-            sz
-        } else {
-            Sz::canonical(len)
-        },
-        None => Sz::canonical(len),
-    }
-}
-
-impl LenEncoding {
-    pub fn to_len_sz(&self, len: u64, force_canonical: bool) -> cbor_event::LenSz {
-        if force_canonical {
-            cbor_event::LenSz::Len(len, cbor_event::Sz::canonical(len))
-        } else {
-            match self {
-                Self::Canonical => cbor_event::LenSz::Len(len, cbor_event::Sz::canonical(len)),
-                Self::Definite(sz) => if sz_max(*sz) >= len {
-                    cbor_event::LenSz::Len(len, *sz)
-                } else {
-                    cbor_event::LenSz::Len(len, cbor_event::Sz::canonical(len))
-                },
-                Self::Indefinite => cbor_event::LenSz::Indefinite,
-            }
-        }
-    }
-
-    pub fn end<'a, W: Write + Sized>(&self, serializer: &'a mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'a mut Serializer<W>> {
-        if !force_canonical && *self == Self::Indefinite {
-            serializer.write_special(CBORSpecial::Break)?;
-        }
-        Ok(serializer)
-    }
-}
-
-impl StringEncoding {
-    pub fn to_str_len_sz(&self, len: u64, force_canonical: bool) -> cbor_event::StringLenSz {
-        if force_canonical {
-            cbor_event::StringLenSz::Len(cbor_event::Sz::canonical(len))
-        } else {
-            match self {
-                Self::Canonical => cbor_event::StringLenSz::Len(cbor_event::Sz::canonical(len)),
-                Self::Definite(sz) => if sz_max(*sz) >= len {
-                    cbor_event::StringLenSz::Len(*sz)
-                } else {
-                    cbor_event::StringLenSz::Len(cbor_event::Sz::canonical(len))
-                },
-                Self::Indefinite(lens) => cbor_event::StringLenSz::Indefinite(lens.clone()),
-            }
-        }
-    }
-}
-
-pub trait Serialize {
-    fn to_canonical_cbor_bytes(&self) -> Vec<u8> {
-        let mut buf = Serializer::new_vec();
-        self.serialize(&mut buf, true).unwrap();
-        buf.finalize()
-    }
-
-    fn to_cbor_bytes(&self) -> Vec<u8> {
-        let mut buf = Serializer::new_vec();
-        self.serialize(&mut buf, false).unwrap();
-        buf.finalize()
-    }
-
-    fn serialize<'a, W: Write + Sized>(
-        &self,
-        serializer: &'a mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'a mut Serializer<W>>;
-}
-
-impl<T: cbor_event::se::Serialize> Serialize for T {
-    fn serialize<'a, W: Write + Sized>(
-        &self,
-        serializer: &'a mut Serializer<W>,
-        _force_canonical: bool,
-    ) -> cbor_event::Result<&'a mut Serializer<W>> {
-        <T as cbor_event::se::Serialize>::serialize(self, serializer)
-    }
-}
-
-pub trait SerializeEmbeddedGroup {
-    fn serialize_as_embedded_group<'a, W: Write + Sized>(
-        &self,
-        serializer: &'a mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'a mut Serializer<W>>;
-}
 use super::*;
 use std::io::{Seek, SeekFrom};
+use cml_core::{
+    serialization::{CBORReadLen, fit_sz, Serialize, Deserialize, SerializeEmbeddedGroup, DeserializeEmbeddedGroup},
+    Key
+};
 
 impl Serialize for ArrDelegationOrLegacyKeyRegistration {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
@@ -225,9 +29,9 @@ impl Deserialize for ArrDelegationOrLegacyKeyRegistration {
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut arr_delegation_arr = Vec::new();
                 let len = raw.array_sz()?;
-                let mut arr_delegation_encoding = len.into();
+                let arr_delegation_encoding = len.into();
                 let mut arr_delegation_read_len = CBORReadLen::new(len);
-                while match len { cbor_event::LenSz::Len(n, _) => arr_delegation_read_len.read < n, cbor_event::LenSz::Indefinite => true, } {
+                while match len { cbor_event::LenSz::Len(n, _) => arr_delegation_read_len.read() < n, cbor_event::LenSz::Indefinite => true, } {
                     if raw.cbor_type()? == CBORType::Special {
                         assert_eq!(raw.special()?, CBORSpecial::Break);
                         break;
@@ -464,27 +268,6 @@ impl Deserialize for DeregistrationWitness {
                 }),
             })
         })().map_err(|e| e.annotate("DeregistrationWitness"))
-    }
-}
-
-impl Serialize for Ed25519Signature {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes_sz(&self.inner, self.encodings.as_ref().map(|encs| encs.inner_encoding.clone()).unwrap_or_default().to_str_len_sz(self.inner.len() as u64, force_canonical))
-    }
-}
-
-impl Deserialize for Ed25519Signature {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw.bytes_sz().map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() != 64 {
-            return Err(DeserializeError::new("Ed25519Signature", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(64), max: Some(64) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(Ed25519SignatureEncoding {
-                inner_encoding,
-            }),
-        })
     }
 }
 
@@ -941,47 +724,5 @@ impl Deserialize for RegistrationWitness {
                 }),
             })
         })().map_err(|e| e.annotate("RegistrationWitness"))
-    }
-}
-
-impl Serialize for StakingPubKey {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes_sz(&self.inner, self.encodings.as_ref().map(|encs| encs.inner_encoding.clone()).unwrap_or_default().to_str_len_sz(self.inner.len() as u64, force_canonical))
-    }
-}
-
-impl Deserialize for StakingPubKey {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw.bytes_sz().map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() != 32 {
-            return Err(DeserializeError::new("StakingPubKey", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(32), max: Some(32) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(StakingPubKeyEncoding {
-                inner_encoding,
-            }),
-        })
-    }
-}
-
-impl Serialize for VotingPubKey {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes_sz(&self.inner, self.encodings.as_ref().map(|encs| encs.inner_encoding.clone()).unwrap_or_default().to_str_len_sz(self.inner.len() as u64, force_canonical))
-    }
-}
-
-impl Deserialize for VotingPubKey {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw.bytes_sz().map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() != 32 {
-            return Err(DeserializeError::new("VotingPubKey", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(32), max: Some(32) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(VotingPubKeyEncoding {
-                inner_encoding,
-            }),
-        })
     }
 }

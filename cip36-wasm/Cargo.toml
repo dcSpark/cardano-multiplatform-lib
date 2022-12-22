@@ -1,5 +1,5 @@
 [package]
-name = "cddl-lib-wasm"
+name = "cardano-multiplatform-lib-cip36-wasm"
 version = "0.1.0"
 edition = "2018"
 
@@ -7,9 +7,11 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-core = { path = "../core", package = "cddl-lib-core" }
+core = { path = "../cip36", package = "cardano-multiplatform-lib-cip36" }
+core_crypto = { path = "../crypto", package = "cardano-multiplatform-lib-crypto" }
+wasm_crypto = { path = "../crypto-wasm", package = "cardano-multiplatform-lib-crypto-wasm" }
 cbor_event = "2.2.0"
-wasm-bindgen = { version = "0.2", features=["serde-serialize"] }
+wasm-bindgen = { version = "=0.2.83", features = ["serde-serialize"] }
 linked-hash-map = "0.5.3"
 serde_json = "1.0.57"
 serde-wasm-bindgen = "0.4.5"

@@ -7,13 +7,14 @@ pub use cardano_multiplatform_lib_core::{
     error::{DeserializeError, DeserializeFailure},
     serialization::{Serialize, Deserialize, StringEncoding}
 };
-pub use derivative::{Derivative};
+pub use derivative::Derivative;
 use cryptoxide::blake2b::Blake2b;
 use impl_mockchain::key;
 use rand::rngs::OsRng;
-use std::convert::{From};
-use cbor_event::{self};
+use std::convert::From;
 
+// helpers for creating CDDL bytes wrappers around crypto
+pub mod chain;
 // brought over from old IOHK code
 mod chain_core;
 mod chain_crypto;

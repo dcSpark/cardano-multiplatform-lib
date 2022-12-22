@@ -2,6 +2,8 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 use core_crypto::RawBytesEncoding;
 
+pub mod chain;
+
 #[wasm_bindgen]
 pub struct Bip32PrivateKey(core_crypto::Bip32PrivateKey);
 
@@ -95,6 +97,12 @@ impl From<Bip32PrivateKey> for core_crypto::Bip32PrivateKey {
     }
 }
 
+impl AsRef<core_crypto::Bip32PrivateKey> for Bip32PrivateKey {
+    fn as_ref(&self) -> &core_crypto::Bip32PrivateKey {
+        &self.0
+    }
+}
+
 
 #[wasm_bindgen]
 pub struct Bip32PublicKey(core_crypto::Bip32PublicKey);
@@ -166,6 +174,12 @@ impl From<Bip32PublicKey> for core_crypto::Bip32PublicKey {
     }
 }
 
+impl AsRef<core_crypto::Bip32PublicKey> for Bip32PublicKey {
+    fn as_ref(&self) -> &core_crypto::Bip32PublicKey {
+        &self.0
+    }
+}
+
 #[wasm_bindgen]
 pub struct PrivateKey(core_crypto::PrivateKey);
 
@@ -228,6 +242,12 @@ impl From<PrivateKey> for core_crypto::PrivateKey {
     }
 }
 
+impl AsRef<core_crypto::PrivateKey> for PrivateKey {
+    fn as_ref(&self) -> &core_crypto::PrivateKey {
+        &self.0
+    }
+}
+
 
 /// ED25519 key used as public key
 #[wasm_bindgen]
@@ -274,6 +294,12 @@ impl From<core_crypto::PublicKey> for PublicKey {
 impl From<PublicKey> for core_crypto::PublicKey {
     fn from(wrapper: PublicKey) -> Self {
         wrapper.0
+    }
+}
+
+impl AsRef<core_crypto::PublicKey> for PublicKey {
+    fn as_ref(&self) -> &core_crypto::PublicKey {
+        &self.0
     }
 }
 
@@ -330,6 +356,12 @@ macro_rules! impl_signature {
                 wrapper.0
             }
         }
+
+        impl AsRef<core_crypto::$name> for $name {
+            fn as_ref(&self) -> &core_crypto::$name {
+                &self.0
+            }
+        }
     };
 }
 
@@ -380,6 +412,12 @@ macro_rules! impl_hash_type {
         impl From<$name> for core_crypto::$name {
             fn from(wrapper: $name) -> core_crypto::$name {
                 wrapper.0
+            }
+        }
+
+        impl AsRef<core_crypto::$name> for $name {
+            fn as_ref(&self) -> &core_crypto::$name {
+                &self.0
             }
         }
     };

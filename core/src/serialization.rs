@@ -15,6 +15,10 @@ impl CBORReadLen {
         }
     }
 
+    pub fn read(&self) -> u64 {
+        self.read
+    }
+
     // Marks {n} values as being read, and if we go past the available definite length
     // given by the CBOR, we return an error.
     pub fn read_elems(&mut self, count: usize) -> Result<(), DeserializeFailure> {

@@ -1,8 +1,16 @@
 #![allow(clippy::len_without_is_empty, clippy::too_many_arguments, clippy::new_without_default)]
 
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+use wasm_bindgen::prelude::{wasm_bindgen, JsValue, JsError};
 
-use core::ordered_hash_map::OrderedHashMap;
+use wasm_crypto::impl_chain_crypto;
+
+use core::{Serialize, Deserialize};
+
+use core_crypto::RawBytesEncoding;
+
+impl_chain_crypto!(VotingPubKey, PublicKey, wasm_crypto);
+impl_chain_crypto!(StakingPubKey, PublicKey, wasm_crypto);
+impl_chain_crypto!(Ed25519Signature, Ed25519Signature, wasm_crypto);
 
 #[wasm_bindgen]
 
@@ -68,14 +76,6 @@ pub struct ArrDelegationOrLegacyKeyRegistration(pub(crate) core::ArrDelegationOr
 #[wasm_bindgen]
 
 impl ArrDelegationOrLegacyKeyRegistration {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        ToBytes::to_bytes(&self.0, force_canonical)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ArrDelegationOrLegacyKeyRegistration, JsValue> {
-        Deserialize::from_cbor_bytes(cbor_bytes).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
@@ -138,14 +138,6 @@ pub struct Delegation(pub(crate) core::Delegation);
 #[wasm_bindgen]
 
 impl Delegation {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        ToBytes::to_bytes(&self.0, force_canonical)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Delegation, JsValue> {
-        Deserialize::from_cbor_bytes(cbor_bytes).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
@@ -191,14 +183,6 @@ pub struct DeregistrationCbor(pub(crate) core::DeregistrationCbor);
 #[wasm_bindgen]
 
 impl DeregistrationCbor {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        ToBytes::to_bytes(&self.0, force_canonical)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<DeregistrationCbor, JsValue> {
-        Deserialize::from_cbor_bytes(cbor_bytes).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
@@ -244,14 +228,6 @@ pub struct DeregistrationWitness(pub(crate) core::DeregistrationWitness);
 #[wasm_bindgen]
 
 impl DeregistrationWitness {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        ToBytes::to_bytes(&self.0, force_canonical)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<DeregistrationWitness, JsValue> {
-        Deserialize::from_cbor_bytes(cbor_bytes).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
@@ -288,64 +264,11 @@ impl From<DeregistrationWitness> for core::DeregistrationWitness {
 #[wasm_bindgen]
 
 #[derive(Clone, Debug)]
-pub struct Ed25519Signature(pub(crate) core::Ed25519Signature);
-
-#[wasm_bindgen]
-
-impl Ed25519Signature {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        ToBytes::to_bytes(&self.0, force_canonical)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Ed25519Signature, JsValue> {
-        Deserialize::from_cbor_bytes(cbor_bytes).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Ed25519Signature, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
-    pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
-    }
-}
-
-impl From<core::Ed25519Signature> for Ed25519Signature {
-    fn from(native: core::Ed25519Signature) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Ed25519Signature> for core::Ed25519Signature {
-    fn from(wasm: Ed25519Signature) -> Self {
-        wasm.0
-    }
-}
-
-#[wasm_bindgen]
-
-#[derive(Clone, Debug)]
 pub struct KeyDeregistration(pub(crate) core::KeyDeregistration);
 
 #[wasm_bindgen]
 
 impl KeyDeregistration {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        ToBytes::to_bytes(&self.0, force_canonical)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<KeyDeregistration, JsValue> {
-        Deserialize::from_cbor_bytes(cbor_bytes).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
@@ -399,14 +322,6 @@ pub struct KeyRegistration(pub(crate) core::KeyRegistration);
 #[wasm_bindgen]
 
 impl KeyRegistration {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        ToBytes::to_bytes(&self.0, force_canonical)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<KeyRegistration, JsValue> {
-        Deserialize::from_cbor_bytes(cbor_bytes).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
@@ -468,14 +383,6 @@ pub struct RegistrationCbor(pub(crate) core::RegistrationCbor);
 #[wasm_bindgen]
 
 impl RegistrationCbor {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        ToBytes::to_bytes(&self.0, force_canonical)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<RegistrationCbor, JsValue> {
-        Deserialize::from_cbor_bytes(cbor_bytes).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
@@ -521,14 +428,6 @@ pub struct RegistrationWitness(pub(crate) core::RegistrationWitness);
 #[wasm_bindgen]
 
 impl RegistrationWitness {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        ToBytes::to_bytes(&self.0, force_canonical)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<RegistrationWitness, JsValue> {
-        Deserialize::from_cbor_bytes(cbor_bytes).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
@@ -558,96 +457,6 @@ impl From<core::RegistrationWitness> for RegistrationWitness {
 
 impl From<RegistrationWitness> for core::RegistrationWitness {
     fn from(wasm: RegistrationWitness) -> Self {
-        wasm.0
-    }
-}
-
-#[wasm_bindgen]
-
-#[derive(Clone, Debug)]
-pub struct StakingPubKey(pub(crate) core::StakingPubKey);
-
-#[wasm_bindgen]
-
-impl StakingPubKey {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        ToBytes::to_bytes(&self.0, force_canonical)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<StakingPubKey, JsValue> {
-        Deserialize::from_cbor_bytes(cbor_bytes).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<StakingPubKey, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
-    pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
-    }
-}
-
-impl From<core::StakingPubKey> for StakingPubKey {
-    fn from(native: core::StakingPubKey) -> Self {
-        Self(native)
-    }
-}
-
-impl From<StakingPubKey> for core::StakingPubKey {
-    fn from(wasm: StakingPubKey) -> Self {
-        wasm.0
-    }
-}
-
-#[wasm_bindgen]
-
-#[derive(Clone, Debug)]
-pub struct VotingPubKey(pub(crate) core::VotingPubKey);
-
-#[wasm_bindgen]
-
-impl VotingPubKey {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        ToBytes::to_bytes(&self.0, force_canonical)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<VotingPubKey, JsValue> {
-        Deserialize::from_cbor_bytes(cbor_bytes).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<VotingPubKey, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
-    pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
-    }
-}
-
-impl From<core::VotingPubKey> for VotingPubKey {
-    fn from(native: core::VotingPubKey) -> Self {
-        Self(native)
-    }
-}
-
-impl From<VotingPubKey> for core::VotingPubKey {
-    fn from(wasm: VotingPubKey) -> Self {
         wasm.0
     }
 }

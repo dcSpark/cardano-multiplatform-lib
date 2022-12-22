@@ -3,11 +3,18 @@
 // This library was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+use cardano_multiplatform_lib_core as cml_core;
+use cardano_multiplatform_lib_crypto as cml_crypto;
+
+pub use cml_core::{
+    ordered_hash_map::OrderedHashMap,
+    error::{DeserializeError, DeserializeFailure},
+    serialization::{Serialize, Deserialize, StringEncoding, LenEncoding},
+};
+
 use cbor_event::{self, de::Deserializer, se::Serializer};
 
 use std::io::{BufRead, Write};
-
-use prelude::*;
 
 use cbor_event::Type as CBORType;
 
@@ -19,13 +26,7 @@ use std::collections::BTreeMap;
 
 use std::convert::{From, TryFrom};
 
-pub mod prelude;
-
 pub mod serialization;
-
-pub mod ordered_hash_map;
-
-use ordered_hash_map::OrderedHashMap;
 
 use cbor_event::Sz;
 
@@ -36,6 +37,12 @@ use cbor_encodings::*;
 extern crate derivative;
 
 use derivative::Derivative;
+
+pub type VotingPubKey = cml_crypto::chain::ChainCrypto<cml_crypto::PublicKey>;
+
+pub type StakingPubKey = cml_crypto::chain::ChainCrypto<cml_crypto::PublicKey>;
+
+type Ed25519Signature = cml_crypto::chain::ChainCrypto<cml_crypto::Ed25519Signature>;
 
 pub type LegacyKeyRegistration = VotingPubKey;
 
@@ -49,7 +56,9 @@ pub type StakeWitness = Ed25519Signature;
 
 pub type VotingPurpose = u64;
 
-pub type Weight = u32;#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub type Weight = u32;
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum ArrDelegationOrLegacyKeyRegistration {
     ArrDelegation {
         arr_delegation: Vec<Delegation>,
@@ -122,43 +131,6 @@ impl DeregistrationWitness {
             stake_witness,
             encodings: None,
         }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Ed25519Signature {
-    pub inner: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<Ed25519SignatureEncoding>,
-}
-
-impl Ed25519Signature {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
-    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
-        if inner.len() != 64 {
-            return Err(DeserializeError::new("Ed25519Signature", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(64), max: Some(64) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: None,
-        })
-    }
-}
-
-impl TryFrom<Vec<u8>> for Ed25519Signature {
-    type Error = DeserializeError;
-
-    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
-        Ed25519Signature::new(inner)
-    }
-}
-
-impl From<Ed25519Signature> for Vec<u8> {
-    fn from(wrapper: Ed25519Signature) -> Self {
-        wrapper.inner
     }
 }
 
@@ -237,79 +209,5 @@ impl RegistrationWitness {
             stake_witness,
             encodings: None,
         }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct StakingPubKey {
-    pub inner: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<StakingPubKeyEncoding>,
-}
-
-impl StakingPubKey {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
-    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
-        if inner.len() != 32 {
-            return Err(DeserializeError::new("StakingPubKey", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(32), max: Some(32) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: None,
-        })
-    }
-}
-
-impl TryFrom<Vec<u8>> for StakingPubKey {
-    type Error = DeserializeError;
-
-    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
-        StakingPubKey::new(inner)
-    }
-}
-
-impl From<StakingPubKey> for Vec<u8> {
-    fn from(wrapper: StakingPubKey) -> Self {
-        wrapper.inner
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct VotingPubKey {
-    pub inner: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<VotingPubKeyEncoding>,
-}
-
-impl VotingPubKey {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
-    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
-        if inner.len() != 32 {
-            return Err(DeserializeError::new("VotingPubKey", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(32), max: Some(32) }));
-        }
-        Ok(Self {
-            inner,
-            encodings: None,
-        })
-    }
-}
-
-impl TryFrom<Vec<u8>> for VotingPubKey {
-    type Error = DeserializeError;
-
-    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
-        VotingPubKey::new(inner)
-    }
-}
-
-impl From<VotingPubKey> for Vec<u8> {
-    fn from(wrapper: VotingPubKey) -> Self {
-        wrapper.inner
     }
 }

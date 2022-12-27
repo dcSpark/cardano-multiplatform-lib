@@ -1,8 +1,6 @@
 const fs = require('fs');
 
-const pkgModName = process.argv.slice(2)[0];
-const inputFile = fs.readFileSync(`./pkg/cardano_multiplatform_lib_${pkgModName}.d.ts`, 'utf8').split(/\r?\n/);
-
+const inputFile = fs.readFileSync('./rust/pkg/cardano_multiplatform_lib.d.ts', 'utf8').split(/\r?\n/);
 //console.log(inputFile);
 let currentClass = null;
 for (let i = 0; i < inputFile.length; ++i) {
@@ -27,9 +25,9 @@ for (let i = 0; i < inputFile.length; ++i) {
   //const m = /(\s?\*\s?\@returns\s\{)(any)(\})/.exec(line);
   //console.log(`${m} | ${line}`);
 }
-const jsonDefs = fs.readFileSync('./json-gen/output/json-types.d.ts', 'utf8');
+const jsonDefs = fs.readFileSync('./rust/json-gen/output/json-types.d.ts', 'utf8');
 fs.writeFile(
-  `./pkg/cardano_multiplatform_lib_${pkgModName}.d.ts`,
+  './rust/pkg/cardano_multiplatform_lib.d.ts',
   `${inputFile.join('\n')}\n${jsonDefs}`,
   (err) => {
     if (err != null) {

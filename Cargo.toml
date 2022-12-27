@@ -6,10 +6,12 @@ members = [
     "crypto",
     "cip25",
     "cip25-wasm",
+    "cip25-wasm/json-gen",
     "wasm"
 ]
 
 # exclude old crate structure to avoid error in it
 exclude = [
-    "rust"
+    "rust",
+    "rust/json-gen"
 ]

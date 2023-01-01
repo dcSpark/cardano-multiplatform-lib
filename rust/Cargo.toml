@@ -35,7 +35,7 @@ itertools = "0.10.5"
 rand = "0.8.5"
 schemars = "0.8.11"
 serde = { version = "1.0", features = ["derive"] }
-fraction = "0.10.0"
+fraction = "0.13.0"
 base64 = "0.13"
 unicode-segmentation = "1.10.0"
 

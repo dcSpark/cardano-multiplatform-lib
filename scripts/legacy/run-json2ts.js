@@ -2,7 +2,7 @@ const fs = require('fs');
 const json2ts = require('json-schema-to-typescript');
 const path = require('path');
 
-const schemasDir = path.join('json-gen', 'schemas');
+const schemasDir = path.join('rust', 'json-gen', 'schemas');
 const schemaFiles = fs.readdirSync(schemasDir).filter(file => path.extname(file) === '.json');
 
 function replaceRef(obj) {
@@ -68,7 +68,7 @@ Promise.all(schemaFiles.map(schemaFile => {
   }).catch(e => { console.error(`${schemaFile}: ${e}`); });
   
 })).then(tsDefs => {
-  fs.mkdirSync(path.join('json-gen', 'output'), { recursive: true });
+  fs.mkdirSync(path.join('rust', 'json-gen', 'output'), { recursive: true });
   const defs = tsDefs.join('').split(/\r?\n/);
   let dedupedDefs = [];
   let start = null;
@@ -105,6 +105,6 @@ Promise.all(schemaFiles.map(schemaFile => {
       dedupedDefs[i] = dedupedDefs[i].replace(new RegExp(`\\b${id}\\b`), id + 'JSON');
     }
   }
-  return fs.writeFileSync(path.join('json-gen', 'output', 'json-types.d.ts'), dedupedDefs.join('\n'));
+  return fs.writeFileSync(path.join('rust', 'json-gen', 'output', 'json-types.d.ts'), dedupedDefs.join('\n'));
 });
 

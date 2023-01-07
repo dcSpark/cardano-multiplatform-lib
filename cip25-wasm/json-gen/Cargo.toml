@@ -1,0 +1,10 @@
+[package]
+name = "cip25-json-schema-gen"
+version = "0.0.1"
+edition = "2018"
+
+
+[dependencies]
+serde_json = "1.0.57"
+schemars = "0.8.8"
+core = { path = "../../cip25", package = "cardano-multiplatform-lib-cip25" }

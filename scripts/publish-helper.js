@@ -1,26 +1,32 @@
 const fs = require('fs');
-const oldPkg = require('../publish/package.json');
+const path = require('path')
 
-const flowFile = 'cardano_multiplatform_lib.js.flow';
-if (oldPkg.files.find(entry => entry === flowFile) == null) {
-  oldPkg.files.push(flowFile);
+const pkgModName = process.argv.slice(2)[0];
+const modName = process.argv.slice(2)[1];
+const buildType = process.argv.slice(2)[2];
+
+const pathToRepo = path.join(__dirname, '..', modName.replaceAll('_', '-'));
+const oldPkg = require(`${pathToRepo}/publish/package.json`);
+
+const repoName = `cardano_multiplatform_lib_`;
+const baseHypenName = repoName.replaceAll('_', '-');
+
+if (oldPkg.name === `${baseHypenName}${modName}`) {
+  oldPkg.name = '@dcspark/' + oldPkg.name + buildType;
 }
-if (oldPkg.name === 'cardano-multiplatform-lib') {
-  oldPkg.name = '@dcspark/' + oldPkg.name + process.argv.slice(2)[0];
-}
-if (process.argv.slice(2)[0] === '-browser' || process.argv.slice(2)[0] === '-asmjs') {
+if (buildType === '-browser' || buildType === '-asmjs') {
   // due to a bug in wasm-pack, this file is missing from browser builds
-  const missingFile = 'cardano_multiplatform_lib_bg.js';
+  const missingFile = `${repoName}${pkgModName}_bg.js`;
   if (oldPkg.files.find(entry => entry === missingFile) == null) {
     oldPkg.files.push(missingFile);
   }
 }
-if (process.argv.slice(2)[0] === '-asmjs') {
+if (buildType === '-asmjs') {
   // need to replace WASM with ASM package 
-  const missingFile = 'cardano_multiplatform_lib_bg.wasm';
+  const missingFile = `${repoName}${pkgModName}_bg.wasm`;
   oldPkg.files = [
-    'cardano_multiplatform_lib.asm.js',
-    ...oldPkg.files.filter(file => file !== 'cardano_multiplatform_lib_bg.wasm')
+    `${repoName}${pkgModName}.asm.js`,
+    ...oldPkg.files.filter(file => file !== `${repoName}${pkgModName}_bg.wasm`)
   ];
 }
 
@@ -31,4 +37,4 @@ oldPkg.repository = {
 oldPkg.author = "dcSpark";
 oldPkg.license = "MIT";
 console.log(oldPkg);
-fs.writeFileSync('./publish/package.json', JSON.stringify(oldPkg, null, 2));
+fs.writeFileSync(`${pathToRepo}/publish/package.json`, JSON.stringify(oldPkg, null, 2));

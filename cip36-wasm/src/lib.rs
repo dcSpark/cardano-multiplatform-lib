@@ -8,9 +8,11 @@ use core::{Serialize, Deserialize};
 
 use core_crypto::RawBytesEncoding;
 
+pub use wasm_chain::address::RewardAddress;
+
 impl_chain_crypto!(VotingPubKey, PublicKey, wasm_crypto);
 impl_chain_crypto!(StakingPubKey, PublicKey, wasm_crypto);
-impl_chain_crypto!(Ed25519Signature, Ed25519Signature, wasm_crypto);
+impl_chain_crypto!(StakeWitness, Ed25519Signature, wasm_crypto);
 
 #[wasm_bindgen]
 
@@ -47,35 +49,36 @@ impl From<Delegations> for Vec<core::Delegation> {
     fn from(wrapper: Delegations) -> Self {
         wrapper.0
     }
-}pub type LegacyKeyRegistration = VotingPubKey;
+}
+
+impl AsRef<Vec<core::Delegation>> for Delegations {
+    fn as_ref(&self) -> &Vec<core::Delegation> {
+        &self.0
+    }
+}
+
+pub type LegacyKeyRegistration = VotingPubKey;
 
 pub type Nonce = u64;
 
-pub type RewardAddress = Vec<u8>;
-
 pub type StakeCredential = StakingPubKey;
-
-pub type StakeWitness = Ed25519Signature;
 
 pub type VotingPurpose = u64;
 
 pub type Weight = u32;
 
 #[wasm_bindgen]
-
-pub enum ArrDelegationOrLegacyKeyRegistrationKind {
-    ArrDelegation,
+pub enum DelegationDistributionKind {
+    Weighted,
     LegacyKeyRegistration,
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
-pub struct ArrDelegationOrLegacyKeyRegistration(pub(crate) core::ArrDelegationOrLegacyKeyRegistration);
+pub struct DelegationDistribution(pub(crate) core::DelegationDistribution);
 
 #[wasm_bindgen]
-
-impl ArrDelegationOrLegacyKeyRegistration {
+impl DelegationDistribution {
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
@@ -84,59 +87,63 @@ impl ArrDelegationOrLegacyKeyRegistration {
         serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
     }
 
-    pub fn from_json(json: &str) -> Result<ArrDelegationOrLegacyKeyRegistration, JsValue> {
+    pub fn from_json(json: &str) -> Result<DelegationDistribution, JsValue> {
         serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
-    pub fn new_arr_delegation(arr_delegation: &Delegations) -> Self {
-        Self(core::ArrDelegationOrLegacyKeyRegistration::new_arr_delegation(arr_delegation.clone().into()))
+    pub fn new_weighted(delegations: &Delegations) -> Self {
+        Self(core::DelegationDistribution::new_weighted(delegations.clone().into()))
     }
 
     pub fn new_legacy_key_registration(legacy_key_registration: &LegacyKeyRegistration) -> Self {
-        Self(core::ArrDelegationOrLegacyKeyRegistration::new_legacy_key_registration(legacy_key_registration.clone().into()))
+        Self(core::DelegationDistribution::new_legacy_key_registration(legacy_key_registration.clone().into()))
     }
 
-    pub fn kind(&self) -> ArrDelegationOrLegacyKeyRegistrationKind {
+    pub fn kind(&self) -> DelegationDistributionKind {
         match &self.0 {
-            core::ArrDelegationOrLegacyKeyRegistration::ArrDelegation{ .. } => ArrDelegationOrLegacyKeyRegistrationKind::ArrDelegation,
-            core::ArrDelegationOrLegacyKeyRegistration::LegacyKeyRegistration(_) => ArrDelegationOrLegacyKeyRegistrationKind::LegacyKeyRegistration,
+            core::DelegationDistribution::Weighted{ .. } => DelegationDistributionKind::Weighted,
+            core::DelegationDistribution::LegacyKeyRegistration(_) => DelegationDistributionKind::LegacyKeyRegistration,
         }
     }
 
     pub fn as_arr_delegation(&self) -> Option<Delegations> {
         match &self.0 {
-            core::ArrDelegationOrLegacyKeyRegistration::ArrDelegation{ arr_delegation, .. } => Some(arr_delegation.clone().into()),
+            core::DelegationDistribution::Weighted{ delegations, .. } => Some(delegations.clone().into()),
             _ => None,
         }
     }
 
     pub fn as_legacy_key_registration(&self) -> Option<LegacyKeyRegistration> {
         match &self.0 {
-            core::ArrDelegationOrLegacyKeyRegistration::LegacyKeyRegistration(legacy_key_registration) => Some(legacy_key_registration.clone().into()),
+            core::DelegationDistribution::LegacyKeyRegistration(legacy_key_registration) => Some(legacy_key_registration.clone().into()),
             _ => None,
         }
     }
 }
 
-impl From<core::ArrDelegationOrLegacyKeyRegistration> for ArrDelegationOrLegacyKeyRegistration {
-    fn from(native: core::ArrDelegationOrLegacyKeyRegistration) -> Self {
+impl From<core::DelegationDistribution> for DelegationDistribution {
+    fn from(native: core::DelegationDistribution) -> Self {
         Self(native)
     }
 }
 
-impl From<ArrDelegationOrLegacyKeyRegistration> for core::ArrDelegationOrLegacyKeyRegistration {
-    fn from(wasm: ArrDelegationOrLegacyKeyRegistration) -> Self {
+impl From<DelegationDistribution> for core::DelegationDistribution {
+    fn from(wasm: DelegationDistribution) -> Self {
         wasm.0
     }
 }
 
-#[wasm_bindgen]
+impl AsRef<core::DelegationDistribution> for DelegationDistribution {
+    fn as_ref(&self) -> &core::DelegationDistribution {
+        &self.0
+    }
+}
 
+#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct Delegation(pub(crate) core::Delegation);
 
 #[wasm_bindgen]
-
 impl Delegation {
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
@@ -175,13 +182,17 @@ impl From<Delegation> for core::Delegation {
     }
 }
 
-#[wasm_bindgen]
+impl AsRef<core::Delegation> for Delegation {
+    fn as_ref(&self) -> &core::Delegation {
+        &self.0
+    }
+}
 
+#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct DeregistrationCbor(pub(crate) core::DeregistrationCbor);
 
 #[wasm_bindgen]
-
 impl DeregistrationCbor {
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
@@ -220,13 +231,17 @@ impl From<DeregistrationCbor> for core::DeregistrationCbor {
     }
 }
 
-#[wasm_bindgen]
+impl AsRef<core::DeregistrationCbor> for DeregistrationCbor {
+    fn as_ref(&self) -> &core::DeregistrationCbor {
+        &self.0
+    }
+}
 
+#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct DeregistrationWitness(pub(crate) core::DeregistrationWitness);
 
 #[wasm_bindgen]
-
 impl DeregistrationWitness {
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
@@ -261,13 +276,17 @@ impl From<DeregistrationWitness> for core::DeregistrationWitness {
     }
 }
 
-#[wasm_bindgen]
+impl AsRef<core::DeregistrationWitness> for DeregistrationWitness {
+    fn as_ref(&self) -> &core::DeregistrationWitness {
+        &self.0
+    }
+}
 
+#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct KeyDeregistration(pub(crate) core::KeyDeregistration);
 
 #[wasm_bindgen]
-
 impl KeyDeregistration {
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
@@ -314,13 +333,17 @@ impl From<KeyDeregistration> for core::KeyDeregistration {
     }
 }
 
-#[wasm_bindgen]
+impl AsRef<core::KeyDeregistration> for KeyDeregistration {
+    fn as_ref(&self) -> &core::KeyDeregistration {
+        &self.0
+    }
+}
 
+#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct KeyRegistration(pub(crate) core::KeyRegistration);
 
 #[wasm_bindgen]
-
 impl KeyRegistration {
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
@@ -334,7 +357,7 @@ impl KeyRegistration {
         serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
-    pub fn delegation(&self) -> ArrDelegationOrLegacyKeyRegistration {
+    pub fn delegation(&self) -> DelegationDistribution {
         self.0.delegation.clone().into()
     }
 
@@ -343,7 +366,7 @@ impl KeyRegistration {
     }
 
     pub fn reward_address(&self) -> RewardAddress {
-        self.0.reward_address.clone()
+        self.0.reward_address.clone().into()
     }
 
     pub fn nonce(&self) -> Nonce {
@@ -358,8 +381,8 @@ impl KeyRegistration {
         self.0.voting_purpose
     }
 
-    pub fn new(delegation: &ArrDelegationOrLegacyKeyRegistration, stake_credential: &StakeCredential, reward_address: RewardAddress, nonce: Nonce) -> Self {
-        Self(core::KeyRegistration::new(delegation.clone().into(), stake_credential.clone().into(), reward_address, nonce))
+    pub fn new(delegation: &DelegationDistribution, stake_credential: &StakeCredential, reward_address: &RewardAddress, nonce: Nonce) -> Self {
+        Self(core::KeyRegistration::new(delegation.clone().into(), stake_credential.clone().into(), reward_address.clone().into(), nonce))
     }
 }
 
@@ -375,13 +398,17 @@ impl From<KeyRegistration> for core::KeyRegistration {
     }
 }
 
-#[wasm_bindgen]
+impl AsRef<core::KeyRegistration> for KeyRegistration {
+    fn as_ref(&self) -> &core::KeyRegistration {
+        &self.0
+    }
+}
 
+#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct RegistrationCbor(pub(crate) core::RegistrationCbor);
 
 #[wasm_bindgen]
-
 impl RegistrationCbor {
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
@@ -420,13 +447,17 @@ impl From<RegistrationCbor> for core::RegistrationCbor {
     }
 }
 
-#[wasm_bindgen]
+impl AsRef<core::RegistrationCbor> for RegistrationCbor {
+    fn as_ref(&self) -> &core::RegistrationCbor {
+        &self.0
+    }
+}
 
+#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct RegistrationWitness(pub(crate) core::RegistrationWitness);
 
 #[wasm_bindgen]
-
 impl RegistrationWitness {
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
@@ -458,5 +489,11 @@ impl From<core::RegistrationWitness> for RegistrationWitness {
 impl From<RegistrationWitness> for core::RegistrationWitness {
     fn from(wasm: RegistrationWitness) -> Self {
         wasm.0
+    }
+}
+
+impl AsRef<core::RegistrationWitness> for RegistrationWitness {
+    fn as_ref(&self) -> &core::RegistrationWitness {
+        &self.0
     }
 }

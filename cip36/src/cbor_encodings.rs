@@ -7,14 +7,6 @@ pub struct DelegationEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct DeregistrationCborEncoding {
-    pub len_encoding: LenEncoding,
-    pub orig_deser_order: Vec<usize>,
-    pub key_deregistration_key_encoding: Option<cbor_event::Sz>,
-    pub deregistration_witness_key_encoding: Option<cbor_event::Sz>,
-}
-
-#[derive(Clone, Debug, Default)]
 pub struct DeregistrationWitnessEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
@@ -44,21 +36,12 @@ pub struct KeyRegistrationEncoding {
     pub orig_deser_order: Vec<usize>,
     pub delegation_key_encoding: Option<cbor_event::Sz>,
     pub stake_credential_key_encoding: Option<cbor_event::Sz>,
-    pub reward_address_encoding: StringEncoding,
     pub reward_address_key_encoding: Option<cbor_event::Sz>,
     pub nonce_encoding: Option<cbor_event::Sz>,
     pub nonce_key_encoding: Option<cbor_event::Sz>,
     pub voting_purpose_encoding: Option<cbor_event::Sz>,
     pub voting_purpose_default_present: bool,
     pub voting_purpose_key_encoding: Option<cbor_event::Sz>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct RegistrationCborEncoding {
-    pub len_encoding: LenEncoding,
-    pub orig_deser_order: Vec<usize>,
-    pub key_registration_key_encoding: Option<cbor_event::Sz>,
-    pub registration_witness_key_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]

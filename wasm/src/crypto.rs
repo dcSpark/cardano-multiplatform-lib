@@ -30,12 +30,12 @@ pub struct KesSignature(pub(crate) core::crypto::KesSignature);
 
 #[wasm_bindgen]
 impl KesSignature {
-    pub fn to_bytes(&self) -> Vec<u8> {
-        Serialize::to_bytes(&self.0)
+    pub fn to_original_cbor_bytes(&self) -> Vec<u8> {
+        Serialize::to_original_cbor_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: &[u8]) -> Result<KesSignature, JsValue> {
-        Deserialize::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_cbor_bytes(data: &[u8]) -> Result<KesSignature, JsValue> {
+        Deserialize::from_cbor_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_cbor_bytes: {}", e)))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {
@@ -73,12 +73,12 @@ pub struct Vkey(pub(crate) core::crypto::Vkey);
 
 #[wasm_bindgen]
 impl Vkey {
-    pub fn to_bytes(&self) -> Vec<u8> {
-        Serialize::to_bytes(&self.0)
+    pub fn to_original_cbor_bytes(&self) -> Vec<u8> {
+        Serialize::to_original_cbor_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: &[u8]) -> Result<Vkey, JsValue> {
-        Deserialize::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_cbor_bytes(data: &[u8]) -> Result<Vkey, JsValue> {
+        Deserialize::from_cbor_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_cbor_bytes: {}", e)))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {
@@ -112,12 +112,12 @@ pub struct VrfCert(pub(crate) core::crypto::VrfCert);
 
 #[wasm_bindgen]
 impl VrfCert {
-    pub fn to_bytes(&self) -> Vec<u8> {
-        Serialize::to_bytes(&self.0)
+    pub fn to_original_cbor_bytes(&self) -> Vec<u8> {
+        Serialize::to_original_cbor_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: &[u8]) -> Result<VrfCert, JsValue> {
-        Deserialize::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_cbor_bytes(data: &[u8]) -> Result<VrfCert, JsValue> {
+        Deserialize::from_cbor_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_cbor_bytes: {}", e)))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {

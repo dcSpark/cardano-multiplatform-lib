@@ -1,6 +1,6 @@
 use super::*;
 
-use core::address::AddressHeaderKind;
+pub use core::AddressHeaderKind;
 
 #[wasm_bindgen]
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
@@ -14,7 +14,7 @@ pub enum AddressKind {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct Address(pub(crate) core::Address);
+pub struct Address(core::Address);
 
 #[wasm_bindgen]
 impl Address {
@@ -134,11 +134,17 @@ impl From<Address> for core::Address {
     }
 }
 
+impl AsRef<core::Address> for Address {
+    fn as_ref(&self) -> &core::Address {
+        &self.0
+    }
+}
+
 pub type RewardAccount = RewardAddress;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct RewardAddress(pub(crate) core::RewardAddress);
+pub struct RewardAddress(core::RewardAddress);
 
 #[wasm_bindgen]
 impl RewardAddress {
@@ -179,5 +185,11 @@ impl From<core::RewardAddress> for RewardAddress {
 impl From<RewardAddress> for core::RewardAddress {
     fn from(wasm: RewardAddress) -> Self {
         wasm.0
+    }
+}
+
+impl AsRef<core::RewardAddress> for RewardAddress {
+    fn as_ref(&self) -> &core::RewardAddress {
+        &self.0
     }
 }

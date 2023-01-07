@@ -26,8 +26,12 @@ macro_rules! impl_chain_crypto {
               Self(core_crypto::chain::ChainCrypto::from(primitive.as_ref().clone()))
           }
 
-          pub fn to_cbor_bytes(&self, force_canonical: bool) -> Vec<u8> {
-              self.0.to_cbor_bytes(force_canonical)
+          pub fn to_original_cbor_bytes(&self) -> Vec<u8> {
+              self.0.to_original_cbor_bytes()
+          }
+
+          pub fn to_canonical_cbor_bytes(&self) -> Vec<u8> {
+              self.0.to_canonical_cbor_bytes()
           }
 
           pub fn from_raw_bytes(bytes: &[u8]) -> Result<$name, JsError> {

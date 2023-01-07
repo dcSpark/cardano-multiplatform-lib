@@ -1,13 +1,39 @@
-use super::*;
 use schemars::JsonSchema;
 use cbor_event::{de::Deserializer, se::Serializer};
+use std::io::{BufRead, Write, Seek};
 use bech32::ToBase32;
 //use crate::byron::{ProtocolMagic, ByronAddress, ByronAddressError};
 use derivative::Derivative;
 //use crate::genesis::network_info::NetworkInfo;
 use std::convert::TryInto;
 
+// for enums
+use wasm_bindgen::prelude::wasm_bindgen;
+
+use cardano_multiplatform_lib_core as cml_core;
 use cardano_multiplatform_lib_crypto as cml_crypto;
+
+use cml_core::{
+    Slot,
+    TransactionIndex,
+    CertificateIndex,
+    error::{DeserializeError, DeserializeFailure},
+    serialization::{
+        Deserialize,
+        DeserializeEmbeddedGroup,
+        Serialize,
+        SerializeEmbeddedGroup,
+        LenEncoding,
+        StringEncoding,
+        CBORReadLen,
+        fit_sz,
+    },
+};
+
+use cml_crypto::{
+    Ed25519KeyHash,
+    ScriptHash,
+};
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Hash, Copy, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct ProtocolMagic(pub(crate) u32);
@@ -95,13 +121,6 @@ pub enum Address {
     Enterprise(EnterpriseAddress),
     Reward(RewardAddress),
     //Byron(ByronAddress),
-}
-
-#[derive(Clone, Debug)]
-pub struct AddressEncoding {
-    // Some addresses were able to make it onchain with trailing data
-    pub(crate) trailing: Option<Vec<u8>>,
-    pub(crate) bytes_encoding: StringEncoding,
 }
 
 impl serde::Serialize for Address {
@@ -650,12 +669,277 @@ impl PointerAddress {
     }
 }
 
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct KeyStakeCredential {
+    pub addr_keyhash: Ed25519KeyHash,
+    #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
+    #[serde(skip)]
+    pub encodings: Option<StakeCredentialEncoding>,
+}
+
+impl KeyStakeCredential {
+    pub fn new(addr_keyhash: Ed25519KeyHash) -> Self {
+        Self {
+            addr_keyhash,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct ScriptStakeCredential {
+    pub scripthash: ScriptHash,
+    #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
+    #[serde(skip)]
+    pub encodings: Option<StakeCredentialEncoding>,
+}
+
+impl ScriptStakeCredential {
+    pub fn new(scripthash: ScriptHash) -> Self {
+        Self {
+            scripthash,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
+#[derivative(Eq, PartialEq, Ord="feature_allow_slow_enum", PartialOrd="feature_allow_slow_enum", Hash)]
+pub enum StakeCredential {
+    Key(KeyStakeCredential),
+    Script(ScriptStakeCredential),
+}
+
+impl StakeCredential {
+    pub fn new_key(addr_keyhash: Ed25519KeyHash) -> Self {
+        Self::Key(KeyStakeCredential::new(addr_keyhash))
+    }
+
+    pub fn new_script(scripthash: ScriptHash) -> Self {
+        Self::Script(ScriptStakeCredential::new(scripthash))
+    }
+
+    pub fn to_raw_bytes(&self) -> &[u8] {
+        use cardano_multiplatform_lib_crypto::RawBytesEncoding;
+        match self {
+            Self::Key(key) => key.addr_keyhash.to_raw_bytes(),
+            Self::Script(script) => script.scripthash.to_raw_bytes(),
+        }
+    }
+}
+
+// serialization
+#[derive(Clone, Debug)]
+pub struct AddressEncoding {
+    // Some addresses were able to make it onchain with trailing data
+    pub(crate) trailing: Option<Vec<u8>>,
+    pub(crate) bytes_encoding: StringEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct StakeCredentialEncoding {
+    pub len_encoding: LenEncoding,
+    pub index_0_encoding: Option<cbor_event::Sz>,
+}
+
+impl Serialize for Address {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
+        let raw_bytes = self.to_raw_bytes();
+        serializer.write_bytes_sz(&raw_bytes, self.encoding().map(|encs| encs.bytes_encoding.clone()).unwrap_or_default().to_str_len_sz(raw_bytes.len() as u64, force_canonical))
+    }
+}
+
+impl Deserialize for Address {
+    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let (raw_bytes, encoding) = raw.bytes_sz()?;
+        Self::from_bytes_impl(raw_bytes.as_ref(), Some(encoding.into()))
+    }
+}
+
+impl Serialize for RewardAccount {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
+        self.clone().to_address().serialize(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for RewardAccount {
+    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let (raw_bytes, encoding) = raw.bytes_sz()?;
+        match Address::from_bytes_impl(raw_bytes.as_ref(), Some(encoding.into()))? {
+            Address::Reward(reward_address) => Ok(reward_address),
+            // first byte must exist or else from_bytes_impl would have errored
+            _ => Err(DeserializeFailure::BadAddressType(raw_bytes[0]).into())
+        }
+    }
+}
+
+impl Serialize for StakeCredential {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
+        match self {
+            StakeCredential::Key(stake_credential0) => stake_credential0.serialize(serializer, force_canonical),
+            StakeCredential::Script(stake_credential1) => stake_credential1.serialize(serializer, force_canonical),
+        }
+    }
+}
+
+impl Deserialize for StakeCredential {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let outer_len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                Ok(KeyStakeCredential::deserialize_as_embedded_group(raw, &mut read_len, len)?)
+            })(raw)
+            {
+                Ok(stake_credential0) => return Ok(Self::Key(stake_credential0)),
+                Err(_) => raw.as_mut_ref().seek(SeekFrom::Start(initial_position)).unwrap(),
+            };
+            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                Ok(ScriptStakeCredential::deserialize_as_embedded_group(raw, &mut read_len, len)?)
+            })(raw)
+            {
+                Ok(stake_credential1) => return Ok(Self::Script(stake_credential1)),
+                Err(_) => raw.as_mut_ref().seek(SeekFrom::Start(initial_position)).unwrap(),
+            };
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            Err(DeserializeError::new("StakeCredential", DeserializeFailure::NoVariantMatched.into()))
+        })().map_err(|e| e.annotate("StakeCredential"))
+    }
+}
+
+impl Serialize for KeyStakeCredential {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(2, force_canonical))?;
+        self.serialize_as_embedded_group(serializer, force_canonical)
+    }
+}
+
+impl SerializeEmbeddedGroup for KeyStakeCredential {
+    fn serialize_as_embedded_group<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer_sz(0u64, fit_sz(0u64, self.encodings.as_ref().map(|encs| encs.index_0_encoding.clone()).unwrap_or_default(), force_canonical))?;
+        self.addr_keyhash.serialize(serializer, force_canonical)?;
+        self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for KeyStakeCredential {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            ret
+        })().map_err(|e| e.annotate("KeyStakeCredential"))
+    }
+}
+
+impl DeserializeEmbeddedGroup for KeyStakeCredential {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, read_len: &mut CBORReadLen, len: cbor_event::LenSz) -> Result<Self, DeserializeError> {
+        use cml_core::error::Key;
+        let len_encoding = len.into();
+        let index_0_encoding = (|| -> Result<_, DeserializeError> {
+            let (index_0_value, index_0_encoding) = raw.unsigned_integer_sz()?;
+            if index_0_value != 0 {
+                return Err(DeserializeFailure::FixedValueMismatch{ found: Key::Uint(index_0_value), expected: Key::Uint(0) }.into());
+            }
+            Ok(Some(index_0_encoding))
+        })().map_err(|e| e.annotate("index_0"))?;
+        let addr_keyhash = (|| -> Result<_, DeserializeError> {
+            Ok(Ed25519KeyHash::deserialize(raw)?)
+        })().map_err(|e| e.annotate("addr_keyhash"))?;
+        Ok(KeyStakeCredential {
+            addr_keyhash,
+            encodings: Some(StakeCredentialEncoding {
+                len_encoding,
+                index_0_encoding,
+            }),
+        })
+    }
+}
+
+impl Serialize for ScriptStakeCredential {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(2, force_canonical))?;
+        self.serialize_as_embedded_group(serializer, force_canonical)
+    }
+}
+
+impl SerializeEmbeddedGroup for ScriptStakeCredential {
+    fn serialize_as_embedded_group<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer_sz(1u64, fit_sz(1u64, self.encodings.as_ref().map(|encs| encs.index_0_encoding.clone()).unwrap_or_default(), force_canonical))?;
+        self.scripthash.serialize(serializer, force_canonical)?;
+        self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for ScriptStakeCredential {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            ret
+        })().map_err(|e| e.annotate("ScriptStakeCredential"))
+    }
+}
+
+impl DeserializeEmbeddedGroup for ScriptStakeCredential {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, read_len: &mut CBORReadLen, len: cbor_event::LenSz) -> Result<Self, DeserializeError> {
+        use cml_core::error::Key;
+        let len_encoding = len.into();
+        let index_0_encoding = (|| -> Result<_, DeserializeError> {
+            let (index_0_value, index_0_encoding) = raw.unsigned_integer_sz()?;
+            if index_0_value != 1 {
+                return Err(DeserializeFailure::FixedValueMismatch{ found: Key::Uint(index_0_value), expected: Key::Uint(1) }.into());
+            }
+            Ok(Some(index_0_encoding))
+        })().map_err(|e| e.annotate("index_0"))?;
+        let scripthash = (|| -> Result<_, DeserializeError> {
+            Ok(ScriptHash::deserialize(raw)?)
+        })().map_err(|e| e.annotate("scripthash"))?;
+        Ok(ScriptStakeCredential {
+            scripthash,
+            encodings: Some(StakeCredentialEncoding {
+                len_encoding,
+                index_0_encoding,
+            }),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{ledger::common::hash::ScriptHashNamespace, byron::AddressContent};
 
     use super::*;
-    use crypto::*;
+    use cml_crypto::*;
 
     #[test]
     fn variable_nat_encoding() {
@@ -718,7 +1002,7 @@ mod tests {
 
     #[test]
     fn address_header_matching() {
-        let reward = Rew51ardAddress::new(
+        let reward = RewardAddress::new(
             0b1001,
             StakeCredential::from_scripthash(ScriptHash::from([127; Ed25519KeyHash::BYTE_COUNT]))
         ).to_address();

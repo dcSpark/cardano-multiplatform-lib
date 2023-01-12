@@ -7,13 +7,14 @@ pub use cardano_multiplatform_lib_core::{
     error::{DeserializeError, DeserializeFailure},
     serialization::{Serialize, Deserialize, StringEncoding}
 };
-pub use derivative::{Derivative};
+pub use derivative::Derivative;
 use cryptoxide::blake2b::Blake2b;
 use impl_mockchain::key;
 use rand::rngs::OsRng;
-use std::convert::{From};
-use cbor_event::{self};
+use std::convert::From;
 
+// helpers for creating CDDL bytes wrappers around crypto
+pub mod chain;
 // brought over from old IOHK code
 mod chain_core;
 mod chain_crypto;
@@ -482,6 +483,15 @@ macro_rules! impl_hash_type {
                 Self::from_raw_bytes(&data)
                     .map_err(Into::into)
             }
+
+            pub fn to_hex(&self) -> String {
+                hex::encode(&self.0.as_ref())
+            }
+
+            pub fn from_hex(input: &str) -> Result<Self, CryptoError> {
+                let hex_bytes = hex::decode(input)?;
+                Self::from_raw_bytes(&hex_bytes)
+            }
         }
 
         impl std::fmt::Display for $name {
@@ -511,6 +521,27 @@ macro_rules! impl_hash_type {
                     },
                 }
             }
+        }
+
+        impl serde::Serialize for $name {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+                serializer.serialize_str(&self.to_hex())
+            }
+        }
+        
+        impl <'de> serde::de::Deserialize<'de> for $name {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
+            D: serde::de::Deserializer<'de> {
+                let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+                $name::from_hex(&s).map_err(|_e| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"hex bytes for hash"))
+            }
+        }
+        
+        impl schemars::JsonSchema for $name {
+            fn schema_name() -> String { String::from(stringify!($name)) }
+            fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
+            fn is_referenceable() -> bool { String::is_referenceable() }
         }
     }
 }

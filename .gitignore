@@ -31,6 +31,13 @@ cip25-wasm/json-gen/target/**
 cip25-wasm/json-gen/output/**
 cip25-wasm/json-gen/schemas/**
 
+cip36/target/**
+cip36/Cargo.lock
+
+cip36-wasm/target/**
+cip36-wasm/Cargo.lock
+
+
 json-gen-split/target/**
 
 tools/metadata-cddl-checker/Cargo.lock

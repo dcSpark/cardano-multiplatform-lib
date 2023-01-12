@@ -1,6 +1,6 @@
 use schemars::JsonSchema;
 use cbor_event::{de::Deserializer, se::Serializer};
-use std::io::{BufRead, Write, Seek, SeekFrom};
+use std::io::{BufRead, Write, Seek};
 use bech32::ToBase32;
 //use crate::byron::{ProtocolMagic, ByronAddress, ByronAddressError};
 use derivative::Derivative;
@@ -9,11 +9,6 @@ use std::convert::TryInto;
 
 // for enums
 use wasm_bindgen::prelude::wasm_bindgen;
-
-use super::{
-  Ed25519KeyHash,
-  ScriptHash,
-};
 
 use cardano_multiplatform_lib_core as cml_core;
 use cardano_multiplatform_lib_crypto as cml_crypto;
@@ -33,6 +28,11 @@ use cml_core::{
         CBORReadLen,
         fit_sz,
     },
+};
+
+use cml_crypto::{
+    Ed25519KeyHash,
+    ScriptHash,
 };
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Hash, Copy, serde::Serialize, serde::Deserialize, JsonSchema)]

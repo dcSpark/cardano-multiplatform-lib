@@ -4,6 +4,8 @@ use super::*;
 
 use cardano_multiplatform_lib_crypto as cml_crypto;
 
+use cml_crypto::chain::ChainCrypto;
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct KesSignature {
     pub inner: Vec<u8>,
@@ -206,76 +208,6 @@ impl BootstrapWitness {
 //         Ok(address_content)
 //     }
 // }
-
-#[derive(Debug, Clone, Derivative)]
-#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct ChainCrypto<T: cml_crypto::RawBytesEncoding> {
-    pub primitive: T,
-    #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
-    pub encoding: StringEncoding,
-}
-
-impl<T: cml_crypto::RawBytesEncoding> From<T> for ChainCrypto<T> {
-    fn from(primitive: T) -> Self {
-        Self {
-            primitive,
-            encoding: StringEncoding::default(),
-        }
-    }
-}
-
-impl<T: cml_crypto::RawBytesEncoding> Serialize for ChainCrypto<T> {
-    fn serialize<'se, W: std::io::Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        let data = self.primitive.to_raw_bytes();
-        serializer.write_bytes_sz(&data, self.encoding.to_str_len_sz(data.len() as u64, force_canonical))
-    }
-}
-
-impl<T: cml_crypto::RawBytesEncoding> Deserialize for ChainCrypto<T> {
-    fn deserialize<R: std::io::BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        (|| -> Result<Self, DeserializeError> {
-            let (bytes, encoding) = raw.bytes_sz()?;
-            T::from_raw_bytes(&bytes).map(|primitive| ChainCrypto {
-                    primitive,
-                    encoding: encoding.into(),
-                })
-                .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
-        })().map_err(|e| e.annotate("ChainCrypto"))
-    }
-}
-
-impl<T: cml_crypto::RawBytesEncoding> cml_crypto::RawBytesEncoding for ChainCrypto<T> {
-    fn to_raw_bytes(&self) -> &[u8] {
-        self.primitive.to_raw_bytes()
-    }
-
-    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, cml_crypto::CryptoError> {
-        T::from_raw_bytes(bytes).map(Into::into)
-    }
-}
-
-impl<T: cml_crypto::RawBytesEncoding> serde::Serialize for ChainCrypto<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
-        serializer.serialize_str(&self.primitive.to_raw_hex())
-    }
-}
-
-impl<'de, T: cml_crypto::RawBytesEncoding> serde::de::Deserialize<'de> for ChainCrypto<T> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
-    D: serde::de::Deserializer<'de> {
-        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        T::from_raw_hex(&s)
-            .map(Into::into)
-            .map_err(|_e| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"hex bytes for signature"))
-    }
-}
-
-impl<T: cml_crypto::RawBytesEncoding> schemars::JsonSchema for ChainCrypto<T> {
-    fn schema_name() -> String { String::from("ChainCrypto") }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
-    fn is_referenceable() -> bool { String::is_referenceable() }
-}
 
 pub type Ed25519Signature = ChainCrypto<cml_crypto::Ed25519Signature>;
 

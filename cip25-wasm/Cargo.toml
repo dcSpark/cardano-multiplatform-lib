@@ -9,6 +9,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 core = { path = "../cip25", package = "cardano-multiplatform-lib-cip25" }
 cbor_event = "2.2.0"
-wasm-bindgen = { version = "0.2", features=["serde-serialize"] }
+wasm-bindgen = { version = "=0.2.83", features = ["serde-serialize"] }
 linked-hash-map = "0.5.3"
 serde_json = "1.0.57"

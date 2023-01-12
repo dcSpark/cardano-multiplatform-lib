@@ -15,6 +15,10 @@ impl CBORReadLen {
         }
     }
 
+    pub fn read(&self) -> u64 {
+        self.read
+    }
+
     // Marks {n} values as being read, and if we go past the available definite length
     // given by the CBOR, we return an error.
     pub fn read_elems(&mut self, count: usize) -> Result<(), DeserializeFailure> {
@@ -176,18 +180,21 @@ pub trait Serialize {
 
     /// Bytes of a structure using the CBOR bytes as per the CDDL spec
     /// which for foo = bytes will include the CBOR bytes type/len, etc.
-    fn to_cbor_bytes(&self, force_canonical: bool) -> Vec<u8> {
+    /// This gives the original bytes in the case where this was created
+    /// from bytes originally
+    fn to_original_cbor_bytes(&self) -> Vec<u8> {
         let mut buf = Serializer::new_vec();
-        self.serialize(&mut buf, force_canonical).unwrap();
+        self.serialize(&mut buf, false).unwrap();
         buf.finalize()
     }
 
-    /// Generic to-bytes when one does not care what kind of bytes
-    /// e.g. CBOR encoded or the raw inner bytes of a buffer when applicable.
-    /// This is auto-implemented using to_cbor_bytes but can be overrided
-    /// for things like signatures, hashes, etc where the CBOR bytes are not commonly used.
-    fn to_bytes(&self) -> Vec<u8> {
-        self.to_cbor_bytes(false)
+    /// Bytes of a structure using the CBOR bytes as per the CDDL spec
+    /// which for foo = bytes will include the CBOR bytes type/len, etc.
+    /// This gives the canonically encoded CBOR bytes always
+    fn to_canonical_cbor_bytes(&self) -> Vec<u8> {
+        let mut buf = Serializer::new_vec();
+        self.serialize(&mut buf, true).unwrap();
+        buf.finalize()
     }
 }
 
@@ -220,14 +227,6 @@ pub trait Deserialize {
         let mut raw = Deserializer::from(std::io::Cursor::new(data));
         Self::deserialize(&mut raw)
     }
-
-    /// Generic from-bytes when one does not care what kind of bytes
-    /// e.g. CBOR encoded or the raw inner bytes of a buffer when applicable.
-    /// This is auto-implemented using from_cbor_bytes but can be overrided
-    /// for things like signatures, hashes, etc where the CBOR bytes are not commonly used.
-    fn from_bytes(data: &[u8]) -> Result<Self, DeserializeError> where Self: Sized {
-        Self::from_cbor_bytes(data)
-    }
 }
 
 impl<T: cbor_event::de::Deserialize> Deserialize for T {
@@ -244,7 +243,7 @@ pub trait ToBytes {
 
 impl<T: Serialize> ToBytes for T {
     fn to_bytes(&self) -> Vec<u8> {
-        Serialize::to_bytes(self)
+        Serialize::to_original_cbor_bytes(self)
     }
 }
 
@@ -254,6 +253,6 @@ pub trait FromBytes {
 
 impl<T: Deserialize> FromBytes for T {
     fn from_bytes(data: Vec<u8>) -> Result<Self, DeserializeError> where Self: Sized {
-        Deserialize::from_bytes(data.as_ref())
+        Deserialize::from_cbor_bytes(data.as_ref())
     }
 }

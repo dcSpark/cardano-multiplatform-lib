@@ -4536,7 +4536,7 @@ impl Deserialize for Transaction {
                 Ok(TransactionWitnessSet::deserialize(raw)?)
             })().map_err(|e| e.annotate("transaction_witness_set"))?;
             let index_2 = (|| -> Result<_, DeserializeError> {
-                Ok(bool::deserialize(raw)?)
+                Ok(raw.bool()?)
             })().map_err(|e| e.annotate("index_2"))?;
             let auxiliary_data = (|| -> Result<_, DeserializeError> {
                 Ok(match raw.cbor_type()? != CBORType::Special {

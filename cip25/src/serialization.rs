@@ -29,16 +29,13 @@ impl Deserialize for FilesDetails {
             let mut read = 0;
             while match len { cbor_event::Len::Len(n) => read < n as usize, cbor_event::Len::Indefinite => true, } {
                 match raw.cbor_type()? {
-                    CBORType::UnsignedInteger => match raw.unsigned_integer()? {
-                        unknown_key => return Err(DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()),
-                    },
                     CBORType::Text => match raw.text()?.as_str() {
                         "src" =>  {
                             if src.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Str("src".into())).into());
                             }
                             src = Some((|| -> Result<_, DeserializeError> {
-                                Ok(String64OrArrString64::deserialize(raw)?)
+                                Ok(ChunkableString::deserialize(raw)?)
                             })().map_err(|e| e.annotate("src"))?);
                         },
                         "name" =>  {
@@ -57,7 +54,7 @@ impl Deserialize for FilesDetails {
                                 Ok(String64::deserialize(raw)?)
                             })().map_err(|e| e.annotate("media_type"))?);
                         },
-                        unknown_key => return Err(DeserializeFailure::UnknownKey(Key::Str(unknown_key.to_owned())).into()),
+                        _unknown_key => /* CIP-25 allows permissive parsing */(),
                     },
                     CBORType::Special => match len {
                         cbor_event::Len::Len(_) => return Err(DeserializeFailure::BreakInDefiniteLen.into()),
@@ -66,7 +63,7 @@ impl Deserialize for FilesDetails {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    other_type => return Err(DeserializeFailure::UnexpectedKeyType(other_type).into()),
+                    _other_type => /* CIP-25 allows permissive parsing */(),
                 }
                 read += 1;
             }
@@ -196,9 +193,6 @@ impl Deserialize for LabelMetadataV2 {
             let mut read = 0;
             while match len { cbor_event::Len::Len(n) => read < n as usize, cbor_event::Len::Indefinite => true, } {
                 match raw.cbor_type()? {
-                    CBORType::UnsignedInteger => match raw.unsigned_integer()? {
-                        unknown_key => return Err(DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()),
-                    },
                     CBORType::Text => match raw.text()?.as_str() {
                         "data" =>  {
                             if data.is_some() {
@@ -246,7 +240,7 @@ impl Deserialize for LabelMetadataV2 {
                                 Ok(true)
                             })().map_err(|e| e.annotate("version"))?;
                         },
-                        unknown_key => return Err(DeserializeFailure::UnknownKey(Key::Str(unknown_key.to_owned())).into()),
+                        _unknown_key => /* CIP-25 allows permissive parsing */(),
                     },
                     CBORType::Special => match len {
                         cbor_event::Len::Len(_) => return Err(DeserializeFailure::BreakInDefiniteLen.into()),
@@ -255,7 +249,7 @@ impl Deserialize for LabelMetadataV2 {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    other_type => return Err(DeserializeFailure::UnexpectedKeyType(other_type).into()),
+                    _other_type => /* CIP-25 allows permissive parsing */(),
                 }
                 read += 1;
             }
@@ -274,7 +268,7 @@ impl Deserialize for LabelMetadataV2 {
     }
 }
 
-impl cbor_event::se::Serialize for Metadata {
+impl cbor_event::se::Serialize for CIP25Metadata {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_map(cbor_event::Len::Len(1))?;
         serializer.write_unsigned_integer(721u64)?;
@@ -283,7 +277,7 @@ impl cbor_event::se::Serialize for Metadata {
     }
 }
 
-impl Deserialize for Metadata {
+impl Deserialize for CIP25Metadata {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
@@ -326,7 +320,7 @@ impl Deserialize for Metadata {
             Ok(Self {
                 key_721,
             })
-        })().map_err(|e| e.annotate("Metadata"))
+        })().map_err(|e| e.annotate("CIP25Metadata"))
     }
 }
 
@@ -373,9 +367,6 @@ impl Deserialize for MetadataDetails {
             let mut read = 0;
             while match len { cbor_event::Len::Len(n) => read < n as usize, cbor_event::Len::Indefinite => true, } {
                 match raw.cbor_type()? {
-                    CBORType::UnsignedInteger => match raw.unsigned_integer()? {
-                        unknown_key => return Err(DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()),
-                    },
                     CBORType::Text => match raw.text()?.as_str() {
                         "name" =>  {
                             if name.is_some() {
@@ -408,7 +399,7 @@ impl Deserialize for MetadataDetails {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Str("image".into())).into());
                             }
                             image = Some((|| -> Result<_, DeserializeError> {
-                                Ok(String64OrArrString64::deserialize(raw)?)
+                                Ok(ChunkableString::deserialize(raw)?)
                             })().map_err(|e| e.annotate("image"))?);
                         },
                         "mediaType" =>  {
@@ -426,10 +417,10 @@ impl Deserialize for MetadataDetails {
                             }
                             description = Some((|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                Ok(String64OrArrString64::deserialize(raw)?)
+                                Ok(ChunkableString::deserialize(raw)?)
                             })().map_err(|e| e.annotate("description"))?);
                         },
-                        unknown_key => return Err(DeserializeFailure::UnknownKey(Key::Str(unknown_key.to_owned())).into()),
+                        _unknown_key => /* CIP-25 allows permissive parsing */(),
                     },
                     CBORType::Special => match len {
                         cbor_event::Len::Len(_) => return Err(DeserializeFailure::BreakInDefiniteLen.into()),
@@ -438,7 +429,7 @@ impl Deserialize for MetadataDetails {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    other_type => return Err(DeserializeFailure::UnexpectedKeyType(other_type).into()),
+                    _other_type => /* CIP-25 allows permissive parsing */(),
                 }
                 read += 1;
             }
@@ -478,13 +469,13 @@ impl Deserialize for String64 {
     }
 }
 
-impl cbor_event::se::Serialize for String64OrArrString64 {
+impl cbor_event::se::Serialize for ChunkableString {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
-            String64OrArrString64::String64(string64) => {
+            ChunkableString::Single(string64) => {
                 string64.serialize(serializer)
             },
-            String64OrArrString64::ArrString64(arr_string64) => {
+            ChunkableString::Chunked(arr_string64) => {
                 serializer.write_array(cbor_event::Len::Len(arr_string64.len() as u64))?;
                 for element in arr_string64.iter() {
                     element.serialize(serializer)?;
@@ -495,7 +486,7 @@ impl cbor_event::se::Serialize for String64OrArrString64 {
     }
 }
 
-impl Deserialize for String64OrArrString64 {
+impl Deserialize for ChunkableString {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
@@ -503,7 +494,7 @@ impl Deserialize for String64OrArrString64 {
                 Ok(String64::deserialize(raw)?)
             })(raw)
             {
-                Ok(string64) => return Ok(Self::String64(string64)),
+                Ok(string64) => return Ok(Self::Single(string64)),
                 Err(_) => raw.as_mut_ref().seek(SeekFrom::Start(initial_position)).unwrap(),
             };
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
@@ -519,10 +510,10 @@ impl Deserialize for String64OrArrString64 {
                 Ok(arr_string64_arr)
             })(raw)
             {
-                Ok(arr_string64) => return Ok(Self::ArrString64(arr_string64)),
+                Ok(arr_string64) => return Ok(Self::Chunked(arr_string64)),
                 Err(_) => raw.as_mut_ref().seek(SeekFrom::Start(initial_position)).unwrap(),
             };
-            Err(DeserializeError::new("String64OrArrString64", DeserializeFailure::NoVariantMatched.into()))
-        })().map_err(|e| e.annotate("String64OrArrString64"))
+            Err(DeserializeError::new("ChunkableString", DeserializeFailure::NoVariantMatched.into()))
+        })().map_err(|e| e.annotate("ChunkableString"))
     }
 }

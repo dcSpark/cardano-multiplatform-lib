@@ -1,4 +1,6 @@
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+
+use cardano_multiplatform_lib_core_wasm::metadata::Metadata;
 
 // TODO: remove after regen
 use core::{ToBytes, FromBytes};
@@ -14,12 +16,10 @@ pub type PolicyIdV1 = String64;
 pub type PolicyIdV2 = Vec<u8>;
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct MapAssetNameV2ToMetadataDetails(BTreeMap<core::AssetNameV2, core::MetadataDetails>);
 
 #[wasm_bindgen]
-
 impl MapAssetNameV2ToMetadataDetails {
     pub fn new() -> Self {
         Self(BTreeMap::new())
@@ -55,12 +55,10 @@ impl std::convert::Into<BTreeMap<core::AssetNameV2, core::MetadataDetails>> for 
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct AssetNameV2s(Vec<core::AssetNameV2>);
 
 #[wasm_bindgen]
-
 impl AssetNameV2s {
     pub fn new() -> Self {
         Self(Vec::new())
@@ -92,12 +90,10 @@ impl std::convert::Into<Vec<core::AssetNameV2>> for AssetNameV2s {
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct String64s(Vec<core::String64>);
 
 #[wasm_bindgen]
-
 impl String64s {
     pub fn new() -> Self {
         Self(Vec::new())
@@ -129,12 +125,10 @@ impl std::convert::Into<Vec<core::String64>> for String64s {
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct FilesDetailss(Vec<core::FilesDetails>);
 
 #[wasm_bindgen]
-
 impl FilesDetailss {
     pub fn new() -> Self {
         Self(Vec::new())
@@ -166,12 +160,10 @@ impl std::convert::Into<Vec<core::FilesDetails>> for FilesDetailss {
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct Data(BTreeMap<core::PolicyIdV2, BTreeMap<core::AssetNameV2, core::MetadataDetails>>);
 
 #[wasm_bindgen]
-
 impl Data {
     pub fn new() -> Self {
         Self(BTreeMap::new())
@@ -207,31 +199,29 @@ impl std::convert::Into<BTreeMap<core::PolicyIdV2, BTreeMap<core::AssetNameV2, c
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct FilesDetails(core::FilesDetails);
 
 #[wasm_bindgen]
-
 impl FilesDetails {
     pub fn to_bytes(&self) -> Vec<u8> {
         ToBytes::to_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: Vec<u8>) -> Result<FilesDetails, JsValue> {
-        FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_bytes(data: Vec<u8>) -> Result<FilesDetails, JsError> {
+        FromBytes::from_bytes(data).map(Self).map_err(Into::into)
     }
 
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+    pub fn to_json(&self) -> Result<String, JsError> {
+        serde_json::to_string_pretty(&self.0).map_err(Into::into)
     }
 
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        JsValue::from_serde(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+    pub fn to_json_value(&self) -> Result<JsValue, JsError> {
+        serde_wasm_bindgen::to_value(&self.0).map_err(Into::into)
     }
 
-    pub fn from_json(json: &str) -> Result<FilesDetails, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+    pub fn from_json(json: &str) -> Result<FilesDetails, JsError> {
+        serde_json::from_str(json).map(Self).map_err(Into::into)
     }
 
     pub fn name(&self) -> String64 {
@@ -242,11 +232,11 @@ impl FilesDetails {
         self.0.media_type.clone().into()
     }
 
-    pub fn src(&self) -> String64OrArrString64 {
+    pub fn src(&self) -> ChunkableString {
         self.0.src.clone().into()
     }
 
-    pub fn new(name: &String64, media_type: &String64, src: &String64OrArrString64) -> Self {
+    pub fn new(name: &String64, media_type: &String64, src: &ChunkableString) -> Self {
         Self(core::FilesDetails::new(name.clone().into(), media_type.clone().into(), src.clone().into()))
     }
 }
@@ -264,13 +254,11 @@ impl From<FilesDetails> for core::FilesDetails {
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
-pub struct MapPolicyIdV1ToMapAssetNameV1ToMetadataDetails(BTreeMap<core::PolicyIdV1, BTreeMap<core::AssetNameV1, core::MetadataDetails>>);
+pub struct LabelMetadataV1(BTreeMap<core::PolicyIdV1, BTreeMap<core::AssetNameV1, core::MetadataDetails>>);
 
 #[wasm_bindgen]
-
-impl MapPolicyIdV1ToMapAssetNameV1ToMetadataDetails {
+impl LabelMetadataV1 {
     pub fn new() -> Self {
         Self(BTreeMap::new())
     }
@@ -292,25 +280,23 @@ impl MapPolicyIdV1ToMapAssetNameV1ToMetadataDetails {
     }
 }
 
-impl From<BTreeMap<core::PolicyIdV1, BTreeMap<core::AssetNameV1, core::MetadataDetails>>> for MapPolicyIdV1ToMapAssetNameV1ToMetadataDetails {
+impl From<BTreeMap<core::PolicyIdV1, BTreeMap<core::AssetNameV1, core::MetadataDetails>>> for LabelMetadataV1 {
     fn from(native: BTreeMap<core::PolicyIdV1, BTreeMap<core::AssetNameV1, core::MetadataDetails>>) -> Self {
         Self(native)
     }
 }
 
-impl std::convert::Into<BTreeMap<core::PolicyIdV1, BTreeMap<core::AssetNameV1, core::MetadataDetails>>> for MapPolicyIdV1ToMapAssetNameV1ToMetadataDetails {
+impl std::convert::Into<BTreeMap<core::PolicyIdV1, BTreeMap<core::AssetNameV1, core::MetadataDetails>>> for LabelMetadataV1 {
     fn into(self) -> BTreeMap<core::PolicyIdV1, BTreeMap<core::AssetNameV1, core::MetadataDetails>> {
         self.0
     }
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct PolicyIdV1s(Vec<core::PolicyIdV1>);
 
 #[wasm_bindgen]
-
 impl PolicyIdV1s {
     pub fn new() -> Self {
         Self(Vec::new())
@@ -342,12 +328,10 @@ impl std::convert::Into<Vec<core::PolicyIdV1>> for PolicyIdV1s {
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct MapAssetNameV1ToMetadataDetails(BTreeMap<core::AssetNameV1, core::MetadataDetails>);
 
 #[wasm_bindgen]
-
 impl MapAssetNameV1ToMetadataDetails {
     pub fn new() -> Self {
         Self(BTreeMap::new())
@@ -383,12 +367,10 @@ impl std::convert::Into<BTreeMap<core::AssetNameV1, core::MetadataDetails>> for 
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct AssetNameV1s(Vec<core::AssetNameV1>);
 
 #[wasm_bindgen]
-
 impl AssetNameV1s {
     pub fn new() -> Self {
         Self(Vec::new())
@@ -420,12 +402,10 @@ impl std::convert::Into<Vec<core::AssetNameV1>> for AssetNameV1s {
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct PolicyIdV2s(Vec<core::PolicyIdV2>);
 
 #[wasm_bindgen]
-
 impl PolicyIdV2s {
     pub fn new() -> Self {
         Self(Vec::new())
@@ -457,38 +437,35 @@ impl std::convert::Into<Vec<core::PolicyIdV2>> for PolicyIdV2s {
 }
 
 #[wasm_bindgen]
-
 pub enum LabelMetadataKind {
     LabelMetadataV1,
     LabelMetadataV2,
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct LabelMetadata(core::LabelMetadata);
 
 #[wasm_bindgen]
-
 impl LabelMetadata {
     pub fn to_bytes(&self) -> Vec<u8> {
         ToBytes::to_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: Vec<u8>) -> Result<LabelMetadata, JsValue> {
-        FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_bytes(data: Vec<u8>) -> Result<LabelMetadata, JsError> {
+        FromBytes::from_bytes(data).map(Self).map_err(Into::into)
     }
 
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+    pub fn to_json(&self) -> Result<String, JsError> {
+        serde_json::to_string_pretty(&self.0).map_err(Into::into)
     }
 
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        JsValue::from_serde(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+    pub fn to_json_value(&self) -> Result<JsValue, JsError> {
+        serde_wasm_bindgen::to_value(&self.0).map_err(Into::into)
     }
 
-    pub fn from_json(json: &str) -> Result<LabelMetadata, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+    pub fn from_json(json: &str) -> Result<LabelMetadata, JsError> {
+        serde_json::from_str(json).map(Self).map_err(Into::into)
     }
 
     pub fn new_label_metadata_v1(label_metadata_v1: LabelMetadataV1) -> Self {
@@ -533,34 +510,30 @@ impl From<LabelMetadata> for core::LabelMetadata {
     }
 }
 
-type LabelMetadataV1 = MapPolicyIdV1ToMapAssetNameV1ToMetadataDetails;
-
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct LabelMetadataV2(core::LabelMetadataV2);
 
 #[wasm_bindgen]
-
 impl LabelMetadataV2 {
     pub fn to_bytes(&self) -> Vec<u8> {
         ToBytes::to_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: Vec<u8>) -> Result<LabelMetadataV2, JsValue> {
-        FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_bytes(data: Vec<u8>) -> Result<LabelMetadataV2, JsError> {
+        FromBytes::from_bytes(data).map(Self).map_err(Into::into)
     }
 
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+    pub fn to_json(&self) -> Result<String, JsError> {
+        serde_json::to_string_pretty(&self.0).map_err(Into::into)
     }
 
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        JsValue::from_serde(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+    pub fn to_json_value(&self) -> Result<JsValue, JsError> {
+        serde_wasm_bindgen::to_value(&self.0).map_err(Into::into)
     }
 
-    pub fn from_json(json: &str) -> Result<LabelMetadataV2, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+    pub fn from_json(json: &str) -> Result<LabelMetadataV2, JsError> {
+        serde_json::from_str(json).map(Self).map_err(Into::into)
     }
 
     pub fn data(&self) -> Data {
@@ -584,88 +557,113 @@ impl From<LabelMetadataV2> for core::LabelMetadataV2 {
     }
 }
 
+/// This is the entire metadata schema for CIP-25
+/// It can be parsed by passing in the CBOR bytes of the entire transaction metadata
+/// or by passing in an existing Metadata struct.
+/// Parsing from CBOR bytes should be marginally faster.
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
-pub struct Metadata(core::Metadata);
+pub struct CIP25Metadata(core::CIP25Metadata);
 
 #[wasm_bindgen]
+impl CIP25Metadata {
+    /// Create a Metadata containing only the CIP25 schema
+    pub fn to_metadata(&self) -> Result<Metadata, JsError> {
+        self.0.to_metadata().map(Metadata::from).map_err(Into::into)
+    }
 
-impl Metadata {
+    /// Read the CIP25 schema from a Metadata. Ignores all other data besides CIP25
+    /// Can fail if the Metadata does not conform to CIP25
+    pub fn from_metadata(metadata: &Metadata) -> Result<CIP25Metadata, JsError> {
+        core::CIP25Metadata::from_metadata(metadata.as_ref()).map(Self).map_err(Into::into)
+    }
+
+    /// Add to an existing metadata (could be empty) the full CIP25 metadata
+    pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), JsError> {
+        self.0.add_to_metadata(metadata.as_mut()).map_err(Into::into)
+    }
+
+    /// Serialize to CBOR bytes compatible with tx metadata
+    /// Does not guarantee any specific type of CBOR format and should NOT
+    /// be used with round-tripping. It will ignore all non-CIP25 keys.
+    /// Use core::metadate crate for round-tripping metadata.
     pub fn to_bytes(&self) -> Vec<u8> {
         ToBytes::to_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: Vec<u8>) -> Result<Metadata, JsValue> {
-        FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    /// Deserialize from CBOR bytes compatible with tx metadata
+    /// Does not guarantee any specific type of CBOR format and should NOT
+    /// be used with round-tripping. It will ignore all non-CIP25 keys.
+    /// Use core::metadate crate for round-tripping metadata.
+    pub fn from_bytes(data: Vec<u8>) -> Result<CIP25Metadata, JsError> {
+        FromBytes::from_bytes(data).map(Self).map_err(Into::into)
     }
 
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+    pub fn to_json(&self) -> Result<String, JsError> {
+        serde_json::to_string_pretty(&self.0).map_err(Into::into)
     }
 
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        JsValue::from_serde(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+    pub fn to_json_value(&self) -> Result<JsValue, JsError> {
+        serde_wasm_bindgen::to_value(&self.0).map_err(Into::into)
     }
 
-    pub fn from_json(json: &str) -> Result<Metadata, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+    pub fn from_json(json: &str) -> Result<CIP25Metadata, JsError> {
+        serde_json::from_str(json).map(Self).map_err(Into::into)
     }
 
+    /// The core details of the CIP25 spec
     pub fn key_721(&self) -> LabelMetadata {
         self.0.key_721.clone().into()
     }
 
     pub fn new(key_721: &LabelMetadata) -> Self {
-        Self(core::Metadata::new(key_721.clone().into()))
+        Self(core::CIP25Metadata::new(key_721.clone().into()))
     }
 }
 
-impl From<core::Metadata> for Metadata {
-    fn from(native: core::Metadata) -> Self {
+impl From<core::CIP25Metadata> for CIP25Metadata {
+    fn from(native: core::CIP25Metadata) -> Self {
         Self(native)
     }
 }
 
-impl From<Metadata> for core::Metadata {
-    fn from(wasm: Metadata) -> Self {
+impl From<CIP25Metadata> for core::CIP25Metadata {
+    fn from(wasm: CIP25Metadata) -> Self {
         wasm.0
     }
 }
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct MetadataDetails(core::MetadataDetails);
 
 #[wasm_bindgen]
-
 impl MetadataDetails {
     pub fn to_bytes(&self) -> Vec<u8> {
         ToBytes::to_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: Vec<u8>) -> Result<MetadataDetails, JsValue> {
-        FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_bytes(data: Vec<u8>) -> Result<MetadataDetails, JsError> {
+        FromBytes::from_bytes(data).map(Self).map_err(Into::into)
     }
 
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+    pub fn to_json(&self) -> Result<String, JsError> {
+        serde_json::to_string_pretty(&self.0).map_err(Into::into)
     }
 
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        JsValue::from_serde(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+    pub fn to_json_value(&self) -> Result<JsValue, JsError> {
+        serde_wasm_bindgen::to_value(&self.0).map_err(Into::into)
     }
 
-    pub fn from_json(json: &str) -> Result<MetadataDetails, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+    pub fn from_json(json: &str) -> Result<MetadataDetails, JsError> {
+        serde_json::from_str(json).map(Self).map_err(Into::into)
     }
 
     pub fn name(&self) -> String64 {
         self.0.name.clone().into()
     }
 
-    pub fn image(&self) -> String64OrArrString64 {
+    pub fn image(&self) -> ChunkableString {
         self.0.image.clone().into()
     }
 
@@ -677,11 +675,11 @@ impl MetadataDetails {
         self.0.media_type.clone().map(std::convert::Into::into)
     }
 
-    pub fn set_description(&mut self, description: &String64OrArrString64) {
+    pub fn set_description(&mut self, description: &ChunkableString) {
         self.0.description = Some(description.clone().into())
     }
 
-    pub fn description(&self) -> Option<String64OrArrString64> {
+    pub fn description(&self) -> Option<ChunkableString> {
         self.0.description.clone().map(std::convert::Into::into)
     }
 
@@ -693,7 +691,7 @@ impl MetadataDetails {
         self.0.files.clone().map(std::convert::Into::into)
     }
 
-    pub fn new(name: &String64, image: &String64OrArrString64) -> Self {
+    pub fn new(name: &String64, image: &ChunkableString) -> Self {
         Self(core::MetadataDetails::new(name.clone().into(), image.clone().into()))
     }
 }
@@ -710,36 +708,40 @@ impl From<MetadataDetails> for core::MetadataDetails {
     }
 }
 
+/// A String of at most 64 bytes.
+/// This is to conform with Cardano metadata restrictions.
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct String64(core::String64);
 
 #[wasm_bindgen]
-
 impl String64 {
+    pub fn new(s: &str) -> Result<String64, JsError> {
+        core::String64::new(s).map(Self).map_err(Into::into)
+    }
+
+    pub fn to_str(&self) -> String {
+        self.0.to_str().to_owned()
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         ToBytes::to_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: Vec<u8>) -> Result<String64, JsValue> {
-        FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_bytes(data: Vec<u8>) -> Result<String64, JsError> {
+        FromBytes::from_bytes(data).map(Self).map_err(Into::into)
     }
 
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+    pub fn to_json(&self) -> Result<String, JsError> {
+        serde_json::to_string_pretty(&self.0).map_err(Into::into)
     }
 
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        JsValue::from_serde(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+    pub fn to_json_value(&self) -> Result<JsValue, JsError> {
+        serde_wasm_bindgen::to_value(&self.0).map_err(Into::into)
     }
 
-    pub fn from_json(json: &str) -> Result<String64, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
-    pub fn get(&self) -> String {
-        self.0.get().clone().clone()
+    pub fn from_json(json: &str) -> Result<String64, JsError> {
+        serde_json::from_str(json).map(Self).map_err(Into::into)
     }
 }
 
@@ -756,78 +758,90 @@ impl From<String64> for core::String64 {
 }
 
 #[wasm_bindgen]
-
-pub enum String64OrArrString64Kind {
-    String64,
-    ArrString64,
+pub enum ChunkableStringKind {
+    Single,
+    Chunked,
 }
 
+/// A String that may or may not be chunked into 64-byte chunks to be able
+/// to conform to Cardano TX Metadata limitations.
+/// Most users should simply use ChunkableString::from_string() and ChunkableString::to_string()
+/// and avoid the explicit single/chunk interface:
+/// ```javascript
+/// let chunkableString = CIP25.ChunkableString.from_string("this can be any length and will automatically be chunked if needed");
+/// ```
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
-pub struct String64OrArrString64(core::String64OrArrString64);
+pub struct ChunkableString(core::ChunkableString);
 
 #[wasm_bindgen]
+impl ChunkableString {
+    pub fn from_string(str: &str) -> Self {
+        Self(core::ChunkableString::from(str))
+    }
 
-impl String64OrArrString64 {
+    pub fn to_string(&self) -> String {
+        String::from(&self.0)
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         ToBytes::to_bytes(&self.0)
     }
 
-    pub fn from_bytes(data: Vec<u8>) -> Result<String64OrArrString64, JsValue> {
-        FromBytes::from_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn from_bytes(data: Vec<u8>) -> Result<ChunkableString, JsError> {
+        FromBytes::from_bytes(data).map(Self).map_err(Into::into)
     }
 
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+    pub fn to_json(&self) -> Result<String, JsError> {
+        serde_json::to_string_pretty(&self.0).map_err(Into::into)
     }
 
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        JsValue::from_serde(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+    pub fn to_json_value(&self) -> Result<JsValue, JsError> {
+        serde_wasm_bindgen::to_value(&self.0).map_err(Into::into)
     }
 
-    pub fn from_json(json: &str) -> Result<String64OrArrString64, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+    pub fn from_json(json: &str) -> Result<ChunkableString, JsError> {
+        serde_json::from_str(json).map(Self).map_err(Into::into)
     }
 
-    pub fn new_string64(string64: &String64) -> Self {
-        Self(core::String64OrArrString64::new_string64(string64.clone().into()))
+    pub fn new_single(string64: &String64) -> Self {
+        Self(core::ChunkableString::new_single(string64.clone().into()))
     }
 
-    pub fn new_arr_string64(arr_string64: &String64s) -> Self {
-        Self(core::String64OrArrString64::new_arr_string64(arr_string64.clone().into()))
+    pub fn new_chunked(arr_string64: &String64s) -> Self {
+        Self(core::ChunkableString::new_chunked(arr_string64.clone().into()))
     }
 
-    pub fn kind(&self) -> String64OrArrString64Kind {
+    pub fn kind(&self) -> ChunkableStringKind {
         match &self.0 {
-            core::String64OrArrString64::String64(_) => String64OrArrString64Kind::String64,
-            core::String64OrArrString64::ArrString64(_) => String64OrArrString64Kind::ArrString64,
+            core::ChunkableString::Single(_) => ChunkableStringKind::Single,
+            core::ChunkableString::Chunked(_) => ChunkableStringKind::Chunked,
         }
     }
 
     pub fn as_string64(&self) -> Option<String64> {
         match &self.0 {
-            core::String64OrArrString64::String64(string64) => Some(string64.clone().into()),
+            core::ChunkableString::Single(string64) => Some(string64.clone().into()),
             _ => None,
         }
     }
 
-    pub fn as_arr_string64(&self) -> Option<String64s> {
+    pub fn as_chunks(&self) -> Option<String64s> {
         match &self.0 {
-            core::String64OrArrString64::ArrString64(arr_string64) => Some(arr_string64.clone().into()),
+            core::ChunkableString::Chunked(arr_string64) => Some(arr_string64.clone().into()),
             _ => None,
         }
     }
 }
 
-impl From<core::String64OrArrString64> for String64OrArrString64 {
-    fn from(native: core::String64OrArrString64) -> Self {
+impl From<core::ChunkableString> for ChunkableString {
+    fn from(native: core::ChunkableString) -> Self {
         Self(native)
     }
 }
 
-impl From<String64OrArrString64> for core::String64OrArrString64 {
-    fn from(wasm: String64OrArrString64) -> Self {
+impl From<ChunkableString> for core::ChunkableString {
+    fn from(wasm: ChunkableString) -> Self {
         wasm.0
     }
 }

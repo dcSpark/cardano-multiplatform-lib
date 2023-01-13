@@ -17,5 +17,5 @@ fn main() {
     gen_json_schema!(Metadata);
     gen_json_schema!(MetadataDetails);
     gen_json_schema!(String64);
-    gen_json_schema!(String64OrArrString64);
+    gen_json_schema!(ChunkableString);
 }

@@ -198,16 +198,6 @@ pub trait Serialize {
     }
 }
 
-impl<T: cbor_event::se::Serialize> Serialize for T {
-    fn serialize<'a, W: Write + Sized>(
-        &self,
-        serializer: &'a mut Serializer<W>,
-        _force_canonical: bool,
-    ) -> cbor_event::Result<&'a mut Serializer<W>> {
-        <T as cbor_event::se::Serialize>::serialize(self, serializer)
-    }
-}
-
 pub trait SerializeEmbeddedGroup {
     fn serialize_as_embedded_group<'a, W: Write + Sized>(
         &self,
@@ -229,30 +219,34 @@ pub trait Deserialize {
     }
 }
 
-impl<T: cbor_event::de::Deserialize> Deserialize for T {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<T, DeserializeError> {
-        T::deserialize(raw).map_err(|e| DeserializeError::from(e))
+// TODO: remove ToBytes / FromBytes after we regenerate the WASM wrappers.
+// This is so the existing generated to/from bytes code works
+// We are, however, using this in CIP25 as a way to get to bytes without
+// caring about the encoding. We could move it to there or make it more explicit
+// that this does not preserve encodings OR do canonical - it's just whatever
+// CBOR format. All other parts of CML implement our own Serialize trait with
+// the assumption that we preserve encodings. This is based off of cbor_event's
+pub trait ToBytes {
+    fn to_bytes(&self) -> Vec<u8>;
+}
+
+impl<T: cbor_event::se::Serialize> ToBytes for T {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buf = Serializer::new_vec();
+        self.serialize(&mut buf).unwrap();
+        buf.finalize()
     }
 }
 
 // TODO: remove ToBytes / FromBytes after we regenerate the WASM wrappers.
 // This is just so the existing generated to/from bytes code works
-pub trait ToBytes {
-    fn to_bytes(&self) -> Vec<u8>;
-}
-
-impl<T: Serialize> ToBytes for T {
-    fn to_bytes(&self) -> Vec<u8> {
-        Serialize::to_original_cbor_bytes(self)
-    }
-}
-
 pub trait FromBytes {
     fn from_bytes(data: Vec<u8>) -> Result<Self, DeserializeError> where Self: Sized;
 }
 
 impl<T: Deserialize> FromBytes for T {
     fn from_bytes(data: Vec<u8>) -> Result<Self, DeserializeError> where Self: Sized {
-        Deserialize::from_cbor_bytes(data.as_ref())
+        let mut raw = Deserializer::from(std::io::Cursor::new(data));
+        Self::deserialize(&mut raw).map_err(Into::into)
     }
 }

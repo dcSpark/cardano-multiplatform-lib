@@ -1,130 +1,233 @@
 ; Cardano Byron blockchain CBOR schema
 
-block = [0, ebblock]
-      / [1, mainblock]
+block = [0, eb_block] ; @name ebb_wrapper
+      / [1, main_block] ; @name main_block_wrapper
 
-mainblock = [ "header" : blockhead
-            , "body" : blockbody
+main_block = [ "header" : block_header
+            , "body" : block_body
             , "extra" : [attributes]
             ]
 
-ebblock = [ "header" : ebbhead
-          , "body" : [+ stakeholderid]
+eb_block = [ "header" : ebb_head
+          , "body" : [+ stakeholder_id]
           , extra : [attributes]
           ]
 
 u8 = uint .lt 256
 u16 = uint .lt 65536
-u32 = uint
-u64 = uint
+u32 = uint .size 4
+u64 = uint .size 8
 
 ; Basic Cardano Types
 
-blake2b-256 = bytes .size 32
+blake2b_256 = bytes .size 32
 
-txid = blake2b-256
-blockid = blake2b-256
-updid = blake2b-256
-hash = blake2b-256
+txid = blake2b_256
+block_id = blake2b_256
+update_id = blake2b_256
 
-blake2b-224 = bytes .size 28
+blake2b_224 = bytes .size 28
 
-addressid = blake2b-224
-stakeholderid = blake2b-224
+address_id = blake2b_224
+stakeholder_id = blake2b_224
 
-epochid = u64
-slotid = [ epoch: epochid, slot : u64 ]
+epoch_id = u64
+slot_id = [ epoch: epoch_id, slot : u64 ]
 
-pubkey = bytes
+pub_key = bytes
 signature = bytes
-
-; Attributes - at the moment we do not bother deserialising these, since they
-; don't contain anything
-
-attributes = {* any => any}
 
 ; Addresses
 
-addrdistr = [1] / [0, stakeholderid]
+single_key_distr = (0, stakeholder_id)
+; TODO: what is uint here?
+bootstrap_era_distr = (1, uint)
 
-addrtype = &("PubKey" : 0, "Script" : 1, "Redeem" : 2) / (u64 .gt 2)
-addrattr = { ? 0 : addrdistr
-           , ? 1 : bytes}
-address = [ #6.24(bytes .cbor ([addressid, addrattr, addrtype])), u64 ]
+stake_distribution =
+  [  bootstrap_era_distr
+  // single_key_distr
+  ]
+
+public_edd25519_bip32 = bytes .size 64
+script = bytes .size 32
+public_ed25519 = bytes .size 32
+
+spending_data_pub_key_ASD = (0, public_edd25519_bip32)
+spending_data_script_ASD = (1, script)
+spending_data_redeem_ASD = (2, public_ed25519)
+
+spendingData = [
+     spending_data_pub_key_ASD
+  // spending_data_script_ASD
+  // spending_data_redeem_ASD
+]
+
+addrType = 0 ; Public Key
+         / 1 ; Script
+         / 2 ; Redeem
+
+addr_attributes = {
+             ? 0 : bytes .cbor stake_distribution ; @name stake_distribution - no value -> BootstrapEraDistr
+           , ? 1 : bytes .cbor hd_address_payload ; @name hd_address_payload - strictly speaking, this may contain anything
+           , ? 2 : bytes .cbor protocol_magic     ; @name protocol_magic
+           }
+
+address_content = [ address_id
+                  , addr_attributes
+                  , addrType
+                  ]
+
+crc32 = u32
+address = [ #6.24(bytes .cbor address_content) ; @name address_content
+          , crc32
+          ]
 
 ; Transactions
 
-txin = [0, #6.24(bytes .cbor ([txid, u32]))] / [u8 .ne 0, encoded-cbor]
-txout = [address, u64]
+; Attributes - at the moment we do not bother deserialising these, since they
+; don't contain anything
+attributes = {* any => any}
 
-tx = [[+ txin], [+ txout], attributes]
+tx_output_pointer = [ txid
+                    , u32 ; @name index
+                    ]
 
-txproof = [u32, hash, hash]
+tx_in_regular = [ 0
+                , #6.24(bytes .cbor (tx_output_pointer))
+                ]
+; TODO: better type
+tx_in_genesis = [ u8 .ne 0
+                , encoded-cbor
+                ]
+tx_in = tx_in_regular / tx_in_genesis
+tx_out = [ address
+         , u64 ; @name amount
+         ]
 
-twit = [0, #6.24(bytes .cbor ([pubkey, signature]))]
-     / [1, #6.24(bytes .cbor ([[u16, bytes], [u16, bytes]]))]
-     / [2, #6.24(bytes .cbor ([pubkey, signature]))]
-     / [u8 .gt 2, encoded-cbor]
+tx = [ [+ tx_in] ; @name inputs
+     , [+ tx_out] ; @name outputs
+     , attributes
+]
 
-; Shared Seed Computation
+tx_proof = [ u32 ; @name number - number of transactions in this tree
+           , blake2b_256 ; @name root - root of the merkle tree of transactions
+           , blake2b_256 ; @name witnesses_hash - hash of Sequence of TxWitnesses encoded in CBOR
+           ]
 
-vsspubkey = bytes ; This is encoded using the 'Binary' instance
-                  ; for Scrape.PublicKey
-vsssec = bytes ; This is encoded using the 'Binary' instance
-               ; for Scrape.Secret.
-vssenc = [bytes] ; This is encoded using the 'Binary' instance
-                 ; for Scrape.EncryptedSi.
-                 ; TODO work out why this seems to be in a length 1 array
-vssdec = bytes ; This is encoded using the 'Binary' instance
-               ; for Scrape.DecryptedShare
-vssproof = [bytes, bytes, bytes, [* bytes]] ; This is encoded using the
-                                            ; 'Binary' instance for Scrape.Proof
+pk_witness_entry = [pub_key, signature]
+; TODO: what are these types? I think they were never used in mainnet
+validator_script = [ u16
+                   , bytes
+                   ]
+; TODO: what are these types? I think they were never used in mainnet
+redeemer_script = [ u16
+                  , bytes
+                  ]
+script_witness_entry = [validator_script, redeemer_script]
+redeemer_witness_entry = [pub_key, signature]
+tx_witness = [0, #6.24(bytes .cbor (pk_witness_entry))] ; @name pk_witness
+     / [1, #6.24(bytes .cbor (script_witness_entry))] ; @name script_witness
+     / [2, #6.24(bytes .cbor (redeemer_witness_entry))] ; @name redeem_witness
 
-ssccomm = [pubkey, [{vsspubkey => vssenc},vssproof], signature]
-ssccomms = #6.258([* ssccomm])
+; MPC: Shared Seed Computation (ssc) - Verifiable Secret Sharing (vss)
 
-sscopens = {stakeholderid => vsssec}
+; This is encoded using the 'Binary' instance for Scrape.PublicKey
+; https://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:PublicKey
+; stakeholder ids correspond to 'vcSigningKey's of associated certs
+; no two certs have the same 'vcVssKey'
+vss_pub_key = bytes
 
-sscshares = {addressid => [addressid, [* vssdec]]}
+; This is encoded using the 'Binary' instance for Scrape.Secret.
+; http://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:Secret
+vsssec = bytes
 
-ssccert = [vsspubkey, pubkey, epochid, signature]
-ssccerts = #6.258([* ssccert])
+; This is encoded using the 'Binary' instance for Scrape.EncryptedSi.
+; http://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:EncryptedSi
+; TODO work out why this seems to be in a length 1 array
+vss_encrypted_share = [bytes]
 
-ssc = [0, ssccomms, ssccerts]
-    / [1, sscopens, ssccerts]
-    / [2, sscshares, ssccerts]
-    / [3, ssccerts]
+; This is encoded using the 'Binary' instance for Scrape.DecryptedShare
+; https://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:DecryptedShare
+vss_decrypted_share = bytes
 
-sscproof = [0, hash, hash]
-         / [1, hash, hash]
-         / [2, hash, hash]
-         / [3, hash]
+; This is encoded using the 'Binary' instance for Scrape.Proof
+; http://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:ExtraGen
+; http://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:Proof
+; http://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:ParallelProofs
+; http://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:Commitment
+vss_proof = [ bytes ; @name extra_gen
+            , bytes ; @name proof
+            , bytes ; @name parallel_proofs
+            , [* bytes] ; @name commitments
+            ]
+
+vss_shares = {vss_pub_key => vss_encrypted_share}
+
+ssc_commitment = [vss_shares, vss_proof]
+ssc_signed_commitment = [ pub_key
+                        , ssc_commitment
+                        , signature
+                        ]
+ssc_signed_commitments = #6.258([* ssc_signed_commitment])
+
+ssc_opens = {stakeholderid => vsssec}
+
+; TODO: this is serialized as "serialize_fixed_map". Not sure if codegen does the same
+ssc_shares_submap = [address_id, [* vss_decrypted_share]]
+ssc_shares = {address_id => ssc_shares_submap}
+
+ssc_cert = [vss_pub_key, pub_key, epoch_id, signature]
+ssc_certs = #6.258([* ssc_cert])
+
+ssc = [0, ssc_signed_commitments, ssc_certs] ; @name CommitmentsPayload
+    / [1, ssc_opens, ssc_certs] ; @name OpeningsPayload
+    / [2, ssc_shares, ssc_certs] ; @name SharesPayload
+    / [3, ssc_certs] ; @name CertificatesPayload
+
+ssc_proof = [0, blake2b_256, blake2b_256] ; @name commitments
+          / [1, blake2b_256, blake2b_256] ; @name openings
+          / [2, blake2b_256, blake2b_256] ; @name shares
+          / [3, blake2b_256] ; @name certificates
 
 ; Delegation
 
-dlg = [ epoch : epochid
-      , issuer : pubkey
-      , delegate : pubkey
-      , certificate : signature
-      ]
+delegation = [ epoch : epoch_id
+             , issuer : pub_key
+             , delegate : pub_key
+             , certificate : signature
+             ]
 
-dlgsig = [dlg, signature]
+delegation_signature = [delegation, signature]
 
-lwdlg = [ epochRange : [epochid, epochid]
-        , issuer : pubkey
-        , delegate : pubkey
-        , certificate : signature
-        ]
+epoch_range = [epoch_id, epoch_id]
+light_weight_dlg = [  epochRange : epoch_range
+                    , issuer : pub_key
+                    , delegate : pub_key
+                    , certificate : signature
+                   ]
 
-lwdlgsig = [lwdlg, signature]
+light_weight_delegation_signature = [light_weight_dlg, signature]
 
 ; Updates
 
-bver = [u16, u16, u8]
+block_version = [
+      u16 ; @name major
+    , u16 ; @name minor
+    , u8 ; @name alt
+]
 
-txfeepol = [0, #6.24(bytes .cbor ([bigint, bigint]))]
-         / [u8 .gt 0, encoded-cbor]
+std_fee_policy = [ bigint ; @name summand
+                 , bigint ; @name multiplier
+                 ]
+tx_fee_policy = [ 0
+                , #6.24(bytes .cbor (std_fee_policy)) ; @name std_fee_policy
+                ]
 
+coin_portion = u64
+soft_fork_rule = [ coin_portion ; @name init_threshold
+                 , coin_portion ; @name min_threshold
+                 , coin_portion ; @name threshold_decrement
+                 ]
 bvermod = [ scriptVersion : [? u16]
           , slotDuration : [? bigint]
           , maxBlockSize : [? bigint]
@@ -136,74 +239,90 @@ bvermod = [ scriptVersion : [? u16]
           , updateVoteThd : [? u64]
           , updateProposalThd : [? u64]
           , updateImplicit : [? u64]
-          , softForkRule : [? [u64, u64, u64]]
-          , txFeePolicy : [? txfeepol]
-          , unlockStakeEpoch : [? epochid]
+          , softForkRule : [? soft_fork_rule]
+          , txFeePolicy : [? tx_fee_policy]
+          , unlockStakeEpoch : [? epoch_id]
           ]
 
-updata = [ hash, hash, hash, hash ]
+update_data = [ blake2b_256 ; @name app_diff_hash
+              , blake2b_256 ; @name pkg_hash
+              , blake2b_256 ; @name updater_hash
+              , blake2b_256 ; @name metadata_hash
+              ]
 
-upprop = [ "blockVersion" : bver
-         , "blockVersionMod" : bvermod
-         , "softwareVersion" : [ text, u32 ]
-         , "data" : #6.258([text, updata])
-         , "attributes" : attributes
-         , "from" : pubkey
-         , "signature" : signature
+software_version = [ text ; @name application_name
+                   , u32 ; @name application_version
+                   ]
+
+update_proposal_data_entry = [ text ; @name system_tag
+                             , update_data
+                             ]
+
+update_proposal = [ "blockVersion" : block_version
+                  , "blockVersionMod" : bvermod
+                  , "softwareVersion" : software_version
+                  , "data" : #6.258(update_proposal_data_entry)
+                  , "attributes" : attributes
+                  , "from" : pub_key
+                  , "signature" : signature
+                  ]
+
+update_vote = [ "voter" : pub_key
+              , "proposalId" : update_id
+              , "vote" : bool
+              , "signature" : signature
+              ]
+
+update = [ "proposal" :  [? update_proposal]
+         , votes : [* update_vote]
          ]
-
-upvote = [ "voter" : pubkey
-         , "proposalId" : updid
-         , "vote" : bool
-         , "signature" : signature
-         ]
-
-up = [ "proposal" :  [? upprop]
-     , votes : [* upvote]
-     ]
 
 ; Blocks
 
 difficulty = [u64]
 
-blocksig = [0, signature]
-         / [1, lwdlgsig]
-         / [2, dlgsig]
+block_signature = [0, signature] ; @name Signature
+         / [1, light_weight_delegation_signature] ; @name ProxyLight
+         / [2, delegation_signature] ; @name ProxyHeavy
 
-blockcons = [slotid, pubkey, difficulty, blocksig]
+block_consensus_data = [slot_id, pub_key, difficulty, block_signature]
 
-blockheadex = [ "blockVersion" : bver
-              , "softwareVersion" : [ text, u32 ]
-              , "attributes" : attributes
-              , "extraProof" : hash
-              ]
+block_header_extra_data = [ "blockVersion" : block_version
+                          , "softwareVersion" : software_version
+                          , "attributes" : attributes
+                          , "extraProof" : blake2b_256
+                          ]
 
-blockproof = [ "txProof" : txproof
-             , "sscProof" : sscproof
-             , "dlgProof" : hash
-             , "updProof" : hash
+body_proof = [ "txProof" : tx_proof
+             , "sscProof" : ssc_proof 
+             , "dlgProof" : blake2b_256
+             , "updProof" : blake2b_256
              ]
 
-blockhead = [ "protocolMagic" : u32
-            , "prevBlock" : blockid
-            , "bodyProof" : blockproof
-            , "consensusData" : blockcons
-            , "extraData" : blockheadex
-            ]
+block_header = [ "protocol_magic" : u32
+               , "prevBlock" : block_id
+               , "bodyProof" : body_proof
+               , "consensusData" : block_consensus_data
+               , "extraData" : block_header_extra_data
+               ]
 
-blockbody = [ "txPayload" : [* [tx, [* twit]]]
+tx_aux = [ tx
+         , [* tx_witness] ; @name witness
+         ]
+tx_payload = [* tx_aux]
+block_body = [ "txPayload" : tx_payload
             , "sscPayload" : ssc
-            , "dlgPayload" : [* dlg]
-            , "updPayload" : up
+            , "dlgPayload" : [* delegation]
+            , "updPayload" : update
             ]
 
 ; Epoch Boundary Blocks
 
-ebbcons = [ epochid, difficulty ]
+ebb_consensus_data = [ epoch_id, difficulty ]
 
-ebbhead = [ "protocolMagic" : u32
-          , "prevBlock" : blockid
-          , "bodyProof" : hash
-          , "consensusData" : ebbcons
+ebb_head = [ "protocol_magic" : u32
+          , "prevBlock" : block_id
+          , "bodyProof" : blake2b_256
+          , "consensusData" : ebb_consensus_data
           , "extraData" : [attributes]
           ]

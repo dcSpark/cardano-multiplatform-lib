@@ -1,5 +1,33 @@
 use super::*;
+pub use cardano_multiplatform_lib_core::{
+    serialization::*,
+    error::*,
+};
 use std::io::{Seek, SeekFrom};
+
+impl cbor_event::se::Serialize for AssetNameV1 {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+        self.0.serialize(serializer)
+    }
+}
+
+impl Deserialize for AssetNameV1 {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        Ok(Self(String64::deserialize(raw)?))
+    }
+}
+
+impl cbor_event::se::Serialize for AssetNameV2 {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_bytes(&self.0)
+    }
+}
+
+impl Deserialize for AssetNameV2 {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        Ok(Self(raw.bytes()? as Vec<u8>))
+    }
+}
 
 impl cbor_event::se::Serialize for FilesDetails {
     fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
@@ -123,7 +151,7 @@ impl Deserialize for LabelMetadata {
                         assert_eq!(raw.special()?, CBORSpecial::Break);
                         break;
                     }
-                    let label_metadata_v1_key = String64::deserialize(raw)?;
+                    let label_metadata_v1_key = PolicyIdV1::deserialize(raw)?;
                     let mut label_metadata_v1_value_table = BTreeMap::new();
                     let label_metadata_v1_value_len = raw.map()?;
                     while match label_metadata_v1_value_len { cbor_event::Len::Len(n) => label_metadata_v1_value_table.len() < n as usize, cbor_event::Len::Indefinite => true, } {
@@ -131,7 +159,7 @@ impl Deserialize for LabelMetadata {
                             assert_eq!(raw.special()?, CBORSpecial::Break);
                             break;
                         }
-                        let label_metadata_v1_value_key = String64::deserialize(raw)?;
+                        let label_metadata_v1_value_key = AssetNameV1::deserialize(raw)?;
                         let label_metadata_v1_value_value = MetadataDetails::deserialize(raw)?;
                         if label_metadata_v1_value_table.insert(label_metadata_v1_value_key.clone(), label_metadata_v1_value_value).is_some() {
                             return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
@@ -166,10 +194,10 @@ impl cbor_event::se::Serialize for LabelMetadataV2 {
         serializer.write_text(&"data")?;
         serializer.write_map(cbor_event::Len::Len(self.data.len() as u64))?;
         for (key, value) in self.data.iter() {
-            serializer.write_bytes(&key)?;
+            key.serialize(serializer)?;
             serializer.write_map(cbor_event::Len::Len(value.len() as u64))?;
             for (key, value) in value.iter() {
-                serializer.write_bytes(&key)?;
+                key.serialize(serializer)?;
                 value.serialize(serializer)?;
             }
         }
@@ -206,7 +234,7 @@ impl Deserialize for LabelMetadataV2 {
                                         assert_eq!(raw.special()?, CBORSpecial::Break);
                                         break;
                                     }
-                                    let data_key = raw.bytes()? as Vec<u8>;
+                                    let data_key = PolicyIdV2::deserialize(raw)?;
                                     let mut data_value_table = BTreeMap::new();
                                     let data_value_len = raw.map()?;
                                     while match data_value_len { cbor_event::Len::Len(n) => data_value_table.len() < n as usize, cbor_event::Len::Indefinite => true, } {
@@ -214,7 +242,7 @@ impl Deserialize for LabelMetadataV2 {
                                             assert_eq!(raw.special()?, CBORSpecial::Break);
                                             break;
                                         }
-                                        let data_value_key = raw.bytes()? as Vec<u8>;
+                                        let data_value_key = AssetNameV2::deserialize(raw)?;
                                         let data_value_value = MetadataDetails::deserialize(raw)?;
                                         if data_value_table.insert(data_value_key.clone(), data_value_value).is_some() {
                                             return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
@@ -450,6 +478,30 @@ impl Deserialize for MetadataDetails {
                 files,
             })
         })().map_err(|e| e.annotate("MetadataDetails"))
+    }
+}
+
+impl cbor_event::se::Serialize for PolicyIdV1 {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+        self.0.serialize(serializer)
+    }
+}
+
+impl Deserialize for PolicyIdV1 {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        Ok(Self(String64::deserialize(raw)?))
+    }
+}
+
+impl cbor_event::se::Serialize for PolicyIdV2 {
+    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_bytes(&self.0)
+    }
+}
+
+impl Deserialize for PolicyIdV2 {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        Ok(Self(raw.bytes()? as Vec<u8>))
     }
 }
 

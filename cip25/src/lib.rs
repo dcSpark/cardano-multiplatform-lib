@@ -11,8 +11,8 @@ pub use cardano_multiplatform_lib_core::{
 };
 use cbor_event::de::Deserializer;
 use cbor_event::se::{Serialize, Serializer};
-use cbor_event::{self, Special, Type};
-use prelude::*;
+use cbor_event::Special as CBORSpecial;
+use cbor_event::Type as CBORType;
 use serialization::*;
 use std::collections::BTreeMap;
 use std::convert::{From, TryFrom};

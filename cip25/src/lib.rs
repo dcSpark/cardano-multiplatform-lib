@@ -3,34 +3,32 @@
 // This library was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-pub use cardano_multiplatform_lib_core::{
-    error::*,
-};
-
-use cbor_event::{self, de::Deserializer, se::Serializer};
-
-use std::io::{BufRead, Write};
-
-use cbor_event::Type as CBORType;
-
-use cbor_event::Special as CBORSpecial;
-
-use std::collections::BTreeMap;
-
-use std::convert::{From, TryFrom};
-
 pub mod serialization;
 pub mod utils;
 
-pub type Data = BTreeMap<PolicyIdV2, BTreeMap<AssetNameV2, MetadataDetails>>;
+pub use cardano_multiplatform_lib_core::{
+    error::*,
+};
+use cbor_event::de::Deserializer;
+use cbor_event::se::{Serialize, Serializer};
+use cbor_event::{self, Special, Type};
+use prelude::*;
+use serialization::*;
+use std::collections::BTreeMap;
+use std::convert::{From, TryFrom};
+use std::io::{BufRead, Write};
 
-pub type LabelMetadataV1 = BTreeMap<PolicyIdV1, BTreeMap<AssetNameV1, MetadataDetails>>;
-
-pub type PolicyIdV1s = Vec<PolicyIdV1>;
-
-pub type PolicyIdV2s = Vec<PolicyIdV2>;
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(
+    Clone,
+    Debug,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+)]
 pub struct AssetNameV1(pub String64);
 
 impl AssetNameV1 {
@@ -49,13 +47,17 @@ impl From<String64> for AssetNameV1 {
     }
 }
 
-impl From<AssetNameV1> for String64 {
-    fn from(wrapper: AssetNameV1) -> Self {
-        wrapper.0
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(
+    Clone,
+    Debug,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+)]
 pub struct AssetNameV2(pub Vec<u8>);
 
 impl AssetNameV2 {
@@ -80,7 +82,6 @@ impl From<AssetNameV2> for Vec<u8> {
     }
 }
 
-
 /// This is the entire metadata schema for CIP-25
 /// It can be parsed by passing in the CBOR bytes of the entire transaction metadata
 /// or by passing in an existing Metadata struct.
@@ -93,9 +94,7 @@ pub struct CIP25Metadata {
 
 impl CIP25Metadata {
     pub fn new(key_721: LabelMetadata) -> Self {
-        Self {
-            key_721,
-        }
+        Self { key_721 }
     }
 }
 
@@ -134,6 +133,8 @@ impl ChunkableString {
     }
 }
 
+pub type Data = BTreeMap<PolicyIdV2, BTreeMap<AssetNameV2, MetadataDetails>>;
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct FilesDetails {
     pub name: String64,
@@ -167,6 +168,8 @@ impl LabelMetadata {
     }
 }
 
+pub type LabelMetadataV1 = BTreeMap<PolicyIdV1, BTreeMap<AssetNameV1, MetadataDetails>>;
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct LabelMetadataV2 {
     pub data: Data,
@@ -174,9 +177,7 @@ pub struct LabelMetadataV2 {
 
 impl LabelMetadataV2 {
     pub fn new(data: Data) -> Self {
-        Self {
-            data,
-        }
+        Self { data }
     }
 }
 
@@ -201,7 +202,17 @@ impl MetadataDetails {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(
+    Clone,
+    Debug,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+)]
 pub struct PolicyIdV1(pub String64);
 
 impl PolicyIdV1 {
@@ -220,13 +231,19 @@ impl From<String64> for PolicyIdV1 {
     }
 }
 
-impl From<PolicyIdV1> for String64 {
-    fn from(wrapper: PolicyIdV1) -> Self {
-        wrapper.0
-    }
-}
+pub type PolicyIdV1s = Vec<PolicyIdV1>;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(
+    Clone,
+    Debug,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+)]
 pub struct PolicyIdV2(pub Vec<u8>);
 
 impl PolicyIdV2 {
@@ -251,10 +268,38 @@ impl From<PolicyIdV2> for Vec<u8> {
     }
 }
 
-/// A String of at most 64 bytes.
-/// This is to conform with Cardano metadata restrictions.
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Eq, PartialEq, Ord, PartialOrd)]
+pub type PolicyIdV2s = Vec<PolicyIdV2>;
+
+impl From<String64> for String {
+    fn from(wrapper: String64) -> Self {
+        wrapper.0
+    }
+}
+
+#[derive(
+    Clone,
+    Debug,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+)]
 pub struct String64(pub String);
+
+impl From<AssetNameV1> for String64 {
+    fn from(wrapper: AssetNameV1) -> Self {
+        wrapper.0
+    }
+}
+
+impl From<PolicyIdV1> for String64 {
+    fn from(wrapper: PolicyIdV1) -> Self {
+        wrapper.0
+    }
+}
 
 impl String64 {
     pub fn get(&self) -> &String {
@@ -263,7 +308,14 @@ impl String64 {
 
     pub fn new(inner: String) -> Result<Self, DeserializeError> {
         if inner.len() > 64 {
-            return Err(DeserializeError::new("String64", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(0), max: Some(64) }));
+            return Err(DeserializeError::new(
+                "String64",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(0),
+                    max: Some(64),
+                },
+            ));
         }
         Ok(Self(inner))
     }
@@ -274,11 +326,5 @@ impl TryFrom<String> for String64 {
 
     fn try_from(inner: String) -> Result<Self, Self::Error> {
         String64::new(inner)
-    }
-}
-
-impl From<String64> for String {
-    fn from(wrapper: String64) -> Self {
-        wrapper.0
     }
 }

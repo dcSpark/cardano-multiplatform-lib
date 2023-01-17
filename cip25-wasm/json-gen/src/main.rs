@@ -2,10 +2,15 @@ use core::*;
 
 fn main() {
     macro_rules! gen_json_schema {
-        ($name:ident) =>  {
-            let dest_path = std::path::Path::new(&"schemas").join(&format!("{}.json", stringify!($name)));
-            std::fs::write(&dest_path, serde_json::to_string_pretty(&schemars::schema_for!($name)).unwrap()).unwrap();
-        }
+        ($name:ident) => {
+            let dest_path =
+                std::path::Path::new(&"schemas").join(&format!("{}.json", stringify!($name)));
+            std::fs::write(
+                &dest_path,
+                serde_json::to_string_pretty(&schemars::schema_for!($name)).unwrap(),
+            )
+            .unwrap();
+        };
     }
     let schema_path = std::path::Path::new(&"schemas");
     if !schema_path.exists() {

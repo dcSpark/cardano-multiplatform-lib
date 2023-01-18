@@ -338,7 +338,50 @@ pub enum ChunkableStringKind {
     Chunked,
 }
 
-type Data = MapPolicyIdV2ToMapAssetNameV2ToMetadataDetails;
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct Data(pub(crate) core::Data);
+
+impl From<core::Data> for Data {
+    fn from(native: core::Data) -> Self {
+        Self(native)
+    }
+}
+
+impl From<Data> for core::Data {
+    fn from(wrapper: Data) -> Self {
+        wrapper.0
+    }
+}
+
+#[wasm_bindgen]
+impl Data {
+    pub fn new() -> Self {
+        Self(BTreeMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn insert(
+        &mut self,
+        key: &PolicyIdV2,
+        value: &MapAssetNameV2ToMetadataDetails,
+    ) -> Option<MapAssetNameV2ToMetadataDetails> {
+        self.0
+            .insert(key.clone().into(), value.clone().into())
+            .map(Into::into)
+    }
+
+    pub fn get(&self, key: &PolicyIdV2) -> Option<MapAssetNameV2ToMetadataDetails> {
+        self.0.get(&key.0).map(|v| v.clone().into())
+    }
+
+    pub fn keys(&self) -> PolicyIdV2s {
+        PolicyIdV2s(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    }
+}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -532,7 +575,50 @@ pub enum LabelMetadataKind {
     LabelMetadataV2,
 }
 
-type LabelMetadataV1 = MapPolicyIdV1ToMapAssetNameV1ToMetadataDetails;
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct LabelMetadataV1(pub(crate) core::LabelMetadataV1);
+
+impl From<core::LabelMetadataV1> for LabelMetadataV1 {
+    fn from(native: core::LabelMetadataV1) -> Self {
+        Self(native)
+    }
+}
+
+impl From<LabelMetadataV1> for core::LabelMetadataV1 {
+    fn from(wrapper: LabelMetadataV1) -> Self {
+        wrapper.0
+    }
+}
+
+#[wasm_bindgen]
+impl LabelMetadataV1 {
+    pub fn new() -> Self {
+        Self(BTreeMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn insert(
+        &mut self,
+        key: &PolicyIdV1,
+        value: &MapAssetNameV1ToMetadataDetails,
+    ) -> Option<MapAssetNameV1ToMetadataDetails> {
+        self.0
+            .insert(key.clone().into(), value.clone().into())
+            .map(Into::into)
+    }
+
+    pub fn get(&self, key: &PolicyIdV1) -> Option<MapAssetNameV1ToMetadataDetails> {
+        self.0.get(&key.0).map(|v| v.clone().into())
+    }
+
+    pub fn keys(&self) -> PolicyIdV1s {
+        PolicyIdV1s(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    }
+}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -680,112 +766,6 @@ impl MapAssetNameV2ToMetadataDetails {
 
     pub fn keys(&self) -> AssetNameV2s {
         AssetNameV2s(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapPolicyIdV1ToMapAssetNameV1ToMetadataDetails(
-    pub(crate) BTreeMap<core::PolicyIdV1, BTreeMap<core::AssetNameV1, core::MetadataDetails>>,
-);
-
-impl From<BTreeMap<core::PolicyIdV1, BTreeMap<core::AssetNameV1, core::MetadataDetails>>>
-    for MapPolicyIdV1ToMapAssetNameV1ToMetadataDetails
-{
-    fn from(
-        native: BTreeMap<core::PolicyIdV1, BTreeMap<core::AssetNameV1, core::MetadataDetails>>,
-    ) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MapPolicyIdV1ToMapAssetNameV1ToMetadataDetails>
-    for BTreeMap<core::PolicyIdV1, BTreeMap<core::AssetNameV1, core::MetadataDetails>>
-{
-    fn from(wrapper: MapPolicyIdV1ToMapAssetNameV1ToMetadataDetails) -> Self {
-        wrapper.0
-    }
-}
-
-#[wasm_bindgen]
-impl MapPolicyIdV1ToMapAssetNameV1ToMetadataDetails {
-    pub fn new() -> Self {
-        Self(BTreeMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(
-        &mut self,
-        key: &PolicyIdV1,
-        value: &MapAssetNameV1ToMetadataDetails,
-    ) -> Option<MapAssetNameV1ToMetadataDetails> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
-    }
-
-    pub fn get(&self, key: &PolicyIdV1) -> Option<MapAssetNameV1ToMetadataDetails> {
-        self.0.get(&key.0).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> PolicyIdV1s {
-        PolicyIdV1s(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapPolicyIdV2ToMapAssetNameV2ToMetadataDetails(
-    pub(crate) BTreeMap<core::PolicyIdV2, BTreeMap<core::AssetNameV2, core::MetadataDetails>>,
-);
-
-impl From<BTreeMap<core::PolicyIdV2, BTreeMap<core::AssetNameV2, core::MetadataDetails>>>
-    for MapPolicyIdV2ToMapAssetNameV2ToMetadataDetails
-{
-    fn from(
-        native: BTreeMap<core::PolicyIdV2, BTreeMap<core::AssetNameV2, core::MetadataDetails>>,
-    ) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MapPolicyIdV2ToMapAssetNameV2ToMetadataDetails>
-    for BTreeMap<core::PolicyIdV2, BTreeMap<core::AssetNameV2, core::MetadataDetails>>
-{
-    fn from(wrapper: MapPolicyIdV2ToMapAssetNameV2ToMetadataDetails) -> Self {
-        wrapper.0
-    }
-}
-
-#[wasm_bindgen]
-impl MapPolicyIdV2ToMapAssetNameV2ToMetadataDetails {
-    pub fn new() -> Self {
-        Self(BTreeMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(
-        &mut self,
-        key: &PolicyIdV2,
-        value: &MapAssetNameV2ToMetadataDetails,
-    ) -> Option<MapAssetNameV2ToMetadataDetails> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
-    }
-
-    pub fn get(&self, key: &PolicyIdV2) -> Option<MapAssetNameV2ToMetadataDetails> {
-        self.0.get(&key.0).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> PolicyIdV2s {
-        PolicyIdV2s(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
     }
 }
 

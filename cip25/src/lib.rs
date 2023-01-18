@@ -9,6 +9,7 @@ pub mod utils;
 pub use cardano_multiplatform_lib_core::{
     error::*,
 };
+use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::{Serialize, Serializer};
 use cbor_event::Special as CBORSpecial;

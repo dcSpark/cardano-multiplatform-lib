@@ -8,10 +8,9 @@ pub mod metadata;
 pub mod ordered_hash_map;
 
 use crate::serialization::{
-  Serialize,
-  Deserialize,
-  StringEncoding,
-  fit_sz,
+    Serialize,
+    Deserialize,
+    fit_sz,
 };
 
 extern crate derivative;

@@ -11,6 +11,10 @@ target/
 core/target/**
 core/Cargo.lock
 
+core-wasm/target/**
+core-wasm/Cargo.lock
+core-wasm/pkg/**
+
 crypto/target/**
 crypto/Cargo.lock
 

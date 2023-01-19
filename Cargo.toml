@@ -6,6 +6,7 @@ members = [
     "crypto",
     "cip25",
     "cip25-wasm",
+    "cip25-wasm-example",
     "cip36",
     "cip36-wasm",
     "cip25-wasm/json-gen",

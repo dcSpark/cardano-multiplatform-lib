@@ -1,0 +1,1 @@
+pub use cip25::String64s;

@@ -21,7 +21,7 @@ impl AssetNameV1 {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<AssetNameV1, JsValue> {
-        use core::prelude::FromBytes;
+        use core::serialization::FromBytes;
         FromBytes::from_bytes(data)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
@@ -107,7 +107,7 @@ impl AssetNameV2 {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<AssetNameV2, JsValue> {
-        use core::prelude::FromBytes;
+        use core::serialization::FromBytes;
         FromBytes::from_bytes(data)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
@@ -205,7 +205,7 @@ impl CIP25Metadata {
     /// be used with round-tripping. It will ignore all non-CIP25 keys.
     /// Use core::metadate crate for round-tripping metadata.
     pub fn from_bytes(data: Vec<u8>) -> Result<CIP25Metadata, JsValue> {
-        use core::prelude::FromBytes;
+        use core::serialization::FromBytes;
         FromBytes::from_bytes(data)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
@@ -268,7 +268,7 @@ impl ChunkableString {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<ChunkableString, JsValue> {
-        use core::prelude::FromBytes;
+        use core::serialization::FromBytes;
         FromBytes::from_bytes(data)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
@@ -395,7 +395,7 @@ impl FilesDetails {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<FilesDetails, JsValue> {
-        use core::prelude::FromBytes;
+        use core::serialization::FromBytes;
         FromBytes::from_bytes(data)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
@@ -497,7 +497,7 @@ impl LabelMetadata {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<LabelMetadata, JsValue> {
-        use core::prelude::FromBytes;
+        use core::serialization::FromBytes;
         FromBytes::from_bytes(data)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
@@ -632,7 +632,7 @@ impl LabelMetadataV2 {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<LabelMetadataV2, JsValue> {
-        use core::prelude::FromBytes;
+        use core::serialization::FromBytes;
         FromBytes::from_bytes(data)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
@@ -781,7 +781,7 @@ impl MetadataDetails {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<MetadataDetails, JsValue> {
-        use core::prelude::FromBytes;
+        use core::serialization::FromBytes;
         FromBytes::from_bytes(data)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
@@ -867,7 +867,7 @@ impl PolicyIdV1 {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<PolicyIdV1, JsValue> {
-        use core::prelude::FromBytes;
+        use core::serialization::FromBytes;
         FromBytes::from_bytes(data)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
@@ -953,7 +953,7 @@ impl PolicyIdV2 {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<PolicyIdV2, JsValue> {
-        use core::prelude::FromBytes;
+        use core::serialization::FromBytes;
         FromBytes::from_bytes(data)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
@@ -1041,7 +1041,7 @@ impl String64 {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> Result<String64, JsValue> {
-        use core::prelude::FromBytes;
+        use core::serialization::FromBytes;
         FromBytes::from_bytes(data)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))

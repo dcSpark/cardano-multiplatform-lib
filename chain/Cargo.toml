@@ -1,14 +1,15 @@
 [package]
-name = "cardano-multiplatform-lib-chain"
+name = "cml-chain"
 version = "0.1.0"
 edition = "2018"
+keywords = ["cardano"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cardano-multiplatform-lib-core = { "path" = "../core" }
-cardano-multiplatform-lib-crypto = { "path" = "../crypto" }
+cml-core = { "path" = "../core" }
+cml-crypto = { "path" = "../crypto" }
 cbor_event = "2.2.0"
 linked-hash-map = "0.5.3"
 derivative = "2.2.0"

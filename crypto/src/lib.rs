@@ -3,7 +3,7 @@ use crate::chain_crypto::{
     bech32::Bech32,
 //    derive::combine_pk_and_chaincode
 };
-pub use cardano_multiplatform_lib_core::{
+pub use cml_core::{
     error::{DeserializeError, DeserializeFailure},
     serialization::{Serialize, Deserialize, StringEncoding}
 };

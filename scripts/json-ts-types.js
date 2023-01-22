@@ -1,11 +1,12 @@
 const fs = require('fs');
 const path = require('path')
 
-const repoName = `cardano_multiplatform_lib_`;
-const pkgModName = process.argv.slice(2)[0];
-const pathToRepo = path.join(__dirname, '..', pkgModName.replaceAll('_', '-'));
+const repoName = `cml`;
+const pkgModName = process.argv.slice(2)[0]; // hyphen name
+const pathToRepo = path.join(__dirname, '..', pkgModName, 'wasm');
+const underscorePkgModName = pkgModName.replaceAll('-', '_');
 
-const inputFile = fs.readFileSync(`${pathToRepo}/pkg/${repoName}${pkgModName}.d.ts`, 'utf8').split(/\r?\n/);
+const inputFile = fs.readFileSync(`${pathToRepo}/pkg/${repoName}_${underscorePkgModName}_wasm.d.ts`, 'utf8').split(/\r?\n/);
 
 //console.log(inputFile);
 let currentClass = null;
@@ -33,7 +34,7 @@ for (let i = 0; i < inputFile.length; ++i) {
 }
 const jsonDefs = fs.readFileSync('./json-gen/output/json-types.d.ts', 'utf8');
 fs.writeFile(
-  `${pathToRepo}/pkg/${repoName}${pkgModName}.d.ts`,
+  `${pathToRepo}/pkg/${repoName}_${pkgModName}_wasm.d.ts`,
   `${inputFile.join('\n')}\n${jsonDefs}`,
   (err) => {
     if (err != null) {

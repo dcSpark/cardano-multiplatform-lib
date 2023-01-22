@@ -15,8 +15,8 @@ use super::{
   ScriptHash,
 };
 
-use cardano_multiplatform_lib_core as cml_core;
-use cardano_multiplatform_lib_crypto as cml_crypto;
+use cml_core;
+use cml_crypto;
 
 use cml_core::{
     Slot,
@@ -723,7 +723,7 @@ impl StakeCredential {
     }
 
     pub fn to_raw_bytes(&self) -> &[u8] {
-        use cardano_multiplatform_lib_crypto::RawBytesEncoding;
+        use cml_crypto::RawBytesEncoding;
         match self {
             Self::Key(key) => key.addr_keyhash.to_raw_bytes(),
             Self::Script(script) => script.scripthash.to_raw_bytes(),

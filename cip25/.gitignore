@@ -1,0 +1,6 @@
+rust/target/**
+
+wasm/target/**
+wasm/json-gen/target/**
+wasm/json-gen/output/**
+wasm/json-gen/schemas/**

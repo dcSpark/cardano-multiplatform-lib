@@ -1,5 +1,5 @@
 use super::*;
-use cardano_multiplatform_lib_core::{
+use cml_core::{
     serialization::{LenEncoding, StringEncoding},
 };
 use cbor_event::Sz;

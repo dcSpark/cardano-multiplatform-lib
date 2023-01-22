@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-pub use cardano_multiplatform_lib_core::{
+pub use cml_core::{
     serialization::*,
     error::*,
     metadata::{Metadata, TransactionMetadatum},

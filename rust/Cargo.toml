@@ -11,6 +11,7 @@ readme="../README.md"
 exclude = [
     "pkg/*",
 ]
+keywords = ["cardano"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

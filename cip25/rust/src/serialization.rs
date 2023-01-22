@@ -1,5 +1,5 @@
 use super::*;
-pub use cardano_multiplatform_lib_core::{
+pub use cml_core::{
     serialization::*,
     error::*,
 };

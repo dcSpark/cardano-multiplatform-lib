@@ -4,11 +4,11 @@
 members = [
     "core",
     "crypto",
-    "cip25",
-    "cip25-wasm",
+    "cip25/rust",
+    "cip25/wasm",
+    "cip25/wasm/json-gen",
     "cip36",
     "cip36-wasm",
-    "cip25-wasm/json-gen",
     "wasm"
 ]
 

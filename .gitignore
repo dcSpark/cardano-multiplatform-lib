@@ -26,15 +26,6 @@ wasm/target/**
 wasm/Cargo.lock
 wasm/pkg/**
 
-cip25/target/**
-cip25/Cargo.lock
-
-cip25-wasm/target/**
-cip25-wasm/Cargo.lock
-cip25-wasm/json-gen/target/**
-cip25-wasm/json-gen/output/**
-cip25-wasm/json-gen/schemas/**
-
 cip36/target/**
 cip36/Cargo.lock
 

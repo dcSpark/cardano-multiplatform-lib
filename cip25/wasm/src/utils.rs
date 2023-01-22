@@ -2,7 +2,7 @@ use crate::*;
 
 use wasm_bindgen::prelude::{JsError};
 
-use cardano_multiplatform_lib_core_wasm::metadata::Metadata;
+use cml_core_wasm::metadata::Metadata;
 
 #[wasm_bindgen]
 impl CIP25Metadata {
@@ -27,14 +27,14 @@ impl CIP25Metadata {
 #[wasm_bindgen]
 impl String64 {
     pub fn new(s: &str) -> Result<String64, JsError> {
-        core::String64::new(s).map(Self).map_err(Into::into)
+        core::String64::new_str(s).map(Self).map_err(Into::into)
     }
 
     pub fn to_str(&self) -> String {
         self.0.to_str().to_owned()
     }
 
-    pub fn get(&self) -> String {
+    pub fn get_str(&self) -> String {
         self.0.get().clone()
     }
 }

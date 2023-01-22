@@ -3,6 +3,9 @@
   "version": "3.1.1",
   "description": "",
   "main": "dist/index.js",
+  "keywords": [
+    "cardano"
+  ],
   "scripts": {
     "js:build": "rm -rf dist && tsc",
     "js:dev": "rimraf ./dist && ts-node ./index.ts",

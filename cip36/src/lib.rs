@@ -3,9 +3,9 @@
 // This library was partially code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cardano_multiplatform_lib_chain::TransactionMetadatum;
-use cardano_multiplatform_lib_core as cml_core;
-use cardano_multiplatform_lib_crypto as cml_crypto;
+use cml_chain::TransactionMetadatum;
+use cml_core;
+use cml_crypto;
 
 pub use cml_core::{
     ordered_hash_map::OrderedHashMap,
@@ -14,7 +14,7 @@ pub use cml_core::{
     serialization::{Serialize, Deserialize, StringEncoding, LenEncoding},
 };
 
-pub use cardano_multiplatform_lib_chain::{address::RewardAddress, NetworkId};
+pub use cml_chain::{address::RewardAddress, NetworkId};
 
 use cbor_event::{self, de::Deserializer, se::Serializer};
 
@@ -247,7 +247,7 @@ impl std::convert::TryFrom<&Metadata> for DeregistrationCbor {
     type Error = DeserializeError;
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
-        use cardano_multiplatform_lib_core::error::Key;
+        use cml_core::error::Key;
         let dereg_metadatum = metadata
             .get(&KEY_DEREGISTRATION_LABEL)
             .ok_or_else(|| DeserializeFailure::MandatoryFieldMissing(Key::Uint(KEY_DEREGISTRATION_LABEL)))?;
@@ -450,7 +450,7 @@ impl RegistrationCbor {
     /// Deserializes a CIP36 view from either a Metadata or a RegistrationCbor
     /// This contains ONLY the relevant fields for CIP36 if created from a Metadata
     fn deserialize<R: BufRead + std::io::Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        use cardano_multiplatform_lib_core::{error::Key, serialization::CBORReadLen};
+        use cml_core::{error::Key, serialization::CBORReadLen};
         let len = raw.map_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
@@ -510,7 +510,7 @@ impl std::convert::TryFrom<&Metadata> for RegistrationCbor {
     type Error = DeserializeError;
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
-        use cardano_multiplatform_lib_core::error::Key;
+        use cml_core::error::Key;
         let reg_metadatum = metadata
             .get(&KEY_REGISTRATION_LABEL)
             .ok_or_else(|| DeserializeFailure::MandatoryFieldMissing(Key::Uint(KEY_REGISTRATION_LABEL)))?;
@@ -552,7 +552,7 @@ impl RegistrationWitness {
 
 #[cfg(test)]
 mod tests {
-    use cardano_multiplatform_lib_chain::address::Address;
+    use cml_chain::address::Address;
     use cml_crypto::*;
 
     use super::*;

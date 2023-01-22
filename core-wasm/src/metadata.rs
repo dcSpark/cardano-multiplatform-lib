@@ -2,11 +2,11 @@
 
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
-use cardano_multiplatform_lib_core::metadata as core;
+use cml_core::metadata as core;
 
 use super::*;
 
-pub use cardano_multiplatform_lib_core::metadata::TransactionMetadatumLabel;
+pub use cml_core::metadata::TransactionMetadatumLabel;
 
 impl From<OrderedHashMap<core::TransactionMetadatum, core::TransactionMetadatum>> for MetadatumMap {
     fn from(native: OrderedHashMap<core::TransactionMetadatum, core::TransactionMetadatum>) -> Self {

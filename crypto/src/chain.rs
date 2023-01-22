@@ -4,7 +4,7 @@
 
 use cbor_event::{self, de::Deserializer, se::Serializer};
 use derivative::{Derivative};
-use cardano_multiplatform_lib_core::{
+use cml_core::{
   error::{DeserializeError, DeserializeFailure},
   serialization::{Serialize, Deserialize, StringEncoding}
 };

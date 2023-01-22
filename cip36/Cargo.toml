@@ -1,15 +1,16 @@
 [package]
-name = "cardano-multiplatform-lib-cip36"
+name = "cml-cip36"
 version = "0.1.0"
 edition = "2018"
+keywords = ["cardano"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cardano-multiplatform-lib-core = { "path" = "../core" }
-cardano-multiplatform-lib-crypto = { "path" = "../crypto" }
-cardano-multiplatform-lib-chain = { "path" = "../chain" }
+cml-core = { "path" = "../core" }
+cml-crypto = { "path" = "../crypto" }
+cml-chain = { "path" = "../chain" }
 cbor_event = "2.2.0"
 linked-hash-map = "0.5.3"
 derivative = "2.2.0"

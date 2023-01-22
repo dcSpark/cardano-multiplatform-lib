@@ -6,7 +6,7 @@
 pub mod serialization;
 pub mod utils;
 
-pub use cardano_multiplatform_lib_core::{
+pub use cml_core::{
     error::*,
 };
 use cbor_event;
@@ -103,7 +103,7 @@ impl CIP25Metadata {
 /// to conform to Cardano TX Metadata limitations.
 /// Unless you have good reasons, you should be using the From<&str> trait to construct this:
 /// ```
-/// use cardano_multiplatform_lib_cip25::ChunkableString;
+/// use cml_cip25::ChunkableString;
 /// // automatically chunks this too long string into two chunks:
 /// let chunkable_string = ChunkableString::from("this can be any length and will automatically be chunked into 64-byte pieces when/if needed");
 /// match chunkable_string {

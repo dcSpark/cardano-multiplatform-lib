@@ -19,7 +19,7 @@ use crypto::*;
 
 //pub mod legacy_address;
 
-pub use cardano_multiplatform_lib_core::{
+pub use cml_core::{
     Int,
     Epoch,
     Slot,

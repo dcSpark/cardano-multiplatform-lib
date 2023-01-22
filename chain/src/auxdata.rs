@@ -2,7 +2,7 @@
 use super::*;
 
 // TX metadata (i.e. metadatums)
-pub use cardano_multiplatform_lib_core::metadata::*;
+pub use cml_core::metadata::*;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AlonzoAuxData {

@@ -2,7 +2,7 @@ use super::*;
 
 /// Crypto-related on-chain structures. See the crypto crate for actually using these.
 
-use cardano_multiplatform_lib_crypto as cml_crypto;
+use cml_crypto;
 
 use cml_crypto::chain::ChainCrypto;
 

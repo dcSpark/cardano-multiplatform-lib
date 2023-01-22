@@ -1,7 +1,7 @@
 use super::*;
 use std::io::{Seek, SeekFrom};
 
-pub use cardano_multiplatform_lib_core::{
+pub use cml_core::{
     error::Key,
     serialization::{
         fit_sz,

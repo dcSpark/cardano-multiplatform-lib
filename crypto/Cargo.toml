@@ -1,13 +1,14 @@
 [package]
-name = "cardano-multiplatform-lib-crypto"
+name = "cml-crypto"
 version = "0.1.0"
 edition = "2018"
+keywords = ["cardano"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cardano-multiplatform-lib-core = { "path" = "../core" }
+cml-core = { "path" = "../core" }
 cbor_event = "2.2.0"
 cryptoxide = "0.4.2"
 ed25519-bip32 = "0.4.1"

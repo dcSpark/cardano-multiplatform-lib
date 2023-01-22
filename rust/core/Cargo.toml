@@ -1,7 +1,8 @@
 [package]
-name = "cardano-multiplatform-lib-core"
+name = "cml-core"
 version = "0.1.0"
 edition = "2018"
+keywords = ["cardano"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

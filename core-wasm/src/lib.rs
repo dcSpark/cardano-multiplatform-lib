@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
-use cardano_multiplatform_lib_core::{
+use cml_core::{
     ordered_hash_map::OrderedHashMap,
     serialization::{Deserialize, Serialize},
 };
@@ -10,7 +10,7 @@ pub mod metadata;
 #[wasm_bindgen]
 
 #[derive(Clone, Debug)]
-pub struct Int(cardano_multiplatform_lib_core::Int);
+pub struct Int(cml_core::Int);
 
 #[wasm_bindgen]
 
@@ -37,10 +37,10 @@ impl Int {
 
     pub fn new(x: i64) -> Self {
         if x >= 0 {
-            Self(cardano_multiplatform_lib_core::Int::new_uint(x as u64))
+            Self(cml_core::Int::new_uint(x as u64))
         }
         else {
-            Self(cardano_multiplatform_lib_core::Int::new_nint((x + 1).abs() as u64))
+            Self(cml_core::Int::new_nint((x + 1).abs() as u64))
         }
     }
 
@@ -55,20 +55,20 @@ impl Int {
     }
 }
 
-impl From<cardano_multiplatform_lib_core::Int> for Int {
-    fn from(native: cardano_multiplatform_lib_core::Int) -> Self {
+impl From<cml_core::Int> for Int {
+    fn from(native: cml_core::Int) -> Self {
         Self(native)
     }
 }
 
-impl From<Int> for cardano_multiplatform_lib_core::Int {
+impl From<Int> for cml_core::Int {
     fn from(wasm: Int) -> Self {
         wasm.0
     }
 }
 
-impl AsRef<cardano_multiplatform_lib_core::Int> for Int {
-    fn as_ref(&self) -> &cardano_multiplatform_lib_core::Int {
+impl AsRef<cml_core::Int> for Int {
+    fn as_ref(&self) -> &cml_core::Int {
         &self.0
     }
 }

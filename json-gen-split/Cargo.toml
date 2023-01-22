@@ -2,7 +2,7 @@
 name = "cardano-multiplatform-lib-json-schema-gen"
 version = "0.0.1"
 edition = "2018"
-
+keywords = ["cardano"]
 
 [dependencies]
 serde_json = "1.0.57"

@@ -2,11 +2,11 @@ const fs = require('fs')
 
 const pkgModName = process.argv.slice(2)[0];
 
-const repoName = `cardano_multiplatform_lib_`;
+const repoName = `cml`;
 
 const paths = [
-  `./pkg/${repoName}${pkgModName}_bg.js`,
-  `./pkg/${repoName}${pkgModName}.js`
+  `./pkg/${repoName}_${pkgModName}_bg.js`,
+  `./pkg/${repoName}_${pkgModName}.js`
 ]
 
 paths.forEach((path) => {
@@ -23,4 +23,4 @@ paths.forEach((path) => {
   });
 })
 
-fs.unlinkSync(`./pkg/${repoName}${pkgModName}_bg.wasm`)
+fs.unlinkSync(`./pkg/${repoName}_${pkgModName}_bg.wasm`)

@@ -1,4 +1,4 @@
-# cardano-multiplatform-lib-cip25
+# cml-cip25
 
 Multiplatform SDK for CIP25 (Cardano NFT Metadata)
 

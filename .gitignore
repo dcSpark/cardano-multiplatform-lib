@@ -36,3 +36,5 @@ cip36-wasm/Cargo.lock
 json-gen-split/target/**
 
 tools/metadata-cddl-checker/Cargo.lock
+
+Cargo.lock

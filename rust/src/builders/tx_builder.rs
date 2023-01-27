@@ -1260,7 +1260,7 @@ pub enum ChangeSelectionAlgo {
 
 pub fn choose_change_selection_algo(algo: ChangeSelectionAlgo) -> fn(&mut TransactionBuilder, &Address, include_exunits: bool) -> Result<bool, JsError>  {
     match algo {
-        Default => {
+        ChangeSelectionAlgo::Default => {
             add_change_if_needed
         }
     }

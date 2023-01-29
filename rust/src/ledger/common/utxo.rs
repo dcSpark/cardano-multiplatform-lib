@@ -4,10 +4,10 @@ use cbor_event::Special as CBORSpecial;
 use crate::error::JsError;
 
 use cbor_event::{self, de::Deserializer, se::{Serialize, Serializer}};
-#[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
+#[cfg(not(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten"))))]
 use noop_proc_macro::wasm_bindgen;
 
-#[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
+#[cfg(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten")))]
 use wasm_bindgen::prelude::*;
 
 use crate::{to_from_bytes, TransactionInput, TransactionOutput, error::{DeserializeFailure, DeserializeError}};

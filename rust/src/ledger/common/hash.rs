@@ -1,7 +1,7 @@
-#[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
+#[cfg(not(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten"))))]
 use noop_proc_macro::wasm_bindgen;
 
-#[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
+#[cfg(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten")))]
 use wasm_bindgen::prelude::*;
 
 use crate::{TransactionBody, metadata::AuxiliaryData, crypto::{AuxiliaryDataHash, blake2b256, DataHash, TransactionHash, ScriptDataHash, blake2b224, ScriptHash, self}, plutus::{PlutusData, Redeemers, Costmdls, PlutusList, Languages}, error::JsError};

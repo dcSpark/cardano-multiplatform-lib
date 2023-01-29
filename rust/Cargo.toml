@@ -41,12 +41,12 @@ base64 = "0.13"
 unicode-segmentation = "1.10.0"
 
 # non-wasm
-[target.'cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))'.dependencies]
+[target.'cfg(not(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten"))))'.dependencies]
 rand_os = "0.1"
 noop_proc_macro = "0.3.0"
 
 # wasm
-[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies]
+[target.'cfg(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten")))'.dependencies]
 getrandom = { version = "0.2.8", features = ["js"], optional = true}
 wasm-bindgen = { version = "=0.2.82", features = ["serde-serialize"] }
 rand_os = { version = "0.1", features = ["wasm-bindgen"] }

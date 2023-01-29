@@ -1,7 +1,7 @@
-#[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
+#[cfg(not(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten"))))]
 use noop_proc_macro::wasm_bindgen;
 
-#[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
+#[cfg(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten")))]
 use wasm_bindgen::prelude::*;
 
 use crate::{crypto::{TransactionHash, LegacyDaedalusPrivateKey, BootstrapWitness, Bip32PublicKey, Vkey, Bip32PrivateKey, Ed25519Signature}, byron::ByronAddress};

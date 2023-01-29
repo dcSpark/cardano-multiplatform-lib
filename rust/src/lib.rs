@@ -20,10 +20,10 @@ use std::io::{BufRead, Seek, Write};
 use crate::ledger::common::binary::*;
 use ledger::common::hash::{ScriptHashNamespace, hash_script};
 use ledger::common::value::{BigNum, Int, Coin, Value};
-#[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
+#[cfg(not(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten"))))]
 use noop_proc_macro::wasm_bindgen;
 
-#[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
+#[cfg(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten")))]
 use wasm_bindgen::prelude::{JsValue, wasm_bindgen};
 
 // This file was code-generated using an experimental CDDL to rust tool:

@@ -178,16 +178,16 @@ impl From<chain_crypto::PublicKeyError> for DeserializeError {
 // Generic string error that is replaced with JsError on wasm builds but still usable from non-wasm builds
 // since JsError panics when used for non-constants in non-wasm builds even just creating one
 
-#[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
+#[cfg(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten")))]
 pub type JsError = wasm_bindgen::prelude::JsValue;
 
-#[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
+#[cfg(not(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten"))))]
 #[derive(Debug, Clone)]
 pub struct JsError {
     msg: String,
 }
 
-#[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
+#[cfg(not(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten"))))]
 impl JsError {
     pub fn from_str(s: &str) -> Self {
         Self {
@@ -201,7 +201,7 @@ impl JsError {
     }
 }
 
-#[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
+#[cfg(not(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten"))))]
 impl std::fmt::Display for JsError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.msg)

@@ -1,10 +1,10 @@
 use std::io::{BufRead, Seek, Write};
 
-#[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
+#[cfg(not(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten"))))]
 use noop_proc_macro::wasm_bindgen;
 
 use schemars::JsonSchema;
-#[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
+#[cfg(all(target_arch = "wasm32", not(target_os = "wasi"), not(target_os = "emscripten")))]
 use wasm_bindgen::prelude::*;
 
 use cbor_event::Special as CBORSpecial;

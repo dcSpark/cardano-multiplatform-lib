@@ -34,8 +34,7 @@ pub enum AuxiliaryData {
         shelley_aux_data_encoding: LenEncoding,
         #[serde(skip)]
         shelley_aux_data_key_encodings: BTreeMap<u64, Option<cbor_event::Sz>>,
-    }
-    ,
+    },
     ShelleyMaAuxData(ShelleyMaAuxData),
     AlonzoAuxData(AlonzoAuxData),
 }

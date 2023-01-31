@@ -113,28 +113,49 @@ impl<A: AsymmetricPublicKey> FromStr for PublicKey<A> {
 
 impl<A: AsymmetricPublicKey> serde::Serialize for PublicKey<A> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         serializer.serialize_str(&self.to_bech32_str())
     }
 }
 
-impl <'de, A: AsymmetricPublicKey> serde::de::Deserialize<'de> for PublicKey<A> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
-    D: serde::de::Deserializer<'de> {
+impl<'de, A: AsymmetricPublicKey> serde::de::Deserialize<'de> for PublicKey<A> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        PublicKey::try_from_bech32_str(&s).map_err(|_e| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"bech32 public key string"))
+        PublicKey::try_from_bech32_str(&s).map_err(|_e| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(&s),
+                &"bech32 public key string",
+            )
+        })
     }
 }
 
 impl JsonSchema for PublicKey<crate::chain_crypto::Ed25519> {
-    fn schema_name() -> String { String::from("Ed25519PublicKey") }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
-    fn is_referenceable() -> bool { String::is_referenceable() }
+    fn schema_name() -> String {
+        String::from("Ed25519PublicKey")
+    }
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
+    }
 }
 impl JsonSchema for PublicKey<crate::chain_crypto::Ed25519Bip32> {
-    fn schema_name() -> String { String::from("Ed25519Bip32PublicKey") }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema { String::json_schema(gen) }
-    fn is_referenceable() -> bool { String::is_referenceable() }
+    fn schema_name() -> String {
+        String::from("Ed25519Bip32PublicKey")
+    }
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
+    }
 }
 
 impl<A: AsymmetricKey> FromStr for SecretKey<A> {
@@ -298,7 +319,10 @@ impl<A: AsymmetricKey> Bech32 for SecretKey<A> {
 }
 
 impl<A: AsymmetricPublicKey> cbor_event::se::Serialize for PublicKey<A> {
-    fn serialize<'se, W: std::io::Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+    fn serialize<'se, W: std::io::Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_bytes(self.as_ref())
     }
 }
@@ -310,7 +334,6 @@ impl<A: AsymmetricPublicKey> cbor_event::de::Deserialize for PublicKey<A> {
         Ok(result)
     }
 }
-
 
 #[cfg(test)]
 mod test {

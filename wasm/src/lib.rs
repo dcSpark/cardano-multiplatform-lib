@@ -4,14 +4,11 @@ pub mod crypto;
 use address::*;
 use crypto::*;
 
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue, JsError};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 // this is actually chain pulling in the core definition.
 // when we regenerate we might want to change the module naming
-use core::{
-    // this can now be directly exposed as it implements std::error::Error
-    DeserializeError,
-};
+use core::DeserializeError;
 
 #[wasm_bindgen]
 pub struct StakeCredential(core::StakeCredential);

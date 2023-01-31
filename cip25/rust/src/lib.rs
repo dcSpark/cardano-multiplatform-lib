@@ -6,14 +6,12 @@
 pub mod serialization;
 pub mod utils;
 
-pub use cml_core::{
-    error::*,
-};
 use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::{Serialize, Serializer};
 use cbor_event::Special as CBORSpecial;
 use cbor_event::Type as CBORType;
+pub use cml_core::error::*;
 use serialization::*;
 use std::collections::BTreeMap;
 use std::convert::{From, TryFrom};

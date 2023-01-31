@@ -1,4 +1,8 @@
-#![allow(clippy::len_without_is_empty, clippy::too_many_arguments, clippy::new_without_default)]
+#![allow(
+    clippy::len_without_is_empty,
+    clippy::too_many_arguments,
+    clippy::new_without_default
+)]
 
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
@@ -9,7 +13,9 @@ use super::*;
 pub use cml_core::metadata::TransactionMetadatumLabel;
 
 impl From<OrderedHashMap<core::TransactionMetadatum, core::TransactionMetadatum>> for MetadatumMap {
-    fn from(native: OrderedHashMap<core::TransactionMetadatum, core::TransactionMetadatum>) -> Self {
+    fn from(
+        native: OrderedHashMap<core::TransactionMetadatum, core::TransactionMetadatum>,
+    ) -> Self {
         Self(native)
     }
 }
@@ -116,8 +122,14 @@ impl MetadatumMap {
         self.0.len()
     }
 
-    pub fn insert(&mut self, key: &TransactionMetadatum, value: &TransactionMetadatum) -> Option<TransactionMetadatum> {
-        self.0.insert(key.clone().into(), value.clone().into()).map(Into::into)
+    pub fn insert(
+        &mut self,
+        key: &TransactionMetadatum,
+        value: &TransactionMetadatum,
+    ) -> Option<TransactionMetadatum> {
+        self.0
+            .insert(key.clone().into(), value.clone().into())
+            .map(Into::into)
     }
 
     pub fn get(&self, key: &TransactionMetadatum) -> Option<TransactionMetadatum> {
@@ -143,8 +155,14 @@ impl Metadata {
         self.0.len()
     }
 
-    pub fn insert(&mut self, key: TransactionMetadatumLabel, value: &TransactionMetadatum) -> Option<TransactionMetadatum> {
-        self.0.insert(key.clone().into(), value.clone().into()).map(Into::into)
+    pub fn insert(
+        &mut self,
+        key: TransactionMetadatumLabel,
+        value: &TransactionMetadatum,
+    ) -> Option<TransactionMetadatum> {
+        self.0
+            .insert(key.clone().into(), value.clone().into())
+            .map(Into::into)
     }
 
     pub fn get(&self, key: TransactionMetadatumLabel) -> Option<TransactionMetadatum> {
@@ -188,19 +206,25 @@ impl TransactionMetadatum {
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<TransactionMetadatum, JsValue> {
-        Deserialize::from_cbor_bytes(cbor_bytes).map(Self).map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+        Deserialize::from_cbor_bytes(cbor_bytes)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
     }
 
     pub fn from_json(json: &str) -> Result<TransactionMetadatum, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
     pub fn new_map(entries: &MetadatumMap) -> Self {
@@ -208,7 +232,9 @@ impl TransactionMetadatum {
     }
 
     pub fn new_list(elements: &MetadatumList) -> Self {
-        Self(core::TransactionMetadatum::new_list(elements.clone().into()))
+        Self(core::TransactionMetadatum::new_list(
+            elements.clone().into(),
+        ))
     }
 
     pub fn new_int(int: &Int) -> Self {
@@ -225,24 +251,24 @@ impl TransactionMetadatum {
 
     pub fn kind(&self) -> TransactionMetadatumKind {
         match &self.0 {
-            core::TransactionMetadatum::Map{ .. } => TransactionMetadatumKind::Map,
-            core::TransactionMetadatum::List{ .. } => TransactionMetadatumKind::List,
+            core::TransactionMetadatum::Map { .. } => TransactionMetadatumKind::Map,
+            core::TransactionMetadatum::List { .. } => TransactionMetadatumKind::List,
             core::TransactionMetadatum::Int(_) => TransactionMetadatumKind::Int,
-            core::TransactionMetadatum::Bytes{ .. } => TransactionMetadatumKind::Bytes,
-            core::TransactionMetadatum::Text{ .. } => TransactionMetadatumKind::Text,
+            core::TransactionMetadatum::Bytes { .. } => TransactionMetadatumKind::Bytes,
+            core::TransactionMetadatum::Text { .. } => TransactionMetadatumKind::Text,
         }
     }
 
     pub fn as_map(&self) -> Option<MetadatumMap> {
         match &self.0 {
-            core::TransactionMetadatum::Map{ entries, .. } => Some(entries.clone().into()),
+            core::TransactionMetadatum::Map { entries, .. } => Some(entries.clone().into()),
             _ => None,
         }
     }
 
     pub fn as_list(&self) -> Option<MetadatumList> {
         match &self.0 {
-            core::TransactionMetadatum::List{ elements, .. } => Some(elements.clone().into()),
+            core::TransactionMetadatum::List { elements, .. } => Some(elements.clone().into()),
             _ => None,
         }
     }
@@ -256,14 +282,14 @@ impl TransactionMetadatum {
 
     pub fn as_bytes(&self) -> Option<Vec<u8>> {
         match &self.0 {
-            core::TransactionMetadatum::Bytes{ bytes, .. } => Some(bytes.clone()),
+            core::TransactionMetadatum::Bytes { bytes, .. } => Some(bytes.clone()),
             _ => None,
         }
     }
 
     pub fn as_text(&self) -> Option<String> {
         match &self.0 {
-            core::TransactionMetadatum::Text{ text, .. } => Some(text.clone()),
+            core::TransactionMetadatum::Text { text, .. } => Some(text.clone()),
             _ => None,
         }
     }

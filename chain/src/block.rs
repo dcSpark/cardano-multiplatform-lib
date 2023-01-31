@@ -12,7 +12,13 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn new(header: Header, transaction_bodies: Vec<TransactionBody>, transaction_witness_sets: Vec<TransactionWitnessSet>, auxiliary_data_set: OrderedHashMap<TransactionIndex, AuxiliaryData>, invalid_transactions: Vec<TransactionIndex>) -> Self {
+    pub fn new(
+        header: Header,
+        transaction_bodies: Vec<TransactionBody>,
+        transaction_witness_sets: Vec<TransactionWitnessSet>,
+        auxiliary_data_set: OrderedHashMap<TransactionIndex, AuxiliaryData>,
+        invalid_transactions: Vec<TransactionIndex>,
+    ) -> Self {
         Self {
             header,
             transaction_bodies,
@@ -59,7 +65,18 @@ pub struct HeaderBody {
 }
 
 impl HeaderBody {
-    pub fn new(block_number: u64, slot: u64, prev_hash: Option<BlockHeaderHash>, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VrfCert, block_body_size: u64, block_body_hash: BlockBodyHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion) -> Self {
+    pub fn new(
+        block_number: u64,
+        slot: u64,
+        prev_hash: Option<BlockHeaderHash>,
+        issuer_vkey: Vkey,
+        vrf_vkey: VRFVKey,
+        vrf_result: VrfCert,
+        block_body_size: u64,
+        block_body_hash: BlockBodyHash,
+        operational_cert: OperationalCert,
+        protocol_version: ProtocolVersion,
+    ) -> Self {
         Self {
             block_number,
             slot,
@@ -87,7 +104,12 @@ pub struct OperationalCert {
 }
 
 impl OperationalCert {
-    pub fn new(hot_vkey: KESVKey, sequence_number: u64, kes_period: u64, sigma: Ed25519Signature) -> Self {
+    pub fn new(
+        hot_vkey: KESVKey,
+        sequence_number: u64,
+        kes_period: u64,
+        sigma: Ed25519Signature,
+    ) -> Self {
         Self {
             hot_vkey,
             sequence_number,

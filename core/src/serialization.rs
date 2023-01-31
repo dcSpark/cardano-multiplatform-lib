@@ -1,6 +1,6 @@
 use crate::error::{DeserializeError, DeserializeFailure};
-use std::io::{Seek, BufRead, Write};
-use cbor_event::{Sz, de::Deserializer, se::Serializer};
+use cbor_event::{de::Deserializer, se::Serializer, Sz};
+use std::io::{BufRead, Seek, Write};
 
 pub struct CBORReadLen {
     deser_len: cbor_event::LenSz,
@@ -30,7 +30,7 @@ impl CBORReadLen {
                 } else {
                     Ok(())
                 }
-            },
+            }
             cbor_event::LenSz::Indefinite => Ok(()),
         }
     }
@@ -43,7 +43,7 @@ impl CBORReadLen {
                 } else {
                     Err(DeserializeFailure::DefiniteLenMismatch(n, Some(self.read)))
                 }
-            },
+            }
             cbor_event::LenSz::Indefinite => Ok(()),
         }
     }
@@ -54,7 +54,9 @@ pub trait DeserializeEmbeddedGroup {
         raw: &mut Deserializer<R>,
         read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
-    ) -> Result<Self, DeserializeError> where Self: Sized;
+    ) -> Result<Self, DeserializeError>
+    where
+        Self: Sized;
 }
 
 #[inline]
@@ -84,11 +86,13 @@ impl Default for LenEncoding {
 impl From<cbor_event::LenSz> for LenEncoding {
     fn from(len_sz: cbor_event::LenSz) -> Self {
         match len_sz {
-            cbor_event::LenSz::Len(len, sz) => if cbor_event::Sz::canonical(len) == sz {
-                Self::Canonical
-            } else {
-                Self::Definite(sz)
-            },
+            cbor_event::LenSz::Len(len, sz) => {
+                if cbor_event::Sz::canonical(len) == sz {
+                    Self::Canonical
+                } else {
+                    Self::Definite(sz)
+                }
+            }
             cbor_event::LenSz::Indefinite => Self::Indefinite,
         }
     }
@@ -119,11 +123,13 @@ impl From<cbor_event::StringLenSz> for StringEncoding {
 #[inline]
 pub fn fit_sz(len: u64, sz: Option<cbor_event::Sz>, force_canonical: bool) -> Sz {
     match sz {
-        Some(sz) => if !force_canonical && len <= sz_max(sz) {
-            sz
-        } else {
-            Sz::canonical(len)
-        },
+        Some(sz) => {
+            if !force_canonical && len <= sz_max(sz) {
+                sz
+            } else {
+                Sz::canonical(len)
+            }
+        }
         None => Sz::canonical(len),
     }
 }
@@ -135,17 +141,23 @@ impl LenEncoding {
         } else {
             match self {
                 Self::Canonical => cbor_event::LenSz::Len(len, cbor_event::Sz::canonical(len)),
-                Self::Definite(sz) => if sz_max(*sz) >= len {
-                    cbor_event::LenSz::Len(len, *sz)
-                } else {
-                    cbor_event::LenSz::Len(len, cbor_event::Sz::canonical(len))
-                },
+                Self::Definite(sz) => {
+                    if sz_max(*sz) >= len {
+                        cbor_event::LenSz::Len(len, *sz)
+                    } else {
+                        cbor_event::LenSz::Len(len, cbor_event::Sz::canonical(len))
+                    }
+                }
                 Self::Indefinite => cbor_event::LenSz::Indefinite,
             }
         }
     }
 
-    pub fn end<'a, W: Write + Sized>(&self, serializer: &'a mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'a mut Serializer<W>> {
+    pub fn end<'a, W: Write + Sized>(
+        &self,
+        serializer: &'a mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'a mut Serializer<W>> {
         if !force_canonical && *self == Self::Indefinite {
             serializer.write_special(cbor_event::Special::Break)?;
         }
@@ -160,11 +172,13 @@ impl StringEncoding {
         } else {
             match self {
                 Self::Canonical => cbor_event::StringLenSz::Len(cbor_event::Sz::canonical(len)),
-                Self::Definite(sz) => if sz_max(*sz) >= len {
-                    cbor_event::StringLenSz::Len(*sz)
-                } else {
-                    cbor_event::StringLenSz::Len(cbor_event::Sz::canonical(len))
-                },
+                Self::Definite(sz) => {
+                    if sz_max(*sz) >= len {
+                        cbor_event::StringLenSz::Len(*sz)
+                    } else {
+                        cbor_event::StringLenSz::Len(cbor_event::Sz::canonical(len))
+                    }
+                }
                 Self::Indefinite(lens) => cbor_event::StringLenSz::Indefinite(lens.clone()),
             }
         }
@@ -207,13 +221,16 @@ pub trait SerializeEmbeddedGroup {
 }
 
 pub trait Deserialize {
-    fn deserialize<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
-    ) -> Result<Self, DeserializeError> where Self: Sized;
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError>
+    where
+        Self: Sized;
 
     /// from-bytes using the exact CBOR format specified in the CDDL binary spec.
     /// For hashes/addresses/etc this will include the CBOR bytes type/len/etc.
-    fn from_cbor_bytes(data: &[u8]) -> Result<Self, DeserializeError> where Self: Sized {
+    fn from_cbor_bytes(data: &[u8]) -> Result<Self, DeserializeError>
+    where
+        Self: Sized,
+    {
         let mut raw = Deserializer::from(std::io::Cursor::new(data));
         Self::deserialize(&mut raw)
     }
@@ -241,11 +258,16 @@ impl<T: cbor_event::se::Serialize> ToBytes for T {
 // TODO: remove ToBytes / FromBytes after we regenerate the WASM wrappers.
 // This is just so the existing generated to/from bytes code works
 pub trait FromBytes {
-    fn from_bytes(data: Vec<u8>) -> Result<Self, DeserializeError> where Self: Sized;
+    fn from_bytes(data: Vec<u8>) -> Result<Self, DeserializeError>
+    where
+        Self: Sized;
 }
 
 impl<T: Deserialize> FromBytes for T {
-    fn from_bytes(data: Vec<u8>) -> Result<Self, DeserializeError> where Self: Sized {
+    fn from_bytes(data: Vec<u8>) -> Result<Self, DeserializeError>
+    where
+        Self: Sized,
+    {
         let mut raw = Deserializer::from(std::io::Cursor::new(data));
         Self::deserialize(&mut raw).map_err(Into::into)
     }

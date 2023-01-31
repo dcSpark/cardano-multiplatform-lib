@@ -1,23 +1,35 @@
 use super::*;
-use std::io::{Seek, SeekFrom};
 use cml_core::{
-    serialization::{CBORReadLen, fit_sz, Serialize, Deserialize, SerializeEmbeddedGroup, DeserializeEmbeddedGroup},
-    Key
+    serialization::{
+        fit_sz, CBORReadLen, Deserialize, DeserializeEmbeddedGroup, Serialize,
+        SerializeEmbeddedGroup,
+    },
+    Key,
 };
+use std::io::{Seek, SeekFrom};
 
 impl Serialize for DelegationDistribution {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
-            DelegationDistribution::Weighted{ delegations, delegations_encoding } => {
-                serializer.write_array_sz(delegations_encoding.to_len_sz(2 * delegations.len() as u64, force_canonical))?;
+            DelegationDistribution::Weighted {
+                delegations,
+                delegations_encoding,
+            } => {
+                serializer.write_array_sz(
+                    delegations_encoding.to_len_sz(2 * delegations.len() as u64, force_canonical),
+                )?;
                 for element in delegations.iter() {
                     element.serialize_as_embedded_group(serializer, force_canonical)?;
                 }
                 delegations_encoding.end(serializer, force_canonical)
-            },
+            }
             DelegationDistribution::LegacyKeyRegistration(legacy_key_registration) => {
                 legacy_key_registration.serialize(serializer, force_canonical)
-            },
+            }
         }
     }
 }
@@ -31,45 +43,94 @@ impl Deserialize for DelegationDistribution {
                 let len = raw.array_sz()?;
                 let delegations_encoding = len.into();
                 let mut arr_delegation_read_len = CBORReadLen::new(len);
-                while match len { cbor_event::LenSz::Len(n, _) => arr_delegation_read_len.read() < n, cbor_event::LenSz::Indefinite => true, } {
+                while match len {
+                    cbor_event::LenSz::Len(n, _) => arr_delegation_read_len.read() < n,
+                    cbor_event::LenSz::Indefinite => true,
+                } {
                     if raw.cbor_type()? == CBORType::Special {
                         assert_eq!(raw.special()?, CBORSpecial::Break);
                         break;
                     }
                     arr_delegation_read_len.read_elems(2)?;
-                    arr_delegation_arr.push(Delegation::deserialize_as_embedded_group(raw, &mut arr_delegation_read_len, len)?);
+                    arr_delegation_arr.push(Delegation::deserialize_as_embedded_group(
+                        raw,
+                        &mut arr_delegation_read_len,
+                        len,
+                    )?);
                 }
                 Ok((arr_delegation_arr, delegations_encoding))
             })(raw)
             {
-                Ok((delegations, delegations_encoding)) => return Ok(Self::Weighted {
-                    delegations,
-                    delegations_encoding,
-                }),
-                Err(_) => raw.as_mut_ref().seek(SeekFrom::Start(initial_position)).unwrap(),
+                Ok((delegations, delegations_encoding)) => {
+                    return Ok(Self::Weighted {
+                        delegations,
+                        delegations_encoding,
+                    })
+                }
+                Err(_) => raw
+                    .as_mut_ref()
+                    .seek(SeekFrom::Start(initial_position))
+                    .unwrap(),
             };
             let deser_variant: Result<_, DeserializeError> = VotingPubKey::deserialize(raw);
             match deser_variant {
-                Ok(legacy_key_registration) => return Ok(Self::LegacyKeyRegistration(legacy_key_registration)),
-                Err(_) => raw.as_mut_ref().seek(SeekFrom::Start(initial_position)).unwrap(),
+                Ok(legacy_key_registration) => {
+                    return Ok(Self::LegacyKeyRegistration(legacy_key_registration))
+                }
+                Err(_) => raw
+                    .as_mut_ref()
+                    .seek(SeekFrom::Start(initial_position))
+                    .unwrap(),
             };
-            Err(DeserializeError::new("DelegationDistribution", DeserializeFailure::NoVariantMatched))
-        })().map_err(|e| e.annotate("DelegationDistribution"))
+            Err(DeserializeError::new(
+                "DelegationDistribution",
+                DeserializeFailure::NoVariantMatched,
+            ))
+        })()
+        .map_err(|e| e.annotate("DelegationDistribution"))
     }
 }
 
 impl Serialize for Delegation {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(2, force_canonical))?;
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(2, force_canonical),
+        )?;
         self.serialize_as_embedded_group(serializer, force_canonical)
     }
 }
 
 impl SerializeEmbeddedGroup for Delegation {
-    fn serialize_as_embedded_group<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
+    fn serialize_as_embedded_group<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
         self.voting_pub_key.serialize(serializer, force_canonical)?;
-        serializer.write_unsigned_integer_sz(self.weight as u64, fit_sz(self.weight as u64, self.encodings.as_ref().map(|encs| encs.weight_encoding).unwrap_or_default(), force_canonical))?;
-        self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().end(serializer, force_canonical)
+        serializer.write_unsigned_integer_sz(
+            self.weight as u64,
+            fit_sz(
+                self.weight as u64,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.weight_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -91,11 +152,20 @@ impl Deserialize for Delegation {
 }
 
 impl DeserializeEmbeddedGroup for Delegation {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(raw: &mut Deserializer<R>, _read_len: &mut CBORReadLen, len: cbor_event::LenSz) -> Result<Self, DeserializeError> {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(
+        raw: &mut Deserializer<R>,
+        _read_len: &mut CBORReadLen,
+        len: cbor_event::LenSz,
+    ) -> Result<Self, DeserializeError> {
         let len_encoding = len.into();
         (|| -> Result<_, DeserializeError> {
-            let voting_pub_key = VotingPubKey::deserialize(raw).map_err(|e: DeserializeError| e.annotate("voting_pub_key"))?;
-            let (weight, weight_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x as u32, Some(enc))).map_err(Into::<DeserializeError>::into).map_err(|e: DeserializeError| e.annotate("weight"))?;
+            let voting_pub_key = VotingPubKey::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("voting_pub_key"))?;
+            let (weight, weight_encoding) = raw
+                .unsigned_integer_sz()
+                .map(|(x, enc)| (x as u32, Some(enc)))
+                .map_err(Into::<DeserializeError>::into)
+                .map_err(|e: DeserializeError| e.annotate("weight"))?;
             Ok(Delegation {
                 voting_pub_key,
                 weight,
@@ -104,24 +174,54 @@ impl DeserializeEmbeddedGroup for Delegation {
                     weight_encoding,
                 }),
             })
-        })().map_err(|e| e.annotate("Delegation"))
+        })()
+        .map_err(|e| e.annotate("Delegation"))
     }
 }
 
 impl Serialize for DeregistrationWitness {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_map_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(1, force_canonical))?;
-        let deser_order = self.encodings.as_ref().filter(|encs| !force_canonical && encs.orig_deser_order.len() == 1).map(|encs| encs.orig_deser_order.clone()).unwrap_or_else(|| vec![0]);
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_map_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(1, force_canonical),
+        )?;
+        let deser_order = self
+            .encodings
+            .as_ref()
+            .filter(|encs| !force_canonical && encs.orig_deser_order.len() == 1)
+            .map(|encs| encs.orig_deser_order.clone())
+            .unwrap_or_else(|| vec![0]);
         for field_index in deser_order {
             match field_index {
                 0 => {
-                    serializer.write_unsigned_integer_sz(1u64, fit_sz(1u64, self.encodings.as_ref().map(|encs| encs.stake_witness_key_encoding).unwrap_or_default(), force_canonical))?;
+                    serializer.write_unsigned_integer_sz(
+                        1u64,
+                        fit_sz(
+                            1u64,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.stake_witness_key_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
                     self.stake_witness.serialize(serializer, force_canonical)?;
                 }
-                _ => unreachable!()
+                _ => unreachable!(),
             };
         }
-        self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().end(serializer, force_canonical)
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -136,29 +236,43 @@ impl Deserialize for DeregistrationWitness {
             let mut stake_witness_key_encoding = None;
             let mut stake_witness = None;
             let mut read = 0;
-            while match len { cbor_event::LenSz::Len(n, _) => read < n, cbor_event::LenSz::Indefinite => true, } {
+            while match len {
+                cbor_event::LenSz::Len(n, _) => read < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
                 match raw.cbor_type()? {
                     CBORType::UnsignedInteger => match raw.unsigned_integer_sz()? {
-                        (1, key_enc) =>  {
+                        (1, key_enc) => {
                             if stake_witness.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(1)).into());
                             }
-                            let tmp_stake_witness = StakeWitness::deserialize(raw).map_err(|e: DeserializeError| e.annotate("stake_witness"))?;
+                            let tmp_stake_witness = StakeWitness::deserialize(raw)
+                                .map_err(|e: DeserializeError| e.annotate("stake_witness"))?;
                             stake_witness = Some(tmp_stake_witness);
                             stake_witness_key_encoding = Some(key_enc);
                             orig_deser_order.push(0);
-                        },
-                        (unknown_key, _enc) => return Err(DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()),
+                        }
+                        (unknown_key, _enc) => {
+                            return Err(
+                                DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
+                            )
+                        }
                     },
-                    CBORType::Text => return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into()),
+                    CBORType::Text => {
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                    }
                     CBORType::Special => match len {
-                        cbor_event::LenSz::Len(_, _) => return Err(DeserializeFailure::BreakInDefiniteLen.into()),
+                        cbor_event::LenSz::Len(_, _) => {
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                        }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             CBORSpecial::Break => break,
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    other_type => return Err(DeserializeFailure::UnexpectedKeyType(other_type).into()),
+                    other_type => {
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                    }
                 }
                 read += 1;
             }
@@ -175,32 +289,130 @@ impl Deserialize for DeregistrationWitness {
                     stake_witness_key_encoding,
                 }),
             })
-        })().map_err(|e| e.annotate("DeregistrationWitness"))
+        })()
+        .map_err(|e| e.annotate("DeregistrationWitness"))
     }
 }
 
 impl Serialize for KeyDeregistration {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_map_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(2 + if self.voting_purpose != 0 || self.encodings.as_ref().map(|encs| encs.voting_purpose_default_present).unwrap_or(false) { 1 } else { 0 }, force_canonical))?;
-        let deser_order = self.encodings.as_ref().filter(|encs| !force_canonical && encs.orig_deser_order.len() == 2 + if self.voting_purpose != 0 || self.encodings.as_ref().map(|encs| encs.voting_purpose_default_present).unwrap_or(false) { 1 } else { 0 }).map(|encs| encs.orig_deser_order.clone()).unwrap_or_else(|| vec![0,1,2]);
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_map_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(
+                    2 + if self.voting_purpose != 0
+                        || self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.voting_purpose_default_present)
+                            .unwrap_or(false)
+                    {
+                        1
+                    } else {
+                        0
+                    },
+                    force_canonical,
+                ),
+        )?;
+        let deser_order = self
+            .encodings
+            .as_ref()
+            .filter(|encs| {
+                !force_canonical
+                    && encs.orig_deser_order.len()
+                        == 2 + if self.voting_purpose != 0
+                            || self
+                                .encodings
+                                .as_ref()
+                                .map(|encs| encs.voting_purpose_default_present)
+                                .unwrap_or(false)
+                        {
+                            1
+                        } else {
+                            0
+                        }
+            })
+            .map(|encs| encs.orig_deser_order.clone())
+            .unwrap_or_else(|| vec![0, 1, 2]);
         for field_index in deser_order {
             match field_index {
                 0 => {
-                    serializer.write_unsigned_integer_sz(1u64, fit_sz(1u64, self.encodings.as_ref().map(|encs| encs.stake_credential_key_encoding).unwrap_or_default(), force_canonical))?;
-                    self.stake_credential.serialize(serializer, force_canonical)?;
+                    serializer.write_unsigned_integer_sz(
+                        1u64,
+                        fit_sz(
+                            1u64,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.stake_credential_key_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
+                    self.stake_credential
+                        .serialize(serializer, force_canonical)?;
                 }
                 1 => {
-                    serializer.write_unsigned_integer_sz(2u64, fit_sz(2u64, self.encodings.as_ref().map(|encs| encs.nonce_key_encoding).unwrap_or_default(), force_canonical))?;
-                    serializer.write_unsigned_integer_sz(self.nonce, fit_sz(self.nonce, self.encodings.as_ref().map(|encs| encs.nonce_encoding).unwrap_or_default(), force_canonical))?;
+                    serializer.write_unsigned_integer_sz(
+                        2u64,
+                        fit_sz(
+                            2u64,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.nonce_key_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
+                    serializer.write_unsigned_integer_sz(
+                        self.nonce,
+                        fit_sz(
+                            self.nonce,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.nonce_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
                 }
                 2 => {
-                    serializer.write_unsigned_integer_sz(3u64, fit_sz(3u64, self.encodings.as_ref().map(|encs| encs.voting_purpose_key_encoding).unwrap_or_default(), force_canonical))?;
-                    serializer.write_unsigned_integer_sz(self.voting_purpose, fit_sz(self.voting_purpose, self.encodings.as_ref().map(|encs| encs.voting_purpose_encoding).unwrap_or_default(), force_canonical))?;
+                    serializer.write_unsigned_integer_sz(
+                        3u64,
+                        fit_sz(
+                            3u64,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.voting_purpose_key_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
+                    serializer.write_unsigned_integer_sz(
+                        self.voting_purpose,
+                        fit_sz(
+                            self.voting_purpose,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.voting_purpose_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
                 }
-                _ => unreachable!()
+                _ => unreachable!(),
             };
         }
-        self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().end(serializer, force_canonical)
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -222,52 +434,74 @@ impl Deserialize for KeyDeregistration {
             let mut voting_purpose_key_encoding = None;
             let mut voting_purpose = None;
             let mut read = 0;
-            while match len { cbor_event::LenSz::Len(n, _) => read < n, cbor_event::LenSz::Indefinite => true, } {
+            while match len {
+                cbor_event::LenSz::Len(n, _) => read < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
                 match raw.cbor_type()? {
                     CBORType::UnsignedInteger => match raw.unsigned_integer_sz()? {
-                        (1, key_enc) =>  {
+                        (1, key_enc) => {
                             if stake_credential.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(1)).into());
                             }
-                            let tmp_stake_credential = StakingPubKey::deserialize(raw).map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
+                            let tmp_stake_credential = StakingPubKey::deserialize(raw)
+                                .map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
                             stake_credential = Some(tmp_stake_credential);
                             stake_credential_key_encoding = Some(key_enc);
                             orig_deser_order.push(0);
-                        },
-                        (2, key_enc) =>  {
+                        }
+                        (2, key_enc) => {
                             if nonce.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
                             }
-                            let (tmp_nonce, tmp_nonce_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into).map_err(|e: DeserializeError| e.annotate("nonce"))?;
+                            let (tmp_nonce, tmp_nonce_encoding) = raw
+                                .unsigned_integer_sz()
+                                .map(|(x, enc)| (x, Some(enc)))
+                                .map_err(Into::<DeserializeError>::into)
+                                .map_err(|e: DeserializeError| e.annotate("nonce"))?;
                             nonce = Some(tmp_nonce);
                             nonce_encoding = tmp_nonce_encoding;
                             nonce_key_encoding = Some(key_enc);
                             orig_deser_order.push(1);
-                        },
-                        (3, key_enc) =>  {
+                        }
+                        (3, key_enc) => {
                             if voting_purpose.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(3)).into());
                             }
-                            let (tmp_voting_purpose, tmp_voting_purpose_encoding) = (|| -> Result<_, DeserializeError> {
-                                read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
-                            })().map_err(|e| e.annotate("voting_purpose"))?;
+                            let (tmp_voting_purpose, tmp_voting_purpose_encoding) =
+                                (|| -> Result<_, DeserializeError> {
+                                    read_len.read_elems(1)?;
+                                    raw.unsigned_integer_sz()
+                                        .map(|(x, enc)| (x, Some(enc)))
+                                        .map_err(Into::<DeserializeError>::into)
+                                })()
+                                .map_err(|e| e.annotate("voting_purpose"))?;
                             voting_purpose = Some(tmp_voting_purpose);
                             voting_purpose_encoding = tmp_voting_purpose_encoding;
                             voting_purpose_key_encoding = Some(key_enc);
                             orig_deser_order.push(2);
-                        },
-                        (unknown_key, _enc) => return Err(DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()),
+                        }
+                        (unknown_key, _enc) => {
+                            return Err(
+                                DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
+                            )
+                        }
                     },
-                    CBORType::Text => return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into()),
+                    CBORType::Text => {
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                    }
                     CBORType::Special => match len {
-                        cbor_event::LenSz::Len(_, _) => return Err(DeserializeFailure::BreakInDefiniteLen.into()),
+                        cbor_event::LenSz::Len(_, _) => {
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                        }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             CBORSpecial::Break => break,
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    other_type => return Err(DeserializeFailure::UnexpectedKeyType(other_type).into()),
+                    other_type => {
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                    }
                 }
                 read += 1;
             }
@@ -299,49 +533,168 @@ impl Deserialize for KeyDeregistration {
                     voting_purpose_default_present,
                 }),
             })
-        })().map_err(|e| e.annotate("KeyDeregistration"))
+        })()
+        .map_err(|e| e.annotate("KeyDeregistration"))
     }
 }
 
 impl Serialize for KeyRegistration {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_map_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(4 + if self.voting_purpose != 0 || self.encodings.as_ref().map(|encs| encs.voting_purpose_default_present).unwrap_or(false) { 1 } else { 0 }, force_canonical))?;
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_map_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(
+                    4 + if self.voting_purpose != 0
+                        || self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.voting_purpose_default_present)
+                            .unwrap_or(false)
+                    {
+                        1
+                    } else {
+                        0
+                    },
+                    force_canonical,
+                ),
+        )?;
         let (legacy_format, should_include_voting_purpose) = match self.delegation {
             DelegationDistribution::LegacyKeyRegistration(_) => (true, false),
-            DelegationDistribution::Weighted{ .. } => (false, self.voting_purpose != 0 || self.encodings.as_ref().map(|encs| encs.voting_purpose_default_present).unwrap_or(false)),
+            DelegationDistribution::Weighted { .. } => (
+                false,
+                self.voting_purpose != 0
+                    || self
+                        .encodings
+                        .as_ref()
+                        .map(|encs| encs.voting_purpose_default_present)
+                        .unwrap_or(false),
+            ),
         };
-        let deser_order = self.encodings.as_ref()
-            .filter(|encs| !force_canonical && encs.orig_deser_order.len() == 4 + if should_include_voting_purpose { 1 } else { 0 })
+        let deser_order = self
+            .encodings
+            .as_ref()
+            .filter(|encs| {
+                !force_canonical
+                    && encs.orig_deser_order.len()
+                        == 4 + if should_include_voting_purpose { 1 } else { 0 }
+            })
             .map(|encs| encs.orig_deser_order.clone())
-            .unwrap_or_else(|| if legacy_format { vec![0, 1, 2, 3, 4] } else { vec![0, 1, 2, 3] });
+            .unwrap_or_else(|| {
+                if legacy_format {
+                    vec![0, 1, 2, 3, 4]
+                } else {
+                    vec![0, 1, 2, 3]
+                }
+            });
         for field_index in deser_order {
             match field_index {
                 0 => {
-                    serializer.write_unsigned_integer_sz(1u64, fit_sz(1u64, self.encodings.as_ref().map(|encs| encs.delegation_key_encoding).unwrap_or_default(), force_canonical))?;
+                    serializer.write_unsigned_integer_sz(
+                        1u64,
+                        fit_sz(
+                            1u64,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.delegation_key_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
                     self.delegation.serialize(serializer, force_canonical)?;
                 }
                 1 => {
-                    serializer.write_unsigned_integer_sz(2u64, fit_sz(2u64, self.encodings.as_ref().map(|encs| encs.stake_credential_key_encoding).unwrap_or_default(), force_canonical))?;
-                    self.stake_credential.serialize(serializer, force_canonical)?;
+                    serializer.write_unsigned_integer_sz(
+                        2u64,
+                        fit_sz(
+                            2u64,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.stake_credential_key_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
+                    self.stake_credential
+                        .serialize(serializer, force_canonical)?;
                 }
                 2 => {
-                    serializer.write_unsigned_integer_sz(3u64, fit_sz(3u64, self.encodings.as_ref().map(|encs| encs.reward_address_key_encoding).unwrap_or_default(), force_canonical))?;
+                    serializer.write_unsigned_integer_sz(
+                        3u64,
+                        fit_sz(
+                            3u64,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.reward_address_key_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
                     self.reward_address.serialize(serializer, force_canonical)?;
                 }
                 3 => {
-                    serializer.write_unsigned_integer_sz(4u64, fit_sz(4u64, self.encodings.as_ref().map(|encs| encs.nonce_key_encoding).unwrap_or_default(), force_canonical))?;
-                    serializer.write_unsigned_integer_sz(self.nonce, fit_sz(self.nonce, self.encodings.as_ref().map(|encs| encs.nonce_encoding).unwrap_or_default(), force_canonical))?;
+                    serializer.write_unsigned_integer_sz(
+                        4u64,
+                        fit_sz(
+                            4u64,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.nonce_key_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
+                    serializer.write_unsigned_integer_sz(
+                        self.nonce,
+                        fit_sz(
+                            self.nonce,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.nonce_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
                 }
                 4 => {
                     if should_include_voting_purpose {
-                        serializer.write_unsigned_integer_sz(5u64, fit_sz(5u64, self.encodings.as_ref().map(|encs| encs.voting_purpose_key_encoding).unwrap_or_default(), force_canonical))?;
-                        serializer.write_unsigned_integer_sz(self.voting_purpose, fit_sz(self.voting_purpose, self.encodings.as_ref().map(|encs| encs.voting_purpose_encoding).unwrap_or_default(), force_canonical))?;
+                        serializer.write_unsigned_integer_sz(
+                            5u64,
+                            fit_sz(
+                                5u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.voting_purpose_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_unsigned_integer_sz(
+                            self.voting_purpose,
+                            fit_sz(
+                                self.voting_purpose,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.voting_purpose_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
                     }
                 }
-                _ => unreachable!()
+                _ => unreachable!(),
             };
         }
-        self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().end(serializer, force_canonical)
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -367,70 +720,94 @@ impl Deserialize for KeyRegistration {
             let mut voting_purpose_key_encoding = None;
             let mut voting_purpose = None;
             let mut read = 0;
-            while match len { cbor_event::LenSz::Len(n, _) => read < n, cbor_event::LenSz::Indefinite => true, } {
+            while match len {
+                cbor_event::LenSz::Len(n, _) => read < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
                 match raw.cbor_type()? {
                     CBORType::UnsignedInteger => match raw.unsigned_integer_sz()? {
-                        (1, key_enc) =>  {
+                        (1, key_enc) => {
                             if delegation.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(1)).into());
                             }
-                            let tmp_delegation = DelegationDistribution::deserialize(raw).map_err(|e: DeserializeError| e.annotate("delegation"))?;
+                            let tmp_delegation = DelegationDistribution::deserialize(raw)
+                                .map_err(|e: DeserializeError| e.annotate("delegation"))?;
                             delegation = Some(tmp_delegation);
                             delegation_key_encoding = Some(key_enc);
                             orig_deser_order.push(0);
-                        },
-                        (2, key_enc) =>  {
+                        }
+                        (2, key_enc) => {
                             if stake_credential.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
                             }
-                            let tmp_stake_credential = StakingPubKey::deserialize(raw).map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
+                            let tmp_stake_credential = StakingPubKey::deserialize(raw)
+                                .map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
                             stake_credential = Some(tmp_stake_credential);
                             stake_credential_key_encoding = Some(key_enc);
                             orig_deser_order.push(1);
-                        },
-                        (3, key_enc) =>  {
+                        }
+                        (3, key_enc) => {
                             if reward_address.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(3)).into());
                             }
-                            let tmp_reward_address = RewardAddress::deserialize(raw).map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
+                            let tmp_reward_address = RewardAddress::deserialize(raw)
+                                .map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
                             reward_address = Some(tmp_reward_address);
                             reward_address_key_encoding = Some(key_enc);
                             orig_deser_order.push(2);
-                        },
-                        (4, key_enc) =>  {
+                        }
+                        (4, key_enc) => {
                             if nonce.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(4)).into());
                             }
-                            let (tmp_nonce, tmp_nonce_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into).map_err(|e: DeserializeError| e.annotate("nonce"))?;
+                            let (tmp_nonce, tmp_nonce_encoding) = raw
+                                .unsigned_integer_sz()
+                                .map(|(x, enc)| (x, Some(enc)))
+                                .map_err(Into::<DeserializeError>::into)
+                                .map_err(|e: DeserializeError| e.annotate("nonce"))?;
                             nonce = Some(tmp_nonce);
                             nonce_encoding = tmp_nonce_encoding;
                             nonce_key_encoding = Some(key_enc);
                             orig_deser_order.push(3);
-                        },
-                        (5, key_enc) =>  {
+                        }
+                        (5, key_enc) => {
                             if voting_purpose.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(5)).into());
                             }
-                            let (tmp_voting_purpose, tmp_voting_purpose_encoding) = (|| -> Result<_, DeserializeError> {
-                                read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
-                            })().map_err(|e| e.annotate("voting_purpose"))?;
+                            let (tmp_voting_purpose, tmp_voting_purpose_encoding) =
+                                (|| -> Result<_, DeserializeError> {
+                                    read_len.read_elems(1)?;
+                                    raw.unsigned_integer_sz()
+                                        .map(|(x, enc)| (x, Some(enc)))
+                                        .map_err(Into::<DeserializeError>::into)
+                                })()
+                                .map_err(|e| e.annotate("voting_purpose"))?;
                             voting_purpose = Some(tmp_voting_purpose);
                             voting_purpose_encoding = tmp_voting_purpose_encoding;
                             voting_purpose_key_encoding = Some(key_enc);
                             orig_deser_order.push(4);
-                        },
-                        (unknown_key, _enc) => return Err(DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()),
+                        }
+                        (unknown_key, _enc) => {
+                            return Err(
+                                DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
+                            )
+                        }
                     },
-                    CBORType::Text => return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into()),
+                    CBORType::Text => {
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                    }
                     CBORType::Special => match len {
-                        cbor_event::LenSz::Len(_, _) => return Err(DeserializeFailure::BreakInDefiniteLen.into()),
+                        cbor_event::LenSz::Len(_, _) => {
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                        }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             CBORSpecial::Break => break,
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    other_type => return Err(DeserializeFailure::UnexpectedKeyType(other_type).into()),
+                    other_type => {
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                    }
                 }
                 read += 1;
             }
@@ -474,24 +851,54 @@ impl Deserialize for KeyRegistration {
                     voting_purpose_default_present,
                 }),
             })
-        })().map_err(|e| e.annotate("KeyRegistration"))
+        })()
+        .map_err(|e| e.annotate("KeyRegistration"))
     }
 }
 
 impl Serialize for RegistrationWitness {
-    fn serialize<'se, W: Write>(&self, serializer: &'se mut Serializer<W>, force_canonical: bool) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_map_sz(self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().to_len_sz(1, force_canonical))?;
-        let deser_order = self.encodings.as_ref().filter(|encs| !force_canonical && encs.orig_deser_order.len() == 1).map(|encs| encs.orig_deser_order.clone()).unwrap_or_else(|| vec![0]);
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_map_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(1, force_canonical),
+        )?;
+        let deser_order = self
+            .encodings
+            .as_ref()
+            .filter(|encs| !force_canonical && encs.orig_deser_order.len() == 1)
+            .map(|encs| encs.orig_deser_order.clone())
+            .unwrap_or_else(|| vec![0]);
         for field_index in deser_order {
             match field_index {
                 0 => {
-                    serializer.write_unsigned_integer_sz(1u64, fit_sz(1u64, self.encodings.as_ref().map(|encs| encs.stake_witness_key_encoding).unwrap_or_default(), force_canonical))?;
+                    serializer.write_unsigned_integer_sz(
+                        1u64,
+                        fit_sz(
+                            1u64,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.stake_witness_key_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
                     self.stake_witness.serialize(serializer, force_canonical)?;
                 }
-                _ => unreachable!()
+                _ => unreachable!(),
             };
         }
-        self.encodings.as_ref().map(|encs| encs.len_encoding).unwrap_or_default().end(serializer, force_canonical)
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -506,29 +913,43 @@ impl Deserialize for RegistrationWitness {
             let mut stake_witness_key_encoding = None;
             let mut stake_witness = None;
             let mut read = 0;
-            while match len { cbor_event::LenSz::Len(n, _) => read < n, cbor_event::LenSz::Indefinite => true, } {
+            while match len {
+                cbor_event::LenSz::Len(n, _) => read < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
                 match raw.cbor_type()? {
                     CBORType::UnsignedInteger => match raw.unsigned_integer_sz()? {
-                        (1, key_enc) =>  {
+                        (1, key_enc) => {
                             if stake_witness.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(1)).into());
                             }
-                            let tmp_stake_witness = StakeWitness::deserialize(raw).map_err(|e: DeserializeError| e.annotate("stake_witness"))?;
+                            let tmp_stake_witness = StakeWitness::deserialize(raw)
+                                .map_err(|e: DeserializeError| e.annotate("stake_witness"))?;
                             stake_witness = Some(tmp_stake_witness);
                             stake_witness_key_encoding = Some(key_enc);
                             orig_deser_order.push(0);
-                        },
-                        (unknown_key, _enc) => return Err(DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()),
+                        }
+                        (unknown_key, _enc) => {
+                            return Err(
+                                DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
+                            )
+                        }
                     },
-                    CBORType::Text => return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into()),
+                    CBORType::Text => {
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                    }
                     CBORType::Special => match len {
-                        cbor_event::LenSz::Len(_, _) => return Err(DeserializeFailure::BreakInDefiniteLen.into()),
+                        cbor_event::LenSz::Len(_, _) => {
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                        }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             CBORSpecial::Break => break,
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    other_type => return Err(DeserializeFailure::UnexpectedKeyType(other_type).into()),
+                    other_type => {
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                    }
                 }
                 read += 1;
             }
@@ -545,6 +966,7 @@ impl Deserialize for RegistrationWitness {
                     stake_witness_key_encoding,
                 }),
             })
-        })().map_err(|e| e.annotate("RegistrationWitness"))
+        })()
+        .map_err(|e| e.annotate("RegistrationWitness"))
     }
 }

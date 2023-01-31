@@ -1,10 +1,14 @@
-#![allow(clippy::len_without_is_empty, clippy::too_many_arguments, clippy::new_without_default)]
+#![allow(
+    clippy::len_without_is_empty,
+    clippy::too_many_arguments,
+    clippy::new_without_default
+)]
 
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue, JsError};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 use wasm_crypto::impl_chain_crypto;
 
-use core::{Serialize, Deserialize};
+use core::{Deserialize, Serialize};
 
 use core_crypto::RawBytesEncoding;
 
@@ -15,7 +19,6 @@ impl_chain_crypto!(StakingPubKey, PublicKey, wasm_crypto);
 impl_chain_crypto!(StakeWitness, Ed25519Signature, wasm_crypto);
 
 #[wasm_bindgen]
-
 #[derive(Clone, Debug)]
 pub struct Delegations(pub(crate) Vec<core::Delegation>);
 
@@ -80,42 +83,56 @@ pub struct DelegationDistribution(pub(crate) core::DelegationDistribution);
 #[wasm_bindgen]
 impl DelegationDistribution {
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
     }
 
     pub fn from_json(json: &str) -> Result<DelegationDistribution, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
     pub fn new_weighted(delegations: &Delegations) -> Self {
-        Self(core::DelegationDistribution::new_weighted(delegations.clone().into()))
+        Self(core::DelegationDistribution::new_weighted(
+            delegations.clone().into(),
+        ))
     }
 
     pub fn new_legacy_key_registration(legacy_key_registration: &LegacyKeyRegistration) -> Self {
-        Self(core::DelegationDistribution::new_legacy_key_registration(legacy_key_registration.clone().into()))
+        Self(core::DelegationDistribution::new_legacy_key_registration(
+            legacy_key_registration.clone().into(),
+        ))
     }
 
     pub fn kind(&self) -> DelegationDistributionKind {
         match &self.0 {
-            core::DelegationDistribution::Weighted{ .. } => DelegationDistributionKind::Weighted,
-            core::DelegationDistribution::LegacyKeyRegistration(_) => DelegationDistributionKind::LegacyKeyRegistration,
+            core::DelegationDistribution::Weighted { .. } => DelegationDistributionKind::Weighted,
+            core::DelegationDistribution::LegacyKeyRegistration(_) => {
+                DelegationDistributionKind::LegacyKeyRegistration
+            }
         }
     }
 
     pub fn as_arr_delegation(&self) -> Option<Delegations> {
         match &self.0 {
-            core::DelegationDistribution::Weighted{ delegations, .. } => Some(delegations.clone().into()),
+            core::DelegationDistribution::Weighted { delegations, .. } => {
+                Some(delegations.clone().into())
+            }
             _ => None,
         }
     }
 
     pub fn as_legacy_key_registration(&self) -> Option<LegacyKeyRegistration> {
         match &self.0 {
-            core::DelegationDistribution::LegacyKeyRegistration(legacy_key_registration) => Some(legacy_key_registration.clone().into()),
+            core::DelegationDistribution::LegacyKeyRegistration(legacy_key_registration) => {
+                Some(legacy_key_registration.clone().into())
+            }
             _ => None,
         }
     }
@@ -146,15 +163,19 @@ pub struct Delegation(pub(crate) core::Delegation);
 #[wasm_bindgen]
 impl Delegation {
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
     }
 
     pub fn from_json(json: &str) -> Result<Delegation, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
     pub fn voting_pub_key(&self) -> VotingPubKey {
@@ -195,15 +216,19 @@ pub struct DeregistrationCbor(pub(crate) core::DeregistrationCbor);
 #[wasm_bindgen]
 impl DeregistrationCbor {
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
     }
 
     pub fn from_json(json: &str) -> Result<DeregistrationCbor, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
     pub fn key_deregistration(&self) -> KeyDeregistration {
@@ -214,8 +239,14 @@ impl DeregistrationCbor {
         self.0.deregistration_witness.clone().into()
     }
 
-    pub fn new(key_deregistration: &KeyDeregistration, deregistration_witness: &DeregistrationWitness) -> Self {
-        Self(core::DeregistrationCbor::new(key_deregistration.clone().into(), deregistration_witness.clone().into()))
+    pub fn new(
+        key_deregistration: &KeyDeregistration,
+        deregistration_witness: &DeregistrationWitness,
+    ) -> Self {
+        Self(core::DeregistrationCbor::new(
+            key_deregistration.clone().into(),
+            deregistration_witness.clone().into(),
+        ))
     }
 }
 
@@ -244,15 +275,19 @@ pub struct DeregistrationWitness(pub(crate) core::DeregistrationWitness);
 #[wasm_bindgen]
 impl DeregistrationWitness {
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
     }
 
     pub fn from_json(json: &str) -> Result<DeregistrationWitness, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
     pub fn stake_witness(&self) -> StakeWitness {
@@ -260,7 +295,9 @@ impl DeregistrationWitness {
     }
 
     pub fn new(stake_witness: &StakeWitness) -> Self {
-        Self(core::DeregistrationWitness::new(stake_witness.clone().into()))
+        Self(core::DeregistrationWitness::new(
+            stake_witness.clone().into(),
+        ))
     }
 }
 
@@ -289,15 +326,19 @@ pub struct KeyDeregistration(pub(crate) core::KeyDeregistration);
 #[wasm_bindgen]
 impl KeyDeregistration {
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
     }
 
     pub fn from_json(json: &str) -> Result<KeyDeregistration, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
     pub fn stake_credential(&self) -> StakeCredential {
@@ -317,7 +358,10 @@ impl KeyDeregistration {
     }
 
     pub fn new(stake_credential: &StakeCredential, nonce: Nonce) -> Self {
-        Self(core::KeyDeregistration::new(stake_credential.clone().into(), nonce))
+        Self(core::KeyDeregistration::new(
+            stake_credential.clone().into(),
+            nonce,
+        ))
     }
 }
 
@@ -346,15 +390,19 @@ pub struct KeyRegistration(pub(crate) core::KeyRegistration);
 #[wasm_bindgen]
 impl KeyRegistration {
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
     }
 
     pub fn from_json(json: &str) -> Result<KeyRegistration, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
     pub fn delegation(&self) -> DelegationDistribution {
@@ -381,8 +429,18 @@ impl KeyRegistration {
         self.0.voting_purpose
     }
 
-    pub fn new(delegation: &DelegationDistribution, stake_credential: &StakeCredential, reward_address: &RewardAddress, nonce: Nonce) -> Self {
-        Self(core::KeyRegistration::new(delegation.clone().into(), stake_credential.clone().into(), reward_address.clone().into(), nonce))
+    pub fn new(
+        delegation: &DelegationDistribution,
+        stake_credential: &StakeCredential,
+        reward_address: &RewardAddress,
+        nonce: Nonce,
+    ) -> Self {
+        Self(core::KeyRegistration::new(
+            delegation.clone().into(),
+            stake_credential.clone().into(),
+            reward_address.clone().into(),
+            nonce,
+        ))
     }
 }
 
@@ -411,15 +469,19 @@ pub struct RegistrationCbor(pub(crate) core::RegistrationCbor);
 #[wasm_bindgen]
 impl RegistrationCbor {
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
     }
 
     pub fn from_json(json: &str) -> Result<RegistrationCbor, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
     pub fn key_registration(&self) -> KeyRegistration {
@@ -430,8 +492,14 @@ impl RegistrationCbor {
         self.0.registration_witness.clone().into()
     }
 
-    pub fn new(key_registration: &KeyRegistration, registration_witness: &RegistrationWitness) -> Self {
-        Self(core::RegistrationCbor::new(key_registration.clone().into(), registration_witness.clone().into()))
+    pub fn new(
+        key_registration: &KeyRegistration,
+        registration_witness: &RegistrationWitness,
+    ) -> Self {
+        Self(core::RegistrationCbor::new(
+            key_registration.clone().into(),
+            registration_witness.clone().into(),
+        ))
     }
 }
 
@@ -460,15 +528,19 @@ pub struct RegistrationWitness(pub(crate) core::RegistrationWitness);
 #[wasm_bindgen]
 impl RegistrationWitness {
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
     }
 
     pub fn from_json(json: &str) -> Result<RegistrationWitness, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
     pub fn stake_witness(&self) -> StakeWitness {

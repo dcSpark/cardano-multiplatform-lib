@@ -14,15 +14,15 @@ pub mod hash;
 // TODO: these will be brought over later
 //pub mod byron_tags;
 //pub mod byron_proxy_key;
+mod key;
 pub(crate) mod securemem;
 mod sign;
-mod key;
 
 pub use algorithms::*;
 pub use hash::{Blake2b256, Sha3_256};
 pub use key::{
-    AsymmetricKey, AsymmetricPublicKey, KeyPair, PublicKey, PublicKeyError, PublicKeyFromStrError,SecretKeyFromStrError,
-    SecretKey, SecretKeyError, SecretKeySizeStatic,
+    AsymmetricKey, AsymmetricPublicKey, KeyPair, PublicKey, PublicKeyError, PublicKeyFromStrError,
+    SecretKey, SecretKeyError, SecretKeyFromStrError, SecretKeySizeStatic,
 };
 pub use sign::{
     Signature, SignatureError, SignatureFromStrError, SigningAlgorithm, Verification,

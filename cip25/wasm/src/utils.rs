@@ -1,6 +1,6 @@
 use crate::*;
 
-use wasm_bindgen::prelude::{JsError};
+use wasm_bindgen::prelude::JsError;
 
 use cml_core_wasm::metadata::Metadata;
 
@@ -14,14 +14,17 @@ impl CIP25Metadata {
     /// Read the CIP25 schema from a Metadata. Ignores all other data besides CIP25
     /// Can fail if the Metadata does not conform to CIP25
     pub fn from_metadata(metadata: &Metadata) -> Result<CIP25Metadata, JsError> {
-        core::CIP25Metadata::from_metadata(metadata.as_ref()).map(Self).map_err(Into::into)
+        core::CIP25Metadata::from_metadata(metadata.as_ref())
+            .map(Self)
+            .map_err(Into::into)
     }
 
     /// Add to an existing metadata (could be empty) the full CIP25 metadata
     pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), JsError> {
-        self.0.add_to_metadata(metadata.as_mut()).map_err(Into::into)
+        self.0
+            .add_to_metadata(metadata.as_mut())
+            .map_err(Into::into)
     }
-
 }
 
 #[wasm_bindgen]

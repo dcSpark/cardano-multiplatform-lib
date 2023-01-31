@@ -1,7 +1,6 @@
 use super::*;
 
 /// Crypto-related on-chain structures. See the crypto crate for actually using these.
-
 use cml_crypto;
 
 use cml_crypto::chain::ChainCrypto;
@@ -20,7 +19,14 @@ impl KesSignature {
 
     pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
         if inner.len() != 32 {
-            return Err(DeserializeError::new("KesSignature", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(32), max: Some(32) }));
+            return Err(DeserializeError::new(
+                "KesSignature",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(32),
+                    max: Some(32),
+                },
+            ));
         }
         Ok(Self {
             inner,
@@ -30,17 +36,17 @@ impl KesSignature {
 }
 
 impl TryFrom<Vec<u8>> for KesSignature {
-  type Error = DeserializeError;
+    type Error = DeserializeError;
 
-  fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
-      KesSignature::new(inner)
-  }
+    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
+        KesSignature::new(inner)
+    }
 }
 
 impl From<KesSignature> for Vec<u8> {
-  fn from(wrapper: KesSignature) -> Self {
-      wrapper.inner
-  }
+    fn from(wrapper: KesSignature) -> Self {
+        wrapper.inner
+    }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -97,7 +103,14 @@ impl SignkeyKES {
 
     pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
         if inner.len() != 16 {
-            return Err(DeserializeError::new("SignkeyKES", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(16), max: Some(16) }));
+            return Err(DeserializeError::new(
+                "SignkeyKES",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(16),
+                    max: Some(16),
+                },
+            ));
         }
         Ok(Self {
             inner,
@@ -168,7 +181,12 @@ pub struct BootstrapWitness {
 }
 
 impl BootstrapWitness {
-    pub fn new(vkey: Vkey, signature: Ed25519Signature, chain_code: Vec<u8>, attributes: Vec<u8>) -> Self {
+    pub fn new(
+        vkey: Vkey,
+        signature: Ed25519Signature,
+        chain_code: Vec<u8>,
+        attributes: Vec<u8>,
+    ) -> Self {
         Self {
             vkey,
             signature,

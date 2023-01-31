@@ -1,11 +1,11 @@
-use crate::{chain_crypto::{
+use crate::chain_crypto::{
     bech32::{self, Bech32},
     key,
-}};
-use hex::FromHexError;
-use std::{fmt, marker::PhantomData, str::FromStr};
+};
 use crate::typed_bytes::{ByteArray, ByteSlice};
 use cbor_event::{de::Deserializer, se::Serializer};
+use hex::FromHexError;
+use std::{fmt, marker::PhantomData, str::FromStr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Verification {
@@ -215,8 +215,7 @@ impl<T, A: VerificationAlgorithm> std::cmp::PartialEq<Self> for Signature<T, A> 
     }
 }
 
-
-impl<T, A: VerificationAlgorithm> std::cmp::Eq for Signature<T, A> { }
+impl<T, A: VerificationAlgorithm> std::cmp::Eq for Signature<T, A> {}
 
 #[cfg(test)]
 pub(crate) mod test {
@@ -256,7 +255,10 @@ pub(crate) mod test {
 }
 
 impl<U, A: VerificationAlgorithm> cbor_event::se::Serialize for Signature<U, A> {
-    fn serialize<'se, W: std::io::Write>(&self, serializer: &'se mut Serializer<W>) -> cbor_event::Result<&'se mut Serializer<W>> {
+    fn serialize<'se, W: std::io::Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_bytes(self.as_ref())
     }
 }
@@ -271,15 +273,24 @@ impl<U, A: VerificationAlgorithm> cbor_event::de::Deserialize for Signature<U, A
 
 impl<U, A: VerificationAlgorithm> serde::Serialize for Signature<U, A> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         serializer.serialize_str(&hex::encode(&self.as_ref()))
     }
 }
 
 impl<'de, U, A: VerificationAlgorithm> serde::de::Deserialize<'de> for Signature<U, A> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
-    D: serde::de::Deserializer<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        Signature::<U, A>::from_str(&s).map_err(|_e| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"hex bytes for signature"))
+        Signature::<U, A>::from_str(&s).map_err(|_e| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(&s),
+                &"hex bytes for signature",
+            )
+        })
     }
 }

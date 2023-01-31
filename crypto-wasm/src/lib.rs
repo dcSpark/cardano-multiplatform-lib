@@ -41,7 +41,9 @@ impl Bip32PrivateKey {
     /// so be careful if you see the term "xprv" as it could refer to either one
     /// our library does not require the pub (instead we compute the pub key when needed)
     pub fn from_128_xprv(bytes: &[u8]) -> Result<Bip32PrivateKey, JsError> {
-        core_crypto::Bip32PrivateKey::from_128_xprv(bytes).map(Self).map_err(Into::into)
+        core_crypto::Bip32PrivateKey::from_128_xprv(bytes)
+            .map(Self)
+            .map_err(Into::into)
     }
     /// see from_128_xprv
     pub fn to_128_xprv(&self) -> Vec<u8> {
@@ -61,7 +63,9 @@ impl Bip32PrivateKey {
     }
 
     pub fn from_raw_bytes(bytes: &[u8]) -> Result<Bip32PrivateKey, JsError> {
-        core_crypto::Bip32PrivateKey::from_raw_bytes(bytes).map(Self).map_err(Into::into)
+        core_crypto::Bip32PrivateKey::from_raw_bytes(bytes)
+            .map(Self)
+            .map_err(Into::into)
     }
 
     pub fn to_raw_bytes(&self) -> Vec<u8> {
@@ -69,7 +73,9 @@ impl Bip32PrivateKey {
     }
 
     pub fn from_bech32(bech32_str: &str) -> Result<Bip32PrivateKey, JsError> {
-        core_crypto::Bip32PrivateKey::from_bech32(bech32_str).map(Self).map_err(Into::into)
+        core_crypto::Bip32PrivateKey::from_bech32(bech32_str)
+            .map(Self)
+            .map_err(Into::into)
     }
 
     pub fn to_bech32(&self) -> String {
@@ -77,7 +83,9 @@ impl Bip32PrivateKey {
     }
 
     pub fn from_bip39_entropy(entropy: &[u8], password: &[u8]) -> Self {
-        Self(core_crypto::Bip32PrivateKey::from_bip39_entropy(entropy, password))
+        Self(core_crypto::Bip32PrivateKey::from_bip39_entropy(
+            entropy, password,
+        ))
     }
 
     pub fn chaincode(&self) -> Vec<u8> {
@@ -102,7 +110,6 @@ impl AsRef<core_crypto::Bip32PrivateKey> for Bip32PrivateKey {
         &self.0
     }
 }
-
 
 #[wasm_bindgen]
 pub struct Bip32PublicKey(core_crypto::Bip32PublicKey);
@@ -142,7 +149,9 @@ impl Bip32PublicKey {
     }
 
     pub fn from_raw_bytes(bytes: &[u8]) -> Result<Bip32PublicKey, JsError> {
-        core_crypto::Bip32PublicKey::from_raw_bytes(bytes).map(Self).map_err(Into::into)
+        core_crypto::Bip32PublicKey::from_raw_bytes(bytes)
+            .map(Self)
+            .map_err(Into::into)
     }
 
     pub fn to_raw_bytes(&self) -> Vec<u8> {
@@ -150,7 +159,9 @@ impl Bip32PublicKey {
     }
 
     pub fn from_bech32(bech32_str: &str) -> Result<Bip32PublicKey, JsError> {
-        core_crypto::Bip32PublicKey::from_bech32(bech32_str).map(Self).map_err(Into::into)
+        core_crypto::Bip32PublicKey::from_bech32(bech32_str)
+            .map(Self)
+            .map_err(Into::into)
     }
 
     pub fn to_bech32(&self) -> String {
@@ -206,7 +217,9 @@ impl PrivateKey {
     /// PrivateKey.from_bech32(&#39;ed25519e_sk1gqwl4szuwwh6d0yk3nsqcc6xxc3fpvjlevgwvt60df59v8zd8f8prazt8ln3lmz096ux3xvhhvm3ca9wj2yctdh3pnw0szrma07rt5gl748fp&#39;);
     /// ```
     pub fn from_bech32(bech32_str: &str) -> Result<PrivateKey, JsError> {
-        core_crypto::PrivateKey::from_bech32(bech32_str).map(Self).map_err(Into::into)
+        core_crypto::PrivateKey::from_bech32(bech32_str)
+            .map(Self)
+            .map_err(Into::into)
     }
 
     pub fn to_bech32(&self) -> String {
@@ -218,11 +231,15 @@ impl PrivateKey {
     }
 
     pub fn from_extended_bytes(bytes: &[u8]) -> Result<PrivateKey, JsError> {
-        core_crypto::PrivateKey::from_extended_bytes(bytes).map(Self).map_err(Into::into)
+        core_crypto::PrivateKey::from_extended_bytes(bytes)
+            .map(Self)
+            .map_err(Into::into)
     }
 
     pub fn from_normal_bytes(bytes: &[u8]) -> Result<PrivateKey, JsError> {
-        core_crypto::PrivateKey::from_normal_bytes(bytes).map(Self).map_err(Into::into)
+        core_crypto::PrivateKey::from_normal_bytes(bytes)
+            .map(Self)
+            .map_err(Into::into)
     }
 
     pub fn sign(&self, message: &[u8]) -> Ed25519Signature {
@@ -248,7 +265,6 @@ impl AsRef<core_crypto::PrivateKey> for PrivateKey {
     }
 }
 
-
 /// ED25519 key used as public key
 #[wasm_bindgen]
 pub struct PublicKey(core_crypto::PublicKey);
@@ -261,7 +277,9 @@ impl PublicKey {
     /// const pkey = PublicKey.from_bech32(&#39;ed25519_pk1dgaagyh470y66p899txcl3r0jaeaxu6yd7z2dxyk55qcycdml8gszkxze2&#39;);
     /// ```
     pub fn from_bech32(bech32_str: &str) -> Result<PublicKey, JsError> {
-        core_crypto::PublicKey::from_bech32(bech32_str).map(Self).map_err(Into::into)
+        core_crypto::PublicKey::from_bech32(bech32_str)
+            .map(Self)
+            .map_err(Into::into)
     }
 
     pub fn to_bech32(&self) -> String {
@@ -273,7 +291,9 @@ impl PublicKey {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, JsError> {
-        core_crypto::PublicKey::from_raw_bytes(bytes).map(Self).map_err(Into::into)
+        core_crypto::PublicKey::from_raw_bytes(bytes)
+            .map(Self)
+            .map_err(Into::into)
     }
 
     pub fn verify(&self, data: &[u8], signature: &Ed25519Signature) -> bool {
@@ -344,7 +364,6 @@ macro_rules! impl_signature {
             }
         }
 
-
         impl From<core_crypto::$name> for $name {
             fn from(inner: core_crypto::$name) -> Self {
                 Self(inner)
@@ -395,11 +414,15 @@ macro_rules! impl_hash_type {
             }
 
             pub fn from_hex(input: &str) -> Result<$name, JsError> {
-                core_crypto::$name::from_raw_hex(input).map(Self).map_err(Into::into)
+                core_crypto::$name::from_raw_hex(input)
+                    .map(Self)
+                    .map_err(Into::into)
             }
 
             pub fn from_raw_bytes(bytes: &[u8]) -> Result<$name, JsError> {
-                core_crypto::$name::from_raw_bytes(bytes).map(Self).map_err(Into::into)
+                core_crypto::$name::from_raw_bytes(bytes)
+                    .map(Self)
+                    .map_err(Into::into)
             }
         }
 

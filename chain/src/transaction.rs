@@ -258,7 +258,12 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    pub fn new(transaction_body: TransactionBody, transaction_witness_set: TransactionWitnessSet, index_2: bool, auxiliary_data: Option<AuxiliaryData>) -> Self {
+    pub fn new(
+        transaction_body: TransactionBody,
+        transaction_witness_set: TransactionWitnessSet,
+        index_2: bool,
+        auxiliary_data: Option<AuxiliaryData>,
+    ) -> Self {
         Self {
             transaction_body,
             transaction_witness_set,

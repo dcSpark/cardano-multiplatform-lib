@@ -1,8 +1,6 @@
 use super::*;
-use cml_core::{
-    serialization::{LenEncoding, StringEncoding},
-};
 use cbor_event::Sz;
+use cml_core::serialization::{LenEncoding, StringEncoding};
 
 #[derive(Clone, Debug, Default)]
 pub struct AddressEncoding {
@@ -438,7 +436,8 @@ pub struct TransactionBodyEncoding {
     pub key_8_encoding: Option<cbor_event::Sz>,
     pub key_8_key_encoding: Option<cbor_event::Sz>,
     pub key_9_encoding: LenEncoding,
-    pub key_9_value_encodings: BTreeMap<PolicyId, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
+    pub key_9_value_encodings:
+        BTreeMap<PolicyId, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
     pub key_9_key_encoding: Option<cbor_event::Sz>,
     pub key_11_key_encoding: Option<cbor_event::Sz>,
     pub key_13_encoding: LenEncoding,
@@ -505,9 +504,9 @@ pub struct ValueEncoding {
     pub len_encoding: LenEncoding,
     pub coin_encoding: Option<cbor_event::Sz>,
     pub multiasset_encoding: LenEncoding,
-    pub multiasset_value_encodings: BTreeMap<PolicyId, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
+    pub multiasset_value_encodings:
+        BTreeMap<PolicyId, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
 }
-
 
 #[derive(Clone, Debug, Default)]
 pub struct BootstrapWitnessEncoding {

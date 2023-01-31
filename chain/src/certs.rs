@@ -20,7 +20,10 @@ impl Certificate {
         Self::StakeDeregistration(StakeDeregistration::new(stake_credential))
     }
 
-    pub fn new_stake_delegation(stake_credential: StakeCredential, pool_keyhash: Ed25519KeyHash) -> Self {
+    pub fn new_stake_delegation(
+        stake_credential: StakeCredential,
+        pool_keyhash: Ed25519KeyHash,
+    ) -> Self {
         Self::StakeDelegation(StakeDelegation::new(stake_credential, pool_keyhash))
     }
 
@@ -32,12 +35,24 @@ impl Certificate {
         Self::PoolRetirement(PoolRetirement::new(pool_keyhash, epoch))
     }
 
-    pub fn new_genesis_key_delegation(genesishash: GenesisHash, genesis_delegate_hash: GenesisDelegateHash, vrf_keyhash: VRFKeyHash) -> Self {
-        Self::GenesisKeyDelegation(GenesisKeyDelegation::new(genesishash, genesis_delegate_hash, vrf_keyhash))
+    pub fn new_genesis_key_delegation(
+        genesishash: GenesisHash,
+        genesis_delegate_hash: GenesisDelegateHash,
+        vrf_keyhash: VRFKeyHash,
+    ) -> Self {
+        Self::GenesisKeyDelegation(GenesisKeyDelegation::new(
+            genesishash,
+            genesis_delegate_hash,
+            vrf_keyhash,
+        ))
     }
 
-    pub fn new_move_instantaneous_rewards_cert(move_instantaneous_reward: MoveInstantaneousReward) -> Self {
-        Self::MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCert::new(move_instantaneous_reward))
+    pub fn new_move_instantaneous_rewards_cert(
+        move_instantaneous_reward: MoveInstantaneousReward,
+    ) -> Self {
+        Self::MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCert::new(
+            move_instantaneous_reward,
+        ))
     }
 }
 
@@ -55,7 +70,14 @@ impl DnsName {
 
     pub fn new(inner: String) -> Result<Self, DeserializeError> {
         if inner.len() > 64 {
-            return Err(DeserializeError::new("DnsName", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(0), max: Some(64) }));
+            return Err(DeserializeError::new(
+                "DnsName",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(0),
+                    max: Some(64),
+                },
+            ));
         }
         Ok(Self {
             inner,
@@ -88,7 +110,11 @@ pub struct GenesisKeyDelegation {
 }
 
 impl GenesisKeyDelegation {
-    pub fn new(genesishash: GenesisHash, genesis_delegate_hash: GenesisDelegateHash, vrf_keyhash: VRFKeyHash) -> Self {
+    pub fn new(
+        genesishash: GenesisHash,
+        genesis_delegate_hash: GenesisDelegateHash,
+        vrf_keyhash: VRFKeyHash,
+    ) -> Self {
         Self {
             genesishash,
             genesis_delegate_hash,
@@ -112,7 +138,14 @@ impl Ipv4 {
 
     pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
         if inner.len() != 4 {
-            return Err(DeserializeError::new("Ipv4", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(4), max: Some(4) }));
+            return Err(DeserializeError::new(
+                "Ipv4",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(4),
+                    max: Some(4),
+                },
+            ));
         }
         Ok(Self {
             inner,
@@ -149,7 +182,14 @@ impl Ipv6 {
 
     pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
         if inner.len() != 16 {
-            return Err(DeserializeError::new("Ipv6", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(16), max: Some(16) }));
+            return Err(DeserializeError::new(
+                "Ipv6",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(16),
+                    max: Some(16),
+                },
+            ));
         }
         Ok(Self {
             inner,
@@ -182,7 +222,11 @@ pub struct MoveInstantaneousReward {
 }
 
 impl MoveInstantaneousReward {
-    pub fn new(index_0: I0OrI1, index_1: OrderedHashMap<StakeCredential, DeltaCoin>, coin: Coin) -> Self {
+    pub fn new(
+        index_0: I0OrI1,
+        index_1: OrderedHashMap<StakeCredential, DeltaCoin>,
+        coin: Coin,
+    ) -> Self {
         Self {
             index_0,
             index_1,
@@ -258,7 +302,17 @@ pub struct PoolParams {
 }
 
 impl PoolParams {
-    pub fn new(operator: Ed25519KeyHash, vrf_keyhash: VRFKeyHash, pledge: Coin, cost: Coin, margin: UnitInterval, reward_account: RewardAccount, pool_owners: Vec<AddrKeyhash>, relays: Vec<Relay>, pool_metadata: Option<PoolMetadata>) -> Self {
+    pub fn new(
+        operator: Ed25519KeyHash,
+        vrf_keyhash: VRFKeyHash,
+        pledge: Coin,
+        cost: Coin,
+        margin: UnitInterval,
+        reward_account: RewardAccount,
+        pool_owners: Vec<AddrKeyhash>,
+        relays: Vec<Relay>,
+        pool_metadata: Option<PoolMetadata>,
+    ) -> Self {
         Self {
             operator,
             vrf_keyhash,
@@ -316,7 +370,11 @@ pub enum Relay {
 }
 
 impl Relay {
-    pub fn new_single_host_addr(port: Option<Port>, ipv4: Option<Ipv4>, ipv6: Option<Ipv6>) -> Self {
+    pub fn new_single_host_addr(
+        port: Option<Port>,
+        ipv4: Option<Ipv4>,
+        ipv6: Option<Ipv6>,
+    ) -> Self {
         Self::SingleHostAddr(SingleHostAddr::new(port, ipv4, ipv6))
     }
 
@@ -431,7 +489,14 @@ impl Url {
 
     pub fn new(inner: String) -> Result<Self, DeserializeError> {
         if inner.len() > 64 {
-            return Err(DeserializeError::new("Url", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(0), max: Some(64) }));
+            return Err(DeserializeError::new(
+                "Url",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(0),
+                    max: Some(64),
+                },
+            ));
         }
         Ok(Self {
             inner,

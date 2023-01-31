@@ -3,16 +3,19 @@ use super::*;
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct BigInt {
-    #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<BigIntEncoding>,
 }
 
 impl BigInt {
     pub fn new() -> Self {
-        Self {
-            encodings: None,
-        }
+        Self { encodings: None }
     }
 }
 
@@ -21,7 +24,12 @@ impl BigInt {
 pub struct ConstrPlutusData {
     pub index_0: u64,
     pub plutus_datas: Vec<PlutusData>,
-    #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<ConstrPlutusDataEncoding>,
 }
@@ -95,55 +103,67 @@ pub enum Language {
     I0 {
         #[serde(skip)]
         i0_encoding: Option<cbor_event::Sz>,
-    }
-    ,
+    },
     I1 {
         #[serde(skip)]
         i1_encoding: Option<cbor_event::Sz>,
-    }
-    ,
+    },
 }
 
 impl Language {
     pub fn new_i0() -> Self {
-        Self::I0 {
-            i0_encoding: None,
-        }
+        Self::I0 { i0_encoding: None }
     }
 
     pub fn new_i1() -> Self {
-        Self::I1 {
-            i1_encoding: None,
-        }
+        Self::I1 { i1_encoding: None }
     }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
-#[derivative(Eq, PartialEq, Ord="feature_allow_slow_enum", PartialOrd="feature_allow_slow_enum", Hash)]
+#[derivative(
+    Eq,
+    PartialEq,
+    Ord = "feature_allow_slow_enum",
+    PartialOrd = "feature_allow_slow_enum",
+    Hash
+)]
 pub enum PlutusData {
     ConstrPlutusData(ConstrPlutusData),
     MapPlutusDataToPlutusData {
         map_plutus_data_to_plutus_data: OrderedHashMap<PlutusData, PlutusData>,
-        #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         map_plutus_data_to_plutus_data_encoding: LenEncoding,
-    }
-    ,
+    },
     ArrPlutusData {
         arr_plutus_data: Vec<PlutusData>,
-        #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         arr_plutus_data_encoding: LenEncoding,
-    }
-    ,
+    },
     BigInt(BigInt),
     BoundedBytes {
         bounded_bytes: BoundedBytes,
-        #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         bounded_bytes_encoding: StringEncoding,
-    }
-    ,
+    },
 }
 
 impl PlutusData {
@@ -151,7 +171,9 @@ impl PlutusData {
         Self::ConstrPlutusData(constr_plutus_data)
     }
 
-    pub fn new_map_plutus_data_to_plutus_data(map_plutus_data_to_plutus_data: OrderedHashMap<PlutusData, PlutusData>) -> Self {
+    pub fn new_map_plutus_data_to_plutus_data(
+        map_plutus_data_to_plutus_data: OrderedHashMap<PlutusData, PlutusData>,
+    ) -> Self {
         Self::MapPlutusDataToPlutusData {
             map_plutus_data_to_plutus_data,
             map_plutus_data_to_plutus_data_encoding: LenEncoding::default(),
@@ -204,48 +226,36 @@ pub enum RedeemerTag {
     I0 {
         #[serde(skip)]
         i0_encoding: Option<cbor_event::Sz>,
-    }
-    ,
+    },
     I1 {
         #[serde(skip)]
         i1_encoding: Option<cbor_event::Sz>,
-    }
-    ,
+    },
     I2 {
         #[serde(skip)]
         i2_encoding: Option<cbor_event::Sz>,
-    }
-    ,
+    },
     I3 {
         #[serde(skip)]
         i3_encoding: Option<cbor_event::Sz>,
-    }
-    ,
+    },
 }
 
 impl RedeemerTag {
     pub fn new_i0() -> Self {
-        Self::I0 {
-            i0_encoding: None,
-        }
+        Self::I0 { i0_encoding: None }
     }
 
     pub fn new_i1() -> Self {
-        Self::I1 {
-            i1_encoding: None,
-        }
+        Self::I1 { i1_encoding: None }
     }
 
     pub fn new_i2() -> Self {
-        Self::I2 {
-            i2_encoding: None,
-        }
+        Self::I2 { i2_encoding: None }
     }
 
     pub fn new_i3() -> Self {
-        Self::I3 {
-            i3_encoding: None,
-        }
+        Self::I3 { i3_encoding: None }
     }
 }
 

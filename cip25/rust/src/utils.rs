@@ -1,17 +1,16 @@
 use std::convert::TryFrom;
 
 pub use cml_core::{
-    serialization::*,
     error::*,
     metadata::{Metadata, TransactionMetadatum},
+    serialization::*,
 };
 
-use crate::{String64, ChunkableString, LabelMetadata, CIP25Metadata};
+use crate::{CIP25Metadata, ChunkableString, LabelMetadata, String64};
 
 pub static CIP25_METADATA_LABEL: u64 = 721;
 
 impl CIP25Metadata {
-
     /// Create a Metadata containing only the CIP25 schema
     pub fn to_metadata(&self) -> Result<Metadata, DeserializeError> {
         use std::convert::TryInto;
@@ -36,9 +35,9 @@ impl std::convert::TryFrom<&Metadata> for CIP25Metadata {
     type Error = DeserializeError;
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
-        let cip25_metadatum = metadata
-            .get(&CIP25_METADATA_LABEL)
-            .ok_or_else(|| DeserializeFailure::MandatoryFieldMissing(Key::Uint(CIP25_METADATA_LABEL)))?;
+        let cip25_metadatum = metadata.get(&CIP25_METADATA_LABEL).ok_or_else(|| {
+            DeserializeFailure::MandatoryFieldMissing(Key::Uint(CIP25_METADATA_LABEL))
+        })?;
         Ok(Self {
             key_721: LabelMetadata::from_cbor_bytes(&cip25_metadatum.to_original_cbor_bytes())?,
         })
@@ -58,7 +57,14 @@ impl std::convert::TryInto<Metadata> for &CIP25Metadata {
 impl String64 {
     pub fn new_str(inner: &str) -> Result<Self, DeserializeError> {
         if inner.len() > 64 {
-            return Err(DeserializeError::new("String64", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(0), max: Some(64) }));
+            return Err(DeserializeError::new(
+                "String64",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(0),
+                    max: Some(64),
+                },
+            ));
         }
         Ok(Self(inner.to_owned()))
     }
@@ -95,7 +101,10 @@ impl From<&ChunkableString> for String {
     fn from(chunkable: &ChunkableString) -> Self {
         match chunkable {
             ChunkableString::Single(chunk) => chunk.to_str().to_owned(),
-            ChunkableString::Chunked(chunks) => chunks.iter().map(|chunk| chunk.to_str().to_owned()).collect(),
+            ChunkableString::Chunked(chunks) => chunks
+                .iter()
+                .map(|chunk| chunk.to_str().to_owned())
+                .collect(),
         }
     }
 }
@@ -104,7 +113,7 @@ impl From<&ChunkableString> for String {
 mod tests {
     use std::collections::BTreeMap;
 
-    use crate::{LabelMetadataV2, Data, MetadataDetails, FilesDetails, AssetNameV2, PolicyIdV2};
+    use crate::{AssetNameV2, Data, FilesDetails, LabelMetadataV2, MetadataDetails, PolicyIdV2};
 
     use super::*;
 
@@ -112,24 +121,29 @@ mod tests {
     fn create() {
         let mut details = MetadataDetails::new(
             String64::try_from("Metadata Name").unwrap(),
-            ChunkableString::from("htts://some.website.com/image.png"));
+            ChunkableString::from("htts://some.website.com/image.png"),
+        );
         details.description = Some(ChunkableString::from("description of this NFT"));
         details.media_type = Some(String64::try_from("image/*").unwrap());
         details.files = Some(vec![
             FilesDetails::new(
                 String64::new_str("filename1").unwrap(),
                 String64::new_str("filetype1").unwrap(),
-                ChunkableString::from("src1")),
+                ChunkableString::from("src1"),
+            ),
             FilesDetails::new(
                 String64::new_str("filename2").unwrap(),
                 String64::new_str("filetype2").unwrap(),
-                ChunkableString::from("src2")),
+                ChunkableString::from("src2"),
+            ),
         ]);
         let mut v2 = Data::new();
         let mut v2_inner = BTreeMap::new();
         v2_inner.insert(AssetNameV2::from(vec![0xCA, 0xFE, 0xD0, 0x0D]), details);
         v2.insert(PolicyIdV2::from(vec![0xBA, 0xAD, 0xF0, 0x0D]), v2_inner);
-        let metadata = CIP25Metadata::new(LabelMetadata::new_label_metadata_v2(LabelMetadataV2::new(v2)));
+        let metadata = CIP25Metadata::new(LabelMetadata::new_label_metadata_v2(
+            LabelMetadataV2::new(v2),
+        ));
         let metadata_bytes = metadata.to_bytes();
         let roundtrip = CIP25Metadata::from_cbor_bytes(&metadata_bytes).unwrap();
         assert_eq!(metadata_bytes, roundtrip.to_bytes());
@@ -148,6 +162,6 @@ mod tests {
         //  "type": "Alien",
         // }
         let bytes = "a569617277656176654964782b36737270585a4f54664b5f36324b55724a4b68345664434647305953323731707132304f4d52704535547365696d6167657835697066733a2f2f516d5557503678474875636742557635313467776762743479696a673336615551756e455036317a354438524b53646e616d656e53706163654275642023313530376674726169747385695374617220537569746a4368657374706c6174656442656c7464466c616766506973746f6c647479706565416c69656e";
-        let details = MetadataDetails::from_bytes(hex::decode(bytes).unwrap()).unwrap(); 
+        let details = MetadataDetails::from_bytes(hex::decode(bytes).unwrap()).unwrap();
     }
 }

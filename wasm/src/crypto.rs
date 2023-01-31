@@ -1,7 +1,7 @@
 use super::*;
 
 // for to/from bytes
-use core::serialization::{Serialize, Deserialize};
+use core::serialization::{Deserialize, Serialize};
 use core_crypto::RawBytesEncoding;
 
 use wasm_crypto::impl_chain_crypto;
@@ -35,11 +35,14 @@ impl KesSignature {
     }
 
     pub fn from_cbor_bytes(data: &[u8]) -> Result<KesSignature, JsValue> {
-        Deserialize::from_cbor_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_cbor_bytes: {}", e)))
+        Deserialize::from_cbor_bytes(data)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_cbor_bytes: {}", e)))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
@@ -47,7 +50,9 @@ impl KesSignature {
     }
 
     pub fn from_json(json: &str) -> Result<KesSignature, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
     pub fn get(&self) -> Vec<u8> {
@@ -78,11 +83,14 @@ impl Vkey {
     }
 
     pub fn from_cbor_bytes(data: &[u8]) -> Result<Vkey, JsValue> {
-        Deserialize::from_cbor_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_cbor_bytes: {}", e)))
+        Deserialize::from_cbor_bytes(data)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_cbor_bytes: {}", e)))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
@@ -90,7 +98,9 @@ impl Vkey {
     }
 
     pub fn from_json(json: &str) -> Result<Vkey, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 }
 
@@ -117,11 +127,14 @@ impl VrfCert {
     }
 
     pub fn from_cbor_bytes(data: &[u8]) -> Result<VrfCert, JsValue> {
-        Deserialize::from_cbor_bytes(data).map(Self).map_err(|e| JsValue::from_str(&format!("from_cbor_bytes: {}", e)))
+        Deserialize::from_cbor_bytes(data)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_cbor_bytes: {}", e)))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0).map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
@@ -129,7 +142,9 @@ impl VrfCert {
     }
 
     pub fn from_json(json: &str) -> Result<VrfCert, JsValue> {
-        serde_json::from_str(json).map(Self).map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
     pub fn index_0(&self) -> Vec<u8> {

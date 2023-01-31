@@ -2,15 +2,15 @@
 //! the common interfaces for the project to work with.
 
 use std::hash::{Hash, Hasher};
+use std::io::{BufRead, Write};
 use std::str::FromStr;
 use std::{error, fmt, result};
-use std::io::{BufRead, Write};
 
+use cbor_event::{self, de::Deserializer, se::Serializer};
 use cryptoxide::blake2b::Blake2b;
 use cryptoxide::digest::Digest as _;
 use cryptoxide::sha3;
 use hex::FromHexError;
-use cbor_event::{self, de::Deserializer, se::Serializer};
 
 use crate::chain_crypto::bech32::{self, Bech32};
 

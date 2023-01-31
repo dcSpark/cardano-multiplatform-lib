@@ -26,12 +26,12 @@ impl Address {
     /// bit 5: stake cred is keyhash/scripthash
     /// bit 4: payment cred is keyhash/scripthash
     /// bits 3-0: network id
-    /// 
+    ///
     /// pointer address
     /// bits 7-5: 010
     /// bit 4: payment cred is keyhash/scripthash
     /// bits 3-0: network id
-    /// 
+    ///
     /// enterprise address
     /// bits 7-5: 010
     /// bit 4: payment cred is keyhash/scripthash
@@ -58,9 +58,11 @@ impl Address {
     }
 
     pub fn from_bech32(bech_str: String) -> Result<Address, JsError> {
-        core::Address::from_bech32(&bech_str).map(Into::into).map_err(Into::into)
+        core::Address::from_bech32(&bech_str)
+            .map(Into::into)
+            .map_err(Into::into)
     }
-    
+
     /**
      * Note: bech32-encoded Byron addresses will also pass validation here
      */
@@ -106,7 +108,9 @@ impl Address {
     }
 
     pub fn from_raw_bytes(data: &[u8]) -> Result<Address, JsError> {
-        core::Address::from_raw_bytes(data).map(Self).map_err(Into::into)
+        core::Address::from_raw_bytes(data)
+            .map(Self)
+            .map_err(Into::into)
     }
 
     pub fn to_json(&self) -> Result<String, JsError> {

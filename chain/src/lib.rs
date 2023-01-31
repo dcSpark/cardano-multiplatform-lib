@@ -1,16 +1,15 @@
 use std::io::{BufRead, Seek, Write};
 
-
-use cbor_event::{self, de::Deserializer, se::Serializer};
-use cbor_event::Type as CBORType;
 use cbor_event::Special as CBORSpecial;
+use cbor_event::Type as CBORType;
+use cbor_event::{self, de::Deserializer, se::Serializer};
 use std::collections::BTreeMap;
 use std::convert::{From, TryFrom};
 
 pub mod address;
 pub mod auxdata;
-pub mod serialization;
 pub mod crypto;
+pub mod serialization;
 
 use address::*;
 use auxdata::*;
@@ -20,15 +19,11 @@ use crypto::*;
 //pub mod legacy_address;
 
 pub use cml_core::{
-    Int,
-    Epoch,
-    Slot,
-    TransactionIndex,
-    CertificateIndex,
-    ordered_hash_map::OrderedHashMap,
     error::{DeserializeError, DeserializeFailure},
     metadata::{TransactionMetadatum, TransactionMetadatumLabel},
-    serialization::{Serialize, Deserialize, StringEncoding, LenEncoding},
+    ordered_hash_map::OrderedHashMap,
+    serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
+    CertificateIndex, Epoch, Int, Slot, TransactionIndex,
 };
 
 pub mod cbor_encodings;
@@ -61,7 +56,6 @@ pub type Genesishashs = Vec<GenesisHash>;
 
 // TODO: fix cddl-codegen to avoid generating this and make it a direct alias not a declared one
 pub type Int64 = i64;
-
 
 pub type Mint = OrderedHashMap<PolicyId, OrderedHashMap<AssetName, Int64>>;
 
@@ -101,11 +95,9 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 pub use address::*;
 
-
 pub mod block;
 
 pub use block::*;
-
 
 pub mod certs;
 
@@ -115,7 +107,6 @@ pub mod plutus;
 
 pub use plutus::*;
 
-
 pub mod transaction;
 
 pub use transaction::*;
@@ -123,7 +114,12 @@ pub use transaction::*;
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct AssetName {
     pub inner: Vec<u8>,
-    #[derivative(PartialEq="ignore", Ord="ignore", PartialOrd="ignore", Hash="ignore")]
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<AssetNameEncoding>,
 }
@@ -135,7 +131,14 @@ impl AssetName {
 
     pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
         if inner.len() > 32 {
-            return Err(DeserializeError::new("AssetName", DeserializeFailure::RangeCheck{ found: inner.len(), min: Some(0), max: Some(32) }));
+            return Err(DeserializeError::new(
+                "AssetName",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(0),
+                    max: Some(32),
+                },
+            ));
         }
         Ok(Self {
             inner,
@@ -157,7 +160,6 @@ impl From<AssetName> for Vec<u8> {
         wrapper.inner
     }
 }
-
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct DatumOption0 {
@@ -196,26 +198,20 @@ pub enum I0OrI1 {
     I0 {
         #[serde(skip)]
         i0_encoding: Option<cbor_event::Sz>,
-    }
-    ,
+    },
     I1 {
         #[serde(skip)]
         i1_encoding: Option<cbor_event::Sz>,
-    }
-    ,
+    },
 }
 
 impl I0OrI1 {
     pub fn new_i0() -> Self {
-        Self::I0 {
-            i0_encoding: None,
-        }
+        Self::I0 { i0_encoding: None }
     }
 
     pub fn new_i1() -> Self {
-        Self::I1 {
-            i1_encoding: None,
-        }
+        Self::I1 { i1_encoding: None }
     }
 }
 
@@ -224,26 +220,20 @@ pub enum NetworkId {
     I0 {
         #[serde(skip)]
         i0_encoding: Option<cbor_event::Sz>,
-    }
-    ,
+    },
     I1 {
         #[serde(skip)]
         i1_encoding: Option<cbor_event::Sz>,
-    }
-    ,
+    },
 }
 
 impl NetworkId {
     pub fn new_i0() -> Self {
-        Self::I0 {
-            i0_encoding: None,
-        }
+        Self::I0 { i0_encoding: None }
     }
 
     pub fn new_i1() -> Self {
-        Self::I1 {
-            i1_encoding: None,
-        }
+        Self::I1 { i1_encoding: None }
     }
 }
 
@@ -255,9 +245,7 @@ pub struct PositiveInterval {
 
 impl PositiveInterval {
     pub fn new() -> Self {
-        Self {
-            encodings: None,
-        }
+        Self { encodings: None }
     }
 }
 
@@ -428,7 +416,10 @@ pub struct Update {
 }
 
 impl Update {
-    pub fn new(proposed_protocol_parameter_updates: ProposedProtocolParameterUpdates, epoch: Epoch) -> Self {
+    pub fn new(
+        proposed_protocol_parameter_updates: ProposedProtocolParameterUpdates,
+        epoch: Epoch,
+    ) -> Self {
         Self {
             proposed_protocol_parameter_updates,
             epoch,

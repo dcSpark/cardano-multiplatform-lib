@@ -1,6 +1,6 @@
 {
   "name": "cml-cip25",
-  "version": "3.1.1",
+  "version": "3.1.3",
   "description": "Cardano Multiplatform SDK for CIP25 (Cardano NFT Metadata)",
   "keywords": [
     "cardano"
@@ -9,6 +9,8 @@
     "rust:build-nodejs": "rimraf ./pkg; wasm-pack build --target=nodejs; npm run js:ts-json-gen; wasm-pack pack",
     "rust:build-browser": "rimraf ./pkg; wasm-pack build --target=browser; npm run js:ts-json-gen; wasm-pack pack",
     "rust:build-web": "rimraf ./pkg; wasm-pack build --target=web; npm run js:ts-json-gen; wasm-pack pack",
+    "rust:build-asm": "(rimraf ./rust/pkg && cd rust; wasm-pack build --target=browser -- --features wasm; cd ..; npm run js:ts-json-gen; cd rust; wasm-pack pack) && npm run asm:build && npm run js:flowgen",
+    "asm:build": "../../binaryen/bin/wasm2js ./rust/pkg/cardano_multiplatform_lib_bg.wasm --output ./rust/pkg/cardano_multiplatform_lib.asm.js && node ./scripts/legacy/wasm-to-asm",
     "rust:publish": "cargo publish",
     "rust:check-warnings": "(RUSTFLAGS=\"-D warnings\" cargo +stable build)",
     "rust:test": "cargo test",

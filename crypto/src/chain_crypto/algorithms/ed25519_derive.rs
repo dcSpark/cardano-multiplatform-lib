@@ -108,6 +108,7 @@ mod test {
 
     use crate::chain_crypto::key::KeyPair;
     use crate::chain_crypto::sign::test::{keypair_signing_ko, keypair_signing_ok};
+    use quickcheck_macros::quickcheck;
 
     #[quickcheck]
     fn sign_ok(input: (KeyPair<Ed25519Bip32>, Vec<u8>)) -> bool {

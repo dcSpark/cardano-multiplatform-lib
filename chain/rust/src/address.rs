@@ -286,10 +286,6 @@ impl Address {
         data: &[u8],
         bytes_encoding: Option<StringEncoding>,
     ) -> Result<Address, DeserializeError> {
-        const TRAILING_WHITELIST: [&[u8]; 1] = [&[
-            203, 87, 175, 176, 179, 95, 200, 156, 99, 6, 28, 153, 20, 224, 85, 0, 26, 81, 140, 117,
-            22,
-        ]];
         (|| -> Result<Self, DeserializeError> {
             let header = data[0];
             let network = header & 0x0F;
@@ -314,17 +310,6 @@ impl Address {
                 trailing: Option<Vec<u8>>,
             ) -> Result<Option<AddressEncoding>, DeserializeError> {
                 if trailing.is_some() || bytes_encoding.is_some() {
-                    if let Some(trailing) = &trailing {
-                        let mut found = false;
-                        for ending in TRAILING_WHITELIST.iter() {
-                            if trailing.as_slice() == *ending {
-                                found = true;
-                            }
-                        }
-                        if !found {
-                            return Err(cbor_event::Error::TrailingData.into());
-                        }
-                    }
                     Ok(Some(AddressEncoding {
                         trailing,
                         bytes_encoding: bytes_encoding.unwrap_or_default(),
@@ -1686,10 +1671,6 @@ mod tests {
         );
         assert_eq!(long_trimmed.trailing, None);
         assert_eq!(long.to_bytes(), hex::decode("015bad085057ac10ecc7060f7ac41edd6f63068d8963ef7d86ca58669e5ecf2d283418a60be5a848a2380eb721000da1e0bbf39733134beca4cb57afb0b35fc89c63061c9914e055001a518c7516").unwrap());
-        let long_not_whitelisted = Address::from_bech32(
-            "addr_test1vqt3w9chzut3w9chzut3w9chzut3w9chzut3w9chzut3w9cqqspqvqcqsmxqdssg97",
-        );
-        assert!(long_not_whitelisted.is_err());
     }
 
     #[test]

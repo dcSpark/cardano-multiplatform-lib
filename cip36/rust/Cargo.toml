@@ -8,9 +8,9 @@ keywords = ["cardano"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-core = { "path" = "../core" }
-cml-crypto = { "path" = "../crypto" }
-cml-chain = { "path" = "../chain" }
+cml-core = { "path" = "../../core/rust" }
+cml-crypto = { "path" = "../../crypto/rust" }
+cml-chain = { "path" = "../../chain/rust" }
 cbor_event = "2.2.0"
 linked-hash-map = "0.5.3"
 derivative = "2.2.0"

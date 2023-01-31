@@ -2,14 +2,21 @@
 
 # this is for the new crate structure. The legacy code (current CML) still resides in the `rust` directory.
 members = [
-    "core",
-    "crypto",
+    "chain/rust",
+    "chain/wasm",
+# names changed - will be replaced in the PR coming soon to regen chain
+#    "chain/wasm/json-gen",
     "cip25/rust",
     "cip25/wasm",
     "cip25/wasm/json-gen",
-    "cip36",
-    "cip36-wasm",
-    "wasm"
+    "cip36/rust",
+    "cip36/wasm",
+# TODO: where did this go? replace it (will do when doing finishing cip36 work)
+#    "cip36/wasm/json-gen",
+    "core/rust",
+    "core/wasm",
+    "crypto/rust",
+    "crypto/wasm"
 ]
 
 # exclude old crate structure to avoid error in it

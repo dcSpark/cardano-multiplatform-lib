@@ -8,7 +8,7 @@ keywords = ["cardano"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-core = { "path" = "../../core" }
+cml-core = { "path" = "../../core/rust" }
 cbor_event = "2.2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.57"

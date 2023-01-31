@@ -82,7 +82,10 @@ impl Deserialize for FilesDetails {
                                 Ok(String64::deserialize(raw)?)
                             })().map_err(|e| e.annotate("media_type"))?);
                         },
-                        _unknown_key => /* CIP-25 allows permissive parsing */(),
+                        _unknown_key => {
+                            // CIP-25 allows permissive parsing
+                            read_len.read_elems(1)?;
+                        },
                     },
                     CBORType::Special => match len {
                         cbor_event::Len::Len(_) => return Err(DeserializeFailure::BreakInDefiniteLen.into()),
@@ -91,7 +94,10 @@ impl Deserialize for FilesDetails {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    _other_type => /* CIP-25 allows permissive parsing */(),
+                    _other_type => {
+                        // CIP-25 allows permissive parsing
+                        read_len.read_elems(1)?;
+                    },
                 }
                 read += 1;
             }
@@ -268,7 +274,10 @@ impl Deserialize for LabelMetadataV2 {
                                 Ok(true)
                             })().map_err(|e| e.annotate("version"))?;
                         },
-                        _unknown_key => /* CIP-25 allows permissive parsing */(),
+                        _unknown_key => {
+                            // CIP-25 allows permissive parsing
+                            read_len.read_elems(1)?;
+                        },
                     },
                     CBORType::Special => match len {
                         cbor_event::Len::Len(_) => return Err(DeserializeFailure::BreakInDefiniteLen.into()),
@@ -277,7 +286,10 @@ impl Deserialize for LabelMetadataV2 {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    _other_type => /* CIP-25 allows permissive parsing */(),
+                    _other_type => {
+                        // CIP-25 allows permissive parsing
+                        read_len.read_elems(1)?;
+                    },
                 }
                 read += 1;
             }
@@ -327,7 +339,10 @@ impl Deserialize for CIP25Metadata {
                                 Ok(LabelMetadata::deserialize(raw)?)
                             })().map_err(|e| e.annotate("key_721"))?);
                         },
-                        _unknown_key => /* we must be permissive as we are looking at a subset of metadata here */(),
+                        _unknown_key => {
+                            // we must be permissive as we are looking at a subset of metadata here 
+                            read_len.read_elems(1)?;
+                        },
                     },
                     CBORType::Special => match len {
                         cbor_event::Len::Len(_) => return Err(DeserializeFailure::BreakInDefiniteLen.into()),
@@ -336,7 +351,10 @@ impl Deserialize for CIP25Metadata {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    _other_type => /* we must be permissive as we are looking at a subset of metadata here */(),
+                    _other_type => {
+                        // we must be permissive as we are looking at a subset of metadata here 
+                        read_len.read_elems(1)?;
+                    },
                 }
                 read += 1;
             }
@@ -448,7 +466,10 @@ impl Deserialize for MetadataDetails {
                                 Ok(ChunkableString::deserialize(raw)?)
                             })().map_err(|e| e.annotate("description"))?);
                         },
-                        _unknown_key => /* CIP-25 allows permissive parsing */(),
+                        _unknown_key => {
+                            // CIP-25 allows permissive parsing
+                            read_len.read_elems(1)?;
+                        },
                     },
                     CBORType::Special => match len {
                         cbor_event::Len::Len(_) => return Err(DeserializeFailure::BreakInDefiniteLen.into()),
@@ -457,7 +478,10 @@ impl Deserialize for MetadataDetails {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    _other_type => /* CIP-25 allows permissive parsing */(),
+                    _other_type => {
+                        // CIP-25 allows permissive parsing
+                        read_len.read_elems(1)?;
+                    },
                 }
                 read += 1;
             }

@@ -13,3 +13,6 @@ cbor_event = "2.2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.57"
 schemars = "0.8.8"
+
+[dev-dependencies]
+hex = "0.4.0"

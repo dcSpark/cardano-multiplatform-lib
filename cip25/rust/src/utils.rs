@@ -154,14 +154,25 @@ mod tests {
 
     #[test]
     fn parse_metadata_details() {
-        // {
-        //  "arweaveId": "6srpXZOTfK_62KUrJKh4VdCFG0YS271pq20OMRpE5Ts",
-        //  "image": "ipfs://QmUWP6xGHucgBUv514gwgbt4yijg36aUQunEP61z5D8RKS",
-        //  "name": "SpaceBud #1507",
-        //  "traits": ["Star Suit", "Chestplate", "Belt", "Flag", "Pistol"],
-        //  "type": "Alien",
-        // }
-        let bytes = "a569617277656176654964782b36737270585a4f54664b5f36324b55724a4b68345664434647305953323731707132304f4d52704535547365696d6167657835697066733a2f2f516d5557503678474875636742557635313467776762743479696a673336615551756e455036317a354438524b53646e616d656e53706163654275642023313530376674726169747385695374617220537569746a4368657374706c6174656442656c7464466c616766506973746f6c647479706565416c69656e";
-        let details = MetadataDetails::from_bytes(hex::decode(bytes).unwrap()).unwrap();
+        {
+            // {
+            //  "arweaveId": "6srpXZOTfK_62KUrJKh4VdCFG0YS271pq20OMRpE5Ts",
+            //  "image": "ipfs://QmUWP6xGHucgBUv514gwgbt4yijg36aUQunEP61z5D8RKS",
+            //  "name": "SpaceBud #1507",
+            //  "traits": ["Star Suit", "Chestplate", "Belt", "Flag", "Pistol"],
+            //  "type": "Alien",
+            // }
+            let bytes = "a569617277656176654964782b36737270585a4f54664b5f36324b55724a4b68345664434647305953323731707132304f4d52704535547365696d6167657835697066733a2f2f516d5557503678474875636742557635313467776762743479696a673336615551756e455036317a354438524b53646e616d656e53706163654275642023313530376674726169747385695374617220537569746a4368657374706c6174656442656c7464466c616766506973746f6c647479706565416c69656e";
+            MetadataDetails::from_bytes(hex::decode(bytes).unwrap()).unwrap();
+        }
+        {
+            // {
+            //     "color": "#EC97B6",
+            //     "image": "ipfs://ipfs/QmUvbF2siHFGGRtZ5za1VwNQ8y49bbtjmYfFYhgE89hCq2",
+            //     "name": "Berry Alba",
+            // }
+            let bytes = "a365636f6c6f72672345433937423665696d616765783a697066733a2f2f697066732f516d557662463273694846474752745a357a613156774e51387934396262746a6d59664659686745383968437132646e616d656a426572727920416c6261";
+            MetadataDetails::from_bytes(hex::decode(bytes).unwrap()).unwrap();
+        }
     }
 }

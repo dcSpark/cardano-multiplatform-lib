@@ -1,0 +1,19 @@
+[package]
+name = "cml-cip36-wasm"
+version = "0.1.0"
+edition = "2018"
+keywords = ["cardano"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+core = { path = "../rust", package = "cml-cip36" }
+core_crypto = { path = "../../crypto/rust", package = "cml-crypto" }
+wasm_crypto = { path = "../../crypto/wasm", package = "cml-crypto-wasm" }
+wasm_chain = { path = "../../chain/wasm", package = "cml-wasm" }
+cbor_event = "2.2.0"
+wasm-bindgen = { version = "=0.2.83", features = ["serde-serialize"] }
+linked-hash-map = "0.5.3"
+serde_json = "1.0.57"
+serde-wasm-bindgen = "0.4.5"

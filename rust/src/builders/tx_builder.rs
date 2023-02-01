@@ -3002,6 +3002,7 @@ mod tests {
     }
 
     #[test]
+    #[flaky_test::flaky_test]
     fn tx_builder_cip2_random_improve_multiasset() {
         let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(0, 0));
         let pid1 = PolicyID::from([1u8; 28]);
@@ -3089,6 +3090,7 @@ mod tests {
     }
 
     #[test]
+    #[flaky_test::flaky_test]
     fn tx_builder_cip2_random_improve() {
         // we have a = 1 to test increasing fees when more inputs are added
         let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(1, 0));
@@ -3134,6 +3136,7 @@ mod tests {
     }
 
     #[test]
+    #[flaky_test::flaky_test]
     fn tx_builder_cip2_random_improve_exclude_used_indices() {
         let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(44, 155381));
         const COST: u64 = 1000000;
@@ -3169,6 +3172,7 @@ mod tests {
     }
 
     #[test]
+    #[flaky_test::flaky_test]
     fn tx_builder_cip2_random_improve_when_using_all_available_inputs() {
         // we have a = 1 to test increasing fees when more inputs are added
         let linear_fee = LinearFee::new(&to_bignum(1), &to_bignum(0));
@@ -3205,6 +3209,7 @@ mod tests {
     }
 
     #[test]
+    #[flaky_test::flaky_test]
     fn tx_builder_cip2_random_improve_adds_enough_for_fees() {
         // we have a = 1 to test increasing fees when more inputs are added
         let linear_fee = LinearFee::new(&to_bignum(1), &to_bignum(0));

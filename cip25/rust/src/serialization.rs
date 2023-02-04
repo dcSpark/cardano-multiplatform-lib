@@ -570,7 +570,7 @@ impl Deserialize for CIP25Metadata {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    _other_type => {
+                    other_type => {
                         return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
                     }
                 }

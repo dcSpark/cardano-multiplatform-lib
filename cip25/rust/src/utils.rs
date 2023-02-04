@@ -39,7 +39,7 @@ impl std::convert::TryFrom<&Metadata> for CIP25Metadata {
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(CIP25_METADATA_LABEL))
         })?;
         Ok(Self {
-            key_721: LabelMetadata::from_cbor_bytes(&cip25_metadatum.to_cbor_bytes())?,
+            key_721: LabelMetadata::from_cbor_bytes(&cip25_metadatum.to_original_cbor_bytes())?,
         })
     }
 }

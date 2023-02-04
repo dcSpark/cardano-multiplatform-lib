@@ -112,6 +112,9 @@ impl Deserialize for FilesDetails {
                         _unknown_key => {
                             // CIP-25 allows permissive parsing
                             read_len.read_elems(1)?;
+                            // we still need to read the data to move on to the CBOR after it
+                            let _other_metadatum =
+                                cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
                         }
                     },
                     CBORType::Special => match len {
@@ -126,6 +129,11 @@ impl Deserialize for FilesDetails {
                     _other_type => {
                         // CIP-25 allows permissive parsing
                         read_len.read_elems(1)?;
+                        // we still need to read the data to move on to the CBOR after it
+                        let _other_key =
+                            cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                        let _other_value =
+                            cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
                     }
                 }
                 read += 1;
@@ -200,50 +208,88 @@ impl Deserialize for LabelMetadata {
             let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut label_metadata_v1_table = BTreeMap::new();
+                let mut label_metadata_v1_table_len = 0;
                 let label_metadata_v1_len = raw.map()?;
                 while match label_metadata_v1_len {
-                    cbor_event::Len::Len(n) => label_metadata_v1_table.len() < n as usize,
+                    cbor_event::Len::Len(n) => label_metadata_v1_table_len < n as usize,
                     cbor_event::Len::Indefinite => true,
                 } {
-                    if raw.cbor_type()? == CBORType::Special {
-                        assert_eq!(raw.special()?, CBORSpecial::Break);
-                        break;
-                    }
-                    let label_metadata_v1_key = PolicyIdV1::deserialize(raw)?;
-                    let mut label_metadata_v1_value_table = BTreeMap::new();
-                    let label_metadata_v1_value_len = raw.map()?;
-                    while match label_metadata_v1_value_len {
-                        cbor_event::Len::Len(n) => label_metadata_v1_value_table.len() < n as usize,
-                        cbor_event::Len::Indefinite => true,
-                    } {
-                        if raw.cbor_type()? == CBORType::Special {
+                    match raw.cbor_type()? {
+                        cbor_event::Type::Text => {
+                            let label_metadata_v1_key = PolicyIdV1::deserialize(raw)?;
+                            let mut label_metadata_v1_value_table = BTreeMap::new();
+                            let mut label_metadata_v1_value_table_len = 0;
+                            let label_metadata_v1_value_len = raw.map()?;
+                            while match label_metadata_v1_value_len {
+                                cbor_event::Len::Len(n) => {
+                                    label_metadata_v1_value_table_len < n as usize
+                                }
+                                cbor_event::Len::Indefinite => true,
+                            } {
+                                match raw.cbor_type()? {
+                                    cbor_event::Type::Text => {
+                                        let label_metadata_v1_value_key =
+                                            AssetNameV1::deserialize(raw)?;
+                                        let label_metadata_v1_value_value =
+                                            MetadataDetails::deserialize(raw)?;
+                                        if label_metadata_v1_value_table
+                                            .insert(
+                                                label_metadata_v1_value_key.clone(),
+                                                label_metadata_v1_value_value,
+                                            )
+                                            .is_some()
+                                        {
+                                            return Err(DeserializeFailure::DuplicateKey(
+                                                Key::Str(String::from(
+                                                    "some complicated/unsupported type",
+                                                )),
+                                            )
+                                            .into());
+                                        }
+                                        label_metadata_v1_value_table_len += 1;
+                                    }
+                                    cbor_event::Type::Special => {
+                                        assert_eq!(raw.special()?, CBORSpecial::Break);
+                                        break;
+                                    }
+                                    _other_type => {
+                                        // we still need to read the data to move on to the CBOR after it
+                                        let _other_key =
+                                            cml_core::metadata::TransactionMetadatum::deserialize(
+                                                raw,
+                                            )?;
+                                        let _other_value =
+                                            cml_core::metadata::TransactionMetadatum::deserialize(
+                                                raw,
+                                            )?;
+                                        label_metadata_v1_value_table_len += 1;
+                                    }
+                                }
+                            }
+                            let label_metadata_v1_value = label_metadata_v1_value_table;
+                            if label_metadata_v1_table
+                                .insert(label_metadata_v1_key.clone(), label_metadata_v1_value)
+                                .is_some()
+                            {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Str(
+                                    String::from("some complicated/unsupported type"),
+                                ))
+                                .into());
+                            }
+                            label_metadata_v1_table_len += 1;
+                        }
+                        cbor_event::Type::Special => {
                             assert_eq!(raw.special()?, CBORSpecial::Break);
                             break;
                         }
-                        let label_metadata_v1_value_key = AssetNameV1::deserialize(raw)?;
-                        let label_metadata_v1_value_value = MetadataDetails::deserialize(raw)?;
-                        if label_metadata_v1_value_table
-                            .insert(
-                                label_metadata_v1_value_key.clone(),
-                                label_metadata_v1_value_value,
-                            )
-                            .is_some()
-                        {
-                            return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
-                                "some complicated/unsupported type",
-                            )))
-                            .into());
+                        _other_type => {
+                            // we still need to read the data to move on to the CBOR after it
+                            let _other_key =
+                                cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                            let _other_value =
+                                cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                            label_metadata_v1_table_len += 1;
                         }
-                    }
-                    let label_metadata_v1_value = label_metadata_v1_value_table;
-                    if label_metadata_v1_table
-                        .insert(label_metadata_v1_key.clone(), label_metadata_v1_value)
-                        .is_some()
-                    {
-                        return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
-                            "some complicated/unsupported type",
-                        )))
-                        .into());
                     }
                 }
                 Ok(label_metadata_v1_table)
@@ -325,51 +371,73 @@ impl Deserialize for LabelMetadataV2 {
                                 (|| -> Result<_, DeserializeError> {
                                     let mut data_table = BTreeMap::new();
                                     let data_len = raw.map()?;
+                                    let mut data_table_len = 0;
                                     while match data_len {
-                                        cbor_event::Len::Len(n) => data_table.len() < n as usize,
+                                        cbor_event::Len::Len(n) => data_table_len < n as usize,
                                         cbor_event::Len::Indefinite => true,
                                     } {
-                                        if raw.cbor_type()? == CBORType::Special {
-                                            assert_eq!(raw.special()?, CBORSpecial::Break);
-                                            break;
-                                        }
-                                        let data_key = PolicyIdV2::deserialize(raw)?;
-                                        let mut data_value_table = BTreeMap::new();
-                                        let data_value_len = raw.map()?;
-                                        while match data_value_len {
-                                            cbor_event::Len::Len(n) => {
-                                                data_value_table.len() < n as usize
-                                            }
-                                            cbor_event::Len::Indefinite => true,
-                                        } {
-                                            if raw.cbor_type()? == CBORType::Special {
+                                        match raw.cbor_type()? {
+                                            cbor_event::Type::Bytes => {
+                                                let data_key = PolicyIdV2::deserialize(raw)?;
+                                                let mut data_value_table_len = 0;
+                                                let mut data_value_table = BTreeMap::new();
+                                                let data_value_len = raw.map()?;
+                                                while match data_value_len {
+                                                    cbor_event::Len::Len(n) => data_value_table_len < n as usize,
+                                                    cbor_event::Len::Indefinite => true,
+                                                } {
+                                                    match raw.cbor_type()? {
+                                                        cbor_event::Type::Bytes => {
+                                                            let data_value_key = AssetNameV2::deserialize(raw)?;
+                                                            let data_value_value =
+                                                                MetadataDetails::deserialize(raw)?;
+                                                            if data_value_table
+                                                                .insert(data_value_key.clone(), data_value_value)
+                                                                .is_some()
+                                                            {
+                                                                return Err(DeserializeFailure::DuplicateKey(
+                                                                    Key::Str(String::from(
+                                                                        "some complicated/unsupported type",
+                                                                    )),
+                                                                )
+                                                                .into());
+                                                            }
+                                                            data_value_table_len += 1;
+                                                        },
+                                                        cbor_event::Type::Special => {
+                                                            assert_eq!(raw.special()?, CBORSpecial::Break);
+                                                            break;
+                                                        },
+                                                        _other_type => {
+                                                            // we still need to read the data to move on to the CBOR after it
+                                                            let _other_key = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                                            let _other_value = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                                            data_value_table_len += 1;
+                                                        },
+                                                    }
+                                                }
+                                                let data_value = data_value_table;
+                                                if data_table.insert(data_key.clone(), data_value).is_some()
+                                                {
+                                                    return Err(DeserializeFailure::DuplicateKey(
+                                                        Key::Str(String::from(
+                                                            "some complicated/unsupported type",
+                                                        )),
+                                                    )
+                                                    .into());
+                                                }
+                                                data_table_len += 1;
+                                            },
+                                            cbor_event::Type::Special => {
                                                 assert_eq!(raw.special()?, CBORSpecial::Break);
                                                 break;
-                                            }
-                                            let data_value_key = AssetNameV2::deserialize(raw)?;
-                                            let data_value_value =
-                                                MetadataDetails::deserialize(raw)?;
-                                            if data_value_table
-                                                .insert(data_value_key.clone(), data_value_value)
-                                                .is_some()
-                                            {
-                                                return Err(DeserializeFailure::DuplicateKey(
-                                                    Key::Str(String::from(
-                                                        "some complicated/unsupported type",
-                                                    )),
-                                                )
-                                                .into());
-                                            }
-                                        }
-                                        let data_value = data_value_table;
-                                        if data_table.insert(data_key.clone(), data_value).is_some()
-                                        {
-                                            return Err(DeserializeFailure::DuplicateKey(
-                                                Key::Str(String::from(
-                                                    "some complicated/unsupported type",
-                                                )),
-                                            )
-                                            .into());
+                                            },
+                                            _other_type => {
+                                                // we still need to read the data to move on to the CBOR after it
+                                                let _other_key = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                                let _other_value = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                                data_table_len += 1;
+                                            },
                                         }
                                     }
                                     Ok(data_table)
@@ -400,6 +468,8 @@ impl Deserialize for LabelMetadataV2 {
                         _unknown_key => {
                             // CIP-25 allows permissive parsing
                             read_len.read_elems(1)?;
+                            // we still need to read the data to move on to the CBOR after it
+                            let _other_metadatum = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
                         }
                     },
                     CBORType::Special => match len {
@@ -414,6 +484,9 @@ impl Deserialize for LabelMetadataV2 {
                     _other_type => {
                         // CIP-25 allows permissive parsing
                         read_len.read_elems(1)?;
+                        // we still need to read the data to move on to the CBOR after it
+                        let _other_key = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                        let _other_value = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
                     }
                 }
                 read += 1;
@@ -481,8 +554,11 @@ impl Deserialize for CIP25Metadata {
                             );
                         }
                         _unknown_key => {
-                            // we must be permissive as we are looking at a subset of metadata here
+                            // CIP-25 allows permissive parsing
                             read_len.read_elems(1)?;
+                            // we still need to read the data to move on to the CBOR after it
+                            let _other_metadatum =
+                                cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
                         }
                     },
                     CBORType::Special => match len {
@@ -495,8 +571,7 @@ impl Deserialize for CIP25Metadata {
                         },
                     },
                     _other_type => {
-                        // we must be permissive as we are looking at a subset of metadata here
-                        read_len.read_elems(1)?;
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
                     }
                 }
                 read += 1;
@@ -663,6 +738,9 @@ impl Deserialize for MetadataDetails {
                         _unknown_key => {
                             // CIP-25 allows permissive parsing
                             read_len.read_elems(1)?;
+                            // we still need to read the data to move on to the CBOR after it
+                            let _other_metadatum =
+                                cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
                         }
                     },
                     CBORType::Special => match len {
@@ -677,6 +755,11 @@ impl Deserialize for MetadataDetails {
                     _other_type => {
                         // CIP-25 allows permissive parsing
                         read_len.read_elems(1)?;
+                        // we still need to read the data to move on to the CBOR after it
+                        let _other_key =
+                            cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                        let _other_value =
+                            cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
                     }
                 }
                 read += 1;

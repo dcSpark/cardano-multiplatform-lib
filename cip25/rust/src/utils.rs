@@ -39,7 +39,7 @@ impl std::convert::TryFrom<&Metadata> for CIP25Metadata {
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(CIP25_METADATA_LABEL))
         })?;
         Ok(Self {
-            key_721: LabelMetadata::from_cbor_bytes(&cip25_metadatum.to_original_cbor_bytes())?,
+            key_721: LabelMetadata::from_cbor_bytes(&cip25_metadatum.to_cbor_bytes())?,
         })
     }
 }
@@ -174,5 +174,66 @@ mod tests {
             let bytes = "a365636f6c6f72672345433937423665696d616765783a697066733a2f2f697066732f516d557662463273694846474752745a357a613156774e51387934396262746a6d59664659686745383968437132646e616d656a426572727920416c6261";
             MetadataDetails::from_bytes(hex::decode(bytes).unwrap()).unwrap();
         }
+    }
+
+    #[test]
+    fn noisy_metadata() {
+        // generatd by adding this to the create() test case
+        // as_metadata.insert(1337, TransactionMetadatum::new_list(vec![
+        //     TransactionMetadatum::new_bytes(vec![0xBA, 0xAD, 0xF0, 0x0D]),
+        // ]));
+        // let label_metadatum_entries: &mut _ = match as_metadata.get_mut(&721).unwrap() {
+        //     TransactionMetadatum::Map { entries, .. } => entries,
+        //     _ => panic!(),
+        // };
+        // let mut filler_map = OrderedHashMap::new();
+        // filler_map.insert(
+        //     TransactionMetadatum::new_bytes(vec![]),
+        //     TransactionMetadatum::new_int(cml_core::Int::new_nint(100))
+        // );
+        // label_metadatum_entries.insert(TransactionMetadatum::new_map(filler_map.clone()), TransactionMetadatum::new_map(filler_map.clone()));
+        // let data_entries: &mut _ = match label_metadatum_entries.get_mut(&TransactionMetadatum::new_text("data".to_owned())).unwrap() {
+        //     TransactionMetadatum::Map{ entries, .. } => entries,
+        //     _ => panic!(),
+        // };
+        // data_entries.insert(TransactionMetadatum::new_map(filler_map.clone()), TransactionMetadatum::new_map(filler_map.clone()));
+        // let policy_entries: &mut _ = match data_entries.get_mut(&TransactionMetadatum::new_bytes(vec![0xBA, 0xAD, 0xF0, 0x0D])).unwrap() {
+        //     TransactionMetadatum::Map{ entries, .. } => entries,
+        //     _ => panic!(),
+        // };
+        // policy_entries.insert(TransactionMetadatum::new_map(filler_map.clone()), TransactionMetadatum::new_map(filler_map.clone()));
+        // policy_entries.insert(
+        //     TransactionMetadatum::new_list(vec![TransactionMetadatum::new_map(filler_map.clone())]),
+        //     TransactionMetadatum::new_list(vec![TransactionMetadatum::new_text("dskjfaks".to_owned())])
+        // );
+        // let details: &mut _ = match policy_entries.get_mut(&TransactionMetadatum::new_bytes(vec![0xCA, 0xFE, 0xD0, 0x0D])).unwrap() {
+        //     TransactionMetadatum::Map { entries, .. } => entries,
+        //     _ => panic!(),
+        // };
+        // details.insert(
+        //     TransactionMetadatum::new_map(filler_map.clone()),
+        //     TransactionMetadatum::new_int(cml_core::Int::new_uint(50))
+        // );
+        // let file_details: &mut _ = match details.get_mut(&TransactionMetadatum::new_text("files".to_owned())).unwrap() {
+        //     TransactionMetadatum::List{ elements, .. } => match elements.get_mut(0).unwrap() {
+        //         TransactionMetadatum::Map{ entries, .. } => entries,
+        //         _ => panic!(),
+        //     },
+        //     _ => panic!(),
+        // };
+        // file_details.insert(
+        //     TransactionMetadatum::new_list(vec![TransactionMetadatum::new_text("dskjfaks".to_owned())]),
+        //     TransactionMetadatum::new_list(vec![TransactionMetadatum::new_map(filler_map.clone())])
+        // );
+        // let mut buf = cbor_event::se::Serializer::new_vec();
+        // buf.write_map(cbor_event::Len::Indefinite).unwrap();
+        // for (label, datum) in as_metadata.iter() {
+        //     buf.write_unsigned_integer(*label).unwrap();
+        //     datum.serialize(&mut buf, false).unwrap();
+        // }
+        // buf.write_special(cbor_event::Special::Break).unwrap();
+        // panic!("{}", hex::encode(buf.finalize()));
+        let bytes = "bf1902d1a36464617461a244baadf00da344cafed00da6646e616d656d4d65746164617461204e616d656566696c657382a4637372636473726331646e616d656966696c656e616d6531696d65646961547970656966696c657479706531816864736b6a66616b7381a1403864a3637372636473726332646e616d656966696c656e616d6532696d65646961547970656966696c65747970653265696d6167657821687474733a2f2f736f6d652e776562736974652e636f6d2f696d6167652e706e67696d656469615479706567696d6167652f2a6b6465736372697074696f6e776465736372697074696f6e206f662074686973204e4654a14038641832a1403864a140386481a1403864816864736b6a66616b73a1403864a14038646776657273696f6e02a1403864a14038641905398144baadf00dff";
+        let _ = CIP25Metadata::from_bytes(hex::decode(bytes).unwrap()).unwrap();
     }
 }

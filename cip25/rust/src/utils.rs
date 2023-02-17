@@ -127,20 +127,17 @@ impl MiniMetadataDetails {
     }
 
     /// loose parsing of CIP25 metadata to allow for common exceptions to the format
+    /// `metadatum` should represent the data where the `MetadataDetails` is in the cip25 structure
     /// TODO: this is not an ideal solution
     ///       ideally: we would have a function that takes in a policy ID
     ///       and would have a lookup map to know which lambda to call to get the name & image depending on the policy ID
     ///       with a fallback to the standard CIP25 definition
     ///       however, since this is a lot of work, we use this temporary solution instead
-    pub fn loose_parse(data: Vec<u8>) -> Result<Self, DeserializeError> {
-        let metadatum = TransactionMetadatum::from_bytes(
-            data,
-        )?;
+    pub fn loose_parse(metadatum: TransactionMetadatum) -> Result<Self, DeserializeError> {
         match metadatum {
             TransactionMetadatum::Map { entries, .. } => {
                 let name: Option<String64> = entries
                 .get(&TransactionMetadatum::new_text("name".to_owned()))
-                .or_else(|| entries.get(&TransactionMetadatum::new_text("name".to_owned())))
                 // for some reason, 1% of NFTs seem to use the wrong case
                 .or_else(|| entries.get(&TransactionMetadatum::new_text("Name".to_owned())))
                 // for some reason, 0.5% of NFTs use "title" instead of name
@@ -260,28 +257,28 @@ mod tests {
     #[test]
     fn just_name() {
         // {"name":"Metaverse"}
-        let details = MiniMetadataDetails::loose_parse(hex::decode("a1646e616d65694d6574617665727365").unwrap()).unwrap();
+        let details = MiniMetadataDetails::loose_parse(TransactionMetadatum::from_bytes(hex::decode("a1646e616d65694d6574617665727365").unwrap()).unwrap()).unwrap();
         assert_eq!(details.name.unwrap().0, "Metaverse");
     }
 
     #[test]
     fn uppercase_name() {
         // {"Date":"9 May 2021","Description":"Happy Mother's Day to all the Cardano Moms!","Image":"ipfs.io/ipfs/Qmah6QPKUKvp6K9XQB2SA42Q3yrffCbYBbk8EoRrB7FN2g","Name":"Mother's Day 2021","Ticker":"MOM21","URL":"ipfs.io/ipfs/Qmah6QPKUKvp6K9XQB2SA42Q3yrffCbYBbk8EoRrB7FN2g"}
-        let details = MiniMetadataDetails::loose_parse(hex::decode("a664446174656a39204d617920323032316b4465736372697074696f6e782b4861707079204d6f7468657227732044617920746f20616c6c207468652043617264616e6f204d6f6d732165496d616765783b697066732e696f2f697066732f516d61683651504b554b7670364b39585142325341343251337972666643625942626b38456f52724237464e3267644e616d65714d6f746865722773204461792032303231665469636b6572654d4f4d32316355524c783b697066732e696f2f697066732f516d61683651504b554b7670364b39585142325341343251337972666643625942626b38456f52724237464e3267").unwrap()).unwrap();
+        let details = MiniMetadataDetails::loose_parse(TransactionMetadatum::from_bytes(hex::decode("a664446174656a39204d617920323032316b4465736372697074696f6e782b4861707079204d6f7468657227732044617920746f20616c6c207468652043617264616e6f204d6f6d732165496d616765783b697066732e696f2f697066732f516d61683651504b554b7670364b39585142325341343251337972666643625942626b38456f52724237464e3267644e616d65714d6f746865722773204461792032303231665469636b6572654d4f4d32316355524c783b697066732e696f2f697066732f516d61683651504b554b7670364b39585142325341343251337972666643625942626b38456f52724237464e3267").unwrap()).unwrap()).unwrap();
         assert_eq!(details.name.unwrap().0, "Mother's Day 2021");
     }
 
     #[test]
     fn id_no_name() {
         // {"id":"00","image":"ipfs://QmSfYTF8B4ua6hFdr6URdRDZBZ9FjCQNUdDcLr2f7P8xn3"}
-        let details = MiniMetadataDetails::loose_parse(hex::decode("a262696462303065696d6167657835697066733a2f2f516d5366595446384234756136684664723655526452445a425a39466a43514e556444634c723266375038786e33").unwrap()).unwrap();
+        let details = MiniMetadataDetails::loose_parse(TransactionMetadatum::from_bytes(hex::decode("a262696462303065696d6167657835697066733a2f2f516d5366595446384234756136684664723655526452445a425a39466a43514e556444634c723266375038786e33").unwrap()).unwrap()).unwrap();
         assert_eq!(details.name.unwrap().0, "00");
     }
 
     #[test]
     fn just_image() {
         // {"image":"ipfs://QmSfYTF8B4ua6hFdr6URdRDZBZ9FjCQNUdDcLr2f7P8xn3"}
-        let details = MiniMetadataDetails::loose_parse(hex::decode("a165696d6167657835697066733a2f2f516d5366595446384234756136684664723655526452445a425a39466a43514e556444634c723266375038786e33").unwrap()).unwrap();
+        let details = MiniMetadataDetails::loose_parse(TransactionMetadatum::from_bytes(hex::decode("a165696d6167657835697066733a2f2f516d5366595446384234756136684664723655526452445a425a39466a43514e556444634c723266375038786e33").unwrap()).unwrap()).unwrap();
         assert_eq!(String::from(&details.image.unwrap()), "ipfs://QmSfYTF8B4ua6hFdr6URdRDZBZ9FjCQNUdDcLr2f7P8xn3");
     }
 

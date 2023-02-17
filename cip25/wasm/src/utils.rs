@@ -2,7 +2,7 @@ use crate::*;
 
 use wasm_bindgen::prelude::JsError;
 
-use cml_core_wasm::metadata::Metadata;
+use cml_core_wasm::metadata::{Metadata, TransactionMetadatum};
 
 #[wasm_bindgen]
 impl CIP25Metadata {
@@ -97,6 +97,14 @@ impl MiniMetadataDetails {
 
     pub fn image(&self) -> Option<ChunkableString> {
         self.0.image.clone().map(ChunkableString)
+    }
+
+    /// loose parsing of CIP25 metadata to allow for common exceptions to the format
+    /// `metadatum` should represent the data where the `MetadataDetails` is in the cip25 structure
+    pub fn loose_parse(metadatum: &TransactionMetadatum) -> Result<MiniMetadataDetails, JsValue> {
+        let parsed_data = core::utils::MiniMetadataDetails::loose_parse(&metadatum.clone().into())
+            .map_err(|e| JsValue::from_str(&format!("loose_parse: {}", e)))?;
+        Ok(MiniMetadataDetails(parsed_data))
     }
 }
 

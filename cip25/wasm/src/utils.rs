@@ -53,3 +53,61 @@ impl ChunkableString {
         String::from(&self.0)
     }
 }
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MiniMetadataDetails(pub(crate) core::utils::MiniMetadataDetails);
+
+#[wasm_bindgen]
+impl MiniMetadataDetails {
+    pub fn new() -> Self {
+        MiniMetadataDetails(core::utils::MiniMetadataDetails {
+            name: None,
+            image: None
+        })
+    }
+
+    pub fn to_json(&self) -> Result<String, JsValue> {
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+    }
+
+    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+    }
+
+    pub fn from_json(json: &str) -> Result<MiniMetadataDetails, JsValue> {
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+    }
+
+    pub fn set_name(&mut self, name: &String64) {
+        self.0.name = Some(name.clone().into())
+    }
+
+    pub fn name(&self) -> Option<String64> {
+        self.0.name.clone().map(String64)
+    }
+
+    pub fn set_image(&mut self, image: &ChunkableString) {
+        self.0.image = Some(image.clone().into())
+    }
+
+    pub fn image(&self) -> Option<ChunkableString> {
+        self.0.image.clone().map(ChunkableString)
+    }
+}
+
+impl From<core::utils::MiniMetadataDetails> for MiniMetadataDetails {
+    fn from(native: core::utils::MiniMetadataDetails) -> Self {
+        Self(native)
+    }
+}
+
+impl From<MiniMetadataDetails> for core::utils::MiniMetadataDetails {
+    fn from(wasm: MiniMetadataDetails) -> Self {
+        wasm.0
+    }
+}

@@ -389,7 +389,7 @@ impl RawBytesEncoding for PublicKey {
 
 macro_rules! impl_signature {
     ($name:ident, $signee_type:ty, $verifier_type:ty) => {
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, Eq, PartialEq)]
         pub struct $name(chain_crypto::Signature<$signee_type, $verifier_type>);
 
         impl $name {
@@ -462,6 +462,18 @@ macro_rules! impl_signature {
             }
             fn is_referenceable() -> bool {
                 String::is_referenceable()
+            }
+        }
+
+        impl Ord for $name {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                self.0.as_ref().cmp(other.0.as_ref())
+            }
+        }
+
+        impl PartialOrd for $name {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                self.0.as_ref().partial_cmp(other.0.as_ref())
             }
         }
 
@@ -598,11 +610,11 @@ impl_hash_type!(PoolMetadataHash, 32);
 impl_hash_type!(VRFKeyHash, 32);
 impl_hash_type!(BlockBodyHash, 32);
 impl_hash_type!(BlockHeaderHash, 32);
-impl_hash_type!(DataHash, 32);
+impl_hash_type!(DatumHash, 32);
 impl_hash_type!(ScriptDataHash, 32);
 // We might want to make these two vkeys normal classes later but for now it's just arbitrary bytes for us (used in block parsing)
-impl_hash_type!(VRFVKey, 32);
-impl_hash_type!(KESVKey, 32);
+impl_hash_type!(VRFVkey, 32);
+impl_hash_type!(KESVkey, 32);
 // same for this signature (but lots of traits aren't implemented for [u8; 448] so we can't)
 //impl_hash_type!(KESSignature, 448);
 

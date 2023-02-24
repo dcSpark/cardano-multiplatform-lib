@@ -1,23 +1,23 @@
-plutus_v1_script = bytes
-plutus_v2_script = bytes
+plutus_v1_script = bytes ; @newtype
+plutus_v2_script = bytes ; @newtype
 
 plutus_data =
     constr_plutus_data
-  / { * plutus_data => plutus_data }
-  / [ * plutus_data ]
+  / { * plutus_data => plutus_data } ; @name map
+  / [ * plutus_data ] ; @name list
   / big_int
-  / bounded_bytes
+  / bounded_bytes ; @name bytes
 
-big_int = [0, 1]
+big_int = _CDDL_CODEGEN_EXTERN_TYPE_
 
-constr_plutus_data = #6.102([uint, [* plutus_data]])
+constr_plutus_data = #6.102([constructor: uint, fields: [* plutus_data]])
 
 redeemer = [ tag: redeemer_tag, index: uint, data: plutus_data, ex_units: ex_units ]
 redeemer_tag =
-    0 ; @name inputTag "Spend"
-  / 1 ; @name mintTag  "Mint"
-  / 2 ; @name certTag  "Cert"
-  / 3 ; @name wdrlTag  "Reward"
+    0 ; @name Spend
+  / 1 ; @name Mint
+  / 2 ; @name Cert
+  / 3 ; @name Reward
 ex_units = [mem: uint, steps: uint]
 
 ex_unit_prices =
@@ -26,7 +26,7 @@ ex_unit_prices =
 language = 0 ; @name plutus_v1
          / 1 ; @name plutus_v2
 
-costmdls =
-  { ? 0 : [ 166*166 int ] ; @name plutus_v1
-  , ? 1 : [ 175*175 int ] ; @name plutus_v2
-  }
+cost_models = {
+  ? 0 : [ 166*166 int ], ; @name plutus_v1
+  ? 1 : [ 175*175 int ], ; @name plutus_v2
+}

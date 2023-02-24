@@ -457,8 +457,8 @@ impl_hash_type!(PoolMetadataHash);
 impl_hash_type!(VRFKeyHash);
 impl_hash_type!(BlockBodyHash);
 impl_hash_type!(BlockHeaderHash);
-impl_hash_type!(DataHash);
+impl_hash_type!(DatumHash);
 impl_hash_type!(ScriptDataHash);
 // We might want to make these two vkeys normal classes later but for now it's just arbitrary bytes for us (used in block parsing)
-impl_hash_type!(VRFVKey);
-impl_hash_type!(KESVKey);
+impl_hash_type!(VRFVkey);
+impl_hash_type!(KESVkey);

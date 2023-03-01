@@ -2,8 +2,6 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 use core_crypto::RawBytesEncoding;
 
-pub mod chain;
-
 #[wasm_bindgen]
 pub struct Bip32PrivateKey(core_crypto::Bip32PrivateKey);
 
@@ -267,6 +265,7 @@ impl AsRef<core_crypto::PrivateKey> for PrivateKey {
 
 /// ED25519 key used as public key
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct PublicKey(core_crypto::PublicKey);
 
 #[wasm_bindgen]

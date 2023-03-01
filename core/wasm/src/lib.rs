@@ -14,8 +14,8 @@ pub struct Int(cml_core::Int);
 #[wasm_bindgen]
 
 impl Int {
-    pub fn to_original_cbor_bytes(&self) -> Vec<u8> {
-        Serialize::to_original_cbor_bytes(&self.0)
+    pub fn to_cbor_bytes(&self) -> Vec<u8> {
+        Serialize::to_cbor_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Int, JsValue> {

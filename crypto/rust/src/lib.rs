@@ -10,8 +10,6 @@ use impl_mockchain::key;
 use rand::rngs::OsRng;
 use std::convert::From;
 
-// helpers for creating CDDL bytes wrappers around crypto
-pub mod chain;
 // brought over from old IOHK code
 mod chain_core;
 mod chain_crypto;

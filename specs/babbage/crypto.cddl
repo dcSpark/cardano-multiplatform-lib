@@ -30,12 +30,23 @@
 
 ;datum_hash = $hash32
 
-KES_signature /= bytes .size 32
-signkeyKES = bytes .size 16
+KES_signature = bytes .size 448
 
-VRF_cert /= [bytes, bytes .size 10]
-$nonce /= [
-  0 // 1, bytes .size 32
+; this isn't referenced anywhere else so we don't provide it.
+; signkeyKES = bytes .size 64
+
+VRF_cert = [
+  output: bytes,
+  proof: bytes .size 80
+]
+
+nonce_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+
+nonce = [
+  ; @name identity
+  identity: 0 //
+  ; @name hash
+  tag: 1, hash: nonce_hash
 ]
 
 vkeywitness = [ $vkey, ed25519_signature ]

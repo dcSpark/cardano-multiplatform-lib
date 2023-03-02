@@ -461,3 +461,4 @@ impl_hash_type!(ScriptDataHash);
 // We might want to make these two vkeys normal classes later but for now it's just arbitrary bytes for us (used in block parsing)
 impl_hash_type!(VRFVkey);
 impl_hash_type!(KESVkey);
+impl_hash_type!(NonceHash);

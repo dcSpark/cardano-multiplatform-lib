@@ -2,7 +2,6 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct BootstrapWitnessEncoding {
@@ -19,15 +18,10 @@ pub struct KESSignatureEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct SignkeyKESEncoding {
-    pub inner_encoding: StringEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
 pub struct VRFCertEncoding {
     pub len_encoding: LenEncoding,
-    pub index_0_encoding: StringEncoding,
-    pub bytes_encoding: StringEncoding,
+    pub output_encoding: StringEncoding,
+    pub proof_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]

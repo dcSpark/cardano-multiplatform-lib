@@ -1,7 +1,7 @@
 pub use cml_crypto::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash, Ed25519Signature,
-    GenesisDelegateHash, GenesisHash, KESVkey, PoolMetadataHash, ScriptDataHash, ScriptHash,
-    TransactionHash, VRFKeyHash, VRFVkey,
+    GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash, ScriptDataHash,
+    ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
 };
 
 pub type Vkey = cml_crypto::PublicKey;
@@ -14,13 +14,10 @@ pub mod cbor_encodings;
 pub mod serialization;
 
 use cbor_encodings::{
-    BootstrapWitnessEncoding, KESSignatureEncoding, SignkeyKESEncoding, VRFCertEncoding,
-    VkeywitnessEncoding,
+    BootstrapWitnessEncoding, KESSignatureEncoding, VRFCertEncoding, VkeywitnessEncoding,
 };
 use cml_core::error::*;
-use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -63,13 +60,13 @@ impl KESSignature {
     }
 
     pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
-        if inner.len() != 32 {
+        if inner.len() != 448 {
             return Err(DeserializeError::new(
                 "KESSignature",
                 DeserializeFailure::RangeCheck {
                     found: inner.len(),
-                    min: Some(32),
-                    max: Some(32),
+                    min: Some(448),
+                    max: Some(448),
                 },
             ));
         }
@@ -96,98 +93,54 @@ impl From<KESSignature> for Vec<u8> {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum Nonce {
-    I0 {
+    Identity {
         #[serde(skip)]
-        i0_encoding: Option<cbor_event::Sz>,
+        identity_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
         len_encoding: LenEncoding,
     },
-    Nonce1 {
-        bytes: Vec<u8>,
+    Hash {
+        hash: NonceHash,
         #[serde(skip)]
         len_encoding: LenEncoding,
         #[serde(skip)]
-        index_0_encoding: Option<cbor_event::Sz>,
+        tag_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
-        bytes_encoding: StringEncoding,
+        hash_encoding: StringEncoding,
     },
 }
 
 impl Nonce {
-    pub fn new_i0() -> Self {
-        Self::I0 {
-            i0_encoding: None,
+    pub fn new_identity() -> Self {
+        Self::Identity {
+            identity_encoding: None,
             len_encoding: LenEncoding::default(),
         }
     }
 
-    pub fn new_nonce1(bytes: Vec<u8>) -> Self {
-        Self::Nonce1 {
-            bytes,
+    pub fn new_hash(hash: NonceHash) -> Self {
+        Self::Hash {
+            hash,
             len_encoding: LenEncoding::default(),
-            index_0_encoding: None,
-            bytes_encoding: StringEncoding::default(),
+            tag_encoding: None,
+            hash_encoding: StringEncoding::default(),
         }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct SignkeyKES {
-    pub inner: Vec<u8>,
-    #[serde(skip)]
-    pub encodings: Option<SignkeyKESEncoding>,
-}
-
-impl SignkeyKES {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
-    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
-        if inner.len() != 16 {
-            return Err(DeserializeError::new(
-                "SignkeyKES",
-                DeserializeFailure::RangeCheck {
-                    found: inner.len(),
-                    min: Some(16),
-                    max: Some(16),
-                },
-            ));
-        }
-        Ok(Self {
-            inner,
-            encodings: None,
-        })
-    }
-}
-
-impl TryFrom<Vec<u8>> for SignkeyKES {
-    type Error = DeserializeError;
-
-    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
-        SignkeyKES::new(inner)
-    }
-}
-
-impl From<SignkeyKES> for Vec<u8> {
-    fn from(wrapper: SignkeyKES) -> Self {
-        wrapper.inner
     }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct VRFCert {
-    pub index_0: Vec<u8>,
-    pub bytes: Vec<u8>,
+    pub output: Vec<u8>,
+    pub proof: Vec<u8>,
     #[serde(skip)]
     pub encodings: Option<VRFCertEncoding>,
 }
 
 impl VRFCert {
-    pub fn new(index_0: Vec<u8>, bytes: Vec<u8>) -> Self {
+    pub fn new(output: Vec<u8>, proof: Vec<u8>) -> Self {
         Self {
-            index_0,
-            bytes,
+            output,
+            proof,
             encodings: None,
         }
     }

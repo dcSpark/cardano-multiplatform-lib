@@ -145,13 +145,13 @@ impl Deserialize for KESSignature {
         let (inner, inner_encoding) = raw
             .bytes_sz()
             .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() != 32 {
+        if inner.len() != 448 {
             return Err(DeserializeError::new(
                 "KESSignature",
                 DeserializeFailure::RangeCheck {
                     found: inner.len(),
-                    min: Some(32),
-                    max: Some(32),
+                    min: Some(448),
+                    max: Some(448),
                 },
             ));
         }
@@ -169,30 +169,32 @@ impl Serialize for Nonce {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
-            Nonce::I0 {
-                i0_encoding,
+            Nonce::Identity {
+                identity_encoding,
                 len_encoding,
             } => {
                 serializer.write_array_sz(len_encoding.to_len_sz(1, force_canonical))?;
-                serializer
-                    .write_unsigned_integer_sz(0u64, fit_sz(0u64, *i0_encoding, force_canonical))?;
+                serializer.write_unsigned_integer_sz(
+                    0u64,
+                    fit_sz(0u64, *identity_encoding, force_canonical),
+                )?;
                 len_encoding.end(serializer, force_canonical)?;
                 Ok(serializer)
             }
-            Nonce::Nonce1 {
-                bytes,
+            Nonce::Hash {
+                hash,
                 len_encoding,
-                index_0_encoding,
-                bytes_encoding,
+                tag_encoding,
+                hash_encoding,
             } => {
                 serializer.write_array_sz(len_encoding.to_len_sz(2, force_canonical))?;
                 serializer.write_unsigned_integer_sz(
                     1u64,
-                    fit_sz(1u64, *index_0_encoding, force_canonical),
+                    fit_sz(1u64, *tag_encoding, force_canonical),
                 )?;
                 serializer.write_bytes_sz(
-                    &bytes,
-                    bytes_encoding.to_str_len_sz(bytes.len() as u64, force_canonical),
+                    &hash.to_raw_bytes(),
+                    hash_encoding.to_str_len_sz(hash.to_raw_bytes().len() as u64, force_canonical),
                 )?;
                 len_encoding.end(serializer, force_canonical)?;
                 Ok(serializer)
@@ -209,20 +211,20 @@ impl Deserialize for Nonce {
             let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let (i0_value, i0_encoding) = raw.unsigned_integer_sz()?;
-                if i0_value != 0 {
+                let (identity_value, identity_encoding) = raw.unsigned_integer_sz()?;
+                if identity_value != 0 {
                     return Err(DeserializeFailure::FixedValueMismatch {
-                        found: Key::Uint(i0_value),
+                        found: Key::Uint(identity_value),
                         expected: Key::Uint(0),
                     }
                     .into());
                 }
-                Ok(Some(i0_encoding))
+                Ok(Some(identity_encoding))
             })(raw)
             {
-                Ok(i0_encoding) => {
-                    return Ok(Self::I0 {
-                        i0_encoding,
+                Ok(identity_encoding) => {
+                    return Ok(Self::Identity {
+                        identity_encoding,
                         len_encoding,
                     })
                 }
@@ -232,23 +234,27 @@ impl Deserialize for Nonce {
                     .unwrap(),
             };
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let index_0_encoding = (|| -> Result<_, DeserializeError> {
-                    let (index_0_value, index_0_encoding) = raw.unsigned_integer_sz()?;
-                    if index_0_value != 1 {
+                let tag_encoding = (|| -> Result<_, DeserializeError> {
+                    let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
+                    if tag_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
-                            found: Key::Uint(index_0_value),
+                            found: Key::Uint(tag_value),
                             expected: Key::Uint(1),
                         }
                         .into());
                     }
-                    Ok(Some(index_0_encoding))
+                    Ok(Some(tag_encoding))
                 })()
-                .map_err(|e| e.annotate("index_0"))?;
-                let (bytes, bytes_encoding) = raw
+                .map_err(|e| e.annotate("tag"))?;
+                let (hash, hash_encoding) = raw
                     .bytes_sz()
-                    .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))
                     .map_err(Into::<DeserializeError>::into)
-                    .map_err(|e: DeserializeError| e.annotate("bytes"))?;
+                    .and_then(|(bytes, enc)| {
+                        NonceHash::from_raw_bytes(&bytes)
+                            .map(|bytes| (bytes, StringEncoding::from(enc)))
+                            .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
+                    })
+                    .map_err(|e: DeserializeError| e.annotate("hash"))?;
                 match len {
                     cbor_event::LenSz::Len(_, _) => (),
                     cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -256,11 +262,11 @@ impl Deserialize for Nonce {
                         _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                     },
                 }
-                Ok(Self::Nonce1 {
-                    bytes,
+                Ok(Self::Hash {
+                    hash,
                     len_encoding,
-                    index_0_encoding,
-                    bytes_encoding,
+                    tag_encoding,
+                    hash_encoding,
                 })
             })(raw)
             {
@@ -286,45 +292,6 @@ impl Deserialize for Nonce {
     }
 }
 
-impl Serialize for SignkeyKES {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes_sz(
-            &self.inner,
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.inner_encoding.clone())
-                .unwrap_or_default()
-                .to_str_len_sz(self.inner.len() as u64, force_canonical),
-        )
-    }
-}
-
-impl Deserialize for SignkeyKES {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw
-            .bytes_sz()
-            .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() != 16 {
-            return Err(DeserializeError::new(
-                "SignkeyKES",
-                DeserializeFailure::RangeCheck {
-                    found: inner.len(),
-                    min: Some(16),
-                    max: Some(16),
-                },
-            ));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(SignkeyKESEncoding { inner_encoding }),
-        })
-    }
-}
-
 impl Serialize for VRFCert {
     fn serialize<'se, W: Write>(
         &self,
@@ -339,20 +306,20 @@ impl Serialize for VRFCert {
                 .to_len_sz(2, force_canonical),
         )?;
         serializer.write_bytes_sz(
-            &self.index_0,
+            &self.output,
             self.encodings
                 .as_ref()
-                .map(|encs| encs.index_0_encoding.clone())
+                .map(|encs| encs.output_encoding.clone())
                 .unwrap_or_default()
-                .to_str_len_sz(self.index_0.len() as u64, force_canonical),
+                .to_str_len_sz(self.output.len() as u64, force_canonical),
         )?;
         serializer.write_bytes_sz(
-            &self.bytes,
+            &self.proof,
             self.encodings
                 .as_ref()
-                .map(|encs| encs.bytes_encoding.clone())
+                .map(|encs| encs.proof_encoding.clone())
                 .unwrap_or_default()
-                .to_str_len_sz(self.bytes.len() as u64, force_canonical),
+                .to_str_len_sz(self.proof.len() as u64, force_canonical),
         )?;
         self.encodings
             .as_ref()
@@ -369,16 +336,16 @@ impl Deserialize for VRFCert {
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
         (|| -> Result<_, DeserializeError> {
-            let (index_0, index_0_encoding) = raw
+            let (output, output_encoding) = raw
                 .bytes_sz()
                 .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))
                 .map_err(Into::<DeserializeError>::into)
-                .map_err(|e: DeserializeError| e.annotate("index_0"))?;
-            let (bytes, bytes_encoding) = raw
+                .map_err(|e: DeserializeError| e.annotate("output"))?;
+            let (proof, proof_encoding) = raw
                 .bytes_sz()
                 .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))
                 .map_err(Into::<DeserializeError>::into)
-                .map_err(|e: DeserializeError| e.annotate("bytes"))?;
+                .map_err(|e: DeserializeError| e.annotate("proof"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
                 cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -387,12 +354,12 @@ impl Deserialize for VRFCert {
                 },
             }
             Ok(VRFCert {
-                index_0,
-                bytes,
+                output,
+                proof,
                 encodings: Some(VRFCertEncoding {
                     len_encoding,
-                    index_0_encoding,
-                    bytes_encoding,
+                    output_encoding,
+                    proof_encoding,
                 }),
             })
         })()

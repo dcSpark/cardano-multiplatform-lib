@@ -4,7 +4,7 @@
 use cml_core::ordered_hash_map::OrderedHashMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
-use cml_crypto_wasm::Ed25519Signature;
+use cml_crypto_wasm::{Ed25519Signature, NonceHash};
 
 pub type Vkey = cml_crypto_wasm::PublicKey;
 
@@ -176,24 +176,24 @@ impl Nonce {
             .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
-    pub fn new_i0() -> Self {
-        Self(cml_chain::crypto::Nonce::new_i0())
+    pub fn new_identity() -> Self {
+        Self(cml_chain::crypto::Nonce::new_identity())
     }
 
-    pub fn new_nonce1(bytes: Vec<u8>) -> Self {
-        Self(cml_chain::crypto::Nonce::new_nonce1(bytes))
+    pub fn new_hash(hash: &NonceHash) -> Self {
+        Self(cml_chain::crypto::Nonce::new_hash(hash.clone().into()))
     }
 
     pub fn kind(&self) -> NonceKind {
         match &self.0 {
-            cml_chain::crypto::Nonce::I0 { .. } => NonceKind::I0,
-            cml_chain::crypto::Nonce::Nonce1 { .. } => NonceKind::Nonce1,
+            cml_chain::crypto::Nonce::Identity { .. } => NonceKind::Identity,
+            cml_chain::crypto::Nonce::Hash { .. } => NonceKind::Hash,
         }
     }
 
-    pub fn as_nonce1(&self) -> Option<Vec<u8>> {
+    pub fn as_hash(&self) -> Option<NonceHash> {
         match &self.0 {
-            cml_chain::crypto::Nonce::Nonce1 { bytes, .. } => Some(bytes.clone()),
+            cml_chain::crypto::Nonce::Hash { hash, .. } => Some(hash.clone().into()),
             _ => None,
         }
     }
@@ -219,63 +219,8 @@ impl AsRef<cml_chain::crypto::Nonce> for Nonce {
 
 #[wasm_bindgen]
 pub enum NonceKind {
-    I0,
-    Nonce1,
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct SignkeyKES(cml_chain::crypto::SignkeyKES);
-
-#[wasm_bindgen]
-impl SignkeyKES {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SignkeyKES, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<SignkeyKES, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
-    pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
-    }
-}
-
-impl From<cml_chain::crypto::SignkeyKES> for SignkeyKES {
-    fn from(native: cml_chain::crypto::SignkeyKES) -> Self {
-        Self(native)
-    }
-}
-
-impl From<SignkeyKES> for cml_chain::crypto::SignkeyKES {
-    fn from(wasm: SignkeyKES) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::crypto::SignkeyKES> for SignkeyKES {
-    fn as_ref(&self) -> &cml_chain::crypto::SignkeyKES {
-        &self.0
-    }
+    Identity,
+    Hash,
 }
 
 #[derive(Clone, Debug)]
@@ -310,16 +255,16 @@ impl VRFCert {
             .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
-    pub fn index_0(&self) -> Vec<u8> {
-        self.0.index_0.clone()
+    pub fn output(&self) -> Vec<u8> {
+        self.0.output.clone()
     }
 
-    pub fn bytes(&self) -> Vec<u8> {
-        self.0.bytes.clone()
+    pub fn proof(&self) -> Vec<u8> {
+        self.0.proof.clone()
     }
 
-    pub fn new(index_0: Vec<u8>, bytes: Vec<u8>) -> Self {
-        Self(cml_chain::crypto::VRFCert::new(index_0, bytes))
+    pub fn new(output: Vec<u8>, proof: Vec<u8>) -> Self {
+        Self(cml_chain::crypto::VRFCert::new(output, proof))
     }
 }
 

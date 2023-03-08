@@ -615,7 +615,6 @@ impl_hash_type!(VRFVkey, 32);
 impl_hash_type!(KESVkey, 32);
 // same for this signature (but lots of traits aren't implemented for [u8; 448] so we can't)
 //impl_hash_type!(KESSignature, 448);
-// this might actually be one of the other hashes
 impl_hash_type!(NonceHash, 32);
 
 pub struct LegacyDaedalusPrivateKey(

@@ -1,103 +1,114 @@
-use cddl_lib_core::*;
-
 fn main() {
     macro_rules! gen_json_schema {
-        ($name:ident) =>  {
-            let dest_path = std::path::Path::new(&"schemas").join(&format!("{}.json", stringify!($name)));
-            std::fs::write(&dest_path, serde_json::to_string_pretty(&schemars::schema_for!($name)).unwrap()).unwrap();
-        }
+        ($name:ty) => {
+            let dest_path =
+                std::path::Path::new(&"schemas").join(&format!("{}.json", stringify!($name)));
+            std::fs::write(
+                &dest_path,
+                serde_json::to_string_pretty(&schemars::schema_for!($name)).unwrap(),
+            )
+            .unwrap();
+        };
     }
     let schema_path = std::path::Path::new(&"schemas");
     if !schema_path.exists() {
         std::fs::create_dir(schema_path).unwrap();
     }
-    gen_json_schema!(Address);
-    gen_json_schema!(AlonzoAuxData);
-    gen_json_schema!(AlonzoTxOut);
-    gen_json_schema!(AssetName);
-    gen_json_schema!(AuxiliaryData);
-    gen_json_schema!(BabbageTxOut);
-    gen_json_schema!(BigInt);
-    gen_json_schema!(Block);
-    gen_json_schema!(BootstrapWitness);
-    gen_json_schema!(Certificate);
-    gen_json_schema!(ConstrPlutusData);
-    gen_json_schema!(Costmdls);
-    gen_json_schema!(DatumOption);
-    gen_json_schema!(DatumOption0);
-    gen_json_schema!(DatumOption1);
-    gen_json_schema!(DnsName);
-    gen_json_schema!(ExUnitPrices);
-    gen_json_schema!(ExUnits);
-    gen_json_schema!(GenesisKeyDelegation);
-    gen_json_schema!(Hash28);
-    gen_json_schema!(Hash32);
-    gen_json_schema!(Header);
-    gen_json_schema!(HeaderBody);
-    gen_json_schema!(I0OrI1);
-    gen_json_schema!(Int);
-    gen_json_schema!(InvalidBefore);
-    gen_json_schema!(InvalidHereafter);
-    gen_json_schema!(Ipv4);
-    gen_json_schema!(Ipv6);
-    gen_json_schema!(KesSignature);
-    gen_json_schema!(KesVkey);
-    gen_json_schema!(Language);
-    gen_json_schema!(MoveInstantaneousReward);
-    gen_json_schema!(MoveInstantaneousRewardsCert);
-    gen_json_schema!(MultiHostName);
-    gen_json_schema!(NativeScript);
-    gen_json_schema!(NetworkId);
-    gen_json_schema!(Nonce);
-    gen_json_schema!(Nonce1);
-    gen_json_schema!(OperationalCert);
-    gen_json_schema!(PlutusData);
-    gen_json_schema!(PoolMetadata);
-    gen_json_schema!(PoolParams);
-    gen_json_schema!(PoolRegistration);
-    gen_json_schema!(PoolRetirement);
-    gen_json_schema!(PositiveInterval);
-    gen_json_schema!(ProtocolParamUpdate);
-    gen_json_schema!(ProtocolVersion);
-    gen_json_schema!(ProtocolVersionStruct);
-    gen_json_schema!(Rational);
-    gen_json_schema!(Redeemer);
-    gen_json_schema!(RedeemerTag);
-    gen_json_schema!(Relay);
-    gen_json_schema!(RequiredSigners);
-    gen_json_schema!(RewardAccount);
-    gen_json_schema!(Script);
-    gen_json_schema!(Script0);
-    gen_json_schema!(Script1);
-    gen_json_schema!(Script2);
-    gen_json_schema!(ScriptAll);
-    gen_json_schema!(ScriptAny);
-    gen_json_schema!(ScriptNOfK);
-    gen_json_schema!(ScriptPubkey);
-    gen_json_schema!(ShelleyMaAuxData);
-    gen_json_schema!(ShelleyTxOut);
-    gen_json_schema!(Signature);
-    gen_json_schema!(SignkeyKES);
-    gen_json_schema!(SingleHostAddr);
-    gen_json_schema!(SingleHostName);
-    gen_json_schema!(StakeCredential);
-    gen_json_schema!(StakeCredential0);
-    gen_json_schema!(StakeCredential1);
-    gen_json_schema!(StakeDelegation);
-    gen_json_schema!(StakeDeregistration);
-    gen_json_schema!(StakeRegistration);
-    gen_json_schema!(Transaction);
-    gen_json_schema!(TransactionBody);
-    gen_json_schema!(TransactionInput);
-    gen_json_schema!(TransactionMetadatum);
-    gen_json_schema!(TransactionOutput);
-    gen_json_schema!(TransactionWitnessSet);
-    gen_json_schema!(UnitInterval);
-    gen_json_schema!(Update);
-    gen_json_schema!(Url);
-    gen_json_schema!(Value);
-    gen_json_schema!(Vkey);
-    gen_json_schema!(Vkeywitness);
-    gen_json_schema!(VrfCert);
-    gen_json_schema!(VrfVkey);
+    // address.rs
+    gen_json_schema!(cml_chain::address::Address);
+    gen_json_schema!(cml_chain::address::RewardAccount);
+    // auxdata.rs
+    gen_json_schema!(cml_chain::auxdata::AlonzoAuxData);
+    gen_json_schema!(cml_chain::auxdata::AuxiliaryData);
+    gen_json_schema!(cml_chain::auxdata::ShelleyMaAuxData);
+    gen_json_schema!(cml_chain::auxdata::TransactionMetadatum);
+    // block.rs
+    gen_json_schema!(cml_chain::block::Header);
+    gen_json_schema!(cml_chain::block::HeaderBody);
+    gen_json_schema!(cml_chain::block::OperationalCert);
+    gen_json_schema!(cml_chain::block::ProtocolVersion);
+    // certs.rs
+    gen_json_schema!(cml_chain::certs::Certificate);
+    gen_json_schema!(cml_chain::certs::DnsName);
+    gen_json_schema!(cml_chain::certs::GenesisKeyDelegation);
+    gen_json_schema!(cml_chain::certs::Ipv4);
+    gen_json_schema!(cml_chain::certs::Ipv6);
+    gen_json_schema!(cml_chain::certs::MIRAction);
+    gen_json_schema!(cml_chain::certs::MIRPot);
+    gen_json_schema!(cml_chain::certs::MoveInstantaneousReward);
+    gen_json_schema!(cml_chain::certs::MoveInstantaneousRewardsCert);
+    gen_json_schema!(cml_chain::certs::MultiHostName);
+    gen_json_schema!(cml_chain::certs::PoolMetadata);
+    gen_json_schema!(cml_chain::certs::PoolParams);
+    gen_json_schema!(cml_chain::certs::PoolRegistration);
+    gen_json_schema!(cml_chain::certs::PoolRetirement);
+    gen_json_schema!(cml_chain::certs::Relay);
+    gen_json_schema!(cml_chain::certs::SingleHostAddr);
+    gen_json_schema!(cml_chain::certs::SingleHostName);
+    gen_json_schema!(cml_chain::certs::StakeCredential);
+    gen_json_schema!(cml_chain::certs::StakeDelegation);
+    gen_json_schema!(cml_chain::certs::StakeDeregistration);
+    gen_json_schema!(cml_chain::certs::StakeRegistration);
+    gen_json_schema!(cml_chain::certs::Url);
+    // crypto.rs
+    gen_json_schema!(cml_chain::crypto::AuxiliaryDataHash);
+    gen_json_schema!(cml_chain::crypto::BlockBodyHash);
+    gen_json_schema!(cml_chain::crypto::BlockHeaderHash);
+    gen_json_schema!(cml_chain::crypto::DatumHash);
+    gen_json_schema!(cml_chain::crypto::Ed25519KeyHash);
+    gen_json_schema!(cml_chain::crypto::Ed25519Signature);
+    gen_json_schema!(cml_chain::crypto::GenesisDelegateHash);
+    gen_json_schema!(cml_chain::crypto::GenesisHash);
+    gen_json_schema!(cml_chain::crypto::KESSignature);
+    gen_json_schema!(cml_chain::crypto::KESVkey);
+    gen_json_schema!(cml_chain::crypto::PoolMetadataHash);
+    gen_json_schema!(cml_chain::crypto::ScriptDataHash);
+    gen_json_schema!(cml_chain::crypto::ScriptHash);
+    gen_json_schema!(cml_chain::crypto::TransactionHash);
+    gen_json_schema!(cml_chain::crypto::VRFCert);
+    gen_json_schema!(cml_chain::crypto::VRFKeyHash);
+    gen_json_schema!(cml_chain::crypto::VRFVkey);
+    gen_json_schema!(cml_chain::crypto::Vkey);
+    // lib.rs
+    gen_json_schema!(cml_chain::AssetName);
+    gen_json_schema!(cml_chain::BootstrapWitness);
+    gen_json_schema!(cml_chain::BoundedBytes);
+    gen_json_schema!(cml_chain::Int);
+    gen_json_schema!(cml_chain::PositiveInterval);
+    gen_json_schema!(cml_chain::ProtocolParamUpdate);
+    gen_json_schema!(cml_chain::ProtocolVersionStruct);
+    gen_json_schema!(cml_chain::Rational);
+    gen_json_schema!(cml_chain::Script);
+    gen_json_schema!(cml_chain::UnitInterval);
+    gen_json_schema!(cml_chain::Update);
+    gen_json_schema!(cml_chain::Value);
+    gen_json_schema!(cml_chain::Vkeywitness);
+    // plutus.rs
+    gen_json_schema!(cml_chain::plutus::BigInt);
+    gen_json_schema!(cml_chain::plutus::ConstrPlutusData);
+    gen_json_schema!(cml_chain::plutus::Costmdls);
+    gen_json_schema!(cml_chain::plutus::ExUnitPrices);
+    gen_json_schema!(cml_chain::plutus::ExUnits);
+    gen_json_schema!(cml_chain::plutus::PlutusData);
+    gen_json_schema!(cml_chain::plutus::PlutusV1Script);
+    gen_json_schema!(cml_chain::plutus::PlutusV2Script);
+    gen_json_schema!(cml_chain::plutus::Redeemer);
+    gen_json_schema!(cml_chain::plutus::RedeemerTag);
+    // transaction.rs
+    gen_json_schema!(cml_chain::transaction::AlonzoTxOut);
+    gen_json_schema!(cml_chain::transaction::BabbageTxOut);
+    gen_json_schema!(cml_chain::transaction::DatumOption);
+    gen_json_schema!(cml_chain::transaction::NativeScript);
+    gen_json_schema!(cml_chain::transaction::RequiredSigners);
+    gen_json_schema!(cml_chain::transaction::ScriptAll);
+    gen_json_schema!(cml_chain::transaction::ScriptAny);
+    gen_json_schema!(cml_chain::transaction::ScriptInvalidBefore);
+    gen_json_schema!(cml_chain::transaction::ScriptInvalidHereafter);
+    gen_json_schema!(cml_chain::transaction::ScriptNOfK);
+    gen_json_schema!(cml_chain::transaction::ScriptPubkey);
+    gen_json_schema!(cml_chain::transaction::ShelleyTxOut);
+    gen_json_schema!(cml_chain::transaction::TransactionBody);
+    gen_json_schema!(cml_chain::transaction::TransactionInput);
+    gen_json_schema!(cml_chain::transaction::TransactionOutput);
+    gen_json_schema!(cml_chain::transaction::TransactionWitnessSet);
 }

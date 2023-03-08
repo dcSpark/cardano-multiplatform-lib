@@ -195,8 +195,9 @@ pub trait Serialize {
     /// Bytes of a structure using the CBOR bytes as per the CDDL spec
     /// which for foo = bytes will include the CBOR bytes type/len, etc.
     /// This gives the original bytes in the case where this was created
-    /// from bytes originally
-    fn to_original_cbor_bytes(&self) -> Vec<u8> {
+    /// from bytes originally, or will use whatever the specific encoding
+    /// details are present in any encoding details struct for the type.
+    fn to_cbor_bytes(&self) -> Vec<u8> {
         let mut buf = Serializer::new_vec();
         self.serialize(&mut buf, false).unwrap();
         buf.finalize()

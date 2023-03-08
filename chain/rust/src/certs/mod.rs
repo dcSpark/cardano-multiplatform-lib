@@ -1,4 +1,28 @@
-use super::*;
+// This file was code-generated using an experimental CDDL to rust tool:
+// https://github.com/dcSpark/cddl-codegen
+
+pub mod cbor_encodings;
+pub mod serialization;
+pub mod utils;
+
+use super::{Coin, DeltaCoin, Epoch, Port, UnitInterval};
+use crate::address::RewardAccount;
+use crate::crypto::{
+    Ed25519KeyHash, Ed25519Signature, GenesisDelegateHash, GenesisHash, PoolMetadataHash,
+    ScriptHash, VRFKeyHash,
+};
+use cbor_encodings::{
+    DnsNameEncoding, GenesisKeyDelegationEncoding, Ipv4Encoding, Ipv6Encoding,
+    MoveInstantaneousRewardEncoding, MoveInstantaneousRewardsCertEncoding, MultiHostNameEncoding,
+    PoolMetadataEncoding, PoolParamsEncoding, PoolRegistrationEncoding, PoolRetirementEncoding,
+    SingleHostAddrEncoding, SingleHostNameEncoding, StakeDelegationEncoding,
+    StakeDeregistrationEncoding, StakeRegistrationEncoding, UrlEncoding,
+};
+use cml_core::error::*;
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::serialization::{LenEncoding, StringEncoding};
+use std::collections::BTreeMap;
+use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum Certificate {
@@ -22,28 +46,28 @@ impl Certificate {
 
     pub fn new_stake_delegation(
         stake_credential: StakeCredential,
-        pool_keyhash: Ed25519KeyHash,
+        ed25519_key_hash: Ed25519KeyHash,
     ) -> Self {
-        Self::StakeDelegation(StakeDelegation::new(stake_credential, pool_keyhash))
+        Self::StakeDelegation(StakeDelegation::new(stake_credential, ed25519_key_hash))
     }
 
     pub fn new_pool_registration(pool_params: PoolParams) -> Self {
         Self::PoolRegistration(PoolRegistration::new(pool_params))
     }
 
-    pub fn new_pool_retirement(pool_keyhash: Ed25519KeyHash, epoch: Epoch) -> Self {
-        Self::PoolRetirement(PoolRetirement::new(pool_keyhash, epoch))
+    pub fn new_pool_retirement(ed25519_key_hash: Ed25519KeyHash, epoch: Epoch) -> Self {
+        Self::PoolRetirement(PoolRetirement::new(ed25519_key_hash, epoch))
     }
 
     pub fn new_genesis_key_delegation(
-        genesishash: GenesisHash,
+        genesis_hash: GenesisHash,
         genesis_delegate_hash: GenesisDelegateHash,
-        vrf_keyhash: VRFKeyHash,
+        v_r_f_key_hash: VRFKeyHash,
     ) -> Self {
         Self::GenesisKeyDelegation(GenesisKeyDelegation::new(
-            genesishash,
+            genesis_hash,
             genesis_delegate_hash,
-            vrf_keyhash,
+            v_r_f_key_hash,
         ))
     }
 
@@ -94,31 +118,25 @@ impl TryFrom<String> for DnsName {
     }
 }
 
-impl From<DnsName> for String {
-    fn from(wrapper: DnsName) -> Self {
-        wrapper.inner
-    }
-}
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct GenesisKeyDelegation {
-    pub genesishash: GenesisHash,
+    pub genesis_hash: GenesisHash,
     pub genesis_delegate_hash: GenesisDelegateHash,
-    pub vrf_keyhash: VRFKeyHash,
+    pub v_r_f_key_hash: VRFKeyHash,
     #[serde(skip)]
     pub encodings: Option<GenesisKeyDelegationEncoding>,
 }
 
 impl GenesisKeyDelegation {
     pub fn new(
-        genesishash: GenesisHash,
+        genesis_hash: GenesisHash,
         genesis_delegate_hash: GenesisDelegateHash,
-        vrf_keyhash: VRFKeyHash,
+        v_r_f_key_hash: VRFKeyHash,
     ) -> Self {
         Self {
-            genesishash,
+            genesis_hash,
             genesis_delegate_hash,
-            vrf_keyhash,
+            v_r_f_key_hash,
             encodings: None,
         }
     }
@@ -213,24 +231,68 @@ impl From<Ipv6> for Vec<u8> {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub enum MIRAction {
+    ToStakeCredentials {
+        to_stake_credentials: OrderedHashMap<StakeCredential, DeltaCoin>,
+        #[serde(skip)]
+        to_stake_credentials_encoding: LenEncoding,
+    },
+    ToOtherPot {
+        to_other_pot: Coin,
+        #[serde(skip)]
+        to_other_pot_encoding: Option<cbor_event::Sz>,
+    },
+}
+
+impl MIRAction {
+    pub fn new_to_stake_credentials(
+        to_stake_credentials: OrderedHashMap<StakeCredential, DeltaCoin>,
+    ) -> Self {
+        Self::ToStakeCredentials {
+            to_stake_credentials,
+            to_stake_credentials_encoding: LenEncoding::default(),
+        }
+    }
+
+    pub fn new_to_other_pot(to_other_pot: Coin) -> Self {
+        Self::ToOtherPot {
+            to_other_pot,
+            to_other_pot_encoding: None,
+        }
+    }
+}
+
+#[derive(
+    Copy,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Clone,
+    Debug,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+)]
+#[wasm_bindgen::prelude::wasm_bindgen]
+pub enum MIRPot {
+    Reserve,
+    Treasury,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct MoveInstantaneousReward {
-    pub index_0: I0OrI1,
-    pub index_1: OrderedHashMap<StakeCredential, DeltaCoin>,
-    pub coin: Coin,
+    pub pot: MIRPot,
+    pub action: MIRAction,
     #[serde(skip)]
     pub encodings: Option<MoveInstantaneousRewardEncoding>,
 }
 
 impl MoveInstantaneousReward {
-    pub fn new(
-        index_0: I0OrI1,
-        index_1: OrderedHashMap<StakeCredential, DeltaCoin>,
-        coin: Coin,
-    ) -> Self {
+    pub fn new(pot: MIRPot, action: MIRAction) -> Self {
         Self {
-            index_0,
-            index_1,
-            coin,
+            pot,
+            action,
             encodings: None,
         }
     }
@@ -294,7 +356,7 @@ pub struct PoolParams {
     pub cost: Coin,
     pub margin: UnitInterval,
     pub reward_account: RewardAccount,
-    pub pool_owners: Vec<AddrKeyhash>,
+    pub pool_owners: Vec<Ed25519KeyHash>,
     pub relays: Vec<Relay>,
     pub pool_metadata: Option<PoolMetadata>,
     #[serde(skip)]
@@ -309,7 +371,7 @@ impl PoolParams {
         cost: Coin,
         margin: UnitInterval,
         reward_account: RewardAccount,
-        pool_owners: Vec<AddrKeyhash>,
+        pool_owners: Vec<Ed25519KeyHash>,
         relays: Vec<Relay>,
         pool_metadata: Option<PoolMetadata>,
     ) -> Self {
@@ -346,16 +408,16 @@ impl PoolRegistration {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct PoolRetirement {
-    pub pool_keyhash: Ed25519KeyHash,
+    pub ed25519_key_hash: Ed25519KeyHash,
     pub epoch: Epoch,
     #[serde(skip)]
     pub encodings: Option<PoolRetirementEncoding>,
 }
 
 impl PoolRetirement {
-    pub fn new(pool_keyhash: Ed25519KeyHash, epoch: Epoch) -> Self {
+    pub fn new(ed25519_key_hash: Ed25519KeyHash, epoch: Epoch) -> Self {
         Self {
-            pool_keyhash,
+            ed25519_key_hash,
             epoch,
             encodings: None,
         }
@@ -425,19 +487,106 @@ impl SingleHostName {
     }
 }
 
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(
+    Eq,
+    PartialEq,
+    Ord = "feature_allow_slow_enum",
+    PartialOrd = "feature_allow_slow_enum",
+    Hash
+)]
+pub enum StakeCredential {
+    PubKey {
+        hash: Ed25519KeyHash,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        tag_encoding: Option<cbor_event::Sz>,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        hash_encoding: StringEncoding,
+    },
+    Script {
+        hash: ScriptHash,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        tag_encoding: Option<cbor_event::Sz>,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        hash_encoding: StringEncoding,
+    },
+}
+
+impl StakeCredential {
+    pub fn new_pub_key(hash: Ed25519KeyHash) -> Self {
+        Self::PubKey {
+            hash,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+            hash_encoding: StringEncoding::default(),
+        }
+    }
+
+    pub fn new_script(hash: ScriptHash) -> Self {
+        Self::Script {
+            hash,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+            hash_encoding: StringEncoding::default(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct StakeDelegation {
     pub stake_credential: StakeCredential,
-    pub pool_keyhash: Ed25519KeyHash,
+    pub ed25519_key_hash: Ed25519KeyHash,
     #[serde(skip)]
     pub encodings: Option<StakeDelegationEncoding>,
 }
 
 impl StakeDelegation {
-    pub fn new(stake_credential: StakeCredential, pool_keyhash: Ed25519KeyHash) -> Self {
+    pub fn new(stake_credential: StakeCredential, ed25519_key_hash: Ed25519KeyHash) -> Self {
         Self {
             stake_credential,
-            pool_keyhash,
+            ed25519_key_hash,
             encodings: None,
         }
     }
@@ -472,6 +621,18 @@ impl StakeRegistration {
             stake_credential,
             encodings: None,
         }
+    }
+}
+
+impl From<DnsName> for String {
+    fn from(wrapper: DnsName) -> Self {
+        wrapper.inner
+    }
+}
+
+impl From<Url> for String {
+    fn from(wrapper: Url) -> Self {
+        wrapper.inner
     }
 }
 
@@ -510,11 +671,5 @@ impl TryFrom<String> for Url {
 
     fn try_from(inner: String) -> Result<Self, Self::Error> {
         Url::new(inner)
-    }
-}
-
-impl From<Url> for String {
-    fn from(wrapper: Url) -> Self {
-        wrapper.inner
     }
 }

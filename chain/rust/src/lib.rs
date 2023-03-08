@@ -8,8 +8,12 @@ use std::convert::{From, TryFrom};
 
 pub mod address;
 pub mod auxdata;
+pub mod block;
+pub mod certs;
 pub mod crypto;
+pub mod plutus;
 pub mod serialization;
+pub mod transaction;
 
 use address::*;
 use auxdata::*;
@@ -33,84 +37,30 @@ use cbor_encodings::*;
 extern crate derivative;
 
 pub(crate) use derivative::Derivative;
+//#![allow(clippy::too_many_arguments)]
 
-// This library was code-generated using an experimental CDDL to rust tool:
+// TODO: replace with real bigint type
+pub type BigInt = Int;
+// TODO: same ^
+pub type BoundedBytes = Int;
+
+// This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-// TODO: for regen, change babbage's cddl to have our own names in the first place
-pub type AddrKeyhash = Ed25519KeyHash;
+use address::RewardAccount;
+use block::ProtocolVersion;
+use cbor_encodings::{
+    AssetNameEncoding, BootstrapWitnessEncoding, PositiveIntervalEncoding,
+    ProtocolParamUpdateEncoding, ProtocolVersionStructEncoding, RationalEncoding,
+    UnitIntervalEncoding, UpdateEncoding, ValueEncoding, VkeywitnessEncoding,
+};
+use crypto::{Ed25519Signature, GenesisHash, Vkey};
+use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
+use transaction::NativeScript;
 
-pub type BoundedBytes = Vec<u8>;
-
-pub type Coin = u64;
-
-// see comment on ScriptRef declaration
-pub type Data = Vec<u8>;
-
-// TODO: for regen, change babbage's cddl to have our own names in the first place
-pub type DatumHash = DataHash;
-
-pub type DeltaCoin = Int;
-
-pub type Genesishashs = Vec<GenesisHash>;
-
-// TODO: fix cddl-codegen to avoid generating this and make it a direct alias not a declared one
-pub type Int64 = i64;
-
-pub type Mint = OrderedHashMap<PolicyId, OrderedHashMap<AssetName, Int64>>;
-
-pub type Multiasset = OrderedHashMap<PolicyId, OrderedHashMap<AssetName, u64>>;
-
-// TODO for regen: why was this in babbage/crypto.cddl? it's not in babbage.cddl.
-pub type Natural = Vec<u8>;
-
-// we might want dedicated types for this anyway?
-pub type PlutusV1Script = Vec<u8>;
-
-pub type PlutusV2Script = Vec<u8>;
-
-pub type PolicyId = ScriptHash;
-
-pub type PolicyIds = Vec<PolicyId>;
-
-pub type Port = u16;
-
-pub type ProposedProtocolParameterUpdates = OrderedHashMap<GenesisHash, ProtocolParamUpdate>;
-
-pub type RewardAccounts = Vec<RewardAccount>;
-
-// TODO: this should NOT be generating an alias! (it's both tagged and a .cbor script)
-// we should investigate cddl-codegen and open an issue there if it's still happening
-// (top-level .cbor was recently being worked on and this is tagged but even then it should NOT be bytes here)
-pub type ScriptRef = Vec<u8>;
-
-pub type ShelleyAuxData = OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>;
-
-pub type SubCoin = PositiveInterval;
-
-pub type Withdrawals = OrderedHashMap<RewardAccount, Coin>;
-
-// for enums + byron. see comment in Cargo.toml
-use wasm_bindgen::prelude::wasm_bindgen;
-
-pub use address::*;
-
-pub mod block;
-
-pub use block::*;
-
-pub mod certs;
-
-pub use certs::*;
-
-pub mod plutus;
-
-pub use plutus::*;
-
-pub mod transaction;
-
-pub use transaction::*;
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct AssetName {
     pub inner: Vec<u8>,
@@ -161,118 +111,68 @@ impl From<AssetName> for Vec<u8> {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct DatumOption0 {
-    pub hash32: DataHash,
-    #[serde(skip)]
-    pub encodings: Option<DatumOption0Encoding>,
-}
+pub type Coin = u64;
 
-impl DatumOption0 {
-    pub fn new(hash32: DataHash) -> Self {
-        Self {
-            hash32,
-            encodings: None,
-        }
-    }
-}
+pub type DeltaCoin = Int;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct DatumOption1 {
-    pub data: Data,
-    #[serde(skip)]
-    pub encodings: Option<DatumOption1Encoding>,
-}
+pub type GenesisHashList = Vec<GenesisHash>;
 
-impl DatumOption1 {
-    pub fn new(data: Data) -> Self {
-        Self {
-            data,
-            encodings: None,
-        }
-    }
-}
+pub type Mint = OrderedHashMap<PolicyId, OrderedHashMap<AssetName, i64>>;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub enum I0OrI1 {
-    I0 {
-        #[serde(skip)]
-        i0_encoding: Option<cbor_event::Sz>,
-    },
-    I1 {
-        #[serde(skip)]
-        i1_encoding: Option<cbor_event::Sz>,
-    },
-}
+pub type Multiasset = OrderedHashMap<PolicyId, OrderedHashMap<AssetName, u64>>;
 
-impl I0OrI1 {
-    pub fn new_i0() -> Self {
-        Self::I0 { i0_encoding: None }
-    }
+pub type NetworkId = u8;
 
-    pub fn new_i1() -> Self {
-        Self::I1 { i1_encoding: None }
-    }
-}
+pub type PolicyId = ScriptHash;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub enum NetworkId {
-    I0 {
-        #[serde(skip)]
-        i0_encoding: Option<cbor_event::Sz>,
-    },
-    I1 {
-        #[serde(skip)]
-        i1_encoding: Option<cbor_event::Sz>,
-    },
-}
+pub type PolicyIdList = Vec<PolicyId>;
 
-impl NetworkId {
-    pub fn new_i0() -> Self {
-        Self::I0 { i0_encoding: None }
-    }
-
-    pub fn new_i1() -> Self {
-        Self::I1 { i1_encoding: None }
-    }
-}
+pub type Port = u16;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct PositiveInterval {
+    pub strart: u64,
+    pub end: u64,
     #[serde(skip)]
     pub encodings: Option<PositiveIntervalEncoding>,
 }
 
 impl PositiveInterval {
-    pub fn new() -> Self {
-        Self { encodings: None }
+    pub fn new(strart: u64, end: u64) -> Self {
+        Self {
+            strart,
+            end,
+            encodings: None,
+        }
     }
 }
 
+pub type ProposedProtocolParameterUpdates = OrderedHashMap<GenesisHash, ProtocolParamUpdate>;
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ProtocolParamUpdate {
-    pub key_0: Option<u64>,
-    pub key_1: Option<u64>,
-    pub key_2: Option<u64>,
-    pub key_3: Option<u64>,
-    pub key_4: Option<u64>,
-    pub key_5: Option<Coin>,
-    pub key_6: Option<Coin>,
-    pub key_7: Option<Epoch>,
-    pub key_8: Option<u64>,
-    pub key_9: Option<Rational>,
-    pub key_10: Option<UnitInterval>,
-    pub key_11: Option<UnitInterval>,
-    pub key_14: Option<ProtocolVersionStruct>,
-    pub key_16: Option<Coin>,
-    pub key_17: Option<Coin>,
-    pub key_18: Option<Costmdls>,
-    pub key_19: Option<ExUnitPrices>,
-    pub key_20: Option<ExUnits>,
-    pub key_21: Option<ExUnits>,
-    pub key_22: Option<u64>,
-    pub key_23: Option<u64>,
-    pub key_24: Option<u64>,
+    pub minfee_a: Option<u64>,
+    pub minfee_b: Option<u64>,
+    pub max_block_body_size: Option<u64>,
+    pub max_transaction_size: Option<u64>,
+    pub max_block_header_size: Option<u64>,
+    pub key_deposit: Option<Coin>,
+    pub pool_deposit: Option<Coin>,
+    pub maximum_epoch: Option<Epoch>,
+    pub n_opt: Option<u64>,
+    pub pool_pledge_influence: Option<Rational>,
+    pub expansion_rate: Option<UnitInterval>,
+    pub treasury_growth_rate: Option<UnitInterval>,
+    pub protocol_version: Option<ProtocolVersionStruct>,
+    pub min_pool_cost: Option<Coin>,
+    pub ada_per_utxo_byte: Option<Coin>,
+    pub cost_models_for_script_languages: Option<CostModels>,
+    pub execution_costs: Option<ExUnitPrices>,
+    pub max_tx_ex_units: Option<ExUnits>,
+    pub max_block_ex_units: Option<ExUnits>,
+    pub max_value_size: Option<u64>,
+    pub collateral_percentage: Option<u64>,
+    pub max_collateral_inputs: Option<u64>,
     #[serde(skip)]
     pub encodings: Option<ProtocolParamUpdateEncoding>,
 }
@@ -280,30 +180,36 @@ pub struct ProtocolParamUpdate {
 impl ProtocolParamUpdate {
     pub fn new() -> Self {
         Self {
-            key_0: None,
-            key_1: None,
-            key_2: None,
-            key_3: None,
-            key_4: None,
-            key_5: None,
-            key_6: None,
-            key_7: None,
-            key_8: None,
-            key_9: None,
-            key_10: None,
-            key_11: None,
-            key_14: None,
-            key_16: None,
-            key_17: None,
-            key_18: None,
-            key_19: None,
-            key_20: None,
-            key_21: None,
-            key_22: None,
-            key_23: None,
-            key_24: None,
+            minfee_a: None,
+            minfee_b: None,
+            max_block_body_size: None,
+            max_transaction_size: None,
+            max_block_header_size: None,
+            key_deposit: None,
+            pool_deposit: None,
+            maximum_epoch: None,
+            n_opt: None,
+            pool_pledge_influence: None,
+            expansion_rate: None,
+            treasury_growth_rate: None,
+            protocol_version: None,
+            min_pool_cost: None,
+            ada_per_utxo_byte: None,
+            cost_models_for_script_languages: None,
+            execution_costs: None,
+            max_tx_ex_units: None,
+            max_block_ex_units: None,
+            max_value_size: None,
+            collateral_percentage: None,
+            max_collateral_inputs: None,
             encodings: None,
         }
+    }
+}
+
+impl Default for ProtocolParamUpdate {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -341,67 +247,74 @@ impl Rational {
     }
 }
 
+pub type RewardAccountList = Vec<RewardAccount>;
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Script0 {
-    pub native_script: NativeScript,
-    #[serde(skip)]
-    pub encodings: Option<Script0Encoding>,
+pub enum Script {
+    Native {
+        script: NativeScript,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[serde(skip)]
+        tag_encoding: Option<cbor_event::Sz>,
+    },
+    PlutusV1 {
+        script: PlutusV1Script,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[serde(skip)]
+        tag_encoding: Option<cbor_event::Sz>,
+    },
+    PlutusV2 {
+        script: PlutusV2Script,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[serde(skip)]
+        tag_encoding: Option<cbor_event::Sz>,
+    },
 }
 
-impl Script0 {
-    pub fn new(native_script: NativeScript) -> Self {
-        Self {
-            native_script,
-            encodings: None,
+impl Script {
+    pub fn new_native(script: NativeScript) -> Self {
+        Self::Native {
+            script,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+        }
+    }
+
+    pub fn new_plutus_v1(script: PlutusV1Script) -> Self {
+        Self::PlutusV1 {
+            script,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+        }
+    }
+
+    pub fn new_plutus_v2(script: PlutusV2Script) -> Self {
+        Self::PlutusV2 {
+            script,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
         }
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Script1 {
-    pub plutus_v1_script: PlutusV1Script,
-    #[serde(skip)]
-    pub encodings: Option<Script1Encoding>,
-}
-
-impl Script1 {
-    pub fn new(plutus_v1_script: PlutusV1Script) -> Self {
-        Self {
-            plutus_v1_script,
-            encodings: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Script2 {
-    pub plutus_v2_script: PlutusV2Script,
-    #[serde(skip)]
-    pub encodings: Option<Script2Encoding>,
-}
-
-impl Script2 {
-    pub fn new(plutus_v2_script: PlutusV2Script) -> Self {
-        Self {
-            plutus_v2_script,
-            encodings: None,
-        }
-    }
-}
+pub type SubCoin = PositiveInterval;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct UnitInterval {
-    pub index_0: u64,
-    pub index_1: u64,
+    pub start: u64,
+    pub end: u64,
     #[serde(skip)]
     pub encodings: Option<UnitIntervalEncoding>,
 }
 
 impl UnitInterval {
-    pub fn new(index_0: u64, index_1: u64) -> Self {
+    pub fn new(start: u64, end: u64) -> Self {
         Self {
-            index_0,
-            index_1,
+            start,
+            end,
             encodings: None,
         }
     }
@@ -445,3 +358,5 @@ impl Value {
         }
     }
 }
+
+pub type Withdrawals = OrderedHashMap<RewardAccount, Coin>;

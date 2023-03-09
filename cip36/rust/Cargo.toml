@@ -2,7 +2,7 @@
 name = "cml-cip36"
 version = "0.1.0"
 edition = "2018"
-keywords = ["cardano"]
+keywords = ["cardano", "cip36"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

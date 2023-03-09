@@ -1,7 +1,8 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use super::{BigInt, BoundedBytes, IntList, MapPlutusDataToPlutusData, PlutusDataList, SubCoin};
+use super::{IntList, MapPlutusDataToPlutusData, PlutusDataList, SubCoin};
+use crate::utils::BigInt;
 pub use cml_chain::plutus::{Language, RedeemerTag};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
@@ -324,10 +325,8 @@ impl PlutusData {
         ))
     }
 
-    pub fn new_bytes(bytes: &BoundedBytes) -> Self {
-        Self(cml_chain::plutus::PlutusData::new_bytes(
-            bytes.clone().into(),
-        ))
+    pub fn new_bytes(bytes: Vec<u8>) -> Self {
+        Self(cml_chain::plutus::PlutusData::new_bytes(bytes))
     }
 
     pub fn kind(&self) -> PlutusDataKind {
@@ -336,7 +335,7 @@ impl PlutusData {
             cml_chain::plutus::PlutusData::Map { .. } => PlutusDataKind::Map,
             cml_chain::plutus::PlutusData::List { .. } => PlutusDataKind::List,
             cml_chain::plutus::PlutusData::BigInt(_) => PlutusDataKind::BigInt,
-            cml_chain::plutus::PlutusData::Bytes(_) => PlutusDataKind::Bytes,
+            cml_chain::plutus::PlutusData::Bytes{ .. } => PlutusDataKind::Bytes,
         }
     }
 
@@ -370,9 +369,9 @@ impl PlutusData {
         }
     }
 
-    pub fn as_bytes(&self) -> Option<BoundedBytes> {
+    pub fn as_bytes(&self) -> Option<Vec<u8>> {
         match &self.0 {
-            cml_chain::plutus::PlutusData::Bytes(bytes) => Some(bytes.clone().into()),
+            cml_chain::plutus::PlutusData::Bytes{ bytes, .. } => Some(bytes.clone().into()),
             _ => None,
         }
     }

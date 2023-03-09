@@ -14,6 +14,7 @@ pub mod crypto;
 pub mod plutus;
 pub mod serialization;
 pub mod transaction;
+pub mod utils;
 
 use address::*;
 use auxdata::*;
@@ -38,11 +39,6 @@ extern crate derivative;
 
 pub(crate) use derivative::Derivative;
 //#![allow(clippy::too_many_arguments)]
-
-// TODO: replace with real bigint type
-pub type BigInt = Int;
-// TODO: same ^
-pub type BoundedBytes = Int;
 
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen

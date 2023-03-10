@@ -4,7 +4,6 @@
 use super::{IntList, MapPlutusDataToPlutusData, PlutusDataList, SubCoin};
 use crate::utils::BigInt;
 pub use cml_chain::plutus::{Language, RedeemerTag};
-use cml_core::ordered_hash_map::OrderedHashMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
@@ -39,17 +38,17 @@ impl ConstrPlutusData {
             .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
-    pub fn constructor(&self) -> u64 {
-        self.0.constructor
+    pub fn alternative(&self) -> u64 {
+        self.0.alternative
     }
 
     pub fn fields(&self) -> PlutusDataList {
         self.0.fields.clone().into()
     }
 
-    pub fn new(constructor: u64, fields: &PlutusDataList) -> Self {
+    pub fn new(alternative: u64, fields: &PlutusDataList) -> Self {
         Self(cml_chain::plutus::ConstrPlutusData::new(
-            constructor,
+            alternative,
             fields.clone().into(),
         ))
     }

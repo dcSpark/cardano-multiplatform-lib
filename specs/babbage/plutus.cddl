@@ -22,7 +22,18 @@ plutus_data =
 
 big_int = _CDDL_CODEGEN_EXTERN_TYPE_
 
-constr_plutus_data = #6.102([constructor: uint, fields: [* plutus_data]])
+; original definition not used to avoid hundreds of variants:
+; constr<a> =
+;    #6.121([* a])
+;  / #6.122([* a])
+;  / #6.123([* a])
+;  / #6.124([* a])
+;  / #6.125([* a])
+;  / #6.126([* a])
+;  / #6.127([* a])
+;  ; similarly for tag range: 6.1280 .. 6.1400 inclusive
+;  / #6.102([alternative: uint, fields: [* a]])
+constr_plutus_data = _CDDL_CODEGEN_EXTERN_TYPE_
 
 redeemer = [ tag: redeemer_tag, index: uint, data: plutus_data, ex_units: ex_units ]
 redeemer_tag =

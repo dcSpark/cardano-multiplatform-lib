@@ -77,6 +77,13 @@ impl Int {
             encoding: None,
         }
     }
+
+    pub fn encoding(&self) -> &Option<cbor_event::Sz> {
+        match self {
+            Self::Uint { encoding, .. } => encoding,
+            Self::Nint { encoding, .. } => encoding,
+        }
+    }
 }
 
 impl std::fmt::Display for Int {
@@ -112,6 +119,15 @@ impl std::convert::TryFrom<i128> for Int {
                 value: x,
                 encoding: None,
             })
+        }
+    }
+}
+
+impl Into<i128> for &Int {
+    fn into(self) -> i128 {
+        match self {
+            Int::Uint { value, .. } => (*value).into(),
+            Int::Nint { value, .. } => -((*value + 1) as i128),
         }
     }
 }

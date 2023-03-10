@@ -7,127 +7,10 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use cml_crypto::RawBytesEncoding;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
-impl Serialize for ConstrPlutusData {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_tag_sz(
-            102u64,
-            fit_sz(
-                102u64,
-                self.encodings
-                    .as_ref()
-                    .map(|encs| encs.tag_encoding)
-                    .unwrap_or_default(),
-                force_canonical,
-            ),
-        )?;
-        serializer.write_array_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.len_encoding)
-                .unwrap_or_default()
-                .to_len_sz(2, force_canonical),
-        )?;
-        serializer.write_unsigned_integer_sz(
-            self.constructor,
-            fit_sz(
-                self.constructor,
-                self.encodings
-                    .as_ref()
-                    .map(|encs| encs.constructor_encoding)
-                    .unwrap_or_default(),
-                force_canonical,
-            ),
-        )?;
-        serializer.write_array_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.fields_encoding)
-                .unwrap_or_default()
-                .to_len_sz(self.fields.len() as u64, force_canonical),
-        )?;
-        for element in self.fields.iter() {
-            element.serialize(serializer, force_canonical)?;
-        }
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.fields_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
-    }
-}
-
-impl Deserialize for ConstrPlutusData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (tag, tag_encoding) = raw.tag_sz()?;
-        if tag != 102 {
-            return Err(DeserializeError::new(
-                "ConstrPlutusData",
-                DeserializeFailure::TagMismatch {
-                    found: tag,
-                    expected: 102,
-                },
-            ));
-        }
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        (|| -> Result<_, DeserializeError> {
-            let (constructor, constructor_encoding) = raw
-                .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
-                .map_err(Into::<DeserializeError>::into)
-                .map_err(|e: DeserializeError| e.annotate("constructor"))?;
-            let (fields, fields_encoding) = (|| -> Result<_, DeserializeError> {
-                let mut fields_arr = Vec::new();
-                let len = raw.array_sz()?;
-                let fields_encoding = len.into();
-                while match len {
-                    cbor_event::LenSz::Len(n, _) => (fields_arr.len() as u64) < n,
-                    cbor_event::LenSz::Indefinite => true,
-                } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
-                    }
-                    fields_arr.push(PlutusData::deserialize(raw)?);
-                }
-                Ok((fields_arr, fields_encoding))
-            })()
-            .map_err(|e| e.annotate("fields"))?;
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
-            Ok(ConstrPlutusData {
-                constructor,
-                fields,
-                encodings: Some(ConstrPlutusDataEncoding {
-                    len_encoding,
-                    tag_encoding: Some(tag_encoding),
-                    constructor_encoding,
-                    fields_encoding,
-                }),
-            })
-        })()
-        .map_err(|e| e.annotate("ConstrPlutusData"))
-    }
-}
+// PlutusData::Bytes uses this specific encoding:
+use crate::utils::{read_bounded_bytes, write_bounded_bytes};
 
 impl Serialize for CostModels {
     fn serialize<'se, W: Write>(
@@ -541,7 +424,11 @@ impl Serialize for PlutusData {
                 list_encoding.end(serializer, force_canonical)
             }
             PlutusData::BigInt(big_int) => big_int.serialize(serializer, force_canonical),
-            PlutusData::Bytes(bytes) => bytes.serialize(serializer, force_canonical),
+            // hand-written
+            PlutusData::Bytes {
+                bytes,
+                bytes_encoding,
+            } => write_bounded_bytes(serializer, &bytes, bytes_encoding, force_canonical),
         }
     }
 }
@@ -624,9 +511,15 @@ impl Deserialize for PlutusData {
                     .seek(SeekFrom::Start(initial_position))
                     .unwrap(),
             };
-            let deser_variant: Result<_, DeserializeError> = BoundedBytes::deserialize(raw);
+            // hand-written
+            let deser_variant: Result<_, DeserializeError> = read_bounded_bytes(raw);
             match deser_variant {
-                Ok(bytes) => return Ok(Self::Bytes(bytes)),
+                Ok((bytes, bytes_encoding)) => {
+                    return Ok(Self::Bytes {
+                        bytes,
+                        bytes_encoding,
+                    })
+                }
                 Err(_) => raw
                     .as_mut_ref()
                     .seek(SeekFrom::Start(initial_position))

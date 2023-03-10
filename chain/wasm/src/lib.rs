@@ -17,11 +17,6 @@ pub mod crypto;
 pub mod plutus;
 pub mod transaction;
 
-// TODO: replace with real bigint type
-pub type BigInt = Int;
-// TODO: same ^
-pub type BoundedBytes = Int;
-
 use address::RewardAccount;
 use auxdata::{AuxiliaryData, TransactionMetadatum};
 use block::ProtocolVersion;
@@ -35,6 +30,8 @@ use plutus::{
 use transaction::{
     NativeScript, TransactionBody, TransactionInput, TransactionOutput, TransactionWitnessSet,
 };
+
+pub mod utils;
 
 //extern crate serde_wasm_bindgen;
 // Code below here was code-generated using an experimental CDDL to rust tool:

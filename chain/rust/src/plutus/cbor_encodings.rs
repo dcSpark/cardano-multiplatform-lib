@@ -5,14 +5,6 @@ use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
-pub struct ConstrPlutusDataEncoding {
-    pub len_encoding: LenEncoding,
-    pub tag_encoding: Option<cbor_event::Sz>,
-    pub constructor_encoding: Option<cbor_event::Sz>,
-    pub fields_encoding: LenEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
 pub struct CostModelsEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,

@@ -3,11 +3,13 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
+pub mod utils;
 
-use super::{BigInt, BoundedBytes, PositiveInterval, SubCoin};
+use super::{PositiveInterval, SubCoin};
+use crate::utils::BigInt;
 use cbor_encodings::{
-    ConstrPlutusDataEncoding, CostModelsEncoding, ExUnitPricesEncoding, ExUnitsEncoding,
-    PlutusV1ScriptEncoding, PlutusV2ScriptEncoding, RedeemerEncoding,
+    CostModelsEncoding, ExUnitPricesEncoding, ExUnitsEncoding, PlutusV1ScriptEncoding,
+    PlutusV2ScriptEncoding, RedeemerEncoding,
 };
 use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
@@ -16,32 +18,8 @@ use cml_core::Int;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
-#[derive(
-    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
-)]
-#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct ConstrPlutusData {
-    pub constructor: u64,
-    pub fields: Vec<PlutusData>,
-    #[derivative(
-        PartialEq = "ignore",
-        Ord = "ignore",
-        PartialOrd = "ignore",
-        Hash = "ignore"
-    )]
-    #[serde(skip)]
-    pub encodings: Option<ConstrPlutusDataEncoding>,
-}
+pub use utils::ConstrPlutusData;
 
-impl ConstrPlutusData {
-    pub fn new(constructor: u64, fields: Vec<PlutusData>) -> Self {
-        Self {
-            constructor,
-            fields,
-            encodings: None,
-        }
-    }
-}
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct CostModels {
@@ -156,7 +134,17 @@ pub enum PlutusData {
         list_encoding: LenEncoding,
     },
     BigInt(BigInt),
-    Bytes(BoundedBytes),
+    Bytes {
+        bytes: Vec<u8>,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        bytes_encoding: StringEncoding,
+    },
 }
 
 impl PlutusData {
@@ -182,8 +170,11 @@ impl PlutusData {
         Self::BigInt(big_int)
     }
 
-    pub fn new_bytes(bytes: BoundedBytes) -> Self {
-        Self::Bytes(bytes)
+    pub fn new_bytes(bytes: Vec<u8>) -> Self {
+        Self::Bytes {
+            bytes,
+            bytes_encoding: StringEncoding::default(),
+        }
     }
 }
 

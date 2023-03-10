@@ -60,18 +60,6 @@ protocol_param_update = {
   ? 24: uint,               ; @name max_collateral_inputs
 }
 
-; bounded_bytes = bytes .size (0..64)
-;  ; the real bounded_bytes does not have this limit. it instead has a different
-;  ; limit which cannot be expressed in CDDL.
-;  ; The limit is as follows:
-;  ;  - bytes with a definite-length encoding are limited to size 0..64
-;  ;  - for bytes with an indefinite-length CBOR encoding, each chunk is
-;  ;    limited to size 0..64
-;  ;  ( reminder: in CBOR, the indefinite-length encoding of bytestrings
-;  ;    consists of a token #2.31 followed by a sequence of definite-length
-;  ;    encoded bytestrings and a stop code )
-bounded_bytes = _CDDL_CODEGEN_EXTERN_TYPE_
-
 sub_coin = positive_interval
 
 multiasset = { * policy_id => { * asset_name => uint } }

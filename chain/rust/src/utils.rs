@@ -7,6 +7,18 @@ use cml_core::{
 use derivative::Derivative;
 use std::io::{BufRead, Seek, Write};
 
+use cml_crypto::RawBytesEncoding;
+
+impl RawBytesEncoding for AssetName {
+    fn to_raw_bytes(&self) -> &[u8] {
+        &self.inner
+    }
+
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, cml_crypto::CryptoError> {
+        Self::new(bytes).map_err(Into::into)
+    }
+}
+
 const BOUNDED_BYTES_CHUNK_SIZE: usize = 64;
 
 // to get around not having access from outside the library we just write the raw CBOR indefinite byte string code here

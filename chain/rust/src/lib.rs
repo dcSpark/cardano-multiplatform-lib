@@ -71,11 +71,7 @@ pub struct AssetName {
 }
 
 impl AssetName {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
-    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
+    pub fn new(inner: &[u8]) -> Result<Self, DeserializeError> {
         if inner.len() > 32 {
             return Err(DeserializeError::new(
                 "AssetName",
@@ -87,16 +83,16 @@ impl AssetName {
             ));
         }
         Ok(Self {
-            inner,
+            inner: inner.to_vec(),
             encodings: None,
         })
     }
 }
 
-impl TryFrom<Vec<u8>> for AssetName {
+impl TryFrom<&[u8]> for AssetName {
     type Error = DeserializeError;
 
-    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
+    fn try_from(inner: &[u8]) -> Result<Self, Self::Error> {
         AssetName::new(inner)
     }
 }

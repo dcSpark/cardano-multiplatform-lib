@@ -889,8 +889,8 @@ impl PolicyIdV1 {
             .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
-    pub fn get(&self) -> String64 {
-        self.0.get().clone().into()
+    pub fn get(&self) -> String {
+        self.0.get().clone()
     }
 }
 

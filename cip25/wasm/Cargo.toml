@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 core = { path = "../rust", package = "cml-cip25" }
 cml-core-wasm = { path = "../../core/wasm" }
+cml-chain-wasm = { path = "../../chain/wasm" }
 cbor_event = "2.2.0"
 wasm-bindgen = { version = "=0.2.83", features = ["serde-serialize"] }
 linked-hash-map = "0.5.3"

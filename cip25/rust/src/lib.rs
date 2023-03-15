@@ -212,21 +212,33 @@ impl MetadataDetails {
     Ord,
     PartialOrd,
 )]
-pub struct PolicyIdV1(pub String64);
+pub struct PolicyIdV1(pub String);
 
 impl PolicyIdV1 {
-    pub fn get(&self) -> &String64 {
+    pub fn get(&self) -> &String {
         &self.0
     }
 
-    pub fn new(inner: String64) -> Self {
-        Self(inner)
+    pub fn new(inner: String) -> Result<Self, DeserializeError> {
+        if inner.len() != 56 {
+            return Err(DeserializeError::new(
+                "PolicyIdV1",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(56),
+                    max: Some(56),
+                },
+            ));
+        }
+        Ok(Self(inner))
     }
 }
 
-impl From<String64> for PolicyIdV1 {
-    fn from(inner: String64) -> Self {
-        PolicyIdV1::new(inner.clone().into())
+impl TryFrom<String> for PolicyIdV1 {
+    type Error = DeserializeError;
+
+    fn try_from(inner: String) -> Result<Self, Self::Error> {
+        PolicyIdV1::new(inner)
     }
 }
 
@@ -250,13 +262,25 @@ impl PolicyIdV2 {
         &self.0
     }
 
-    pub fn new(inner: Vec<u8>) -> Self {
-        Self(inner)
+    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
+        if inner.len() != 28 {
+            return Err(DeserializeError::new(
+                "PolicyIdV2",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(28),
+                    max: Some(28),
+                },
+            ));
+        }
+        Ok(Self(inner))
     }
 }
 
-impl From<Vec<u8>> for PolicyIdV2 {
-    fn from(inner: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for PolicyIdV2 {
+    type Error = DeserializeError;
+
+    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
         PolicyIdV2::new(inner)
     }
 }
@@ -290,12 +314,6 @@ pub struct String64(pub String);
 
 impl From<AssetNameV1> for String64 {
     fn from(wrapper: AssetNameV1) -> Self {
-        wrapper.0
-    }
-}
-
-impl From<PolicyIdV1> for String64 {
-    fn from(wrapper: PolicyIdV1) -> Self {
         wrapper.0
     }
 }

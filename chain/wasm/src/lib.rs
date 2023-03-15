@@ -70,7 +70,7 @@ impl AssetName {
     }
 
     pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
+        self.0.inner.clone()
     }
 }
 

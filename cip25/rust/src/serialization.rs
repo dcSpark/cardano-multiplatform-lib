@@ -800,13 +800,24 @@ impl cbor_event::se::Serialize for PolicyIdV1 {
         &self,
         serializer: &'se mut Serializer<W>,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        self.0.serialize(serializer)
+        serializer.write_text(&self.0)
     }
 }
 
 impl Deserialize for PolicyIdV1 {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        Ok(Self(String64::deserialize(raw)?))
+        let inner = raw.text()? as String;
+        if inner.len() != 56 {
+            return Err(DeserializeError::new(
+                "PolicyIdV1",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(56),
+                    max: Some(56),
+                },
+            ));
+        }
+        Ok(Self(inner))
     }
 }
 
@@ -821,7 +832,18 @@ impl cbor_event::se::Serialize for PolicyIdV2 {
 
 impl Deserialize for PolicyIdV2 {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        Ok(Self(raw.bytes()? as Vec<u8>))
+        let inner = raw.bytes()? as Vec<u8>;
+        if inner.len() != 28 {
+            return Err(DeserializeError::new(
+                "PolicyIdV2",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len(),
+                    min: Some(28),
+                    max: Some(28),
+                },
+            ));
+        }
+        Ok(Self(inner))
     }
 }
 

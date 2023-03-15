@@ -25,6 +25,48 @@ impl CIP25Metadata {
             .add_to_metadata(metadata.as_mut())
             .map_err(Into::into)
     }
+
+    /// Version-independant access to an NFT's MetadataDetails
+    /// Converts based on cml-chain's PolicyId/AssetName
+    pub fn get(
+        &self,
+        policy_id: &cml_chain_wasm::PolicyId,
+        asset_name: &cml_chain_wasm::AssetName,
+    ) -> Option<MetadataDetails> {
+        self.0
+            .get(policy_id.as_ref(), asset_name.as_ref())
+            .cloned()
+            .map(Into::into)
+    }
+
+    /// Version-independant insertion of an NFT's MetadataDetails
+    /// Converts based on cml-chain's PolicyId/AssetName
+    /// Errors when the AssetName can't be represented by the CIP25 version (i.e. v1)
+    pub fn set(
+        &mut self,
+        policy_id: &cml_chain_wasm::PolicyId,
+        asset_name: &cml_chain_wasm::AssetName,
+        details: MetadataDetails,
+    ) -> Result<(), JsError> {
+        self.0
+            .set(policy_id.as_ref(), asset_name.as_ref(), details.into())
+            .map_err(Into::into)
+    }
+
+    /// Version-independant access to all policy IDs in this schema
+    /// Converts based on cml-chain's PolicyId/AssetName
+    pub fn policies(&self) -> Result<cml_chain_wasm::PolicyIdList, JsError> {
+        self.0.policies().map(Into::into).map_err(Into::into)
+    }
+
+    /// Version-independant access to all Asset names for a given PolicyId
+    /// Converts based on cml-chain's PolicyId/AssetName
+    pub fn asset_names(
+        &self,
+        policy_id: &cml_chain_wasm::PolicyId,
+    ) -> Option<cml_chain_wasm::AssetNameList> {
+        self.0.asset_names(policy_id.as_ref()).map(Into::into)
+    }
 }
 
 #[wasm_bindgen]
@@ -63,7 +105,7 @@ impl MiniMetadataDetails {
     pub fn new() -> Self {
         MiniMetadataDetails(core::utils::MiniMetadataDetails {
             name: None,
-            image: None
+            image: None,
         })
     }
 

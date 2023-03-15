@@ -1,10 +1,14 @@
 string64 = text .size (0..64)
 
-policy_id_v1 = string64 ; @newtype
-asset_name_v1 = string64 ; @newtype utf-8
+; actually also has to be a hex string
+policy_id_v1 = text .size 56 ; @newtype
+; utf8 text
+asset_name_v1 = string64 ; @newtype
 
-policy_id_v2 = bytes ; @newtype no longer in text
-asset_name_v2 = bytes ; @newtype no longer in text and utf-8
+; no longer in text
+policy_id_v2 = bytes .size 28 ; @newtype
+; no longer in text/utf8
+asset_name_v2 = bytes .size (0..64) ; @newtype
 
 files_details = 
   {

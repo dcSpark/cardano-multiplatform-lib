@@ -1,6 +1,11 @@
 use super::*;
 use schemars::JsonSchema;
 
+use cml_core::{
+    error::DeserializeError,
+    serialization::Deserialize,
+};
+
 const CRC_TABLE: [u32; 256] = [
     0x00000000u32,
     0x77073096u32,
@@ -264,21 +269,18 @@ const CRC_TABLE: [u32; 256] = [
 ///
 /// This structure allows implements the `Write` trait making it easier
 /// to compute the crc32 of a stream.
-#[wasm_bindgen]
-#[derive(Clone, Debug, Eq, Ord, Hash, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize, JsonSchema)]
-pub struct Crc32(pub(crate) u32);
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Copy)]
+pub struct Crc32(u32);
 
-to_from_bytes!(Crc32);
-to_from_json!(Crc32);
-
-#[wasm_bindgen]
-impl Crc32 {
-    pub fn from_val(val: u32) -> Crc32 {
-        Self(val)
-    }
-
-    pub fn val(&self) -> u32 {
+impl Into<u32> for Crc32 {
+    fn into(self) -> u32 {
         self.0
+    }
+}
+
+impl From<u32> for Crc32 {
+    fn from(inner: u32) -> Self {
+        Crc32(inner)
     }
 }
 
@@ -323,9 +325,24 @@ impl ::std::io::Write for Crc32 {
     }
 }
 
-impl From<u32> for Crc32 {
-    fn from(v: u32) -> Self {
-        Crc32(v)
+impl cbor_event::se::Serialize for Crc32 {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer(self.0 as u64)
+    }
+}
+
+impl Deserialize for Crc32 {
+    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        Ok(Self(raw.unsigned_integer()? as u32))
+    }
+}
+
+impl std::fmt::Display for Crc32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#04x}", self.0)
     }
 }
 

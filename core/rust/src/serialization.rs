@@ -49,6 +49,17 @@ impl CBORReadLen {
     }
 }
 
+impl From<cbor_event::Len> for CBORReadLen {
+    // to facilitate mixing with crates that use preserve-encodings=false to generate
+    // we need to create it from cbor_event::Len instead
+    fn from(len: cbor_event::Len) -> Self {
+        Self::new(match len {
+            cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, fit_sz(n, None, true)),
+            cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
+        })
+    }
+}
+
 pub trait DeserializeEmbeddedGroup {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(
         raw: &mut Deserializer<R>,

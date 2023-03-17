@@ -1,0 +1,60 @@
+; Basic Cardano Types
+
+; blake2b224 = bytes .size 28
+; public_ed_25519_bip32 = bytes .size 64
+; script = bytes .size 32
+; public_ed_25519 = bytes .size 32
+
+blake2b224 = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+public_ed_25519_bip32 = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+byron_script = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+public_ed_25519 = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+
+; blake2b224 of sha256 of cbor(byron_addr_type, spending_data, addr_attributes)
+address_id = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; blake2b224 
+stakeholder_id = _CDDL_CODEGEN_RAW_BYTES_TYPE_; blake2b224
+crc32 = _CDDL_CODEGEN_EXTERN_TYPE_ ; uint .size 4 ; @newtype
+protocol_magic = _CDDL_CODEGEN_EXTERN_TYPE_ ; uint .size 4 ; @newtype
+hd_address_payload = bytes ; @newtype
+
+; Addresses
+
+; cddl had bootstrap as (1, uint) but byron/mod.rs had no uint field.
+stake_distribution = [
+  ; @name SingleKey
+  tag: 0, stakeholder_id //
+  ; @name BootstrapEra
+  bootstrap_era: 1
+]
+
+spending_data = [
+  ; @name SpendingDataPubKey
+  tag: 0, pubkey: public_ed_25519_bip32 //
+  ; @name SpendingDataScript
+  tag: 1, script: byron_script //
+  ; @name SpendingDataRedeem
+  tag: 2, redeem: public_ed_25519
+]
+
+
+byron_addr_type = 0 ; @name PublicKey
+          / 1 ; @name Script
+          / 2 ; @name Redeem
+
+addr_attributes = {
+  ? 0 : bytes .cbor stake_distribution, ; @name stake_distribution
+  ; strictly speaking, this may contain anything:
+  ? 1 : bytes .cbor hd_address_payload, ; @name derivation_path
+  ? 2 : bytes .cbor protocol_magic,     ; @name protocol_magic
+}
+
+address_content = [address_id, addr_attributes, byron_addr_type]
+
+byron_address = [
+  content: #6.24(bytes .cbor address_content),
+  crc: crc32,
+]
+tx_out = [
+  address: byron_address,
+  amount: uint,
+]

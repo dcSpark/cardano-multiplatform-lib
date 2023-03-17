@@ -1,17 +1,36 @@
 use cbor_event::cbor;
 
-use crate::{chain_crypto::{Sha3_256}, genesis::network_info::NetworkInfo, crypto::{Bip32PublicKey, PublicKey}, address::Address};
-use std::{convert::TryInto, fmt};
+use std::{convert::{TryInto, TryFrom}, fmt};
 use super::*;
+use cml_crypto::{
+    chain_crypto::{self, Sha3_256},
+    Bip32PublicKey, PublicKey,
+    impl_hash_type,
+    CryptoError,
+    RawBytesEncoding,
+};
+use crate::{
+    address::{Address, AddressError},
+    genesis::network_info::NetworkInfo
+};
+use cml_core::{
+    error::{DeserializeError, DeserializeFailure},
+    serialization::{Deserialize, ToBytes}
+};
 
-#[wasm_bindgen]
-impl StakeDistribution {
-    pub fn new_single_key(pubk: &Bip32PublicKey) -> Self {
-        StakeDistribution::new_single_key_distr(&StakeholderId::new(pubk))
-    }
+#[derive(Debug, thiserror::Error)]
+pub enum ByronAddressError {
+    #[error("UnknownNetwork: {0}")]
+    UnknownNetwork(ProtocolMagic),
+    #[error("InvalidCRC: found {found}, expected {expected}")]
+    InvalidCRC{ found: Crc32, expected: Crc32 },
 }
 
-#[wasm_bindgen]
+impl_hash_type!(AddressId, 28);
+// not sure if this is a hash but it likely is and has the same byte format
+impl_hash_type!(ByronScript, 32);
+impl_hash_type!(StakeholderId, 28);
+
 impl StakeholderId {
     pub fn new(pubk: &Bip32PublicKey) -> StakeholderId {
         // the reason for this unwrap is that we have to dynamically allocate 66 bytes
@@ -23,7 +42,6 @@ impl StakeholderId {
     }
 }
 
-#[wasm_bindgen]
 impl AddrAttributes {
     pub fn new_bootstrap_era(hdap: Option<HDAddressPayload>, protocol_magic: Option<ProtocolMagic>) -> Self {
         let adjusted_magic = match &protocol_magic {
@@ -34,7 +52,7 @@ impl AddrAttributes {
         };
         AddrAttributes {
             derivation_path: hdap,
-            stake_distribution: Some(StakeDistribution(StakeDistributionEnum::BootstrapEraDistr(BootstrapEraDistr::new()))),
+            stake_distribution: Some(StakeDistribution::BootstrapEra),
             protocol_magic: adjusted_magic,
         }
     }
@@ -45,18 +63,18 @@ impl AddrAttributes {
     ) -> Self {
         AddrAttributes {
             derivation_path: hdap,
-            stake_distribution: Some(StakeDistribution::new_single_key(pubk)),
+            stake_distribution: Some(StakeDistribution::new_single_key(StakeholderId::new(pubk))),
             protocol_magic: Some(protocol_magic),
         }
     }
 }
 
-#[wasm_bindgen]
 impl AddressId {
-    pub fn new(addr_type: &ByronAddrType, spending_data: &SpendingData, attrs: &AddrAttributes) -> Self {
+    pub fn new(addr_type: ByronAddrType, spending_data: &SpendingData, attrs: &AddrAttributes) -> Self {
         // the reason for this unwrap is that we have to dynamically allocate 66 bytes
         // to serialize 64 bytes in cbor (2 bytes of cbor overhead).
-        let buf = cbor!(&(&addr_type, spending_data, attrs))
+        let addr_type_uint = addr_type as u32;
+        let buf = cbor!(&(&addr_type_uint, spending_data, attrs))
             .expect("serialize the AddressId's digest data");
 
         let hash = Sha3_256::new(&buf);
@@ -64,49 +82,57 @@ impl AddressId {
     }
 }
 
-#[wasm_bindgen]
+impl From<AddressContent> for ByronAddress {
+    fn from(content: AddressContent) -> Self {
+        let content_bytes = content.to_bytes();
+        let crc = super::crc32::crc32(&content_bytes).into();
+        ByronAddress { content, crc }
+    }
+}
+
 impl AddressContent {
-    pub fn hash_and_create(addr_type: &ByronAddrType, spending_data: &SpendingData, attributes:& AddrAttributes) -> AddressContent {
-        let address_id = AddressId::new(addr_type, spending_data, attributes);
+    pub fn hash_and_create(addr_type: ByronAddrType, spending_data: &SpendingData, attributes: AddrAttributes) -> AddressContent {
+        let address_id = AddressId::new(addr_type, spending_data, &attributes);
         AddressContent::new(
-            &address_id, 
+            address_id, 
             attributes,
             addr_type,
         )
     }
 
     // bootstrap era + no hdpayload address
-    pub fn new_redeem(pubkey: &PublicKey, protocol_magic: Option<ProtocolMagic>) -> Self {
+    pub fn new_redeem(pubkey: PublicKey, protocol_magic: Option<ProtocolMagic>) -> Self {
         let attributes = AddrAttributes::new_bootstrap_era(None, protocol_magic);
-        let addr_type = AddrTypeEnum::ATRedeem;
-        let spending_data = SpendingDataEnum::SpendingDataRedeemASD(SpendingDataRedeemASD::new(pubkey));
+        let addr_type = ByronAddrType::Redeem;
+        let spending_data = &SpendingData::new_spending_data_redeem(pubkey);
         
-        AddressContent::hash_and_create(&ByronAddrType(addr_type), &SpendingData(spending_data), &attributes)
+        AddressContent::hash_and_create(addr_type, &spending_data, attributes)
     }
 
     // bootstrap era + no hdpayload address
-    pub fn new_simple(xpub: &Bip32PublicKey, protocol_magic: Option<ProtocolMagic>) -> Self {
+    pub fn new_simple(xpub: Bip32PublicKey, protocol_magic: Option<ProtocolMagic>) -> Self {
         let attributes = AddrAttributes::new_bootstrap_era(None, protocol_magic);
-        let addr_type = AddrTypeEnum::ATPubKey;
-        let spending_data = SpendingDataEnum::SpendingDataPubKeyASD(SpendingDataPubKeyASD::new(xpub));
+        let addr_type = ByronAddrType::PublicKey;
+        let spending_data = SpendingData::new_spending_data_pub_key(xpub);
 
-        AddressContent::hash_and_create(&ByronAddrType(addr_type), &SpendingData(spending_data), &attributes)
+        AddressContent::hash_and_create(addr_type, &spending_data, attributes)
     }
 
+    /// Do we want to remove this or keep it for people who were using old Byron code?
     pub fn to_address(&self) -> ByronAddress {
-        ByronAddress::checksum_from_bytes(self.to_bytes())
+        self.clone().into()
     }
 
     /// returns the byron protocol magic embedded in the address, or mainnet id if none is present
     /// note: for bech32 addresses, you need to use network_id instead
-    pub fn byron_protocol_magic(&self) -> u32 {
-        match self.addr_attr.protocol_magic {
-            Some(x) => x.0,
-            None => NetworkInfo::mainnet().protocol_magic().0, // mainnet is implied if omitted
+    pub fn byron_protocol_magic(&self) -> ProtocolMagic {
+        match self.addr_attributes.protocol_magic {
+            Some(x) => x,
+            None => NetworkInfo::mainnet().protocol_magic(), // mainnet is implied if omitted
         }
     }
 
-    pub fn network_id(&self) -> Result<u8, JsError> {
+    pub fn network_id(&self) -> Result<u8, ByronAddressError> {
         // premise: during the Byron-era, we had one mainnet (764824073) and many many testnets
         // with each testnet getting a different protocol magic
         // in Shelley, this changes so that:
@@ -119,64 +145,41 @@ impl AddressContent {
         // mainnet is implied if omitted
         let protocol_magic = self.byron_protocol_magic();
         match protocol_magic {
-            magic if magic == NetworkInfo::mainnet().protocol_magic().0 => Ok(NetworkInfo::mainnet().network_id()),
-            magic if magic == NetworkInfo::testnet().protocol_magic().0 => Ok(NetworkInfo::testnet().network_id()),
-            _ => Err(JsError::from_str(&format! {"Unknown network {}", protocol_magic}))
+            magic if magic == NetworkInfo::mainnet().protocol_magic() => Ok(NetworkInfo::mainnet().network_id()),
+            magic if magic == NetworkInfo::testnet().protocol_magic() => Ok(NetworkInfo::testnet().network_id()),
+            _ => Err(ByronAddressError::UnknownNetwork(protocol_magic)),
         }
     }
 
     // icarus-style address (Ae2)
-    pub fn icarus_from_key(key: &Bip32PublicKey, protocol_magic: u32) -> AddressContent {
+    pub fn icarus_from_key(key: Bip32PublicKey, protocol_magic: u32) -> AddressContent {
         // need to ensure we use None for mainnet since Byron-era addresses omitted the network id
         let filtered_protocol_magic = if protocol_magic == NetworkInfo::mainnet().protocol_magic().0 { None } else { Some(ProtocolMagic(protocol_magic)) };
         AddressContent::new_simple( key, filtered_protocol_magic)
     }
 
     /// Check if the Addr can be reconstructed with a specific xpub
-    pub fn identical_with_pubkey(&self, xpub: &Bip32PublicKey) -> bool {
-        let addr_type = AddrTypeEnum::ATPubKey;
-        let spending_data = SpendingDataEnum::SpendingDataPubKeyASD(SpendingDataPubKeyASD::new(xpub));
-        let newea = AddressContent::hash_and_create(&ByronAddrType(addr_type), &SpendingData(spending_data), &self.addr_attr.clone());
+    pub fn identical_with_pubkey(&self, xpub: Bip32PublicKey) -> bool {
+        let addr_type = ByronAddrType::PublicKey;
+        let spending_data = SpendingData::new_spending_data_pub_key(xpub);
+        let newea = AddressContent::hash_and_create(addr_type, &spending_data, self.addr_attributes.clone());
         
-        if self == &newea {
-            // AddressMatchXPub::Yes
-            true
-        } else {
-            // AddressMatchXPub::No
-            false
-        }
+        *self == newea
     }
 }
 
-#[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum AddressMatchXPub {
-    Yes,
-    No,
-}
-
-#[wasm_bindgen]
 impl ByronAddress {
-
     pub fn to_base58(&self) -> String {
         base58::encode(&self.to_bytes())
     }
 
-    pub fn from_base58(s: &str) -> Result<ByronAddress, JsError> {
+    pub fn from_base58(s: &str) -> Result<ByronAddress, ParseExtendedAddrError> {
         let bytes = base58::decode(s)
-            // .map_err(ParseExtendedAddrError::Base58Error)
-            .map_err(|_| JsError::from_str("ByronAddress::from_base58 failed to parse base58"))?;
-        Self::from_bytes(bytes)
-            // .map_err(ParseExtendedAddrError::DeserializeError)
-            .map_err(|_| JsError::from_str("ByronAddress::from_base58 failed to parse bytes"))
-    }
-
-    pub fn address_content(&self) -> AddressContent {
-        let mut raw = Deserializer::from(std::io::Cursor::new(self.addr.clone()));
-        raw.tuple(3, "ByronAddress").unwrap();
-        let address_id = Deserialize::deserialize(&mut raw).unwrap();
-        let addr_attr = Deserialize::deserialize(&mut raw).unwrap();
-        let addr_type = Deserialize::deserialize(&mut raw).unwrap();
-        AddressContent { address_id, addr_type, addr_attr }
+            .map_err(ParseExtendedAddrError::Base58Error)?;
+            //.map_err(|_| JsError::from_str("ByronAddress::from_base58 failed to parse base58"))?;
+        Self::from_cbor_bytes(&bytes)
+            .map_err(ParseExtendedAddrError::DeserializeError)
+            //.map_err(|_| JsError::from_str("ByronAddress::from_base58 failed to parse bytes"))
     }
 
     pub fn is_valid(s: &str) -> bool {
@@ -186,19 +189,22 @@ impl ByronAddress {
             Err(_err) => false,
         }
     }
+}
 
-    pub fn to_address(&self) -> Address {
-        Address {
-            variant: crate::address::AddrType::Byron(self.clone()),
-            trailing: None,
+impl TryFrom<Address> for ByronAddress {
+    type Error = AddressError;
+
+    fn try_from(addr: Address) -> Result<Self, Self::Error> {
+        match addr {
+            Address::Byron(byron) => Ok(byron),
+            _ => Err(AddressError::WrongKind(addr.kind())),
         }
     }
+}
 
-    pub fn from_address(addr: &Address) -> Option<ByronAddress> {
-        match &addr.variant {
-            crate::address::AddrType::Byron(byron) => Some(byron.clone()),
-            _ => None,
-        }
+impl From<ByronAddress> for Address {
+    fn from(byron: ByronAddress) -> Self {
+        Self::Byron(byron)
     }
 }
 
@@ -209,8 +215,7 @@ impl fmt::Display for ByronAddress {
 }
 
 impl ::std::str::FromStr for ByronAddress {
-    // type Err = ParseExtendedAddrError;
-    type Err = JsError;
+    type Err = ParseExtendedAddrError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_base58(s)
     }
@@ -227,43 +232,74 @@ impl fmt::Display for ProtocolMagic {
         write!(f, "{}", self.0)
     }
 }
+
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    JsonSchema,
+)]
+pub struct ProtocolMagic(u32);
+
+impl Into<u32> for ProtocolMagic {
+    fn into(self) -> u32 {
+        self.0
+    }
+}
+
+impl From<u32> for ProtocolMagic {
+    fn from(inner: u32) -> Self {
+        ProtocolMagic(inner)
+    }
+}
+
 impl ::std::ops::Deref for ProtocolMagic {
     type Target = u32;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
-impl From<u32> for ProtocolMagic {
-    fn from(v: u32) -> Self {
-        ProtocolMagic(v)
-    }
-}
+
 impl Default for ProtocolMagic {
     fn default() -> Self {
         NetworkInfo::mainnet().protocol_magic()
     }
 }
 
-#[wasm_bindgen]
-impl ProtocolMagic {
-    pub fn new(val: u32) -> Self {
-        ProtocolMagic(val)
+impl cbor_event::se::Serialize for ProtocolMagic {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer(self.0 as u64)
     }
-    pub fn value(&self) -> u32 {
-        self.0
+}
+
+impl Deserialize for ProtocolMagic {
+    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        Ok(Self(raw.unsigned_integer()? as u32))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{chain_crypto::{self, Ed25519Bip32}, address::NetworkInfo, crypto::Bip32PublicKey};
-
-    use super::{ByronAddress, AddressMatchXPub};
+    use cml_crypto::{
+        Bip32PublicKey,
+        chain_crypto::{self, Ed25519Bip32}
+    };
+    use crate::genesis::network_info::NetworkInfo;
+    use super::{ByronAddress};
 
     fn assert_same_address(address: ByronAddress, xpub: chain_crypto::PublicKey<Ed25519Bip32>) {
         assert_eq!(
             address.address_content().identical_with_pubkey(&Bip32PublicKey(xpub.clone())),
-            // AddressMatchXPub::Yes,
             true,
             "expected public key {} to match address {}",
             xpub,

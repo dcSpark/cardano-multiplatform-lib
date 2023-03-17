@@ -2,10 +2,10 @@ use bech32::ToBase32;
 use cbor_event::{de::Deserializer, se::Serializer};
 use schemars::JsonSchema;
 use std::io::{BufRead, Seek, SeekFrom, Write};
-//use crate::byron::{ProtocolMagic, ByronAddress, ByronAddressError};
+use crate::byron::{ProtocolMagic, ByronAddress, ByronAddressError};
 use derivative::Derivative;
-//use crate::genesis::network_info::NetworkInfo;
-use std::convert::TryInto;
+use crate::genesis::network_info::NetworkInfo;
+use std::convert::{TryInto, TryFrom};
 
 // for enums
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -25,54 +25,6 @@ use cml_core::{
     },
     CertificateIndex, Slot, TransactionIndex,
 };
-
-#[derive(
-    Clone,
-    Debug,
-    Eq,
-    Ord,
-    PartialEq,
-    PartialOrd,
-    Hash,
-    Copy,
-    serde::Serialize,
-    serde::Deserialize,
-    JsonSchema,
-)]
-pub struct ProtocolMagic(pub(crate) u32);
-
-#[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct NetworkInfo {
-    network_id: u8,
-    protocol_magic: ProtocolMagic,
-}
-impl NetworkInfo {
-    pub fn new(network_id: u8, protocol_magic: ProtocolMagic) -> Self {
-        Self {
-            network_id,
-            protocol_magic,
-        }
-    }
-    pub fn network_id(&self) -> u8 {
-        self.network_id
-    }
-    pub fn protocol_magic(&self) -> ProtocolMagic {
-        self.protocol_magic
-    }
-
-    pub fn testnet() -> NetworkInfo {
-        NetworkInfo {
-            network_id: 0b0000,
-            protocol_magic: ProtocolMagic(1097911063),
-        }
-    }
-    pub fn mainnet() -> NetworkInfo {
-        NetworkInfo {
-            network_id: 0b0001,
-            protocol_magic: ProtocolMagic(764824073),
-        }
-    }
-}
 
 // returns (Number represented, bytes read) if valid encoding
 // or None if decoding prematurely finished
@@ -107,14 +59,26 @@ fn variable_nat_encode(mut num: num_bigint::BigUint) -> Vec<u8> {
     output
 }
 
+#[wasm_bindgen]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum AddressKind {
+    Base,
+    Ptr,
+    Enterprise,
+    Reward,
+    Byron,
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum AddressError {
     #[error("Bech32: {0}")]
     Bech32(#[from] bech32::Error),
-    //#[error("ByronError: {0}")]
-    //Byron(#[from] ByronAddressError),
+    #[error("ByronError: {0}")]
+    Byron(#[from] ByronAddressError),
     #[error("CBOR: {0}")]
     CBOR(#[from] DeserializeError),
+    #[error("WrongKind: {:?}", 0)]
+    WrongKind(AddressKind),
 }
 
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
@@ -123,7 +87,7 @@ pub enum Address {
     Ptr(PointerAddress),
     Enterprise(EnterpriseAddress),
     Reward(RewardAddress),
-    //Byron(ByronAddress),
+    Byron(ByronAddress),
 }
 
 impl serde::Serialize for Address {
@@ -235,7 +199,7 @@ impl Address {
                     | (stake_cred_bit(&enterprise.payment) << 4)
                     | (enterprise.network & 0xF)
             }
-            //Self::Byron(_) => 0b1000 << 4, // note: no network ID for Byron
+            Self::Byron(_) => 0b1000 << 4, // note: no network ID for Byron
             Self::Reward(reward) => {
                 0b1110_0000 | (stake_cred_bit(&reward.payment) << 4) | (reward.network & 0xF)
             }
@@ -270,9 +234,10 @@ impl Address {
                 buf.push(self.header());
                 buf.extend(reward.payment.to_raw_bytes());
             }
-            //Self::Byron(byron) => {
-            //    buf.extend(byron.to_bytes())
-            //},
+            Self::Byron(byron) => {
+                use cml_core::serialization::ToBytes;
+                buf.extend(byron.to_bytes())
+            },
         }
         if let Some(Some(trailing_bytes)) = self.encoding().map(|enc| &enc.trailing) {
             buf.extend(trailing_bytes.iter());
@@ -435,11 +400,9 @@ impl Address {
                 0b1000 => {
                     // note: 0b1000 was chosen because all existing Byron addresses actually start with 0b1000
                     // Therefore you can re-use Byron addresses as-is
-                    // match ByronAddress::from_bytes(data.to_vec()) {
-                    //     Ok(addr) => Ok(Address::Byron(addr)),
-                    //     Err(e) => Err(cbor_event::Error::CustomError(e.as_string().unwrap_or_default()).into()),
-                    // }
-                    todo!();
+                    ByronAddress::from_cbor_bytes(data)
+                        .map(Address::Byron)
+                        .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 }
                 _ => Err(DeserializeFailure::BadAddressType(header).into()),
             }
@@ -482,12 +445,22 @@ impl Address {
         }
     }
 
-    //pub fn is_valid_byron(base58: &str) -> bool {
-    //    ByronAddress::is_valid(base58)
-    //}
+    pub fn is_valid_byron(base58: &str) -> bool {
+       ByronAddress::is_valid(base58)
+    }
 
     pub fn is_valid(bech_str: &str) -> bool {
-        Self::is_valid_bech32(bech_str) // || Self::is_valid_byron(bech_str)
+        Self::is_valid_bech32(bech_str) || Self::is_valid_byron(bech_str)
+    }
+
+    pub fn kind(&self) -> AddressKind {
+        match self {
+            Self::Base(_) => AddressKind::Base,
+            Self::Byron(_) => AddressKind::Byron,
+            Self::Enterprise(_) => AddressKind::Enterprise,
+            Self::Ptr(_) => AddressKind::Ptr,
+            Self::Reward(_) => AddressKind::Reward,
+        }
     }
 
     pub fn network_id(&self) -> Result<u8, AddressError> {
@@ -496,7 +469,7 @@ impl Address {
             Self::Enterprise(a) => Ok(a.network),
             Self::Ptr(a) => Ok(a.network),
             Self::Reward(a) => Ok(a.network),
-            //Self::Byron(a) => a.address_content().network_id(),
+            Self::Byron(a) => a.content.network_id().map_err(Into::into),
         }
     }
 
@@ -507,7 +480,7 @@ impl Address {
             Self::Enterprise(a) => Some(&a.payment),
             Self::Ptr(a) => Some(&a.payment),
             Self::Reward(a) => Some(&a.payment),
-            //Self::Byron(_) => None,
+            Self::Byron(_) => None,
         }
     }
 
@@ -519,7 +492,7 @@ impl Address {
             Self::Enterprise(_) => None,
             Self::Ptr(_) => None,
             Self::Reward(_) => None,
-            //Self::Byron(_) => None,
+            Self::Byron(_) => None,
         }
     }
 
@@ -529,7 +502,8 @@ impl Address {
             Self::Enterprise(a) => a.encoding.as_ref(),
             Self::Ptr(a) => a.encoding.as_ref(),
             Self::Reward(a) => a.encoding.as_ref(),
-            //Self::Byron(_a) => None,
+            // byron is canonical and follows a specific format with its own quirks
+            Self::Byron(_a) => None,
         }
     }
 }
@@ -558,16 +532,33 @@ impl BaseAddress {
             encoding: None,
         }
     }
-
+        
     pub fn to_address(self) -> Address {
-        Address::Base(self)
+        self.into()
     }
 
-    pub fn from_address(addr: &Address) -> Option<BaseAddress> {
+    pub fn from_address(addr: &Address) -> Option<Self> {
         match addr {
             Address::Base(base) => Some(base.clone()),
             _ => None,
         }
+    }
+}
+
+impl TryFrom<Address> for BaseAddress {
+    type Error = AddressError;
+
+    fn try_from(addr: Address) -> Result<Self, Self::Error> {
+        match addr {
+            Address::Base(base) => Ok(base),
+            _ => Err(AddressError::WrongKind(addr.kind())),
+        }
+    }
+}
+
+impl From<BaseAddress> for Address {
+    fn from(enterprise: BaseAddress) -> Self {
+        Self::Base(enterprise)
     }
 }
 
@@ -595,14 +586,31 @@ impl EnterpriseAddress {
     }
 
     pub fn to_address(self) -> Address {
-        Address::Enterprise(self)
+        self.into()
     }
 
-    pub fn from_address(addr: &Address) -> Option<EnterpriseAddress> {
+    pub fn from_address(addr: &Address) -> Option<Self> {
         match addr {
             Address::Enterprise(enterprise) => Some(enterprise.clone()),
             _ => None,
         }
+    }
+}
+
+impl TryFrom<Address> for EnterpriseAddress {
+    type Error = AddressError;
+
+    fn try_from(addr: Address) -> Result<Self, Self::Error> {
+        match addr {
+            Address::Enterprise(enterprise) => Ok(enterprise),
+            _ => Err(AddressError::WrongKind(addr.kind())),
+        }
+    } 
+}
+
+impl From<EnterpriseAddress> for Address {
+    fn from(enterprise: EnterpriseAddress) -> Self {
+        Self::Enterprise(enterprise)
     }
 }
 
@@ -630,16 +638,33 @@ impl RewardAddress {
             encoding: None,
         }
     }
-
+    
     pub fn to_address(self) -> Address {
-        Address::Reward(self)
+        self.into()
     }
 
-    pub fn from_address(addr: &Address) -> Option<RewardAddress> {
+    pub fn from_address(addr: &Address) -> Option<Self> {
         match addr {
             Address::Reward(reward) => Some(reward.clone()),
             _ => None,
         }
+    }
+}
+
+impl TryFrom<Address> for RewardAddress {
+    type Error = AddressError;
+
+    fn try_from(addr: Address) -> Result<Self, Self::Error> {
+        match addr {
+            Address::Reward(reward) => Ok(reward),
+            _ => Err(AddressError::WrongKind(addr.kind())),
+        }
+    } 
+}
+
+impl From<RewardAddress> for Address {
+    fn from(reward: RewardAddress) -> Self {
+        Self::Reward(reward)
     }
 }
 
@@ -744,16 +769,33 @@ impl PointerAddress {
             encoding: None,
         }
     }
-
+        
     pub fn to_address(self) -> Address {
-        Address::Ptr(self)
+        self.into()
     }
 
-    pub fn from_address(addr: &Address) -> Option<PointerAddress> {
+    pub fn from_address(addr: &Address) -> Option<Self> {
         match addr {
-            Address::Ptr(ptr) => Some(ptr.clone()),
+            Address::Ptr(pointer) => Some(pointer.clone()),
             _ => None,
         }
+    }
+}
+
+impl TryFrom<Address> for PointerAddress {
+    type Error = AddressError;
+
+    fn try_from(addr: Address) -> Result<Self, Self::Error> {
+        match addr {
+            Address::Ptr(pointer) => Ok(pointer),
+            _ => Err(AddressError::WrongKind(addr.kind())),
+        }
+    } 
+}
+
+impl From<PointerAddress> for Address {
+    fn from(pointer: PointerAddress) -> Self {
+        Self::Ptr(pointer)
     }
 }
 
@@ -801,8 +843,7 @@ impl Serialize for RewardAccount {
         serializer: &'se mut Serializer<W>,
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        self.clone()
-            .to_address()
+        Address::from(self.clone())
             .serialize(serializer, force_canonical)
     }
 }

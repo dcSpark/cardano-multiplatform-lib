@@ -5,6 +5,13 @@ pub struct OrderedHashMap<K, V>(linked_hash_map::LinkedHashMap<K, V>)
 where
     K: Hash + Eq + Ord;
 
+impl<K, V> Default for OrderedHashMap<K, V>
+where K: Hash + Eq + Ord {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<K, V> std::ops::Deref for OrderedHashMap<K, V>
 where
     K: Hash + Eq + Ord,

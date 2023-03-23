@@ -12,7 +12,7 @@ use std::convert::From;
 
 // brought over from old IOHK code
 mod chain_core;
-mod chain_crypto;
+pub mod chain_crypto;
 mod impl_mockchain;
 mod typed_bytes;
 
@@ -191,7 +191,7 @@ impl RawBytesEncoding for Bip32PrivateKey {
 #[derive(
     Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
 )]
-pub struct Bip32PublicKey(pub(crate) chain_crypto::PublicKey<chain_crypto::Ed25519Bip32>);
+pub struct Bip32PublicKey(pub chain_crypto::PublicKey<chain_crypto::Ed25519Bip32>);
 
 impl Bip32PublicKey {
     /// derive this public key with the given index.
@@ -490,6 +490,8 @@ macro_rules! impl_signature {
 }
 
 impl_signature!(Ed25519Signature, Vec<u8>, chain_crypto::Ed25519);
+
+#[macro_export]
 macro_rules! impl_hash_type {
     ($name:ident, $byte_count:expr) => {
         #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -595,7 +597,6 @@ macro_rules! impl_hash_type {
         }
     };
 }
-pub(crate) use impl_hash_type;
 
 impl_hash_type!(Ed25519KeyHash, 28);
 impl_hash_type!(ScriptHash, 28);

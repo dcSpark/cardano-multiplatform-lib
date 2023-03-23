@@ -1,18 +1,8 @@
 use super::*;
 
-pub use cml_chain::address::AddressHeaderKind;
+pub use cml_chain::address::{AddressKind, AddressHeaderKind};
 
 use crate::certs::StakeCredential;
-
-#[wasm_bindgen]
-#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
-pub enum AddressKind {
-    Base,
-    Ptr,
-    Enterprise,
-    Reward,
-    Byron,
-}
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
@@ -96,13 +86,7 @@ impl Address {
     }
 
     pub fn kind(&self) -> AddressKind {
-        match &self.0 {
-            cml_chain::address::Address::Base(_) => AddressKind::Base,
-            cml_chain::address::Address::Ptr(_) => AddressKind::Ptr,
-            cml_chain::address::Address::Enterprise(_) => AddressKind::Enterprise,
-            cml_chain::address::Address::Reward(_) => AddressKind::Reward,
-            //cml_chain::address::Address::Byron(_) => AddressKind::Byron,
-        }
+        self.0.kind()
     }
 
     pub fn to_raw_bytes(&self) -> Vec<u8> {

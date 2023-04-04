@@ -6,6 +6,7 @@ pub use cml_crypto::{
 
 pub type Vkey = cml_crypto::PublicKey;
 
+pub mod hash;
 pub mod utils;
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen

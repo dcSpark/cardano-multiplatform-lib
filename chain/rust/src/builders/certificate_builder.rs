@@ -4,84 +4,101 @@ use std::collections::{HashSet};
 
 use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitness};
 
+use crate::{
+    certs::{Certificate, StakeDeregistration, StakeCredential},
+    transaction::RequiredSigners,
+};
+
+use cml_crypto::RawBytesEncoding;
+
+
+#[derive(Debug, thiserror::Error)]
+pub enum CertBuilderError {
+    #[error("Deregistration certificate contains script. Expected public key hash.\n{0:?}")]
+    ExpectedKeyHash(ScriptHash),
+    #[error("Deregistration certificate contains keyhash. Expected script hash.\n{0:?}")]
+    ExpectedScriptHash(Certificate),
+    #[error("Missing the following witnesses for the certificate: {0:?}")]
+    MissingWitnesses(RequiredWitnessSet),
+}
+
 // comes from witsVKeyNeeded in the Ledger spec
-pub fn cert_required_wits(cert_enum: &Certificate, required_witnesses: &mut RequiredWitnessSet) {
-    match &cert_enum.0 {
+pub fn cert_required_wits(cert: &Certificate, required_witnesses: &mut RequiredWitnessSet) {
+    match cert {
         // stake key registrations do not require a witness
-        CertificateEnum::StakeRegistration(_cert) => (),
-        CertificateEnum::StakeDeregistration(cert) => match cert.stake_credential().kind() {
-            StakeCredKind::Script => {
-                required_witnesses.add_script_hash(&cert.stake_credential().to_scripthash().unwrap());
+        Certificate::StakeRegistration(_cert) => (),
+        Certificate::StakeDeregistration(cert) => match &cert.stake_credential {
+            StakeCredential::Script { hash, .. } => {
+                required_witnesses.add_script_hash(hash);
             }
-            StakeCredKind::Key => {
-                required_witnesses.add_vkey_key_hash(&cert.stake_credential().to_keyhash().unwrap());
-            }
-        },
-        CertificateEnum::StakeDelegation(cert) => match cert.stake_credential().kind() {
-            StakeCredKind::Script => {
-                required_witnesses.add_script_hash(&cert.stake_credential().to_scripthash().unwrap());
-            }
-            StakeCredKind::Key => {
-                required_witnesses.add_vkey_key_hash(&cert.stake_credential().to_keyhash().unwrap());
+            StakeCredential::PubKey { hash, .. } => {
+                required_witnesses.add_vkey_key_hash(hash);
             }
         },
-        CertificateEnum::PoolRegistration(cert) => {
-            for owner in &cert.pool_params().pool_owners().0 {
+        Certificate::StakeDelegation(cert) => match &cert.stake_credential {
+            StakeCredential::Script { hash, .. } => {
+                required_witnesses.add_script_hash(&hash);
+            }
+            StakeCredential::PubKey { hash, .. } => {
+                required_witnesses.add_vkey_key_hash(hash);
+            }
+        },
+        Certificate::PoolRegistration(cert) => {
+            for owner in &cert.pool_params.pool_owners {
                 required_witnesses.add_vkey_key_hash(&owner.clone());
             }
-            required_witnesses.add_vkey_key_hash(&cert.pool_params().operator());
+            required_witnesses.add_vkey_key_hash(&cert.pool_params.operator);
         },
-        CertificateEnum::PoolRetirement(cert) => {
-            required_witnesses.add_vkey_key_hash(&cert.pool_keyhash());
+        Certificate::PoolRetirement(cert) => {
+            required_witnesses.add_vkey_key_hash(&cert.ed25519_key_hash);
         },
-        CertificateEnum::GenesisKeyDelegation(cert) => {
+        Certificate::GenesisKeyDelegation(cert) => {
             required_witnesses.add_vkey_key_hash(
-                &Ed25519KeyHash::from_bytes(cert.genesis_delegate_hash().to_bytes()).unwrap()
+                &Ed25519KeyHash::from_raw_bytes(cert.genesis_delegate_hash.to_raw_bytes()).unwrap()
             );
         },
         // no witness as there is no single core node or genesis key that posts the certificate
-        CertificateEnum::MoveInstantaneousRewardsCert(_cert) => {},
+        Certificate::MoveInstantaneousRewardsCert(_cert) => {},
     };
 }
 
 // comes from witsVKeyNeeded in the Ledger spec
-pub fn add_cert_vkeys(cert_enum: &Certificate, vkeys: &mut HashSet<Ed25519KeyHash>) -> Result<(), JsError> {
-    match &cert_enum.0 {
+pub fn add_cert_vkeys(cert: &Certificate, vkeys: &mut HashSet<Ed25519KeyHash>) -> Result<(), CertBuilderError> {
+    match cert {
         // stake key registrations do not require a witness
-        CertificateEnum::StakeRegistration(_cert) => {},
-        CertificateEnum::StakeDeregistration(cert) => match cert.stake_credential().kind() {
-            StakeCredKind::Script => return Err(JsError::from_str(&format!("Deregistration certificate contains script. Expected public key hash.\n{:#?}", cert.to_json()))),
-            StakeCredKind::Key => {
-                vkeys.insert(cert.stake_credential().to_keyhash().unwrap());
+        Certificate::StakeRegistration(_cert) => {},
+        Certificate::StakeDeregistration(cert) => match &cert.stake_credential {
+            StakeCredential::Script { hash, .. } => return Err(CertBuilderError::ExpectedKeyHash(hash.clone())),
+            StakeCredential::PubKey { hash, .. } => {
+                vkeys.insert(hash.clone());
             }
         },
-        CertificateEnum::StakeDelegation(cert) => match cert.stake_credential().kind() {
-            StakeCredKind::Script => return Err(JsError::from_str(&format!("Delegation certificate contains script. Expected public key hash.\n{:#?}", cert.to_json()))),
-            StakeCredKind::Key => {
-                vkeys.insert(cert.stake_credential().to_keyhash().unwrap());
+        Certificate::StakeDelegation(cert) => match &cert.stake_credential {
+            StakeCredential::Script { hash, .. } => return Err(CertBuilderError::ExpectedKeyHash(hash.clone())),
+            StakeCredential::PubKey { hash, .. } => {
+                vkeys.insert(hash.clone());
             }
         },
-        CertificateEnum::PoolRegistration(cert) => {
-            for owner in &cert.pool_params().pool_owners().0 {
+        Certificate::PoolRegistration(cert) => {
+            for owner in &cert.pool_params.pool_owners {
                 vkeys.insert(owner.clone());
             }
-            vkeys.insert(cert.pool_params().operator());
+            vkeys.insert(cert.pool_params.operator.clone());
         },
-        CertificateEnum::PoolRetirement(cert) => {
-            vkeys.insert(cert.pool_keyhash());
+        Certificate::PoolRetirement(cert) => {
+            vkeys.insert(cert.ed25519_key_hash.clone());
         },
-        CertificateEnum::GenesisKeyDelegation(cert) => {
+        Certificate::GenesisKeyDelegation(cert) => {
             vkeys.insert(
-                Ed25519KeyHash::from_bytes(cert.genesis_delegate_hash().to_bytes()).unwrap()
+                Ed25519KeyHash::from_raw_bytes(cert.genesis_delegate_hash.to_raw_bytes()).unwrap()
             );
         },
         // no witness as there is no single core node or genesis key that posts the certificate
-        CertificateEnum::MoveInstantaneousRewardsCert(_cert) => {},
+        Certificate::MoveInstantaneousRewardsCert(_cert) => {},
     };
     Ok(())
 }
 
-#[wasm_bindgen]
 #[derive(Clone)]
 pub struct CertificateBuilderResult {
     pub(crate) cert: Certificate,
@@ -89,13 +106,11 @@ pub struct CertificateBuilderResult {
     pub(crate) required_wits: RequiredWitnessSet,
 }
 
-#[wasm_bindgen]
 #[derive(Clone)]
 pub struct SingleCertificateBuilder {
     cert: Certificate,
 }
 
-#[wasm_bindgen]
 impl SingleCertificateBuilder {
     pub fn new(cert: &Certificate) -> Self {
         Self {
@@ -115,12 +130,12 @@ impl SingleCertificateBuilder {
         }
     }
 
-    pub fn payment_key(&self) -> Result<CertificateBuilderResult, JsError> {
+    pub fn payment_key(&self) -> Result<CertificateBuilderResult, CertBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
         cert_required_wits(&self.cert, &mut required_wits);
 
         if !required_wits.scripts.is_empty() {
-            return Err(JsError::from_str(&format!("Certificate required a script, not a payment key: \n{:#?}", self.cert.to_json())));
+            return Err(CertBuilderError::ExpectedScriptHash(self.cert.clone()));
         }
 
 
@@ -132,7 +147,7 @@ impl SingleCertificateBuilder {
     }
 
     /** Signer keys don't have to be set. You can leave it empty and then add the required witnesses later */
-    pub fn native_script(&self, native_script: &NativeScript, witness_info: &NativeScriptWitnessInfo) -> Result<CertificateBuilderResult, JsError> {
+    pub fn native_script(&self, native_script: &NativeScript, witness_info: &NativeScriptWitnessInfo) -> Result<CertificateBuilderResult, CertBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
         cert_required_wits(&self.cert, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
@@ -145,7 +160,7 @@ impl SingleCertificateBuilder {
         required_wits_left.scripts.remove(&native_script.hash());
 
         if !required_wits_left.scripts.is_empty() {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str()))); 
+            return Err(CertBuilderError::MissingWitnesses(required_wits_left));
         }
 
         Ok(CertificateBuilderResult {
@@ -155,9 +170,10 @@ impl SingleCertificateBuilder {
         })
     }
 
-    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, required_signers: &RequiredSigners) -> Result<CertificateBuilderResult, JsError> {
+    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, required_signers: &RequiredSigners) -> Result<CertificateBuilderResult, CertBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
-        required_signers.0.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer));
+        todo!("the line below won't work until we regenerate RequiredSigners with https://github.com/dcSpark/cddl-codegen/issues/164 fixed");
+        //required_signers.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer));
         cert_required_wits(&self.cert, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
 
@@ -174,7 +190,7 @@ impl SingleCertificateBuilder {
         required_wits_left.scripts.remove(&script_hash);
 
         if required_wits_left.len() > 0 {
-            return Err(JsError::from_str(&format!("Missing the following witnesses for the certificate: \n{:#?}", required_wits_left.to_str())));
+            return Err(CertBuilderError::MissingWitnesses(required_wits_left));
         }
 
         Ok(CertificateBuilderResult {

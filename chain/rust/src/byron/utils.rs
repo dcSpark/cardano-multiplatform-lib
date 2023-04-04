@@ -11,6 +11,7 @@ use cml_crypto::{
 };
 use crate::{
     address::{Address, AddressError},
+    crypto::BootstrapWitness,
     genesis::network_info::NetworkInfo
 };
 use cml_core::{

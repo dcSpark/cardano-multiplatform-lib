@@ -9,10 +9,12 @@ use std::convert::{From, TryFrom};
 pub mod address;
 pub mod auxdata;
 pub mod block;
+pub mod builders;
 pub mod byron;
 pub mod certs;
 pub mod crypto;
 pub mod genesis;
+pub mod min_ada;
 pub mod plutus;
 pub mod serialization;
 pub mod transaction;
@@ -345,6 +347,17 @@ pub struct Value {
     pub multiasset: Multiasset,
     #[serde(skip)]
     pub encodings: Option<ValueEncoding>,
+}
+
+// TODO: REMOVE after merging value/multiasset PR
+impl From<Coin> for Value {
+    fn from(coin: Coin) -> Value {
+        Self {
+            coin,
+            multiasset: Multiasset::new(),
+            encodings: None,
+        }
+    }
 }
 
 impl Value {

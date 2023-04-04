@@ -3,6 +3,7 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
+pub mod utils;
 
 use super::{
     BootstrapWitness, Coin, Mint, NetworkId, Slot, Update, Value, Vkeywitness, Withdrawals,
@@ -50,7 +51,7 @@ impl AlonzoTxOut {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct BabbageTxOut {
     pub address: Address,
-    pub value: Value,
+    pub amount: Value,
     pub datum_option: Option<DatumOption>,
     pub script_reference: Option<ScriptRef>,
     #[serde(skip)]
@@ -58,10 +59,10 @@ pub struct BabbageTxOut {
 }
 
 impl BabbageTxOut {
-    pub fn new(address: Address, value: Value) -> Self {
+    pub fn new(address: Address, amount: Value) -> Self {
         Self {
             address,
-            value,
+            amount,
             datum_option: None,
             script_reference: None,
             encodings: None,
@@ -359,11 +360,18 @@ impl TransactionBody {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct TransactionInput {
     pub transaction_id: TransactionHash,
     pub index: u64,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     pub encodings: Option<TransactionInputEncoding>,
 }
 

@@ -1,28 +1,33 @@
-use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 
 use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitness};
 
-#[wasm_bindgen]
+use cml_core::ordered_hash_map::OrderedHashMap;
+
+use crate::{
+    PolicyId,
+    AssetName,
+    NativeScript,
+    transaction::RequiredSigners,
+};
+
 #[derive(Clone)]
 pub struct MintBuilderResult {
-    pub(crate) policy_id: PolicyID,
-    pub(crate) assets: MintAssets,
+    pub(crate) policy_id: PolicyId,
+    pub(crate) assets: OrderedHashMap<AssetName, i64>,
     pub(crate) aggregate_witness: Option<InputAggregateWitnessData>,
     pub(crate) required_wits: RequiredWitnessSet,
 }
 
-#[wasm_bindgen]
 #[derive(Clone)]
 pub struct SingleMintBuilder {
-    assets: MintAssets,
+    assets: OrderedHashMap<AssetName, i64>,
 }
 
-#[wasm_bindgen]
 impl SingleMintBuilder {
-    pub fn new(assets: &MintAssets) -> Self {
+    pub fn new(assets: OrderedHashMap<AssetName, i64>) -> Self {
         Self {
-            assets: assets.clone(),
+            assets,
         }
     }
 
@@ -38,12 +43,12 @@ impl SingleMintBuilder {
         }
     }
 
-    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, required_signers: &RequiredSigners) -> MintBuilderResult {
+    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, required_signers: RequiredSigners) -> MintBuilderResult {
         let mut required_wits = RequiredWitnessSet::default();
 
         let script_hash = partial_witness.script.hash();
-        
-        required_signers.0.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer));
+        todo!("the line below won't work until we regenerate RequiredSigners with https://github.com/dcSpark/cddl-codegen/issues/164 fixed");
+        //required_signers.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer));
         required_wits.add_script_hash(&script_hash);
 
         MintBuilderResult {

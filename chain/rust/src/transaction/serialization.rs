@@ -152,7 +152,7 @@ impl Serialize for BabbageTxOut {
                             force_canonical,
                         ),
                     )?;
-                    self.value.serialize(serializer, force_canonical)?;
+                    self.amount.serialize(serializer, force_canonical)?;
                 }
                 2 => {
                     if let Some(field) = &self.datum_option {
@@ -232,7 +232,7 @@ impl Deserialize for BabbageTxOut {
             let mut address_key_encoding = None;
             let mut address = None;
             let mut value_key_encoding = None;
-            let mut value = None;
+            let mut amount = None;
             let mut datum_option_key_encoding = None;
             let mut datum_option = None;
             let mut script_reference_tag_encoding = None;
@@ -257,12 +257,12 @@ impl Deserialize for BabbageTxOut {
                             orig_deser_order.push(0);
                         }
                         (1, key_enc) => {
-                            if value.is_some() {
+                            if amount.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(1)).into());
                             }
                             let tmp_value = Value::deserialize(raw)
-                                .map_err(|e: DeserializeError| e.annotate("value"))?;
-                            value = Some(tmp_value);
+                                .map_err(|e: DeserializeError| e.annotate("amount"))?;
+                            amount = Some(tmp_value);
                             value_key_encoding = Some(key_enc);
                             orig_deser_order.push(1);
                         }
@@ -346,14 +346,14 @@ impl Deserialize for BabbageTxOut {
                 Some(x) => x,
                 None => return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(0)).into()),
             };
-            let value = match value {
+            let amount = match amount {
                 Some(x) => x,
                 None => return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(1)).into()),
             };
             read_len.finish()?;
             Ok(Self {
                 address,
-                value,
+                amount,
                 datum_option,
                 script_reference,
                 encodings: Some(BabbageTxOutEncoding {

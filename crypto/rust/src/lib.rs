@@ -340,7 +340,7 @@ impl RawBytesEncoding for PrivateKey {
 #[derive(
     Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
 )]
-pub struct PublicKey(pub(crate) chain_crypto::PublicKey<chain_crypto::Ed25519>);
+pub struct PublicKey(pub chain_crypto::PublicKey<chain_crypto::Ed25519>);
 
 impl From<chain_crypto::PublicKey<chain_crypto::Ed25519>> for PublicKey {
     fn from(key: chain_crypto::PublicKey<chain_crypto::Ed25519>) -> PublicKey {

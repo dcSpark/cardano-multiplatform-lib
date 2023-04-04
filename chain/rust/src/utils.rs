@@ -4,8 +4,59 @@ use cml_core::{
     serialization::{fit_sz, sz_max, Deserialize, Serialize},
     Int,
 };
+use cml_crypto::ScriptHash;
 use derivative::Derivative;
 use std::io::{BufRead, Seek, Write};
+
+use crate::{
+    NativeScript, Script,
+    crypto::hash::{hash_script, ScriptHashNamespace},
+    plutus::{PlutusV1Script, PlutusV2Script, PlutusScript},
+};
+
+impl Script {
+    pub fn hash(&self) -> ScriptHash {
+        match self {
+            Self::Native { script, .. } => script.hash(),
+            Self::PlutusV1 { script, .. } => script.hash(),
+            Self::PlutusV2 { script, .. } => script.hash(),
+        }
+    }
+}
+
+impl NativeScript {
+    pub fn hash(&self) -> ScriptHash {
+        hash_script(ScriptHashNamespace::NativeScript, &self.to_cbor_bytes())
+    }
+}
+
+impl From<NativeScript> for Script {
+    fn from(script: NativeScript) -> Self {
+        Self::new_native(script)
+    }
+}
+
+impl From<PlutusV1Script> for Script {
+    fn from(script: PlutusV1Script) -> Self {
+        Self::new_plutus_v1(script)
+    }
+}
+
+impl From<PlutusV2Script> for Script {
+    fn from(script: PlutusV2Script) -> Self {
+        Self::new_plutus_v2(script)
+    }
+}
+
+impl From<PlutusScript> for Script {
+    fn from(script: PlutusScript) -> Self {
+        match script {
+            PlutusScript::PlutusV1(v1) => Self::new_plutus_v1(v1),
+            PlutusScript::PlutusV2(v2) => Self::new_plutus_v2(v2),
+        }
+    }
+}
+
 
 const BOUNDED_BYTES_CHUNK_SIZE: usize = 64;
 

@@ -1,4 +1,5 @@
-use super::PlutusData;
+use super::{CostModels, Language};
+use super::{ExUnits, PlutusData, PlutusV1Script, PlutusV2Script};
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
@@ -251,5 +252,48 @@ impl Deserialize for ConstrPlutusData {
             }
         })()
         .map_err(|e| e.annotate("ConstrPlutusData"))
+    }
+}
+
+/// Version-agnostic Plutus script
+#[derive(Clone, Debug)]
+pub enum PlutusScript {
+    PlutusV1(PlutusV1Script),
+    PlutusV2(PlutusV2Script),
+}
+
+impl PlutusScript {
+    pub fn hash(&self) -> ScriptHash {
+        match &self {
+            Self::PlutusV1(script) => script.hash(),
+            Self::PlutusV2(script) => script.hash(),
+        }
+    }
+}
+use cml_crypto::ScriptHash;
+use crate::crypto::hash::{hash_script, ScriptHashNamespace};
+
+impl PlutusV1Script {
+    pub fn hash(&self) -> ScriptHash {
+        hash_script(ScriptHashNamespace::PlutusV1, self.get())
+    }
+}
+
+impl PlutusV2Script {
+    pub fn hash(&self) -> ScriptHash {
+        hash_script(ScriptHashNamespace::PlutusV2, self.get())
+    }
+}
+
+impl ExUnits {
+    pub fn checked_add(&self, other: &ExUnits) -> Option<ExUnits> {
+        let mem = self.mem.checked_add(other.mem)?;
+        let step = self.steps.checked_add(other.steps)?;
+        Some(ExUnits::new(mem, step))
+    }
+
+     /// used to create a dummy ExUnits that takes up the maximum size possible in cbor to provide an upper bound on tx size
+     pub fn dummy() -> ExUnits {
+        ExUnits::new(u64::MAX, u64::MAX)
     }
 }

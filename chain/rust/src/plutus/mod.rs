@@ -18,7 +18,7 @@ use cml_core::Int;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
-pub use utils::ConstrPlutusData;
+pub use utils::{ConstrPlutusData, PlutusScript};
 
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -267,6 +267,7 @@ impl Redeemer {
 #[derive(
     Copy,
     Eq,
+    Hash,
     PartialEq,
     Ord,
     PartialOrd,

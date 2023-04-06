@@ -17,7 +17,7 @@ use crate::crypto::{
 use crate::plutus::{PlutusData, PlutusV1Script, PlutusV2Script, Redeemer};
 use crate::Script;
 use cbor_encodings::{
-    AlonzoTxOutEncoding, BabbageTxOutEncoding, RequiredSignersEncoding, ScriptAllEncoding,
+    AlonzoTxOutEncoding, BabbageTxOutEncoding, ScriptAllEncoding,
     ScriptAnyEncoding, ScriptInvalidBeforeEncoding, ScriptInvalidHereafterEncoding,
     ScriptNOfKEncoding, ScriptPubkeyEncoding, ShelleyTxOutEncoding, TransactionBodyEncoding,
     TransactionEncoding, TransactionInputEncoding, TransactionWitnessSetEncoding,
@@ -151,21 +151,7 @@ impl NativeScript {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct RequiredSigners {
-    pub ed25519_key_hash: Ed25519KeyHash,
-    #[serde(skip)]
-    pub encodings: Option<RequiredSignersEncoding>,
-}
-
-impl RequiredSigners {
-    pub fn new(ed25519_key_hash: Ed25519KeyHash) -> Self {
-        Self {
-            ed25519_key_hash,
-            encodings: None,
-        }
-    }
-}
+pub type RequiredSigners = Vec<Ed25519KeyHash>;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ScriptAll {

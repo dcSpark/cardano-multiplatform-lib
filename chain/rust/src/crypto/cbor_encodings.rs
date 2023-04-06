@@ -9,7 +9,7 @@ pub struct BootstrapWitnessEncoding {
     pub public_key_encoding: StringEncoding,
     pub signature_encoding: StringEncoding,
     pub chain_code_encoding: StringEncoding,
-    pub attributes_encoding: StringEncoding,
+    pub attributes_bytes_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]

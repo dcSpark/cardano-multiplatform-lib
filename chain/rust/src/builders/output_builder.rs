@@ -24,10 +24,10 @@ pub enum OutputBuilderError {
 
 #[derive(Clone, Debug, Default)]
 pub struct TransactionOutputBuilder {
-    pub(crate) address: Option<Address>,
-    pub(crate) datum: Option<DatumOption>,
-    pub(crate) communication_datum: Option<PlutusData>,
-    pub(crate) script_ref: Option<ScriptRef>,
+    pub address: Option<Address>,
+    pub datum: Option<DatumOption>,
+    pub communication_datum: Option<PlutusData>,
+    pub script_ref: Option<ScriptRef>,
 }
 
 impl TransactionOutputBuilder {
@@ -36,10 +36,9 @@ impl TransactionOutputBuilder {
         Self::default()
     }
 
-    pub fn with_address(&self, address: &Address) -> Self {
-        let mut cfg = self.clone();
-        cfg.address = Some(address.clone());
-        cfg
+    pub fn with_address(mut self, address: Address) -> Self {
+        self.address = Some(address);
+        self
     }
 
     /// A communication datum is one where the data hash is used in the tx output
@@ -104,44 +103,32 @@ impl TransactionOutputAmountBuilder {
         Ok(self.with_value(Value::new(required_coin, multiasset)))
     }
 
-    pub fn build(&self) -> Result<SingleOutputBuilderResult, OutputBuilderError> {
+    pub fn build(self) -> Result<SingleOutputBuilderResult, OutputBuilderError> {
         let output = TransactionOutput::new_babbage_tx_out(BabbageTxOut {
-            address: self.address.clone(),
-            amount: self.amount.clone().ok_or(OutputBuilderError::AmountMissing)?,
-            datum_option: self.datum.clone(),
-            script_reference: self.script_ref.clone(),
+            address: self.address,
+            amount: self.amount.ok_or(OutputBuilderError::AmountMissing)?,
+            datum_option: self.datum,
+            script_reference: self.script_ref,
             encodings: None,
         });
         Ok(SingleOutputBuilderResult {
             output,
-            communication_datum: self.communication_datum.clone()
+            communication_datum: self.communication_datum
         })
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct SingleOutputBuilderResult {
-    output: TransactionOutput,
-    communication_datum: Option<PlutusData>,
+    pub output: TransactionOutput,
+    pub communication_datum: Option<PlutusData>,
 }
 
 impl SingleOutputBuilderResult {
-    pub fn new(output: &TransactionOutput) -> SingleOutputBuilderResult {
+    pub fn new(output: TransactionOutput) -> SingleOutputBuilderResult {
         Self {
-            output: output.clone(),
+            output,
             communication_datum: None,
         }
-    }
-
-    pub fn set_communication_datum(&mut self, datum: &PlutusData) {
-        self.communication_datum = Some(datum.clone());
-    }
-
-    pub fn output(&self) -> TransactionOutput {
-        self.output.clone()
-    }
-
-    pub fn communication_datum(&self) -> Option<PlutusData> {
-        self.communication_datum.clone()
     }
 }

@@ -23,15 +23,15 @@ pub fn input_required_wits(utxo_info: &TransactionOutput, required_witnesses: &m
     if let Some(cred) = utxo_info.address().payment_cred() {
         match cred {
             StakeCredential::PubKey { hash, .. } => {
-                required_witnesses.add_vkey_key_hash(hash);
+                required_witnesses.add_vkey_key_hash(hash.clone());
             },
             StakeCredential::Script { hash, .. } => {
-                required_witnesses.add_script_hash(hash);
+                required_witnesses.add_script_hash(hash.clone());
                 // TODO: my understand is that inline datums in inputs also need to be added to the witness
                 // but I still need to confirm this by actually submitting a transaction that tests this
                 // see same comment in add_reference_input
                 if let Some(data_hash) = utxo_info.datum_hash() {
-                    required_witnesses.add_plutus_datum_hash(data_hash);
+                    required_witnesses.add_plutus_datum_hash(data_hash.clone());
                     // note: redeemer is required as well
                     // but we can't know the index, so we rely on the tx builder to satisfy this requirement
                 }
@@ -39,16 +39,16 @@ pub fn input_required_wits(utxo_info: &TransactionOutput, required_witnesses: &m
         }
     };
     if let Address::Byron(byron) = utxo_info.address() {
-        required_witnesses.add_bootstrap(byron);
+        required_witnesses.add_bootstrap(byron.clone());
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct InputBuilderResult {
-    pub(crate) input: TransactionInput,
-    pub(crate) utxo_info: TransactionOutput,
-    pub(crate) aggregate_witness: Option<InputAggregateWitnessData>,
-    pub(crate) required_wits: RequiredWitnessSet,
+    pub input: TransactionInput,
+    pub utxo_info: TransactionOutput,
+    pub aggregate_witness: Option<InputAggregateWitnessData>,
+    pub required_wits: RequiredWitnessSet,
 }
 
 #[derive(Clone)]
@@ -65,9 +65,9 @@ impl SingleInputBuilder {
         }
     }
 
-    pub fn payment_key(&self) -> Result<InputBuilderResult, InputBuilderError> {
+    pub fn payment_key(self) -> Result<InputBuilderResult, InputBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
-        input_required_wits(&self.utxo_info,&mut required_wits);
+        input_required_wits(&self.utxo_info, &mut required_wits);
         let required_wits_left = required_wits.clone();
 
         
@@ -76,14 +76,14 @@ impl SingleInputBuilder {
         }
 
         Ok(InputBuilderResult {
-            input: self.input.clone(),
-            utxo_info: self.utxo_info.clone(),
+            input: self.input,
+            utxo_info: self.utxo_info,
             aggregate_witness: None,
             required_wits,
         })
     }
 
-    pub fn native_script(&self, native_script: &NativeScript, witness_info: &NativeScriptWitnessInfo) -> Result<InputBuilderResult, InputBuilderError> {
+    pub fn native_script(self, native_script: NativeScript, witness_info: NativeScriptWitnessInfo) -> Result<InputBuilderResult, InputBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
         input_required_wits(&self.utxo_info,&mut required_wits);
         let mut required_wits_left = required_wits.clone();
@@ -98,17 +98,16 @@ impl SingleInputBuilder {
         }
 
         Ok(InputBuilderResult {
-            input: self.input.clone(),
-            utxo_info: self.utxo_info.clone(),
-            aggregate_witness:Some(InputAggregateWitnessData::NativeScript(native_script.clone(), witness_info.clone())),
+            input: self.input,
+            utxo_info: self.utxo_info,
+            aggregate_witness:Some(InputAggregateWitnessData::NativeScript(native_script, witness_info)),
             required_wits,
         })
     }
 
-    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, required_signers: &RequiredSigners, datum: &PlutusData) -> Result<InputBuilderResult, InputBuilderError> {
+    pub fn plutus_script(self, partial_witness: PartialPlutusWitness, required_signers: RequiredSigners, datum: PlutusData) -> Result<InputBuilderResult, InputBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
-        todo!("the line below won't work until we regenerate RequiredSigners with https://github.com/dcSpark/cddl-codegen/issues/164 fixed");
-        //required_signers.0.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer));
+        required_signers.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer.clone()));
         input_required_wits(&self.utxo_info,&mut required_wits);
         let mut required_wits_left = required_wits.clone();
 
@@ -119,16 +118,16 @@ impl SingleInputBuilder {
 
         // check the user provided all the required witnesses
         required_wits_left.scripts.remove(&script_hash);
-        required_wits_left.plutus_data.remove(&hash_plutus_data(datum));
+        required_wits_left.plutus_data.remove(&hash_plutus_data(&datum));
 
         if required_wits_left.len() > 0 {
             return Err(InputBuilderError::MissingWitnesses(required_wits_left));
         }
 
         Ok(InputBuilderResult {
-            input: self.input.clone(),
-            utxo_info: self.utxo_info.clone(),
-            aggregate_witness: Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), required_signers.clone(), Some(datum.clone()))),
+            input: self.input,
+            utxo_info: self.utxo_info,
+            aggregate_witness: Some(InputAggregateWitnessData::PlutusScript(partial_witness, required_signers, Some(datum))),
             required_wits,
         })
     }

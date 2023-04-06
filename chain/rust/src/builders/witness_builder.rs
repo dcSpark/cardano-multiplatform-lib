@@ -86,16 +86,16 @@ impl InputAggregateWitnessData {
 pub struct RequiredWitnessSet {
     // note: the real key type for these is Vkey
     // but cryptographically these should be equivalent and Ed25519KeyHash is more flexible
-    pub(crate) vkeys: BTreeSet<Ed25519KeyHash>,
+    pub vkeys: BTreeSet<Ed25519KeyHash>,
     // note: the real key type for these is Vkey
     // but cryptographically these should be equivalent as ByronAddress contains an AddressId
     // which is the hash of data that includes the public key
-    pub(crate) bootstraps: BTreeSet<ByronAddress>,
+    pub bootstraps: BTreeSet<ByronAddress>,
     // note: no way to differentiate Plutus script from native script
-    pub(crate) scripts: BTreeSet<ScriptHash>,
-    pub(crate) plutus_data: BTreeSet<DatumHash>,
-    pub(crate) redeemers: BTreeSet<RedeemerWitnessKey>,
-    pub(crate) script_refs: BTreeSet<ScriptHash>,
+    pub scripts: BTreeSet<ScriptHash>,
+    pub plutus_data: BTreeSet<DatumHash>,
+    pub redeemers: BTreeSet<RedeemerWitnessKey>,
+    pub script_refs: BTreeSet<ScriptHash>,
 }
 
 impl RequiredWitnessSet {
@@ -105,26 +105,26 @@ impl RequiredWitnessSet {
     // pub fn add_vkey_key(&mut self, vkey: &Vkey) {
     //     self.add_vkey_key_hash(&vkey.public_key().hash());
     // }
-    pub fn add_vkey_key_hash(&mut self, hash: &Ed25519KeyHash) {
-        self.vkeys.insert(hash.clone());
+    pub fn add_vkey_key_hash(&mut self, hash: Ed25519KeyHash) {
+        self.vkeys.insert(hash);
     }
 
-    pub fn add_bootstrap(&mut self, address: &ByronAddress) {
-        self.bootstraps.insert(address.clone());
+    pub fn add_bootstrap(&mut self, address: ByronAddress) {
+        self.bootstraps.insert(address);
     }
 
-    pub fn add_script_ref(&mut self, script_hash: &ScriptHash) {
-        self.script_refs.insert(script_hash.clone());
-        self.scripts.remove(script_hash);
+    pub fn add_script_ref(&mut self, script_hash: ScriptHash) {
+        self.scripts.remove(&script_hash);
+        self.script_refs.insert(script_hash);
     }
 
     // pub fn add_native_script(&mut self, native_script: &NativeScript) {
     //     self.add_script_hash(&native_script.hash());
     // }
 
-    pub fn add_script_hash(&mut self, script_hash: &ScriptHash) {
-        match self.script_refs.get(script_hash) {
-            None => { self.scripts.insert(script_hash.clone()); },
+    pub fn add_script_hash(&mut self, script_hash: ScriptHash) {
+        match self.script_refs.get(&script_hash) {
+            None => { self.scripts.insert(script_hash); },
             Some(_) => {}
         }
     }
@@ -136,15 +136,15 @@ impl RequiredWitnessSet {
     // pub fn add_plutus_datum(&mut self, plutus_datum: &PlutusData) {
     //     self.add_plutus_datum_hash(&hash_plutus_data(plutus_datum));
     // }
-    pub fn add_plutus_datum_hash(&mut self, plutus_datum: &DatumHash) {
-        self.plutus_data.insert(plutus_datum.clone());
+    pub fn add_plutus_datum_hash(&mut self, plutus_datum: DatumHash) {
+        self.plutus_data.insert(plutus_datum);
     }
 
     // pub fn add_redeemer(&mut self, redeemer: &Redeemer) {
     //     self.add_redeemer_tag(&RedeemerWitnessKey::new(&redeemer.tag(), &redeemer.index()));
     // }
-    pub fn add_redeemer_tag(&mut self, redeemer: &RedeemerWitnessKey) {
-        self.redeemers.insert(redeemer.clone());
+    pub fn add_redeemer_tag(&mut self, redeemer: RedeemerWitnessKey) {
+        self.redeemers.insert(redeemer);
     }
 
     pub fn add_all(&mut self, requirements: &RequiredWitnessSet) {
@@ -172,7 +172,7 @@ impl RequiredWitnessSet {
     // however this is unrealistic because the limit of transaction size. (101 bytes each witness)
     pub(crate) fn add_fake_vkey_witnesses_by_num(&mut self, num: usize) {
         for _ in 0..num {
-            self.add_vkey_key_hash(&fake_key_hash(self.vkeys.len() as u8));
+            self.add_vkey_key_hash(fake_key_hash(self.vkeys.len() as u8));
         }
     }
 
@@ -181,7 +181,7 @@ impl RequiredWitnessSet {
             InputAggregateWitnessData::NativeScript(script, info) => {
                 match info {
                     NativeScriptWitnessInfo::Count(num) => self.add_fake_vkey_witnesses_by_num(*num),
-                    NativeScriptWitnessInfo::Vkeys(ref vkeys) => { vkeys.iter().for_each(|vkey| self.add_vkey_key_hash(vkey)); },
+                    NativeScriptWitnessInfo::Vkeys(ref vkeys) => { vkeys.iter().cloned().for_each(|vkey| self.add_vkey_key_hash(vkey)); },
                     NativeScriptWitnessInfo::AssumeWorst => {
                         // we get the size instead of the hashes themselves
                         // since there is no way to know if any of these will actually be required to sign the tx
@@ -191,8 +191,7 @@ impl RequiredWitnessSet {
                 }
             }
             InputAggregateWitnessData::PlutusScript(_witness, required_signers, _option) => {
-                todo!("the line below won't work until we regenerate RequiredSigners with https://github.com/dcSpark/cddl-codegen/issues/164 fixed");
-                //required_signers.0.iter().for_each(|vkey| self.add_vkey_key_hash(vkey));
+                required_signers.iter().cloned().for_each(|vkey| self.add_vkey_key_hash(vkey));
             }
         }
     }
@@ -207,16 +206,16 @@ impl RequiredWitnessSet {
 #[derive(Clone, Default, Debug)]
 pub struct TransactionWitnessSetBuilder {
     // See Alonzo spec section 3.1 which defines the keys for these types
-    pub(crate) vkeys: HashMap<Vkey, Vkeywitness>,
-    pub(crate) bootstraps: HashMap<Vkey, BootstrapWitness>,
-    pub(crate) scripts: HashMap<ScriptHash, Script>,
-    pub(crate) plutus_data: LinkedHashMap<DatumHash, PlutusData>,
-    pub(crate) redeemers: LinkedHashMap<RedeemerWitnessKey, Redeemer>,
+    pub vkeys: HashMap<Vkey, Vkeywitness>,
+    pub bootstraps: HashMap<Vkey, BootstrapWitness>,
+    pub scripts: HashMap<ScriptHash, Script>,
+    pub plutus_data: LinkedHashMap<DatumHash, PlutusData>,
+    pub redeemers: LinkedHashMap<RedeemerWitnessKey, Redeemer>,
 
     /// witnesses that need to be added for the build function to succeed
     /// this allows checking that witnesses are present at build time (instead of when submitting to a node)
     /// This is useful for APIs that can keep track of which witnesses will be required (like transaction builders)
-    pub(crate) required_wits: RequiredWitnessSet,
+    pub required_wits: RequiredWitnessSet,
 }
 
 impl TransactionWitnessSetBuilder {
@@ -394,8 +393,7 @@ impl TransactionWitnessSetBuilder {
         let mut remaining_wits = self.required_wits.clone();
 
         self.vkeys.keys().for_each(|key| { remaining_wits.vkeys.remove(&key.hash()); });
-        todo!("need to adjust byron addr attributes to not just be bytes");
-        //self.bootstraps.values().for_each(|wit| { remaining_wits.bootstraps.remove(&wit.to_address().unwrap().to_address()); });
+        self.bootstraps.values().for_each(|wit| { remaining_wits.bootstraps.remove(&wit.to_address().unwrap().to_address()); });
         self.scripts.keys().for_each(|hash| { remaining_wits.scripts.remove(hash); });
         self.plutus_data.keys().for_each(|hash| { remaining_wits.plutus_data.remove(hash); });
         self.redeemers.keys().for_each(|key| { remaining_wits.redeemers.remove(key); });
@@ -417,8 +415,7 @@ impl TransactionWitnessSetBuilder {
 pub fn merge_fake_witness(builder: &mut TransactionWitnessSetBuilder, required_wits: &RequiredWitnessSet) {
     let mut remaining_wits = required_wits.clone();
     builder.vkeys.keys().for_each(|key| { remaining_wits.vkeys.remove(&key.hash()); });
-    todo!("need to adjust byron addr attributes to not just be bytes");
-    //builder.bootstraps.values().for_each(|wit| { remaining_wits.bootstraps.remove(&wit.to_address().unwrap().to_address()); });
+    builder.bootstraps.values().for_each(|wit| { remaining_wits.bootstraps.remove(&wit.to_address().unwrap().to_address()); });
 
     // Ed25519KeyHash and AddressId are both (under no collision assumption) 1-1 mapping to the real keys
     // so if all we care about is counting the number of witnesses,
@@ -440,8 +437,7 @@ pub fn merge_fake_witness(builder: &mut TransactionWitnessSetBuilder, required_w
         let fake_vkey = PublicKey::from_raw_bytes(&[&fake_prefix, address_content.address_id.to_raw_bytes()].concat()).unwrap();
         let fake_sig = fake_raw_key_sig(0);
         let fake_chaincode = [0u8; 32]; // constant size so it won't affect the fee calculation
-        let fake_witness: BootstrapWitness = todo!("need to adjust byron addr attributes to not just be bytes");
-        //let fake_witness = BootstrapWitness::new(fake_vkey, fake_sig, fake_chaincode.to_vec(), address_content.addr_attributes);
+        let fake_witness = BootstrapWitness::new(fake_vkey, fake_sig, fake_chaincode.to_vec(), address_content.addr_attributes.clone());
         
         // avoid accidentally overriding real witness
         if !builder.bootstraps.contains_key(&fake_witness.public_key) {

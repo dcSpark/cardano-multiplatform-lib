@@ -255,6 +255,12 @@ impl RawBytesEncoding for Bip32PublicKey {
     }
 }
 
+impl From<chain_crypto::PublicKey<chain_crypto::Ed25519Bip32>> for Bip32PublicKey {
+    fn from(key: chain_crypto::PublicKey<chain_crypto::Ed25519Bip32>) -> Self {
+        Self(key)
+    }
+}
+
 pub struct PrivateKey(key::EitherEd25519SecretKey);
 
 impl From<key::EitherEd25519SecretKey> for PrivateKey {

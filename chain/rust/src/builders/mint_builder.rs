@@ -13,10 +13,10 @@ use crate::{
 
 #[derive(Clone)]
 pub struct MintBuilderResult {
-    pub(crate) policy_id: PolicyId,
-    pub(crate) assets: OrderedHashMap<AssetName, i64>,
-    pub(crate) aggregate_witness: Option<InputAggregateWitnessData>,
-    pub(crate) required_wits: RequiredWitnessSet,
+    pub policy_id: PolicyId,
+    pub assets: OrderedHashMap<AssetName, i64>,
+    pub aggregate_witness: Option<InputAggregateWitnessData>,
+    pub required_wits: RequiredWitnessSet,
 }
 
 #[derive(Clone)]
@@ -31,30 +31,30 @@ impl SingleMintBuilder {
         }
     }
 
-    pub fn native_script(&self, native_script: &NativeScript, witness_info: &NativeScriptWitnessInfo) -> MintBuilderResult {
+    pub fn native_script(self, native_script: NativeScript, witness_info: NativeScriptWitnessInfo) -> MintBuilderResult {
         let mut required_wits = RequiredWitnessSet::default();
-        required_wits.add_script_hash(&native_script.hash());
+        let script_hash = native_script.hash();
+        required_wits.add_script_hash(script_hash.clone());
         
         MintBuilderResult {
-            assets: self.assets.clone(),
-            policy_id: native_script.hash(),
-            aggregate_witness: Some(InputAggregateWitnessData::NativeScript(native_script.clone(), witness_info.clone())),
+            assets: self.assets,
+            policy_id: script_hash,
+            aggregate_witness: Some(InputAggregateWitnessData::NativeScript(native_script, witness_info)),
             required_wits,
         }
     }
 
-    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, required_signers: RequiredSigners) -> MintBuilderResult {
+    pub fn plutus_script(self, partial_witness: PartialPlutusWitness, required_signers: RequiredSigners) -> MintBuilderResult {
         let mut required_wits = RequiredWitnessSet::default();
 
         let script_hash = partial_witness.script.hash();
-        todo!("the line below won't work until we regenerate RequiredSigners with https://github.com/dcSpark/cddl-codegen/issues/164 fixed");
-        //required_signers.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer));
-        required_wits.add_script_hash(&script_hash);
+        required_signers.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer.clone()));
+        required_wits.add_script_hash(script_hash.clone());
 
         MintBuilderResult {
-            assets: self.assets.clone(),
+            assets: self.assets,
             policy_id: script_hash,
-            aggregate_witness: Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), required_signers.clone(), None)),
+            aggregate_witness: Some(InputAggregateWitnessData::PlutusScript(partial_witness, required_signers, None)),
             required_wits,
         }
     }

@@ -17,17 +17,11 @@ pub struct BabbageTxOutEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
     pub address_key_encoding: Option<cbor_event::Sz>,
-    pub value_key_encoding: Option<cbor_event::Sz>,
+    pub amount_key_encoding: Option<cbor_event::Sz>,
     pub datum_option_key_encoding: Option<cbor_event::Sz>,
     pub script_reference_tag_encoding: Option<cbor_event::Sz>,
     pub script_reference_bytes_encoding: StringEncoding,
     pub script_reference_key_encoding: Option<cbor_event::Sz>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct RequiredSignersEncoding {
-    pub len_encoding: LenEncoding,
-    pub ed25519_key_hash_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -109,6 +103,8 @@ pub struct TransactionBodyEncoding {
     pub script_data_hash_key_encoding: Option<cbor_event::Sz>,
     pub collateral_inputs_encoding: LenEncoding,
     pub collateral_inputs_key_encoding: Option<cbor_event::Sz>,
+    pub required_signers_encoding: LenEncoding,
+    pub required_signers_elem_encodings: Vec<StringEncoding>,
     pub required_signers_key_encoding: Option<cbor_event::Sz>,
     pub network_id_encoding: Option<cbor_event::Sz>,
     pub network_id_key_encoding: Option<cbor_event::Sz>,

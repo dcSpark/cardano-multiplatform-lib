@@ -3,6 +3,7 @@ pub use cml_crypto::{
     GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash, ScriptDataHash,
     ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
 };
+use crate::byron::AddrAttributes;
 
 pub type Vkey = cml_crypto::PublicKey;
 
@@ -26,7 +27,7 @@ pub struct BootstrapWitness {
     pub public_key: Vkey,
     pub signature: Ed25519Signature,
     pub chain_code: Vec<u8>,
-    pub attributes: Vec<u8>,
+    pub attributes: AddrAttributes,
     #[serde(skip)]
     pub encodings: Option<BootstrapWitnessEncoding>,
 }
@@ -36,7 +37,7 @@ impl BootstrapWitness {
         public_key: Vkey,
         signature: Ed25519Signature,
         chain_code: Vec<u8>,
-        attributes: Vec<u8>,
+        attributes: AddrAttributes,
     ) -> Self {
         Self {
             public_key,

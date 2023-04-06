@@ -23,10 +23,10 @@ pub enum WithdrawalBuilderError {
 pub fn withdrawal_required_wits(address: &RewardAddress, required_witnesses: &mut RequiredWitnessSet) {
     match &address.payment {
         StakeCredential::PubKey { hash, .. } => {
-            required_witnesses.add_vkey_key_hash(hash);
+            required_witnesses.add_vkey_key_hash(hash.clone());
         }
         StakeCredential::Script { hash, .. } => {
-            required_witnesses.add_script_hash(hash);
+            required_witnesses.add_script_hash(hash.clone());
             // recall: no datum hash for reward withdrawals
         },
     }
@@ -34,10 +34,10 @@ pub fn withdrawal_required_wits(address: &RewardAddress, required_witnesses: &mu
 
 #[derive(Clone)]
 pub struct WithdrawalBuilderResult {
-    pub(crate) address: RewardAddress,
-    pub(crate) amount: Coin,
-    pub(crate) aggregate_witness: Option<InputAggregateWitnessData>,
-    pub(crate) required_wits: RequiredWitnessSet,
+    pub address: RewardAddress,
+    pub amount: Coin,
+    pub aggregate_witness: Option<InputAggregateWitnessData>,
+    pub required_wits: RequiredWitnessSet,
 }
 
 #[derive(Clone)]
@@ -47,14 +47,14 @@ pub struct SingleWithdrawalBuilder {
 }
 
 impl SingleWithdrawalBuilder {
-    pub fn new(address: &RewardAddress, amount: &Coin) -> Self {
+    pub fn new(address: RewardAddress, amount: Coin) -> Self {
         Self {
-            address: address.clone(),
-            amount: *amount,
+            address,
+            amount,
         }
     }
 
-    pub fn payment_key(&self) -> Result<WithdrawalBuilderResult, WithdrawalBuilderError> {
+    pub fn payment_key(self) -> Result<WithdrawalBuilderResult, WithdrawalBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
         withdrawal_required_wits(&self.address, &mut required_wits);
 
@@ -63,14 +63,14 @@ impl SingleWithdrawalBuilder {
         }
 
         Ok(WithdrawalBuilderResult {
-            address: self.address.clone(),
+            address: self.address,
             amount: self.amount,
             aggregate_witness: None,
             required_wits,
         })
     }
 
-    pub fn native_script(&self, native_script: &NativeScript, witness_info: &NativeScriptWitnessInfo) -> Result<WithdrawalBuilderResult, WithdrawalBuilderError> {
+    pub fn native_script(self, native_script: &NativeScript, witness_info: &NativeScriptWitnessInfo) -> Result<WithdrawalBuilderResult, WithdrawalBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
         withdrawal_required_wits(&self.address, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
@@ -83,17 +83,16 @@ impl SingleWithdrawalBuilder {
         }
 
         Ok(WithdrawalBuilderResult {
-            address: self.address.clone(),
+            address: self.address,
             amount: self.amount,
             aggregate_witness: Some(InputAggregateWitnessData::NativeScript(native_script.clone(), witness_info.clone())),
             required_wits,
         })
     }
 
-    pub fn plutus_script(&self, partial_witness: &PartialPlutusWitness, required_signers: &RequiredSigners) -> Result<WithdrawalBuilderResult, WithdrawalBuilderError> {
+    pub fn plutus_script(self, partial_witness: PartialPlutusWitness, required_signers: RequiredSigners) -> Result<WithdrawalBuilderResult, WithdrawalBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
-        todo!("the line below won't work until we regenerate RequiredSigners with https://github.com/dcSpark/cddl-codegen/issues/164 fixed");
-        //required_signers.0.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer));
+        required_signers.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer.clone()));
         withdrawal_required_wits(&self.address, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
 
@@ -110,9 +109,9 @@ impl SingleWithdrawalBuilder {
         }
 
         Ok(WithdrawalBuilderResult {
-            address: self.address.clone(),
+            address: self.address,
             amount: self.amount,
-            aggregate_witness:  Some(InputAggregateWitnessData::PlutusScript(partial_witness.clone(), required_signers.clone(), None)),
+            aggregate_witness:  Some(InputAggregateWitnessData::PlutusScript(partial_witness, required_signers, None)),
             required_wits,
         })
     }

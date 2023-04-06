@@ -147,7 +147,7 @@ impl Serialize for BabbageTxOut {
                             1u64,
                             self.encodings
                                 .as_ref()
-                                .map(|encs| encs.value_key_encoding)
+                                .map(|encs| encs.amount_key_encoding)
                                 .unwrap_or_default(),
                             force_canonical,
                         ),
@@ -231,7 +231,7 @@ impl Deserialize for BabbageTxOut {
             let mut orig_deser_order = Vec::new();
             let mut address_key_encoding = None;
             let mut address = None;
-            let mut value_key_encoding = None;
+            let mut amount_key_encoding = None;
             let mut amount = None;
             let mut datum_option_key_encoding = None;
             let mut datum_option = None;
@@ -260,10 +260,10 @@ impl Deserialize for BabbageTxOut {
                             if amount.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(1)).into());
                             }
-                            let tmp_value = Value::deserialize(raw)
+                            let tmp_amount = Value::deserialize(raw)
                                 .map_err(|e: DeserializeError| e.annotate("amount"))?;
-                            amount = Some(tmp_value);
-                            value_key_encoding = Some(key_enc);
+                            amount = Some(tmp_amount);
+                            amount_key_encoding = Some(key_enc);
                             orig_deser_order.push(1);
                         }
                         (2, key_enc) => {
@@ -360,7 +360,7 @@ impl Deserialize for BabbageTxOut {
                     len_encoding,
                     orig_deser_order,
                     address_key_encoding,
-                    value_key_encoding,
+                    amount_key_encoding,
                     datum_option_key_encoding,
                     script_reference_key_encoding,
                     script_reference_tag_encoding,
@@ -654,73 +654,6 @@ impl Deserialize for NativeScript {
             ))
         })()
         .map_err(|e| e.annotate("NativeScript"))
-    }
-}
-
-impl Serialize for RequiredSigners {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.len_encoding)
-                .unwrap_or_default()
-                .to_len_sz(1, force_canonical),
-        )?;
-        serializer.write_bytes_sz(
-            &self.ed25519_key_hash.to_raw_bytes(),
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.ed25519_key_hash_encoding.clone())
-                .unwrap_or_default()
-                .to_str_len_sz(
-                    self.ed25519_key_hash.to_raw_bytes().len() as u64,
-                    force_canonical,
-                ),
-        )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
-    }
-}
-
-impl Deserialize for RequiredSigners {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(1)?;
-        (|| -> Result<_, DeserializeError> {
-            let (ed25519_key_hash, ed25519_key_hash_encoding) = raw
-                .bytes_sz()
-                .map_err(Into::<DeserializeError>::into)
-                .and_then(|(bytes, enc)| {
-                    Ed25519KeyHash::from_raw_bytes(&bytes)
-                        .map(|bytes| (bytes, StringEncoding::from(enc)))
-                        .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
-                })
-                .map_err(|e: DeserializeError| e.annotate("ed25519_key_hash"))?;
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
-            Ok(RequiredSigners {
-                ed25519_key_hash,
-                encodings: Some(RequiredSignersEncoding {
-                    len_encoding,
-                    ed25519_key_hash_encoding,
-                }),
-            })
-        })()
-        .map_err(|e| e.annotate("RequiredSigners"))
     }
 }
 
@@ -2118,7 +2051,33 @@ impl Serialize for TransactionBody {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.required_signers_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for (i, element) in field.iter().enumerate() {
+                            let required_signers_elem_encoding = self
+                                .encodings
+                                .as_ref()
+                                .and_then(|encs| encs.required_signers_elem_encodings.get(i))
+                                .cloned()
+                                .unwrap_or_default();
+                            serializer.write_bytes_sz(
+                                &element.to_raw_bytes(),
+                                required_signers_elem_encoding.to_str_len_sz(
+                                    element.to_raw_bytes().len() as u64,
+                                    force_canonical,
+                                ),
+                            )?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.required_signers_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 13 => {
@@ -2276,6 +2235,8 @@ impl Deserialize for TransactionBody {
             let mut collateral_inputs_encoding = LenEncoding::default();
             let mut collateral_inputs_key_encoding = None;
             let mut collateral_inputs = None;
+            let mut required_signers_encoding = LenEncoding::default();
+            let mut required_signers_elem_encodings = Vec::new();
             let mut required_signers_key_encoding = None;
             let mut required_signers = None;
             let mut network_id_encoding = None;
@@ -2543,11 +2504,26 @@ impl Deserialize for TransactionBody {
                             if required_signers.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(14)).into());
                             }
-                            let tmp_required_signers = (|| -> Result<_, DeserializeError> {
+                            let (tmp_required_signers, tmp_required_signers_encoding, tmp_required_signers_elem_encodings) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                RequiredSigners::deserialize(raw)
+                                let mut required_signers_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let required_signers_encoding = len.into();
+                                let mut required_signers_elem_encodings = Vec::new();
+                                while match len { cbor_event::LenSz::Len(n, _) => (required_signers_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
+                                    if raw.cbor_type()? == cbor_event::Type::Special {
+                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                        break;
+                                    }
+                                    let (required_signers_elem, required_signers_elem_encoding) = raw.bytes_sz().map_err(Into::<DeserializeError>::into).and_then(|(bytes, enc)| Ed25519KeyHash::from_raw_bytes(&bytes).map(|bytes| (bytes, StringEncoding::from(enc))).map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into()))?;
+                                    required_signers_arr.push(required_signers_elem);
+                                    required_signers_elem_encodings.push(required_signers_elem_encoding);
+                                }
+                                Ok((required_signers_arr, required_signers_encoding, required_signers_elem_encodings))
                             })().map_err(|e| e.annotate("required_signers"))?;
                             required_signers = Some(tmp_required_signers);
+                            required_signers_encoding = tmp_required_signers_encoding;
+                            required_signers_elem_encodings = tmp_required_signers_elem_encodings;
                             required_signers_key_encoding = Some(key_enc);
                             orig_deser_order.push(12);
                         },
@@ -2687,6 +2663,8 @@ impl Deserialize for TransactionBody {
                     collateral_inputs_key_encoding,
                     collateral_inputs_encoding,
                     required_signers_key_encoding,
+                    required_signers_encoding,
+                    required_signers_elem_encodings,
                     network_id_key_encoding,
                     network_id_encoding,
                     collateral_return_key_encoding,

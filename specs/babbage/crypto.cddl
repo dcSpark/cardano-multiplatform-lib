@@ -51,11 +51,14 @@ nonce = [
 
 vkeywitness = [ $vkey, ed25519_signature ]
 
+; this is defined in the byron era:
+addr_attributes = _CDDL_CODEGEN_EXTERN_TYPE_
+
 bootstrap_witness =
   [ public_key : vkey
   , signature  : ed25519_signature
   , chain_code : bytes .size 32
-  , attributes : bytes
+  , attributes : bytes .cbor addr_attributes
   ]
 
 

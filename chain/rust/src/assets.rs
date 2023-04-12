@@ -111,14 +111,13 @@ impl<T> AssetBundle<T>
         self.0.entry(policy_id).or_default().insert(asset_name, value)
     }
 
-    /// Get the value of policy_id:asset_name. If it doesn't exist, 0 is returned.
-    pub fn get(&self, policy_id: &PolicyId, asset_name: &AssetName) -> T {
+    /// Get the value of policy_id:asset_name if it exists.
+    pub fn get(&self, policy_id: &PolicyId, asset_name: &AssetName) -> Option<T> {
         self
             .0
             .get(policy_id)
             .and_then(|assets| assets.get(asset_name))
             .copied()
-            .unwrap_or(T::zero())
     }
 
     /// Adds to bundles together, checking value bounds.
@@ -273,7 +272,7 @@ where T: num::CheckedAdd + num::CheckedSub + num::Zero + num::Bounded + Copy + C
             for (pid, assets) in lhs.0.iter() {
                 for (aname, amount) in assets.iter() {
                     match amount
-                            .checked_sub(&rhs.get(pid, aname))
+                            .checked_sub(&rhs.get(pid, aname).unwrap_or(T::zero()))
                             .and_then(|o| o.partial_cmp(&T::zero()))
                     {
                         Some(std::cmp::Ordering::Equal) => (),

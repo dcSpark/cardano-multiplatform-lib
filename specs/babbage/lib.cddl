@@ -1,4 +1,3 @@
-coin = uint
 delta_coin = int
 transaction_index = uint .size 2
 port = uint .le 65535
@@ -62,18 +61,12 @@ protocol_param_update = {
 
 sub_coin = positive_interval
 
-multiasset = { * policy_id => { * asset_name => uint } }
-
 policy_id = script_hash
-asset_name = bytes .size (0..32)
 
-value = [coin,multiasset]
-mint = { * policy_id => { * asset_name => int64 } }
-
-int64 = -9223372036854775808 .. 9223372036854775807 ; @no_alias
-
-; not actually 0-256 but codegen doesn't support 0-16
-network_id = uint .size 1 ; @newtype
-; can apparently be more?
+; original def (modified to support other networks):
 ; network_id = 0 / 1
-
+; could be the following instead:
+; ; not actually 0-256 but codegen doesn't support 0-16
+; network_id = uint .size 1 ; @newtype
+; but then hand-coded to add functionality/check bounds more
+network_id = _CDDL_CODEGEN_EXTERN_TYPE_

@@ -100,16 +100,6 @@ pub struct UpdateEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ValueEncoding {
-    pub len_encoding: LenEncoding,
-    pub coin_encoding: Option<cbor_event::Sz>,
-    pub multiasset_encoding: LenEncoding,
-    pub multiasset_key_encodings: BTreeMap<ScriptHash, StringEncoding>,
-    pub multiasset_value_encodings:
-        BTreeMap<ScriptHash, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
-}
-
-#[derive(Clone, Debug, Default)]
 pub struct VkeywitnessEncoding {
     pub len_encoding: LenEncoding,
     pub vkey_encoding: StringEncoding,

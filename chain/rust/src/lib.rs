@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use std::convert::{From, TryFrom};
 
 pub mod address;
+pub mod assets;
 pub mod auxdata;
 pub mod block;
 pub mod builders;
@@ -24,6 +25,10 @@ use address::*;
 use auxdata::*;
 
 use crypto::*;
+
+use assets::{Mint};
+
+pub use assets::{Coin, Value};
 
 //pub mod legacy_address;
 
@@ -52,7 +57,7 @@ use block::ProtocolVersion;
 use cbor_encodings::{
     AssetNameEncoding, BootstrapWitnessEncoding, PositiveIntervalEncoding,
     ProtocolParamUpdateEncoding, ProtocolVersionStructEncoding, RationalEncoding,
-    UnitIntervalEncoding, UpdateEncoding, ValueEncoding, VkeywitnessEncoding,
+    UnitIntervalEncoding, UpdateEncoding, VkeywitnessEncoding,
 };
 use crypto::{Ed25519Signature, GenesisHash, Vkey};
 use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
@@ -111,15 +116,9 @@ impl From<AssetName> for Vec<u8> {
     }
 }
 
-pub type Coin = u64;
-
 pub type DeltaCoin = Int;
 
 pub type GenesisHashList = Vec<GenesisHash>;
-
-pub type Mint = OrderedHashMap<PolicyId, OrderedHashMap<AssetName, i64>>;
-
-pub type Multiasset = OrderedHashMap<PolicyId, OrderedHashMap<AssetName, u64>>;
 
 pub type NetworkId = u8;
 
@@ -336,35 +335,6 @@ impl Update {
         Self {
             proposed_protocol_parameter_updates,
             epoch,
-            encodings: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Value {
-    pub coin: Coin,
-    pub multiasset: Multiasset,
-    #[serde(skip)]
-    pub encodings: Option<ValueEncoding>,
-}
-
-// TODO: REMOVE after merging value/multiasset PR
-impl From<Coin> for Value {
-    fn from(coin: Coin) -> Value {
-        Self {
-            coin,
-            multiasset: Multiasset::new(),
-            encodings: None,
-        }
-    }
-}
-
-impl Value {
-    pub fn new(coin: Coin, multiasset: Multiasset) -> Self {
-        Self {
-            coin,
-            multiasset,
             encodings: None,
         }
     }

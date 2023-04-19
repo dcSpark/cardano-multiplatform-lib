@@ -2640,7 +2640,7 @@ impl Deserialize for TransactionBody {
                 update,
                 auxiliary_data_hash,
                 validity_interval_start,
-                mint,
+                mint: mint.map(Into::into),
                 script_data_hash,
                 collateral_inputs,
                 required_signers,

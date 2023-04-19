@@ -274,6 +274,7 @@ impl Deserialize for ExUnitPrices {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let mem_price = PositiveInterval::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("mem_price"))?;
@@ -345,6 +346,7 @@ impl Deserialize for ExUnits {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (mem, mem_encoding) = raw
                 .unsigned_integer_sz()
@@ -678,6 +680,7 @@ impl Deserialize for Redeemer {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(4)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (tag, tag_encoding) = (|| -> Result<_, DeserializeError> {
                 let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();

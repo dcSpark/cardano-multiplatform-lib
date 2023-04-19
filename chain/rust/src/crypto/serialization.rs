@@ -73,6 +73,7 @@ impl Deserialize for BootstrapWitness {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(4)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (public_key, public_key_encoding) = raw
                 .bytes_sz()
@@ -343,6 +344,7 @@ impl Deserialize for VRFCert {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (output, output_encoding) = raw
                 .bytes_sz()
@@ -421,6 +423,7 @@ impl Deserialize for Vkeywitness {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (vkey, vkey_encoding) = raw
                 .bytes_sz()

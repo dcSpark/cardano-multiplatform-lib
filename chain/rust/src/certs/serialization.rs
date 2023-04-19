@@ -259,6 +259,7 @@ impl Deserialize for GenesisKeyDelegation {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(4)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -580,6 +581,7 @@ impl Deserialize for MoveInstantaneousReward {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (pot, pot_encoding) = (|| -> Result<_, DeserializeError> {
                 let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
@@ -696,6 +698,7 @@ impl Deserialize for MoveInstantaneousRewardsCert {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -790,6 +793,7 @@ impl Deserialize for MultiHostName {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -875,6 +879,7 @@ impl Deserialize for PoolMetadata {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let url = Url::deserialize(raw).map_err(|e: DeserializeError| e.annotate("url"))?;
             let (pool_metadata_hash, pool_metadata_hash_encoding) = raw
@@ -1029,6 +1034,7 @@ impl Deserialize for PoolParams {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(9)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -1219,6 +1225,7 @@ impl Deserialize for PoolRegistration {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(10)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -1334,6 +1341,7 @@ impl Deserialize for PoolRetirement {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(3)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -1533,6 +1541,7 @@ impl Deserialize for SingleHostAddr {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(4)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -1682,6 +1691,7 @@ impl Deserialize for SingleHostName {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(3)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -1962,6 +1972,7 @@ impl Deserialize for StakeDelegation {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(3)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -2068,6 +2079,7 @@ impl Deserialize for StakeDeregistration {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -2163,6 +2175,7 @@ impl Deserialize for StakeRegistration {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),

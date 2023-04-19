@@ -1,9 +1,11 @@
+use super::cbor_encodings::CostModelsEncoding;
 use super::{CostModels, Language};
 use super::{ExUnits, PlutusData, PlutusV1Script, PlutusV2Script};
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
-use cml_core::error::*;
+use cml_core::{error::*, Int};
 use cml_core::serialization::*;
+use std::collections::BTreeMap;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 #[derive(
@@ -69,6 +71,7 @@ pub struct ConstrPlutusDataEncoding {
     pub tag_encoding: Option<cbor_event::Sz>,
     pub alternative_encoding: Option<cbor_event::Sz>,
     pub fields_encoding: LenEncoding,
+    pub prefer_compact: bool,
 }
 
 impl Serialize for ConstrPlutusData {
@@ -77,85 +80,88 @@ impl Serialize for ConstrPlutusData {
         serializer: &'se mut Serializer<W>,
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        if let Some(compact_tag) = Self::alternative_to_compact_cbor_tag(self.alternative) {
-            // compact form
-            serializer.write_tag_sz(
-                compact_tag as u64,
-                fit_sz(
+        match Self::alternative_to_compact_cbor_tag(self.alternative) {
+            Some(compact_tag) if self.encodings.as_ref().map(|encs| encs.prefer_compact).unwrap_or(true) => {
+                // compact form
+                serializer.write_tag_sz(
                     compact_tag as u64,
+                    fit_sz(
+                        compact_tag as u64,
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.tag_encoding)
+                            .unwrap_or_default(),
+                        force_canonical,
+                    ),
+                )?;
+                serializer.write_array_sz(
                     self.encodings
                         .as_ref()
-                        .map(|encs| encs.tag_encoding)
-                        .unwrap_or_default(),
-                    force_canonical,
-                ),
-            )?;
-            serializer.write_array_sz(
+                        .map(|encs| encs.fields_encoding)
+                        .unwrap_or_default()
+                        .to_len_sz(self.fields.len() as u64, force_canonical),
+                )?;
+                for element in self.fields.iter() {
+                    element.serialize(serializer, force_canonical)?;
+                }
                 self.encodings
                     .as_ref()
                     .map(|encs| encs.fields_encoding)
                     .unwrap_or_default()
-                    .to_len_sz(self.fields.len() as u64, force_canonical),
-            )?;
-            for element in self.fields.iter() {
-                element.serialize(serializer, force_canonical)?;
-            }
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.fields_encoding)
-                .unwrap_or_default()
-                .end(serializer, force_canonical)
-        } else {
-            // general form
-            serializer.write_tag_sz(
-                Self::GENERAL_FORM_TAG,
-                fit_sz(
+                    .end(serializer, force_canonical)
+            },
+            _ => {
+                // general form
+                serializer.write_tag_sz(
                     Self::GENERAL_FORM_TAG,
+                    fit_sz(
+                        Self::GENERAL_FORM_TAG,
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.tag_encoding)
+                            .unwrap_or_default(),
+                        force_canonical,
+                    ),
+                )?;
+                serializer.write_array_sz(
                     self.encodings
                         .as_ref()
-                        .map(|encs| encs.tag_encoding)
-                        .unwrap_or_default(),
-                    force_canonical,
-                ),
-            )?;
-            serializer.write_array_sz(
+                        .map(|encs| encs.len_encoding)
+                        .unwrap_or_default()
+                        .to_len_sz(2, force_canonical),
+                )?;
+                serializer.write_unsigned_integer_sz(
+                    self.alternative,
+                    fit_sz(
+                        self.alternative,
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.alternative_encoding)
+                            .unwrap_or_default(),
+                        force_canonical,
+                    ),
+                )?;
+                serializer.write_array_sz(
+                    self.encodings
+                        .as_ref()
+                        .map(|encs| encs.fields_encoding)
+                        .unwrap_or_default()
+                        .to_len_sz(self.fields.len() as u64, force_canonical),
+                )?;
+                for element in self.fields.iter() {
+                    element.serialize(serializer, force_canonical)?;
+                }
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.fields_encoding)
+                    .unwrap_or_default()
+                    .end(serializer, force_canonical)?;
                 self.encodings
                     .as_ref()
                     .map(|encs| encs.len_encoding)
                     .unwrap_or_default()
-                    .to_len_sz(2, force_canonical),
-            )?;
-            serializer.write_unsigned_integer_sz(
-                self.alternative,
-                fit_sz(
-                    self.alternative,
-                    self.encodings
-                        .as_ref()
-                        .map(|encs| encs.alternative_encoding)
-                        .unwrap_or_default(),
-                    force_canonical,
-                ),
-            )?;
-            serializer.write_array_sz(
-                self.encodings
-                    .as_ref()
-                    .map(|encs| encs.fields_encoding)
-                    .unwrap_or_default()
-                    .to_len_sz(self.fields.len() as u64, force_canonical),
-            )?;
-            for element in self.fields.iter() {
-                element.serialize(serializer, force_canonical)?;
-            }
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.fields_encoding)
-                .unwrap_or_default()
-                .end(serializer, force_canonical)?;
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.len_encoding)
-                .unwrap_or_default()
-                .end(serializer, force_canonical)
+                    .end(serializer, force_canonical)
+            },
         }
     }
 }
@@ -208,6 +214,7 @@ impl Deserialize for ConstrPlutusData {
                             tag_encoding: Some(tag_encoding),
                             alternative_encoding,
                             fields_encoding,
+                            prefer_compact: false,
                         }),
                     })
                 }
@@ -239,6 +246,7 @@ impl Deserialize for ConstrPlutusData {
                                 tag_encoding: Some(tag_encoding),
                                 alternative_encoding: None,
                                 fields_encoding,
+                                prefer_compact: true,
                             }),
                         })
                     } else {
@@ -252,6 +260,68 @@ impl Deserialize for ConstrPlutusData {
             }
         })()
         .map_err(|e| e.annotate("ConstrPlutusData"))
+    }
+}
+
+impl CostModels {
+    pub fn as_map<'a>(&'a self) -> BTreeMap<Language, &'a [Int]> {
+        let mut map = BTreeMap::new();
+        if let Some(v1_costs) = &self.plutus_v1 {
+            map.insert(Language::PlutusV1, &v1_costs[..]);
+        }
+        if let Some(v2_costs) = &self.plutus_v2 {
+            map.insert(Language::PlutusV1, &v2_costs[..]);
+        }
+        map
+    }
+
+    pub(crate) fn language_views_encoding(&self) -> Result<Vec<u8>, cbor_event::Error> {
+        // ; language views CDDL:
+        // ; { * language => script_integrity_data }
+        // ;
+        // ; This must be encoded canonically, using the same scheme as in
+        // ; RFC7049 section 3.9:
+        // ;  - Maps, strings, and bytestrings must use a definite-length encoding
+        // ;  - Integers must be as small as possible.
+        // ;  - The expressions for map length, string length, and bytestring length
+        // ;    must be as short as possible.
+        // ;  - The keys in the map must be sorted as follows:
+        // ;     -  If two keys have different lengths, the shorter one sorts earlier.
+        // ;     -  If two keys have the same length, the one with the lower value
+        // ;        in (byte-wise) lexical order sorts earlier.
+        let mut serializer = Serializer::new_vec();
+        // as canonical encodings are used, we odn't need to check the keys' bytes encodings
+        // and can order this statically.
+        serializer.write_map(cbor_event::Len::Len(if self.plutus_v1.is_some() { 1 } else { 0 } + if self.plutus_v2.is_some() { 1 } else { 0 }))?;
+        if let Some(v1_costs) = &self.plutus_v1 {
+            // For PlutusV1 (language id 0), the language view is the following:
+            //   * the value of costmdls map at key 0 is encoded as an indefinite length
+            //     list and the result is encoded as a bytestring. (our apologies)
+            //   * the language ID tag is also encoded twice. first as a uint then as
+            //     a bytestring. (our apologies)
+            let v1_key_canonical_bytes = [0];
+            serializer.write_bytes(&v1_key_canonical_bytes)?;
+            // Due to a bug in the cardano-node input-output-hk/cardano-ledger-specs/issues/2512
+            // we must use indefinite length serialization in this inner bytestring to match it
+            let mut cost_model_serializer = Serializer::new_vec();
+            cost_model_serializer.write_array(cbor_event::Len::Indefinite)?;
+            for cost in v1_costs {
+                cost.serialize(&mut cost_model_serializer, true)?;
+            }
+            cost_model_serializer.write_special(cbor_event::Special::Break)?;
+            serializer.write_bytes(cost_model_serializer.finalize())?;
+        }
+        if let Some(v2_costs) = &self.plutus_v2 {
+            // For PlutusV2 (language id 1), the language view is the following:
+            //    * the value of costmdls map at key 1 is encoded as an definite length list.
+            let v2_key = 1;
+            serializer.write_unsigned_integer(v2_key)?;
+            serializer.write_array(cbor_event::Len::Len(v2_costs.len() as u64))?;
+            for cost in v2_costs {
+                cost.serialize(&mut serializer, true)?;
+            }
+        }
+        Ok(serializer.finalize())
     }
 }
 
@@ -295,5 +365,36 @@ impl ExUnits {
      /// used to create a dummy ExUnits that takes up the maximum size possible in cbor to provide an upper bound on tx size
      pub fn dummy() -> ExUnits {
         ExUnits::new(u64::MAX, u64::MAX)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use cml_core::Int;
+    use crate::plutus::CostModels;
+
+    #[test]
+    pub fn test_cost_model() {
+        let arr = vec![
+            197209, 0, 1, 1, 396231, 621, 0, 1, 150000, 1000, 0, 1, 150000, 32,
+            2477736, 29175, 4, 29773, 100, 29773, 100, 29773, 100, 29773, 100, 29773,
+            100, 29773, 100, 100, 100, 29773, 100, 150000, 32, 150000, 32, 150000, 32,
+            150000, 1000, 0, 1, 150000, 32, 150000, 1000, 0, 8, 148000, 425507, 118,
+            0, 1, 1, 150000, 1000, 0, 8, 150000, 112536, 247, 1, 150000, 10000, 1,
+            136542, 1326, 1, 1000, 150000, 1000, 1, 150000, 32, 150000, 32, 150000,
+            32, 1, 1, 150000, 1, 150000, 4, 103599, 248, 1, 103599, 248, 1, 145276,
+            1366, 1, 179690, 497, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32,
+            150000, 32, 150000, 32, 148000, 425507, 118, 0, 1, 1, 61516, 11218, 0, 1,
+            150000, 32, 148000, 425507, 118, 0, 1, 1, 148000, 425507, 118, 0, 1, 1,
+            2477736, 29175, 4, 0, 82363, 4, 150000, 5000, 0, 1, 150000, 32, 197209, 0,
+            1, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000,
+            32, 150000, 32, 3345831, 1, 1,
+        ];
+        let mut cms = CostModels::new();
+        cms.plutus_v1 = Some(arr.iter().map(|&i| Int::new_uint(i)).collect());
+        assert_eq!(
+            hex::encode(cms.language_views_encoding().unwrap()),
+            "a141005901d59f1a000302590001011a00060bc719026d00011a000249f01903e800011a000249f018201a0025cea81971f70419744d186419744d186419744d186419744d186419744d186419744d18641864186419744d18641a000249f018201a000249f018201a000249f018201a000249f01903e800011a000249f018201a000249f01903e800081a000242201a00067e2318760001011a000249f01903e800081a000249f01a0001b79818f7011a000249f0192710011a0002155e19052e011903e81a000249f01903e8011a000249f018201a000249f018201a000249f0182001011a000249f0011a000249f0041a000194af18f8011a000194af18f8011a0002377c190556011a0002bdea1901f1011a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000242201a00067e23187600010119f04c192bd200011a000249f018201a000242201a00067e2318760001011a000242201a00067e2318760001011a0025cea81971f704001a000141bb041a000249f019138800011a000249f018201a000302590001011a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a00330da70101ff"
+        );
     }
 }

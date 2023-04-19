@@ -663,6 +663,7 @@ impl Deserialize for ShelleyMaAuxData {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (
                 transaction_metadata,

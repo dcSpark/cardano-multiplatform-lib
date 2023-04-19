@@ -138,6 +138,7 @@ impl Deserialize for Block {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(5)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let header = Header::deserialize(raw).map_err(|e: DeserializeError| e.annotate("header"))?;
             let (transaction_bodies, transaction_bodies_encoding) = (|| -> Result<_, DeserializeError> {
@@ -257,6 +258,7 @@ impl Deserialize for Header {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let header_body = HeaderBody::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("header_body"))?;
@@ -385,6 +387,7 @@ impl Deserialize for HeaderBody {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(14)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (block_number, block_number_encoding) = raw
                 .unsigned_integer_sz()
@@ -567,6 +570,7 @@ impl Deserialize for OperationalCert {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(4)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -691,6 +695,7 @@ impl Deserialize for ProtocolVersion {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),

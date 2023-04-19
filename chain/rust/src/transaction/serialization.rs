@@ -51,6 +51,7 @@ impl Deserialize for AlonzoTxOut {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(3)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let address =
                 Address::deserialize(raw).map_err(|e: DeserializeError| e.annotate("address"))?;
@@ -719,6 +720,7 @@ impl Deserialize for ScriptAll {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -843,6 +845,7 @@ impl Deserialize for ScriptAny {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -963,6 +966,7 @@ impl Deserialize for ScriptInvalidBefore {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -1071,6 +1075,7 @@ impl Deserialize for ScriptInvalidHereafter {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -1194,6 +1199,7 @@ impl Deserialize for ScriptNOfK {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(3)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -1321,6 +1327,7 @@ impl Deserialize for ScriptPubkey {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
             cbor_event::LenSz::Len(_, _) => (),
@@ -1404,6 +1411,7 @@ impl Deserialize for ShelleyTxOut {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let address =
                 Address::deserialize(raw).map_err(|e: DeserializeError| e.annotate("address"))?;
@@ -1460,6 +1468,7 @@ impl Deserialize for Transaction {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(4)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let body = TransactionBody::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("body"))?;
@@ -2390,7 +2399,10 @@ impl Deserialize for TransactionBody {
                             if auxiliary_data_hash.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(7)).into());
                             }
-                            let (tmp_auxiliary_data_hash, tmp_auxiliary_data_hash_encoding) = raw.bytes_sz().map_err(Into::<DeserializeError>::into).and_then(|(bytes, enc)| AuxiliaryDataHash::from_raw_bytes(&bytes).map(|bytes| (bytes, StringEncoding::from(enc))).map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())).map_err(|e: DeserializeError| e.annotate("auxiliary_data_hash"))?;
+                            let (tmp_auxiliary_data_hash, tmp_auxiliary_data_hash_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.bytes_sz().map_err(Into::<DeserializeError>::into).and_then(|(bytes, enc)| AuxiliaryDataHash::from_raw_bytes(&bytes).map(|bytes| (bytes, StringEncoding::from(enc))).map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into()))
+                            })().map_err(|e| e.annotate("auxiliary_data_hash"))?;
                             auxiliary_data_hash = Some(tmp_auxiliary_data_hash);
                             auxiliary_data_hash_encoding = tmp_auxiliary_data_hash_encoding;
                             auxiliary_data_hash_key_encoding = Some(key_enc);
@@ -2471,7 +2483,10 @@ impl Deserialize for TransactionBody {
                             if script_data_hash.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(11)).into());
                             }
-                            let (tmp_script_data_hash, tmp_script_data_hash_encoding) = raw.bytes_sz().map_err(Into::<DeserializeError>::into).and_then(|(bytes, enc)| ScriptDataHash::from_raw_bytes(&bytes).map(|bytes| (bytes, StringEncoding::from(enc))).map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())).map_err(|e: DeserializeError| e.annotate("script_data_hash"))?;
+                            let (tmp_script_data_hash, tmp_script_data_hash_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.bytes_sz().map_err(Into::<DeserializeError>::into).and_then(|(bytes, enc)| ScriptDataHash::from_raw_bytes(&bytes).map(|bytes| (bytes, StringEncoding::from(enc))).map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into()))
+                            })().map_err(|e| e.annotate("script_data_hash"))?;
                             script_data_hash = Some(tmp_script_data_hash);
                             script_data_hash_encoding = tmp_script_data_hash_encoding;
                             script_data_hash_key_encoding = Some(key_enc);
@@ -2727,6 +2742,7 @@ impl Deserialize for TransactionInput {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (transaction_id, transaction_id_encoding) = raw
                 .bytes_sz()

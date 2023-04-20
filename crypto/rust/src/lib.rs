@@ -624,9 +624,7 @@ impl_hash_type!(KESVkey, 32);
 //impl_hash_type!(KESSignature, 448);
 impl_hash_type!(NonceHash, 32);
 
-pub struct LegacyDaedalusPrivateKey(
-    pub(crate) chain_crypto::SecretKey<chain_crypto::LegacyDaedalus>,
-);
+pub struct LegacyDaedalusPrivateKey(chain_crypto::SecretKey<chain_crypto::LegacyDaedalus>);
 
 impl LegacyDaedalusPrivateKey {
     pub fn chaincode(&self) -> Vec<u8> {
@@ -645,5 +643,11 @@ impl RawBytesEncoding for LegacyDaedalusPrivateKey {
         chain_crypto::SecretKey::<chain_crypto::LegacyDaedalus>::from_binary(bytes)
             .map(LegacyDaedalusPrivateKey)
             .map_err(|e| e.into())
+    }
+}
+
+impl AsRef<chain_crypto::SecretKey<chain_crypto::LegacyDaedalus>> for LegacyDaedalusPrivateKey {
+    fn as_ref(&self) -> &chain_crypto::SecretKey<chain_crypto::LegacyDaedalus> {
+        &self.0
     }
 }

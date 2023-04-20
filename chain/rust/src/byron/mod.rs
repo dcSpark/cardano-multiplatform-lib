@@ -24,7 +24,7 @@ use cbor_event::Special as CBORSpecial;
 use bech32::ToBase32;
 
 pub use self::crc32::Crc32;
-pub use utils::{AddressId, ByronAddressError, ByronScript, ProtocolMagic, StakeholderId};
+pub use utils::{AddressId, ByronAddressError, ByronScript, ProtocolMagic, StakeholderId, make_daedalus_bootstrap_witness, make_icarus_bootstrap_witness};
 
 mod serialization;
 mod utils;

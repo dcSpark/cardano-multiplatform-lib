@@ -13,6 +13,15 @@ pub struct RedeemerWitnessKey {
     index: u64,
 }
 
+impl RedeemerWitnessKey {
+    pub fn new(tag: RedeemerTag, index: u64) -> Self {
+        Self {
+            tag,
+            index,
+        }
+    }
+}
+
 impl From<&Redeemer> for RedeemerWitnessKey {
     fn from(redeemer: &Redeemer) -> Self {
         Self {
@@ -255,8 +264,8 @@ impl RedeemerSetBuilder {
 
 #[cfg(test)]
 mod tests {
-    use cml_crypto::{PublicKey, RawBytesEncoding};
-    use crate::builders::witness_builder::{PartialPlutusWitness, InputAggregateWitnessData, RequiredWitnessSet, PlutusScriptWitness};
+    use cml_crypto::{PublicKey, RawBytesEncoding, TransactionHash};
+    use crate::{builders::witness_builder::{PartialPlutusWitness, InputAggregateWitnessData, RequiredWitnessSet, PlutusScriptWitness}, plutus::{PlutusScript, PlutusV1Script}, address::Address, transaction::ShelleyTxOut, Value};
 
     use super::*;
 
@@ -272,23 +281,21 @@ mod tests {
 
         let data = {
             let witness = {
-                let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
-                PartialPlutusWitness::new(&PlutusScriptWitness::from_script(PlutusScript(script)), &PlutusData::new_integer(&0u64.into()))
+                let script = PlutusScript::PlutusV1(PlutusV1Script::new(vec![0]));
+                PartialPlutusWitness {
+                    script: PlutusScriptWitness::Script(script),
+                    data: PlutusData::new_big_int(0u64.into()),
+                }
             };
-            let missing_signers = {
-                let key = fake_raw_key_public(0);
-                let mut missing_signers = Ed25519KeyHashes::new();
-                missing_signers.add(&key.hash());
-                missing_signers
-            };
+            let missing_signers = vec![fake_raw_key_public(0).hash()];
             InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
         };
 
-        let address = Address::from_bech32(&"addr1qxeqxcja25k8q05evyngf4f88xn89asl54x2zg3ephgj26ndyt5qk02xmmras5pe9jz2c7tc93wu4c96rqwvg6e2v50qlpmx70").unwrap();
+        let address = Address::from_bech32("addr1qxeqxcja25k8q05evyngf4f88xn89asl54x2zg3ephgj26ndyt5qk02xmmras5pe9jz2c7tc93wu4c96rqwvg6e2v50qlpmx70").unwrap();
 
         let input_result = InputBuilderResult {
-            input: TransactionInput { transaction_id: TransactionHash([1; 32]), index: 1u64.into() },
-            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), datum_option: None, script_ref: None },
+            input: TransactionInput::new(TransactionHash::from([1; 32]), 1),
+            utxo_info: ShelleyTxOut::new(address.clone(), Value::zero()).into(),
             aggregate_witness: None,
             required_wits: RequiredWitnessSet::new(),
         };
@@ -296,8 +303,8 @@ mod tests {
         builder.add_spend(&input_result);
 
         let input_result = InputBuilderResult {
-            input: TransactionInput { transaction_id: TransactionHash([1; 32]), index: 0u64.into() },
-            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), datum_option: None, script_ref: None },
+            input: TransactionInput::new(TransactionHash::from([1; 32]), 0),
+            utxo_info: ShelleyTxOut::new(address.clone(), Value::zero()).into(),
             aggregate_witness: None,
             required_wits: RequiredWitnessSet::new(),
         };
@@ -305,26 +312,26 @@ mod tests {
         builder.add_spend(&input_result);
 
         let input_result = InputBuilderResult {
-            input: TransactionInput { transaction_id: TransactionHash([0; 32]), index: 0u64.into() },
-            utxo_info: TransactionOutput { address: address.clone(), amount: Value::zero(), datum_option: None, script_ref: None },
+            input: TransactionInput::new(TransactionHash::from([0; 32]), 0),
+            utxo_info: ShelleyTxOut::new(address.clone(), Value::zero()).into(),
             aggregate_witness: Some(data.clone()),
             required_wits: RequiredWitnessSet::new(),
         };
 
         builder.add_spend(&input_result);
 
-        builder.update_ex_units(&RedeemerWitnessKey::new(
-            &RedeemerTag::new_spend(),
-            &BigNum::from(0),
-        ), &ExUnits::new(&to_bignum(10), &to_bignum(10)));
+        builder.update_ex_units(RedeemerWitnessKey::new(
+            RedeemerTag::Spend,
+            0,
+        ), ExUnits::new(10, 10));
 
         let redeemers = builder.build(false).unwrap();
 
         assert_eq!(redeemers.len(), 1);
 
-        let spend_redeemer = &redeemers.0[0];
+        let spend_redeemer = &redeemers[0];
 
-        assert_eq!(spend_redeemer.tag(), RedeemerTag::new_spend());
-        assert_eq!(spend_redeemer.index(), BigNum::from(0u64));
+        assert_eq!(spend_redeemer.tag, RedeemerTag::Spend);
+        assert_eq!(spend_redeemer.index, 0);
     }
 }

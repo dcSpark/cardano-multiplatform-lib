@@ -82,24 +82,21 @@ pub fn min_ada_required(
     Ok(adjusted_min_ada)
 }
 
-// note: don't expose to WASM since these Option<> types would be dangerous
-pub fn min_pure_ada(coins_per_utxo_byte: Coin, address: Address, datum: Option<DatumOption>, script_ref: Option<ScriptRef>) -> Result<Coin, MinAdaError> {
-    let mut output = BabbageTxOut::new(
-        address,
-        // arbitrary value that happens to give the right number of bytes at the CBOR level
-        Value::from(1000000),
-    );
-    output.datum_option = datum;
-    output.script_reference = script_ref;
-    min_ada_required( 
-        &TransactionOutput::BabbageTxOut(output),
-        coins_per_utxo_byte,
-    )
-}
 
 #[cfg(test)]
 mod tests {
-    use crate::{crypto::{ScriptHash, Bip32PrivateKey}, address::{StakeCredential, BaseAddress, NetworkInfo}, MultiAsset, Assets, PolicyID, AssetName, ledger::common::value::{from_bignum, Value}};
+    use crate::{
+        genesis::network_info::NetworkInfo,
+        address::BaseAddress,
+        certs::StakeCredential,
+        assets::{MultiAsset, Value},
+        PolicyId,
+        AssetName,
+        transaction::{AlonzoTxOut, ShelleyTxOut}
+    };
+
+    use cml_core::ordered_hash_map::OrderedHashMap;
+    use cml_crypto::{ScriptHash, Bip32PrivateKey};
 
     use super::*;
 
@@ -133,174 +130,145 @@ mod tests {
             .derive(0)
             .to_public();
 
-        let spend_cred = StakeCredential::from_keyhash(&spend.to_raw_key().hash());
-        let stake_cred = StakeCredential::from_keyhash(&stake.to_raw_key().hash());
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
+        let stake_cred = StakeCredential::new_pub_key(stake.to_raw_key().hash());
         let address = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
-            &spend_cred,
-            &stake_cred,
+            spend_cred,
+            stake_cred,
         )
         .to_address();
-        TransactionOutput::new(&address, &Value::new(&to_bignum(0)))
+        ShelleyTxOut::new(address, Value::from(0)).into()
     }
 
     // taken from https://github.com/input-output-hk/cardano-ledger-specs/blob/master/doc/explanations/min-utxo-alonzo.rst
     fn one_policy_one_0_char_asset() -> Value {
-        let mut token_bundle = MultiAsset::new();
-        let mut asset_list = Assets::new();
-        asset_list.insert(
-            &AssetName(vec![]),
-            &BigNum::from(1)
+        let mut token_bundle = MultiAsset::default();
+        token_bundle.set(
+            PolicyId::from([0; ScriptHash::BYTE_COUNT]),
+            AssetName::new(vec![]).unwrap(),
+            1,
         );
-        token_bundle.insert(
-            &PolicyID::from([0; ScriptHash::BYTE_COUNT]),
-            &asset_list
-        );
-        Value {
-            coin: BigNum::from(0),
-            multiasset: Some(token_bundle),
-        }
+        Value::new(
+            0,
+            token_bundle,
+        )
     }
 
     fn one_policy_one_1_char_asset() -> Value {
-        let mut token_bundle = MultiAsset::new();
-        let mut asset_list = Assets::new();
-        asset_list.insert(
-            &AssetName(vec![1]),
-            &BigNum::from(1)
+        let mut token_bundle = MultiAsset::default();
+        token_bundle.set(
+            PolicyId::from([0; ScriptHash::BYTE_COUNT]),
+            AssetName::new(vec![1]).unwrap(),
+            1,
         );
-        token_bundle.insert(
-            &PolicyID::from([0; ScriptHash::BYTE_COUNT]),
-            &asset_list
-        );
-        Value {
-            coin: BigNum::from(1407406),
-            multiasset: Some(token_bundle),
-        }
+        Value::new(
+            1407406,
+            token_bundle,
+        )
     }
 
     fn one_policy_three_1_char_assets() -> Value {
-        let mut token_bundle = MultiAsset::new();
-        let mut asset_list = Assets::new();
+        let mut token_bundle = MultiAsset::default();
+        let mut asset_list = OrderedHashMap::new();
         asset_list.insert(
-            &AssetName(vec![1]),
-            &BigNum::from(1)
+            AssetName::new(vec![1]).unwrap(),
+            1
         );
         asset_list.insert(
-            &AssetName(vec![2]),
-            &BigNum::from(1)
+            AssetName::new(vec![2]).unwrap(),
+            1
         );
         asset_list.insert(
-            &AssetName(vec![3]),
-            &BigNum::from(1)
+            AssetName::new(vec![3]).unwrap(),
+            1
         );
         token_bundle.insert(
-            &PolicyID::from([0; ScriptHash::BYTE_COUNT]),
-            &asset_list
+            PolicyId::from([0; ScriptHash::BYTE_COUNT]),
+            asset_list
         );
-        Value {
-            coin: BigNum::from(1555554),
-            multiasset: Some(token_bundle),
-        }
+        Value::new(1555554, token_bundle)
     }
 
     fn two_policies_one_0_char_asset() -> Value {
-        let mut token_bundle = MultiAsset::new();
-        let mut asset_list = Assets::new();
-        asset_list.insert(
-            &AssetName(vec![]),
-            &BigNum::from(1)
+        let mut token_bundle = MultiAsset::default();
+        token_bundle.set(
+            PolicyId::from([0; ScriptHash::BYTE_COUNT]),
+            AssetName::new(vec![]).unwrap(),
+            1
         );
-        token_bundle.insert(
-            &PolicyID::from([0; ScriptHash::BYTE_COUNT]),
-            &asset_list
+        token_bundle.set(
+            PolicyId::from([1; ScriptHash::BYTE_COUNT]),
+            AssetName::new(vec![]).unwrap(),
+            1
         );
-        token_bundle.insert(
-            &PolicyID::from([1; ScriptHash::BYTE_COUNT]),
-            &asset_list
-        );
-        Value {
-            coin: BigNum::from(1592591),
-            multiasset: Some(token_bundle),
-        }
+        Value::new(1592591, token_bundle)
     }
 
     fn two_policies_one_1_char_asset() -> Value {
-        let mut token_bundle = MultiAsset::new();
-        let mut asset_list = Assets::new();
-        asset_list.insert(
-            &AssetName(vec![1]),
-            &BigNum::from(1)
+        let mut token_bundle = MultiAsset::default();
+        token_bundle.set(
+            PolicyId::from([0; ScriptHash::BYTE_COUNT]),
+            AssetName::new(vec![1]).unwrap(),
+            1,
         );
-        token_bundle.insert(
-            &PolicyID::from([0; ScriptHash::BYTE_COUNT]),
-            &asset_list
+        token_bundle.set(
+            PolicyId::from([1; ScriptHash::BYTE_COUNT]),
+            AssetName::new(vec![1]).unwrap(),
+            1,
         );
-        token_bundle.insert(
-            &PolicyID::from([1; ScriptHash::BYTE_COUNT]),
-            &asset_list
-        );
-        Value {
-            coin: BigNum::from(1592591),
-            multiasset: Some(token_bundle),
-        }
+        Value::new(1592591, token_bundle)
     }
 
     fn three_policies_96_1_char_assets() -> Value {
-        let mut token_bundle = MultiAsset::new();
+        let mut token_bundle = MultiAsset::default();
         fn add_policy(token_bundle: &mut MultiAsset, index: u8) {
-            let mut asset_list = Assets::new();
+            let mut asset_list = OrderedHashMap::new();
 
             for i in 0..32 {
                 asset_list.insert(
-                    &AssetName(vec![index * 32 + i]),
-                    &BigNum::from(1)
+                    AssetName::new(vec![index * 32 + i]).unwrap(),
+                    1
                 );
             }
             token_bundle.insert(
-                &PolicyID::from([index; ScriptHash::BYTE_COUNT]),
-                &asset_list
+                PolicyId::from([index; ScriptHash::BYTE_COUNT]),
+                asset_list
             );
         }
         add_policy(&mut token_bundle, 1);
         add_policy(&mut token_bundle, 2);
         add_policy(&mut token_bundle, 3);
-        Value {
-            coin: BigNum::from(7592585),
-            multiasset: Some(token_bundle),
-        }
+        Value::new(7592585, token_bundle)
     }
 
     fn one_policy_three_32_char_assets() -> Value {
-        let mut token_bundle = MultiAsset::new();
-        let mut asset_list = Assets::new();
+        let mut token_bundle = MultiAsset::default();
+        let mut asset_list = OrderedHashMap::new();
         asset_list.insert(
-            &AssetName(vec![1; 32]),
-            &BigNum::from(1)
+            AssetName::new(vec![1; 32]).unwrap(),
+            1
         );
         asset_list.insert(
-            &AssetName(vec![2; 32]),
-            &BigNum::from(1)
+            AssetName::new(vec![2; 32]).unwrap(),
+            1
         );
         asset_list.insert(
-            &AssetName(vec![3; 32]),
-            &BigNum::from(1)
+            AssetName::new(vec![3; 32]).unwrap(),
+            1
         );
         token_bundle.insert(
-            &PolicyID::from([0; ScriptHash::BYTE_COUNT]),
-            &asset_list
+            PolicyId::from([0; ScriptHash::BYTE_COUNT]),
+            asset_list
         );
-        Value {
-            coin: BigNum::from(1555554),
-            multiasset: Some(token_bundle),
-        }
+        Value::new(1555554, token_bundle)
     }
 
     #[test]
     fn min_ada_value_no_multiasset() {
         let check_output = test_output();
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            min_ada_required(&check_output, COINS_PER_UTXO_BYTE).unwrap(),
             969750,
         );
     }
@@ -308,9 +276,9 @@ mod tests {
     #[test]
     fn min_ada_value_one_policy_one_0_char_asset() {
         let mut check_output = test_output();
-        check_output.amount = one_policy_one_0_char_asset();
+        check_output.set_amount(one_policy_one_0_char_asset());
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            min_ada_required(&check_output, COINS_PER_UTXO_BYTE).unwrap(),
             1120600,
         );
     }
@@ -318,9 +286,9 @@ mod tests {
     #[test]
     fn min_ada_value_one_policy_one_1_char_asset() {
         let mut check_output = test_output();
-        check_output.amount = one_policy_one_1_char_asset();
+        check_output.set_amount(one_policy_one_1_char_asset());
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            min_ada_required(&check_output, COINS_PER_UTXO_BYTE).unwrap(),
             1124910,
         );
     }
@@ -328,9 +296,9 @@ mod tests {
     #[test]
     fn min_ada_value_one_policy_three_1_char_assets() {
         let mut check_output = test_output();
-        check_output.amount = one_policy_three_1_char_assets();
+        check_output.set_amount(one_policy_three_1_char_assets());
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            min_ada_required(&check_output, COINS_PER_UTXO_BYTE).unwrap(),
             1150770,
         );
     }
@@ -338,9 +306,9 @@ mod tests {
     #[test]
     fn min_ada_value_two_policies_one_0_char_asset() {
         let mut check_output = test_output();
-        check_output.amount = two_policies_one_0_char_asset();
+        check_output.set_amount(two_policies_one_0_char_asset());
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            min_ada_required(&check_output, COINS_PER_UTXO_BYTE).unwrap(),
             1262830,
         );
     }
@@ -348,9 +316,9 @@ mod tests {
     #[test]
     fn min_ada_value_two_policies_one_1_char_asset() {
         let mut check_output = test_output();
-        check_output.amount = two_policies_one_1_char_asset();
+        check_output.set_amount(two_policies_one_1_char_asset());
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            min_ada_required(&check_output, COINS_PER_UTXO_BYTE).unwrap(),
             1271450,
         );
     }
@@ -358,9 +326,9 @@ mod tests {
     #[test]
     fn min_ada_value_three_policies_96_1_char_assets() {
         let mut check_output = test_output();
-        check_output.amount = three_policies_96_1_char_assets();
+        check_output.set_amount(three_policies_96_1_char_assets());
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            min_ada_required(&check_output, COINS_PER_UTXO_BYTE).unwrap(),
             2633410,
         );
     }
@@ -368,9 +336,9 @@ mod tests {
     #[test]
     fn min_ada_value_one_policy_one_0_char_asset_datum_hash() {
         let mut check_output = test_output();
-        check_output.amount = one_policy_one_0_char_asset();
+        check_output.set_amount(one_policy_one_0_char_asset());
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            min_ada_required(&check_output, COINS_PER_UTXO_BYTE).unwrap(),
             1120600,
         );
     }
@@ -378,9 +346,9 @@ mod tests {
     #[test]
     fn min_ada_value_one_policy_three_32_char_assets_datum_hash() {
         let mut check_output = test_output();
-        check_output.amount = one_policy_three_32_char_assets();
+        check_output.set_amount(one_policy_three_32_char_assets());
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            min_ada_required(&check_output, COINS_PER_UTXO_BYTE).unwrap(),
             1564530,
         );
     }
@@ -388,9 +356,9 @@ mod tests {
     #[test]
     fn min_ada_value_two_policies_one_0_char_asset_datum_hash() {
         let mut check_output = test_output();
-        check_output.amount = two_policies_one_0_char_asset();
+        check_output.set_amount(two_policies_one_0_char_asset());
         assert_eq!(
-            from_bignum(&min_ada_required(&check_output, &to_bignum(COINS_PER_UTXO_BYTE)).unwrap()),
+            min_ada_required(&check_output, COINS_PER_UTXO_BYTE).unwrap(),
             1262830,
         );
     }

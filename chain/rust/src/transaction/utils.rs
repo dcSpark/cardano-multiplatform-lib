@@ -7,7 +7,7 @@ use crate::{
 };
 use cml_crypto::{DatumHash, Ed25519KeyHash};
 
-use super::NativeScript;
+use super::{NativeScript, ShelleyTxOut, AlonzoTxOut, BabbageTxOut};
 
 impl TransactionOutput {
     pub fn address(&self) -> &Address {
@@ -62,6 +62,24 @@ impl TransactionOutput {
             Self::AlonzoTxOut(_) => None,
             Self::BabbageTxOut(tx_out) => tx_out.script_reference.as_ref(),
         }
+    }
+}
+
+impl From<ShelleyTxOut> for TransactionOutput {
+    fn from(tx_out: ShelleyTxOut) -> Self {
+        Self::ShelleyTxOut(tx_out)
+    }
+}
+
+impl From<AlonzoTxOut> for TransactionOutput {
+    fn from(tx_out: AlonzoTxOut) -> Self {
+        Self::AlonzoTxOut(tx_out)
+    }
+}
+
+impl From<BabbageTxOut> for TransactionOutput {
+    fn from(tx_out: BabbageTxOut) -> Self {
+        Self::BabbageTxOut(tx_out)
     }
 }
 

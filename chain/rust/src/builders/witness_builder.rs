@@ -484,18 +484,20 @@ impl NativeScriptWitnessInfo {
 
 #[cfg(test)]
 mod tests {
-    use crate::ledger::byron::witness::make_icarus_bootstrap_witness;
+    use cml_crypto::{TransactionHash, Deserialize, Serialize, Bip32PrivateKey};
+
+    use crate::byron::make_icarus_bootstrap_witness;
 
     use super::*;
 
     fn fake_raw_key_public(id: u8) -> PublicKey {
-        PublicKey::from_bytes(
+        PublicKey::from_raw_bytes(
             &[id, 118, 57, 154, 33, 13, 232, 114, 14, 159, 168, 148, 228, 94, 65, 226, 154, 181, 37, 227, 11, 196, 2, 128, 28, 7, 98, 80, 209, 88, 91, 205]
         ).unwrap()
     }
 
     fn fake_private_key1() -> Bip32PrivateKey {
-        Bip32PrivateKey::from_bytes(
+        Bip32PrivateKey::from_raw_bytes(
             &[0xb8, 0xf2, 0xbe, 0xce, 0x9b, 0xdf, 0xe2, 0xb0, 0x28, 0x2f, 0x5b, 0xad, 0x70, 0x55, 0x62, 0xac, 0x99, 0x6e, 0xfb, 0x6a, 0xf9, 0x6b, 0x64, 0x8f,
                 0x44, 0x45, 0xec, 0x44, 0xf4, 0x7a, 0xd9, 0x5c, 0x10, 0xe3, 0xd7, 0x2f, 0x26, 0xed, 0x07, 0x54, 0x22, 0xa3, 0x6e, 0xd8, 0x58, 0x5c, 0x74, 0x5a,
                 0x0e, 0x11, 0x50, 0xbc, 0xce, 0xba, 0x23, 0x57, 0xd0, 0x58, 0x63, 0x69, 0x91, 0xf3, 0x8a, 0x37, 0x91, 0xe2, 0x48, 0xde, 0x50, 0x9c, 0x07, 0x0d,
@@ -504,7 +506,7 @@ mod tests {
     }
 
     fn fake_private_key2() -> Bip32PrivateKey {
-        Bip32PrivateKey::from_bytes(
+        Bip32PrivateKey::from_raw_bytes(
             &hex::decode("d84c65426109a36edda5375ea67f1b738e1dacf8629f2bb5a2b0b20f3cd5075873bf5cdfa7e533482677219ac7d639e30a38e2e645ea9140855f44ff09e60c52c8b95d0d35fe75a70f9f5633a3e2439b2994b9e2bc851c49e9f91d1a5dcbb1a3").unwrap()
         ).unwrap()
     }
@@ -523,15 +525,13 @@ mod tests {
         let mut required_wits = RequiredWitnessSet::new();
         let data = {
             let witness = {
-                let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
-                PartialPlutusWitness::new(&PlutusScriptWitness::from_script(PlutusScript(script)), &PlutusData::new_integer(&0u64.into()))
+                let script = PlutusScript::PlutusV1(PlutusV1Script::new(vec![0]));
+                PartialPlutusWitness {
+                    script: PlutusScriptWitness::Script(script),
+                    data: PlutusData::new_big_int(0u64.into())
+                }
             };
-            let missing_signers = {
-                let key = fake_raw_key_public(0);
-                let mut missing_signers = Ed25519KeyHashes::new();
-                missing_signers.add(&key.hash());
-                missing_signers
-            };
+            let missing_signers = vec![fake_raw_key_public(0).hash()];
             InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
         };
 
@@ -545,18 +545,17 @@ mod tests {
         let mut required_wits = RequiredWitnessSet::new();
         let key = fake_raw_key_public(0);
         let hash = key.hash();
-        required_wits.add_vkey_key_hash(&hash);
+        required_wits.add_vkey_key_hash(hash.clone());
 
         let data = {
             let witness = {
-                let script = PlutusScriptEnum::from_v1(&PlutusV1Script::new(vec![0]));
-                PartialPlutusWitness::new(&PlutusScriptWitness::from_script(PlutusScript(script)), &PlutusData::new_integer(&0u64.into()))
+                let script = PlutusScript::PlutusV1(PlutusV1Script::new(vec![0]));
+                PartialPlutusWitness {
+                    script: PlutusScriptWitness::Script(script),
+                    data: PlutusData::new_big_int(0u64.into())
+                }
             };
-            let missing_signers = {
-                let mut missing_signers = Ed25519KeyHashes::new();
-                missing_signers.add(&hash);
-                missing_signers
-            };
+            let missing_signers = vec![hash];
             InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
         };
 
@@ -572,24 +571,24 @@ mod tests {
         let fake_sig = fake_raw_key_sig(0);
 
         // add the same element twice
-        builder.add_vkey(&Vkeywitness::new(
-            &Vkey::new(&raw_key_public),
-            &fake_sig
+        builder.add_vkey(Vkeywitness::new(
+            raw_key_public.clone(),
+            fake_sig.clone()
         ));
-        builder.add_vkey(&Vkeywitness::new(
-            &Vkey::new(&raw_key_public),
-            &fake_sig
+        builder.add_vkey(Vkeywitness::new(
+            raw_key_public,
+            fake_sig
         ));
 
         // add a different element
-        builder.add_vkey(&Vkeywitness::new(
-            &Vkey::new(&fake_raw_key_public(1)),
-            &fake_raw_key_sig(1)
+        builder.add_vkey(Vkeywitness::new(
+            fake_raw_key_public(1),
+            fake_raw_key_sig(1)
         ));
 
         let wit_set = builder.build();
         assert_eq!(
-            wit_set.vkeys().unwrap().len(),
+            wit_set.vkeywitnesses.unwrap().len(),
             2
         );
     }
@@ -600,23 +599,23 @@ mod tests {
 
         // add the same element twice
         let wit1 = make_icarus_bootstrap_witness(
-            &TransactionHash::from([0u8; TransactionHash::BYTE_COUNT]),
-            &ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap(),
+            TransactionHash::from([0u8; TransactionHash::BYTE_COUNT]),
+            ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap(),
             &fake_private_key1()
         );
-        builder.add_bootstrap(&wit1);
-        builder.add_bootstrap(&wit1);
+        builder.add_bootstrap(wit1.clone());
+        builder.add_bootstrap(wit1);
 
         // add a different element
-        builder.add_bootstrap(&make_icarus_bootstrap_witness(
-            &TransactionHash::from([0u8; TransactionHash::BYTE_COUNT]),
-            &ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap(),
+        builder.add_bootstrap(make_icarus_bootstrap_witness(
+            TransactionHash::from([0u8; TransactionHash::BYTE_COUNT]),
+            ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap(),
             &fake_private_key2()
         ));
 
         let wit_set = builder.build();
         assert_eq!(
-            wit_set.bootstraps().unwrap().len(),
+            wit_set.bootstrap_witnesses.unwrap().len(),
             2
         );
     }
@@ -626,20 +625,16 @@ mod tests {
         let mut builder = TransactionWitnessSetBuilder::new();
 
         // add the same element twice
-        let wit1 = NativeScript::new_timelock_start(
-            &TimelockStart::new(&1.into()),
-        );
-        builder.add_native_script(&wit1);
-        builder.add_native_script(&wit1);
+        let wit1: Script = NativeScript::new_script_invalid_before(1).into();
+        builder.add_script(wit1.clone());
+        builder.add_script(wit1);
 
         // add a different element
-        builder.add_native_script(&NativeScript::new_timelock_start(
-            &TimelockStart::new(&2.into()),
-        ));
+        builder.add_script(NativeScript::new_script_invalid_before(2).into());
 
         let wit_set = builder.build();
         assert_eq!(
-            wit_set.native_scripts().unwrap().len(),
+            wit_set.native_scripts.unwrap().len(),
             2
         );
     }
@@ -651,16 +646,14 @@ mod tests {
         let mut builder = TransactionWitnessSetBuilder::new();
 
         let mut required_wits = RequiredWitnessSet::new();
-        required_wits.add_vkey_key(&Vkey::new(&fake_raw_key_public(0)));
-        required_wits.add_native_script(&NativeScript::new_timelock_start(
-            &TimelockStart::new(&2.into()),
-        ));
+        required_wits.add_vkey_key_hash(fake_raw_key_public(0).hash());
+        required_wits.add_script_hash(NativeScript::new_script_invalid_before(2).hash());
         builder.add_required_wits(&required_wits);
 
         // add a different element
-        builder.add_vkey(&Vkeywitness::new(
-            &Vkey::new(&fake_raw_key_public(1)),
-            &fake_raw_key_sig(1)
+        builder.add_vkey(Vkeywitness::new(
+            fake_raw_key_public(1),
+            fake_raw_key_sig(1)
         ));
 
         assert!(builder.try_build().is_err());
@@ -671,13 +664,13 @@ mod tests {
         let mut builder = TransactionWitnessSetBuilder::new();
 
         let mut required_wits = RequiredWitnessSet::new();
-        required_wits.add_vkey_key(&Vkey::new(&fake_raw_key_public(0)));
+        required_wits.add_vkey_key_hash(fake_raw_key_public(0).hash());
         builder.add_required_wits(&required_wits);
 
         // add a different element
-        builder.add_vkey(&Vkeywitness::new(
-            &Vkey::new(&fake_raw_key_public(0)),
-            &fake_raw_key_sig(0)
+        builder.add_vkey(Vkeywitness::new(
+            fake_raw_key_public(0),
+            fake_raw_key_sig(0)
         ));
 
         assert!(builder.try_build().is_ok());
@@ -686,8 +679,8 @@ mod tests {
     #[test]
     fn tx_witness_set_roundtrip_test() {
         let data = "a102818458205e8379f58f0838234af67f73738f0fee0d8185232e200b8e42887f4f06544a9a5840f5cfea560d2f8645ed624b65bf08cf83346eb5168ee4df0f63ce2d0d5f677db88fef2d5d9f032f09223889b5e85504ab44dd0a0cde1f1fd8f57deefde8c2080658202d3b7d9b806f88f10f1193e94ef97e5c02370c1464f61a30a8f1ac1a46115b2d5829a201581e581c072931653330243cf126aea85d39e73c6bd04601fe77424efb9e371002451a4170cb17";
-        let witness_set = TransactionWitnessSet::from_bytes(hex::decode(data).unwrap()).unwrap();
-        let round_trip = witness_set.to_bytes();
+        let witness_set = TransactionWitnessSet::from_cbor_bytes(&hex::decode(data).unwrap()).unwrap();
+        let round_trip = witness_set.to_cbor_bytes();
 
         assert_eq!(data, hex::encode(&round_trip));
     }

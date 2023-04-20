@@ -2,7 +2,8 @@ use crate::{
     address::Address,
     transaction::{DatumOption, ScriptRef, TransactionOutput, ShelleyTxOut, BabbageTxOut},
     plutus::PlutusData,
-    Multiasset as MultiAsset, Value, Coin, crypto::hash::hash_plutus_data,
+    assets::{MultiAsset, Value, Coin},
+    crypto::hash::hash_plutus_data,
     min_ada::{min_ada_required, MinAdaError},
 };
 
@@ -88,7 +89,7 @@ impl TransactionOutputAmountBuilder {
     pub fn with_asset_and_min_required_coin(mut self, multiasset: MultiAsset, coins_per_utxo_byte: Coin) -> Result<Self, OutputBuilderError> {
         let mut min_output = TransactionOutput::new_babbage_tx_out(BabbageTxOut {
             address: self.address.clone(),
-            amount: self.amount.clone().unwrap_or_else(|| Value::new(0, MultiAsset::new())),
+            amount: self.amount.clone().unwrap_or_else(|| Value::from(0)),
             datum_option: self.datum.clone(),
             script_reference: self.script_ref.clone(),
             encodings: None,

@@ -7,10 +7,11 @@ use cml_crypto::{
     Bip32PublicKey, PublicKey,
     impl_hash_type,
     CryptoError,
-    RawBytesEncoding,
+    RawBytesEncoding, Bip32PrivateKey, TransactionHash, LegacyDaedalusPrivateKey, Ed25519Signature,
 };
 use crate::{
     address::{Address, AddressError},
+    crypto::BootstrapWitness,
     genesis::network_info::NetworkInfo
 };
 use cml_core::{
@@ -287,6 +288,45 @@ impl Deserialize for ProtocolMagic {
         Ok(Self(raw.unsigned_integer()? as u32))
     }
 }
+
+pub fn make_daedalus_bootstrap_witness(
+    tx_body_hash: TransactionHash,
+    addr: ByronAddress,
+    key: LegacyDaedalusPrivateKey,
+) -> BootstrapWitness {
+    let chain_code = key.chaincode();
+
+    let pubkey = Bip32PublicKey::from_raw_bytes(&key.as_ref().to_public().as_ref()).unwrap();
+    let vkey = pubkey.to_raw_key();
+    let signature = Ed25519Signature::from_raw_bytes(&key.as_ref().sign(&tx_body_hash.to_raw_bytes()).as_ref().to_vec()).unwrap();
+
+    BootstrapWitness::new(
+        vkey,
+        signature,
+        chain_code,
+        addr.content.addr_attributes,
+    )
+}
+
+pub fn make_icarus_bootstrap_witness(
+    tx_body_hash: TransactionHash,
+    addr: ByronAddress,
+    key: &Bip32PrivateKey,
+) -> BootstrapWitness {
+    let chain_code = key.chaincode();
+
+    let raw_key = key.to_raw_key();
+    let vkey = raw_key.to_public();
+    let signature = raw_key.sign(&tx_body_hash.to_raw_bytes());
+
+    BootstrapWitness::new(
+        vkey,
+        signature,
+        chain_code,
+        addr.content.addr_attributes,
+    )
+}
+
 
 #[cfg(test)]
 mod tests {

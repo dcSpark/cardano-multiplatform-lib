@@ -9,6 +9,7 @@ use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::RawBytesEncoding;
 use std::io::{BufRead, Seek, SeekFrom, Write};
+use crate::byron::AddrAttributes;
 
 impl Serialize for BootstrapWitness {
     fn serialize<'se, W: Write>(
@@ -47,13 +48,16 @@ impl Serialize for BootstrapWitness {
                 .unwrap_or_default()
                 .to_str_len_sz(self.chain_code.len() as u64, force_canonical),
         )?;
+        let mut attributes_inner_se = Serializer::new_vec();
+        cbor_event::Serialize::serialize(&self.attributes, &mut attributes_inner_se)?;
+        let attributes_bytes = attributes_inner_se.finalize();
         serializer.write_bytes_sz(
-            &self.attributes,
+            &attributes_bytes,
             self.encodings
                 .as_ref()
-                .map(|encs| encs.attributes_encoding.clone())
+                .map(|encs| encs.attributes_bytes_encoding.clone())
                 .unwrap_or_default()
-                .to_str_len_sz(self.attributes.len() as u64, force_canonical),
+                .to_str_len_sz(attributes_bytes.len() as u64, force_canonical),
         )?;
         self.encodings
             .as_ref()
@@ -69,6 +73,7 @@ impl Deserialize for BootstrapWitness {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(4)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (public_key, public_key_encoding) = raw
                 .bytes_sz()
@@ -93,11 +98,15 @@ impl Deserialize for BootstrapWitness {
                 .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))
                 .map_err(Into::<DeserializeError>::into)
                 .map_err(|e: DeserializeError| e.annotate("chain_code"))?;
-            let (attributes, attributes_encoding) = raw
-                .bytes_sz()
-                .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))
-                .map_err(Into::<DeserializeError>::into)
-                .map_err(|e: DeserializeError| e.annotate("attributes"))?;
+            let (attributes, attributes_bytes_encoding) = (|| -> Result<_, DeserializeError> {
+                let (attributes_bytes, attributes_bytes_encoding) = raw.bytes_sz()?;
+                let inner_de = &mut Deserializer::from(std::io::Cursor::new(attributes_bytes));
+                Ok((
+                    AddrAttributes::deserialize(inner_de)?,
+                    StringEncoding::from(attributes_bytes_encoding),
+                ))
+            })()
+            .map_err(|e| e.annotate("attributes"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
                 cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -115,7 +124,7 @@ impl Deserialize for BootstrapWitness {
                     public_key_encoding,
                     signature_encoding,
                     chain_code_encoding,
-                    attributes_encoding,
+                    attributes_bytes_encoding,
                 }),
             })
         })()
@@ -335,6 +344,7 @@ impl Deserialize for VRFCert {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (output, output_encoding) = raw
                 .bytes_sz()
@@ -413,6 +423,7 @@ impl Deserialize for Vkeywitness {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (vkey, vkey_encoding) = raw
                 .bytes_sz()

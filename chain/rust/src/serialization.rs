@@ -127,6 +127,7 @@ impl Deserialize for PositiveInterval {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (strart, strart_encoding) = raw
                 .unsigned_integer_sz()
@@ -1366,6 +1367,7 @@ impl Deserialize for ProtocolVersionStruct {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let protocol_version =
                 ProtocolVersion::deserialize_as_embedded_group(raw, &mut read_len, len)
@@ -1456,6 +1458,7 @@ impl Deserialize for Rational {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (numerator, numerator_encoding) = raw
                 .unsigned_integer_sz()
@@ -1740,6 +1743,7 @@ impl Deserialize for UnitInterval {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (start, start_encoding) = raw
                 .unsigned_integer_sz()
@@ -1860,6 +1864,7 @@ impl Deserialize for Update {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (
                 proposed_protocol_parameter_updates,

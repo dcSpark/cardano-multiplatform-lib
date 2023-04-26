@@ -41,7 +41,7 @@ alonzo_tx_out = [
 ]
 babbage_tx_out = {
     0 : address,      ; @name address
-    1 : value,        ; @name value
+    1 : value,        ; @name amount
   ? 2 : datum_option, ; @name datum_option
   ? 3 : script_ref,   ; @name script_reference
 }

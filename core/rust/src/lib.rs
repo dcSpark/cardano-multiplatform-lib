@@ -77,6 +77,13 @@ impl Int {
             encoding: None,
         }
     }
+
+    pub fn encoding(&self) -> &Option<cbor_event::Sz> {
+        match self {
+            Self::Uint { encoding, .. } => encoding,
+            Self::Nint { encoding, .. } => encoding,
+        }
+    }
 }
 
 impl std::fmt::Display for Int {
@@ -98,6 +105,22 @@ impl std::str::FromStr for Int {
     }
 }
 
+impl From<u64> for Int {
+    fn from(x: u64) -> Self {
+        Self::Uint { value: x, encoding: None }
+    }
+}
+
+impl From<i64> for Int {
+    fn from(x: i64) -> Self {
+        if x >= 0 {
+            Self::Uint { value: x as u64, encoding: None }
+        } else {
+            Self::Nint { value: (x + 1).abs() as u64, encoding: None }
+        }
+    }
+}
+
 impl std::convert::TryFrom<i128> for Int {
     type Error = std::num::TryFromIntError;
 
@@ -112,6 +135,15 @@ impl std::convert::TryFrom<i128> for Int {
                 value: x,
                 encoding: None,
             })
+        }
+    }
+}
+
+impl Into<i128> for &Int {
+    fn into(self) -> i128 {
+        match self {
+            Int::Uint { value, .. } => (*value).into(),
+            Int::Nint { value, .. } => -((*value + 1) as i128),
         }
     }
 }

@@ -30,6 +30,11 @@ pub enum DeserializeFailure {
     InvalidStructure(Box<dyn std::error::Error>),
     MandatoryFieldMissing(Key),
     NoVariantMatched,
+    OutOfRange{
+        min: usize,
+        max: usize,
+        found: usize
+    },
     RangeCheck {
         found: usize,
         min: Option<isize>,
@@ -104,6 +109,7 @@ impl std::fmt::Display for DeserializeError {
                 write!(f, "Mandatory field {} not found", key)
             }
             DeserializeFailure::NoVariantMatched => write!(f, "No variant matched"),
+            DeserializeFailure::OutOfRange{ min, max, found } => write!(f, "Out of range: {} - must be in range {} - {}", found, min, max),
             DeserializeFailure::RangeCheck { found, min, max } => match (min, max) {
                 (Some(min), Some(max)) => write!(f, "{} not in range {} - {}", found, min, max),
                 (Some(min), None) => write!(f, "{} not at least {}", found, min),

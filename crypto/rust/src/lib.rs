@@ -10,11 +10,9 @@ use impl_mockchain::key;
 use rand::rngs::OsRng;
 use std::convert::From;
 
-// helpers for creating CDDL bytes wrappers around crypto
-pub mod chain;
 // brought over from old IOHK code
 mod chain_core;
-mod chain_crypto;
+pub mod chain_crypto;
 mod impl_mockchain;
 mod typed_bytes;
 
@@ -193,7 +191,7 @@ impl RawBytesEncoding for Bip32PrivateKey {
 #[derive(
     Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
 )]
-pub struct Bip32PublicKey(pub(crate) chain_crypto::PublicKey<chain_crypto::Ed25519Bip32>);
+pub struct Bip32PublicKey(pub chain_crypto::PublicKey<chain_crypto::Ed25519Bip32>);
 
 impl Bip32PublicKey {
     /// derive this public key with the given index.
@@ -254,6 +252,12 @@ impl RawBytesEncoding for Bip32PublicKey {
         chain_crypto::PublicKey::<chain_crypto::Ed25519Bip32>::from_binary(bytes)
             .map_err(Into::into)
             .map(Bip32PublicKey)
+    }
+}
+
+impl From<chain_crypto::PublicKey<chain_crypto::Ed25519Bip32>> for Bip32PublicKey {
+    fn from(key: chain_crypto::PublicKey<chain_crypto::Ed25519Bip32>) -> Self {
+        Self(key)
     }
 }
 
@@ -342,7 +346,7 @@ impl RawBytesEncoding for PrivateKey {
 #[derive(
     Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
 )]
-pub struct PublicKey(pub(crate) chain_crypto::PublicKey<chain_crypto::Ed25519>);
+pub struct PublicKey(pub chain_crypto::PublicKey<chain_crypto::Ed25519>);
 
 impl From<chain_crypto::PublicKey<chain_crypto::Ed25519>> for PublicKey {
     fn from(key: chain_crypto::PublicKey<chain_crypto::Ed25519>) -> PublicKey {
@@ -389,7 +393,7 @@ impl RawBytesEncoding for PublicKey {
 
 macro_rules! impl_signature {
     ($name:ident, $signee_type:ty, $verifier_type:ty) => {
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, Eq, PartialEq)]
         pub struct $name(chain_crypto::Signature<$signee_type, $verifier_type>);
 
         impl $name {
@@ -465,6 +469,18 @@ macro_rules! impl_signature {
             }
         }
 
+        impl Ord for $name {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                self.0.as_ref().cmp(other.0.as_ref())
+            }
+        }
+
+        impl PartialOrd for $name {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                self.0.as_ref().partial_cmp(other.0.as_ref())
+            }
+        }
+
         impl std::hash::Hash for $name {
             fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
                 self.0.as_ref().hash(state)
@@ -480,6 +496,8 @@ macro_rules! impl_signature {
 }
 
 impl_signature!(Ed25519Signature, Vec<u8>, chain_crypto::Ed25519);
+
+#[macro_export]
 macro_rules! impl_hash_type {
     ($name:ident, $byte_count:expr) => {
         #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -585,7 +603,6 @@ macro_rules! impl_hash_type {
         }
     };
 }
-pub(crate) use impl_hash_type;
 
 impl_hash_type!(Ed25519KeyHash, 28);
 impl_hash_type!(ScriptHash, 28);
@@ -598,17 +615,16 @@ impl_hash_type!(PoolMetadataHash, 32);
 impl_hash_type!(VRFKeyHash, 32);
 impl_hash_type!(BlockBodyHash, 32);
 impl_hash_type!(BlockHeaderHash, 32);
-impl_hash_type!(DataHash, 32);
+impl_hash_type!(DatumHash, 32);
 impl_hash_type!(ScriptDataHash, 32);
 // We might want to make these two vkeys normal classes later but for now it's just arbitrary bytes for us (used in block parsing)
-impl_hash_type!(VRFVKey, 32);
-impl_hash_type!(KESVKey, 32);
+impl_hash_type!(VRFVkey, 32);
+impl_hash_type!(KESVkey, 32);
 // same for this signature (but lots of traits aren't implemented for [u8; 448] so we can't)
 //impl_hash_type!(KESSignature, 448);
+impl_hash_type!(NonceHash, 32);
 
-pub struct LegacyDaedalusPrivateKey(
-    pub(crate) chain_crypto::SecretKey<chain_crypto::LegacyDaedalus>,
-);
+pub struct LegacyDaedalusPrivateKey(chain_crypto::SecretKey<chain_crypto::LegacyDaedalus>);
 
 impl LegacyDaedalusPrivateKey {
     pub fn chaincode(&self) -> Vec<u8> {
@@ -627,5 +643,11 @@ impl RawBytesEncoding for LegacyDaedalusPrivateKey {
         chain_crypto::SecretKey::<chain_crypto::LegacyDaedalus>::from_binary(bytes)
             .map(LegacyDaedalusPrivateKey)
             .map_err(|e| e.into())
+    }
+}
+
+impl AsRef<chain_crypto::SecretKey<chain_crypto::LegacyDaedalus>> for LegacyDaedalusPrivateKey {
+    fn as_ref(&self) -> &chain_crypto::SecretKey<chain_crypto::LegacyDaedalus> {
+        &self.0
     }
 }

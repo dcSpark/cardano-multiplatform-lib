@@ -201,8 +201,8 @@ pub struct TransactionMetadatum(core::TransactionMetadatum);
 
 #[wasm_bindgen]
 impl TransactionMetadatum {
-    pub fn to_original_cbor_bytes(&self) -> Vec<u8> {
-        Serialize::to_original_cbor_bytes(&self.0)
+    pub fn to_cbor_bytes(&self) -> Vec<u8> {
+        Serialize::to_cbor_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<TransactionMetadatum, JsValue> {

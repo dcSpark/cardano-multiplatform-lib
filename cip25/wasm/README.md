@@ -45,3 +45,10 @@ for (var i = 0; i < policies.len(); ++i) {
   }
 }
 ```
+
+We also support loose NFT parsing to try and parse key information out of potentially incorrectly formatted CIP25
+
+```typescript
+const details = wasm.CIP25.MiniMetadataDetails.loose_parse(Buffer.from("a1646e616d65694d6574617665727365", "hex"));
+console.log(details.name());
+```

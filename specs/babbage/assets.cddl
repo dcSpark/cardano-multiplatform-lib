@@ -1,0 +1,13 @@
+coin = uint
+
+asset_name = bytes .size (0..32)
+
+multiasset = { * policy_id => { * asset_name => uint } }
+
+mint = { * policy_id => { * asset_name => int64 } }
+
+int64 = -9223372036854775808 .. 9223372036854775807 ; @no_alias
+
+; original def (hand-written due to be being such a common struct to improve API + match old CML):
+; value = coin / [coin,multiasset]
+value = _CDDL_CODEGEN_EXTERN_TYPE_

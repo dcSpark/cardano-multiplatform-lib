@@ -8,27 +8,37 @@ certificate =
   // move_instantaneous_rewards_cert
   ]
 
-stake_registration = (0, stake_credential)
-stake_deregistration = (1, stake_credential)
-stake_delegation = (2, stake_credential, pool_keyhash)
-pool_registration = (3, pool_params)
-pool_retirement = (4, pool_keyhash, epoch)
-genesis_key_delegation = (5, genesishash, genesis_delegate_hash, vrf_keyhash)
-move_instantaneous_rewards_cert = (6, move_instantaneous_reward)
+stake_registration = (tag: 0, stake_credential)
+stake_deregistration = (tag: 1, stake_credential)
+stake_delegation = (tag: 2, stake_credential, ed25519_key_hash)
+pool_registration = (tag: 3, pool_params)
+pool_retirement = (tag: 4, ed25519_key_hash, epoch)
+genesis_key_delegation = (tag: 5, genesis_hash, genesis_delegate_hash, VRF_key_hash)
+move_instantaneous_rewards_cert = (tag: 6, move_instantaneous_reward)
 
-move_instantaneous_reward = [ 0 / 1, { * stake_credential => delta_coin } / coin ]
+MIR_pot = 0 ; @name reserve
+        / 1 ; @name treasury
+
+MIR_action = { * stake_credential => delta_coin } ; @name to_stake_credentials
+           / coin                                 ; @name to_other_pot
+
+move_instantaneous_reward = [
+  pot: MIR_pot,
+  action: MIR_action,
+]
+
 ; The first field determines where the funds are drawn from.
 ; 0 denotes the reserves, 1 denotes the treasury.
 ; If the second field is a map, funds are moved to stake credentials,
 ; otherwise the funds are given to the other accounting pot.
 
-pool_params = ( operator:       pool_keyhash
-              , vrf_keyhash:    vrf_keyhash
+pool_params = ( operator:       ed25519_key_hash
+              , vrf_keyhash:    VRF_key_hash
               , pledge:         coin
               , cost:           coin
               , margin:         unit_interval
               , reward_account: reward_account
-              , pool_owners:    [* addr_keyhash]
+              , pool_owners:    [* ed25519_key_hash]
               , relays:         [* relay]
               , pool_metadata:  pool_metadata / null
               )
@@ -37,16 +47,16 @@ ipv4 = bytes .size 4
 ipv6 = bytes .size 16
 dns_name = tstr .size (0..64)
 
-single_host_addr = ( 0
+single_host_addr = ( tag: 0
                    , port / null
                    , ipv4 / null
                    , ipv6 / null
                    )
-single_host_name = ( 1
+single_host_name = ( tag: 1
                    , port / null
                    , dns_name ; An A or AAAA DNS record
                    )
-multi_host_name = ( 2
+multi_host_name = ( tag: 2
                    , dns_name ; A SRV DNS record
                    )
 relay =
@@ -59,7 +69,9 @@ pool_metadata = [url, pool_metadata_hash]
 url = tstr .size (0..64)
 
 
-stake_credential =
-  [  0, addr_keyhash
-  // 1, scripthash
+stake_credential = [
+  ; @name PubKey
+  tag: 0, hash: ed25519_key_hash //
+  ; @name Script
+  tag: 1, hash: script_hash
   ]

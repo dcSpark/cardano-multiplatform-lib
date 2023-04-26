@@ -2,9 +2,9 @@
 ; to force the generation of its own struct instead of bytes
 ; since we have our own handwritten address struct
 ; address = bytes
-address = [0]
+address = _CDDL_CODEGEN_EXTERN_TYPE_
 ; reward_account = bytes
-reward_account = [1]
+reward_account = _CDDL_CODEGEN_EXTERN_TYPE_
 
 ; address format:
 ; [ 8 bit header | payload ];

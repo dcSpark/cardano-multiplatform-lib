@@ -49,6 +49,17 @@ impl CBORReadLen {
     }
 }
 
+impl From<cbor_event::Len> for CBORReadLen {
+    // to facilitate mixing with crates that use preserve-encodings=false to generate
+    // we need to create it from cbor_event::Len instead
+    fn from(len: cbor_event::Len) -> Self {
+        Self::new(match len {
+            cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, fit_sz(n, None, true)),
+            cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
+        })
+    }
+}
+
 pub trait DeserializeEmbeddedGroup {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(
         raw: &mut Deserializer<R>,
@@ -195,8 +206,9 @@ pub trait Serialize {
     /// Bytes of a structure using the CBOR bytes as per the CDDL spec
     /// which for foo = bytes will include the CBOR bytes type/len, etc.
     /// This gives the original bytes in the case where this was created
-    /// from bytes originally
-    fn to_original_cbor_bytes(&self) -> Vec<u8> {
+    /// from bytes originally, or will use whatever the specific encoding
+    /// details are present in any encoding details struct for the type.
+    fn to_cbor_bytes(&self) -> Vec<u8> {
         let mut buf = Serializer::new_vec();
         self.serialize(&mut buf, false).unwrap();
         buf.finalize()

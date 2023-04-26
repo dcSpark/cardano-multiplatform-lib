@@ -2,8 +2,6 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 use core_crypto::RawBytesEncoding;
 
-pub mod chain;
-
 #[wasm_bindgen]
 pub struct Bip32PrivateKey(core_crypto::Bip32PrivateKey);
 
@@ -267,6 +265,7 @@ impl AsRef<core_crypto::PrivateKey> for PrivateKey {
 
 /// ED25519 key used as public key
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct PublicKey(core_crypto::PublicKey);
 
 #[wasm_bindgen]
@@ -457,8 +456,9 @@ impl_hash_type!(PoolMetadataHash);
 impl_hash_type!(VRFKeyHash);
 impl_hash_type!(BlockBodyHash);
 impl_hash_type!(BlockHeaderHash);
-impl_hash_type!(DataHash);
+impl_hash_type!(DatumHash);
 impl_hash_type!(ScriptDataHash);
 // We might want to make these two vkeys normal classes later but for now it's just arbitrary bytes for us (used in block parsing)
-impl_hash_type!(VRFVKey);
-impl_hash_type!(KESVKey);
+impl_hash_type!(VRFVkey);
+impl_hash_type!(KESVkey);
+impl_hash_type!(NonceHash);

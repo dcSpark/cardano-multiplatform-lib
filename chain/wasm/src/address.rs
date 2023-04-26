@@ -1,20 +1,12 @@
 use super::*;
 
-pub use core::AddressHeaderKind;
+pub use cml_chain::address::{AddressKind, AddressHeaderKind};
 
-#[wasm_bindgen]
-#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
-pub enum AddressKind {
-    Base,
-    Ptr,
-    Enterprise,
-    Reward,
-    Byron,
-}
+use crate::certs::StakeCredential;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct Address(core::Address);
+pub struct Address(cml_chain::address::Address);
 
 #[wasm_bindgen]
 impl Address {
@@ -50,7 +42,7 @@ impl Address {
     }
 
     pub fn header_matches_kind(header: u8, kind: AddressHeaderKind) -> bool {
-        core::Address::header_matches_kind(header, kind)
+        cml_chain::address::Address::header_matches_kind(header, kind)
     }
 
     pub fn to_bech32(&self, prefix: Option<String>) -> Result<String, JsError> {
@@ -58,7 +50,7 @@ impl Address {
     }
 
     pub fn from_bech32(bech_str: String) -> Result<Address, JsError> {
-        core::Address::from_bech32(&bech_str)
+        cml_chain::address::Address::from_bech32(&bech_str)
             .map(Into::into)
             .map_err(Into::into)
     }
@@ -67,15 +59,15 @@ impl Address {
      * Note: bech32-encoded Byron addresses will also pass validation here
      */
     pub fn is_valid_bech32(bech_str: String) -> bool {
-        core::Address::is_valid_bech32(&bech_str)
+        cml_chain::address::Address::is_valid_bech32(&bech_str)
     }
 
     // pub fn is_valid_byron(base58: &str) -> bool {
-    //     core::Address::is_valid_byron(base58)
+    //     cml_chain::address::Address::is_valid_byron(base58)
     // }
 
     pub fn is_valid(bech_str: String) -> bool {
-        core::Address::is_valid(&bech_str)
+        cml_chain::address::Address::is_valid(&bech_str)
     }
 
     pub fn network_id(&self) -> Result<u8, JsError> {
@@ -94,13 +86,7 @@ impl Address {
     }
 
     pub fn kind(&self) -> AddressKind {
-        match &self.0 {
-            core::Address::Base(_) => AddressKind::Base,
-            core::Address::Ptr(_) => AddressKind::Ptr,
-            core::Address::Enterprise(_) => AddressKind::Enterprise,
-            core::Address::Reward(_) => AddressKind::Reward,
-            //core::Address::Byron(_) => AddressKind::Byron,
-        }
+        self.0.kind()
     }
 
     pub fn to_raw_bytes(&self) -> Vec<u8> {
@@ -108,7 +94,7 @@ impl Address {
     }
 
     pub fn from_raw_bytes(data: &[u8]) -> Result<Address, JsError> {
-        core::Address::from_raw_bytes(data)
+        cml_chain::address::Address::from_raw_bytes(data)
             .map(Self)
             .map_err(Into::into)
     }
@@ -126,20 +112,20 @@ impl Address {
     }
 }
 
-impl From<core::Address> for Address {
-    fn from(native: core::Address) -> Self {
+impl From<cml_chain::address::Address> for Address {
+    fn from(native: cml_chain::address::Address) -> Self {
         Self(native)
     }
 }
 
-impl From<Address> for core::Address {
+impl From<Address> for cml_chain::address::Address {
     fn from(wasm: Address) -> Self {
         wasm.0
     }
 }
 
-impl AsRef<core::Address> for Address {
-    fn as_ref(&self) -> &core::Address {
+impl AsRef<cml_chain::address::Address> for Address {
+    fn as_ref(&self) -> &cml_chain::address::Address {
         &self.0
     }
 }
@@ -148,12 +134,15 @@ pub type RewardAccount = RewardAddress;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct RewardAddress(core::RewardAddress);
+pub struct RewardAddress(cml_chain::address::RewardAddress);
 
 #[wasm_bindgen]
 impl RewardAddress {
     pub fn new(network: u8, payment: &StakeCredential) -> Self {
-        Self(core::RewardAddress::new(network, payment.0.clone()))
+        Self(cml_chain::address::RewardAddress::new(
+            network,
+            payment.as_ref().clone(),
+        ))
     }
 
     pub fn to_address(&self) -> Address {
@@ -162,7 +151,7 @@ impl RewardAddress {
 
     pub fn from_address(address: &Address) -> Option<RewardAddress> {
         match &address.0 {
-            core::Address::Reward(ra) => Some(ra.clone().into()),
+            cml_chain::address::Address::Reward(ra) => Some(ra.clone().into()),
             _ => None,
         }
     }
@@ -180,20 +169,20 @@ impl RewardAddress {
     }
 }
 
-impl From<core::RewardAddress> for RewardAddress {
-    fn from(native: core::RewardAddress) -> Self {
+impl From<cml_chain::address::RewardAddress> for RewardAddress {
+    fn from(native: cml_chain::address::RewardAddress) -> Self {
         Self(native)
     }
 }
 
-impl From<RewardAddress> for core::RewardAddress {
+impl From<RewardAddress> for cml_chain::address::RewardAddress {
     fn from(wasm: RewardAddress) -> Self {
         wasm.0
     }
 }
 
-impl AsRef<core::RewardAddress> for RewardAddress {
-    fn as_ref(&self) -> &core::RewardAddress {
+impl AsRef<cml_chain::address::RewardAddress> for RewardAddress {
+    fn as_ref(&self) -> &cml_chain::address::RewardAddress {
         &self.0
     }
 }

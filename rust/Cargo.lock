@@ -87,9 +87,9 @@ dependencies = [
 
 [[package]]
 name = "cbor_event"
-version = "2.1.3"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b6cda8a789815488ee290d106bc97dba47785dae73d63576fc42c126912a451"
+checksum = "089a0261d1bc59e54e8e11860031efd88593f0e61b921172c474f1f38c2f2d3c"
 
 [[package]]
 name = "cc"

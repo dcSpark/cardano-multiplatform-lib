@@ -50,7 +50,7 @@ noop_proc_macro = "0.3.0"
 getrandom = { version = "0.2.9", features = ["js"], optional = true}
 wasm-bindgen = { version = "=0.2.83", features = ["serde-serialize"] }
 rand_os = { version = "0.1", features = ["wasm-bindgen"] }
-js-sys = "=0.3.59"
+js-sys = "=0.3.60"
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.

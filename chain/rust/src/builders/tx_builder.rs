@@ -1,45 +1,79 @@
-use crate::*;
-use crate::builders::output_builder::TransactionOutputBuilder;
-use crate::builders::output_builder::calc_min_ada;
-use crate::ledger;
-use crate::ledger::alonzo::fees::LinearFee;
-use crate::ledger::alonzo::fees::min_script_fee;
-use crate::ledger::babbage::min_ada::min_pure_ada;
-use crate::ledger::common::deposit::internal_get_deposit;
-use crate::ledger::common::deposit::internal_get_implicit_input;
-use crate::ledger::common::hash::calc_script_data_hash;
-use crate::ledger::common::hash::hash_auxiliary_data;
-use crate::ledger::common::utxo::TransactionUnspentOutput;
-use crate::ledger::common::value::Value;
-use crate::ledger::common::value::from_bignum;
+use crate::address::Address;
+use crate::assets::{Mint, AssetArithmeticError};
+use crate::auxdata::AuxiliaryData;
+use crate::certs::Certificate;
+use crate::crypto::hash::{calc_script_data_hash, hash_auxiliary_data, ScriptDataHashError};
+use crate::crypto::{Vkeywitness, BootstrapWitness};
+use crate::deposit::{internal_get_deposit, internal_get_implicit_input};
+use crate::min_ada::min_ada_required;
+use crate::plutus::{CostModels, ExUnits, Redeemer, Language};
+use crate::{Coin, ExUnitPrices, Withdrawals, NetworkId, Value, AssetName, PolicyId};
+use crate::fees::LinearFee;
+use cml_core::ordered_hash_map::OrderedHashMap;
+use fraction::Zero;
+use std::convert::TryInto;
+use std::ops::{Deref, DerefMut};
+// use crate::*;
+// use crate::builders::output_builder::TransactionOutputBuilder;
+// use crate::builders::output_builder::calc_min_ada;
+// use crate::ledger;
+// use crate::ledger::alonzo::fees::LinearFee;
+// use crate::ledger::alonzo::fees::min_script_fee;
+// use crate::ledger::babbage::min_ada::min_pure_ada;
+// use crate::ledger::common::deposit::internal_get_deposit;
+// use crate::ledger::common::deposit::internal_get_implicit_input;
+// use crate::ledger::common::hash::calc_script_data_hash;
+// use crate::ledger::common::hash::hash_auxiliary_data;
+// use crate::ledger::common::utxo::TransactionUnspentOutput;
+// use crate::ledger::common::value::Value;
+// use crate::ledger::common::value::from_bignum;
+use crate::transaction::{
+    ScriptRef, Transaction, TransactionOutput, TransactionInput,
+    TransactionBody, TransactionWitnessSet, DatumOption
+};
+use crate::plutus::{
+    PlutusData
+};
+use crate::assets::{
+    MultiAsset,
+};
 use super::input_builder::InputBuilderResult;
 use super::mint_builder::MintBuilderResult;
 use super::certificate_builder::*;
-use super::output_builder::SingleOutputBuilderResult;
-use super::utils::force_u64;
+use super::output_builder::{SingleOutputBuilderResult, OutputBuilderError};
+use super::redeemer_builder::{MissingExunitError, RedeemerBuilderError};
 use super::withdrawal_builder::WithdrawalBuilderResult;
-use super::witness_builder::InputAggregateWitnessData;
+use super::witness_builder::{InputAggregateWitnessData, WitnessBuilderError};
 use super::redeemer_builder::RedeemerSetBuilder;
 use super::redeemer_builder::RedeemerWitnessKey;
-use super::witness_builder::PlutusScriptWitnessEnum;
+use super::witness_builder::PlutusScriptWitness;
 use super::witness_builder::RequiredWitnessSet;
 use super::witness_builder::TransactionWitnessSetBuilder;
 use super::witness_builder::merge_fake_witness;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+use cml_core::{ArithmeticError, Slot};
+use cml_crypto::{Ed25519KeyHash, ScriptHash, Serialize, ScriptDataHash};
 use rand::Rng;
+use crate::builders::output_builder::TransactionOutputBuilder;
+
+#[derive(Clone, Debug)]
+pub struct TransactionUnspentOutput {
+    pub input: TransactionInput,
+    pub output: TransactionOutput
+}
 
 #[derive(Clone, Default, Debug)]
 struct WitnessBuilders {
-    pub(crate) witness_set_builder: TransactionWitnessSetBuilder,
-    pub(crate) fake_required_witnesses: RequiredWitnessSet,
-    pub(crate) redeemer_set_builder: RedeemerSetBuilder,
+    pub witness_set_builder: TransactionWitnessSetBuilder,
+    pub fake_required_witnesses: RequiredWitnessSet,
+    pub redeemer_set_builder: RedeemerSetBuilder,
 }
 impl WitnessBuilders {
-    fn merge_data(&self, include_fake: bool) -> TransactionWitnessSetBuilder {
+    fn merge_data(&self, include_fake: bool) -> Result<TransactionWitnessSetBuilder, WitnessBuilderError> {
         // add redeemers
-        let redeemers = self.redeemer_set_builder.build(true);
+        let redeemers = self.redeemer_set_builder.build(true)?;
         let mut witness_set_clone = self.witness_set_builder.clone();
-        witness_set_clone.add_redeemers(&redeemers.unwrap());
+        redeemers.into_iter().for_each(|r| witness_set_clone.add_redeemer(r));
 
         if include_fake {
             merge_fake_witness(&mut witness_set_clone, &self.fake_required_witnesses);
@@ -47,16 +81,16 @@ impl WitnessBuilders {
             merge_fake_witness(&mut witness_set_clone, &own_requirements);
         }
 
-        witness_set_clone
+        Ok(witness_set_clone)
     }
 
     /// build with fake witnesses to estimate tx fee cost
-    pub fn build_fake(&self) -> TransactionWitnessSet {
-        self.merge_data(true).build()
+    pub fn build_fake(&self) -> Result<TransactionWitnessSet, WitnessBuilderError> {
+        self.merge_data(true).map(|wit_builder| wit_builder.build())
     }
 
     /// build without including fake witnesses used for fee estimation. Allows missing witnesses
-    pub fn build_unchecked(&self) -> TransactionWitnessSetBuilder {
+    pub fn build_unchecked(&self) -> Result<TransactionWitnessSetBuilder, WitnessBuilderError> {
         self.merge_data(false)
     }
 }
@@ -64,28 +98,85 @@ impl WitnessBuilders {
 // tx_body must be the result of building from tx_builder
 // constructs the rest of the Transaction using fake witness data of the correct length
 // for use in calculating the size of the final Transaction
-fn fake_full_tx(tx_builder: &TransactionBuilder, body: TransactionBody) -> Result<Transaction, JsError> {
-    Ok(Transaction {
+fn fake_full_tx(tx_builder: &TransactionBuilder, body: TransactionBody) -> Result<Transaction, TxBuilderError> {
+    Ok(Transaction::new(
         body,
-        witness_set: tx_builder.witness_builders.build_fake(),
-        is_valid: true,
-        auxiliary_data: tx_builder.auxiliary_data.clone(),
-    })
+        tx_builder.witness_builders.build_fake()?,
+        true,
+        tx_builder.auxiliary_data.clone(),
+    ))
 }
 
-fn min_fee(tx_builder: &TransactionBuilder) -> Result<Coin, JsError> {
+#[derive(Debug, Copy, Clone)]
+pub enum TxBuilderConfigField {
+    FeeAlgo,
+    PoolDeposit,
+    KeyDeposit,
+    MaxValueSize,
+    MaxTxSize,
+    CoinsPerUtxoBytes,
+    ExUnitPrices,
+    CollateralPercentage,
+    MaxCollateralInputs,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum TxBuilderError {
+    #[error("Witness build failed: {0}")]
+    WitnessBuildFailed(#[from] WitnessBuilderError),
+    #[error("Redeem build failed: {0}")]
+    RedeemerBuildFailed(#[from] RedeemerBuilderError),
+    #[error("Output build failed: {0}")]
+    OutputBuildFailed(#[from] OutputBuilderError),
+    #[error("Arithmetic: {0}")]
+    Arithmetic(#[from] ArithmeticError),
+    #[error("Asset arithmetic: {0}")]
+    AssetArithmetic(#[from] AssetArithmeticError),
+    #[error("Uninitialized field: {0:?}")]
+    UninitializedField(TxBuilderConfigField),
+    #[error("Multiasset values not supported by RandomImprove. Please use RandomImproveMultiAsset")]
+    RandomImproveCantContainMultiasset,
+    #[error("UTxO Balance Insufficient")]
+    UTxOBalanceInsufficient,
+    #[error("NFTs too large for change output")]
+    NFTTooLargeForChange,
+    #[error("Collateral can only be payment keys (scripts not allowed)")]
+    CollateralMustBePayment,
+    #[error("Max collateral input count {0} exceeded")]
+    MaxCollateralInputExceeded(u32),
+    #[error("Max value size of {0} exceeded. Found: {1}")]
+    MaxValueSizeExceeded(u32, usize),
+    #[error("Max transaction size of {0} exceeded. Found: {1}")]
+    MaxTxSizeExceeded(u32, usize),
+    #[error("Value {0} less tan the minimum UTXO value {1}")]
+    ValueBelowMinUTXOValue(u64, u64),
+    #[error("Fee not specified")]
+    FeeNotSpecified,
+    #[error("Reference Script hash {0} not found in reference script witness set {1:?}")]
+    RefScriptNotFound(ScriptHash, BTreeSet<ScriptHash>),
+    #[error("Not enough ADA leftover to include non-ADA assets in a change address")]
+    InsufficientADAForAssets,
+    #[error("Missing input or output (possibly some native asset)")]
+    MissingInputOrOutput,
+    #[error("Cannot use collateral return without also having collateral input")]
+    CollateralReturnRequiresCollateralInput,
+    #[error("ScriptDataHash failed: {0}")]
+    ScriptDataHashFailed(#[from] ScriptDataHashError),
+}
+
+fn min_fee(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuilderError> {
     let full_tx = fake_full_tx(tx_builder, tx_builder.build_body()?)?;
     // we can't know the of scripts yet as they can't be calculated until we build the tx
-    ledger::alonzo::fees::min_no_script_fee(&full_tx, &tx_builder.config.fee_algo)
+    crate::fees::min_no_script_fee(&full_tx, &tx_builder.config.fee_algo).map_err(Into::into)
 }
 
-fn min_fee_with_exunits(tx_builder: &TransactionBuilder) -> Result<Coin, JsError> {
+fn min_fee_with_exunits(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuilderError> {
     let full_tx = fake_full_tx(tx_builder, tx_builder.build_body()?)?;
     // we can't know the of scripts yet as they can't be calculated until we build the tx
-    ledger::alonzo::fees::min_fee(&full_tx, &tx_builder.config.fee_algo, &tx_builder.config.ex_unit_prices)
+    crate::fees::min_fee(&full_tx, &tx_builder.config.fee_algo, &tx_builder.config.ex_unit_prices)
+        .map_err(Into::into)
 }
 
-#[wasm_bindgen]
 pub enum CoinSelectionStrategyCIP2 {
     /// Performs CIP2's Largest First ada-only selection. Will error if outputs contain non-ADA assets.
     LargestFirst,
@@ -97,43 +188,36 @@ pub enum CoinSelectionStrategyCIP2 {
     RandomImproveMultiAsset,
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct TransactionBuilderConfig {
     fee_algo: LinearFee,
-    pool_deposit: BigNum,      // protocol parameter
-    key_deposit: BigNum,       // protocol parameter
+    pool_deposit: u64,      // protocol parameter
+    key_deposit: u64,       // protocol parameter
     max_value_size: u32,       // protocol parameter
     max_tx_size: u32,          // protocol parameter
-    /// TODO: remove once Babbage is on mainnet
-    coins_per_utxo_word: Option<Coin>, // protocol parameter
     coins_per_utxo_byte: Coin, // protocol parameter
     ex_unit_prices: ExUnitPrices, // protocol parameter
-    costmdls: Costmdls,           // protocol parameter
+    cost_models: CostModels,           // protocol parameter
     collateral_percentage: u32,   // protocol parameter
     max_collateral_inputs: u32,   // protocol parameter
     prefer_pure_change: bool,
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Debug, Default)]
 pub struct TransactionBuilderConfigBuilder {
     fee_algo: Option<LinearFee>,
-    pool_deposit: Option<BigNum>,      // protocol parameter
-    key_deposit: Option<BigNum>,       // protocol parameter
+    pool_deposit: Option<u64>,      // protocol parameter
+    key_deposit: Option<u64>,       // protocol parameter
     max_value_size: Option<u32>,       // protocol parameter
     max_tx_size: Option<u32>,          // protocol parameter
-    /// TODO: remove once Babbage is on mainnet
-    coins_per_utxo_word: Option<Coin>, // protocol parameter
     coins_per_utxo_byte: Option<Coin>, // protocol parameter
     ex_unit_prices: Option<ExUnitPrices>, // protocol parameter
-    costmdls: Option<Costmdls>,           // protocol parameter
+    cost_models: Option<CostModels>,           // protocol parameter
     collateral_percentage: Option<u32>,   // protocol parameter
     max_collateral_inputs: Option<u32>,   // protocol parameter
     prefer_pure_change: bool,
 }
 
-#[wasm_bindgen]
 impl TransactionBuilderConfigBuilder {
     pub fn new() -> Self {
         // we have to provide new to expose it to WASM builds
@@ -146,32 +230,21 @@ impl TransactionBuilderConfigBuilder {
         cfg
     }
 
-    pub fn coins_per_utxo_byte(&self, coins_per_utxo_byte: &Coin) -> Self {
+    pub fn coins_per_utxo_byte(&self, coins_per_utxo_byte: Coin) -> Self {
         let mut cfg = self.clone();
-        cfg.coins_per_utxo_byte = Some(*coins_per_utxo_byte);
+        cfg.coins_per_utxo_byte = Some(coins_per_utxo_byte);
         cfg
     }
 
-    /// TODO: remove once Babbage is on mainnet
-    #[deprecated(
-        since = "1.0.0",
-        note = "If you don't need to support Alonzo, you don't need this function. Use coins_per_utxo_byte instead"
-    )]
-    pub fn coins_per_utxo_word(&self, coins_per_utxo_word: &Coin) -> Self {
+    pub fn pool_deposit(&self, pool_deposit: u64) -> Self {
         let mut cfg = self.clone();
-        cfg.coins_per_utxo_word = Some(*coins_per_utxo_word);
+        cfg.pool_deposit = Some(pool_deposit);
         cfg
     }
 
-    pub fn pool_deposit(&self, pool_deposit: &BigNum) -> Self {
+    pub fn key_deposit(&self, key_deposit: u64) -> Self {
         let mut cfg = self.clone();
-        cfg.pool_deposit = Some(*pool_deposit);
-        cfg
-    }
-
-    pub fn key_deposit(&self, key_deposit: &BigNum) -> Self {
-        let mut cfg = self.clone();
-        cfg.key_deposit = Some(*key_deposit);
+        cfg.key_deposit = Some(key_deposit);
         cfg
     }
 
@@ -199,9 +272,9 @@ impl TransactionBuilderConfigBuilder {
         cfg
     }
 
-    pub fn costmdls(&self, costmdls: &Costmdls) -> Self {
+    pub fn cost_models(&self, cost_models: &CostModels) -> Self {
         let mut cfg = self.clone();
-        cfg.costmdls = Some(costmdls.clone());
+        cfg.cost_models = Some(cost_models.clone());
         cfg
     }
 
@@ -217,53 +290,44 @@ impl TransactionBuilderConfigBuilder {
         cfg
     }
 
-    pub fn build(&self) -> Result<TransactionBuilderConfig, JsError> {
+    pub fn build(&self) -> Result<TransactionBuilderConfig, TxBuilderError> {
         let cfg = self.clone();
         Ok(TransactionBuilderConfig {
-            fee_algo: cfg.fee_algo.ok_or_else(|| JsError::from_str("uninitialized field: fee_algo"))?,
-            pool_deposit: cfg.pool_deposit.ok_or_else(|| JsError::from_str("uninitialized field: pool_deposit"))?,
-            key_deposit: cfg.key_deposit.ok_or_else(|| JsError::from_str("uninitialized field: key_deposit"))?,
-            max_value_size: cfg.max_value_size.ok_or_else(|| JsError::from_str("uninitialized field: max_value_size"))?,
-            max_tx_size: cfg.max_tx_size.ok_or_else(|| JsError::from_str("uninitialized field: max_tx_size"))?,
-            coins_per_utxo_byte: cfg.coins_per_utxo_byte.ok_or_else(|| JsError::from_str(
-                "uninitialized field: coins_per_utxo_byte",
-            ))?,
-            /// TODO: remove once Babbage is on mainnet
-            coins_per_utxo_word: cfg.coins_per_utxo_word,
+            fee_algo: cfg.fee_algo.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::FeeAlgo))?,
+            pool_deposit: cfg.pool_deposit.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::PoolDeposit))?,
+            key_deposit: cfg.key_deposit.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::KeyDeposit))?,
+            max_value_size: cfg.max_value_size.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::MaxValueSize))?,
+            max_tx_size: cfg.max_tx_size.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::MaxTxSize))?,
+            coins_per_utxo_byte: cfg.coins_per_utxo_byte.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::CoinsPerUtxoBytes))?,
             ex_unit_prices: cfg
                 .ex_unit_prices
-                .ok_or_else(|| JsError::from_str("uninitialized field: ex_unit_prices"))?,
-            costmdls: if cfg.costmdls.is_some() {
-                cfg.costmdls.unwrap()
+                .ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::ExUnitPrices))?,
+            cost_models: if cfg.cost_models.is_some() {
+                cfg.cost_models.unwrap()
             } else {
-                Costmdls::new()
+                CostModels::new()
             },
-            collateral_percentage: cfg.collateral_percentage.ok_or_else(|| JsError::from_str(
-                "uninitialized field: collateral_percentage",
-            ))?,
-            max_collateral_inputs: cfg.max_collateral_inputs.ok_or_else(|| JsError::from_str(
-                "uninitialized field: max_collateral_inputs",
-            ))?,
+            collateral_percentage: cfg.collateral_percentage.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::CollateralPercentage))?,
+            max_collateral_inputs: cfg.max_collateral_inputs.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::MaxCollateralInputs))?,
             prefer_pure_change: cfg.prefer_pure_change,
         })
     }
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct TransactionBuilder {
     config: TransactionBuilderConfig,
     inputs: Vec<TransactionUnspentOutput>,
-    outputs: TransactionOutputs,
+    outputs: Vec<TransactionOutput>,
     fee: Option<Coin>,
     ttl: Option<Slot>, // absolute slot number
-    certs: Option<Certificates>,
+    certs: Option<Vec<Certificate>>,
     withdrawals: Option<Withdrawals>,
     auxiliary_data: Option<AuxiliaryData>,
     validity_start_interval: Option<Slot>,
     mint: Option<Mint>,
     collateral: Option<Vec<TransactionUnspentOutput>>,
-    required_signers: Option<RequiredSignersSet>,
+    required_signers: Option<BTreeSet<Ed25519KeyHash>>,
     network_id: Option<NetworkId>,
     witness_builders: WitnessBuilders,
     utxos: Vec<InputBuilderResult>,
@@ -271,7 +335,6 @@ pub struct TransactionBuilder {
     reference_inputs: Option<Vec<TransactionUnspentOutput>>,
 }
 
-#[wasm_bindgen]
 impl TransactionBuilder {
     /// This automatically selects and adds inputs from {inputs} consisting of just enough to cover
     /// the outputs that have already been added.
@@ -280,32 +343,29 @@ impl TransactionBuilder {
     /// Adding a change output must be called after via TransactionBuilder::add_change_if_needed()
     /// This function, diverging from CIP2, takes into account fees and will attempt to add additional
     /// inputs to cover the minimum fees. This does not, however, set the txbuilder's fee.
-    pub fn select_utxos(&mut self, strategy: CoinSelectionStrategyCIP2) -> Result<(), JsError> {
-        let available_inputs = &self.utxos.clone();
+    pub fn select_utxos(&mut self, strategy: CoinSelectionStrategyCIP2) -> Result<(), TxBuilderError> {
+        let available_inputs = self.utxos.clone();
         let mut input_total = self.get_total_input()?;
         let mut output_total = self
             .get_total_output()?
-            .checked_add(&Value::new(&self.min_fee(false)?))?;
+            .checked_add(&Value::from(self.min_fee(false)?))?;
         match strategy {
             CoinSelectionStrategyCIP2::LargestFirst => {
-                if self.outputs.0.iter().any(|output| output.amount.multiasset.is_some()) {
-                    return Err(JsError::from_str("Multiasset values not supported by LargestFirst. Please use LargestFirstMultiAsset"));
-                }
                 self.cip2_largest_first_by(
-                    available_inputs,
+                    &available_inputs,
                     &mut (0..available_inputs.len()).collect(),
                     &mut input_total,
                     &mut output_total,
                     |value| Some(value.coin))?;
             },
             CoinSelectionStrategyCIP2::RandomImprove => {
-                if self.outputs.0.iter().any(|output| output.amount.multiasset.is_some()) {
-                    return Err(JsError::from_str("Multiasset values not supported by RandomImprove. Please use RandomImproveMultiAsset"));
+                if self.outputs.iter().any(|output| output.amount().has_multiassets()) {
+                    return Err(TxBuilderError::RandomImproveCantContainMultiasset);
                 }
                 let mut rng = rand::thread_rng();
                 let mut available_indices = (0..available_inputs.len()).collect::<BTreeSet<usize>>();
                 self.cip2_random_improve_by(
-                    available_inputs,
+                    &available_inputs,
                     &mut available_indices,
                     &mut input_total,
                     &mut output_total,
@@ -316,36 +376,34 @@ impl TransactionBuilder {
                 // a specific output, so the improvement algorithm we do above does not apply here.
                 while input_total.coin < output_total.coin {
                     if available_indices.is_empty() {
-                        return Err(JsError::from_str("UTxO Balance Insufficient[x]"));
+                        return Err(TxBuilderError::UTxOBalanceInsufficient);
                     }
                     let i = *available_indices.iter().nth(rng.gen_range(0..available_indices.len())).unwrap();
                     available_indices.remove(&i);
                     let input = &available_inputs[i];
                     let input_fee = self.fee_for_input(input)?;
-                    self.add_input(input).unwrap();
-                    input_total = input_total.checked_add(&input.utxo_info.amount)?;
-                    output_total = output_total.checked_add(&Value::new(&input_fee))?;
+                    self.add_input(input.clone()).unwrap();
+                    input_total = input_total.checked_add(input.utxo_info.amount())?;
+                    output_total = output_total.checked_add(&Value::from(input_fee))?;
                 }
             },
             CoinSelectionStrategyCIP2::LargestFirstMultiAsset => {
                 // indices into {available_inputs} for inputs that contain {policy_id}:{asset_name}
                 let mut available_indices = (0..available_inputs.len()).collect::<Vec<usize>>();
                 // run largest-fist by each asset type
-                if let Some(ma) = output_total.multiasset.clone() {
-                    for (policy_id, assets) in ma.0.iter() {
-                        for (asset_name, _) in assets.0.iter() {
-                            self.cip2_largest_first_by(
-                                available_inputs,
-                                &mut available_indices,
-                                &mut input_total,
-                                &mut output_total,
-                                |value| value.multiasset.as_ref()?.get(policy_id)?.get(asset_name))?;
-                        }
+                for (policy_id, assets) in output_total.multiasset.clone().iter() {
+                    for (asset_name, _) in assets.iter() {
+                        self.cip2_largest_first_by(
+                            &available_inputs,
+                            &mut available_indices,
+                            &mut input_total,
+                            &mut output_total,
+                            |value| value.multiasset.get(policy_id, asset_name))?;
                     }
                 }
                 // add in remaining ADA
                 self.cip2_largest_first_by(
-                    available_inputs,
+                    &available_inputs,
                     &mut available_indices,
                     &mut input_total,
                     &mut output_total,
@@ -355,22 +413,20 @@ impl TransactionBuilder {
                 let mut rng = rand::thread_rng();
                 let mut available_indices = (0..available_inputs.len()).collect::<BTreeSet<usize>>();
                 // run random-improve by each asset type
-                if let Some(ma) = output_total.multiasset.clone() {
-                    for (policy_id, assets) in ma.0.iter() {
-                        for (asset_name, _) in assets.0.iter() {
-                            self.cip2_random_improve_by(
-                                available_inputs,
-                                &mut available_indices,
-                                &mut input_total,
-                                &mut output_total,
-                                |value| value.multiasset.as_ref()?.get(policy_id)?.get(asset_name),
-                                &mut rng)?;
-                        }
+                for (policy_id, assets) in output_total.multiasset.clone().iter() {
+                    for (asset_name, _) in assets.iter() {
+                        self.cip2_random_improve_by(
+                            &available_inputs,
+                            &mut available_indices,
+                            &mut input_total,
+                            &mut output_total,
+                            |value| value.multiasset.get(policy_id, asset_name),
+                            &mut rng)?;
                     }
                 }
                 // add in remaining ADA
                 self.cip2_random_improve_by(
-                    available_inputs,
+                    &available_inputs,
                     &mut available_indices,
                     &mut input_total,
                     &mut output_total,
@@ -381,15 +437,15 @@ impl TransactionBuilder {
                 // a specific output, so the improvement algorithm we do above does not apply here.
                 while input_total.coin < output_total.coin {
                     if available_indices.is_empty() {
-                        return Err(JsError::from_str("UTxO Balance Insufficient[x]"));
+                        return Err(TxBuilderError::UTxOBalanceInsufficient);
                     }
                     let i = *available_indices.iter().nth(rng.gen_range(0..available_indices.len())).unwrap();
                     available_indices.remove(&i);
                     let input = &available_inputs[i];
                     let input_fee = self.fee_for_input(input)?;
-                    self.add_input(input).unwrap();
-                    input_total = input_total.checked_add(&input.utxo_info.amount)?;
-                    output_total = output_total.checked_add(&Value::new(&input_fee))?;
+                    self.add_input(input.clone()).unwrap();
+                    input_total = input_total.checked_add(input.utxo_info.amount())?;
+                    output_total = output_total.checked_add(&Value::from(input_fee))?;
                 }
             },
         }
@@ -403,30 +459,30 @@ impl TransactionBuilder {
         available_indices: &mut Vec<usize>,
         input_total: &mut Value,
         output_total: &mut Value,
-        by: F) -> Result<(), JsError>
+        by: F) -> Result<(), TxBuilderError>
     where
-        F: Fn(&Value) -> Option<BigNum> {
+        F: Fn(&Value) -> Option<u64> {
         let mut relevant_indices = available_indices.clone();
-        relevant_indices.retain(|i| by(&available_inputs[*i].utxo_info.amount).is_some());
+        relevant_indices.retain(|i| by(available_inputs[*i].utxo_info.amount()).is_some());
         // ordered in ascending order by predicate {by}
-        relevant_indices.sort_by_key(|i| by(&available_inputs[*i].utxo_info.amount).expect("filtered above"));
+        relevant_indices.sort_by_key(|i| by(available_inputs[*i].utxo_info.amount()).expect("filtered above"));
 
         // iterate in decreasing order for predicate {by}
         for i in relevant_indices.iter().rev() {
-            if by(input_total).unwrap_or_else(BigNum::zero) >= by(output_total).expect("do not call on asset types that aren't in the output") {
+            if by(input_total).unwrap_or_else(u64::zero) >= by(output_total).expect("do not call on asset types that aren't in the output") {
                 break;
             }
             let input = &available_inputs[*i];
             // differing from CIP2, we include the needed fees in the targets instead of just output values
             let input_fee = self.fee_for_input(input)?;
-            self.add_input(input).unwrap();
-            *input_total = input_total.checked_add(&input.utxo_info.amount)?;
-            *output_total = output_total.checked_add(&Value::new(&input_fee))?;
+            self.add_input(input.clone()).unwrap();
+            *input_total = input_total.checked_add(input.utxo_info.amount())?;
+            *output_total = output_total.checked_add(&Value::from(input_fee))?;
             available_indices.swap_remove(available_indices.iter().position(|j| i == j).unwrap());
         }
 
-        if by(input_total).unwrap_or_else(BigNum::zero) < by(output_total).expect("do not call on asset types that aren't in the output") {
-            return Err(JsError::from_str("UTxO Balance Insufficient"));
+        if by(input_total).unwrap_or_else(u64::zero) < by(output_total).expect("do not call on asset types that aren't in the output") {
+            return Err(TxBuilderError::UTxOBalanceInsufficient);
         }
 
         Ok(())
@@ -439,20 +495,20 @@ impl TransactionBuilder {
         input_total: &mut Value,
         output_total: &mut Value,
         by: F,
-        rng: &mut R) -> Result<(), JsError>
+        rng: &mut R) -> Result<(), TxBuilderError>
     where
-        F: Fn(&Value) -> Option<BigNum> {
+        F: Fn(&Value) -> Option<u64> {
         // Phase 1: Random Selection
         let mut relevant_indices = available_indices.iter()
-            .filter(|i| by(&available_inputs[**i].utxo_info.amount).is_some())
+            .filter(|i| by(available_inputs[**i].utxo_info.amount()).is_some())
             .cloned()
             .collect::<Vec<usize>>();
-        let mut associated_indices: BTreeMap<TransactionOutput, Vec<usize>> = BTreeMap::new();
-        let mut outputs = self.outputs.0.iter()
-            .filter(|output| by(&output.amount).is_some())
+        let mut associated_indices: HashMap<TransactionOutput, Vec<usize>> = HashMap::new();
+        let mut outputs = self.outputs.iter()
+            .filter(|output| by(output.amount()).is_some())
             .cloned()
             .collect::<Vec<TransactionOutput>>();
-        outputs.sort_by_key(|output| by(&output.amount).expect("filtered above"));
+        outputs.sort_by_key(|output| by(&output.amount()).expect("filtered above"));
         for output in outputs.iter().rev() {
             // TODO: how should we adapt this to inputs being associated when running for other assets?
             // if we do these two phases for each asset and don't take into account the other runs for other assets
@@ -469,17 +525,19 @@ impl TransactionBuilder {
             // we try and subtract all other assets b != a from the outputs we're trying to cover.
             // It might make sense to diverge further and not consider it per-output and to instead just match against
             // the sum of all outputs as one single value.
-            let mut added = BigNum::zero();
-            let needed = by(&output.amount).unwrap();
+            let mut added = u64::zero();
+            let needed = by(&output.amount()).unwrap();
             while added < needed {
                 if relevant_indices.is_empty() {
-                    return Err(JsError::from_str("UTxO Balance Insufficient"));
+                    return Err(TxBuilderError::UTxOBalanceInsufficient);
                 }
                 let random_index = rng.gen_range(0..relevant_indices.len());
                 let i = relevant_indices.swap_remove(random_index);
                 available_indices.remove(&i);
                 let input = &available_inputs[i];
-                added = added.checked_add(&by(&input.utxo_info.amount).expect("do not call on asset types that aren't in the output"))?;
+                added = added
+                    .checked_add(by(input.utxo_info.amount()).expect("do not call on asset types that aren't in the output"))
+                    .ok_or(ArithmeticError::IntegerOverflow)?;
                 associated_indices.entry(output.clone()).or_default().push(i);
             }
         }
@@ -493,9 +551,9 @@ impl TransactionBuilder {
                     let should_improve = {
                         let input = &available_inputs[*i];
                         let new_input = &available_inputs[*j];
-                        let cur = from_bignum(&input.utxo_info.amount.coin);
-                        let new = from_bignum(&new_input.utxo_info.amount.coin);
-                        let min = from_bignum(&output.amount.coin);
+                        let cur = input.utxo_info.amount().coin;
+                        let new = new_input.utxo_info.amount().coin;
+                        let min = output.amount().coin;
                         let ideal = 2 * min;
                         let max = 3 * min;
                         let move_closer = (ideal as i128 - new as i128).abs() < (ideal as i128 - cur as i128).abs();
@@ -517,37 +575,38 @@ impl TransactionBuilder {
             for i in associated_indices.get(output).unwrap().iter() {
                 let input = &available_inputs[*i];
                 let input_fee = self.fee_for_input(input)?;
-                self.add_input(input).unwrap();
-                *input_total = input_total.checked_add(&input.utxo_info.amount)?;
-                *output_total = output_total.checked_add(&Value::new(&input_fee))?;
+                self.add_input(input.clone()).unwrap();
+                *input_total = input_total.checked_add(input.utxo_info.amount())?;
+                *output_total = output_total.checked_add(&Value::from(input_fee))?;
             }
         }
 
         Ok(())
     }
 
-    pub fn add_input(&mut self, result: &InputBuilderResult) -> Result<(), JsError> {
-        self.inputs.push(TransactionUnspentOutput {
-            input: result.input.clone(),
-            output: result.utxo_info.clone(),
-        });
-        if let Some(script_ref) = result.utxo_info.script_ref.as_ref() {
-            self.witness_builders.witness_set_builder.required_wits.script_refs.insert(script_ref.script().hash());
+    pub fn add_input(&mut self, result: InputBuilderResult) -> Result<(), TxBuilderError> {
+        if let Some(script_ref) = result.utxo_info.script_ref() {
+            self.witness_builders.witness_set_builder.required_wits.script_refs.insert(script_ref.hash());
         }
-        if let Some(ref data) = result.aggregate_witness {
-            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
+        self.witness_builders.redeemer_set_builder.add_spend(&result);
+        self.witness_builders.witness_set_builder.add_required_wits(result.required_wits);
+        self.inputs.push(TransactionUnspentOutput {
+            input: result.input,
+            output: result.utxo_info,
+        });
+        if let Some(data) = result.aggregate_witness {
+            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(&data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(&data);
             if let InputAggregateWitnessData::PlutusScript(script_witness, required_signers, _) = data {
-                required_signers.0.iter().for_each(|signer| self.add_required_signer(signer));
+                required_signers.into_iter().for_each(|signer| self.add_required_signer(signer));
 
                 match &script_witness.script {
-                    builders::witness_builder::PlutusScriptWitness(PlutusScriptWitnessEnum::Ref(ref_script)) => {
+                    PlutusScriptWitness::Ref(ref_script) => {
                         if self.witness_builders.witness_set_builder.required_wits.script_refs.get(ref_script).is_none() {
-                            Err(JsError::from_str(&format!(
-                                "Reference Script hash {} not found in reference script witness set {:?}",
-                                ref_script,
-                                self.witness_builders.witness_set_builder.required_wits.script_refs
-                            )))
+                            Err(TxBuilderError::RefScriptNotFound(
+                                ref_script.clone(),
+                                self.witness_builders.witness_set_builder.required_wits.script_refs.clone()
+                            ))
                         } 
                         else{
                             Ok(())
@@ -559,8 +618,6 @@ impl TransactionBuilder {
             }
             
         }
-        self.witness_builders.redeemer_set_builder.add_spend(result);
-        self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
         Ok(())
     }
 
@@ -569,19 +626,19 @@ impl TransactionBuilder {
     }
 
     /// calculates how much the fee would increase if you added a given output
-    pub fn fee_for_input(&self, result: &InputBuilderResult) -> Result<Coin, JsError> {
+    pub fn fee_for_input(&self, result: &InputBuilderResult) -> Result<Coin, TxBuilderError> {
         let mut self_copy = self.clone();
 
         // we need some value for these for it to be a a valid transaction
         // but since we're only calculating the difference between the fee of two transactions
         // it doesn't matter what these are set as, since it cancels out
-        self_copy.set_fee(&to_bignum(0));
+        self_copy.set_fee(0);
 
         let fee_before = min_fee(&self_copy)?;
 
-        self_copy.add_input(result).unwrap();
+        self_copy.add_input(result.clone()).unwrap();
         let fee_after = min_fee(&self_copy)?;
-        fee_after.checked_sub(&fee_before)
+        fee_after.checked_sub(fee_before).ok_or_else(|| ArithmeticError::IntegerOverflow.into())
     }
 
     pub fn add_reference_input(&mut self, utxo: &TransactionUnspentOutput) {
@@ -594,8 +651,8 @@ impl TransactionBuilder {
         };
         reference_inputs.push(utxo.clone());
 
-        if let Some(script_ref) = utxo.output.script_ref.as_ref() {
-            self.witness_builders.witness_set_builder.required_wits.script_refs.insert(script_ref.script().hash());
+        if let Some(script_ref) = utxo.output.script_ref() {
+            self.witness_builders.witness_set_builder.required_wits.script_refs.insert(script_ref.hash());
         }
         // TODO: my understand is that inline datums in inputs also need to be added to the witness
         // but I still need to confirm this by actually submitting a transaction that tests this
@@ -604,140 +661,133 @@ impl TransactionBuilder {
 
 
     /// Add explicit output via a TransactionOutput object
-    pub fn add_output(&mut self, builder_result: &SingleOutputBuilderResult) -> Result<(), JsError> {
-        let output = &builder_result.output();
-        let value_size = output.amount.to_bytes().len();
+    pub fn add_output(&mut self, builder_result: SingleOutputBuilderResult) -> Result<(), TxBuilderError> {
+        let output = builder_result.output;
+        let value_size = output.amount().to_cbor_bytes().len();
         if value_size > self.config.max_value_size as usize {
-            return Err(JsError::from_str(&format!(
-                "Maximum value size of {} exceeded. Found: {}",
-                self.config.max_value_size,
-                value_size
-            )));
+            return Err(TxBuilderError::MaxValueSizeExceeded(self.config.max_value_size, value_size));
         }
-        let min_ada = calc_min_ada(
-            output,
-            &self.config.coins_per_utxo_byte,
-            self.config.coins_per_utxo_word.as_ref(),
+        let min_ada = min_ada_required(
+            &output,
+            self.config.coins_per_utxo_byte,
         )?;
-        if output.amount().coin() < min_ada {
-            Err(JsError::from_str(&format!(
-                "Value {} less than the minimum UTXO value {}",
-                from_bignum(&output.amount().coin()),
-                from_bignum(&min_ada)
-            )))
+        if output.amount().coin < min_ada {
+            Err(TxBuilderError::ValueBelowMinUTXOValue(output.amount().coin, min_ada))
         } else {
-            if let Some(datum) = builder_result.communication_datum().as_ref() {
+            if let Some(datum) = builder_result.communication_datum {
                 self.witness_builders.witness_set_builder.add_plutus_datum(datum);
             }
-            self.outputs.add(output);
+            self.outputs.push(output);
             Ok(())
         }
     }
 
     /// calculates how much the fee would increase if you added a given output
-    pub fn fee_for_output(&self, builder: &SingleOutputBuilderResult) -> Result<Coin, JsError> {
+    pub fn fee_for_output(&self, builder: &SingleOutputBuilderResult) -> Result<Coin, TxBuilderError> {
         let mut self_copy = self.clone();
 
         // we need some value for these for it to be a a valid transaction
         // but since we're only calculating the different between the fee of two transactions
         // it doesn't matter what these are set as, since it cancels out
-        self_copy.set_fee(&to_bignum(0));
+        self_copy.set_fee(0);
 
         let fee_before = min_fee(&self_copy)?;
 
-        self_copy.add_output(builder)?;
+        self_copy.add_output(builder.clone())?;
         let fee_after = min_fee(&self_copy)?;
-        fee_after.checked_sub(&fee_before)
+        fee_after.checked_sub(fee_before).ok_or_else(|| ArithmeticError::IntegerOverflow.into())
     }
 
-    pub fn set_fee(&mut self, fee: &Coin) {
-        self.fee = Some(*fee)
+    pub fn set_fee(&mut self, fee: Coin) {
+        self.fee = Some(fee)
     }
 
-    pub fn set_ttl(&mut self, ttl: &Slot) {
-        self.ttl = Some(*ttl)
+    pub fn set_ttl(&mut self, ttl: Slot) {
+        self.ttl = Some(ttl)
     }
 
     pub fn set_validity_start_interval(&mut self, validity_start_interval: &Slot) {
         self.validity_start_interval = Some(*validity_start_interval)
     }
 
-    pub fn get_certs(&self) -> Option<Certificates> {
-        self.certs.clone()
-    }
+    // TODO: remove?
+    // pub fn get_certs(&self) -> Option<Certificates> {
+    //     self.certs.clone()
+    // }
 
-    pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
-        let mut certs = self.get_certs().unwrap_or_else(Certificates::new);
-        certs.add(&result.cert);
-        self.certs = Some(certs);
-        if let Some(ref data) = result.aggregate_witness {
-            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
+    pub fn add_cert(&mut self, result: CertificateBuilderResult) {
+        self.witness_builders.redeemer_set_builder.add_cert(&result);
+        if self.certs.is_none() {
+            self.certs = Some(Vec::new());
+        }
+        self.certs.as_mut().unwrap().push(result.cert);
+        if let Some(data) = result.aggregate_witness {
+            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(&data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(&data);
             if let InputAggregateWitnessData::PlutusScript(_, required_signers, _) = data {
-                required_signers.0.iter().for_each(|signer| self.add_required_signer(signer));
+                required_signers.into_iter().for_each(|signer| self.add_required_signer(signer));
             }
         }
-        self.witness_builders.redeemer_set_builder.add_cert(result);
-        self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
+        self.witness_builders.witness_set_builder.add_required_wits(result.required_wits);
     }
 
     pub fn get_withdrawals(&self) -> Option<Withdrawals> {
         self.withdrawals.clone()
     }
 
-    pub fn add_withdrawal(&mut self, result: &WithdrawalBuilderResult) {
-        let mut withdrawals = self.get_withdrawals().unwrap_or_else(Withdrawals::new);
-        withdrawals.insert(&result.address, &result.amount);
-        self.withdrawals = Some(withdrawals);
-        if let Some(ref data) = result.aggregate_witness {
-            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
+    pub fn add_withdrawal(&mut self, result: WithdrawalBuilderResult) {
+        self.witness_builders.redeemer_set_builder.add_reward(&result);
+        if self.withdrawals.is_none() {
+            self.withdrawals = Some(OrderedHashMap::default());
+        }
+        self.withdrawals.as_mut().unwrap().insert(result.address, result.amount);
+        if let Some(data) = result.aggregate_witness {
+            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(&data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(&data);
             if let InputAggregateWitnessData::PlutusScript(_, required_signers, _) = data {
-                required_signers.0.iter().for_each(|signer| self.add_required_signer(signer));
+                required_signers.into_iter().for_each(|signer| self.add_required_signer(signer));
             }
         }
-        self.witness_builders.redeemer_set_builder.add_reward(result);
-        self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
+        self.witness_builders.witness_set_builder.add_required_wits(result.required_wits);
     }
 
     pub fn get_auxiliary_data(&self) -> Option<AuxiliaryData> {
         self.auxiliary_data.clone()
     }
 
-    pub fn set_auxiliary_data(&mut self, new_aux_data: &AuxiliaryData) {
+    pub fn set_auxiliary_data(&mut self, new_aux_data: AuxiliaryData) {
         self.auxiliary_data = Some(new_aux_data.clone())
     }
 
-    pub fn add_auxiliary_data(&mut self, new_aux_data: &AuxiliaryData) {
+    pub fn add_auxiliary_data(&mut self, new_aux_data: AuxiliaryData) {
         match self.auxiliary_data.as_mut() {
-            Some(data) => { data.add(new_aux_data); },
+            Some(data) => {
+                data.add(new_aux_data);
+            },
             None => {
-                let mut new_base = AuxiliaryData::new();
-                new_base.add(new_aux_data);
-                self.auxiliary_data = Some(new_base);
+                self.auxiliary_data = Some(new_aux_data);
             }
         }
     }
 
-    pub fn add_mint(&mut self, result: &MintBuilderResult) {
-        let mut mint = self.get_mint().unwrap_or_else(Mint::new);
-        let assets = {
-            let mut old_assets = mint.get(&result.policy_id).unwrap_or_else(MintAssets::new);
-            let mut new_assets = result.assets.clone();
-            old_assets.0.append(&mut new_assets.0);
-            old_assets
-        };
-        mint.insert(&result.policy_id, &assets);
+    pub fn add_mint(&mut self, result: MintBuilderResult) {
+        self.witness_builders.redeemer_set_builder.add_mint(&result);
+        self.witness_builders.witness_set_builder.add_required_wits(result.required_wits.clone());
+        // TODO: old behavior was to overwrite if for some reason there was already an asset here.
+        // Should we keep that or should we return an error or should we sum them?
+        let mut mint = self.mint.take().unwrap_or_default();
+        let combined_assets = mint.deref_mut().entry(result.policy_id).or_default();
+        for (asset_name, asset_value) in result.assets.iter() {
+            combined_assets.insert(asset_name.clone(), *asset_value);
+        }
         self.mint = Some(mint);
-        if let Some(ref data) = result.aggregate_witness {
-            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
+        if let Some(data) = result.aggregate_witness {
+            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(&data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(&data);
             if let InputAggregateWitnessData::PlutusScript(_, required_signers, _) = data {
-                required_signers.0.iter().for_each(|signer| self.add_required_signer(signer));
+                required_signers.into_iter().for_each(|signer| self.add_required_signer(signer));
             }
         }
-        self.witness_builders.redeemer_set_builder.add_mint(result);
-        self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
     }
 
     /// Returns a copy of the current mint state in the builder
@@ -749,7 +799,7 @@ impl TransactionBuilder {
         Self {
             config: cfg.clone(),
             inputs: Vec::new(),
-            outputs: TransactionOutputs::new(),
+            outputs: Vec::new(),
             fee: None,
             ttl: None,
             certs: None,
@@ -767,23 +817,19 @@ impl TransactionBuilder {
         }
     }
 
-    pub fn add_collateral(&mut self, result: &InputBuilderResult) -> Result<(), JsError>  {
+    pub fn add_collateral(&mut self, result: InputBuilderResult) -> Result<(), TxBuilderError>  {
         if result.aggregate_witness.is_some() {
-            return Err(JsError::from_str(
-                "Collateral can only be payment keys (scripts not allowed)",
-            ))
-        };
+            return Err(TxBuilderError::CollateralMustBePayment);
+        }
         let new_input = TransactionUnspentOutput {
-            input: result.input.clone(),
-            output: result.utxo_info.clone(),
+            input: result.input,
+            output: result.utxo_info,
         };
         match &mut self.collateral {
             None => { self.collateral = Some(vec![new_input]) },
             Some(collateral) => {
                 if self.config.max_collateral_inputs <= collateral.len().try_into().unwrap() {
-                    return Err(JsError::from_str(
-                        &format!("Max collateral input count ({}) exceeded", self.config.max_collateral_inputs),
-                    ))
+                    return Err(TxBuilderError::MaxCollateralInputExceeded(self.config.max_collateral_inputs));
                 }
                 collateral.push(new_input);
             }
@@ -791,44 +837,46 @@ impl TransactionBuilder {
         
         // note: collateral doesn't get counted for ref scripts
 
-        if let Some(ref data) = result.aggregate_witness {
-            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(data);
-            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(data);
+        if let Some(data) = result.aggregate_witness {
+            self.witness_builders.witness_set_builder.add_input_aggregate_real_witness_data(&data);
+            self.witness_builders.fake_required_witnesses.add_input_aggregate_fake_witness_data(&data);
             if let InputAggregateWitnessData::PlutusScript(_, required_signers, _) = data {
-                required_signers.0.iter().for_each(|signer| self.add_required_signer(signer));
+                required_signers.iter().for_each(|signer| self.add_required_signer(signer.clone()));
             }
         }
-        self.witness_builders.witness_set_builder.add_required_wits(&result.required_wits);
+        self.witness_builders.witness_set_builder.add_required_wits(result.required_wits);
 
         Ok(())
     }
 
-    pub fn collateral(&self) -> Option<TransactionInputs> {
-        self.collateral
-            .as_ref()
-            .map(|list| TransactionInputs(list.iter().map(|input| input.input.clone()).collect()))
-    }
+    // TODO: remove?
+    // pub fn collateral(&self) -> Option<TransactionInputs> {
+    //     self.collateral
+    //         .as_ref()
+    //         .map(|list| TransactionInputs(list.iter().map(|input| input.input.clone()).collect()))
+    // }
 
-    pub fn add_required_signer(&mut self, hash: &Ed25519KeyHash) {
+    pub fn add_required_signer(&mut self, hash: Ed25519KeyHash) {
         let mut set = RequiredWitnessSet::new();
-        set.add_vkey_key_hash(hash);
-        self.witness_builders.witness_set_builder.add_required_wits(&set);
+        set.add_vkey_key_hash(hash.clone());
+        self.witness_builders.witness_set_builder.add_required_wits(set);
 
         match &mut self.required_signers {
             None => {
-                let mut required_signers = RequiredSignersSet::new(); 
-                required_signers.insert(hash.clone());
+                let mut required_signers = BTreeSet::new(); 
+                required_signers.insert(hash);
                 self.required_signers = Some(required_signers);
             }
             Some(required_signers) => {
-                required_signers.insert(hash.clone());
+                required_signers.insert(hash);
             }
         }
     }
 
-    pub fn required_signers(&self) -> Option<RequiredSigners> {
-        self.required_signers.as_ref().map(|set| Ed25519KeyHashes(set.iter().cloned().collect()))
-    }
+    // TODO: remove?
+    // pub fn required_signers(&self) -> Option<RequiredSigners> {
+    //     self.required_signers.as_ref().map(|set| Ed25519KeyHashes(set.iter().cloned().collect()))
+    // }
 
     pub fn set_network_id(&mut self, network_id: NetworkId) {
         self.network_id = Some(network_id)
@@ -839,103 +887,110 @@ impl TransactionBuilder {
     }
 
     /// does not include refunds or withdrawals
-    pub fn get_explicit_input(&self) -> Result<Value, JsError> {
+    pub fn get_explicit_input(&self) -> Result<Value, TxBuilderError> {
         self.inputs
             .iter()
             .try_fold(Value::zero(), |acc, tx_builder_input| {
-                acc.checked_add(&tx_builder_input.output.amount)
+                acc.checked_add(&tx_builder_input.output.amount())
             })
+            .map_err(Into::into)
     }
 
     /// withdrawals and refunds
-    pub fn get_implicit_input(&self) -> Result<Value, JsError> {
+    pub fn get_implicit_input(&self) -> Result<Value, TxBuilderError> {
         internal_get_implicit_input(
-            &self.withdrawals,
-            &self.certs,
-            &self.config.pool_deposit,
-            &self.config.key_deposit,
+            self.withdrawals.as_ref(),
+            self.certs.as_ref().map(Vec::as_slice),
+            self.config.pool_deposit,
+            self.config.key_deposit,
         )
+            .map_err(Into::into)
     }
 
     /// Returns mint as tuple of (mint_value, burn_value) or two zero values
     fn get_mint_as_values(&self) -> (Value, Value) {
         self.mint.as_ref().map(|m| {
-            (Value::new_from_assets(&m.as_positive_multiasset()),
-             Value::new_from_assets(&m.as_negative_multiasset()))
+            (Value::from(m.as_positive_multiasset()),
+             Value::from(m.as_negative_multiasset()))
         }).unwrap_or((Value::zero(), Value::zero()))
     }
 
     /// Return explicit input plus implicit input plus mint
-    pub fn get_total_input(&self) -> Result<Value, JsError> {
+    pub fn get_total_input(&self) -> Result<Value, TxBuilderError> {
         let (mint_value, _) = self.get_mint_as_values();
         self.get_explicit_input()?
-            .checked_add(&self.get_implicit_input()?)?
-            .checked_add(&mint_value)
+            .checked_add(&self.get_implicit_input()?)
+            .and_then(|x| x.checked_add(&mint_value))
+            .map_err(Into::into)
     }
 
     /// Return explicit output plus implicit output plus burn (does not consider fee directly)
-    pub fn get_total_output(&self) -> Result<Value, JsError> {
+    pub fn get_total_output(&self) -> Result<Value, TxBuilderError> {
         let (_, burn_value) = self.get_mint_as_values();
         self.get_explicit_output()?
-            .checked_add(&Value::new(&self.get_deposit()?))?
-            .checked_add(&burn_value)
+            .checked_add(&Value::from(self.get_deposit()?))
+            .and_then(|x| x.checked_add(&burn_value))
+            .map_err(Into::into)
     }
 
     /// does not include fee
-    pub fn get_explicit_output(&self) -> Result<Value, JsError> {
+    pub fn get_explicit_output(&self) -> Result<Value, TxBuilderError> {
         self.outputs
-            .0
             .iter()
-            .try_fold(Value::new(&to_bignum(0)), |acc, output| {
+            .try_fold(Value::from(0), |acc, output| {
                 acc.checked_add(&output.amount())
             })
+            .map_err(Into::into)
     }
 
-    pub fn get_deposit(&self) -> Result<Coin, JsError> {
+    pub fn get_deposit(&self) -> Result<Coin, TxBuilderError> {
         internal_get_deposit(
-            &self.certs,
-            &self.config.pool_deposit,
-            &self.config.key_deposit,
+            self.certs.as_ref().map(Vec::as_slice),
+            self.config.pool_deposit,
+            self.config.key_deposit,
         )
+            .map_err(Into::into)
     }
 
     pub fn get_fee_if_set(&self) -> Option<Coin> {
         self.fee
     }
 
-    
-
-    pub fn set_collateral_return(&mut self, output: &TransactionOutput) {
-        self.collateral_return = Some(output.clone());
+    pub fn set_collateral_return(&mut self, output: TransactionOutput) {
+        self.collateral_return = Some(output);
     }
 
-    fn calc_collateral_total(&self) -> Result<Option<Coin>, JsError> {
+    fn calc_collateral_total(&self) -> Result<Option<Coin>, TxBuilderError> {
         match self.collateral_return.as_ref() {
             None => Ok(None),
             Some(coll_ret) => {
                 let input_sum = match self.collateral.as_ref() {
                     Some(collateral) => {
-                        collateral.iter().fold(Result::Ok(Coin::zero()), |acc, next| acc?.checked_add(&next.output.amount.coin()))
+                        collateral
+                            .iter()
+                            .fold(
+                                Result::Ok(Coin::zero()),
+                                |acc, next| acc?
+                                    .checked_add(next.output.amount().coin)
+                                    .ok_or(ArithmeticError::IntegerOverflow))
                     },
-                    None => return Err(JsError::from_str("Cannot use collateral return without also having collateral input"))
+                    None => return Err(TxBuilderError::CollateralReturnRequiresCollateralInput),
                 }?;
     
-                let coll_tot = input_sum.checked_sub(&coll_ret.amount().coin())?;
+                let coll_tot = input_sum.checked_sub(coll_ret.amount().coin).ok_or(ArithmeticError::IntegerOverflow)?;
                 Ok(Some(coll_tot))
             }
         }
     }
 
-    fn build_and_size(&self) -> Result<(TransactionBody, usize), JsError> {
-        let fee = self.fee.ok_or_else(|| JsError::from_str("Fee not specified"))?;
+    fn build_and_size(&self) -> Result<(TransactionBody, usize), TxBuilderError> {
+        let fee = self.fee.ok_or(TxBuilderError::FeeNotSpecified)?;
 
-        let redeemers = self.witness_builders.redeemer_set_builder.build(true).map_err(|o| {JsError::from_str("Unable to build redeemers.")})?;
-        let mut has_dummy_exunit = false;
-        for redeemer in redeemers.0.iter() {
-            if redeemer.ex_units() == ExUnits::dummy() {
-                has_dummy_exunit = true;
-            }
-        }
+        let redeemers = self
+            .witness_builders
+            .redeemer_set_builder
+            .build(true)?;
+        let has_dummy_exunit = redeemers.iter().any(|redeemer| redeemer.ex_units == ExUnits::dummy());
 
         let script_data_hash = match self.witness_builders.redeemer_set_builder.is_empty() {
             true => None,
@@ -947,25 +1002,25 @@ impl TransactionBuilder {
                 false => {  
                     let scripts = self.witness_builders.witness_set_builder.scripts.values();
                     let mut languages = scripts.fold(BTreeSet::<Language>::new(), |mut langs, script| {
-                        if let Some(lang) = &Option::<Language>::from(script) {
-                            langs.insert(*lang);
+                        if let Some(lang) = script.language() {
+                            langs.insert(lang);
                         } 
                         langs
                     });
                     if let Some(reference_inputs) = self.reference_inputs.as_ref() {
                         reference_inputs.iter().fold(&mut languages, |langs, input| {
-                            if let Some(script_ref) = &input.output.script_ref.as_ref() {
-                                if let Some(lang) = &Option::<Language>::from(&script_ref.script().0) {
-                                    langs.insert(lang.clone());
+                            if let Some(script_ref) = &input.output.script_ref() {
+                                if let Some(lang) = script_ref.language() {
+                                    langs.insert(lang);
                                 }
                             }
                             langs
                         });
                     };
                     self.inputs.clone().iter().fold(&mut languages, |langs, input| {
-                        if let Some(script_ref) = &input.output.script_ref.as_ref() {
-                            if let Some(lang) = &Option::<Language>::from(&script_ref.script().0) {
-                                langs.insert(lang.clone());
+                        if let Some(script_ref) = &input.output.script_ref() {
+                            if let Some(lang) = script_ref.language() {
+                                langs.insert(lang);
                             } 
                         }
                         langs
@@ -973,14 +1028,14 @@ impl TransactionBuilder {
                     calc_script_data_hash(
                         &redeemers,
                         &self.witness_builders.witness_set_builder.get_plutus_datum(),
-                        &self.config.costmdls,
-                        &Languages(languages.into_iter().collect())
+                        &self.config.cost_models,
+                        &languages.iter().copied().collect::<Vec<_>>()
                     )?
                 },
             }
         };
         let mut built = TransactionBody {
-            inputs: TransactionInputs(self.inputs.iter().map(|tx_builder_input| tx_builder_input.input.clone()).collect()),
+            inputs: self.inputs.iter().map(|tx_builder_input| tx_builder_input.input.clone()).collect(),
             outputs: self.outputs.clone(),
             fee,
             ttl: self.ttl,
@@ -988,37 +1043,38 @@ impl TransactionBuilder {
             withdrawals: self.withdrawals.clone(),
             update: None,
             auxiliary_data_hash: self.auxiliary_data.as_ref().map(hash_auxiliary_data),
-            validity_start_interval: self.validity_start_interval,
+            validity_interval_start: self.validity_start_interval,
             mint: self.mint.clone(),
             script_data_hash,
-            collateral: self.collateral.as_ref().map(
-                |collateral| TransactionInputs(collateral.iter().map(|c| c.input.clone()).collect())
+            collateral_inputs: self.collateral.as_ref().map(
+                |collateral| collateral.iter().map(|c| c.input.clone()).collect()
             ),
-            required_signers: self.required_signers.as_ref().map(|set| Ed25519KeyHashes(set.iter().cloned().collect())),
+            required_signers: self.required_signers.as_ref().map(|set| set.iter().cloned().collect()),
             network_id: self.network_id,
             collateral_return: self.collateral_return.clone(),
             total_collateral: self.calc_collateral_total()?,
-            reference_inputs: self.reference_inputs.as_ref().map(|inputs| TransactionInputs(inputs.iter().map(|utxo| utxo.input.clone()).collect())),
+            reference_inputs: self.reference_inputs.as_ref().map(|inputs| inputs.iter().map(|utxo| utxo.input.clone()).collect()),
+            encodings: None,
         };
 
         // indices for redeemers in smart contract txs require fields to be sorted
         { 
             // We sort inputs and withdrawals only since certs remain in the order given and
             // mint is sorted as items are added (by the nature of BTreeMaps)
-            built.inputs.0.sort_by(|a, b| {
+            built.inputs.sort_by(|a, b| {
                 match a.transaction_id.cmp(&b.transaction_id){
-                    Ordering::Equal => a.index.cmp(&b.index),
+                    std::cmp::Ordering::Equal => a.index.cmp(&b.index),
                     rest => rest
                 }
             });
 
             if let Some(withdrawals) = built.withdrawals {
-                let mut sorted_keys = withdrawals.keys().0;
+                let mut sorted_keys = withdrawals.keys().collect::<Vec<_>>();
                 sorted_keys.sort();
 
                 let mut sorted_linked_hashmap = Withdrawals::new();
                 sorted_linked_hashmap = sorted_keys.iter().fold(sorted_linked_hashmap, |mut accum, key| {
-                    accum.insert(key, &withdrawals.get(key).unwrap());
+                    accum.insert((*key).clone(), withdrawals.get(key).unwrap().clone());
                     accum
                 });
                 built.withdrawals = Some(sorted_linked_hashmap)
@@ -1027,33 +1083,29 @@ impl TransactionBuilder {
 
         // we must build a tx with fake data (of correct size) to check the final Transaction size
         let full_tx = fake_full_tx(self, built)?;
-        let full_tx_size = full_tx.to_bytes().len();
+        let full_tx_size = full_tx.to_cbor_bytes().len();
         Ok((full_tx.body, full_tx_size))
     }
 
-    pub fn full_size(&self) -> Result<usize, JsError> {
-        self.build_and_size().map(|r| { r.1 })
+    pub fn full_size(&self) -> Result<usize, TxBuilderError> {
+        self.build_and_size().map(|r| r.1)
     }
 
     pub fn output_sizes(&self) -> Vec<usize> {
-        self.outputs.0.iter().map(|o| { o.to_bytes().len() }).collect()
+        self.outputs.iter().map(|o| o.to_cbor_bytes().len()).collect()
     }
 
     /// Returns object the body of the new transaction
-    fn build_body(&self) -> Result<TransactionBody, JsError> {
+    fn build_body(&self) -> Result<TransactionBody, TxBuilderError> {
         let (body, full_tx_size) = self.build_and_size()?;
         if full_tx_size > self.config.max_tx_size as usize {
-            Err(JsError::from_str(&format!(
-                "Maximum transaction size of {} exceeded. Found: {}",
-                self.config.max_tx_size,
-                full_tx_size
-            )))
+            Err(TxBuilderError::MaxTxSizeExceeded(self.config.max_tx_size, full_tx_size))
         } else {
             Ok(body)
         }
     }
 
-    fn add_change_if_needed_for_tests(&mut self, change_address: &Address) -> Result<bool, JsError>{
+    fn add_change_if_needed_for_tests(&mut self, change_address: &Address) -> Result<bool, TxBuilderError>{
         choose_change_selection_algo(ChangeSelectionAlgo::Default)(self, change_address, false)
     }
 
@@ -1061,7 +1113,7 @@ impl TransactionBuilder {
     /// Builds the transaction and moves to the next step redeemer units can be added and a draft tx can
     /// be evaluated
     /// NOTE: is_valid set to true
-    pub fn build_for_evaluation(&self, algo: ChangeSelectionAlgo, change_address: &Address) -> Result<TxRedeemerBuilder, JsError> {
+    pub fn build_for_evaluation(&self, algo: ChangeSelectionAlgo, change_address: &Address) -> Result<TxRedeemerBuilder, TxBuilderError> {
         // First we finish change selection
 
         let mut tx = self.clone();
@@ -1078,7 +1130,7 @@ impl TransactionBuilder {
     // TODO: switch from ChangeSelectionAlgo to ChangeSelectionBuilder
     /// Builds the transaction and moves to the next step where any real witness can be added
     /// NOTE: is_valid set to true
-    pub fn build(&mut self, algo: ChangeSelectionAlgo, change_address: &Address) -> Result<SignedTxBuilder, JsError> {
+    pub fn build(&mut self, algo: ChangeSelectionAlgo, change_address: &Address) -> Result<SignedTxBuilder, TxBuilderError> {
 
         // First we finish change selection
         choose_change_selection_algo(algo)(self, change_address, true)?;
@@ -1086,7 +1138,7 @@ impl TransactionBuilder {
         Ok(SignedTxBuilder {
             body: self.build_body()?,
             // Side note: redeemer indices are calculated every time witness builder is built
-            witness_set: self.witness_builders.build_unchecked(),
+            witness_set: self.witness_builders.build_unchecked()?,
             is_valid: true,
             auxiliary_data: self.auxiliary_data.clone(),
 
@@ -1094,48 +1146,43 @@ impl TransactionBuilder {
     }
 
     /// used to override the exunit values initially provided when adding inputs
-    pub fn set_exunits(&mut self, redeemer: &RedeemerWitnessKey, ex_units: &ExUnits){
+    pub fn set_exunits(&mut self, redeemer: RedeemerWitnessKey, ex_units: ExUnits) {
         self.witness_builders.redeemer_set_builder.update_ex_units(redeemer, ex_units);
     }
 
     /// warning: sum of all parts of a transaction must equal 0. You cannot just set the fee to the min value and forget about it
     /// warning: min_fee may be slightly larger than the actual minimum fee (ex: a few lovelaces)
     /// this is done to simplify the library code, but can be fixed later
-    pub fn min_fee(&self, script_calulation: bool) -> Result<Coin, JsError> {
-
+    pub fn min_fee(&self, script_calulation: bool) -> Result<Coin, TxBuilderError> {
         if !script_calulation{
             let mut self_copy = self.clone();
-            self_copy.set_fee(&to_bignum(force_u64));
+            self_copy.fee = Some(u64::MAX);
             min_fee(&self_copy)
         }
         else {
             let mut self_copy = self.clone();
-            self_copy.set_fee(&to_bignum(force_u64));
+            self_copy.fee = Some(u64::MAX);
             min_fee_with_exunits(&self_copy)
         }
     }
 }
 
-#[wasm_bindgen]
 pub struct TxRedeemerBuilder {
     draft_body: TransactionBody,
     witness_builders: WitnessBuilders,
     auxiliary_data: Option<AuxiliaryData>,
 }
 
-#[wasm_bindgen]
 impl TxRedeemerBuilder {
     /// Builds the transaction and moves to the next step where any real witness can be added
     /// NOTE: is_valid set to true
     /// Will NOT require you to have set required signers & witnesses
-   pub fn build(&self) -> Result<Redeemers, JsError> {
-        self.witness_builders.redeemer_set_builder
-            .build(true)
-            .map_err(|err| JsError::from_str(&format!("{}", err)))
+   pub fn build(&self) -> Result<Vec<Redeemer>, RedeemerBuilderError> {
+        self.witness_builders.redeemer_set_builder.build(true)
    }
 
     /// used to override the exunit values initially provided when adding inputs
-    pub fn set_exunits(&mut self, redeemer: &RedeemerWitnessKey, ex_units: &ExUnits){
+    pub fn set_exunits(&mut self, redeemer: RedeemerWitnessKey, ex_units: ExUnits){
         self.witness_builders.redeemer_set_builder.update_ex_units(redeemer, ex_units);
     }
 
@@ -1152,18 +1199,17 @@ impl TxRedeemerBuilder {
     /// Transaction body with a dummy values for redeemers & script_data_hash and padded with dummy witnesses
     /// Used for calculating exunits
     /// note: is_valid set to true
-    pub fn draft_tx(&self) -> Transaction {
-        Transaction {
-            body: self.draft_body.clone(),
+    pub fn draft_tx(&self) -> Result<Transaction, WitnessBuilderError> {
+        Ok(Transaction::new(
+            self.draft_body.clone(),
             // Side note: redeemer indices are calculated every time witness builder is built
-            witness_set: self.witness_builders.build_fake(),
-            is_valid: true,
-            auxiliary_data: self.auxiliary_data.clone(),
-        }
+            self.witness_builders.build_fake()?,
+            true,
+            self.auxiliary_data.clone(),
+        ))
     }
 }
 
-#[wasm_bindgen]
 pub struct SignedTxBuilder {
     body: TransactionBody,
     witness_set: TransactionWitnessSetBuilder,
@@ -1171,51 +1217,50 @@ pub struct SignedTxBuilder {
     auxiliary_data: Option<AuxiliaryData>,
 }
 
-#[wasm_bindgen]
 impl SignedTxBuilder {
     pub fn new_with_data(
-        body: &TransactionBody,
-        witness_set: &TransactionWitnessSetBuilder,
+        body: TransactionBody,
+        witness_set: TransactionWitnessSetBuilder,
         is_valid: bool,
-        auxiliary_data: &AuxiliaryData
+        auxiliary_data: AuxiliaryData
     ) -> SignedTxBuilder {
         SignedTxBuilder {
-            body: body.clone(),
-            witness_set: witness_set.clone(),
+            body,
+            witness_set,
             is_valid,
-            auxiliary_data: Some(auxiliary_data.clone()),
+            auxiliary_data: Some(auxiliary_data),
         }
     }
 
     pub fn new_without_data(
-        body: &TransactionBody,
-        witness_set: &TransactionWitnessSetBuilder,
+        body: TransactionBody,
+        witness_set: TransactionWitnessSetBuilder,
         is_valid: bool,
     ) -> SignedTxBuilder {
         SignedTxBuilder {
-            body: body.clone(),
-            witness_set: witness_set.clone(),
+            body,
+            witness_set,
             is_valid,
             auxiliary_data: None,
         }
     }
 
-    pub fn build_checked(&self) -> Result<Transaction, JsError> {
-        Ok(Transaction {
-            body: self.body.clone(),
-            witness_set: self.witness_set.try_build()?,
-            is_valid: self.is_valid,
-            auxiliary_data: self.auxiliary_data.clone(),
-        })
+    pub fn build_checked(self) -> Result<Transaction, WitnessBuilderError> {
+        Ok(Transaction::new(
+            self.body,
+            self.witness_set.try_build()?,
+            self.is_valid,
+            self.auxiliary_data,
+        ))
     }
 
-    pub fn build_unchecked(&self) -> Transaction {
-        Transaction {
-            body: self.body.clone(),
-            witness_set: self.witness_set.build(),
-            is_valid: self.is_valid,
-            auxiliary_data: self.auxiliary_data.clone(),
-        }
+    pub fn build_unchecked(self) -> Transaction {
+        Transaction::new(
+            self.body,
+            self.witness_set.build(),
+            self.is_valid,
+            self.auxiliary_data,
+        )
     }
 
     // Note: we only allow adding vkey & bootstraps at this stage
@@ -1229,11 +1274,11 @@ impl SignedTxBuilder {
     // Note: can't easily check inside the `add_vkey` or `add_bootstrap` functions if the user added a wrong witness
     // This is because scripts may require keys that weren't known exactly during the tx building phase
 
-    pub fn add_vkey(&mut self, vkey: &Vkeywitness) {
+    pub fn add_vkey(&mut self, vkey: Vkeywitness) {
         self.witness_set.add_vkey(vkey);
     }
 
-    pub fn add_bootstrap(&mut self, bootstrap: &BootstrapWitness) {
+    pub fn add_bootstrap(&mut self, bootstrap: BootstrapWitness) {
         self.witness_set.add_bootstrap(bootstrap);
     }
 
@@ -1253,12 +1298,12 @@ impl SignedTxBuilder {
         self.auxiliary_data.clone()
     }
 }
-#[wasm_bindgen]
+
 pub enum ChangeSelectionAlgo {
     Default,
 }
 
-pub fn choose_change_selection_algo(algo: ChangeSelectionAlgo) -> fn(&mut TransactionBuilder, &Address, include_exunits: bool) -> Result<bool, JsError>  {
+pub fn choose_change_selection_algo(algo: ChangeSelectionAlgo) -> fn(&mut TransactionBuilder, &Address, include_exunits: bool) -> Result<bool, TxBuilderError>  {
     match algo {
         Default => {
             add_change_if_needed
@@ -1270,7 +1315,7 @@ pub fn choose_change_selection_algo(algo: ChangeSelectionAlgo) -> fn(&mut Transa
 /// Make sure to call this function last after setting all other tx-body properties
 /// Editing inputs, outputs, mint, etc. after change been calculated
 /// might cause a mismatch in calculated fee versus the required fee
-pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address, include_exunits: bool) -> Result<bool, JsError> {
+pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address, include_exunits: bool) -> Result<bool, TxBuilderError> {
     let fee = match &builder.fee {
         None => builder.min_fee(include_exunits),
         // generating the change output involves changing the fee
@@ -1290,53 +1335,60 @@ pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address,
     let output_total = builder.get_total_output()?;
 
     use std::cmp::Ordering;
-    match &input_total.partial_cmp(&output_total.checked_add(&Value::new(&fee))?) {
+    match &input_total.partial_cmp(&output_total.checked_add(&Value::from(fee))?) {
         Some(Ordering::Equal) => {
             // recall: min_fee assumed the fee was the maximum possible so we definitely have enough input to cover whatever fee it ends up being
-            builder.set_fee(&input_total.checked_sub(&output_total)?.coin());
+            builder.set_fee(input_total.checked_sub(&output_total)?.coin);
             Ok(false)
         },
-        Some(Ordering::Less) => Err(JsError::from_str("Insufficient input in transaction")),
+        Some(Ordering::Less) => Err(TxBuilderError::UTxOBalanceInsufficient),
         Some(Ordering::Greater) => {
-            fn has_assets(ma: Option<MultiAsset>) -> bool {
-                ma.map(|assets| assets.len() > 0).unwrap_or(false)
-            }
             let change_estimator = input_total.checked_sub(&output_total)?;
-            if has_assets(change_estimator.multiasset()) {
-                fn will_adding_asset_make_output_overflow(output: &TransactionOutput, current_assets: &Assets, asset_to_add: (PolicyID, AssetName, BigNum), max_value_size: u32, coins_per_utxo_byte: &Coin, coins_per_utxo_word: Option<&Coin>) -> bool {
+            if change_estimator.has_multiassets() {
+                fn will_adding_asset_make_output_overflow(
+                    output: &TransactionOutput,
+                    current_assets: &OrderedHashMap<AssetName, u64>,
+                    asset_to_add: (PolicyId, AssetName, u64),
+                    max_value_size: u32,
+                    coins_per_utxo_byte: Coin
+                ) -> bool {
                     let (policy, asset_name, value) = asset_to_add;
                     let mut current_assets_clone = current_assets.clone();
-                    current_assets_clone.insert(&asset_name, &value);
-                    let mut amount_clone = output.amount.clone();
-                    let mut val = Value::new(&Coin::zero());
-                    let mut ma = MultiAsset::new();
-
-                    ma.insert(&policy, &current_assets_clone);
-                    val.set_multiasset(&ma);
+                    current_assets_clone.insert(asset_name, value);
+                    let mut amount_clone = output.amount().clone();
+                    let mut val = Value::from(Coin::zero());
+                    val.multiasset.insert(policy.clone(), current_assets_clone);
                     amount_clone = amount_clone.checked_add(&val).unwrap();
                 
                     let mut output_clone = output.clone();
-                    output_clone.amount = val;
+                    output_clone.set_amount(val);
 
                     // calculate minADA for more precise max value size
-                    let min_ada = calc_min_ada(&output_clone, coins_per_utxo_byte, coins_per_utxo_word).unwrap();
-                    amount_clone.set_coin(&min_ada);
+                    let min_ada = min_ada_required(&output_clone, coins_per_utxo_byte).unwrap();
+                    amount_clone.coin = min_ada;
 
-                    amount_clone.to_bytes().len() > max_value_size as usize
+                    amount_clone.to_cbor_bytes().len() > max_value_size as usize
                 }
-                fn pack_nfts_for_change(max_value_size: u32, coins_per_utxo_byte: &Coin, coins_per_utxo_word: Option<&Coin>, change_address: &Address, change_estimator: &Value, datum: Option<Datum>, script_ref: &Option<ScriptRef>, communication_datum: &Option<PlutusData>) -> Result<Vec<MultiAsset>, JsError> {
+                fn pack_nfts_for_change(
+                    max_value_size: u32,
+                    coins_per_utxo_byte: Coin,
+                    change_address: &Address,
+                    change_estimator: &Value,
+                    datum: Option<DatumOption>,
+                    script_ref: &Option<ScriptRef>,
+                    communication_datum: &Option<PlutusData>
+                ) -> Result<Vec<MultiAsset>, TxBuilderError> {
                     // we insert the entire available ADA temporarily here since that could potentially impact the size
                     // as it could be 1, 2 3 or 4 bytes for Coin.
                     let mut change_assets: Vec<MultiAsset> = Vec::new();
 
-                    let mut base_coin = Value::new(&change_estimator.coin());
-                    base_coin.set_multiasset(&MultiAsset::new());
-                    let mut output = TransactionOutput {
-                        address: change_address.clone(),
-                        amount: base_coin.clone(),
-                        datum_option: datum.as_ref().map(|d| d.0.clone()),
-                        script_ref: script_ref.clone(),
-                    };
+                    let mut base_coin = Value::from(change_estimator.coin);
+                    let mut output = TransactionOutput::new(
+                        change_address.clone(),
+                        base_coin.clone(),
+                        datum.clone(),
+                        script_ref.clone(),
+                    );
                     // If this becomes slow on large TXs we can optimize it like the following
                     // to avoid cloning + reserializing the entire output.
                     // This would probably be more relevant if we use a smarter packing algorithm
@@ -1347,7 +1399,7 @@ pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address,
                     // which in most cases likely shouldn't be the difference between
                     // having an extra change output or not unless there are gigantic
                     // differences in NFT policy sizes
-                    for (policy, assets) in change_estimator.multiasset().unwrap().0.iter() {
+                    for (policy, assets) in change_estimator.multiasset.iter() {
                         // for simplicity we also don't split assets within a single policy since
                         // you would need to have a very high amount of assets (which add 1-36 bytes each)
                         // in a single policy to make a difference. In the future if this becomes an issue
@@ -1361,174 +1413,190 @@ pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address,
                         // performance becomes an issue.
                         //let extra_bytes = policy.to_bytes().len() + assets.to_bytes().len() + 2 + cbor_len_diff;
                         //if bytes_used + extra_bytes <= max_value_size as usize {
-                        let mut old_amount = output.amount.clone();
-                        let mut val = Value::new(&Coin::zero());
-                        let mut next_nft = MultiAsset::new();
+                        let mut old_amount = output.amount().clone();
+                        let mut val = Value::from(Coin::zero());
+                        let mut next_nft = MultiAsset::default();
 
-                        let asset_names = assets.keys();
-                        let mut rebuilt_assets = Assets::new();
-                        for n in 0..asset_names.len() {
-                            let asset_name = asset_names.get(n);
-                            let value = assets.get(&asset_name).unwrap();
-
-                            if will_adding_asset_make_output_overflow(&output, &rebuilt_assets, (policy.clone(), asset_name.clone(), value), max_value_size, coins_per_utxo_byte, coins_per_utxo_word) {
+                        let mut rebuilt_assets = OrderedHashMap::new();
+                        for (asset_name, value) in assets.iter() {
+                            if will_adding_asset_make_output_overflow(
+                                &output,
+                                &rebuilt_assets,
+                                (policy.clone(), asset_name.clone(), *value),
+                                max_value_size,
+                                coins_per_utxo_byte
+                            ) {
                                 // if we got here, this means we will run into a overflow error,
                                 // so we want to split into multiple outputs, for that we...
 
                                 // 1. insert the current assets as they are, as this won't overflow
-                                next_nft.insert(policy, &rebuilt_assets);
-                                val.set_multiasset(&next_nft);
-                                output.amount = output.amount.checked_add(&val)?;
-                                change_assets.push(output.amount.multiasset().unwrap());
+                                next_nft.insert(policy.clone(), rebuilt_assets);
+                                val.multiasset = next_nft;
+                                output.set_amount(output.amount().checked_add(&val)?);
+                                change_assets.push(output.amount().multiasset.clone());
 
                                 // 2. create a new output with the base coin value as zero
-                                base_coin = Value::new(&Coin::zero());
-                                base_coin.set_multiasset(&MultiAsset::new());
-                                output = TransactionOutput {
-                                    address: change_address.clone(),
-                                    amount: base_coin.clone(),
-                                    datum_option: datum.as_ref().map(|d| d.0.clone()),
-                                    script_ref: script_ref.clone(),
-                                };
+                                base_coin = Value::from(Coin::zero());
+                                output = TransactionOutput::new(
+                                    change_address.clone(),
+                                    base_coin.clone(),
+                                    datum.clone(),
+                                    script_ref.clone(),
+                                );
 
                                 // 3. continue building the new output from the asset we stopped
-                                old_amount = output.amount.clone();
-                                val = Value::new(&Coin::zero());
-                                next_nft = MultiAsset::new();
+                                old_amount = output.amount().clone();
+                                val = Value::from(Coin::zero());
+                                next_nft = MultiAsset::default();
 
-                                rebuilt_assets = Assets::new();
+                                rebuilt_assets = OrderedHashMap::new();
                             }
 
-                            rebuilt_assets.insert(&asset_name, &value);
+                            rebuilt_assets.insert(asset_name.clone(), *value);
                         }
 
-                        next_nft.insert(policy, &rebuilt_assets);
-                        val.set_multiasset(&next_nft);
-                        output.amount = output.amount.checked_add(&val)?;
+                        next_nft.insert(policy.clone(), rebuilt_assets);
+                        val.multiasset = next_nft;
+                        output.set_amount(output.amount().checked_add(&val)?);
 
                         // calculate minADA for more precise max value size
                         let mut output_copy = output.clone();
-                        output_copy.amount = val;
-                        let min_ada = calc_min_ada(&output_copy, coins_per_utxo_byte, coins_per_utxo_word).unwrap();
+                        output_copy.set_amount(val);
+                        let min_ada = min_ada_required(&output_copy, coins_per_utxo_byte).unwrap();
 
-                        let mut amount_clone = output.amount.clone();
-                        amount_clone.set_coin(&min_ada);
-                        if amount_clone.to_bytes().len() > max_value_size as usize {
-                            output.amount = old_amount;
+                        let mut amount_clone = output.amount().clone();
+                        amount_clone.coin = min_ada;
+                        if amount_clone.to_cbor_bytes().len() > max_value_size as usize {
+                            output.set_amount(old_amount);
                             break;
                         }
                     }
-                    change_assets.push(output.amount.multiasset().unwrap());
+                    change_assets.push(output.amount().multiasset.clone());
                     Ok(change_assets)
                 }
                 let mut change_left = input_total.checked_sub(&output_total)?;
                 let mut new_fee = fee;
                 // we might need multiple change outputs for cases where the change has many asset types
                 // which surpass the max UTXO size limit
-                let minimum_utxo_val = min_pure_ada(&builder.config.coins_per_utxo_byte, address, &datum, &script_ref)?;
-                while let Some(Ordering::Greater) = change_left.multiasset.as_ref().map_or_else(|| None, |ma| ma.partial_cmp(&MultiAsset::new())) {
-                    let nft_changes = pack_nfts_for_change(builder.config.max_value_size, &builder.config.coins_per_utxo_byte, builder.config.coins_per_utxo_word.as_ref(), address, &change_left, datum.clone(), &script_ref, &communication_datum)?;
+                let minimum_utxo_val = min_ada_required(
+                    &TransactionOutput::new(
+                        address.clone(),
+                        // This is value is taken from the old code's code for min_pure_ada():
+                        // arbitrary value that happens to give the right number of bytes at the CBOR level
+                        Value::from(1000000),
+                        datum.clone(),
+                        script_ref.clone(),
+                    ),
+                    builder.config.coins_per_utxo_byte,
+                )?;
+                while let Some(Ordering::Greater) = change_left.multiasset.partial_cmp(&MultiAsset::default()) {
+                    let nft_changes = pack_nfts_for_change(builder.config.max_value_size, builder.config.coins_per_utxo_byte, address, &change_left, datum.clone(), &script_ref, &communication_datum)?;
                     if nft_changes.is_empty() {
                         // this likely should never happen
-                        return Err(JsError::from_str("NFTs too large for change output"));
+                        return Err(TxBuilderError::NFTTooLargeForChange);
                     }
                     // we only add the minimum needed (for now) to cover this output
-                    for nft_change in nft_changes.iter() {
+                    for nft_change in nft_changes {
                         let change_output = (TransactionOutputBuilder {
                             address: Some(address.clone()),
-                            datum: datum.as_ref().map(|d| d.0.clone()),
+                            datum: datum.clone(),
                             communication_datum: communication_datum.clone(),
                             script_ref: script_ref.clone()
                         })
                             .next()?
-                            .with_asset_and_min_required_coin(nft_change,  &builder.config.coins_per_utxo_byte, builder.config.coins_per_utxo_word.clone())?
+                            .with_asset_and_min_required_coin(nft_change,  builder.config.coins_per_utxo_byte)?
                             .build()?;
                         
                         // increase fee
                         let fee_for_change = builder.fee_for_output(&change_output)?;
-                        new_fee = new_fee.checked_add(&fee_for_change)?;
-                        if change_left.coin() < change_output.output().amount.coin().checked_add(&new_fee)? {
-                            return Err(JsError::from_str("Not enough ADA leftover to include non-ADA assets in a change address"));
+                        new_fee = new_fee.checked_add(fee_for_change).ok_or(ArithmeticError::IntegerOverflow)?;
+                        let change_ada_plus_fee = change_output
+                            .output
+                            .amount()
+                            .coin
+                            .checked_add(new_fee)
+                            .ok_or(ArithmeticError::IntegerOverflow)?;
+                        if change_left.coin < change_ada_plus_fee {
+                            return Err(TxBuilderError::InsufficientADAForAssets);
                         }
-                        change_left = change_left.checked_sub(&change_output.output().amount)?;
-                        builder.add_output(&change_output)?;
+                        change_left = change_left.checked_sub(&change_output.output.amount())?;
+                        builder.add_output(change_output)?;
                     }
                 }
-                change_left = change_left.checked_sub(&Value::new(&new_fee))?;
+                change_left = change_left.checked_sub(&Value::from(new_fee))?;
                 // add potentially a separate pure ADA change output
-                let left_above_minimum = change_left.coin.compare(&minimum_utxo_val) > 0;
+                let left_above_minimum = change_left.coin > minimum_utxo_val;
                 if builder.config.prefer_pure_change && left_above_minimum {
-                    let pure_output = &SingleOutputBuilderResult::new(&TransactionOutput {
-                        address: address.clone(),
-                        amount: change_left.clone(),
-                        datum_option: datum.as_ref().map(|d| d.0.clone()),
-                        script_ref: script_ref.clone(),
-                    });
+                    let pure_output = SingleOutputBuilderResult::new(TransactionOutput::new(
+                        address.clone(),
+                        change_left.clone(),
+                        datum.clone(),
+                        script_ref.clone(),
+                    ));
                     let additional_fee = builder.fee_for_output(&pure_output)?;
-                    let potential_pure_value = change_left.checked_sub(&Value::new(&additional_fee))?;
-                    let potential_pure_above_minimum = potential_pure_value.coin.compare(&minimum_utxo_val) > 0;
+                    let potential_pure_value = change_left.checked_sub(&Value::from(additional_fee))?;
+                    let potential_pure_above_minimum = potential_pure_value.coin > minimum_utxo_val;
                     if potential_pure_above_minimum {
-                        new_fee = new_fee.checked_add(&additional_fee)?;
+                        new_fee = new_fee.checked_add(additional_fee).ok_or(ArithmeticError::IntegerOverflow)?;
                         change_left = Value::zero();
-                        let change_output = SingleOutputBuilderResult::new(&TransactionOutput {
-                            address: address.clone(),
-                            amount: potential_pure_value.clone(),
-                            datum_option: datum.as_ref().map(|d| d.0.clone()),
-                            script_ref: script_ref.clone(),
-                        });
-                        builder.add_output(&change_output)?;
+                        let change_output = SingleOutputBuilderResult::new(TransactionOutput::new(
+                            address.clone(),
+                            potential_pure_value.clone(),
+                            datum.clone(),
+                            script_ref.clone(),
+                        ));
+                        builder.add_output(change_output)?;
                     }
                 }
-                builder.set_fee(&new_fee);
+                builder.set_fee(new_fee);
                 // add in the rest of the ADA
                 if !change_left.is_zero() {
-                    builder.outputs.0.last_mut().unwrap().amount = builder.outputs.0.last().unwrap().amount.checked_add(&change_left)?;
+                    let last_with_remaining = builder.outputs.last().unwrap().amount().checked_add(&change_left)?;
+                    builder.outputs.last_mut().unwrap().set_amount(last_with_remaining);
                 }
                 Ok(true)
             } else {
-                let min_ada = calc_min_ada(
-                    &TransactionOutput {
-                        address: address.clone(),
-                        amount: change_estimator.clone(),
-                        datum_option: datum.as_ref().map(|d| d.0.clone()),
-                        script_ref: script_ref.clone(),
-                    },
-                    &builder.config.coins_per_utxo_byte,
-                    builder.config.coins_per_utxo_word.as_ref(),
+                let min_ada = min_ada_required(
+                    &TransactionOutput::new(
+                        address.clone(),
+                        change_estimator.clone(),
+                        datum.clone(),
+                        script_ref.clone(),
+                    ),
+                    builder.config.coins_per_utxo_byte,
                 )?;
                 // no-asset case so we have no problem burning the rest if there is no other option
-                fn burn_extra(builder: &mut TransactionBuilder, burn_amount: &BigNum) -> Result<bool, JsError> {
+                fn burn_extra(builder: &mut TransactionBuilder, burn_amount: u64) -> Result<bool, TxBuilderError> {
                     // recall: min_fee assumed the fee was the maximum possible so we definitely have enough input to cover whatever fee it ends up being
                     builder.set_fee(burn_amount);
                     Ok(false) // not enough input to covert the extra fee from adding an output so we just burn whatever is left
                 }
-                match change_estimator.coin() >= min_ada {
-                    false => burn_extra(builder, &change_estimator.coin()),
+                match change_estimator.coin >= min_ada {
+                    false => burn_extra(builder, change_estimator.coin),
                     true => {
                         // check how much the fee would increase if we added a change output
-                        let fee_for_change = builder.fee_for_output(&SingleOutputBuilderResult::new(&TransactionOutput {
-                            address: address.clone(),
-                            amount: change_estimator.clone(),
-                            datum_option: datum.as_ref().map(|d| d.0.clone()),
-                            script_ref: script_ref.clone(),
-                        }))?;
+                        let fee_for_change = builder.fee_for_output(&SingleOutputBuilderResult::new(TransactionOutput::new(
+                            address.clone(),
+                            change_estimator.clone(),
+                            datum.clone(),
+                            script_ref.clone(),
+                        )))?;
 
-                        let new_fee = fee.checked_add(&fee_for_change)?;
-                        match change_estimator.coin() >= min_ada.checked_add(&Value::new(&new_fee).coin())? {
-                            false => burn_extra(builder, &change_estimator.coin()),
+                        let new_fee = fee.checked_add(fee_for_change).ok_or(ArithmeticError::IntegerOverflow)?;
+                        match change_estimator.coin >= min_ada.checked_add(new_fee).ok_or(ArithmeticError::IntegerOverflow)? {
+                            false => burn_extra(builder, change_estimator.coin),
                             true => {
                                 // recall: min_fee assumed the fee was the maximum possible so we definitely have enough input to cover whatever fee it ends up being
-                                builder.set_fee(&new_fee);
+                                builder.set_fee(new_fee);
 
-                                let change_output = SingleOutputBuilderResult::new(&TransactionOutput {
-                                    address: address.clone(),
-                                    amount: change_estimator.checked_sub(&Value::new(&new_fee.clone()))?,
-                                    datum_option: datum.as_ref().map(|d| d.0.clone()),
-                                    script_ref: script_ref.clone(),
-                                });
+                                let change_output = SingleOutputBuilderResult::new(TransactionOutput::new(
+                                    address.clone(),
+                                    change_estimator.checked_sub(&Value::from(new_fee))?,
+                                    datum.clone(),
+                                    script_ref,
+                                ));
 
-                                builder.add_output(&change_output)?;
-
+                                builder.add_output(change_output)?;
 
                                 Ok(true)
                             }
@@ -1537,12 +1605,14 @@ pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address,
                 }
             }
         }
-        None => Err(JsError::from_str("missing input or output (possibly some native asset)")),
+        None => Err(TxBuilderError::MissingInputOrOutput),
     }
 }
-
+/*
 #[cfg(test)]
 mod tests {
+    use crate::SubCoin;
+    use crate::address::Address;
     use crate::builders::witness_builder::{PartialPlutusWitness, PlutusScriptWitness};
     use crate::builders::{mint_builder::SingleMintBuilder, witness_builder::NativeScriptWitnessInfo, input_builder::SingleInputBuilder};
     use crate::byron::{ByronAddress, AddressContent};
@@ -1550,6 +1620,7 @@ mod tests {
     use crate::ledger::babbage::min_ada::min_ada_required;
     use crate::ledger::common::hash::hash_transaction;
     use crate::ledger::shelley::witness::make_vkey_witness;
+    use crate::transaction::ShelleyTxOut;
 
     use super::*;
     use super::builders::output_builder::TransactionOutputBuilder;
@@ -1584,7 +1655,7 @@ mod tests {
     }
 
     fn create_linear_fee(coefficient: u64, constant: u64) -> LinearFee {
-        LinearFee::new(&to_bignum(coefficient), &to_bignum(constant))
+        LinearFee::new(coefficient, constant)
     }
 
     fn create_default_linear_fee() -> LinearFee {
@@ -1600,20 +1671,20 @@ mod tests {
     ) -> TransactionBuilder {
         let cfg = TransactionBuilderConfigBuilder::default()
             .fee_algo(linear_fee)
-            .pool_deposit(&to_bignum(pool_deposit))
-            .key_deposit(&to_bignum(key_deposit))
+            .pool_deposit(pool_deposit)
+            .key_deposit(key_deposit)
             .max_value_size(max_val_size)
             .max_tx_size(MAX_TX_SIZE)
-            .coins_per_utxo_byte(&to_bignum(coins_per_utxo_byte))
+            .coins_per_utxo_byte(coins_per_utxo_byte)
             .ex_unit_prices(
                 &ExUnitPrices::new(
-                    &SubCoin::new(&BigNum::from_str("577").unwrap(), &BigNum::from_str("10000").unwrap()),
-                    &SubCoin::new(&BigNum::from_str("721").unwrap(), &BigNum::from_str("10000000").unwrap())
+                    &SubCoin::new(&u64::from_str("577").unwrap(), &u64::from_str("10000").unwrap()),
+                    &SubCoin::new(&u64::from_str("721").unwrap(), &u64::from_str("10000000").unwrap())
                 )
             )
             .collateral_percentage(150)
             .max_collateral_inputs(3)
-            .costmdls(&plutus_alonzo_cost_models())
+            .cost_models(&plutus_alonzo_cost_models())
             .build()
             .unwrap();
         TransactionBuilder::new(&cfg)
@@ -1648,15 +1719,15 @@ mod tests {
     fn create_tx_builder_with_fee_and_pure_change(linear_fee: &LinearFee) -> TransactionBuilder {
         TransactionBuilder::new(&TransactionBuilderConfigBuilder::default()
             .fee_algo(linear_fee)
-            .pool_deposit(&to_bignum(1))
-            .key_deposit(&to_bignum(1))
+            .pool_deposit(1)
+            .key_deposit(1)
             .max_value_size(MAX_VALUE_SIZE)
             .max_tx_size(MAX_TX_SIZE)
-            .coins_per_utxo_byte(&to_bignum(1))
+            .coins_per_utxo_byte(1)
             .ex_unit_prices(
                 &ExUnitPrices::new(
-                    &SubCoin::new(&BigNum::zero(), &BigNum::zero()),
-                    &SubCoin::new(&BigNum::zero(), &BigNum::zero())
+                    &SubCoin::new(0, 0),
+                    &SubCoin::new(0, 0)
                 )
             )
             .collateral_percentage(150)
@@ -1711,8 +1782,8 @@ mod tests {
 
         let input = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(1_000_000)))
+                &ShelleyTxOut::new(genesis_id(), 0).into(),
+                &TransactionOutput::new(addr_net_0.clone(), Value::from(1_000_000))
             ).payment_key().unwrap()
         };
         tx_builder.add_input(&input).unwrap();
@@ -3185,8 +3256,8 @@ mod tests {
             .coins_per_utxo_byte(&Coin::zero())
             .ex_unit_prices(
                 &ExUnitPrices::new(
-                    &SubCoin::new(&BigNum::zero(), &BigNum::zero()),
-                    &SubCoin::new(&BigNum::zero(), &BigNum::zero())
+                    &SubCoin::new(&u64::zero(), &u64::zero()),
+                    &SubCoin::new(&u64::zero(), &u64::zero())
                 )
             )
             .collateral_percentage(150)
@@ -3222,8 +3293,8 @@ mod tests {
             .coins_per_utxo_byte(&Coin::zero())
             .ex_unit_prices(
                 &ExUnitPrices::new(
-                    &SubCoin::new(&BigNum::zero(), &BigNum::zero()),
-                    &SubCoin::new(&BigNum::zero(), &BigNum::zero())
+                    &SubCoin::new(&u64::zero(), &u64::zero()),
+                    &SubCoin::new(&u64::zero(), &u64::zero())
                 )
             )
             .collateral_percentage(150)
@@ -3442,8 +3513,8 @@ mod tests {
                 .coins_per_utxo_byte(&to_bignum(1))
                 .ex_unit_prices(
                     &ExUnitPrices::new(
-                        &SubCoin::new(&BigNum::zero(), &BigNum::zero()),
-                        &SubCoin::new(&BigNum::zero(), &BigNum::zero())
+                        &SubCoin::new(&u64::zero(), &u64::zero()),
+                        &SubCoin::new(&u64::zero(), &u64::zero())
                     )
                 )
                 .collateral_percentage(150)
@@ -4122,7 +4193,7 @@ mod tests {
             &TransactionOutputBuilder::new()
                 .with_address(&address)
                 .next().unwrap()
-                .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_byte, tx_builder.config.coins_per_utxo_word.clone()).unwrap()
+                .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_byte).unwrap()
                 .build().unwrap()
             ).unwrap();
 
@@ -4232,7 +4303,7 @@ mod tests {
             .with_address(&address)
             .next()
             .unwrap()
-            .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_byte, tx_builder.config.coins_per_utxo_word.clone())
+            .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_byte)
             .unwrap()
             .build()
             .unwrap();
@@ -4377,7 +4448,7 @@ mod tests {
         spacebudz_asset.set_asset(
             &PolicyID::from_hex("6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52").unwrap(),
             &AssetName::new(hex::decode("537061636542756442696433303533").unwrap()).unwrap(),
-            &BigNum::from_str("1").unwrap()
+            &u64::from_str("1").unwrap()
         );
 
         // not the real private key used for the tx on Cardano mainnet
@@ -4479,7 +4550,7 @@ mod tests {
 
             let mut aux_data = AuxiliaryData::new();
             aux_data.add_metadatum(
-                &BigNum::from_str("405").unwrap(),
+                &u64::from_str("405").unwrap(),
                 &TransactionMetadatum::new_map(&map)
             );
             tx_builder.add_auxiliary_data(&aux_data);
@@ -4487,17 +4558,17 @@ mod tests {
 
         let original_tx_fee = tx_builder.min_fee(false).unwrap();
         assert_eq!(original_tx_fee.to_str(), "469673");
-        tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
+        tx_builder.set_fee(&u64::from_str("897753").unwrap());
 
         {
             tx_builder.set_exunits(
                 &RedeemerWitnessKey::new(
                     &RedeemerTag::new_spend(),
-                    &BigNum::from(0)
+                    &u64::from(0)
                 ),
                 &ExUnits::new(
-                    &BigNum::from_str("5000000").unwrap(),
-                    &BigNum::from_str("2000000000").unwrap()
+                    &u64::from_str("5000000").unwrap(),
+                    &u64::from_str("2000000000").unwrap()
                 )
             );
         }
@@ -4513,7 +4584,7 @@ mod tests {
         spacebudz_asset.set_asset(
             &PolicyID::from_hex("6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52").unwrap(),
             &AssetName::new(hex::decode("537061636542756442696433303533").unwrap()).unwrap(),
-            &BigNum::from_str("1").unwrap()
+            &u64::from_str("1").unwrap()
         );
 
         // not the real private key used for the tx on Cardano mainnet
@@ -4615,13 +4686,13 @@ mod tests {
 
             let mut aux_data = AuxiliaryData::new();
             aux_data.add_metadatum(
-                &BigNum::from_str("405").unwrap(),
+                &u64::from_str("405").unwrap(),
                 &TransactionMetadatum::new_map(&map)
             );
             tx_builder.add_auxiliary_data(&aux_data);
         }
 
-        tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
+        tx_builder.set_fee(&u64::from_str("897753").unwrap());
 
         let mut tx_redeemer_builder = tx_builder.build_for_evaluation(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap()).unwrap();
 
@@ -4631,21 +4702,21 @@ mod tests {
             tx_redeemer_builder.set_exunits(
                 &RedeemerWitnessKey::new(
                     &RedeemerTag::new_spend(),
-                    &BigNum::from(0)
+                    &u64::from(0)
                 ),
                 &ExUnits::new(
-                    &BigNum::from_str("5000000").unwrap(),
-                    &BigNum::from_str("2000000000").unwrap()
+                    &u64::from_str("5000000").unwrap(),
+                    &u64::from_str("2000000000").unwrap()
                 )
             );
             tx_builder.set_exunits(
                 &RedeemerWitnessKey::new(
                     &RedeemerTag::new_spend(),
-                    &BigNum::from(0)
+                    &u64::from(0)
                 ),
                 &ExUnits::new(
-                    &BigNum::from_str("5000000").unwrap(),
-                    &BigNum::from_str("2000000000").unwrap()
+                    &u64::from_str("5000000").unwrap(),
+                    &u64::from_str("2000000000").unwrap()
                 )
             );
         }
@@ -4667,7 +4738,7 @@ mod tests {
         spacebudz_asset.set_asset(
             &PolicyID::from_hex("6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52").unwrap(),
             &AssetName::new(hex::decode("537061636542756442696433303533").unwrap()).unwrap(),
-            &BigNum::from_str("1").unwrap()
+            &u64::from_str("1").unwrap()
         );
 
         // not the real private key used for the tx on Cardano mainnet
@@ -4769,7 +4840,7 @@ mod tests {
 
             let mut aux_data = AuxiliaryData::new();
             aux_data.add_metadatum(
-                &BigNum::from_str("405").unwrap(),
+                &u64::from_str("405").unwrap(),
                 &TransactionMetadatum::new_map(&map)
             );
             tx_builder.add_auxiliary_data(&aux_data);
@@ -4786,18 +4857,18 @@ mod tests {
                 .output()
         );
 
-        tx_builder.set_fee(&BigNum::from_str("897753").unwrap());
+        tx_builder.set_fee(&u64::from_str("897753").unwrap());
 
 
         {
             tx_builder.set_exunits(
                 &RedeemerWitnessKey::new(
                     &RedeemerTag::new_spend(),
-                    &BigNum::from(0)
+                    &u64::from(0)
                 ),
                 &ExUnits::new(
-                    &BigNum::from_str("5000000").unwrap(),
-                    &BigNum::from_str("2000000000").unwrap()
+                    &u64::from_str("5000000").unwrap(),
+                    &u64::from_str("2000000000").unwrap()
                 )
             );
         }
@@ -4866,7 +4937,7 @@ mod tests {
             &TransactionOutputBuilder::new()
                 .with_address(&addr_net_0)
                 .next().unwrap()
-                .with_coin(&to_bignum(880_000))
+                .with_coin(880_000)
                 .build().unwrap()
             ).unwrap();
         tx_builder.set_ttl(&1000.into());
@@ -4963,4 +5034,4 @@ mod tests {
         assert!(final_tx.witness_set().plutus_v1_scripts().is_none());
     }
 }
-
+*/

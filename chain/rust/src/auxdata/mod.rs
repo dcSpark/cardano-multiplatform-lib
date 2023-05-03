@@ -3,6 +3,7 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
+pub mod utils;
 
 use super::Int;
 use crate::plutus::{PlutusV1Script, PlutusV2Script};

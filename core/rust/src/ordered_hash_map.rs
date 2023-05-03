@@ -39,6 +39,10 @@ where
     pub fn new() -> Self {
         Self(linked_hash_map::LinkedHashMap::new())
     }
+
+    pub fn take(self) -> linked_hash_map::LinkedHashMap<K, V> {
+        self.0
+    }
 }
 
 impl<K, V> Hash for OrderedHashMap<K, V>

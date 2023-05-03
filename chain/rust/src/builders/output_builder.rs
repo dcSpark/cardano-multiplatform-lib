@@ -1,10 +1,12 @@
+use cml_core::ArithmeticError;
+
 use crate::{
     address::Address,
     transaction::{DatumOption, ScriptRef, TransactionOutput, ShelleyTxOut, BabbageTxOut},
     plutus::PlutusData,
     assets::{MultiAsset, Value, Coin},
     crypto::hash::hash_plutus_data,
-    min_ada::{min_ada_required, MinAdaError},
+    min_ada::{min_ada_required},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -14,7 +16,7 @@ pub enum OutputBuilderError {
     #[error("Value missing")]
     AmountMissing,
     #[error("Min ADA error: {0:?}")]
-    MinAdaError(#[from] MinAdaError),
+    MinAdaError(#[from] ArithmeticError),
 }
 
 /// We introduce a builder-pattern format for creating transaction outputs

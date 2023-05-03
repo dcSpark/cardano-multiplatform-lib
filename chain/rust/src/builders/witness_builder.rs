@@ -13,12 +13,16 @@ use crate::{
     plutus::{PlutusData, PlutusScript, PlutusV1Script, PlutusV2Script, Redeemer, RedeemerTag, self},
 };
 
-use super::redeemer_builder::RedeemerWitnessKey;
+use super::redeemer_builder::{RedeemerWitnessKey, MissingExunitError, RedeemerBuilderError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum WitnessBuilderError {
     #[error("Missing the following witnesses: {0:?}")]
     MissingWitnesses(RequiredWitnessSet),
+    #[error("Missing ExUnit: {0}")]
+    MissingExUnit(#[from] MissingExunitError),
+    #[error("Redeemer build failed: {0}")]
+    RedeemBuildFailed(#[from] RedeemerBuilderError),
 }
 
 #[derive(Debug, Clone)]//, Eq, Ord, PartialEq, PartialOrd)]
@@ -147,12 +151,12 @@ impl RequiredWitnessSet {
         self.redeemers.insert(redeemer);
     }
 
-    pub fn add_all(&mut self, requirements: &RequiredWitnessSet) {
-        self.vkeys.extend(requirements.vkeys.iter().cloned());
-        self.bootstraps.extend(requirements.bootstraps.iter().cloned());
-        self.scripts.extend(requirements.scripts.iter().cloned());
-        self.plutus_data.extend(requirements.plutus_data.iter().cloned());
-        self.redeemers.extend(requirements.redeemers.iter().cloned());
+    pub fn add_all(&mut self, requirements: RequiredWitnessSet) {
+        self.vkeys.extend(requirements.vkeys);
+        self.bootstraps.extend(requirements.bootstraps);
+        self.scripts.extend(requirements.scripts);
+        self.plutus_data.extend(requirements.plutus_data);
+        self.redeemers.extend(requirements.redeemers);
     }
 
 
@@ -279,8 +283,8 @@ impl TransactionWitnessSetBuilder {
             )
     }
 
-    pub fn add_plutus_datum(&mut self, plutus_datum: &PlutusData) {
-        self.plutus_data.insert(hash_plutus_data(plutus_datum), plutus_datum.clone());
+    pub fn add_plutus_datum(&mut self, plutus_datum: PlutusData) {
+        self.plutus_data.insert(hash_plutus_data(&plutus_datum), plutus_datum);
     }
 
     pub fn get_plutus_datum(&self) -> Vec<PlutusData> {
@@ -300,7 +304,7 @@ impl TransactionWitnessSetBuilder {
         self.redeemers.values().cloned().collect()
     }
 
-    pub fn add_required_wits(&mut self, required_wits: &RequiredWitnessSet) {
+    pub fn add_required_wits(&mut self, required_wits: RequiredWitnessSet) {
         self.required_wits.add_all(required_wits)
     }
 
@@ -330,21 +334,21 @@ impl TransactionWitnessSetBuilder {
         }
     }
 
-    pub(crate) fn add_input_aggregate_real_witness_data(&mut self, data: InputAggregateWitnessData, ) {
+    pub(crate) fn add_input_aggregate_real_witness_data(&mut self, data: &InputAggregateWitnessData, ) {
         match data {
             InputAggregateWitnessData::NativeScript(script, _info) => {
-                self.add_script(script.into());
+                self.add_script(script.clone().into());
             }
             InputAggregateWitnessData::PlutusScript(witness, _info, option) => {
-                match witness.script {
+                match &witness.script {
                     PlutusScriptWitness::Script(plutus_script) => {
-                        self.add_script(plutus_script.into());
+                        self.add_script(plutus_script.clone().into());
                     }
                     // We don't add the script references to the witness set
                     _ => (), 
                 }
-                if let Some(ref data) = option {
-                    self.add_plutus_datum(data);
+                if let Some(data) = option {
+                    self.add_plutus_datum(data.clone());
                 }
             }
         }

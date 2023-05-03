@@ -14,6 +14,8 @@ pub mod builders;
 pub mod byron;
 pub mod certs;
 pub mod crypto;
+pub mod deposit;
+pub mod fees;
 pub mod genesis;
 pub mod min_ada;
 pub mod plutus;
@@ -248,27 +250,52 @@ impl Rational {
 
 pub type RewardAccountList = Vec<RewardAccount>;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, PartialEq)]
 pub enum Script {
     Native {
         script: NativeScript,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         len_encoding: LenEncoding,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         tag_encoding: Option<cbor_event::Sz>,
     },
     PlutusV1 {
         script: PlutusV1Script,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         len_encoding: LenEncoding,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         tag_encoding: Option<cbor_event::Sz>,
     },
     PlutusV2 {
         script: PlutusV2Script,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         len_encoding: LenEncoding,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         tag_encoding: Option<cbor_event::Sz>,
     },
 }
@@ -299,7 +326,7 @@ impl Script {
     }
 }
 
-pub type SubCoin = PositiveInterval;
+pub type SubCoin = Rational;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct UnitInterval {

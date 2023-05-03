@@ -39,7 +39,7 @@ mod base58;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AddrAttributes {
     pub stake_distribution: Option<StakeDistribution>,
     pub derivation_path: Option<HDAddressPayload>,
@@ -70,6 +70,7 @@ impl Default for AddrAttributes {
     PartialOrd,
     Clone,
     Debug,
+    Hash,
     serde::Deserialize,
     serde::Serialize,
     schemars::JsonSchema,
@@ -81,7 +82,7 @@ pub enum ByronAddrType {
     Redeem = 2,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AddressContent {
     pub address_id: AddressId,
     pub addr_attributes: AddrAttributes,
@@ -102,7 +103,7 @@ impl AddressContent {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ByronAddress {
     pub content: AddressContent,
     pub crc: Crc32,
@@ -129,7 +130,7 @@ impl ByronTxOut {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct HDAddressPayload(pub Vec<u8>);
 
 impl HDAddressPayload {
@@ -175,7 +176,7 @@ impl SpendingData {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum StakeDistribution {
     SingleKey(StakeholderId),
     BootstrapEra,

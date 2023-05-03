@@ -2,7 +2,7 @@ use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::{
     error::{DeserializeError, DeserializeFailure, Key},
     serialization::{fit_sz, Deserialize, Serialize, StringEncoding, LenEncoding, CBORReadLen},
-    ordered_hash_map::OrderedHashMap,
+    ordered_hash_map::OrderedHashMap, ArithmeticError,
 };
 use cml_crypto::RawBytesEncoding;
 use std::{io::{BufRead, Seek, Write}};
@@ -15,8 +15,18 @@ use super::{AssetName, ScriptHash};
 
 pub type Coin = u64;
 
+#[derive(Debug, thiserror::Error)]
+pub enum AssetArithmeticError {
+    #[error("Arithmetic failed: {0}")]
+    Arithmetic(#[from] ArithmeticError),
+    #[error("Asset {0:?} doesn't exist")]
+    AssetDoesntExist(AssetName),
+    #[error("PolicyId {0:?} doesn't exist")]
+    PolicyIdDoesntExist(PolicyId),
+}
+
 /// Bundle of assets within range of T, grouped by PolicyID then AssetName
-#[derive(Clone, Debug, Default, PartialEq, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Default, PartialEq, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AssetBundle<T>(OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>);
 
 impl<T> From<OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>> for AssetBundle<T> {
@@ -121,9 +131,8 @@ impl<T> AssetBundle<T>
     }
 
     /// Adds to bundles together, checking value bounds.
-    /// If an overflow would occur, returns None instead.
     /// Does not modify self, and instead returns the result.
-    pub fn checked_add(&self, rhs: &Self) -> Option<Self> {
+    pub fn checked_add(&self, rhs: &Self) -> Result<Self, AssetArithmeticError> {
         use linked_hash_map::Entry;
         let mut bundle = self.0.clone();
         for ma in &[&self.0, &rhs.0] {
@@ -134,7 +143,7 @@ impl<T> AssetBundle<T>
                             match assets.get_mut().entry(asset_name.clone()) {
                                 Entry::Occupied(mut assets) => {
                                     let current = assets.get_mut();
-                                    *current = current.checked_add(amount)?;
+                                    *current = current.checked_add(amount).ok_or(ArithmeticError::IntegerOverflow)?;
                                 }
                                 Entry::Vacant(vacant_entry) => {
                                     vacant_entry.insert(*amount);
@@ -150,16 +159,14 @@ impl<T> AssetBundle<T>
                 }
             }
         }
-        Some(Self(bundle))
+        Ok(Self(bundle))
     }
 
     /// Subtracts rhs from this bundle.
     /// This does not modify self, and instead returns the result.
-    /// If underflow would occur on any asset, or the asset didn't exist in self
-    /// then None is returned.
     /// Use clamped_sub (ClampedSub trait) if you need to only try to remove assets when they exist
     /// and ignore them when they don't.
-    pub fn checked_sub(&self, rhs: &Self) -> Option<Self> {
+    pub fn checked_sub(&self, rhs: &Self) -> Result<Self, AssetArithmeticError> {
         let mut bundle = self.0.clone();
         for (policy, rhs_assets) in rhs.iter() {
             for (asset_name, rhs_amount) in rhs_assets.iter() {
@@ -178,22 +185,22 @@ impl<T> AssetBundle<T>
                             },
                             None => {
                                 // underflow
-                                return None;
+                                return Err(ArithmeticError::IntegerUnderflow.into());
                             }
                         },
                         None => {
                             // asset name is missing from left hand side
-                            return None;
+                            return Err(AssetArithmeticError::AssetDoesntExist(asset_name.clone()));
                         }
                     },
                     None => {
                         // policy id missing from left hand side
-                        return None;
+                        return Err(AssetArithmeticError::PolicyIdDoesntExist(policy.clone()));
                     }
                 }
             }
         }
-        Some(Self(bundle))
+        Ok(Self(bundle))
     }
 }
 
@@ -201,11 +208,47 @@ pub type Mint = AssetBundle<i64>;
 
 pub type MultiAsset = AssetBundle<u64>;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+impl Mint {
+    fn as_multiasset(&self, is_positive: bool) -> MultiAsset {
+        self.0.iter().fold(MultiAsset::default(), |mut acc, (policy, assets)| {
+            let new_assets = assets.iter().fold(OrderedHashMap::new(), |mut acc, (asset, value)| {
+                if (*value >= 0) == is_positive {
+                    acc.insert(asset.clone(), value.abs() as u64);
+                }
+                acc
+            });
+            if !assets.is_empty() {
+                acc.insert(policy.clone(), new_assets);
+            }
+            acc
+        })
+    }
+
+    /// Returns the multiasset where only positive (minting) entries are present
+    pub fn as_positive_multiasset(&self) -> MultiAsset {
+        self.as_multiasset(true)
+    }
+
+    /// Returns the multiasset where only negative (burning) entries are present
+    pub fn as_negative_multiasset(&self) -> MultiAsset {
+        self.as_multiasset(false)
+    }
+}
+
+// note: we purposefully don't derive or implement Ord for Value to avoid potentially confusing
+// orderings that don't obey Cardano semantics i.e. if x >= y then input x can cover cost y
+// If you need to use Value or something in a tree map please consider using a hash map instead.
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, Eq, PartialEq, PartialOrd)]
 pub struct Value {
     pub coin: Coin,
     pub multiasset: MultiAsset,
     #[serde(skip)]
+    #[derivative(
+        Hash = "ignore",
+        PartialEq = "ignore",
+        PartialOrd = "ignore",
+    )]
     pub encodings: Option<ValueEncoding>,
 }
 
@@ -230,10 +273,10 @@ impl Value {
         self.multiasset.values().any(|assets| assets.values().any(|amount| *amount != 0))
     }
 
-    pub fn checked_add(&self, rhs: &Value) -> Option<Self> {
-        let coin = self.coin.checked_add(rhs.coin)?;
+    pub fn checked_add(&self, rhs: &Value) -> Result<Self, AssetArithmeticError> {
+        let coin = self.coin.checked_add(rhs.coin).ok_or(ArithmeticError::IntegerOverflow)?;
         let multiasset = self.multiasset.checked_add(&rhs.multiasset)?;
-        Some(Value {
+        Ok(Value {
             coin,
             multiasset,
             encodings: None,
@@ -244,10 +287,10 @@ impl Value {
     /// Removes an asset from the list if the result is 0 or less
     /// Does not modify this object, instead the result is returned
     /// None is returned if there would be integer underflow
-    pub fn checked_sub(&self, rhs: &Value) -> Option<Self> {
-        let coin = self.coin.checked_sub(rhs.coin)?;
+    pub fn checked_sub(&self, rhs: &Value) -> Result<Self, AssetArithmeticError> {
+        let coin = self.coin.checked_sub(rhs.coin).ok_or(ArithmeticError::IntegerUnderflow)?;
         let multiasset = self.multiasset.checked_sub(&rhs.multiasset)?;
-        Some(Value { coin, multiasset, encodings: None })
+        Ok(Value { coin, multiasset, encodings: None })
     }
 
     pub fn clamped_sub(&self, rhs: &Value) -> Value {
@@ -297,6 +340,16 @@ impl From<Coin> for Value {
         Self {
             coin,
             multiasset: AssetBundle::default(),
+            encodings: None,
+        }
+    }
+}
+
+impl From<MultiAsset> for Value {
+    fn from(multiasset: MultiAsset) -> Self {
+        Self {
+            coin: 0,
+            multiasset,
             encodings: None,
         }
     }

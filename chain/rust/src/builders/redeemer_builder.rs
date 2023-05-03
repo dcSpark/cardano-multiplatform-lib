@@ -72,17 +72,16 @@ impl UntaggedRedeemerPlaceholder {
 }
 
 /// Possible errors during conversion from bytes
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum MissingExunitError {
+    #[error("Missing exunit for {0:?} with <key, index> values of <{1:?}, {2}>")]
     Key(RedeemerTag, usize, String),
 }
 
-impl std::fmt::Display for MissingExunitError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self {
-            MissingExunitError::Key(tag, index, key) => write!(f, "Missing exunit for {:?} with <key, index> values of <{:?}, {}>", tag, index, key)
-        }
-    }
+#[derive(Debug, thiserror::Error)]
+pub enum RedeemerBuilderError {
+    #[error("Missing ExUnit: {0}")]
+    MissingExUnit(#[from] MissingExunitError),
 }
 
 /// In order to calculate the index from the sorted set, "add_*" methods in this builder
@@ -189,7 +188,7 @@ impl RedeemerSetBuilder {
         }
     }
 
-    pub fn build(&self, default_to_dummy_exunits: bool) -> Result<Vec<Redeemer>, MissingExunitError> {
+    pub fn build(&self, default_to_dummy_exunits: bool) -> Result<Vec<Redeemer>, RedeemerBuilderError> {
         let mut redeemers = Vec::new();
         // Calling iter on a BTreeMap returns a list of sorted keys
         self.remove_placeholders_and_tag(
@@ -225,7 +224,7 @@ impl RedeemerSetBuilder {
         tag: RedeemerTag,
         entries: &mut dyn Iterator<Item = (&'a K, &'a Option<UntaggedRedeemerPlaceholder>)>,
         default_to_dummy_exunits: bool
-    ) -> Result<(), MissingExunitError> {
+    ) -> Result<(), RedeemerBuilderError> {
         let mut result = vec![];
         for (i, entry) in entries.enumerate() {
             let key = (tag, i, entry.0);
@@ -233,7 +232,7 @@ impl RedeemerSetBuilder {
             let redeemer = match entry.1 {
                 Some(UntaggedRedeemerPlaceholder::JustData(data)) => {
                     if !default_to_dummy_exunits {
-                        Err(MissingExunitError::Key(key.0.clone(), key.1, format!("{:?}", key.2)))
+                        Err(RedeemerBuilderError::MissingExUnit(MissingExunitError::Key(key.0.clone(), key.1, format!("{:?}", key.2))))
                     } else {
                         Ok(Some(UntaggedRedeemer::new(data.clone(), ExUnits::dummy())))
                     }

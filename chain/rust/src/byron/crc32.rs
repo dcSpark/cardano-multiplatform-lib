@@ -269,7 +269,7 @@ const CRC_TABLE: [u32; 256] = [
 ///
 /// This structure allows implements the `Write` trait making it easier
 /// to compute the crc32 of a stream.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Copy)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Copy)]
 pub struct Crc32(u32);
 
 impl Into<u32> for Crc32 {

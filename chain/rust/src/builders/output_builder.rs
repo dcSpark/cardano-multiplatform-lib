@@ -83,8 +83,8 @@ pub struct TransactionOutputAmountBuilder {
 }
 
 impl TransactionOutputAmountBuilder {
-    pub fn with_value(mut self, amount: Value) -> Self {
-        self.amount = Some(amount);
+    pub fn with_value<T: Into<Value>>(mut self, amount: T) -> Self {
+        self.amount = Some(amount.into());
         self
     }
 

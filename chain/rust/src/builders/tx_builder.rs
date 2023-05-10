@@ -13,20 +13,6 @@ use cml_core::ordered_hash_map::OrderedHashMap;
 use fraction::Zero;
 use std::convert::TryInto;
 use std::ops::{Deref, DerefMut};
-// use crate::*;
-// use crate::builders::output_builder::TransactionOutputBuilder;
-// use crate::builders::output_builder::calc_min_ada;
-// use crate::ledger;
-// use crate::ledger::alonzo::fees::LinearFee;
-// use crate::ledger::alonzo::fees::min_script_fee;
-// use crate::ledger::babbage::min_ada::min_pure_ada;
-// use crate::ledger::common::deposit::internal_get_deposit;
-// use crate::ledger::common::deposit::internal_get_implicit_input;
-// use crate::ledger::common::hash::calc_script_data_hash;
-// use crate::ledger::common::hash::hash_auxiliary_data;
-// use crate::ledger::common::utxo::TransactionUnspentOutput;
-// use crate::ledger::common::value::Value;
-// use crate::ledger::common::value::from_bignum;
 use crate::transaction::{
     ScriptRef, Transaction, TransactionOutput, TransactionInput,
     TransactionBody, TransactionWitnessSet, DatumOption
@@ -41,7 +27,7 @@ use super::input_builder::InputBuilderResult;
 use super::mint_builder::MintBuilderResult;
 use super::certificate_builder::*;
 use super::output_builder::{SingleOutputBuilderResult, OutputBuilderError};
-use super::redeemer_builder::{MissingExunitError, RedeemerBuilderError};
+use super::redeemer_builder::{RedeemerBuilderError};
 use super::withdrawal_builder::WithdrawalBuilderResult;
 use super::witness_builder::{InputAggregateWitnessData, WitnessBuilderError};
 use super::redeemer_builder::RedeemerSetBuilder;
@@ -50,7 +36,7 @@ use super::witness_builder::PlutusScriptWitness;
 use super::witness_builder::RequiredWitnessSet;
 use super::witness_builder::TransactionWitnessSetBuilder;
 use super::witness_builder::merge_fake_witness;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap};
 use cml_core::{ArithmeticError, Slot};
 use cml_crypto::{Ed25519KeyHash, ScriptHash, Serialize, ScriptDataHash};
 use rand::Rng;
@@ -60,6 +46,15 @@ use crate::builders::output_builder::TransactionOutputBuilder;
 pub struct TransactionUnspentOutput {
     pub input: TransactionInput,
     pub output: TransactionOutput
+}
+
+impl TransactionUnspentOutput {
+    pub fn new(input: TransactionInput, output: TransactionOutput) -> Self {
+        Self {
+            input,
+            output,
+        }
+    }
 }
 
 #[derive(Clone, Default, Debug)]
@@ -160,8 +155,8 @@ pub enum TxBuilderError {
     MissingInputOrOutput,
     #[error("Cannot use collateral return without also having collateral input")]
     CollateralReturnRequiresCollateralInput,
-    #[error("ScriptDataHash failed: {0}")]
-    ScriptDataHashFailed(#[from] ScriptDataHashError),
+    #[error("ScriptDatumHash failed: {0}")]
+    ScriptDatumHashFailed(#[from] ScriptDataHashError),
 }
 
 fn min_fee(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuilderError> {
@@ -224,92 +219,80 @@ impl TransactionBuilderConfigBuilder {
         Self::default()
     }
 
-    pub fn fee_algo(&self, fee_algo: &LinearFee) -> Self {
-        let mut cfg = self.clone();
-        cfg.fee_algo = Some(fee_algo.clone());
-        cfg
+    pub fn fee_algo(mut self, fee_algo: LinearFee) -> Self {
+        self.fee_algo = Some(fee_algo);
+        self
     }
 
-    pub fn coins_per_utxo_byte(&self, coins_per_utxo_byte: Coin) -> Self {
-        let mut cfg = self.clone();
-        cfg.coins_per_utxo_byte = Some(coins_per_utxo_byte);
-        cfg
+    pub fn coins_per_utxo_byte(mut self, coins_per_utxo_byte: Coin) -> Self {
+        self.coins_per_utxo_byte = Some(coins_per_utxo_byte);
+        self
     }
 
-    pub fn pool_deposit(&self, pool_deposit: u64) -> Self {
-        let mut cfg = self.clone();
-        cfg.pool_deposit = Some(pool_deposit);
-        cfg
+    pub fn pool_deposit(mut self, pool_deposit: u64) -> Self {
+        self.pool_deposit = Some(pool_deposit);
+        self
     }
 
-    pub fn key_deposit(&self, key_deposit: u64) -> Self {
-        let mut cfg = self.clone();
-        cfg.key_deposit = Some(key_deposit);
-        cfg
+    pub fn key_deposit(mut self, key_deposit: u64) -> Self {
+        self.key_deposit = Some(key_deposit);
+        self
     }
 
-    pub fn max_value_size(&self, max_value_size: u32) -> Self {
-        let mut cfg = self.clone();
-        cfg.max_value_size = Some(max_value_size);
-        cfg
+    pub fn max_value_size(mut self, max_value_size: u32) -> Self {
+        self.max_value_size = Some(max_value_size);
+        self
     }
 
-    pub fn max_tx_size(&self, max_tx_size: u32) -> Self {
-        let mut cfg = self.clone();
-        cfg.max_tx_size = Some(max_tx_size);
-        cfg
+    pub fn max_tx_size(mut self, max_tx_size: u32) -> Self {
+        self.max_tx_size = Some(max_tx_size);
+        self
     }
 
-    pub fn prefer_pure_change(&self, prefer_pure_change: bool) -> Self {
-        let mut cfg = self.clone();
-        cfg.prefer_pure_change = prefer_pure_change;
-        cfg
+    pub fn prefer_pure_change(mut self, prefer_pure_change: bool) -> Self {
+        self.prefer_pure_change = prefer_pure_change;
+        self
     }
 
-    pub fn ex_unit_prices(&self, ex_unit_prices: &ExUnitPrices) -> Self {
-        let mut cfg = self.clone();
-        cfg.ex_unit_prices = Some(ex_unit_prices.clone());
-        cfg
+    pub fn ex_unit_prices(mut self, ex_unit_prices: ExUnitPrices) -> Self {
+        self.ex_unit_prices = Some(ex_unit_prices);
+        self
     }
 
-    pub fn cost_models(&self, cost_models: &CostModels) -> Self {
-        let mut cfg = self.clone();
-        cfg.cost_models = Some(cost_models.clone());
-        cfg
+    pub fn cost_models(mut self, cost_models: CostModels) -> Self {
+        self.cost_models = Some(cost_models);
+        self
     }
 
-    pub fn collateral_percentage(&self, collateral_percentage: u32) -> Self {
-        let mut cfg = self.clone();
-        cfg.collateral_percentage = Some(collateral_percentage);
-        cfg
+    pub fn collateral_percentage(mut self, collateral_percentage: u32) -> Self {
+        self.collateral_percentage = Some(collateral_percentage);
+        self
     }
 
-    pub fn max_collateral_inputs(&self, max_collateral_inputs: u32) -> Self {
-        let mut cfg = self.clone();
-        cfg.max_collateral_inputs = Some(max_collateral_inputs);
-        cfg
+    pub fn max_collateral_inputs(mut self, max_collateral_inputs: u32) -> Self {
+        self.max_collateral_inputs = Some(max_collateral_inputs);
+        self
     }
 
-    pub fn build(&self) -> Result<TransactionBuilderConfig, TxBuilderError> {
-        let cfg = self.clone();
+    pub fn build(self) -> Result<TransactionBuilderConfig, TxBuilderError> {
         Ok(TransactionBuilderConfig {
-            fee_algo: cfg.fee_algo.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::FeeAlgo))?,
-            pool_deposit: cfg.pool_deposit.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::PoolDeposit))?,
-            key_deposit: cfg.key_deposit.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::KeyDeposit))?,
-            max_value_size: cfg.max_value_size.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::MaxValueSize))?,
-            max_tx_size: cfg.max_tx_size.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::MaxTxSize))?,
-            coins_per_utxo_byte: cfg.coins_per_utxo_byte.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::CoinsPerUtxoBytes))?,
-            ex_unit_prices: cfg
+            fee_algo: self.fee_algo.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::FeeAlgo))?,
+            pool_deposit: self.pool_deposit.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::PoolDeposit))?,
+            key_deposit: self.key_deposit.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::KeyDeposit))?,
+            max_value_size: self.max_value_size.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::MaxValueSize))?,
+            max_tx_size: self.max_tx_size.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::MaxTxSize))?,
+            coins_per_utxo_byte: self.coins_per_utxo_byte.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::CoinsPerUtxoBytes))?,
+            ex_unit_prices: self
                 .ex_unit_prices
                 .ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::ExUnitPrices))?,
-            cost_models: if cfg.cost_models.is_some() {
-                cfg.cost_models.unwrap()
+            cost_models: if self.cost_models.is_some() {
+                self.cost_models.unwrap()
             } else {
                 CostModels::new()
             },
-            collateral_percentage: cfg.collateral_percentage.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::CollateralPercentage))?,
-            max_collateral_inputs: cfg.max_collateral_inputs.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::MaxCollateralInputs))?,
-            prefer_pure_change: cfg.prefer_pure_change,
+            collateral_percentage: self.collateral_percentage.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::CollateralPercentage))?,
+            max_collateral_inputs: self.max_collateral_inputs.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::MaxCollateralInputs))?,
+            prefer_pure_change: self.prefer_pure_change,
         })
     }
 }
@@ -621,8 +604,8 @@ impl TransactionBuilder {
         Ok(())
     }
 
-    pub fn add_utxo(&mut self, result: &InputBuilderResult) {
-        self.utxos.push(result.clone());
+    pub fn add_utxo(&mut self, result: InputBuilderResult) {
+        self.utxos.push(result);
     }
 
     /// calculates how much the fee would increase if you added a given output
@@ -641,7 +624,7 @@ impl TransactionBuilder {
         fee_after.checked_sub(fee_before).ok_or_else(|| ArithmeticError::IntegerOverflow.into())
     }
 
-    pub fn add_reference_input(&mut self, utxo: &TransactionUnspentOutput) {
+    pub fn add_reference_input(&mut self, utxo: TransactionUnspentOutput) {
         let reference_inputs = match self.reference_inputs.as_mut() {
             None => {
                 self.reference_inputs = Some(Vec::<TransactionUnspentOutput>::new());
@@ -649,11 +632,13 @@ impl TransactionBuilder {
             },
             Some(inputs) => inputs
         };
-        reference_inputs.push(utxo.clone());
 
         if let Some(script_ref) = utxo.output.script_ref() {
             self.witness_builders.witness_set_builder.required_wits.script_refs.insert(script_ref.hash());
         }
+        
+        reference_inputs.push(utxo);
+
         // TODO: my understand is that inline datums in inputs also need to be added to the witness
         // but I still need to confirm this by actually submitting a transaction that tests this
         // see same comment in input_required_wits
@@ -672,6 +657,7 @@ impl TransactionBuilder {
             self.config.coins_per_utxo_byte,
         )?;
         if output.amount().coin < min_ada {
+            panic!();
             Err(TxBuilderError::ValueBelowMinUTXOValue(output.amount().coin, min_ada))
         } else {
             if let Some(datum) = builder_result.communication_datum {
@@ -795,9 +781,9 @@ impl TransactionBuilder {
         self.mint.clone()
     }
 
-    pub fn new(cfg: &TransactionBuilderConfig) -> Self {
+    pub fn new(cfg: TransactionBuilderConfig) -> Self {
         Self {
-            config: cfg.clone(),
+            config: cfg,
             inputs: Vec::new(),
             outputs: Vec::new(),
             fee: None,
@@ -1123,7 +1109,7 @@ impl TransactionBuilder {
         Ok(TxRedeemerBuilder {
             draft_body: tx.build_body()?,
             witness_builders: tx.witness_builders.clone(),
-            auxiliary_data: tx.auxiliary_data.clone(), 
+            auxiliary_data: tx.auxiliary_data.clone(),
         })
     }
 
@@ -1608,22 +1594,29 @@ pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address,
         None => Err(TxBuilderError::MissingInputOrOutput),
     }
 }
-/*
+
 #[cfg(test)]
 mod tests {
-    use crate::SubCoin;
-    use crate::address::Address;
+    use std::collections::BTreeMap;
+
+    use cml_core::Int;
+    use cml_core::metadata::{TransactionMetadatum, TransactionMetadatumLabel, Metadata};
+    use cml_crypto::{TransactionHash, Bip32PrivateKey, RawBytesEncoding, Bip32PublicKey, Deserialize, PrivateKey, DatumHash};
+
+    use crate::crypto::utils::make_vkey_witness;
+    use crate::{SubCoin, Script};
+    use crate::address::{Address, BaseAddress, Pointer, EnterpriseAddress, PointerAddress};
     use crate::builders::witness_builder::{PartialPlutusWitness, PlutusScriptWitness};
     use crate::builders::{mint_builder::SingleMintBuilder, witness_builder::NativeScriptWitnessInfo, input_builder::SingleInputBuilder};
     use crate::byron::{ByronAddress, AddressContent};
-    use crate::genesis::network_info::plutus_alonzo_cost_models;
-    use crate::ledger::babbage::min_ada::min_ada_required;
-    use crate::ledger::common::hash::hash_transaction;
-    use crate::ledger::shelley::witness::make_vkey_witness;
-    use crate::transaction::ShelleyTxOut;
+    use crate::certs::StakeCredential;
+    use crate::crypto::hash::hash_transaction;
+    use crate::genesis::network_info::{plutus_alonzo_cost_models, NetworkInfo};
+    use crate::plutus::{RedeemerTag, PlutusV2Script, PlutusV1Script, PlutusScript};
+    use crate::transaction::{ShelleyTxOut, ScriptNOfK, NativeScript, RequiredSigners};
 
     use super::*;
-    use super::builders::output_builder::TransactionOutputBuilder;
+    use crate::builders::output_builder::TransactionOutputBuilder;
 
     const MAX_VALUE_SIZE: u32 = 4000;
     const MAX_TX_SIZE: u32 = 8000; // might be out of date but suffices for our tests
@@ -1641,8 +1634,8 @@ mod tests {
     }
 
     fn fake_key_hash(x: u8) -> Ed25519KeyHash {
-        Ed25519KeyHash::from_bytes(
-            vec![x, 239, 181, 120, 142, 135, 19, 200, 68, 223, 211, 43, 46, 145, 222, 30, 48, 159, 239, 255, 213, 85, 248, 39, 204, 158, 225, 100]
+        Ed25519KeyHash::from_raw_bytes(
+            &vec![x, 239, 181, 120, 142, 135, 19, 200, 68, 223, 211, 43, 46, 145, 222, 30, 48, 159, 239, 255, 213, 85, 248, 39, 204, 158, 225, 100]
         ).unwrap()
     }
 
@@ -1663,7 +1656,7 @@ mod tests {
     }
 
     fn create_tx_builder_full(
-        linear_fee: &LinearFee,
+        linear_fee: LinearFee,
         pool_deposit: u64,
         key_deposit: u64,
         max_val_size: u32,
@@ -1677,21 +1670,21 @@ mod tests {
             .max_tx_size(MAX_TX_SIZE)
             .coins_per_utxo_byte(coins_per_utxo_byte)
             .ex_unit_prices(
-                &ExUnitPrices::new(
-                    &SubCoin::new(&u64::from_str("577").unwrap(), &u64::from_str("10000").unwrap()),
-                    &SubCoin::new(&u64::from_str("721").unwrap(), &u64::from_str("10000000").unwrap())
+                ExUnitPrices::new(
+                    SubCoin::new(577, 10000),
+                    SubCoin::new(721, 10000000)
                 )
             )
             .collateral_percentage(150)
             .max_collateral_inputs(3)
-            .cost_models(&plutus_alonzo_cost_models())
+            .cost_models(plutus_alonzo_cost_models())
             .build()
             .unwrap();
-        TransactionBuilder::new(&cfg)
+        TransactionBuilder::new(cfg)
     }
 
     fn create_tx_builder(
-        linear_fee: &LinearFee,
+        linear_fee: LinearFee,
         coins_per_utxo_byte: u64,
         pool_deposit: u64,
         key_deposit: u64,
@@ -1701,23 +1694,23 @@ mod tests {
 
     fn create_realistic_tx_builder() -> TransactionBuilder {
         create_tx_builder(
-            &create_linear_fee(44, 155381),
+            create_linear_fee(44, 155381),
             COINS_PER_UTXO_BYTE,
             500000000,
             2000000,
         )
     }
 
-    fn create_tx_builder_with_fee_and_val_size(linear_fee: &LinearFee, max_val_size: u32) -> TransactionBuilder {
+    fn create_tx_builder_with_fee_and_val_size(linear_fee: LinearFee, max_val_size: u32) -> TransactionBuilder {
         create_tx_builder_full(linear_fee, 1, 1, max_val_size, 1)
     }
 
-    fn create_tx_builder_with_fee(linear_fee: &LinearFee) -> TransactionBuilder {
+    fn create_tx_builder_with_fee(linear_fee: LinearFee) -> TransactionBuilder {
         create_tx_builder(linear_fee, 1, 1, 1)
     }
 
-    fn create_tx_builder_with_fee_and_pure_change(linear_fee: &LinearFee) -> TransactionBuilder {
-        TransactionBuilder::new(&TransactionBuilderConfigBuilder::default()
+    fn create_tx_builder_with_fee_and_pure_change(linear_fee: LinearFee) -> TransactionBuilder {
+        TransactionBuilder::new(TransactionBuilderConfigBuilder::default()
             .fee_algo(linear_fee)
             .pool_deposit(1)
             .key_deposit(1)
@@ -1725,9 +1718,9 @@ mod tests {
             .max_tx_size(MAX_TX_SIZE)
             .coins_per_utxo_byte(1)
             .ex_unit_prices(
-                &ExUnitPrices::new(
-                    &SubCoin::new(0, 0),
-                    &SubCoin::new(0, 0)
+                ExUnitPrices::new(
+                    SubCoin::new(0, 0),
+                    SubCoin::new(0, 0)
                 )
             )
             .collateral_percentage(150)
@@ -1738,11 +1731,11 @@ mod tests {
     }
 
     fn create_tx_builder_with_key_deposit(deposit: u64) -> TransactionBuilder {
-        create_tx_builder(&create_default_linear_fee(), 1, 1, deposit)
+        create_tx_builder(create_default_linear_fee(), 1, 1, deposit)
     }
 
     fn create_default_tx_builder() -> TransactionBuilder {
-        create_tx_builder_with_fee(&create_default_linear_fee())
+        create_tx_builder_with_fee(create_default_linear_fee())
     }
 
     fn create_account() -> ((Bip32PublicKey, StakeCredential), (Bip32PublicKey, StakeCredential), Address) {
@@ -1761,9 +1754,9 @@ mod tests {
             .derive(0)
             .to_public();
 
-        let spend_cred = StakeCredential::from_keyhash(&spend.to_raw_key().hash());
-        let stake_cred = StakeCredential::from_keyhash(&stake.to_raw_key().hash());
-        let address = BaseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &stake_cred).to_address();
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
+        let stake_cred = StakeCredential::new_pub_key(stake.to_raw_key().hash());
+        let address = BaseAddress::new(NetworkInfo::testnet().network_id(), spend_cred.clone(), stake_cred.clone()).to_address();
 
         ((spend, spend_cred), (stake, stake_cred), address)
     }
@@ -1782,22 +1775,22 @@ mod tests {
 
         let input = {
             SingleInputBuilder::new(
-                &ShelleyTxOut::new(genesis_id(), 0).into(),
-                &TransactionOutput::new(addr_net_0.clone(), Value::from(1_000_000))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(addr_net_0.clone(), Value::from(1_000_000), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_coin(&to_bignum(222))
+                .with_value(222)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(&1000.into());
+        tx_builder.set_ttl(1000);
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
-        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
+        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), change_cred, stake_cred).to_address();
         let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr
         );
@@ -1805,7 +1798,7 @@ mod tests {
         assert_eq!(tx_builder.outputs.len(), 2);
         assert_eq!(
             tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap(),
-            tx_builder.get_explicit_output().unwrap().checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap()
+            tx_builder.get_explicit_output().unwrap().checked_add(&Value::from(tx_builder.get_fee_if_set().unwrap())).unwrap()
         );
         assert_eq!(tx_builder.full_size().unwrap(), 285);
         assert_eq!(tx_builder.output_sizes(), vec![62, 65]);
@@ -1825,22 +1818,22 @@ mod tests {
         let (_, (_, stake_cred), addr_net_0) = create_account();
         let input = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(1_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(addr_net_0.clone(), Value::from(1_000_000), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_coin(&to_bignum(880_000))
+                .with_value(880_000)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(&1000.into());
+        tx_builder.set_ttl(1000);
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
-        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
+        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), change_cred, stake_cred).to_address();
         let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr
         );
@@ -1848,7 +1841,7 @@ mod tests {
         assert_eq!(tx_builder.outputs.len(), 1);
         assert_eq!(
             tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap(),
-            tx_builder.get_explicit_output().unwrap().checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap()
+            tx_builder.get_explicit_output().unwrap().checked_add(&Value::from(tx_builder.get_fee_if_set().unwrap())).unwrap()
         );
         let _final_tx = tx_builder.build(ChangeSelectionAlgo::Default, &change_addr); // just test that it doesn't throw
     }
@@ -1867,38 +1860,38 @@ mod tests {
 
         let input = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(5_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(addr_net_0, Value::from(5_000_000), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
-        tx_builder.set_ttl(&1000.into());
+        tx_builder.add_input(input).unwrap();
+        tx_builder.set_ttl(1000);
 
-        let cert = SingleCertificateBuilder::new(&Certificate::new_stake_registration(&StakeRegistration::new(&stake_cred)))
+        let cert = SingleCertificateBuilder::new(Certificate::new_stake_registration(stake_cred.clone()))
             .payment_key().unwrap();
-        tx_builder.add_cert(&cert);
+        tx_builder.add_cert(cert);
 
-        let cert = SingleCertificateBuilder::new(&Certificate::new_stake_delegation(&StakeDelegation::new(
-            &stake_cred,
-            &stake.to_raw_key().hash(), // in reality, this should be the pool owner's key, not ours
-        ))).payment_key().unwrap();
-        tx_builder.add_cert(&cert);
+        let cert = SingleCertificateBuilder::new(Certificate::new_stake_delegation(
+            stake_cred.clone(),
+            stake.to_raw_key().hash(), // in reality, this should be the pool owner's key, not ours
+        )).payment_key().unwrap();
+        tx_builder.add_cert(cert);
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
-        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
+        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), change_cred, stake_cred).to_address();
         tx_builder.add_change_if_needed_for_tests(
             &change_addr
         ).unwrap();
-        assert_eq!(tx_builder.min_fee(false).unwrap().to_str(), "214002");
-        assert_eq!(tx_builder.get_fee_if_set().unwrap().to_str(), "214002");
-        assert_eq!(tx_builder.get_deposit().unwrap().to_str(), "1000000");
+        assert_eq!(tx_builder.min_fee(false).unwrap(), 214002);
+        assert_eq!(tx_builder.get_fee_if_set().unwrap(), 214002);
+        assert_eq!(tx_builder.get_deposit().unwrap(), 1000000);
         assert_eq!(tx_builder.outputs.len(), 1);
         assert_eq!(
             tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap(),
             tx_builder
                 .get_explicit_output().unwrap()
-                .checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap()
-                .checked_add(&Value::new(&tx_builder.get_deposit().unwrap())).unwrap()
+                .checked_add(&Value::from(tx_builder.get_fee_if_set().unwrap())).unwrap()
+                .checked_add(&Value::from(tx_builder.get_deposit().unwrap())).unwrap()
         );
         let _final_tx = tx_builder.build(ChangeSelectionAlgo::Default, &change_addr); // just test that it doesn't throw
     }
@@ -1906,7 +1899,7 @@ mod tests {
     #[test]
     fn build_tx_exact_amount() {
         // transactions where sum(input) == sum(output) exact should pass
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(0, 0));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(0, 0));
         let change_key = root_key_15()
             .derive(harden(1852))
             .derive(harden(1815))
@@ -1918,35 +1911,35 @@ mod tests {
 
         let input = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(222)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(addr_net_0.clone(), Value::from(222), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_coin(&to_bignum(222))
+                .with_value(222)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(&0.into());
+        tx_builder.set_ttl(0);
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
-        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
+        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), change_cred, stake_cred).to_address();
         let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr
         ).unwrap();
         assert!(!added_change);
         let final_tx = tx_builder.build_body().unwrap();
-        assert_eq!(final_tx.outputs().len(), 1);
+        assert_eq!(final_tx.outputs.len(), 1);
     }
 
     #[test]
     fn build_tx_exact_change() {
         // transactions where we have exactly enough ADA to add change should pass
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(0, 0));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(0, 0));
         let change_key = root_key_15()
             .derive(harden(1852))
             .derive(harden(1815))
@@ -1958,30 +1951,30 @@ mod tests {
 
         let input = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(542)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(addr_net_0.clone(), Value::from(542), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_coin(&to_bignum(222))
+                .with_value(222)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(&0.into());
+        tx_builder.set_ttl(0);
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
-        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
+        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), change_cred, stake_cred).to_address();
         let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr
         ).unwrap();
         assert!(added_change);
         let final_tx = tx_builder.build_body().unwrap();
-        assert_eq!(final_tx.outputs().len(), 2);
-        assert_eq!(final_tx.outputs().get(1).amount().coin().to_str(), "320");
+        assert_eq!(final_tx.outputs.len(), 2);
+        assert_eq!(final_tx.outputs[1].amount().coin, 320);
     }
 
     #[test]
@@ -2000,31 +1993,31 @@ mod tests {
 
         let input = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(5)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(addr_net_0.clone(), Value::from(5), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_coin(&to_bignum(5))
+                .with_value(5)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(&0.into());
+        tx_builder.set_ttl(0);
 
         // add a cert which requires a deposit
-        let cert = SingleCertificateBuilder::new(&Certificate::new_stake_registration(&StakeRegistration::new(&stake_cred)))
+        let cert = SingleCertificateBuilder::new(Certificate::new_stake_registration(stake_cred.clone()))
             .payment_key().unwrap();
-        tx_builder.add_cert(&cert);
+        tx_builder.add_cert(cert);
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
-            &change_cred,
-            &stake_cred,
+            change_cred,
+            stake_cred,
         )
         .to_address();
 
@@ -2037,52 +2030,52 @@ mod tests {
         let ((spend, spend_cred), (_, stake_cred), _) = create_account();
 
         let input = {
-            let address = &EnterpriseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred).to_address();
+            let address = EnterpriseAddress::new(NetworkInfo::testnet().network_id(), spend_cred.clone()).to_address();
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(address, &Value::new(&to_bignum(1_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, Value::from(1_000_000), None, None)
             ).payment_key().unwrap()
         };
-        assert_eq!(tx_builder.fee_for_input(&input).unwrap().to_str(), "69500");
-        tx_builder.add_input(&input).unwrap();
+        assert_eq!(tx_builder.fee_for_input(&input).unwrap(), 69500);
+        tx_builder.add_input(input).unwrap();
 
         let input = {
-            let address = &BaseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &stake_cred).to_address();
+            let address = BaseAddress::new(NetworkInfo::testnet().network_id(), spend_cred.clone(), stake_cred).to_address();
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(address, &Value::new(&to_bignum(1_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, Value::from(1_000_000), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         let input = {
-            let address = &PointerAddress::new(
+            let address = PointerAddress::new(
                 NetworkInfo::testnet().network_id(),
-                &spend_cred,
-                &Pointer::new(&to_bignum(0), &to_bignum(0), &to_bignum(0))
+                spend_cred,
+                Pointer::new(0, 0, 0)
             ).to_address();
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(address, &Value::new(&to_bignum(1_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, Value::from(1_000_000), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         let input = {
-            let address = &AddressContent::icarus_from_key(&spend, NetworkInfo::testnet().protocol_magic()).to_address().to_address();
+            let address = AddressContent::icarus_from_key(spend, NetworkInfo::testnet().protocol_magic().into()).to_address().to_address();
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(address, &Value::new(&to_bignum(1_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, Value::from(1_000_000), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         assert_eq!(tx_builder.inputs.len(), 4);
     }
 
     #[test]
     fn build_tx_with_mint_all_sent() {
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(0, 1));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(0, 1));
         let change_key = root_key_15()
             .derive(harden(1852))
             .derive(harden(1815))
@@ -2093,52 +2086,50 @@ mod tests {
         let ((_, spend_cred), (_, stake_cred), _) = create_account();
 
         let input = {
-            let address = &EnterpriseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred).to_address();
+            let address = EnterpriseAddress::new(NetworkInfo::testnet().network_id(), spend_cred.clone()).to_address();
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(address, &Value::new(&to_bignum(764)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, Value::from(764), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         let addr_net_0 = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
-            &spend_cred,
-            &stake_cred,
+            spend_cred.clone(),
+            stake_cred.clone(),
         )
         .to_address();
 
         let (min_script, policy_id) = mint_script_and_policy(0);
         let name = AssetName::new(vec![0u8, 1, 2, 3]).unwrap();
-        let amount = to_bignum(1234);
+        let amount = 1234u64;
 
-        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name, Int::new(&amount)))
-            .native_script(&min_script, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = SingleMintBuilder::new_single_asset(name.clone(), amount as i64)
+            .native_script(min_script, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
-        let mut ass = Assets::new();
-        ass.insert(&name, &amount);
         let mut mass = MultiAsset::new();
-        mass.insert(&policy_id, &ass);
+        mass.set(policy_id, name.clone(), amount);
 
         // One coin and the minted asset goes into the output
-        let mut output_amount = Value::new(&to_bignum(264));
-        output_amount.set_multiasset(&mass);
+        let mut output_amount = Value::from(264);
+        output_amount.multiasset = mass;
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_value(&output_amount)
+                .with_value(output_amount)
                 .build().unwrap()
             ).unwrap();
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
-            &change_cred,
-            &stake_cred,
+            change_cred,
+            stake_cred,
         )
         .to_address();
 
@@ -2147,14 +2138,14 @@ mod tests {
         assert_eq!(tx_builder.outputs.len(), 2);
 
         // Change must be one remaining coin because fee is one constant coin
-        let change = tx_builder.outputs.get(1).amount();
-        assert_eq!(change.coin(), to_bignum(499));
-        assert!(change.multiasset().is_none());
+        let change = tx_builder.outputs[1].amount();
+        assert_eq!(change.coin, 499);
+        assert!(!change.has_multiassets());
     }
 
     #[test]
     fn build_tx_with_mint_in_change() {
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(0, 1));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(0, 1));
         let change_key = root_key_15()
             .derive(harden(1852))
             .derive(harden(1815))
@@ -2165,54 +2156,52 @@ mod tests {
         let ((spend, spend_cred), (_, stake_cred), _) = create_account();
 
         let input = {
-            let address = &EnterpriseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred).to_address();
+            let address = EnterpriseAddress::new(NetworkInfo::testnet().network_id(), spend_cred.clone()).to_address();
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(address, &Value::new(&to_bignum(564)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, Value::from(564), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         let addr_net_0 = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
-            &spend_cred,
-            &stake_cred,
+            spend_cred.clone(),
+            stake_cred.clone(),
         )
         .to_address();
 
         let (min_script, policy_id) = mint_script_and_policy(0);
         let name = AssetName::new(vec![0u8, 1, 2, 3]).unwrap();
 
-        let amount_minted = to_bignum(1000);
-        let amount_sent = to_bignum(500);
+        let amount_minted = 1000i64;
+        let amount_sent = 500u64;
 
-        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name, Int::new(&amount_minted)))
-            .native_script(&min_script, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = SingleMintBuilder::new_single_asset(name.clone(), amount_minted)
+            .native_script(min_script, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
-        let mut ass = Assets::new();
-        ass.insert(&name, &amount_sent);
         let mut mass = MultiAsset::new();
-        mass.insert(&policy_id, &ass);
+        mass.set(policy_id.clone(), name.clone(), amount_sent);
 
         // One coin and the minted asset goes into the output
-        let mut output_amount = Value::new(&to_bignum(264));
-        output_amount.set_multiasset(&mass);
+        let mut output_amount = Value::from(264);
+        output_amount.multiasset = mass;
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_value(&output_amount)
+                .with_value(output_amount)
                 .build().unwrap()
             ).unwrap();
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
-            &change_cred,
-            &stake_cred,
+            change_cred,
+            stake_cred,
         )
         .to_address();
 
@@ -2221,21 +2210,19 @@ mod tests {
         assert_eq!(tx_builder.outputs.len(), 2);
 
         // Change must be one remaining coin because fee is one constant coin
-        let change = tx_builder.outputs.get(1).amount();
-        assert_eq!(change.coin(), to_bignum(299));
-        assert!(change.multiasset().is_some());
+        let change = tx_builder.outputs[1].amount();
+        assert_eq!(change.coin, 299);
+        assert!(change.has_multiassets());
 
-        let change_assets = change.multiasset().unwrap();
-        let change_asset = change_assets.get(&policy_id).unwrap();
         assert_eq!(
-            change_asset.get(&name).unwrap(),
-            amount_minted.checked_sub(&amount_sent).unwrap(),
+            change.multiasset.get(&policy_id, &name).unwrap() as i128,
+            amount_minted.checked_sub(amount_sent as i64).unwrap() as i128,
         );
     }
 
     #[test]
     fn build_tx_with_native_assets_change() {
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(0, 1));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(0, 1));
         let change_key = root_key_15()
             .derive(harden(1852))
             .derive(harden(1815))
@@ -2245,7 +2232,7 @@ mod tests {
             .to_public();
         let (_, (_, stake_cred), addr_net_0) = create_account();
 
-        let policy_id = &PolicyID::from([0u8; 28]);
+        let policy_id = PolicyId::from([0u8; 28]);
         let name = AssetName::new(vec![0u8, 1, 2, 3]).unwrap();
 
         let ma_input1 = 100;
@@ -2256,78 +2243,70 @@ mod tests {
             .iter()
             .map(|input| {
                 let mut multiasset = MultiAsset::new();
-                multiasset.insert(policy_id, &{
-                    let mut assets = Assets::new();
-                    assets.insert(&name, &to_bignum(*input));
-                    assets
-                });
+                multiasset.set(policy_id.clone(), name.clone(), *input);
                 multiasset
             })
             .collect::<Vec<MultiAsset>>();
 
         for (multiasset, ada) in multiassets
             .iter()
-            .zip([500u64, 500].iter().cloned().map(to_bignum))
+            .zip([500u64, 500].iter().cloned())
         {
-            let mut input_amount = Value::new(&ada);
-            input_amount.set_multiasset(multiasset);
+            let mut input_amount = Value::from(ada);
+            input_amount.multiasset = multiasset.clone();
 
             let input = {
                 SingleInputBuilder::new(
-                    &TransactionInput::new(&genesis_id(), &0.into()),
-                    &TransactionOutput::new(&addr_net_0, &input_amount)
+                    TransactionInput::new(genesis_id(), 0),
+                    TransactionOutput::new(addr_net_0.clone(), input_amount, None, None)
                 ).payment_key().unwrap()
             };
-            tx_builder.add_input(&input).unwrap();
+            tx_builder.add_input(input).unwrap();
         }
 
-        let mut output_amount = Value::new(&to_bignum(263));
-        output_amount.set_multiasset(&multiassets[2]);
+        let mut output_amount = Value::from(263);
+        output_amount.multiasset = multiassets[2].clone();
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_value(&output_amount)
+                .with_value(output_amount)
                 .build().unwrap()
             ).unwrap();
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
-            &change_cred,
-            &stake_cred,
+            change_cred,
+            stake_cred,
         )
         .to_address();
 
         let added_change = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(added_change);
         let final_tx = tx_builder.build_body().unwrap();
-        assert_eq!(final_tx.outputs().len(), 2);
+        assert_eq!(final_tx.outputs.len(), 2);
         assert_eq!(
             final_tx
-                .outputs()
-                .get(1)
+                .outputs[1]
                 .amount()
-                .multiasset()
-                .unwrap()
-                .get(policy_id)
-                .unwrap()
-                .get(&name)
+                .multiasset
+                .get(&policy_id, &name)
                 .unwrap(),
-            to_bignum(ma_input1 + ma_input2 - ma_output1)
+            ma_input1 + ma_input2 - ma_output1
         );
         assert_eq!(
-            final_tx.outputs().get(1).amount().coin(),
-            to_bignum(736)
+            final_tx.outputs[1].amount().coin,
+            736
         );
     }
 
     #[test]
     fn build_tx_with_native_assets_change_and_purification() {
-        let coin_per_utxo_byte = to_bignum(1);
+        let coin_per_utxo_byte = 1;
         // Prefer pure change!
-        let mut tx_builder = create_tx_builder_with_fee_and_pure_change(&create_linear_fee(0, 1));
+        let mut tx_builder = create_tx_builder_with_fee_and_pure_change(create_linear_fee(0, 1));
         let change_key = root_key_15()
             .derive(harden(1852))
             .derive(harden(1815))
@@ -2337,7 +2316,7 @@ mod tests {
             .to_public();
         let (_, (_, stake_cred), addr_net_0) = create_account();
 
-        let policy_id = &PolicyID::from([0u8; 28]);
+        let policy_id = &PolicyId::from([0u8; 28]);
         let name = AssetName::new(vec![0u8, 1, 2, 3]).unwrap();
 
         let ma_input1 = 100;
@@ -2348,94 +2327,83 @@ mod tests {
             .iter()
             .map(|input| {
                 let mut multiasset = MultiAsset::new();
-                multiasset.insert(policy_id, &{
-                    let mut assets = Assets::new();
-                    assets.insert(&name, &to_bignum(*input));
-                    assets
-                });
+                multiasset.set(policy_id.clone(), name.clone(), *input);
                 multiasset
             })
             .collect::<Vec<MultiAsset>>();
 
         for (multiasset, ada) in multiassets
             .iter()
-            .zip([500u64, 500].iter().cloned().map(to_bignum))
+            .zip([500u64, 500].iter().cloned())
         {
-            let mut input_amount = Value::new(&ada);
-            input_amount.set_multiasset(multiasset);
+            let mut input_amount = Value::from(ada);
+            input_amount.multiasset = multiasset.clone();
 
             let input = {
                 SingleInputBuilder::new(
-                    &TransactionInput::new(&genesis_id(), &0.into()),
-                    &TransactionOutput::new(&addr_net_0, &input_amount)
+                    TransactionInput::new(genesis_id(), 0),
+                    TransactionOutput::new(addr_net_0.clone(), input_amount, None, None)
                 ).payment_key().unwrap()
             };
-            tx_builder.add_input(&input).unwrap();
+            tx_builder.add_input(input).unwrap();
         }
 
-        let mut output_amount = Value::new(&to_bignum(263));
-        output_amount.set_multiasset(&multiassets[2]);
+        let mut output_amount = Value::from(263);
+        output_amount.multiasset = multiassets[2].clone();
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_value(&output_amount)
+                .with_value(output_amount)
                 .build().unwrap()
             ).unwrap();
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
-            &change_cred,
-            &stake_cred,
+            change_cred,
+            stake_cred,
         )
         .to_address();
 
         let added_change = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(added_change);
         let final_tx = tx_builder.build_body().unwrap();
-        assert_eq!(final_tx.outputs().len(), 3);
+        assert_eq!(final_tx.outputs.len(), 3);
         assert_eq!(
-            final_tx.outputs().get(0).amount().coin(),
-            to_bignum(263)
+            final_tx.outputs[0].amount().coin,
+            263
         );
         assert_eq!(
             final_tx
-                .outputs()
-                .get(1)
+                .outputs[1]
                 .amount()
-                .multiasset()
-                .unwrap()
-                .get(policy_id)
-                .unwrap()
-                .get(&name)
+                .multiasset
+                .get(policy_id, &name)
                 .unwrap(),
-            to_bignum(ma_input1 + ma_input2 - ma_output1)
+            ma_input1 + ma_input2 - ma_output1
         );
         // The first change output that contains all the tokens contain minimum required Coin
         let min_coin_for_dirty_change = min_ada_required(
-            &final_tx.outputs().get(1),
-            &coin_per_utxo_byte,
+            &final_tx.outputs[1],
+            coin_per_utxo_byte,
         ).unwrap();
         assert_eq!(
-            final_tx.outputs().get(1).amount().coin(),
+            final_tx.outputs[1].amount().coin,
             min_coin_for_dirty_change
         );
         assert_eq!(
-            final_tx.outputs().get(2).amount().coin(),
-            to_bignum(473)
+            final_tx.outputs[2].amount().coin,
+            473
         );
-        assert_eq!(
-            final_tx.outputs().get(2).amount().multiasset(),
-            None
-        );
+        assert!(!final_tx.outputs[2].amount().has_multiassets());
     }
 
     #[test]
     fn build_tx_with_native_assets_change_and_no_purification_cuz_not_enough_pure_coin() {
         // Prefer pure change!
-        let mut tx_builder = create_tx_builder_with_fee_and_pure_change(&create_linear_fee(1, 1));
+        let mut tx_builder = create_tx_builder_with_fee_and_pure_change(create_linear_fee(1, 1));
         let change_key = root_key_15()
             .derive(harden(1852))
             .derive(harden(1815))
@@ -2445,7 +2413,7 @@ mod tests {
             .to_public();
         let (_, (_, stake_cred), addr_net_0) = create_account();
 
-        let policy_id = &PolicyID::from([0u8; 28]);
+        let policy_id = &PolicyId::from([0u8; 28]);
         let name = AssetName::new(vec![0u8, 1, 2, 3]).unwrap();
 
         let ma_input1 = 100;
@@ -2456,76 +2424,68 @@ mod tests {
             .iter()
             .map(|input| {
                 let mut multiasset = MultiAsset::new();
-                multiasset.insert(policy_id, &{
-                    let mut assets = Assets::new();
-                    assets.insert(&name, &to_bignum(*input));
-                    assets
-                });
+                multiasset.set(policy_id.clone(), name.clone(), *input);
                 multiasset
             })
             .collect::<Vec<MultiAsset>>();
 
         for (multiasset, ada) in multiassets
             .iter()
-            .zip([500u64, 500].iter().cloned().map(to_bignum))
+            .zip([500u64, 500].iter().cloned())
         {
-            let mut input_amount = Value::new(&ada);
-            input_amount.set_multiasset(multiasset);
+            let mut input_amount = Value::from(ada);
+            input_amount.multiasset = multiasset.clone();
 
             let input = {
                 SingleInputBuilder::new(
-                    &TransactionInput::new(&genesis_id(), &0.into()),
-                    &TransactionOutput::new(&addr_net_0, &input_amount)
+                    TransactionInput::new(genesis_id(), 0),
+                    TransactionOutput::new(addr_net_0.clone(), input_amount, None, None)
                 ).payment_key().unwrap()
             };
-            tx_builder.add_input(&input).unwrap();
+            tx_builder.add_input(input).unwrap();
         }
 
-        let mut output_amount = Value::new(&to_bignum(263));
-        output_amount.set_multiasset(&multiassets[2]);
+        let output_amount = Value::new(263, multiassets[2].clone());
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_value(&output_amount)
+                .with_value(output_amount)
                 .build().unwrap()
             ).unwrap();
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
         let change_addr = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
-            &change_cred,
-            &stake_cred,
+            change_cred,
+            stake_cred,
         )
         .to_address();
 
         let added_change = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(added_change);
         let final_tx = tx_builder.build_body().unwrap();
-        assert_eq!(final_tx.outputs().len(), 2);
+        assert_eq!(final_tx.outputs.len(), 2);
         assert_eq!(
-            final_tx.outputs().get(0).amount().coin(),
-            to_bignum(263)
+            final_tx.outputs[0].amount().coin,
+            263
         );
         assert_eq!(
             final_tx
-                .outputs()
-                .get(1)
+                .outputs
+                [1]
                 .amount()
-                .multiasset()
-                .unwrap()
-                .get(policy_id)
-                .unwrap()
-                .get(&name)
+                .multiasset
+                .get(&policy_id, &name)
                 .unwrap(),
-            to_bignum(ma_input1 + ma_input2 - ma_output1)
+            ma_input1 + ma_input2 - ma_output1
         );
         // The single change output contains more Coin then minimal utxo value
         // But not enough to cover the additional fee for a separate output
         assert_eq!(
-            final_tx.outputs().get(1).amount().coin(),
-            to_bignum(336)
+            final_tx.outputs[1].amount().coin,
+            336
         );
     }
 
@@ -2543,35 +2503,32 @@ mod tests {
         let (_, (_, stake_cred), addr_net_0) = create_account();
 
         // add an input that contains an asset not present in the output
-        let policy_id = &PolicyID::from([0u8; 28]);
+        let policy_id = PolicyId::from([0u8; 28]);
         let name = AssetName::new(vec![0u8, 1, 2, 3]).unwrap();
-        let mut input_amount = Value::new(&to_bignum(1_000_000));
-        let mut input_multiasset = MultiAsset::new();
-        input_multiasset.insert(policy_id, &{
-            let mut assets = Assets::new();
-            assets.insert(&name, &to_bignum(100));
-            assets
-        });
-        input_amount.set_multiasset(&input_multiasset);
+        let input_amount = {
+            let mut input_multiasset = MultiAsset::new();
+            input_multiasset.set(policy_id, name, 100);
+            Value::new(1_000_000, input_multiasset)
+        };
         let input = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&addr_net_0, &input_amount)
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(addr_net_0.clone(), input_amount, None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_coin(&to_bignum(880_000))
+                .with_value(880_000)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(&1000.into());
+        tx_builder.set_ttl(1000);
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
-        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
+        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), change_cred, stake_cred).to_address();
         let added_change = tx_builder.add_change_if_needed_for_tests(
             &change_addr
         );
@@ -2579,7 +2536,7 @@ mod tests {
         assert_eq!(tx_builder.outputs.len(), 1);
         assert_eq!(
             tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap(),
-            tx_builder.get_explicit_output().unwrap().checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap()
+            tx_builder.get_explicit_output().unwrap().checked_add(&Value::from(tx_builder.get_fee_if_set().unwrap())).unwrap()
         );
         let _final_tx = tx_builder.build_body(); // just test that it doesn't throw
     }
@@ -2591,24 +2548,24 @@ mod tests {
 
         let output_addr = ByronAddress::from_base58("Ae2tdPwUPEZD9QQf2ZrcYV34pYJwxK4vqXaF8EXkup1eYH73zUScHReM42b").unwrap();
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&output_addr.to_address())
+            TransactionOutputBuilder::new()
+                .with_address(output_addr.to_address())
                 .next().unwrap()
-                .with_value(&Value::new(&to_bignum(2_000_000)))
+                .with_value(Value::from(2_000_000))
                 .build().unwrap()
             ).unwrap();
 
         let input = {
-            let address = &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address();
+            let address = ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address();
             let builder = SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(address, &Value::new(&to_bignum(2_400_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, Value::from(2_400_000), None, None)
             );
             builder.payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
-        tx_builder.set_ttl(&1.into());
+        tx_builder.set_ttl(1);
 
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap();
         let added_change = tx_builder.add_change_if_needed_for_tests(
@@ -2618,7 +2575,7 @@ mod tests {
         assert_eq!(tx_builder.outputs.len(), 1);
         assert_eq!(
             tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap(),
-            tx_builder.get_explicit_output().unwrap().checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap()
+            tx_builder.get_explicit_output().unwrap().checked_add(&Value::from(tx_builder.get_fee_if_set().unwrap())).unwrap()
         );
         let _final_tx = tx_builder.build_body(); // just test that it doesn't throw
     }
@@ -2629,26 +2586,25 @@ mod tests {
 
         let output_addr = ByronAddress::from_base58("Ae2tdPwUPEZD9QQf2ZrcYV34pYJwxK4vqXaF8EXkup1eYH73zUScHReM42b").unwrap();
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&output_addr.to_address())
+            TransactionOutputBuilder::new()
+                .with_address(output_addr.to_address())
                 .next().unwrap()
-                .with_value(&Value::new(&to_bignum(2_000_000)))
+                .with_value(Value::from(2_000_000))
                 .build().unwrap()
             ).unwrap();
 
-        let mut input_value = Value::new(&to_bignum(2_400_000));
-        input_value.set_multiasset(&MultiAsset::new());
+        let input_value = Value::from(2_400_000);
         let input = {
-            let address = &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address();
+            let address = ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address();
             let builder = SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(address, &input_value)
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, input_value, None, None)
             );
             builder.payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
-        tx_builder.set_ttl(&1.into());
+        tx_builder.set_ttl(1);
 
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap();
         let added_change = tx_builder.add_change_if_needed_for_tests(
@@ -2657,8 +2613,8 @@ mod tests {
         assert!(!added_change.unwrap());
         assert_eq!(tx_builder.outputs.len(), 1);
         assert_eq!(
-            tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap().coin(),
-            tx_builder.get_explicit_output().unwrap().checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap().coin()
+            tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap().coin,
+            tx_builder.get_explicit_output().unwrap().checked_add(&Value::from(tx_builder.get_fee_if_set().unwrap())).unwrap().coin
         );
         let _final_tx = tx_builder.build_body(); // just test that it doesn't throw
     }
@@ -2667,49 +2623,43 @@ mod tests {
     fn build_tx_no_useless_multiasset() {
         let mut tx_builder = create_realistic_tx_builder();
 
-        let policy_id = &PolicyID::from([0u8; 28]);
+        let policy_id = PolicyId::from([0u8; 28]);
         let name = AssetName::new(vec![0u8, 1, 2, 3]).unwrap();
 
         // add an output that uses up all the token but leaves ADA
-        let mut input_amount = Value::new(&to_bignum(5_000_000));
-        let mut input_multiasset = MultiAsset::new();
-        input_multiasset.insert(policy_id, &{
-            let mut assets = Assets::new();
-            assets.insert(&name, &to_bignum(100));
-            assets
-        });
-        input_amount.set_multiasset(&input_multiasset);
+        let input_amount = {
+            let mut input_multiasset = MultiAsset::new();
+            input_multiasset.set(policy_id.clone(), name.clone(), 100);
+            Value::new(5_000_000, input_multiasset)
+        };
 
         let input = {
-            let address = &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address();
+            let address = ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address();
             let builder = SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(address, &input_amount)
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, input_amount, None, None)
             );
             builder.payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         // add an input that contains an asset & ADA
-        let mut output_amount = Value::new(&to_bignum(2_000_000));
-        let mut output_multiasset = MultiAsset::new();
-        output_multiasset.insert(policy_id, &{
-            let mut assets = Assets::new();
-            assets.insert(&name, &to_bignum(100));
-            assets
-        });
-        output_amount.set_multiasset(&output_multiasset);
+        let mut output_amount = {
+            let mut output_multiasset = MultiAsset::new();
+            output_multiasset.set(policy_id.clone(), name.clone(), 100);
+            Value::new(2_000_000, output_multiasset)
+        };
 
         let output_addr = ByronAddress::from_base58("Ae2tdPwUPEZD9QQf2ZrcYV34pYJwxK4vqXaF8EXkup1eYH73zUScHReM42b").unwrap();
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&output_addr.to_address())
+            TransactionOutputBuilder::new()
+                .with_address(output_addr.to_address())
                 .next().unwrap()
-                .with_value(&output_amount)
+                .with_value(output_amount)
                 .build().unwrap()
             ).unwrap();
 
-        tx_builder.set_ttl(&1.into());
+        tx_builder.set_ttl(1);
 
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap();
         let added_change = tx_builder.add_change_if_needed_for_tests(
@@ -2718,19 +2668,18 @@ mod tests {
         assert!(added_change.unwrap());
         assert_eq!(tx_builder.outputs.len(), 2);
         let final_tx = tx_builder.build_body().unwrap();
-        let change_output = final_tx.outputs().get(1);
-        let change_assets = change_output.amount().multiasset();
+        let change_output = &final_tx.outputs[1];
 
         // since all tokens got sent in the output
         // the change should be only ADA and not have any multiasset struct in it
-        assert!(change_assets.is_none());
+        assert!(!change_output.amount().has_multiassets());
     }
 
     fn create_multiasset() -> (MultiAsset, [ScriptHash; 3], [AssetName; 3]) {
         let policy_ids = [
-            PolicyID::from([0u8; 28]),
-            PolicyID::from([1u8; 28]),
-            PolicyID::from([2u8; 28]),
+            PolicyId::from([0u8; 28]),
+            PolicyId::from([1u8; 28]),
+            PolicyId::from([2u8; 28]),
         ];
         let names = [
             AssetName::new(vec![99u8; 32]).unwrap(),
@@ -2741,11 +2690,7 @@ mod tests {
             .iter()
             .zip(names.iter())
             .fold(MultiAsset::new(), |mut acc, (policy_id, name)| {
-                acc.insert(policy_id, &{
-                    let mut assets = Assets::new();
-                    assets.insert(name, &to_bignum(500));
-                    assets
-                });
+                acc.set(policy_id.clone(), name.clone(), 500);
                 acc
             });
         (multiasset, policy_ids, names)
@@ -2755,33 +2700,33 @@ mod tests {
     fn build_tx_add_change_split_nfts() {
         let max_value_size = 100; // super low max output size to test with fewer assets
         let mut tx_builder = create_tx_builder_with_fee_and_val_size(
-            &create_linear_fee(0, 1),
+            create_linear_fee(0, 1),
             max_value_size,
         );
 
         let (multiasset, policy_ids, names) = create_multiasset();
 
-        let mut input_value = Value::new(&to_bignum(1000));
-        input_value.set_multiasset(&multiasset);
+        let mut input_value = Value::from(1000);
+        input_value.multiasset = multiasset;
 
         let input = {
-            let address = &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address();
+            let address = ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address();
             let builder = SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(address, &input_value)
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, input_value, None, None)
             );
             builder.payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         let output_addr = ByronAddress::from_base58("Ae2tdPwUPEZD9QQf2ZrcYV34pYJwxK4vqXaF8EXkup1eYH73zUScHReM42b").unwrap().to_address();
-        let output_amount = Value::new(&to_bignum(208));
+        let output_amount = Value::from(208);
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&output_addr)
+            TransactionOutputBuilder::new()
+                .with_address(output_addr)
                 .next().unwrap()
-                .with_value(&output_amount)
+                .with_value(output_amount)
                 .build().unwrap()
             ).unwrap();
 
@@ -2790,50 +2735,47 @@ mod tests {
         let added_change = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(added_change);
         let final_tx = tx_builder.build_body().unwrap();
-        assert_eq!(final_tx.outputs().len(), 3);
+        assert_eq!(final_tx.outputs.len(), 3);
         for (policy_id, asset_name) in policy_ids.iter().zip(names.iter()) {
             assert!(final_tx
                 .outputs
-                .0
                 .iter()
-                .any(|output| output.amount.multiasset.as_ref().map_or_else(
-                    || false,
-                    |ma| ma.0.iter().any(|(pid, a)| pid == policy_id
-                        && a.0.iter().any(|(name, _)| name == asset_name))
-                ))
+                .any(|output| output.amount().multiasset.iter().any(
+                    |(pid, a)| pid == policy_id && a.iter().any(|(name, _)| name == asset_name))
+                )
             );
         }
-        for output in final_tx.outputs.0.iter() {
-            assert!(output.amount.to_bytes().len() <= max_value_size as usize);
+        for output in final_tx.outputs.iter() {
+            assert!(output.amount().to_cbor_bytes().len() <= max_value_size as usize);
         }
     }
 
     #[test]
     fn build_tx_too_big_output() {
         let mut tx_builder = create_tx_builder_with_fee_and_val_size(
-            &create_linear_fee(0, 1),
+            create_linear_fee(0, 1),
             10,
         );
 
         let input = {
-            let address = &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address();
+            let address = ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address();
             let builder = SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(address, &Value::new(&to_bignum(500)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, Value::from(500), None, None)
             );
             builder.payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         let output_addr = ByronAddress::from_base58("Ae2tdPwUPEZD9QQf2ZrcYV34pYJwxK4vqXaF8EXkup1eYH73zUScHReM42b").unwrap().to_address();
-        let mut output_amount = Value::new(&to_bignum(50));
-        output_amount.set_multiasset(&create_multiasset().0);
+        let mut output_amount = Value::from(50);
+        output_amount.multiasset = create_multiasset().0;
 
         assert!(tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&output_addr)
+            TransactionOutputBuilder::new()
+                .with_address(output_addr)
                 .next().unwrap()
-                .with_value(&output_amount)
+                .with_value(output_amount)
                 .build().unwrap()
             ).is_err());
     }
@@ -2841,14 +2783,14 @@ mod tests {
     #[test]
     fn build_tx_add_change_nfts_not_enough_ada() {
         let mut tx_builder = create_tx_builder_with_fee_and_val_size(
-            &create_linear_fee(0, 1),
+            create_linear_fee(0, 1),
             150,  // super low max output size to test with fewer assets
         );
 
         let policy_ids = [
-            PolicyID::from([0u8; 28]),
-            PolicyID::from([1u8; 28]),
-            PolicyID::from([2u8; 28]),
+            PolicyId::from([0u8; 28]),
+            PolicyId::from([1u8; 28]),
+            PolicyId::from([2u8; 28]),
         ];
         let names = [
             AssetName::new(vec![99u8; 32]).unwrap(),
@@ -2857,38 +2799,34 @@ mod tests {
         ];
 
         let multiasset = policy_ids
-            .iter()
-            .zip(names.iter())
+            .into_iter()
+            .zip(names.into_iter())
             .fold(MultiAsset::new(), |mut acc, (policy_id, name)| {
-                acc.insert(policy_id, &{
-                    let mut assets = Assets::new();
-                    assets.insert(name, &to_bignum(500));
-                    assets
-                });
+                acc.set(policy_id.clone(), name.clone(), 500);
                 acc
             });
 
-        let mut input_value = Value::new(&to_bignum(58));
-        input_value.set_multiasset(&multiasset);
+        let mut input_value = Value::from(58);
+        input_value.multiasset = multiasset;
 
         let input = {
-            let address = &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address();
+            let address = ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address();
             let builder = SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(address, &input_value)
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, input_value, None, None)
             );
             builder.payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         let output_addr = ByronAddress::from_base58("Ae2tdPwUPEZD9QQf2ZrcYV34pYJwxK4vqXaF8EXkup1eYH73zUScHReM42b").unwrap().to_address();
-        let output_amount = Value::new(&to_bignum(208));
+        let output_amount = Value::from(208);
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&output_addr)
+            TransactionOutputBuilder::new()
+                .with_address(output_addr)
                 .next().unwrap()
-                .with_value(&output_amount)
+                .with_value(output_amount)
                 .build().unwrap()
             ).unwrap();
 
@@ -2900,253 +2838,246 @@ mod tests {
     fn make_input(input_hash_byte: u8, value: Value) -> InputBuilderResult {
         let (_, _, address) = create_account();
         SingleInputBuilder::new(
-            &TransactionInput::new(&TransactionHash::from([input_hash_byte; 32]), &0.into()),
-            &TransactionOutputBuilder::new()
-                .with_address(&address)
+            TransactionInput::new(TransactionHash::from([input_hash_byte; 32]), 0),
+            TransactionOutputBuilder::new()
+                .with_address(address)
                 .next().unwrap()
-                .with_value(&value)
-                .build().unwrap().output()
+                .with_value(value)
+                .build().unwrap().output
         ).payment_key().unwrap()
     }
 
     #[test]
     fn tx_builder_cip2_largest_first_increasing_fees() {
         // we have a = 1 to test increasing fees when more inputs are added
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(1, 0));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(1, 0));
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
+            TransactionOutputBuilder::new()
+                .with_address(Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
                 .next().unwrap()
-                .with_coin(&to_bignum(10000))
+                .with_value(10000)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.add_utxo(&make_input(0u8, Value::new(&to_bignum(1500))));
-        tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(2000))));
-        tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(8000))));
-        tx_builder.add_utxo(&make_input(3u8, Value::new(&to_bignum(4000))));
-        tx_builder.add_utxo(&make_input(4u8, Value::new(&to_bignum(1000))));
+        tx_builder.add_utxo(make_input(0u8, Value::from(1500)));
+        tx_builder.add_utxo(make_input(1u8, Value::from(2000)));
+        tx_builder.add_utxo(make_input(2u8, Value::from(8000)));
+        tx_builder.add_utxo(make_input(3u8, Value::from(4000)));
+        tx_builder.add_utxo(make_input(4u8, Value::from(1000)));
         tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirst).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(change_added);
         let tx = tx_builder.build_body().unwrap();
         // change needed
-        assert_eq!(2, tx.outputs().len());
-        assert_eq!(2, tx.inputs().len());
+        assert_eq!(2, tx.outputs.len());
+        assert_eq!(2, tx.inputs.len());
         // confirm order of only what is necessary
-        assert_eq!(2u8, tx.inputs().get(0).transaction_id().0[0]);
-        assert_eq!(3u8, tx.inputs().get(1).transaction_id().0[0]);
+        assert_eq!(2u8, tx.inputs[0].transaction_id.to_raw_bytes()[0]);
+        assert_eq!(3u8, tx.inputs[1].transaction_id.to_raw_bytes()[0]);
     }
 
 
     #[test]
     fn tx_builder_cip2_largest_first_static_fees() {
         // we have a = 0 so we know adding inputs/outputs doesn't change the fee so we can analyze more
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(0, 0));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(0, 0));
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
+            TransactionOutputBuilder::new()
+                .with_address(Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
                 .next().unwrap()
-                .with_coin(&to_bignum(1200))
+                .with_value(1200)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.add_utxo(&make_input(0u8, Value::new(&to_bignum(150))));
-        tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(200))));
-        tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(800))));
-        tx_builder.add_utxo(&make_input(3u8, Value::new(&to_bignum(400))));
-        tx_builder.add_utxo(&make_input(4u8, Value::new(&to_bignum(100))));
+        tx_builder.add_utxo(make_input(0u8, Value::from(150)));
+        tx_builder.add_utxo(make_input(1u8, Value::from(200)));
+        tx_builder.add_utxo(make_input(2u8, Value::from(800)));
+        tx_builder.add_utxo(make_input(3u8, Value::from(400)));
+        tx_builder.add_utxo(make_input(4u8, Value::from(100)));
         tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirst).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(!change_added);
         let tx = tx_builder.build_body().unwrap();
         // change not needed - should be exact
-        assert_eq!(1, tx.outputs().len());
-        assert_eq!(2, tx.inputs().len());
+        assert_eq!(1, tx.outputs.len());
+        assert_eq!(2, tx.inputs.len());
         // confirm order of only what is necessary
-        assert_eq!(2u8, tx.inputs().get(0).transaction_id().0[0]);
-        assert_eq!(3u8, tx.inputs().get(1).transaction_id().0[0]);
+        assert_eq!(2u8, tx.inputs[0].transaction_id.to_raw_bytes()[0]);
+        assert_eq!(3u8, tx.inputs[1].transaction_id.to_raw_bytes()[0]);
     }
 
     #[test]
     fn tx_builder_cip2_largest_first_multiasset() {
         // we have a = 0 so we know adding inputs/outputs doesn't change the fee so we can analyze more
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(0, 0));
-        let pid1 = PolicyID::from([1u8; 28]);
-        let pid2 = PolicyID::from([2u8; 28]);
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(0, 0));
+        let pid1 = PolicyId::from([1u8; 28]);
+        let pid2 = PolicyId::from([2u8; 28]);
         let asset_name1 = AssetName::new(vec![1u8; 8]).unwrap();
         let asset_name2 = AssetName::new(vec![2u8; 11]).unwrap();
         let asset_name3 = AssetName::new(vec![3u8; 9]).unwrap();
 
-        let mut output_value = Value::new(&to_bignum(415));
+        let mut output_value = Value::from(415);
         let mut output_ma = MultiAsset::new();
-        output_ma.set_asset(&pid1, &asset_name1, &to_bignum(5));
-        output_ma.set_asset(&pid1, &asset_name2, &to_bignum(1));
-        output_ma.set_asset(&pid2, &asset_name2, &to_bignum(2));
-        output_ma.set_asset(&pid2, &asset_name3, &to_bignum(4));
-        output_value.set_multiasset(&output_ma);
-        tx_builder.add_output(&SingleOutputBuilderResult::new(&TransactionOutput::new(
-            &Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap(),
-            &output_value
+        output_ma.set(pid1.clone(), asset_name1.clone(), 5);
+        output_ma.set(pid1.clone(), asset_name2.clone(), 1);
+        output_ma.set(pid2.clone(), asset_name2.clone(), 2);
+        output_ma.set(pid2.clone(), asset_name3.clone(), 4);
+        output_value.multiasset = output_ma;
+        tx_builder.add_output(SingleOutputBuilderResult::new(TransactionOutput::new(
+            Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap(),
+            output_value.clone(),
+            None,
+            None
         ))).unwrap();
 
         // should not be taken
-        tx_builder.add_utxo(&make_input(0u8, Value::new(&to_bignum(150))));
+        tx_builder.add_utxo(make_input(0u8, Value::from(150)));
 
         // should not be taken
-        let mut input1 = make_input(1u8, Value::new(&to_bignum(200)));
         let mut ma1 = MultiAsset::new();
-        ma1.set_asset(&pid1, &asset_name1, &to_bignum(10));
-        ma1.set_asset(&pid1, &asset_name2, &to_bignum(1));
-        ma1.set_asset(&pid2, &asset_name2, &to_bignum(2));
-        input1.utxo_info.amount.set_multiasset(&ma1);
-        tx_builder.add_utxo(&input1);
+        ma1.set(pid1.clone(), asset_name1.clone(), 10);
+        ma1.set(pid1.clone(), asset_name2.clone(), 1);
+        ma1.set(pid2.clone(), asset_name2.clone(), 2);
+        let input1 = make_input(1u8, Value::new(200, ma1));
+        tx_builder.add_utxo(input1);
 
         // taken first to satisfy pid1:asset_name1 (but also satisfies pid2:asset_name3)
-        let mut input2 = make_input(2u8, Value::new(&to_bignum(10)));
         let mut ma2 = MultiAsset::new();
-        ma2.set_asset(&pid1, &asset_name1, &to_bignum(20));
-        ma2.set_asset(&pid2, &asset_name3, &to_bignum(4));
-        input2.utxo_info.amount.set_multiasset(&ma2);
-        tx_builder.add_utxo(&input2.clone());
+        ma2.set(pid1.clone(), asset_name1.clone(), 20);
+        ma2.set(pid2.clone(), asset_name3.clone(), 4);
+        let input2 = make_input(2u8, Value::new(10, ma2));
+        tx_builder.add_utxo(input2.clone());
 
         // taken second to satisfy pid1:asset_name2 (but also satisfies pid2:asset_name1)
-        let mut input3 = make_input(3u8, Value::new(&to_bignum(50)));
+        
         let mut ma3 = MultiAsset::new();
-        ma3.set_asset(&pid2, &asset_name1, &to_bignum(5));
-        ma3.set_asset(&pid1, &asset_name2, &to_bignum(15));
-        input3.utxo_info.amount.multiasset = Some(ma3);
-        tx_builder.add_utxo(&input3);
+        ma3.set(pid2.clone(), asset_name1.clone(), 5);
+        ma3.set(pid1.clone(), asset_name2.clone(), 15);
+        let input3 = make_input(3u8, Value::new(50, ma3));
+        tx_builder.add_utxo(input3.clone());
 
         // should not be taken either
-        let mut input4 = make_input(4u8, Value::new(&to_bignum(10)));
+        
         let mut ma4 = MultiAsset::new();
-        ma4.set_asset(&pid1, &asset_name1, &to_bignum(10));
-        ma4.set_asset(&pid1, &asset_name2, &to_bignum(10));
-        input4.utxo_info.amount.multiasset = Some(ma4);
-        tx_builder.add_utxo(&input4);
+        ma4.set(pid1.clone(), asset_name1.clone(), 10);
+        ma4.set(pid1.clone(), asset_name2.clone(), 10);
+        let input4 = make_input(4u8, Value::new(10, ma4));
+        tx_builder.add_utxo(input4);
 
         // taken third to satisfy pid2:asset_name_2
-        let mut input5 = make_input(5u8, Value::new(&to_bignum(10)));
         let mut ma5 = MultiAsset::new();
-        ma5.set_asset(&pid1, &asset_name2, &to_bignum(10));
-        ma5.set_asset(&pid2, &asset_name2, &to_bignum(3));
-        input5.utxo_info.amount.multiasset = Some(ma5);
-        tx_builder.add_utxo(&input5);
+        ma5.set(pid1.clone(), asset_name2.clone(), 10);
+        ma5.set(pid2.clone(), asset_name2.clone(), 3);
+        let input5 = make_input(5u8, Value::new(10, ma5));
+        tx_builder.add_utxo(input5.clone());
 
         // should be taken to get enough ADA
-        let input6 = make_input(6u8, Value::new(&to_bignum(700)));
-        tx_builder.add_utxo(&input6);
+        let input6 = make_input(6u8, Value::from(700));
+        tx_builder.add_utxo(input6.clone());
 
         // should not be taken
-        tx_builder.add_utxo(&make_input(7u8, Value::new(&to_bignum(100))));
+        tx_builder.add_utxo(make_input(7u8, Value::from(100)));
         tx_builder.select_utxos(CoinSelectionStrategyCIP2::LargestFirstMultiAsset).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let change_added = tx_builder.add_change_if_needed_for_tests(&change_addr).unwrap();
         assert!(change_added);
         let tx = tx_builder.build_body().unwrap();
 
-        assert_eq!(2, tx.outputs().len());
-        assert_eq!(4, tx.inputs().len());
+        assert_eq!(2, tx.outputs.len());
+        assert_eq!(4, tx.inputs.len());
         // check order expected per-asset
-        assert_eq!(2u8, tx.inputs().get(0).transaction_id().0[0]);
-        assert_eq!(3u8, tx.inputs().get(1).transaction_id().0[0]);
-        assert_eq!(5u8, tx.inputs().get(2).transaction_id().0[0]);
-        assert_eq!(6u8, tx.inputs().get(3).transaction_id().0[0]);
+        assert_eq!(2u8, tx.inputs[0].transaction_id.to_raw_bytes()[0]);
+        assert_eq!(3u8, tx.inputs[1].transaction_id.to_raw_bytes()[0]);
+        assert_eq!(5u8, tx.inputs[2].transaction_id.to_raw_bytes()[0]);
+        assert_eq!(6u8, tx.inputs[3].transaction_id.to_raw_bytes()[0]);
 
-        let change = tx.outputs().get(1).amount;
-        assert_eq!(from_bignum(&change.coin), 355);
-        let change_ma = change.multiasset().unwrap();
-        assert_eq!(15, from_bignum(&change_ma.get_asset(&pid1, &asset_name1)));
-        assert_eq!(24, from_bignum(&change_ma.get_asset(&pid1, &asset_name2)));
-        assert_eq!(1, from_bignum(&change_ma.get_asset(&pid2, &asset_name2)));
-        assert_eq!(0, from_bignum(&change_ma.get_asset(&pid2, &asset_name3)));
-        let expected_input = input2.utxo_info.amount
-            .checked_add(&input3.utxo_info.amount)
+        let change = tx.outputs[1].amount();
+        assert_eq!(change.coin, 355);
+        let change_ma = &change.multiasset;
+        assert_eq!(15, change_ma.get(&pid1, &asset_name1).unwrap());
+        assert_eq!(24, change_ma.get(&pid1, &asset_name2).unwrap());
+        assert_eq!(1, change_ma.get(&pid2, &asset_name2).unwrap());
+        assert_eq!(0, change_ma.get(&pid2, &asset_name3).unwrap());
+        let expected_input = input2.utxo_info.amount()
+            .checked_add(&input3.utxo_info.amount())
             .unwrap()
-            .checked_add(&input5.utxo_info.amount)
+            .checked_add(&input5.utxo_info.amount())
             .unwrap()
-            .checked_add(&input6.utxo_info.amount)
+            .checked_add(&input6.utxo_info.amount())
             .unwrap();
         let expected_change = expected_input.checked_sub(&output_value).unwrap();
-        assert_eq!(expected_change, change);
+        assert_eq!(expected_change, *change);
     }
 
     #[test]
     #[flaky_test::flaky_test]
     fn tx_builder_cip2_random_improve_multiasset() {
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(0, 0));
-        let pid1 = PolicyID::from([1u8; 28]);
-        let pid2 = PolicyID::from([2u8; 28]);
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(0, 0));
+        let pid1 = PolicyId::from([1u8; 28]);
+        let pid2 = PolicyId::from([2u8; 28]);
         let asset_name1 = AssetName::new(vec![1u8; 8]).unwrap();
         let asset_name2 = AssetName::new(vec![2u8; 11]).unwrap();
         let asset_name3 = AssetName::new(vec![3u8; 9]).unwrap();
 
-        let mut output_value = Value::new(&to_bignum(415));
         let mut output_ma = MultiAsset::new();
-        output_ma.set_asset(&pid1, &asset_name1, &to_bignum(5));
-        output_ma.set_asset(&pid1, &asset_name2, &to_bignum(1));
-        output_ma.set_asset(&pid2, &asset_name2, &to_bignum(2));
-        output_ma.set_asset(&pid2, &asset_name3, &to_bignum(4));
-        output_value.set_multiasset(&output_ma);
-        tx_builder.add_output(&SingleOutputBuilderResult::new(&TransactionOutput::new(
-            &Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap(),
-            &output_value
+        output_ma.set(pid1.clone(), asset_name1.clone(), 5);
+        output_ma.set(pid1.clone(), asset_name2.clone(), 1);
+        output_ma.set(pid2.clone(), asset_name2.clone(), 2);
+        output_ma.set(pid2.clone(), asset_name3.clone(), 4);
+        let output_value = Value::new(415, output_ma);
+        tx_builder.add_output(SingleOutputBuilderResult::new(TransactionOutput::new(
+            Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap(),
+            output_value.clone(),
+            None,
+            None,
         ))).unwrap();
 
-        tx_builder.add_utxo(&make_input(0u8, Value::new(&to_bignum(150))));
+        tx_builder.add_utxo(make_input(0u8, Value::from(150)));
 
-        let mut input1 = make_input(1u8, Value::new(&to_bignum(200)));
         let mut ma1 = MultiAsset::new();
-        ma1.set_asset(&pid1, &asset_name1, &to_bignum(10));
-        ma1.set_asset(&pid1, &asset_name2, &to_bignum(1));
-        ma1.set_asset(&pid2, &asset_name2, &to_bignum(2));
-        input1.utxo_info.amount.set_multiasset(&ma1);
-        tx_builder.add_utxo(&input1);
+        ma1.set(pid1.clone(), asset_name1.clone(), 10);
+        ma1.set(pid1.clone(), asset_name2.clone(), 1);
+        ma1.set(pid2.clone(), asset_name2.clone(), 2);
+        let input1 = make_input(1u8, Value::new(200, ma1));
+        tx_builder.add_utxo(input1);
 
-        let mut input2 = make_input(2u8, Value::new(&to_bignum(10)));
         let mut ma2 = MultiAsset::new();
-        ma2.set_asset(&pid1, &asset_name1, &to_bignum(20));
-        ma2.set_asset(&pid2, &asset_name3, &to_bignum(4));
-        input2.utxo_info.amount.set_multiasset(&ma2);
-        tx_builder.add_utxo(&input2);
+        ma2.set(pid1.clone(), asset_name1.clone(), 20);
+        ma2.set(pid2.clone(), asset_name3.clone(), 4);
+        let mut input2 = make_input(2u8, Value::new(10, ma2));
+        tx_builder.add_utxo(input2);
 
-        let mut input3 = make_input(3u8, Value::new(&to_bignum(50)));
         let mut ma3 = MultiAsset::new();
-        ma3.set_asset(&pid2, &asset_name1, &to_bignum(5));
-        ma3.set_asset(&pid1, &asset_name2, &to_bignum(15));
-        input3.utxo_info.amount.multiasset = Some(ma3);
-        tx_builder.add_utxo(&input3);
+        ma3.set(pid2.clone(), asset_name1.clone(), 5);
+        ma3.set(pid1.clone(), asset_name2.clone(), 15);
+        let input3 = make_input(3u8, Value::new(50, ma3));
+        tx_builder.add_utxo(input3);
 
-        let mut input4 = make_input(4u8, Value::new(&to_bignum(10)));
         let mut ma4 = MultiAsset::new();
-        ma4.set_asset(&pid1, &asset_name1, &to_bignum(10));
-        ma4.set_asset(&pid1, &asset_name2, &to_bignum(10));
-        input4.utxo_info.amount.multiasset = Some(ma4);
-        tx_builder.add_utxo(&input4);
+        ma4.set(pid1.clone(), asset_name1.clone(), 10);
+        ma4.set(pid1.clone(), asset_name2.clone(), 10);
+        let input4 = make_input(4u8, Value::new(10, ma4));
+        tx_builder.add_utxo(input4);
 
-        let mut input5 = make_input(5u8, Value::new(&to_bignum(10)));
         let mut ma5 = MultiAsset::new();
-        ma5.set_asset(&pid1, &asset_name2, &to_bignum(10));
-        ma5.set_asset(&pid2, &asset_name2, &to_bignum(3));
-        input5.utxo_info.amount.multiasset = Some(ma5);
-        tx_builder.add_utxo(&input5);
+        ma5.set(pid1.clone(), asset_name2.clone(), 10);
+        ma5.set(pid2.clone(), asset_name2.clone(), 3);
+        let input5 = make_input(5u8, Value::new(10, ma5));
+        tx_builder.add_utxo(input5);
 
-        let input6 = make_input(6u8, Value::new(&to_bignum(400)));
-        tx_builder.add_utxo(&input6);
-        tx_builder.add_utxo(&make_input(7u8, Value::new(&to_bignum(100))));
+        let input6 = make_input(6u8, Value::from(400));
+        tx_builder.add_utxo(input6);
+        tx_builder.add_utxo(make_input(7u8, Value::from(100)));
 
-        let mut input8 = make_input(8u8, Value::new(&to_bignum(10)));
         let mut ma8 = MultiAsset::new();
-        ma8.set_asset(&pid2, &asset_name2, &to_bignum(10));
-        input8.utxo_info.amount.multiasset = Some(ma8);
-        tx_builder.add_utxo(&input8);
+        ma8.set(pid2.clone(), asset_name2.clone(), 10);
+        let input8 = make_input(8u8, Value::new(10, ma8));
+        tx_builder.add_utxo(input8);
 
-        let mut input9 = make_input(9u8, Value::new(&to_bignum(10)));
         let mut ma9 = MultiAsset::new();
-        ma9.set_asset(&pid2, &asset_name3, &to_bignum(10));
-        input9.utxo_info.amount.multiasset = Some(ma9);
-        tx_builder.add_utxo(&input9);
+        ma9.set(pid2.clone(), asset_name3.clone(), 10);
+        let input9 = make_input(9u8, Value::new(10, ma9));
+        tx_builder.add_utxo(input9);
 
         tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImproveMultiAsset).unwrap();
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
@@ -3154,7 +3085,7 @@ mod tests {
         assert!(change_added);
         let tx = tx_builder.build_body().unwrap();
 
-        assert_eq!(2, tx.outputs().len());
+        assert_eq!(2, tx.outputs.len());
 
         let input_total = tx_builder.get_explicit_input().unwrap();
         assert!(input_total >= output_value);
@@ -3164,22 +3095,22 @@ mod tests {
     #[flaky_test::flaky_test]
     fn tx_builder_cip2_random_improve() {
         // we have a = 1 to test increasing fees when more inputs are added
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(1, 0));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(1, 0));
         const COST: u64 = 10000;
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
+            TransactionOutputBuilder::new()
+                .with_address(Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
                 .next().unwrap()
-                .with_coin(&to_bignum(COST))
+                .with_value(COST)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.utxos.push(make_input(0u8, Value::new(&to_bignum(1500))));
-        tx_builder.utxos.push(make_input(1u8, Value::new(&to_bignum(2000))));
-        tx_builder.utxos.push(make_input(2u8, Value::new(&to_bignum(8000))));
-        tx_builder.utxos.push(make_input(3u8, Value::new(&to_bignum(4000))));
-        tx_builder.utxos.push(make_input(4u8, Value::new(&to_bignum(1000))));
-        tx_builder.utxos.push(make_input(5u8, Value::new(&to_bignum(2000))));
-        tx_builder.utxos.push(make_input(6u8, Value::new(&to_bignum(1500))));
+        tx_builder.utxos.push(make_input(0u8, Value::from(1500)));
+        tx_builder.utxos.push(make_input(1u8, Value::from(2000)));
+        tx_builder.utxos.push(make_input(2u8, Value::from(8000)));
+        tx_builder.utxos.push(make_input(3u8, Value::from(4000)));
+        tx_builder.utxos.push(make_input(4u8, Value::from(1000)));
+        tx_builder.utxos.push(make_input(5u8, Value::from(2000)));
+        tx_builder.utxos.push(make_input(6u8, Value::from(1500)));
         let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
@@ -3191,40 +3122,40 @@ mod tests {
         // we need to look up the values to ensure there's enough
         let mut input_values = BTreeMap::new();
         for utxo in tx_builder.utxos.iter() {
-            input_values.insert(utxo.input.transaction_id(), utxo.utxo_info.amount.clone());
+            input_values.insert(utxo.input.transaction_id.clone(), utxo.utxo_info.amount().clone());
         }
         let mut encountered = std::collections::HashSet::new();
-        let mut input_total = Value::new(&Coin::zero());
-        for input in tx.inputs.0.iter() {
-            let txid = input.transaction_id();
+        let mut input_total = Value::from(Coin::zero());
+        for input in tx.inputs.iter() {
+            let txid = &input.transaction_id;
             if !encountered.insert(txid.clone()) {
                 panic!("Input {:?} duplicated", txid);
             }
-            let value = input_values.get(&txid).unwrap();
+            let value = input_values.get(txid).unwrap();
             input_total = input_total.checked_add(value).unwrap();
         }
-        assert!(input_total >= Value::new(&tx_builder.min_fee(false).unwrap().checked_add(&to_bignum(COST)).unwrap()));
+        assert!(input_total >= Value::from(tx_builder.min_fee(false).unwrap().checked_add(COST).unwrap()));
     }
 
     #[test]
     #[flaky_test::flaky_test]
     fn tx_builder_cip2_random_improve_exclude_used_indices() {
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(44, 155381));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(44, 155381));
         const COST: u64 = 1000000;
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
+            TransactionOutputBuilder::new()
+                .with_address(Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
                 .next().unwrap()
-                .with_coin(&to_bignum(COST))
+                .with_value(COST)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.add_utxo(&make_input(0u8, Value::new(&to_bignum(1000000))));
-        tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(10000000))));
+        tx_builder.add_utxo(make_input(0u8, Value::from(1000000)));
+        tx_builder.add_utxo(make_input(1u8, Value::from(10000000)));
         let mut input_total = tx_builder.get_total_input().unwrap();
         let mut output_total = tx_builder
             .get_explicit_output().unwrap()
-            .checked_add(&Value::new(&tx_builder.get_deposit().unwrap())).unwrap()
-            .checked_add(&Value::new(&tx_builder.min_fee(false).unwrap())).unwrap();
+            .checked_add(&Value::from(tx_builder.get_deposit().unwrap())).unwrap()
+            .checked_add(&Value::from(tx_builder.min_fee(false).unwrap())).unwrap();
         let available_inputs = tx_builder.utxos.clone();
         let mut available_indices: BTreeSet<usize> = (0..available_inputs.len()).collect();
         assert!(available_indices.len() == 2);
@@ -3246,35 +3177,35 @@ mod tests {
     #[flaky_test::flaky_test]
     fn tx_builder_cip2_random_improve_when_using_all_available_inputs() {
         // we have a = 1 to test increasing fees when more inputs are added
-        let linear_fee = LinearFee::new(&to_bignum(1), &to_bignum(0));
+        let linear_fee = LinearFee::new(1, 0);
         let cfg = TransactionBuilderConfigBuilder::default()
-            .fee_algo(&linear_fee)
-            .pool_deposit(&to_bignum(0))
-            .key_deposit(&to_bignum(0))
+            .fee_algo(linear_fee)
+            .pool_deposit(0)
+            .key_deposit(0)
             .max_value_size(9999)
             .max_tx_size(9999)
-            .coins_per_utxo_byte(&Coin::zero())
+            .coins_per_utxo_byte(Coin::zero())
             .ex_unit_prices(
-                &ExUnitPrices::new(
-                    &SubCoin::new(&u64::zero(), &u64::zero()),
-                    &SubCoin::new(&u64::zero(), &u64::zero())
+                ExUnitPrices::new(
+                    SubCoin::new(u64::zero(), u64::zero()),
+                    SubCoin::new(u64::zero(), u64::zero())
                 )
             )
             .collateral_percentage(150)
             .max_collateral_inputs(3)
             .build()
             .unwrap();
-        let mut tx_builder = TransactionBuilder::new(&cfg);
+        let mut tx_builder = TransactionBuilder::new(cfg);
         const COST: u64 = 1000;
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
+            TransactionOutputBuilder::new()
+                .with_address(Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
                 .next().unwrap()
-                .with_coin(&to_bignum(COST))
+                .with_value(COST)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(800))));
-        tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(800))));
+        tx_builder.add_utxo(make_input(1u8, Value::from(800)));
+        tx_builder.add_utxo(make_input(2u8, Value::from(800)));
         let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
     }
@@ -3283,40 +3214,40 @@ mod tests {
     #[flaky_test::flaky_test]
     fn tx_builder_cip2_random_improve_adds_enough_for_fees() {
         // we have a = 1 to test increasing fees when more inputs are added
-        let linear_fee = LinearFee::new(&to_bignum(1), &to_bignum(0));
+        let linear_fee = LinearFee::new(1, 0);
         let cfg = TransactionBuilderConfigBuilder::default()
-            .fee_algo(&linear_fee)
-            .pool_deposit(&to_bignum(0))
-            .key_deposit(&to_bignum(0))
+            .fee_algo(linear_fee)
+            .pool_deposit(0)
+            .key_deposit(0)
             .max_value_size(9999)
             .max_tx_size(9999)
-            .coins_per_utxo_byte(&Coin::zero())
+            .coins_per_utxo_byte(Coin::zero())
             .ex_unit_prices(
-                &ExUnitPrices::new(
-                    &SubCoin::new(&u64::zero(), &u64::zero()),
-                    &SubCoin::new(&u64::zero(), &u64::zero())
+                ExUnitPrices::new(
+                    SubCoin::new(0, 0),
+                    SubCoin::new(0, 0)
                 )
             )
             .collateral_percentage(150)
             .max_collateral_inputs(3)
             .build()
             .unwrap();
-        let mut tx_builder = TransactionBuilder::new(&cfg);
+        let mut tx_builder = TransactionBuilder::new(cfg);
         const COST: u64 = 100;
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
+            TransactionOutputBuilder::new()
+                .with_address(Address::from_bech32("addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z").unwrap())
                 .next().unwrap()
-                .with_coin(&to_bignum(COST))
+                .with_value(COST)
                 .build().unwrap()
             ).unwrap();
-        assert_eq!(tx_builder.min_fee(false).unwrap(), to_bignum(53));
-        tx_builder.add_utxo(&make_input(1u8, Value::new(&to_bignum(150))));
-        tx_builder.add_utxo(&make_input(2u8, Value::new(&to_bignum(150))));
-        tx_builder.add_utxo(&make_input(3u8, Value::new(&to_bignum(150))));
+        assert_eq!(tx_builder.min_fee(false).unwrap(), 53);
+        tx_builder.add_utxo(make_input(1u8, Value::from(150)));
+        tx_builder.add_utxo(make_input(2u8, Value::from(150)));
+        tx_builder.add_utxo(make_input(3u8, Value::from(150)));
         let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
-        assert_eq!(tx_builder.min_fee(false).unwrap(), to_bignum(264));
+        assert_eq!(tx_builder.min_fee(false).unwrap(), 264);
         let change_addr = ByronAddress::from_base58("Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho").unwrap().to_address();
         let add_change_res = tx_builder.add_change_if_needed_for_tests(&change_addr);
         assert!(add_change_res.is_ok(), "{:?}", add_change_res.err());
@@ -3324,53 +3255,42 @@ mod tests {
 
     #[test]
     fn build_tx_pay_to_multisig() {
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(10, 2));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(10, 2));
         let (_, _, addr_net_0) = create_account();
 
         let input = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(1_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(addr_net_0.clone(), Value::from(1_000_000), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_coin(&to_bignum(999_000))
+                .with_value(999_000)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(&1000.into());
-        tx_builder.set_fee(&to_bignum(1_000));
+        tx_builder.set_ttl(1000);
+        tx_builder.set_fee(1_000);
 
         assert_eq!(tx_builder.outputs.len(),1);
         assert_eq!(
             tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap(),
-            tx_builder.get_explicit_output().unwrap().checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap()
+            tx_builder.get_explicit_output().unwrap().checked_add(&Value::from(tx_builder.get_fee_if_set().unwrap())).unwrap()
         );
 
 
-        let  _final_tx = tx_builder.build_body().unwrap();
-        let _deser_t = TransactionBody::from_bytes(_final_tx.to_bytes()).unwrap();
+        let  final_tx = tx_builder.build_body().unwrap();
+        let deser_t = TransactionBody::from_cbor_bytes(&final_tx.to_cbor_bytes()).unwrap();
 
-        assert_eq!(_deser_t.to_bytes(), _final_tx.to_bytes());
+        assert_eq!(deser_t.to_cbor_bytes(), final_tx.to_cbor_bytes());
     }
-
-    fn build_full_tx(body: &TransactionBody,
-        witness_set: &TransactionWitnessSet,
-        auxiliary_data: Option<AuxiliaryData>
-    ) -> Transaction {
-            Transaction::new(
-                body,
-                witness_set,
-                auxiliary_data
-            )
-        }
 
     #[test]
     fn build_tx_multisig_spend_1on1_unsigned() {
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(10, 2));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(10, 2));
 
         let ((spend, _), (_, stake_cred), addr_multisig) = create_account();
         let change_key = root_key_15()
@@ -3380,55 +3300,55 @@ mod tests {
             .derive(1)
             .derive(0)
             .to_public();
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
-        let addr_output = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
+        let addr_output = BaseAddress::new(NetworkInfo::testnet().network_id(), change_cred, stake_cred).to_address();
 
         let input = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&addr_multisig, &Value::new(&to_bignum(1_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(addr_multisig, Value::from(1_000_000), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_output)
+            TransactionOutputBuilder::new()
+                .with_address(addr_output)
                 .next().unwrap()
-                .with_coin(&to_bignum(999_000))
+                .with_value(999_000)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(&1000.into());
-        tx_builder.set_fee(&to_bignum(1_000));
+        tx_builder.set_ttl(1000);
+        tx_builder.set_fee(1_000);
 
         let mut auxiliary_data = AuxiliaryData::new();
-        let mut pubkey_native_scripts = NativeScripts::new();
-        let mut oneof_native_scripts = NativeScripts::new();
+        let mut pubkey_native_scripts = Vec::new();
+        let mut oneof_native_scripts = Vec::new();
 
         let spending_hash = spend.to_raw_key().hash();
-        pubkey_native_scripts.add(&NativeScript::new_script_pubkey(&ScriptPubkey::new(&spending_hash)));
-        oneof_native_scripts.add(&NativeScript::new_script_n_of_k(&ScriptNOfK::new(1, &pubkey_native_scripts)));
-        auxiliary_data.set_native_scripts(&oneof_native_scripts);
-        tx_builder.add_auxiliary_data(&auxiliary_data);
+        pubkey_native_scripts.push(NativeScript::new_script_pubkey(spending_hash));
+        oneof_native_scripts.push(NativeScript::new_script_n_of_k(1, pubkey_native_scripts));
+        auxiliary_data.add_native_scripts(oneof_native_scripts);
+        tx_builder.add_auxiliary_data(auxiliary_data.clone());
 
 
         assert_eq!(tx_builder.outputs.len(), 1);
         assert_eq!(
             tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap(),
-            tx_builder.get_explicit_output().unwrap().checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap()
+            tx_builder.get_explicit_output().unwrap().checked_add(&Value::from(tx_builder.get_fee_if_set().unwrap())).unwrap()
         );
 
 
-        let  _final_tx = tx_builder.build_body().unwrap();
-        let _deser_t = TransactionBody::from_bytes(_final_tx.to_bytes()).unwrap();
+        let  final_tx = tx_builder.build_body().unwrap();
+        let deser_t = TransactionBody::from_cbor_bytes(&final_tx.to_cbor_bytes()).unwrap();
 
-        assert_eq!(_deser_t.to_bytes(), _final_tx.to_bytes());
-        assert_eq!(_deser_t.auxiliary_data_hash.unwrap(), hash_auxiliary_data(&auxiliary_data));
+        assert_eq!(deser_t.to_cbor_bytes(), final_tx.to_cbor_bytes());
+        assert_eq!(deser_t.auxiliary_data_hash.unwrap(), hash_auxiliary_data(&auxiliary_data));
     }
 
     #[test]
     fn build_tx_multisig_1on1_signed() {
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(10, 2));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(10, 2));
         let spend = root_key_15()
             .derive(harden(1854))//multisig
             .derive(harden(1815))
@@ -3444,35 +3364,35 @@ mod tests {
             .derive(0)
             .to_public();
 
-        let spend_cred = StakeCredential::from_keyhash(&spend.to_raw_key().hash());
-        let stake_cred = StakeCredential::from_keyhash(&stake.to_raw_key().hash());
-        let addr_net_0 = BaseAddress::new(NetworkInfo::testnet().network_id(), &spend_cred, &stake_cred).to_address();
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
+        let stake_cred = StakeCredential::new_pub_key(stake.to_raw_key().hash());
+        let addr_net_0 = BaseAddress::new(NetworkInfo::testnet().network_id(), spend_cred, stake_cred).to_address();
         let input = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(1_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(addr_net_0.clone(), Value::from(1_000_000), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_coin(&to_bignum(999_000))
+                .with_value(999_000)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(&1000.into());
-        tx_builder.set_fee(&to_bignum(1_000));
+        tx_builder.set_ttl(1000);
+        tx_builder.set_fee(1_000);
 
         let mut auxiliary_data = AuxiliaryData::new();
-        let mut pubkey_native_scripts = NativeScripts::new();
-        let mut oneof_native_scripts = NativeScripts::new();
+        let mut pubkey_native_scripts = Vec::new();
+        let mut oneof_native_scripts = Vec::new();
 
         let spending_hash = spend.to_raw_key().hash();
-        pubkey_native_scripts.add(&NativeScript::new_script_pubkey(&ScriptPubkey::new(&spending_hash)));
-        oneof_native_scripts.add(&NativeScript::new_script_n_of_k(&ScriptNOfK::new(1, &pubkey_native_scripts)));
-        auxiliary_data.set_native_scripts(&oneof_native_scripts);
-        tx_builder.add_auxiliary_data(&auxiliary_data);
+        pubkey_native_scripts.push(NativeScript::new_script_pubkey(spending_hash));
+        oneof_native_scripts.push(NativeScript::new_script_n_of_k(1, pubkey_native_scripts));
+        auxiliary_data.add_native_scripts(oneof_native_scripts);
+        tx_builder.add_auxiliary_data(auxiliary_data.clone());
 
 
         let body = tx_builder.build_body().unwrap();
@@ -3480,41 +3400,47 @@ mod tests {
         assert_eq!(tx_builder.outputs.len(), 1);
         assert_eq!(
             tx_builder.get_explicit_input().unwrap().checked_add(&tx_builder.get_implicit_input().unwrap()).unwrap(),
-            tx_builder.get_explicit_output().unwrap().checked_add(&Value::new(&tx_builder.get_fee_if_set().unwrap())).unwrap()
+            tx_builder.get_explicit_output().unwrap().checked_add(&Value::from(tx_builder.get_fee_if_set().unwrap())).unwrap()
         );
 
         let mut witness_set = TransactionWitnessSet::new();
-        let mut vkw = Vkeywitnesses::new();
-        vkw.add(&make_vkey_witness(
+        let mut vkw = Vec::new();
+        
+        vkw.push(make_vkey_witness(
             &hash_transaction(&body),
             &PrivateKey::from_normal_bytes(
                 &hex::decode("c660e50315d76a53d80732efda7630cae8885dfb85c46378684b3c6103e1284a").unwrap()
             ).unwrap()
         ));
-        witness_set.set_vkeys(&vkw);
+        witness_set.vkeywitnesses = Some(vkw);
 
-        let _final_tx = build_full_tx(&body, &witness_set, None);
-        let _deser_t = Transaction::from_bytes(_final_tx.to_bytes()).unwrap();
-        assert_eq!(_deser_t.to_bytes(), _final_tx.to_bytes());
-        assert_eq!(_deser_t.body().auxiliary_data_hash.unwrap(), hash_auxiliary_data(&auxiliary_data));
+        let final_tx = Transaction::new(
+            body,
+            witness_set,
+            true,
+            None,
+        );
+        let deser_t = Transaction::from_cbor_bytes(&final_tx.to_cbor_bytes()).unwrap();
+        assert_eq!(deser_t.to_cbor_bytes(), final_tx.to_cbor_bytes());
+        assert_eq!(deser_t.body.auxiliary_data_hash.unwrap(), hash_auxiliary_data(&auxiliary_data));
     }
 
     #[test]
     fn add_change_splits_change_into_multiple_outputs_when_nfts_overflow_output_size() {
-        let linear_fee = LinearFee::new(&to_bignum(0), &to_bignum(1));
+        let linear_fee = LinearFee::new(0, 1);
         let max_value_size = 100; // super low max output size to test with fewer assets
         let mut tx_builder = TransactionBuilder::new(
-            &TransactionBuilderConfigBuilder::default()
-                .fee_algo(&linear_fee)
-                .pool_deposit(&to_bignum(0))
-                .key_deposit(&to_bignum(0))
+            TransactionBuilderConfigBuilder::default()
+                .fee_algo(linear_fee)
+                .pool_deposit(0)
+                .key_deposit(0)
                 .max_value_size(max_value_size)
                 .max_tx_size(MAX_TX_SIZE)
-                .coins_per_utxo_byte(&to_bignum(1))
+                .coins_per_utxo_byte(1)
                 .ex_unit_prices(
-                    &ExUnitPrices::new(
-                        &SubCoin::new(&u64::zero(), &u64::zero()),
-                        &SubCoin::new(&u64::zero(), &u64::zero())
+                    ExUnitPrices::new(
+                        SubCoin::new(0, 0),
+                        SubCoin::new(0, 0)
                     )
                 )
                 .collateral_percentage(150)
@@ -3524,7 +3450,7 @@ mod tests {
                 .unwrap()
         );
 
-        let policy_id = PolicyID::from([0u8; 28]);
+        let policy_id = PolicyId::from([0u8; 28]);
         let names = [
             AssetName::new(vec![99u8; 32]).unwrap(),
             AssetName::new(vec![0u8, 1, 2, 3]).unwrap(),
@@ -3532,38 +3458,36 @@ mod tests {
             AssetName::new(vec![5u8, 5, 6, 7]).unwrap(),
             AssetName::new(vec![6u8, 5, 6, 7]).unwrap(),
         ];
-        let assets = names
-            .iter()
-            .fold(Assets::new(), |mut a, name| {
-                a.insert(name, &to_bignum(500));
-                a
-            });
         let mut multiasset = MultiAsset::new();
-        multiasset.insert(&policy_id, &assets);
+        for name in names.iter() {
+            multiasset.set(policy_id.clone(), name.clone(), 500);
+        }
 
-        let mut input_value = Value::new(&to_bignum(1300));
-        input_value.set_multiasset(&multiasset);
+        let mut input_value = Value::from(1300);
+        input_value.multiasset = multiasset;
 
         let input = {
             let builder = SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(
-                    &ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address(),
-                    &input_value
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(
+                    ByronAddress::from_base58("Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3").unwrap().to_address(),
+                    input_value,
+                    None,
+                    None,
                 )
             );
             builder.payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         let output_addr = ByronAddress::from_base58("Ae2tdPwUPEZD9QQf2ZrcYV34pYJwxK4vqXaF8EXkup1eYH73zUScHReM42b").unwrap().to_address();
-        let output_amount = Value::new(&to_bignum(208));
+        let output_amount = Value::from(208);
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&output_addr)
+            TransactionOutputBuilder::new()
+                .with_address(output_addr)
                 .next().unwrap()
-                .with_value(&output_amount)
+                .with_value(output_amount)
                 .build().unwrap()
             ).unwrap();
 
@@ -3573,30 +3497,30 @@ mod tests {
         assert!(add_change_result.is_ok());
         assert_eq!(tx_builder.outputs.len(), 4);
 
-        let change1 = tx_builder.outputs.get(1);
-        let change2 = tx_builder.outputs.get(2);
-        let change3 = tx_builder.outputs.get(3);
+        let change1 = &tx_builder.outputs[1];
+        let change2 = &tx_builder.outputs[2];
+        let change3 = &tx_builder.outputs[3];
 
-        assert_eq!(change1.address, change_addr);
-        assert_eq!(change1.address, change2.address);
-        assert_eq!(change1.address, change3.address);
+        assert_eq!(*change1.address(), change_addr);
+        assert_eq!(change1.address(), change2.address());
+        assert_eq!(change1.address(), change3.address());
 
-        assert_eq!(change1.amount.coin, to_bignum(274));
-        assert_eq!(change2.amount.coin, to_bignum(279));
-        assert_eq!(change3.amount.coin, to_bignum(538));
+        assert_eq!(change1.amount().coin, 274);
+        assert_eq!(change2.amount().coin, 279);
+        assert_eq!(change3.amount().coin, 538);
 
-        assert!(change1.amount.multiasset.is_some());
-        assert!(change2.amount.multiasset.is_some());
-        assert!(change3.amount.multiasset.is_none()); // purified
+        assert!(change1.amount().has_multiassets());
+        assert!(change2.amount().has_multiassets());
+        assert!(!change3.amount().has_multiassets()); // purified
 
-        let masset1 = change1.amount.multiasset.unwrap();
-        let masset2 = change2.amount.multiasset.unwrap();
+        let masset1 = &change1.amount().multiasset;
+        let masset2 = &change2.amount().multiasset;
 
         assert_eq!(masset1.keys().len(), 1);
-        assert_eq!(masset1.keys(), masset2.keys());
+        assert_eq!(masset1.keys().collect::<Vec<_>>(), masset2.keys().collect::<Vec<_>>());
 
-        let asset1 = masset1.get(&policy_id).unwrap();
-        let asset2 = masset2.get(&policy_id).unwrap();
+        let asset1 = masset1.deref().get(&policy_id).unwrap();
+        let asset2 = masset2.deref().get(&policy_id).unwrap();
         assert_eq!(asset1.len(), 4);
         assert_eq!(asset2.len(), 1);
 
@@ -3604,61 +3528,61 @@ mod tests {
             let v1 = asset1.get(name);
             let v2 = asset2.get(name);
             assert_ne!(v1.is_some(), v2.is_some());
-            assert_eq!(v1.or(v2).unwrap(), to_bignum(500));
+            assert_eq!(*v1.or(v2).unwrap(), 500);
         });
     }
 
-    fn create_json_metadatum_string() -> String {
-        String::from("{ \"qwe\": 123 }")
+    fn create_metadatum() -> TransactionMetadatum {
+        let mut entries = OrderedHashMap::new();
+        entries.insert(
+            TransactionMetadatum::new_text("qwe".into()),
+            TransactionMetadatum::new_int(123i64.into()),
+        );
+        TransactionMetadatum::new_map(entries)
     }
 
-    fn create_json_metadatum() -> TransactionMetadatum {
-        encode_json_str_to_metadatum(
-            create_json_metadatum_string(),
-            MetadataJsonSchema::NoConversions,
-        ).unwrap()
-    }
-
-    fn create_general_metadata(metadatum_key: &TransactionMetadatumLabel) -> GeneralTransactionMetadata {
-        let mut metadata = GeneralTransactionMetadata::new();
-        metadata.insert(metadatum_key, &create_json_metadatum());
+    fn create_general_metadata(metadatum_key: TransactionMetadatumLabel) -> Metadata {
+        let mut metadata = Metadata::new();
+        metadata.insert(metadatum_key, create_metadatum());
         metadata
     }
 
-    fn create_aux_with_metadata(metadatum_key: &TransactionMetadatumLabel) -> AuxiliaryData {
+    fn create_aux_with_metadata(metadatum_key: TransactionMetadatumLabel) -> AuxiliaryData {
         let metadata = create_general_metadata(metadatum_key);
 
-        let mut aux = AuxiliaryData::new();
-        aux.set_metadata(&metadata);
+        let mut aux = AuxiliaryData::new_shelley(metadata);
 
-        let mut nats = NativeScripts::new();
-        nats.add(
-            &NativeScript::new_timelock_start(
-                &TimelockStart::new(&123.into()),
-            ),
-        );
-        aux.set_native_scripts(&nats);
+        let mut nats = Vec::new();
+        nats.push(NativeScript::new_script_invalid_before(123));
+        aux.add_native_scripts(nats);
 
         aux
     }
 
     fn assert_json_metadatum(dat: &TransactionMetadatum) {
-        let map = dat.as_map().unwrap();
-        assert_eq!(map.len(), 1);
-        let key = TransactionMetadatum::new_text(String::from("qwe")).unwrap();
-        let val = map.get(&key).unwrap();
-        assert_eq!(val.as_int().unwrap(), Int::new_i32(123));
+        match dat {
+            TransactionMetadatum::Map { entries, .. } => {
+                assert_eq!(entries.len(), 1);
+                let key = TransactionMetadatum::new_text(String::from("qwe"));
+                let val = entries.get(&key).unwrap();
+                match val {
+                    TransactionMetadatum::Int(x) => assert_eq!(*x, 123u64.into()),
+                    _ => panic!(),
+                }
+            }
+            _ => panic!(),
+        }
     }
 
     #[test]
     fn set_metadata_with_empty_auxiliary() {
         let mut tx_builder = create_default_tx_builder();
 
-        let num = to_bignum(42);
+        let num = 42;
         {
             let mut aux_data = AuxiliaryData::new();
-            aux_data.add_metadatum(&num, &create_json_metadatum());
-            tx_builder.add_auxiliary_data(&aux_data);
+            aux_data.metadata_mut().insert(num, create_metadatum());
+            tx_builder.add_auxiliary_data(aux_data);
         }
 
         assert!(tx_builder.auxiliary_data.is_some());
@@ -3679,14 +3603,14 @@ mod tests {
     fn set_metadata_with_existing_auxiliary() {
         let mut tx_builder = create_default_tx_builder();
 
-        let num1 = to_bignum(42);
-        tx_builder.add_auxiliary_data(&create_aux_with_metadata(&num1));
+        let num1 = 42;
+        tx_builder.add_auxiliary_data(create_aux_with_metadata(num1));
 
-        let num2 = to_bignum(84);
+        let num2 = 84;
         {
             let mut aux_data = AuxiliaryData::new();
-            aux_data.add_metadatum(&num2, &create_json_metadatum());
-            tx_builder.set_auxiliary_data(&aux_data);
+            aux_data.metadata_mut().insert(num2,create_metadatum());
+            tx_builder.set_auxiliary_data(aux_data);
         }
 
         let aux = tx_builder.auxiliary_data.unwrap();
@@ -3705,11 +3629,11 @@ mod tests {
     fn add_metadatum_with_empty_auxiliary() {
         let mut tx_builder = create_default_tx_builder();
 
-        let num = to_bignum(42);
+        let num = 42;
         {
             let mut aux_data = AuxiliaryData::new();
-            aux_data.add_json_metadatum_with_schema(&num, create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap();
-            tx_builder.add_auxiliary_data(&aux_data);
+            aux_data.metadata_mut().insert(num, create_metadatum());
+            tx_builder.add_auxiliary_data(aux_data);
         }
 
         assert!(tx_builder.auxiliary_data.is_some());
@@ -3730,15 +3654,11 @@ mod tests {
     fn add_metadatum_with_existing_auxiliary() {
         let mut tx_builder = create_default_tx_builder();
 
-        let num1 = to_bignum(42);
-        tx_builder.add_auxiliary_data(&create_aux_with_metadata(&num1));
+        let num1 = 42;
+        tx_builder.add_auxiliary_data(create_aux_with_metadata(num1));
 
-        let num2 = to_bignum(84);
-        {
-            let mut aux_data = AuxiliaryData::new();
-            aux_data.add_json_metadatum_with_schema(&num2, create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap();
-            tx_builder.add_auxiliary_data(&aux_data);
-        }
+        let num2 = 84;
+        tx_builder.add_auxiliary_data(create_aux_with_metadata(num2));
 
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
@@ -3756,12 +3676,8 @@ mod tests {
     fn add_json_metadatum_with_empty_auxiliary() {
         let mut tx_builder = create_default_tx_builder();
 
-        let num = to_bignum(42);
-        {
-            let mut aux_data = AuxiliaryData::new();
-            aux_data.add_json_metadatum_with_schema(&num, create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap();
-            tx_builder.add_auxiliary_data(&aux_data);
-        }
+        let num = 42;
+        tx_builder.add_auxiliary_data(create_aux_with_metadata(num));
 
         assert!(tx_builder.auxiliary_data.is_some());
 
@@ -3781,15 +3697,11 @@ mod tests {
     fn add_json_metadatum_with_existing_auxiliary() {
         let mut tx_builder = create_default_tx_builder();
 
-        let num1 = to_bignum(42);
-        tx_builder.add_auxiliary_data(&create_aux_with_metadata(&num1));
+        let num1 = 42;
+        tx_builder.add_auxiliary_data(create_aux_with_metadata(num1));
 
-        let num2 = to_bignum(84);
-        {
-            let mut aux_data = AuxiliaryData::new();
-            aux_data.add_json_metadatum_with_schema(&num2, create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap();
-            tx_builder.add_auxiliary_data(&aux_data);
-        }
+        let num2 = 84;
+        tx_builder.add_auxiliary_data(create_aux_with_metadata(num2));
 
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
@@ -3807,12 +3719,12 @@ mod tests {
     fn add_metadata_with_empty_auxiliary() {
         let mut tx_builder = create_default_tx_builder();
 
-        let key = to_bignum(42);
-        let value = TransactionMetadatum::new_text("Hello World".to_string()).unwrap();
+        let key = 42;
+        let value = TransactionMetadatum::new_text("Hello World".to_string());
         {
             let mut aux_data = AuxiliaryData::new();
-            aux_data.add_metadatum(&key, &value);
-            tx_builder.add_auxiliary_data(&aux_data);
+            aux_data.metadata_mut().insert(key, value.clone());
+            tx_builder.add_auxiliary_data(aux_data);
         }
 
         let aux = tx_builder.auxiliary_data.unwrap();
@@ -3823,19 +3735,15 @@ mod tests {
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 1);
-        assert_eq!(met.get(&key).unwrap(), value);
+        assert_eq!(*met.deref().get(&key).unwrap(), value);
     }
 
     #[test]
     fn add_json_metadata_with_empty_auxiliary() {
         let mut tx_builder = create_default_tx_builder();
          
-        let key = to_bignum(42);
-        {
-            let mut aux_data = AuxiliaryData::new();
-            aux_data.add_json_metadatum_with_schema(&key, create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap();
-            tx_builder.add_auxiliary_data(&aux_data);
-        }
+        let key = 42;
+        tx_builder.add_auxiliary_data(create_aux_with_metadata(key));
 
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
@@ -3852,15 +3760,15 @@ mod tests {
     fn add_metadata_with_existing_auxiliary() {
         let mut tx_builder = create_default_tx_builder();
         
-        let key1 = to_bignum(42);
-        tx_builder.add_auxiliary_data(&create_aux_with_metadata(&key1));
+        let key1 = 42;
+        tx_builder.add_auxiliary_data(create_aux_with_metadata(key1));
 
-        let key2 = to_bignum(84);
-        let val2 = TransactionMetadatum::new_text("Hello World".to_string()).unwrap();
+        let key2 = 84;
+        let val2 = TransactionMetadatum::new_text("Hello World".to_string());
         {   
             let mut aux_data = AuxiliaryData::new();
-            aux_data.add_metadatum(&key2, &val2);
-            tx_builder.add_auxiliary_data(&aux_data);
+            aux_data.metadata_mut().insert(key2, val2.clone());
+            tx_builder.add_auxiliary_data(aux_data);
         }
         
         let aux = tx_builder.auxiliary_data.unwrap();
@@ -3872,22 +3780,18 @@ mod tests {
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 2);
         assert_json_metadatum(&met.get(&key1).unwrap());
-        assert_eq!(met.get(&key2).unwrap(), val2); 
+        assert_eq!(*met.get(&key2).unwrap(), val2); 
     }
 
     #[test]
     fn add_json_metadata_with_existing_auxiliary() {
         let mut tx_builder = create_default_tx_builder();
         
-        let key1 = to_bignum(42);
-        tx_builder.add_auxiliary_data(&create_aux_with_metadata(&key1));
+        let key1 = 42;
+        tx_builder.add_auxiliary_data(create_aux_with_metadata(key1));
 
-        let key2 = to_bignum(84);
-        {
-            let mut aux_data = AuxiliaryData::new();
-            aux_data.add_json_metadatum_with_schema(&key2, create_json_metadatum_string(), MetadataJsonSchema::NoConversions).unwrap();
-            tx_builder.add_auxiliary_data(&aux_data);
-        }
+        let key2 = 84;
+        tx_builder.add_auxiliary_data(create_aux_with_metadata(key2));
 
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
@@ -3905,39 +3809,30 @@ mod tests {
         AssetName::new(vec![0u8, 1, 2, 3]).unwrap()
     }
 
-    fn create_mint_asset() -> MintAssets {
-        MintAssets::new_from_entry(&create_asset_name(), Int::new_i32(1234))
+    fn create_mint_asset_builder() -> SingleMintBuilder {
+        SingleMintBuilder::new_single_asset(create_asset_name(), 1234)
     }
 
-    fn create_assets() -> Assets {
-        let mut assets = Assets::new();
-        assets.insert(&create_asset_name(), &to_bignum(1234));
-        assets
-    }
-
-    fn create_multiasset_one_asset(policy_id: &PolicyID) -> MultiAsset {
-        let mut mint = MultiAsset::new();
-        mint.insert(policy_id, &create_assets());
+    fn create_multiasset_one_asset(policy_id: &PolicyId) -> MultiAsset {
+        let mut mint = MultiAsset::default();
+        mint.set(policy_id.clone(), create_asset_name(), 1234);
         mint
     }
 
-    fn assert_mint_asset(mint: &Mint, policy_id: &PolicyID) {
-        assert!(mint.get(policy_id).is_some());
-        let result_asset = mint.get(policy_id).unwrap();
+    fn assert_mint_asset(mint: &Mint, policy_id: &PolicyId) {
+        let result_asset = mint.deref().get(policy_id).unwrap();
         assert_eq!(result_asset.len(), 1);
-        assert_eq!(result_asset.get(&create_asset_name()).unwrap(), Int::new_i32(1234));
+        assert_eq!(*result_asset.deref().get(&create_asset_name()).unwrap(), 1234);
     }
 
-    fn mint_script_and_policy_and_hash(x: u8) -> (NativeScript, PolicyID, Ed25519KeyHash) {
+    fn mint_script_and_policy_and_hash(x: u8) -> (NativeScript, PolicyId, Ed25519KeyHash) {
         let hash = fake_key_hash(x);
-        let mint_script = NativeScript::new_script_pubkey(
-            &ScriptPubkey::new(&hash)
-        );
+        let mint_script = NativeScript::new_script_pubkey(hash.clone());
         let policy_id = mint_script.hash();
         (mint_script, policy_id, hash)
     }
 
-    fn mint_script_and_policy(x: u8) -> (NativeScript, PolicyID) {
+    fn mint_script_and_policy(x: u8) -> (NativeScript, PolicyId) {
         let (m, p, _) = mint_script_and_policy_and_hash(x);
         (m, p)
     }
@@ -3948,10 +3843,10 @@ mod tests {
 
         let (mint_script, policy_id) = mint_script_and_policy(0);
 
-        let result = SingleMintBuilder::new(&create_mint_asset())
-            .native_script(&mint_script, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = create_mint_asset_builder()
+            .native_script(mint_script, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
         assert!(tx_builder.mint.is_some());
 
@@ -3968,15 +3863,15 @@ mod tests {
         let (mint_script1, policy_id1) = mint_script_and_policy(0);
         let (mint_script2, policy_id2) = mint_script_and_policy(1);
 
-        let result = SingleMintBuilder::new(&create_mint_asset())
-            .native_script(&mint_script1, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = create_mint_asset_builder()
+            .native_script(mint_script1, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
-        let result = SingleMintBuilder::new(&create_mint_asset())
-            .native_script(&mint_script2, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = create_mint_asset_builder()
+            .native_script(mint_script2, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
         assert!(tx_builder.mint.is_some());
 
@@ -3993,10 +3888,10 @@ mod tests {
 
         let (mint_script, policy_id) = mint_script_and_policy(0);
 
-        let result = SingleMintBuilder::new(&create_mint_asset())
-            .native_script(&mint_script, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = create_mint_asset_builder()
+            .native_script(mint_script, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
         assert!(tx_builder.mint.is_some());
 
@@ -4013,15 +3908,15 @@ mod tests {
         let (mint_script1, policy_id1) = mint_script_and_policy(0);
         let (mint_script2, policy_id2) = mint_script_and_policy(1);
 
-        let result = SingleMintBuilder::new(&create_mint_asset())
-            .native_script(&mint_script1, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = create_mint_asset_builder()
+            .native_script(mint_script1, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
-        let result = SingleMintBuilder::new(&create_mint_asset())
-            .native_script(&mint_script2, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = create_mint_asset_builder()
+            .native_script(mint_script2, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
         assert!(tx_builder.mint.is_some());
 
@@ -4044,93 +3939,92 @@ mod tests {
         let name2 = AssetName::new(vec![1u8, 1, 2, 3]).unwrap();
         let name3 = AssetName::new(vec![2u8, 1, 2, 3]).unwrap();
         let name4 = AssetName::new(vec![3u8, 1, 2, 3]).unwrap();
-        let amount = Int::new_i32(1234);
+        let amount = 1234;
 
         // One input from an unrelated address
         let input = {
             let ((_spend, _), _, address) = create_account();
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&address, &Value::new(&to_bignum(10_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, Value::from(10_000_000), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         // One input from a related address
         let input = {
-            let cred = StakeCredential::from_scripthash(&policy_id1);
-            let address = BaseAddress::new(NetworkInfo::testnet().network_id(), &cred, &cred).to_address();
+            let cred = StakeCredential::new_script(policy_id1.clone());
+            let address = BaseAddress::new(NetworkInfo::testnet().network_id(), cred.clone(), cred.clone()).to_address();
             let builder = SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&address, &Value::new(&to_bignum(10_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(address, Value::from(10_000_000), None, None)
             );
-            builder.native_script(&mint_script1, &NativeScriptWitnessInfo::assume_signature_count()).unwrap()
+            builder.native_script(mint_script1.clone(), NativeScriptWitnessInfo::assume_signature_count()).unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
         let original_tx_fee = tx_builder.min_fee(false).unwrap();
-        assert_eq!(original_tx_fee, to_bignum(164502));
+        assert_eq!(original_tx_fee, 164502);
 
-        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name1, amount.clone()))
-            .native_script(&mint_script1, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = SingleMintBuilder::new_single_asset(name1, amount)
+            .native_script(mint_script1, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
-        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name2, amount.clone()))
-            .native_script(&mint_script2, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = SingleMintBuilder::new_single_asset(name2, amount)
+            .native_script(mint_script2, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
-        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name3, amount.clone()))
-            .native_script(&mint_script3, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = SingleMintBuilder::new_single_asset(name3, amount)
+            .native_script(mint_script3.clone(), NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
-        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name4, amount.clone()))
-            .native_script(&mint_script3, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = SingleMintBuilder::new_single_asset(name4, amount)
+            .native_script(mint_script3, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
         let mint = tx_builder.get_mint().unwrap();
 
         assert_eq!(mint.len(), 3);
-        assert_eq!(mint.get(&policy_id1).unwrap().len(), 1);
-        assert_eq!(mint.get(&policy_id2).unwrap().len(), 1);
-        assert_eq!(mint.get(&policy_id3).unwrap().len(), 2);
+        assert_eq!(mint.deref().get(&policy_id1).unwrap().len(), 1);
+        assert_eq!(mint.deref().get(&policy_id2).unwrap().len(), 1);
+        assert_eq!(mint.deref().get(&policy_id3).unwrap().len(), 2);
 
-        let mint_scripts = tx_builder.witness_builders.build_fake();
+        let mint_scripts = tx_builder.witness_builders.build_fake().unwrap();
 
-        assert_eq!(mint_scripts.native_scripts().unwrap().len(), 3);
-        assert_eq!(mint_scripts.vkeys().unwrap().len(), 6);
-        assert!(mint_scripts.bootstraps().is_none());
-        assert!(mint_scripts.plutus_data().is_none());
-        assert!(mint_scripts.plutus_v1_scripts().is_none());
-        assert!(mint_scripts.redeemers().is_none());
+        assert_eq!(mint_scripts.native_scripts.unwrap().len(), 3);
+        assert_eq!(mint_scripts.vkeywitnesses.unwrap().len(), 6);
+        assert!(mint_scripts.bootstrap_witnesses.is_none());
+        assert!(mint_scripts.plutus_datums.is_none());
+        assert!(mint_scripts.plutus_v1_scripts.is_none());
+        assert!(mint_scripts.redeemers.is_none());
     }
 
     #[test]
     fn add_output_amount() {
         let mut tx_builder = create_default_tx_builder();
 
-        let policy_id1 = PolicyID::from([0u8; 28]);
+        let policy_id1 = PolicyId::from([0u8; 28]);
         let multiasset = create_multiasset_one_asset(&policy_id1);
-        let mut value = Value::new(&to_bignum(249));
-        value.set_multiasset(&multiasset);
+        let value = Value::new(249, multiasset);
 
         let address = byron_address();
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&address)
+            TransactionOutputBuilder::new()
+                .with_address(address.clone())
                 .next().unwrap()
-                .with_value(&value)
+                .with_value(value.clone())
                 .build().unwrap()
             ).unwrap();
 
         assert_eq!(tx_builder.outputs.len(), 1);
-        let out = tx_builder.outputs.get(0);
+        let out = &tx_builder.outputs[0];
 
-        assert_eq!(out.address.to_bytes(), address.to_bytes());
-        assert_eq!(out.amount, value);
+        assert_eq!(out.address().to_raw_bytes(), address.to_raw_bytes());
+        assert_eq!(*out.amount(), value);
     }
 
     #[test]
@@ -4138,71 +4032,71 @@ mod tests {
         let mut tx_builder = create_default_tx_builder();
 
         let address = byron_address();
-        let coin = to_bignum(208);
+        let coin = 208;
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&address)
+            TransactionOutputBuilder::new()
+                .with_address(address.clone())
                 .next().unwrap()
-                .with_coin(&coin)
+                .with_value(coin)
                 .build().unwrap()
             ).unwrap();
 
         assert_eq!(tx_builder.outputs.len(), 1);
-        let out = tx_builder.outputs.get(0);
+        let out = &tx_builder.outputs[0];
 
-        assert_eq!(out.address.to_bytes(), address.to_bytes());
-        assert_eq!(out.amount.coin, coin);
-        assert!(out.amount.multiasset.is_none());
+        assert_eq!(out.address().to_raw_bytes(), address.to_raw_bytes());
+        assert_eq!(out.amount().coin, coin);
+        assert!(!out.amount().has_multiassets());
     }
 
     #[test]
     fn add_output_coin_and_multiasset() {
         let mut tx_builder = create_default_tx_builder();
 
-        let policy_id1 = PolicyID::from([0u8; 28]);
+        let policy_id1 = PolicyId::from([0u8; 28]);
         let multiasset = create_multiasset_one_asset(&policy_id1);
 
         let address = byron_address();
-        let coin = to_bignum(249);
+        let coin = 249;
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&address)
+            TransactionOutputBuilder::new()
+                .with_address(address.clone())
                 .next().unwrap()
-                .with_coin_and_asset(&coin, &multiasset)
+                .with_value(Value::new(coin, multiasset.clone()))
                 .build().unwrap()
             ).unwrap();
 
         assert_eq!(tx_builder.outputs.len(), 1);
-        let out = tx_builder.outputs.get(0);
+        let out = &tx_builder.outputs[0];
 
-        assert_eq!(out.address.to_bytes(), address.to_bytes());
-        assert_eq!(out.amount.coin, coin);
-        assert_eq!(out.amount.multiasset.unwrap(), multiasset);
+        assert_eq!(out.address().to_raw_bytes(), address.to_raw_bytes());
+        assert_eq!(out.amount().coin, coin);
+        assert_eq!(out.amount().multiasset, multiasset);
     }
 
     #[test]
     fn add_output_asset_and_min_required_coin() {
         let mut tx_builder = create_realistic_tx_builder();
 
-        let policy_id1 = PolicyID::from([0u8; 28]);
+        let policy_id1 = PolicyId::from([0u8; 28]);
         let multiasset = create_multiasset_one_asset(&policy_id1);
 
         let address = byron_address();
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&address)
+            TransactionOutputBuilder::new()
+                .with_address(address.clone())
                 .next().unwrap()
-                .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_byte).unwrap()
+                .with_asset_and_min_required_coin(multiasset.clone(), tx_builder.config.coins_per_utxo_byte).unwrap()
                 .build().unwrap()
             ).unwrap();
 
         assert_eq!(tx_builder.outputs.len(), 1);
-        let out = tx_builder.outputs.get(0);
+        let out = &tx_builder.outputs[0];
 
-        assert_eq!(out.address.to_bytes(), address.to_bytes());
-        assert_eq!(out.amount.multiasset.unwrap(), multiasset);
-        assert_eq!(out.amount.coin, to_bignum(1086120));
+        assert_eq!(out.address().to_raw_bytes(), address.to_raw_bytes());
+        assert_eq!(out.amount().multiasset, multiasset);
+        assert_eq!(out.amount().coin, 1086120);
     }
 
     #[test]
@@ -4213,38 +4107,36 @@ mod tests {
         let (mint_script1, policy_id1) = mint_script_and_policy(1);
 
         let name = create_asset_name();
-        let amount = Int::new_i32(1234);
+        let amount = 1234;
 
         let address = byron_address();
-        let coin = to_bignum(249);
+        let coin = 249;
 
-        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name, amount.clone()))
-            .native_script(&mint_script0, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = SingleMintBuilder::new_single_asset(name.clone(), amount)
+            .native_script(mint_script0, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
         let multiasset = {
-            let mut assets = Assets::new();
-            assets.insert(&name, &to_bignum(1234));
             let mut multiasset = MultiAsset::new();
-            multiasset.insert(&policy_id1, &assets);
+            multiasset.set(policy_id1.clone(), name.clone(), 1234);
             multiasset
         };
 
         let output = TransactionOutputBuilder::new()
-            .with_address(&address)
+            .with_address(address.clone())
             .next()
             .unwrap()
-            .with_coin_and_asset(&coin, &multiasset)
+            .with_value(Value::new(coin, multiasset))
             .build()
             .unwrap();
 
-        tx_builder.add_output(&output).unwrap();
+        tx_builder.add_output(output).unwrap();
 
-        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name, amount))
-            .native_script(&mint_script1, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = SingleMintBuilder::new_single_asset(name.clone(), amount)
+            .native_script(mint_script1, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
         assert!(tx_builder.mint.is_some());
 
@@ -4257,21 +4149,21 @@ mod tests {
 
         // One new output is created
         assert_eq!(tx_builder.outputs.len(), 1);
-        let out = tx_builder.outputs.get(0);
+        let out = &tx_builder.outputs[0];
 
-        assert_eq!(out.address.to_bytes(), address.to_bytes());
-        assert_eq!(out.amount.coin, coin);
+        assert_eq!(out.address().to_raw_bytes(), address.to_raw_bytes());
+        assert_eq!(out.amount().coin, coin);
 
-        let multiasset = out.amount.multiasset.unwrap();
+        let multiasset = &out.amount().multiasset;
 
         // Only second mint entry was added to the output
         assert_eq!(multiasset.len(), 1);
-        assert!(multiasset.get(&policy_id0).is_none());
-        assert!(multiasset.get(&policy_id1).is_some());
+        assert!(multiasset.deref().get(&policy_id0).is_none());
+        assert!(multiasset.deref().get(&policy_id1).is_some());
 
-        let asset = multiasset.get(&policy_id1).unwrap();
+        let asset = multiasset.deref().get(&policy_id1).unwrap();
         assert_eq!(asset.len(), 1);
-        assert_eq!(asset.get(&name).unwrap(), to_bignum(1234));
+        assert_eq!(*asset.get(&name).unwrap(), 1234);
     }
 
     #[test]
@@ -4282,38 +4174,36 @@ mod tests {
         let (mint_script1, policy_id1) = mint_script_and_policy(1);
 
         let name = create_asset_name();
-        let amount = Int::new_i32(1234);
+        let amount = 1234;
 
         let address = byron_address();
 
-        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name, amount.clone()))
-            .native_script(&mint_script0, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = SingleMintBuilder::new_single_asset(name.clone(), amount)
+            .native_script(mint_script0, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
         let multiasset = {
-            let mut assets = Assets::new();
-            assets.insert(&name, &to_bignum(1234));
             let mut multiasset = MultiAsset::new();
-            multiasset.insert(&policy_id1, &assets);
+            multiasset.set(policy_id1.clone(), name.clone(), 1234);
             multiasset
         };
 
         let output = TransactionOutputBuilder::new()
-            .with_address(&address)
+            .with_address(address.clone())
             .next()
             .unwrap()
-            .with_asset_and_min_required_coin(&multiasset, &tx_builder.config.coins_per_utxo_byte)
+            .with_asset_and_min_required_coin(multiasset, tx_builder.config.coins_per_utxo_byte)
             .unwrap()
             .build()
             .unwrap();
 
-        tx_builder.add_output(&output).unwrap();
+        tx_builder.add_output(output).unwrap();
 
-        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name, amount.clone()))
-            .native_script(&mint_script1, &NativeScriptWitnessInfo::assume_signature_count());
+        let result = SingleMintBuilder::new_single_asset(name.clone(), amount)
+            .native_script(mint_script1, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(&result);
+        tx_builder.add_mint(result);
 
         assert!(tx_builder.mint.is_some());
 
@@ -4326,26 +4216,26 @@ mod tests {
 
         // One new output is created
         assert_eq!(tx_builder.outputs.len(), 1);
-        let out = tx_builder.outputs.get(0);
+        let out = &tx_builder.outputs[0];
 
-        assert_eq!(out.address.to_bytes(), address.to_bytes());
-        assert_eq!(out.amount.coin, to_bignum(1086120));
+        assert_eq!(out.address().to_raw_bytes(), address.to_raw_bytes());
+        assert_eq!(out.amount().coin, 1086120);
 
-        let multiasset = out.amount.multiasset.unwrap();
+        let multiasset = &out.amount().multiasset;
 
         // Only second mint entry was added to the output
         assert_eq!(multiasset.len(), 1);
-        assert!(multiasset.get(&policy_id0).is_none());
-        assert!(multiasset.get(&policy_id1).is_some());
+        assert!(multiasset.deref().get(&policy_id0).is_none());
+        assert!(multiasset.deref().get(&policy_id1).is_some());
 
-        let asset = multiasset.get(&policy_id1).unwrap();
+        let asset = multiasset.deref().get(&policy_id1).unwrap();
         assert_eq!(asset.len(), 1);
-        assert_eq!(asset.get(&name).unwrap(), to_bignum(1234));
+        assert_eq!(*asset.get(&name).unwrap(), 1234);
     }
 
     #[test]
     fn total_input_with_mint_and_burn() {
-        let mut tx_builder = create_tx_builder_with_fee(&create_linear_fee(0, 1));
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(0, 1));
         let (_, (_stake, _), addr_test_0) = create_account();
 
         let (mint_script1, policy_id1) = mint_script_and_policy(0);
@@ -4361,75 +4251,67 @@ mod tests {
             .iter()
             .map(|input| {
                 let mut multiasset = MultiAsset::new();
-                multiasset.insert(&policy_id1, &{
-                    let mut assets = Assets::new();
-                    assets.insert(&name, &to_bignum(*input));
-                    assets
-                });
-                multiasset.insert(&policy_id2, &{
-                    let mut assets = Assets::new();
-                    assets.insert(&name, &to_bignum(*input));
-                    assets
-                });
+                multiasset.set(policy_id1.clone(), name.clone(), *input);
+                multiasset.set(policy_id2.clone(), name.clone(), *input);
                 multiasset
             })
             .collect::<Vec<MultiAsset>>();
 
         for (multiasset, ada) in multiassets
             .iter()
-            .zip([100u64, 100, 100].iter().cloned().map(to_bignum))
+            .zip([100u64, 100, 100].iter().cloned())
         {
-            let mut input_amount = Value::new(&ada);
-            input_amount.set_multiasset(multiasset);
+            let mut input_amount = Value::from(ada);
+            input_amount.multiasset = multiasset.clone();
 
             let input = {
                 SingleInputBuilder::new(
-                    &TransactionInput::new(&genesis_id(), &0.into()),
-                    &TransactionOutput::new(&addr_test_0, &input_amount)
+                    TransactionInput::new(genesis_id(), 0),
+                    TransactionOutput::new(addr_test_0.clone(), input_amount, None, None)
                 ).payment_key().unwrap()
             };
-            tx_builder.add_input(&input).unwrap();
+            tx_builder.add_input(input).unwrap();
         }
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&byron_address())
+            TransactionOutputBuilder::new()
+                .with_address(byron_address())
                 .next().unwrap()
-                .with_coin(&to_bignum(208))
+                .with_value(208)
                 .build().unwrap()
         ).unwrap();
 
         let total_input_before_mint = tx_builder.get_total_input().unwrap();
         let total_output_before_mint = tx_builder.get_total_output().unwrap();
 
-        assert_eq!(total_input_before_mint.coin, to_bignum(300));
-        assert_eq!(total_output_before_mint.coin, to_bignum(208));
-        let ma1_input = total_input_before_mint.multiasset.unwrap();
-        let ma1_output = total_output_before_mint.multiasset;
-        assert_eq!(ma1_input.get(&policy_id1).unwrap().get(&name).unwrap(), to_bignum(360));
-        assert_eq!(ma1_input.get(&policy_id2).unwrap().get(&name).unwrap(), to_bignum(360));
-        assert!(ma1_output.is_none());
+        assert_eq!(total_input_before_mint.coin, 300);
+        assert_eq!(total_output_before_mint.coin, 208);
+        let ma1_input = &total_input_before_mint.multiasset;
+        let ma1_output = &total_output_before_mint;
+        assert_eq!(ma1_input.get(&policy_id1, &name).unwrap(), 360);
+        assert_eq!(ma1_input.get(&policy_id2, &name).unwrap(), 360);
+        assert!(!ma1_output.has_multiassets());
 
         // Adding mint
-        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name, Int::new_i32(40)))
-            .native_script(&mint_script1, &NativeScriptWitnessInfo::assume_signature_count());
-        tx_builder.add_mint(&result);
+        let result = SingleMintBuilder::new_single_asset(name.clone(), 40)
+            .native_script(mint_script1, NativeScriptWitnessInfo::assume_signature_count());
+        tx_builder.add_mint(result);
 
         // Adding burn
-        let result = SingleMintBuilder::new(&MintAssets::new_from_entry(&name, Int::new_i32(-40)))
-            .native_script(&mint_script2, &NativeScriptWitnessInfo::assume_signature_count());
-        tx_builder.add_mint(&result);
+        let result = SingleMintBuilder::new_single_asset(name.clone(), -40)
+            .native_script(mint_script2, NativeScriptWitnessInfo::assume_signature_count());
+        tx_builder.add_mint(result);
 
         let total_input_after_mint = tx_builder.get_total_input().unwrap();
         let total_output_after_mint = tx_builder.get_total_output().unwrap();
 
-        assert_eq!(total_input_after_mint.coin, to_bignum(300));
-        assert_eq!(total_output_before_mint.coin, to_bignum(208));
-        let ma2_input = total_input_after_mint.multiasset.unwrap();
-        let ma2_output = total_output_after_mint.multiasset.unwrap();
-        assert_eq!(ma2_input.get(&policy_id1).unwrap().get(&name).unwrap(), to_bignum(400));
-        assert_eq!(ma2_input.get(&policy_id2).unwrap().get(&name).unwrap(), to_bignum(360));
-        assert_eq!(ma2_output.get(&policy_id2).unwrap().get(&name).unwrap(), to_bignum(40));
+        assert_eq!(total_input_after_mint.coin, 300);
+        assert_eq!(total_output_before_mint.coin, 208);
+        let ma2_input = total_input_after_mint.multiasset;
+        let ma2_output = total_output_after_mint.multiasset;
+        assert_eq!(ma2_input.get(&policy_id1, &name).unwrap(), 400);
+        assert_eq!(ma2_input.get(&policy_id2, &name).unwrap(), 360);
+        assert_eq!(ma2_output.get(&policy_id2, &name).unwrap(), 40);
     }
 
     #[test]
@@ -4445,14 +4327,14 @@ mod tests {
         // based on tx 18565ab3c960c000531e5b359432397907d663c0ac5f5dbae80e1bf88d25c8a0 on mainnet
 
         let mut spacebudz_asset = MultiAsset::new();
-        spacebudz_asset.set_asset(
-            &PolicyID::from_hex("6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52").unwrap(),
-            &AssetName::new(hex::decode("537061636542756442696433303533").unwrap()).unwrap(),
-            &u64::from_str("1").unwrap()
+        spacebudz_asset.set(
+            PolicyId::from_hex("6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52").unwrap(),
+            AssetName::new(hex::decode("537061636542756442696433303533").unwrap()).unwrap(),
+            1
         );
 
         // not the real private key used for the tx on Cardano mainnet
-        let private_key = &PrivateKey::from_normal_bytes(
+        let private_key = PrivateKey::from_normal_bytes(
             &hex::decode("c660e50315d76a53d80732efda7630cae8885dfb85c46378684b3c6103e1284a").unwrap()
         ).unwrap();
 
@@ -4460,120 +4342,109 @@ mod tests {
         {
             let mut required_signers = RequiredSigners::new();
             // real tx was using 5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9 instead
-            required_signers.add(&private_key.to_public().hash());
+            required_signers.push(private_key.to_public().hash());
 
             let input_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
+                .with_address(Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
                 .next()
                 .unwrap()
-                .with_coin_and_asset(
-                    &Coin::from_str("70000000").unwrap(),
-                    &spacebudz_asset
-                )
+                .with_value(Value::new(70000000, spacebudz_asset.clone()))
                 .build()
                 .unwrap();
-            tx_builder.add_input(&SingleInputBuilder::new(
-                &TransactionInput::new(
-                    &TransactionHash::from_hex("473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c").unwrap(),
-                    &TransactionIndex::from_str("0").unwrap()
+            tx_builder.add_input(SingleInputBuilder::new(
+                TransactionInput::new(
+                    TransactionHash::from_hex("473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c").unwrap(),
+                    0
                 ),
-                &input_utxo.output()
+                input_utxo.output
             ).plutus_script(
-                &PartialPlutusWitness::new(
-                    &PlutusScriptWitness::from_script(
-                        PlutusScript::from_v1(
-                            &PlutusV1Script::new(
-                                hex::decode("59193d010000332332233223232333332222233332222332232333222323332223233333333222222223233322232333322223232332232333222323332223232332233223232333332222233223322332233223322332222323223223232533530343330093333573466e1d401920042304e3055357426aae7940208cccd5cd19b875007480088c140c158d5d09aab9e500923333573466e1d40212000204f235058353059335738921035054310005a49926499263333573466e1d40112006205223333573466e1d40152004205523333573466e1d40192002205323333573466e1d401d2000205623505935305a3357389201035054310005b4992649926498cccd5cd19b8735573aa004900011980619191919191919191919191999ab9a3370e6aae75402920002333333333301a335028232323333573466e1cd55cea8012400046604060766ae854008c0b4d5d09aba25002235066353067335738921035054310006849926135573ca00226ea8004d5d0a80519a8140149aba150093335502f75ca05c6ae854020ccd540bdd728171aba1500733502804435742a00c66a05066aa0aa09aeb4d5d0a8029919191999ab9a3370e6aae754009200023350223232323333573466e1cd55cea80124000466a05466a086eb4d5d0a80118241aba135744a00446a0d46a60d666ae712401035054310006c49926135573ca00226ea8004d5d0a8011919191999ab9a3370e6aae7540092000233502833504375a6ae854008c120d5d09aba2500223506a35306b3357389201035054310006c49926135573ca00226ea8004d5d09aba250022350663530673357389201035054310006849926135573ca00226ea8004d5d0a80219a8143ae35742a00666a05066aa0aaeb88004d5d0a801181d1aba135744a00446a0c46a60c666ae71241035054310006449926135744a00226ae8940044d5d1280089aba25001135744a00226ae8940044d5d1280089aba25001135573ca00226ea8004d5d0a8011919191999ab9a3370ea00290031180f981e1aba135573ca00646666ae68cdc3a801240084603c608c6ae84d55cf280211999ab9a3370ea00690011180f18189aba135573ca00a46666ae68cdc3a80224000460426eb8d5d09aab9e500623505d35305e3357389201035054310005f49926499264984d55cea80089baa001357426ae8940088d4158d4c15ccd5ce2490350543100058499261057135055353056335738920103505435000574984d55cf280089baa001135573a6ea80044d55cea80089baa0012212330010030022001222222222212333333333300100b00a00900800700600500400300220012212330010030022001122123300100300212001122123300100300212001122123300100300212001212222300400521222230030052122223002005212222300100520011232230023758002640026aa080446666aae7c004940388cd4034c010d5d080118019aba200203f23232323333573466e1cd55cea801a4000466600e6464646666ae68cdc39aab9d5002480008cc034c0c4d5d0a80119a8098169aba135744a00446a0846a608666ae712401035054310004449926135573ca00226ea8004d5d0a801999aa805bae500a35742a00466a01eeb8d5d09aba2500223503e35303f335738921035054310004049926135744a00226aae7940044dd50009110919980080200180110009109198008018011000899aa800bae75a224464460046eac004c8004d540e888c8cccd55cf80112804919a80419aa81718031aab9d5002300535573ca00460086ae8800c0e84d5d08008891001091091198008020018900089119191999ab9a3370ea002900011a80418029aba135573ca00646666ae68cdc3a801240044a01046a06a6a606c66ae7124010350543100037499264984d55cea80089baa001121223002003112200112001232323333573466e1cd55cea8012400046600c600e6ae854008dd69aba135744a00446a05e6a606066ae71241035054310003149926135573ca00226ea80048848cc00400c00880048c8cccd5cd19b8735573aa002900011bae357426aae7940088d40acd4c0b0cd5ce2481035054310002d499261375400224464646666ae68cdc3a800a40084a00e46666ae68cdc3a8012400446a014600c6ae84d55cf280211999ab9a3370ea00690001280511a8171a981799ab9c490103505431000304992649926135573aa00226ea8004484888c00c0104488800844888004480048c8cccd5cd19b8750014800880188cccd5cd19b8750024800080188d4098d4c09ccd5ce2490350543100028499264984d55ce9baa0011220021220012001232323232323333573466e1d4005200c200b23333573466e1d4009200a200d23333573466e1d400d200823300b375c6ae854014dd69aba135744a00a46666ae68cdc3a8022400c46601a6eb8d5d0a8039bae357426ae89401c8cccd5cd19b875005480108cc048c050d5d0a8049bae357426ae8940248cccd5cd19b875006480088c050c054d5d09aab9e500b23333573466e1d401d2000230133016357426aae7940308d40acd4c0b0cd5ce2481035054310002d49926499264992649926135573aa00826aae79400c4d55cf280109aab9e500113754002424444444600e01044244444446600c012010424444444600a010244444440082444444400644244444446600401201044244444446600201201040024646464646666ae68cdc3a800a400446660106eb4d5d0a8021bad35742a0066eb4d5d09aba2500323333573466e1d400920002300a300b357426aae7940188d4070d4c074cd5ce249035054310001e499264984d55cea80189aba25001135573ca00226ea80048488c00800c888488ccc00401401000c80048c8c8cccd5cd19b875001480088c018dd71aba135573ca00646666ae68cdc3a80124000460106eb8d5d09aab9e500423501635301733573892010350543100018499264984d55cea80089baa001212230020032122300100320011122232323333573466e1cd55cea80124000466aa010600c6ae854008c014d5d09aba25002235013353014335738921035054310001549926135573ca00226ea8004448848cc00400c00844800484888c00c01084888c00801048880048004488880104888800c488880084888800480048c8c8c8cccd5cd19b8735573aa006900011999111998068018010009bae35742a0066eb8d5d0a8011bad357426ae8940088d4018d4c01ccd5ce2481035054310000849926135744a00226aae7940044dd5000893090009000911091998008020018011000889191800800911980198010010009991999111919191991199991111991199911191919191919991119911919191919199999111119191919191999111999111999999991111111199119999911111991191919191991199119911919999111199119911991199119911919191919191991199119191919191919191919999111199119191191919191919111191919191919192999a983d80510a9999a9831805099835199a8342839183f8009a9aa83d280311000998351991199ab9a3371200400211202110026603860bea00460506a604802444444444400260bea00a660d46601aa00a60c4002a66a610a026603aa010603e002210e0226605260be66026a010603e00260bea0042c2660d46603aa010603e002660d4666a0d0a0e46a6aa0f4a00c440020fa6601aa00a60c40022660d4666a0d0a0e46a6aa0f4a00c440020fa660d46601aa00a60c4002660d46601866026a010603e00260c4002660086a05460bea004a00642a6666a60c60142c2660d46601866026a010a00660c4002660d46605260420026046024660086042002603e00226603aa010603e0022c2a6666a60c40122a66a6108026644666ae68cdc4801000843808440098082800a40042a66a6a0ec605401026102022c442a66a6a0f000226106022c46442a66a6a0f600226a6aa0fc6a6aa0fca0044400444a666a61040200242660e26602800660d2002660e2660606a06260cc0066054032660e2666a0de0ca605000290011a9aa840809a9aa84080a80291000912999a98428080090b10b0999a83883399814980d2805a4004603400442c2660e0666a0dc0c86604c602ea0109001180b8011a9aa840009a9aa84000a80211000912999a98420080090998399980b001983580099839998191a8199834001981600d999a8388339815000a400442c2c4426110022c266aa0fa601200660120022a66a6a0ec605401026104022c4646442a66a6a0f40022a666a60fe6a6aa0faa0064400242660dc66022a00660cc002660dc6605a6a05c60c6a006604e02c666a0d80c4604a002900110b0b1109844008b09a9aa83da80091001098038008b0b0b0a99a9a8369a9816003911a981800111111111111982300500590980e9a981e000910008b0a99a9a83a191a98170009111111111001a802898390b110a99a9a83b0008801110983b0b1191919191299a98438099815803241012179fa042660d86605660c26602aa014a0226054a004660d86605660c26602aa0146a6aa0f8a020440046054a0066605660c26602aa014002605466044660446604400ca004a0066a6aaa050a0084440022660d86605660c26602aa014a0226054a00a6605660c26602aa01400260546604400ca00a26a6aaa04ca00444400626a6aaa04aa0024440042666aaa04a660e40046a6aaa048a01c444002660e40046a6aa0f0a01844002660e40046a60440204444444440062660e20026a6aaa046a01a44400426a6aa0eaa002440042a66a6a0e2604a006260e02c442a66a6a0e60022600600444260e82c46a60766a60720024440064466a60ae0044c4a66a6a0d86a607800844400242a66a6a0da646a605e0024444444444a66a6a0f0666aa609824002a09e46a6aa1080200244a66a612202666ae68cdc7801007849808490089a83e8018a83e001109a83d9a9aa84200800910008a83ca80311919190a99a9a8389999999aba400423333573466e1d40092004233335573ea0084a0ea46666aae7cd5d128029299a9a83a98389aba150062135078308501001150762507607307223333573466e1d400d2002233335573ea00a4a0ec46666aae7cd5d128031299a9a83b18391aba150072135079308701001150772507707407323333573466e1d40112000233335573ea00c46a0f0108024a0ee0e84a0ec9324c93128399283992839928398381099aa83f18108050008b09aab9d5002135573ca00226ea800458584d4c0980048800888cc07cccc158008d4c068020888888888024ccd417dc51a980d004111111111003800a4004446603c6660aa004602e00e666a0bce28d4c06401c8888888880180052002135301600422222222200413535550175001222003135301400222222222200523322300200132233200132001333550023233503b22333503a0030010023503700133503a22230033002001200122337000029001000a400060662400266466aa603a2400244a66a60f06006004266a0d60040022002a0d446a6aaa02e002444660bc666a0b8042602c00c006666a0b80a400290011919a800a834a835091199aa829911a9aa83700111199aa82b911a9aa83900111299a983f999ab9a3370e002900004080840008801899805199aaa81080300100080180180080080191199aa980d890009119aa98060900091a9aa8360009119aa83780119aa98078900091a9aa8378009119aa839001199a9aa80700091980a24000002446602a004002466028002900000099aa98060900091a9aa8360009119aa837801199a9aa805800919aa98080900091a9aa8380009119aa8398011aa80900080091199aaa805011801000919aa98080900091a9aa8380009119aa8398011aa808000800999aaa80280f001000a8341a980f8011111111111199aa981289000911a981d0011111a981f8019119a982d8011299a984300999ab9a3371e0260021100210e02266a0f200a00e200e400ea0e4012222444666aa603624002a0ce66aa60142400246a6aa0d40024466aa0da0046aa018002666aa603624002446a6aa0d600444a66a60f0666aa606c240026466a07844666a6a016006440040040026a6a0120024400266a01244a66a60f400420f820020f246a6aa0dc002446601400400a00c2006266a0d6008006a0d000266aa60142400246a6aa0d4002446466aa0dc006600200a640026aa0f444a66a6a0d600226aa0180064426a6aa0e000444a66a60fa66018004010266aa02200e0022600c00600424424660020060042400222424446006008224424446600400a00822424446002008224002640026aa0da442244a66a6a0c00022a0c444266a0c6600800466aa600c240020080024466e0000800488d4c05400888888888894cd4d4178ccd54c0c84800540d494cd4c1d4ccd5cd19b8f00c0010770761350610011506000321077107523530220012220022353062001222003223370200400246a60c000244400246a600600244444444401046a60040024444444440044444444442466666666600201401201000e00c00a0080060044002222444246660020080060042224002400244666ae68cdc400100082f8300900091a9802000911a98040011111111111299a9a8289980f005005909a9810000911a9812000911199aa980a09000911a98148011111a9817004111a98180029119299a983b99a9826802919a98270021299a983c999ab9a3371e0040020f60f42a00620f440f4466a609c00840f44a66a60f2666ae68cdc780100083d83d0a801883d099a83500500488048a99a9a83000190a99a9a8308011099a9825801119a9826001119a9828001119a9828801119812001000903e919a9828801103e91981200100091103e91119a9827002103e911299a983f199ab9a3370e00c006100020fe2a66a60fc666ae68cdc38028010400083f89982b802000883f883f883c0a99a9a8300009083c083c283080789931a982799ab9c4901024c6600050498c8004d5417088448894cd4d41400044008884cc014008ccd54c01c4800401401000488ccd5cd19b8f00200105c05b2212330010030022001222222222212333333333300100b00a0090080070060050040030022001122123300100300212001122123300100300212001122123300100300212001121222300300411222002112220011200122533335300f0012150372150372150372133355300a12001500d2353005001225335304f5335304f333573466e3cd4c06000888008d4c060010880081441404ccd5cd19b873530180022200135301800422001051050105013503b0031503a003221233001003002200122212333001004003002200122123300100300220013200135504522112225335350390011350060032213335009005300400233355300712001005004001123535004001220011235350030012200213350022253353502b002210031001502a12212330010030021200121222230040052122223003005212222300200521222230010052001221233001003002200121222222230070082212222222330060090082122222223005008122222220041222222200322122222223300200900822122222223300100900820012122300200322212233300100500400320012122300200321223001003200122333573466e1c0080040ac0a88ccc00800522100488100222323230010053200135502c223353501d0014800088d4d54088008894cd4c0bcccd5cd19b8f00200903103013007001130060033200135502b223353501c0014800088d4d54084008894cd4c0b8ccd5cd19b8f00200703002f100113006003112232001320013550292253353501a0011003221330060023004001235301f0012220021222200412222003122220021222200120011200112001225335301d0021001101e2323232323333333574800a46666ae68cdc39aab9d5005480008cccd55cfa8029280691999aab9f50052500e233335573ea00a4a01e46666aae7cd5d128031299a9a807a99a9a807a99a9a80798061aba150092135012223330240030020011501021533535010300d35742a012426a02660040022a0222a02042a66a6a020646666666ae900049404c9404c9404c8d4050dd6801128098081aba150082135013300200115011150102501000d00c00b00a2500c4989402c9402c9402c9402c0204d5d1280089aba25001135573ca00226ea80048ccccccd5d20009280312803128031280311a8039bae00200312001200112122300200311220011200112253335300c0022153335300d00221330050020012130161613015162153335300d0022130161621330050020011301516153335300c001213015162130151610172253353014333573466e3cd4c03c008888008d4c03c0048880080580544ccd5cd19b8735300f00222200135300f00122200101601510152233223370600400266e080092014001262611220021221223300100400312001112212330010030021120012122230030042122230020041222001200122212333001004003002200126262612200212200120011123230010012233003300200200133223322332233333333300248811cd5e6bf0500378d4f0da4e8dde6becec7621cd8cbf5cbb9b87013d4cc0048811c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d520048810853706163654275640048810b5370616365427564426964003335550044891c826d9fafe1b3acf15bd250de69c04e3fc92c4493785939e069932e8900483001920e209335500648811c88269f8b051a739300fe743a7b315026f4614ce1216a4bb45d7fd0f500482209d20882748203db810920a09c012222222221233333333300100a0090080070060050040030022001111222123330010040030021112001112212330010030021120011").unwrap()
-                            )
-                        )
+                PartialPlutusWitness::new(
+                    PlutusScriptWitness::from(
+                        PlutusScript::PlutusV1(PlutusV1Script::new(
+                            hex::decode("59193d010000332332233223232333332222233332222332232333222323332223233333333222222223233322232333322223232332232333222323332223232332233223232333332222233223322332233223322332222323223223232533530343330093333573466e1d401920042304e3055357426aae7940208cccd5cd19b875007480088c140c158d5d09aab9e500923333573466e1d40212000204f235058353059335738921035054310005a49926499263333573466e1d40112006205223333573466e1d40152004205523333573466e1d40192002205323333573466e1d401d2000205623505935305a3357389201035054310005b4992649926498cccd5cd19b8735573aa004900011980619191919191919191919191999ab9a3370e6aae75402920002333333333301a335028232323333573466e1cd55cea8012400046604060766ae854008c0b4d5d09aba25002235066353067335738921035054310006849926135573ca00226ea8004d5d0a80519a8140149aba150093335502f75ca05c6ae854020ccd540bdd728171aba1500733502804435742a00c66a05066aa0aa09aeb4d5d0a8029919191999ab9a3370e6aae754009200023350223232323333573466e1cd55cea80124000466a05466a086eb4d5d0a80118241aba135744a00446a0d46a60d666ae712401035054310006c49926135573ca00226ea8004d5d0a8011919191999ab9a3370e6aae7540092000233502833504375a6ae854008c120d5d09aba2500223506a35306b3357389201035054310006c49926135573ca00226ea8004d5d09aba250022350663530673357389201035054310006849926135573ca00226ea8004d5d0a80219a8143ae35742a00666a05066aa0aaeb88004d5d0a801181d1aba135744a00446a0c46a60c666ae71241035054310006449926135744a00226ae8940044d5d1280089aba25001135744a00226ae8940044d5d1280089aba25001135573ca00226ea8004d5d0a8011919191999ab9a3370ea00290031180f981e1aba135573ca00646666ae68cdc3a801240084603c608c6ae84d55cf280211999ab9a3370ea00690011180f18189aba135573ca00a46666ae68cdc3a80224000460426eb8d5d09aab9e500623505d35305e3357389201035054310005f49926499264984d55cea80089baa001357426ae8940088d4158d4c15ccd5ce2490350543100058499261057135055353056335738920103505435000574984d55cf280089baa001135573a6ea80044d55cea80089baa0012212330010030022001222222222212333333333300100b00a00900800700600500400300220012212330010030022001122123300100300212001122123300100300212001122123300100300212001212222300400521222230030052122223002005212222300100520011232230023758002640026aa080446666aae7c004940388cd4034c010d5d080118019aba200203f23232323333573466e1cd55cea801a4000466600e6464646666ae68cdc39aab9d5002480008cc034c0c4d5d0a80119a8098169aba135744a00446a0846a608666ae712401035054310004449926135573ca00226ea8004d5d0a801999aa805bae500a35742a00466a01eeb8d5d09aba2500223503e35303f335738921035054310004049926135744a00226aae7940044dd50009110919980080200180110009109198008018011000899aa800bae75a224464460046eac004c8004d540e888c8cccd55cf80112804919a80419aa81718031aab9d5002300535573ca00460086ae8800c0e84d5d08008891001091091198008020018900089119191999ab9a3370ea002900011a80418029aba135573ca00646666ae68cdc3a801240044a01046a06a6a606c66ae7124010350543100037499264984d55cea80089baa001121223002003112200112001232323333573466e1cd55cea8012400046600c600e6ae854008dd69aba135744a00446a05e6a606066ae71241035054310003149926135573ca00226ea80048848cc00400c00880048c8cccd5cd19b8735573aa002900011bae357426aae7940088d40acd4c0b0cd5ce2481035054310002d499261375400224464646666ae68cdc3a800a40084a00e46666ae68cdc3a8012400446a014600c6ae84d55cf280211999ab9a3370ea00690001280511a8171a981799ab9c490103505431000304992649926135573aa00226ea8004484888c00c0104488800844888004480048c8cccd5cd19b8750014800880188cccd5cd19b8750024800080188d4098d4c09ccd5ce2490350543100028499264984d55ce9baa0011220021220012001232323232323333573466e1d4005200c200b23333573466e1d4009200a200d23333573466e1d400d200823300b375c6ae854014dd69aba135744a00a46666ae68cdc3a8022400c46601a6eb8d5d0a8039bae357426ae89401c8cccd5cd19b875005480108cc048c050d5d0a8049bae357426ae8940248cccd5cd19b875006480088c050c054d5d09aab9e500b23333573466e1d401d2000230133016357426aae7940308d40acd4c0b0cd5ce2481035054310002d49926499264992649926135573aa00826aae79400c4d55cf280109aab9e500113754002424444444600e01044244444446600c012010424444444600a010244444440082444444400644244444446600401201044244444446600201201040024646464646666ae68cdc3a800a400446660106eb4d5d0a8021bad35742a0066eb4d5d09aba2500323333573466e1d400920002300a300b357426aae7940188d4070d4c074cd5ce249035054310001e499264984d55cea80189aba25001135573ca00226ea80048488c00800c888488ccc00401401000c80048c8c8cccd5cd19b875001480088c018dd71aba135573ca00646666ae68cdc3a80124000460106eb8d5d09aab9e500423501635301733573892010350543100018499264984d55cea80089baa001212230020032122300100320011122232323333573466e1cd55cea80124000466aa010600c6ae854008c014d5d09aba25002235013353014335738921035054310001549926135573ca00226ea8004448848cc00400c00844800484888c00c01084888c00801048880048004488880104888800c488880084888800480048c8c8c8cccd5cd19b8735573aa006900011999111998068018010009bae35742a0066eb8d5d0a8011bad357426ae8940088d4018d4c01ccd5ce2481035054310000849926135744a00226aae7940044dd5000893090009000911091998008020018011000889191800800911980198010010009991999111919191991199991111991199911191919191919991119911919191919199999111119191919191999111999111999999991111111199119999911111991191919191991199119911919999111199119911991199119911919191919191991199119191919191919191919999111199119191191919191919111191919191919192999a983d80510a9999a9831805099835199a8342839183f8009a9aa83d280311000998351991199ab9a3371200400211202110026603860bea00460506a604802444444444400260bea00a660d46601aa00a60c4002a66a610a026603aa010603e002210e0226605260be66026a010603e00260bea0042c2660d46603aa010603e002660d4666a0d0a0e46a6aa0f4a00c440020fa6601aa00a60c40022660d4666a0d0a0e46a6aa0f4a00c440020fa660d46601aa00a60c4002660d46601866026a010603e00260c4002660086a05460bea004a00642a6666a60c60142c2660d46601866026a010a00660c4002660d46605260420026046024660086042002603e00226603aa010603e0022c2a6666a60c40122a66a6108026644666ae68cdc4801000843808440098082800a40042a66a6a0ec605401026102022c442a66a6a0f000226106022c46442a66a6a0f600226a6aa0fc6a6aa0fca0044400444a666a61040200242660e26602800660d2002660e2660606a06260cc0066054032660e2666a0de0ca605000290011a9aa840809a9aa84080a80291000912999a98428080090b10b0999a83883399814980d2805a4004603400442c2660e0666a0dc0c86604c602ea0109001180b8011a9aa840009a9aa84000a80211000912999a98420080090998399980b001983580099839998191a8199834001981600d999a8388339815000a400442c2c4426110022c266aa0fa601200660120022a66a6a0ec605401026104022c4646442a66a6a0f40022a666a60fe6a6aa0faa0064400242660dc66022a00660cc002660dc6605a6a05c60c6a006604e02c666a0d80c4604a002900110b0b1109844008b09a9aa83da80091001098038008b0b0b0a99a9a8369a9816003911a981800111111111111982300500590980e9a981e000910008b0a99a9a83a191a98170009111111111001a802898390b110a99a9a83b0008801110983b0b1191919191299a98438099815803241012179fa042660d86605660c26602aa014a0226054a004660d86605660c26602aa0146a6aa0f8a020440046054a0066605660c26602aa014002605466044660446604400ca004a0066a6aaa050a0084440022660d86605660c26602aa014a0226054a00a6605660c26602aa01400260546604400ca00a26a6aaa04ca00444400626a6aaa04aa0024440042666aaa04a660e40046a6aaa048a01c444002660e40046a6aa0f0a01844002660e40046a60440204444444440062660e20026a6aaa046a01a44400426a6aa0eaa002440042a66a6a0e2604a006260e02c442a66a6a0e60022600600444260e82c46a60766a60720024440064466a60ae0044c4a66a6a0d86a607800844400242a66a6a0da646a605e0024444444444a66a6a0f0666aa609824002a09e46a6aa1080200244a66a612202666ae68cdc7801007849808490089a83e8018a83e001109a83d9a9aa84200800910008a83ca80311919190a99a9a8389999999aba400423333573466e1d40092004233335573ea0084a0ea46666aae7cd5d128029299a9a83a98389aba150062135078308501001150762507607307223333573466e1d400d2002233335573ea00a4a0ec46666aae7cd5d128031299a9a83b18391aba150072135079308701001150772507707407323333573466e1d40112000233335573ea00c46a0f0108024a0ee0e84a0ec9324c93128399283992839928398381099aa83f18108050008b09aab9d5002135573ca00226ea800458584d4c0980048800888cc07cccc158008d4c068020888888888024ccd417dc51a980d004111111111003800a4004446603c6660aa004602e00e666a0bce28d4c06401c8888888880180052002135301600422222222200413535550175001222003135301400222222222200523322300200132233200132001333550023233503b22333503a0030010023503700133503a22230033002001200122337000029001000a400060662400266466aa603a2400244a66a60f06006004266a0d60040022002a0d446a6aaa02e002444660bc666a0b8042602c00c006666a0b80a400290011919a800a834a835091199aa829911a9aa83700111199aa82b911a9aa83900111299a983f999ab9a3370e002900004080840008801899805199aaa81080300100080180180080080191199aa980d890009119aa98060900091a9aa8360009119aa83780119aa98078900091a9aa8378009119aa839001199a9aa80700091980a24000002446602a004002466028002900000099aa98060900091a9aa8360009119aa837801199a9aa805800919aa98080900091a9aa8380009119aa8398011aa80900080091199aaa805011801000919aa98080900091a9aa8380009119aa8398011aa808000800999aaa80280f001000a8341a980f8011111111111199aa981289000911a981d0011111a981f8019119a982d8011299a984300999ab9a3371e0260021100210e02266a0f200a00e200e400ea0e4012222444666aa603624002a0ce66aa60142400246a6aa0d40024466aa0da0046aa018002666aa603624002446a6aa0d600444a66a60f0666aa606c240026466a07844666a6a016006440040040026a6a0120024400266a01244a66a60f400420f820020f246a6aa0dc002446601400400a00c2006266a0d6008006a0d000266aa60142400246a6aa0d4002446466aa0dc006600200a640026aa0f444a66a6a0d600226aa0180064426a6aa0e000444a66a60fa66018004010266aa02200e0022600c00600424424660020060042400222424446006008224424446600400a00822424446002008224002640026aa0da442244a66a6a0c00022a0c444266a0c6600800466aa600c240020080024466e0000800488d4c05400888888888894cd4d4178ccd54c0c84800540d494cd4c1d4ccd5cd19b8f00c0010770761350610011506000321077107523530220012220022353062001222003223370200400246a60c000244400246a600600244444444401046a60040024444444440044444444442466666666600201401201000e00c00a0080060044002222444246660020080060042224002400244666ae68cdc400100082f8300900091a9802000911a98040011111111111299a9a8289980f005005909a9810000911a9812000911199aa980a09000911a98148011111a9817004111a98180029119299a983b99a9826802919a98270021299a983c999ab9a3371e0040020f60f42a00620f440f4466a609c00840f44a66a60f2666ae68cdc780100083d83d0a801883d099a83500500488048a99a9a83000190a99a9a8308011099a9825801119a9826001119a9828001119a9828801119812001000903e919a9828801103e91981200100091103e91119a9827002103e911299a983f199ab9a3370e00c006100020fe2a66a60fc666ae68cdc38028010400083f89982b802000883f883f883c0a99a9a8300009083c083c283080789931a982799ab9c4901024c6600050498c8004d5417088448894cd4d41400044008884cc014008ccd54c01c4800401401000488ccd5cd19b8f00200105c05b2212330010030022001222222222212333333333300100b00a0090080070060050040030022001122123300100300212001122123300100300212001122123300100300212001121222300300411222002112220011200122533335300f0012150372150372150372133355300a12001500d2353005001225335304f5335304f333573466e3cd4c06000888008d4c060010880081441404ccd5cd19b873530180022200135301800422001051050105013503b0031503a003221233001003002200122212333001004003002200122123300100300220013200135504522112225335350390011350060032213335009005300400233355300712001005004001123535004001220011235350030012200213350022253353502b002210031001502a12212330010030021200121222230040052122223003005212222300200521222230010052001221233001003002200121222222230070082212222222330060090082122222223005008122222220041222222200322122222223300200900822122222223300100900820012122300200322212233300100500400320012122300200321223001003200122333573466e1c0080040ac0a88ccc00800522100488100222323230010053200135502c223353501d0014800088d4d54088008894cd4c0bcccd5cd19b8f00200903103013007001130060033200135502b223353501c0014800088d4d54084008894cd4c0b8ccd5cd19b8f00200703002f100113006003112232001320013550292253353501a0011003221330060023004001235301f0012220021222200412222003122220021222200120011200112001225335301d0021001101e2323232323333333574800a46666ae68cdc39aab9d5005480008cccd55cfa8029280691999aab9f50052500e233335573ea00a4a01e46666aae7cd5d128031299a9a807a99a9a807a99a9a80798061aba150092135012223330240030020011501021533535010300d35742a012426a02660040022a0222a02042a66a6a020646666666ae900049404c9404c9404c8d4050dd6801128098081aba150082135013300200115011150102501000d00c00b00a2500c4989402c9402c9402c9402c0204d5d1280089aba25001135573ca00226ea80048ccccccd5d20009280312803128031280311a8039bae00200312001200112122300200311220011200112253335300c0022153335300d00221330050020012130161613015162153335300d0022130161621330050020011301516153335300c001213015162130151610172253353014333573466e3cd4c03c008888008d4c03c0048880080580544ccd5cd19b8735300f00222200135300f00122200101601510152233223370600400266e080092014001262611220021221223300100400312001112212330010030021120012122230030042122230020041222001200122212333001004003002200126262612200212200120011123230010012233003300200200133223322332233333333300248811cd5e6bf0500378d4f0da4e8dde6becec7621cd8cbf5cbb9b87013d4cc0048811c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d520048810853706163654275640048810b5370616365427564426964003335550044891c826d9fafe1b3acf15bd250de69c04e3fc92c4493785939e069932e8900483001920e209335500648811c88269f8b051a739300fe743a7b315026f4614ce1216a4bb45d7fd0f500482209d20882748203db810920a09c012222222221233333333300100a0090080070060050040030022001111222123330010040030021112001112212330010030021120011").unwrap()
+                        ))
                     ),
-                    &PlutusData::from_bytes(hex::decode("D866820380").unwrap()).unwrap(),
+                    PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                &required_signers,
-                &PlutusData::from_bytes(hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
+                required_signers,
+                PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
 
         // add change output
         {
             let output_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
-                .with_data(&Datum::new_data_hash(&DataHash::from_hex("f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8").unwrap()))
+                .with_address(Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
+                .with_data(DatumOption::new_hash(DatumHash::from_hex("f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8").unwrap()))
                 .next()
                 .unwrap()
-                .with_coin_and_asset(
-                    &Coin::from_str("1851850").unwrap(),
-                    &spacebudz_asset
-                )
+                .with_value(Value::new(1851850, spacebudz_asset))
                 .build()
                 .unwrap();
-            tx_builder.add_output(&output_utxo).unwrap();
+            tx_builder.add_output(output_utxo).unwrap();
         }
 
         // add user output
         {
             let output_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
+                .with_address(Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
                 .next()
                 .unwrap()
-                .with_coin(&Coin::from_str("67250397").unwrap())
+                .with_value(67250397)
                 .build()
                 .unwrap();
-            tx_builder.add_output(&output_utxo).unwrap();
+            tx_builder.add_output(output_utxo).unwrap();
         }
 
         // add collateral
         {
             let input_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
+                .with_address(Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
                 .next()
                 .unwrap()
-                .with_coin(&Coin::from_str("5000000").unwrap())
+                .with_value(5000000)
                 .build()
                 .unwrap();
-            tx_builder.add_collateral(&SingleInputBuilder::new(
-                &TransactionInput::new(
-                    &TransactionHash::from_hex("a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b").unwrap(),
-                    &TransactionIndex::from_str("0").unwrap()
+            tx_builder.add_collateral(SingleInputBuilder::new(
+                TransactionInput::new(
+                    TransactionHash::from_hex("a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b").unwrap(),
+                    0
                 ),
-                &input_utxo.output()
+                input_utxo.output
             ).payment_key().unwrap()).unwrap();
         }
 
         // metadata
         {
-            let mut map = MetadataMap::new();
+            let mut map = OrderedHashMap::new();
             map.insert(
-                &TransactionMetadatum::new_int(&Int::from_str("0").unwrap()),
-                &TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()).unwrap()
+                TransactionMetadatum::new_int(Int::from(0u64)),
+                TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap())
             );
 
             let mut aux_data = AuxiliaryData::new();
-            aux_data.add_metadatum(
-                &u64::from_str("405").unwrap(),
-                &TransactionMetadatum::new_map(&map)
+            aux_data.metadata_mut().insert(
+                405,
+                TransactionMetadatum::new_map(map)
             );
-            tx_builder.add_auxiliary_data(&aux_data);
+            tx_builder.add_auxiliary_data(aux_data);
         }
 
         let original_tx_fee = tx_builder.min_fee(false).unwrap();
-        assert_eq!(original_tx_fee.to_str(), "469673");
-        tx_builder.set_fee(&u64::from_str("897753").unwrap());
+        assert_eq!(original_tx_fee, 469673);
+        tx_builder.set_fee(897753);
 
         {
             tx_builder.set_exunits(
-                &RedeemerWitnessKey::new(
-                    &RedeemerTag::new_spend(),
-                    &u64::from(0)
+                RedeemerWitnessKey::new(
+                    RedeemerTag::Spend,
+                    0
                 ),
-                &ExUnits::new(
-                    &u64::from_str("5000000").unwrap(),
-                    &u64::from_str("2000000000").unwrap()
-                )
+                ExUnits::new(5000000, 2000000000)
             );
         }
         let tx = tx_builder.build(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap()).unwrap();
-        assert_eq!(tx.body().to_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c").unwrap());
+        assert_eq!(tx.body.to_cbor_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c").unwrap());
     }
 
     #[test]
@@ -4581,10 +4452,10 @@ mod tests {
         let mut tx_builder = create_realistic_tx_builder();
 
         let mut spacebudz_asset = MultiAsset::new();
-        spacebudz_asset.set_asset(
-            &PolicyID::from_hex("6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52").unwrap(),
-            &AssetName::new(hex::decode("537061636542756442696433303533").unwrap()).unwrap(),
-            &u64::from_str("1").unwrap()
+        spacebudz_asset.set(
+            PolicyId::from_hex("6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52").unwrap(),
+            AssetName::new(hex::decode("537061636542756442696433303533").unwrap()).unwrap(),
+            1
         );
 
         // not the real private key used for the tx on Cardano mainnet
@@ -4596,136 +4467,122 @@ mod tests {
         {
             let mut required_signers = RequiredSigners::new();
             // real tx was using 5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9 instead
-            required_signers.add(&private_key.to_public().hash());
+            required_signers.push(private_key.to_public().hash());
 
             let input_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
+                .with_address(Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
                 .next()
                 .unwrap()
-                .with_coin_and_asset(
-                    &Coin::from_str("70000000").unwrap(),
-                    &spacebudz_asset
-                )
+                .with_value(Value::new(70000000, spacebudz_asset.clone()))
                 .build()
                 .unwrap();
-            tx_builder.add_input(&SingleInputBuilder::new(
-                &TransactionInput::new(
-                    &TransactionHash::from_hex("473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c").unwrap(),
-                    &TransactionIndex::from_str("0").unwrap()
+            tx_builder.add_input(SingleInputBuilder::new(
+                TransactionInput::new(
+                    TransactionHash::from_hex("473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c").unwrap(),
+                    0
                 ),
-                &input_utxo.output()
+                input_utxo.output
             ).plutus_script(
-                &PartialPlutusWitness::new(
-                    &PlutusScriptWitness::from_script(
-                        PlutusScript::from_v1(
-                            &PlutusV1Script::new(
-                                hex::decode("59193d010000332332233223232333332222233332222332232333222323332223233333333222222223233322232333322223232332232333222323332223232332233223232333332222233223322332233223322332222323223223232533530343330093333573466e1d401920042304e3055357426aae7940208cccd5cd19b875007480088c140c158d5d09aab9e500923333573466e1d40212000204f235058353059335738921035054310005a49926499263333573466e1d40112006205223333573466e1d40152004205523333573466e1d40192002205323333573466e1d401d2000205623505935305a3357389201035054310005b4992649926498cccd5cd19b8735573aa004900011980619191919191919191919191999ab9a3370e6aae75402920002333333333301a335028232323333573466e1cd55cea8012400046604060766ae854008c0b4d5d09aba25002235066353067335738921035054310006849926135573ca00226ea8004d5d0a80519a8140149aba150093335502f75ca05c6ae854020ccd540bdd728171aba1500733502804435742a00c66a05066aa0aa09aeb4d5d0a8029919191999ab9a3370e6aae754009200023350223232323333573466e1cd55cea80124000466a05466a086eb4d5d0a80118241aba135744a00446a0d46a60d666ae712401035054310006c49926135573ca00226ea8004d5d0a8011919191999ab9a3370e6aae7540092000233502833504375a6ae854008c120d5d09aba2500223506a35306b3357389201035054310006c49926135573ca00226ea8004d5d09aba250022350663530673357389201035054310006849926135573ca00226ea8004d5d0a80219a8143ae35742a00666a05066aa0aaeb88004d5d0a801181d1aba135744a00446a0c46a60c666ae71241035054310006449926135744a00226ae8940044d5d1280089aba25001135744a00226ae8940044d5d1280089aba25001135573ca00226ea8004d5d0a8011919191999ab9a3370ea00290031180f981e1aba135573ca00646666ae68cdc3a801240084603c608c6ae84d55cf280211999ab9a3370ea00690011180f18189aba135573ca00a46666ae68cdc3a80224000460426eb8d5d09aab9e500623505d35305e3357389201035054310005f49926499264984d55cea80089baa001357426ae8940088d4158d4c15ccd5ce2490350543100058499261057135055353056335738920103505435000574984d55cf280089baa001135573a6ea80044d55cea80089baa0012212330010030022001222222222212333333333300100b00a00900800700600500400300220012212330010030022001122123300100300212001122123300100300212001122123300100300212001212222300400521222230030052122223002005212222300100520011232230023758002640026aa080446666aae7c004940388cd4034c010d5d080118019aba200203f23232323333573466e1cd55cea801a4000466600e6464646666ae68cdc39aab9d5002480008cc034c0c4d5d0a80119a8098169aba135744a00446a0846a608666ae712401035054310004449926135573ca00226ea8004d5d0a801999aa805bae500a35742a00466a01eeb8d5d09aba2500223503e35303f335738921035054310004049926135744a00226aae7940044dd50009110919980080200180110009109198008018011000899aa800bae75a224464460046eac004c8004d540e888c8cccd55cf80112804919a80419aa81718031aab9d5002300535573ca00460086ae8800c0e84d5d08008891001091091198008020018900089119191999ab9a3370ea002900011a80418029aba135573ca00646666ae68cdc3a801240044a01046a06a6a606c66ae7124010350543100037499264984d55cea80089baa001121223002003112200112001232323333573466e1cd55cea8012400046600c600e6ae854008dd69aba135744a00446a05e6a606066ae71241035054310003149926135573ca00226ea80048848cc00400c00880048c8cccd5cd19b8735573aa002900011bae357426aae7940088d40acd4c0b0cd5ce2481035054310002d499261375400224464646666ae68cdc3a800a40084a00e46666ae68cdc3a8012400446a014600c6ae84d55cf280211999ab9a3370ea00690001280511a8171a981799ab9c490103505431000304992649926135573aa00226ea8004484888c00c0104488800844888004480048c8cccd5cd19b8750014800880188cccd5cd19b8750024800080188d4098d4c09ccd5ce2490350543100028499264984d55ce9baa0011220021220012001232323232323333573466e1d4005200c200b23333573466e1d4009200a200d23333573466e1d400d200823300b375c6ae854014dd69aba135744a00a46666ae68cdc3a8022400c46601a6eb8d5d0a8039bae357426ae89401c8cccd5cd19b875005480108cc048c050d5d0a8049bae357426ae8940248cccd5cd19b875006480088c050c054d5d09aab9e500b23333573466e1d401d2000230133016357426aae7940308d40acd4c0b0cd5ce2481035054310002d49926499264992649926135573aa00826aae79400c4d55cf280109aab9e500113754002424444444600e01044244444446600c012010424444444600a010244444440082444444400644244444446600401201044244444446600201201040024646464646666ae68cdc3a800a400446660106eb4d5d0a8021bad35742a0066eb4d5d09aba2500323333573466e1d400920002300a300b357426aae7940188d4070d4c074cd5ce249035054310001e499264984d55cea80189aba25001135573ca00226ea80048488c00800c888488ccc00401401000c80048c8c8cccd5cd19b875001480088c018dd71aba135573ca00646666ae68cdc3a80124000460106eb8d5d09aab9e500423501635301733573892010350543100018499264984d55cea80089baa001212230020032122300100320011122232323333573466e1cd55cea80124000466aa010600c6ae854008c014d5d09aba25002235013353014335738921035054310001549926135573ca00226ea8004448848cc00400c00844800484888c00c01084888c00801048880048004488880104888800c488880084888800480048c8c8c8cccd5cd19b8735573aa006900011999111998068018010009bae35742a0066eb8d5d0a8011bad357426ae8940088d4018d4c01ccd5ce2481035054310000849926135744a00226aae7940044dd5000893090009000911091998008020018011000889191800800911980198010010009991999111919191991199991111991199911191919191919991119911919191919199999111119191919191999111999111999999991111111199119999911111991191919191991199119911919999111199119911991199119911919191919191991199119191919191919191919999111199119191191919191919111191919191919192999a983d80510a9999a9831805099835199a8342839183f8009a9aa83d280311000998351991199ab9a3371200400211202110026603860bea00460506a604802444444444400260bea00a660d46601aa00a60c4002a66a610a026603aa010603e002210e0226605260be66026a010603e00260bea0042c2660d46603aa010603e002660d4666a0d0a0e46a6aa0f4a00c440020fa6601aa00a60c40022660d4666a0d0a0e46a6aa0f4a00c440020fa660d46601aa00a60c4002660d46601866026a010603e00260c4002660086a05460bea004a00642a6666a60c60142c2660d46601866026a010a00660c4002660d46605260420026046024660086042002603e00226603aa010603e0022c2a6666a60c40122a66a6108026644666ae68cdc4801000843808440098082800a40042a66a6a0ec605401026102022c442a66a6a0f000226106022c46442a66a6a0f600226a6aa0fc6a6aa0fca0044400444a666a61040200242660e26602800660d2002660e2660606a06260cc0066054032660e2666a0de0ca605000290011a9aa840809a9aa84080a80291000912999a98428080090b10b0999a83883399814980d2805a4004603400442c2660e0666a0dc0c86604c602ea0109001180b8011a9aa840009a9aa84000a80211000912999a98420080090998399980b001983580099839998191a8199834001981600d999a8388339815000a400442c2c4426110022c266aa0fa601200660120022a66a6a0ec605401026104022c4646442a66a6a0f40022a666a60fe6a6aa0faa0064400242660dc66022a00660cc002660dc6605a6a05c60c6a006604e02c666a0d80c4604a002900110b0b1109844008b09a9aa83da80091001098038008b0b0b0a99a9a8369a9816003911a981800111111111111982300500590980e9a981e000910008b0a99a9a83a191a98170009111111111001a802898390b110a99a9a83b0008801110983b0b1191919191299a98438099815803241012179fa042660d86605660c26602aa014a0226054a004660d86605660c26602aa0146a6aa0f8a020440046054a0066605660c26602aa014002605466044660446604400ca004a0066a6aaa050a0084440022660d86605660c26602aa014a0226054a00a6605660c26602aa01400260546604400ca00a26a6aaa04ca00444400626a6aaa04aa0024440042666aaa04a660e40046a6aaa048a01c444002660e40046a6aa0f0a01844002660e40046a60440204444444440062660e20026a6aaa046a01a44400426a6aa0eaa002440042a66a6a0e2604a006260e02c442a66a6a0e60022600600444260e82c46a60766a60720024440064466a60ae0044c4a66a6a0d86a607800844400242a66a6a0da646a605e0024444444444a66a6a0f0666aa609824002a09e46a6aa1080200244a66a612202666ae68cdc7801007849808490089a83e8018a83e001109a83d9a9aa84200800910008a83ca80311919190a99a9a8389999999aba400423333573466e1d40092004233335573ea0084a0ea46666aae7cd5d128029299a9a83a98389aba150062135078308501001150762507607307223333573466e1d400d2002233335573ea00a4a0ec46666aae7cd5d128031299a9a83b18391aba150072135079308701001150772507707407323333573466e1d40112000233335573ea00c46a0f0108024a0ee0e84a0ec9324c93128399283992839928398381099aa83f18108050008b09aab9d5002135573ca00226ea800458584d4c0980048800888cc07cccc158008d4c068020888888888024ccd417dc51a980d004111111111003800a4004446603c6660aa004602e00e666a0bce28d4c06401c8888888880180052002135301600422222222200413535550175001222003135301400222222222200523322300200132233200132001333550023233503b22333503a0030010023503700133503a22230033002001200122337000029001000a400060662400266466aa603a2400244a66a60f06006004266a0d60040022002a0d446a6aaa02e002444660bc666a0b8042602c00c006666a0b80a400290011919a800a834a835091199aa829911a9aa83700111199aa82b911a9aa83900111299a983f999ab9a3370e002900004080840008801899805199aaa81080300100080180180080080191199aa980d890009119aa98060900091a9aa8360009119aa83780119aa98078900091a9aa8378009119aa839001199a9aa80700091980a24000002446602a004002466028002900000099aa98060900091a9aa8360009119aa837801199a9aa805800919aa98080900091a9aa8380009119aa8398011aa80900080091199aaa805011801000919aa98080900091a9aa8380009119aa8398011aa808000800999aaa80280f001000a8341a980f8011111111111199aa981289000911a981d0011111a981f8019119a982d8011299a984300999ab9a3371e0260021100210e02266a0f200a00e200e400ea0e4012222444666aa603624002a0ce66aa60142400246a6aa0d40024466aa0da0046aa018002666aa603624002446a6aa0d600444a66a60f0666aa606c240026466a07844666a6a016006440040040026a6a0120024400266a01244a66a60f400420f820020f246a6aa0dc002446601400400a00c2006266a0d6008006a0d000266aa60142400246a6aa0d4002446466aa0dc006600200a640026aa0f444a66a6a0d600226aa0180064426a6aa0e000444a66a60fa66018004010266aa02200e0022600c00600424424660020060042400222424446006008224424446600400a00822424446002008224002640026aa0da442244a66a6a0c00022a0c444266a0c6600800466aa600c240020080024466e0000800488d4c05400888888888894cd4d4178ccd54c0c84800540d494cd4c1d4ccd5cd19b8f00c0010770761350610011506000321077107523530220012220022353062001222003223370200400246a60c000244400246a600600244444444401046a60040024444444440044444444442466666666600201401201000e00c00a0080060044002222444246660020080060042224002400244666ae68cdc400100082f8300900091a9802000911a98040011111111111299a9a8289980f005005909a9810000911a9812000911199aa980a09000911a98148011111a9817004111a98180029119299a983b99a9826802919a98270021299a983c999ab9a3371e0040020f60f42a00620f440f4466a609c00840f44a66a60f2666ae68cdc780100083d83d0a801883d099a83500500488048a99a9a83000190a99a9a8308011099a9825801119a9826001119a9828001119a9828801119812001000903e919a9828801103e91981200100091103e91119a9827002103e911299a983f199ab9a3370e00c006100020fe2a66a60fc666ae68cdc38028010400083f89982b802000883f883f883c0a99a9a8300009083c083c283080789931a982799ab9c4901024c6600050498c8004d5417088448894cd4d41400044008884cc014008ccd54c01c4800401401000488ccd5cd19b8f00200105c05b2212330010030022001222222222212333333333300100b00a0090080070060050040030022001122123300100300212001122123300100300212001122123300100300212001121222300300411222002112220011200122533335300f0012150372150372150372133355300a12001500d2353005001225335304f5335304f333573466e3cd4c06000888008d4c060010880081441404ccd5cd19b873530180022200135301800422001051050105013503b0031503a003221233001003002200122212333001004003002200122123300100300220013200135504522112225335350390011350060032213335009005300400233355300712001005004001123535004001220011235350030012200213350022253353502b002210031001502a12212330010030021200121222230040052122223003005212222300200521222230010052001221233001003002200121222222230070082212222222330060090082122222223005008122222220041222222200322122222223300200900822122222223300100900820012122300200322212233300100500400320012122300200321223001003200122333573466e1c0080040ac0a88ccc00800522100488100222323230010053200135502c223353501d0014800088d4d54088008894cd4c0bcccd5cd19b8f00200903103013007001130060033200135502b223353501c0014800088d4d54084008894cd4c0b8ccd5cd19b8f00200703002f100113006003112232001320013550292253353501a0011003221330060023004001235301f0012220021222200412222003122220021222200120011200112001225335301d0021001101e2323232323333333574800a46666ae68cdc39aab9d5005480008cccd55cfa8029280691999aab9f50052500e233335573ea00a4a01e46666aae7cd5d128031299a9a807a99a9a807a99a9a80798061aba150092135012223330240030020011501021533535010300d35742a012426a02660040022a0222a02042a66a6a020646666666ae900049404c9404c9404c8d4050dd6801128098081aba150082135013300200115011150102501000d00c00b00a2500c4989402c9402c9402c9402c0204d5d1280089aba25001135573ca00226ea80048ccccccd5d20009280312803128031280311a8039bae00200312001200112122300200311220011200112253335300c0022153335300d00221330050020012130161613015162153335300d0022130161621330050020011301516153335300c001213015162130151610172253353014333573466e3cd4c03c008888008d4c03c0048880080580544ccd5cd19b8735300f00222200135300f00122200101601510152233223370600400266e080092014001262611220021221223300100400312001112212330010030021120012122230030042122230020041222001200122212333001004003002200126262612200212200120011123230010012233003300200200133223322332233333333300248811cd5e6bf0500378d4f0da4e8dde6becec7621cd8cbf5cbb9b87013d4cc0048811c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d520048810853706163654275640048810b5370616365427564426964003335550044891c826d9fafe1b3acf15bd250de69c04e3fc92c4493785939e069932e8900483001920e209335500648811c88269f8b051a739300fe743a7b315026f4614ce1216a4bb45d7fd0f500482209d20882748203db810920a09c012222222221233333333300100a0090080070060050040030022001111222123330010040030021112001112212330010030021120011").unwrap()
-                            )
-                        )
+                PartialPlutusWitness::new(
+                    PlutusScriptWitness::from(
+                        PlutusScript::PlutusV1(PlutusV1Script::new(
+                            hex::decode("59193d010000332332233223232333332222233332222332232333222323332223233333333222222223233322232333322223232332232333222323332223232332233223232333332222233223322332233223322332222323223223232533530343330093333573466e1d401920042304e3055357426aae7940208cccd5cd19b875007480088c140c158d5d09aab9e500923333573466e1d40212000204f235058353059335738921035054310005a49926499263333573466e1d40112006205223333573466e1d40152004205523333573466e1d40192002205323333573466e1d401d2000205623505935305a3357389201035054310005b4992649926498cccd5cd19b8735573aa004900011980619191919191919191919191999ab9a3370e6aae75402920002333333333301a335028232323333573466e1cd55cea8012400046604060766ae854008c0b4d5d09aba25002235066353067335738921035054310006849926135573ca00226ea8004d5d0a80519a8140149aba150093335502f75ca05c6ae854020ccd540bdd728171aba1500733502804435742a00c66a05066aa0aa09aeb4d5d0a8029919191999ab9a3370e6aae754009200023350223232323333573466e1cd55cea80124000466a05466a086eb4d5d0a80118241aba135744a00446a0d46a60d666ae712401035054310006c49926135573ca00226ea8004d5d0a8011919191999ab9a3370e6aae7540092000233502833504375a6ae854008c120d5d09aba2500223506a35306b3357389201035054310006c49926135573ca00226ea8004d5d09aba250022350663530673357389201035054310006849926135573ca00226ea8004d5d0a80219a8143ae35742a00666a05066aa0aaeb88004d5d0a801181d1aba135744a00446a0c46a60c666ae71241035054310006449926135744a00226ae8940044d5d1280089aba25001135744a00226ae8940044d5d1280089aba25001135573ca00226ea8004d5d0a8011919191999ab9a3370ea00290031180f981e1aba135573ca00646666ae68cdc3a801240084603c608c6ae84d55cf280211999ab9a3370ea00690011180f18189aba135573ca00a46666ae68cdc3a80224000460426eb8d5d09aab9e500623505d35305e3357389201035054310005f49926499264984d55cea80089baa001357426ae8940088d4158d4c15ccd5ce2490350543100058499261057135055353056335738920103505435000574984d55cf280089baa001135573a6ea80044d55cea80089baa0012212330010030022001222222222212333333333300100b00a00900800700600500400300220012212330010030022001122123300100300212001122123300100300212001122123300100300212001212222300400521222230030052122223002005212222300100520011232230023758002640026aa080446666aae7c004940388cd4034c010d5d080118019aba200203f23232323333573466e1cd55cea801a4000466600e6464646666ae68cdc39aab9d5002480008cc034c0c4d5d0a80119a8098169aba135744a00446a0846a608666ae712401035054310004449926135573ca00226ea8004d5d0a801999aa805bae500a35742a00466a01eeb8d5d09aba2500223503e35303f335738921035054310004049926135744a00226aae7940044dd50009110919980080200180110009109198008018011000899aa800bae75a224464460046eac004c8004d540e888c8cccd55cf80112804919a80419aa81718031aab9d5002300535573ca00460086ae8800c0e84d5d08008891001091091198008020018900089119191999ab9a3370ea002900011a80418029aba135573ca00646666ae68cdc3a801240044a01046a06a6a606c66ae7124010350543100037499264984d55cea80089baa001121223002003112200112001232323333573466e1cd55cea8012400046600c600e6ae854008dd69aba135744a00446a05e6a606066ae71241035054310003149926135573ca00226ea80048848cc00400c00880048c8cccd5cd19b8735573aa002900011bae357426aae7940088d40acd4c0b0cd5ce2481035054310002d499261375400224464646666ae68cdc3a800a40084a00e46666ae68cdc3a8012400446a014600c6ae84d55cf280211999ab9a3370ea00690001280511a8171a981799ab9c490103505431000304992649926135573aa00226ea8004484888c00c0104488800844888004480048c8cccd5cd19b8750014800880188cccd5cd19b8750024800080188d4098d4c09ccd5ce2490350543100028499264984d55ce9baa0011220021220012001232323232323333573466e1d4005200c200b23333573466e1d4009200a200d23333573466e1d400d200823300b375c6ae854014dd69aba135744a00a46666ae68cdc3a8022400c46601a6eb8d5d0a8039bae357426ae89401c8cccd5cd19b875005480108cc048c050d5d0a8049bae357426ae8940248cccd5cd19b875006480088c050c054d5d09aab9e500b23333573466e1d401d2000230133016357426aae7940308d40acd4c0b0cd5ce2481035054310002d49926499264992649926135573aa00826aae79400c4d55cf280109aab9e500113754002424444444600e01044244444446600c012010424444444600a010244444440082444444400644244444446600401201044244444446600201201040024646464646666ae68cdc3a800a400446660106eb4d5d0a8021bad35742a0066eb4d5d09aba2500323333573466e1d400920002300a300b357426aae7940188d4070d4c074cd5ce249035054310001e499264984d55cea80189aba25001135573ca00226ea80048488c00800c888488ccc00401401000c80048c8c8cccd5cd19b875001480088c018dd71aba135573ca00646666ae68cdc3a80124000460106eb8d5d09aab9e500423501635301733573892010350543100018499264984d55cea80089baa001212230020032122300100320011122232323333573466e1cd55cea80124000466aa010600c6ae854008c014d5d09aba25002235013353014335738921035054310001549926135573ca00226ea8004448848cc00400c00844800484888c00c01084888c00801048880048004488880104888800c488880084888800480048c8c8c8cccd5cd19b8735573aa006900011999111998068018010009bae35742a0066eb8d5d0a8011bad357426ae8940088d4018d4c01ccd5ce2481035054310000849926135744a00226aae7940044dd5000893090009000911091998008020018011000889191800800911980198010010009991999111919191991199991111991199911191919191919991119911919191919199999111119191919191999111999111999999991111111199119999911111991191919191991199119911919999111199119911991199119911919191919191991199119191919191919191919999111199119191191919191919111191919191919192999a983d80510a9999a9831805099835199a8342839183f8009a9aa83d280311000998351991199ab9a3371200400211202110026603860bea00460506a604802444444444400260bea00a660d46601aa00a60c4002a66a610a026603aa010603e002210e0226605260be66026a010603e00260bea0042c2660d46603aa010603e002660d4666a0d0a0e46a6aa0f4a00c440020fa6601aa00a60c40022660d4666a0d0a0e46a6aa0f4a00c440020fa660d46601aa00a60c4002660d46601866026a010603e00260c4002660086a05460bea004a00642a6666a60c60142c2660d46601866026a010a00660c4002660d46605260420026046024660086042002603e00226603aa010603e0022c2a6666a60c40122a66a6108026644666ae68cdc4801000843808440098082800a40042a66a6a0ec605401026102022c442a66a6a0f000226106022c46442a66a6a0f600226a6aa0fc6a6aa0fca0044400444a666a61040200242660e26602800660d2002660e2660606a06260cc0066054032660e2666a0de0ca605000290011a9aa840809a9aa84080a80291000912999a98428080090b10b0999a83883399814980d2805a4004603400442c2660e0666a0dc0c86604c602ea0109001180b8011a9aa840009a9aa84000a80211000912999a98420080090998399980b001983580099839998191a8199834001981600d999a8388339815000a400442c2c4426110022c266aa0fa601200660120022a66a6a0ec605401026104022c4646442a66a6a0f40022a666a60fe6a6aa0faa0064400242660dc66022a00660cc002660dc6605a6a05c60c6a006604e02c666a0d80c4604a002900110b0b1109844008b09a9aa83da80091001098038008b0b0b0a99a9a8369a9816003911a981800111111111111982300500590980e9a981e000910008b0a99a9a83a191a98170009111111111001a802898390b110a99a9a83b0008801110983b0b1191919191299a98438099815803241012179fa042660d86605660c26602aa014a0226054a004660d86605660c26602aa0146a6aa0f8a020440046054a0066605660c26602aa014002605466044660446604400ca004a0066a6aaa050a0084440022660d86605660c26602aa014a0226054a00a6605660c26602aa01400260546604400ca00a26a6aaa04ca00444400626a6aaa04aa0024440042666aaa04a660e40046a6aaa048a01c444002660e40046a6aa0f0a01844002660e40046a60440204444444440062660e20026a6aaa046a01a44400426a6aa0eaa002440042a66a6a0e2604a006260e02c442a66a6a0e60022600600444260e82c46a60766a60720024440064466a60ae0044c4a66a6a0d86a607800844400242a66a6a0da646a605e0024444444444a66a6a0f0666aa609824002a09e46a6aa1080200244a66a612202666ae68cdc7801007849808490089a83e8018a83e001109a83d9a9aa84200800910008a83ca80311919190a99a9a8389999999aba400423333573466e1d40092004233335573ea0084a0ea46666aae7cd5d128029299a9a83a98389aba150062135078308501001150762507607307223333573466e1d400d2002233335573ea00a4a0ec46666aae7cd5d128031299a9a83b18391aba150072135079308701001150772507707407323333573466e1d40112000233335573ea00c46a0f0108024a0ee0e84a0ec9324c93128399283992839928398381099aa83f18108050008b09aab9d5002135573ca00226ea800458584d4c0980048800888cc07cccc158008d4c068020888888888024ccd417dc51a980d004111111111003800a4004446603c6660aa004602e00e666a0bce28d4c06401c8888888880180052002135301600422222222200413535550175001222003135301400222222222200523322300200132233200132001333550023233503b22333503a0030010023503700133503a22230033002001200122337000029001000a400060662400266466aa603a2400244a66a60f06006004266a0d60040022002a0d446a6aaa02e002444660bc666a0b8042602c00c006666a0b80a400290011919a800a834a835091199aa829911a9aa83700111199aa82b911a9aa83900111299a983f999ab9a3370e002900004080840008801899805199aaa81080300100080180180080080191199aa980d890009119aa98060900091a9aa8360009119aa83780119aa98078900091a9aa8378009119aa839001199a9aa80700091980a24000002446602a004002466028002900000099aa98060900091a9aa8360009119aa837801199a9aa805800919aa98080900091a9aa8380009119aa8398011aa80900080091199aaa805011801000919aa98080900091a9aa8380009119aa8398011aa808000800999aaa80280f001000a8341a980f8011111111111199aa981289000911a981d0011111a981f8019119a982d8011299a984300999ab9a3371e0260021100210e02266a0f200a00e200e400ea0e4012222444666aa603624002a0ce66aa60142400246a6aa0d40024466aa0da0046aa018002666aa603624002446a6aa0d600444a66a60f0666aa606c240026466a07844666a6a016006440040040026a6a0120024400266a01244a66a60f400420f820020f246a6aa0dc002446601400400a00c2006266a0d6008006a0d000266aa60142400246a6aa0d4002446466aa0dc006600200a640026aa0f444a66a6a0d600226aa0180064426a6aa0e000444a66a60fa66018004010266aa02200e0022600c00600424424660020060042400222424446006008224424446600400a00822424446002008224002640026aa0da442244a66a6a0c00022a0c444266a0c6600800466aa600c240020080024466e0000800488d4c05400888888888894cd4d4178ccd54c0c84800540d494cd4c1d4ccd5cd19b8f00c0010770761350610011506000321077107523530220012220022353062001222003223370200400246a60c000244400246a600600244444444401046a60040024444444440044444444442466666666600201401201000e00c00a0080060044002222444246660020080060042224002400244666ae68cdc400100082f8300900091a9802000911a98040011111111111299a9a8289980f005005909a9810000911a9812000911199aa980a09000911a98148011111a9817004111a98180029119299a983b99a9826802919a98270021299a983c999ab9a3371e0040020f60f42a00620f440f4466a609c00840f44a66a60f2666ae68cdc780100083d83d0a801883d099a83500500488048a99a9a83000190a99a9a8308011099a9825801119a9826001119a9828001119a9828801119812001000903e919a9828801103e91981200100091103e91119a9827002103e911299a983f199ab9a3370e00c006100020fe2a66a60fc666ae68cdc38028010400083f89982b802000883f883f883c0a99a9a8300009083c083c283080789931a982799ab9c4901024c6600050498c8004d5417088448894cd4d41400044008884cc014008ccd54c01c4800401401000488ccd5cd19b8f00200105c05b2212330010030022001222222222212333333333300100b00a0090080070060050040030022001122123300100300212001122123300100300212001122123300100300212001121222300300411222002112220011200122533335300f0012150372150372150372133355300a12001500d2353005001225335304f5335304f333573466e3cd4c06000888008d4c060010880081441404ccd5cd19b873530180022200135301800422001051050105013503b0031503a003221233001003002200122212333001004003002200122123300100300220013200135504522112225335350390011350060032213335009005300400233355300712001005004001123535004001220011235350030012200213350022253353502b002210031001502a12212330010030021200121222230040052122223003005212222300200521222230010052001221233001003002200121222222230070082212222222330060090082122222223005008122222220041222222200322122222223300200900822122222223300100900820012122300200322212233300100500400320012122300200321223001003200122333573466e1c0080040ac0a88ccc00800522100488100222323230010053200135502c223353501d0014800088d4d54088008894cd4c0bcccd5cd19b8f00200903103013007001130060033200135502b223353501c0014800088d4d54084008894cd4c0b8ccd5cd19b8f00200703002f100113006003112232001320013550292253353501a0011003221330060023004001235301f0012220021222200412222003122220021222200120011200112001225335301d0021001101e2323232323333333574800a46666ae68cdc39aab9d5005480008cccd55cfa8029280691999aab9f50052500e233335573ea00a4a01e46666aae7cd5d128031299a9a807a99a9a807a99a9a80798061aba150092135012223330240030020011501021533535010300d35742a012426a02660040022a0222a02042a66a6a020646666666ae900049404c9404c9404c8d4050dd6801128098081aba150082135013300200115011150102501000d00c00b00a2500c4989402c9402c9402c9402c0204d5d1280089aba25001135573ca00226ea80048ccccccd5d20009280312803128031280311a8039bae00200312001200112122300200311220011200112253335300c0022153335300d00221330050020012130161613015162153335300d0022130161621330050020011301516153335300c001213015162130151610172253353014333573466e3cd4c03c008888008d4c03c0048880080580544ccd5cd19b8735300f00222200135300f00122200101601510152233223370600400266e080092014001262611220021221223300100400312001112212330010030021120012122230030042122230020041222001200122212333001004003002200126262612200212200120011123230010012233003300200200133223322332233333333300248811cd5e6bf0500378d4f0da4e8dde6becec7621cd8cbf5cbb9b87013d4cc0048811c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d520048810853706163654275640048810b5370616365427564426964003335550044891c826d9fafe1b3acf15bd250de69c04e3fc92c4493785939e069932e8900483001920e209335500648811c88269f8b051a739300fe743a7b315026f4614ce1216a4bb45d7fd0f500482209d20882748203db810920a09c012222222221233333333300100a0090080070060050040030022001111222123330010040030021112001112212330010030021120011").unwrap()
+                        ))
                     ),
-                    &PlutusData::from_bytes(hex::decode("D866820380").unwrap()).unwrap(),
+                    PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                &required_signers,
-                &PlutusData::from_bytes(hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
+                required_signers,
+                PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
 
         // add change output
         {
             let output_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
-                .with_data(&Datum::new_data_hash(&DataHash::from_hex("f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8").unwrap()))
+                .with_address(Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
+                .with_data(DatumOption::new_hash(DatumHash::from_hex("f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8").unwrap()))
                 .next()
                 .unwrap()
-                .with_coin_and_asset(
-                    &Coin::from_str("1851850").unwrap(),
-                    &spacebudz_asset
-                )
+                .with_value(Value::new(1851850, spacebudz_asset))
                 .build()
                 .unwrap();
-            tx_builder.add_output(&output_utxo).unwrap();
+            tx_builder.add_output(output_utxo).unwrap();
         }
 
         // add user output
         {
             let output_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
+                .with_address(Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
                 .next()
                 .unwrap()
-                .with_coin(&Coin::from_str("67250397").unwrap())
+                .with_value(67250397)
                 .build()
                 .unwrap();
-            tx_builder.add_output(&output_utxo).unwrap();
+            tx_builder.add_output(output_utxo).unwrap();
         }
 
         // add collateral
         {
             let input_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
+                .with_address(Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
                 .next()
                 .unwrap()
-                .with_coin(&Coin::from_str("5000000").unwrap())
+                .with_value(5000000)
                 .build()
                 .unwrap();
-            tx_builder.add_collateral(&SingleInputBuilder::new(
-                &TransactionInput::new(
-                    &TransactionHash::from_hex("a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b").unwrap(),
-                    &TransactionIndex::from_str("0").unwrap()
+            tx_builder.add_collateral(SingleInputBuilder::new(
+                TransactionInput::new(
+                    TransactionHash::from_hex("a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b").unwrap(),
+                    0
                 ),
-                &input_utxo.output()
+                input_utxo.output
             ).payment_key().unwrap()).unwrap();
         }
 
         // metadata
         {
-            let mut map = MetadataMap::new();
+            let mut map = OrderedHashMap::new();
             map.insert(
-                &TransactionMetadatum::new_int(&Int::from_str("0").unwrap()),
-                &TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()).unwrap()
+                TransactionMetadatum::new_int(0u64.into()),
+                TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap())
             );
 
             let mut aux_data = AuxiliaryData::new();
-            aux_data.add_metadatum(
-                &u64::from_str("405").unwrap(),
-                &TransactionMetadatum::new_map(&map)
+            aux_data.metadata_mut().insert(
+                405,
+                TransactionMetadatum::new_map(map)
             );
-            tx_builder.add_auxiliary_data(&aux_data);
+            tx_builder.add_auxiliary_data(aux_data);
         }
 
-        tx_builder.set_fee(&u64::from_str("897753").unwrap());
+        tx_builder.set_fee(897753);
 
         let mut tx_redeemer_builder = tx_builder.build_for_evaluation(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap()).unwrap();
 
-        let fake_script_hash = tx_redeemer_builder.draft_body().script_data_hash().unwrap();
+        let fake_script_hash = tx_redeemer_builder.draft_body().script_data_hash.unwrap();
         assert_eq!(fake_script_hash.to_hex(), "0000000000000000000000000000000000000000000000000000000000000000");
         {
             tx_redeemer_builder.set_exunits(
-                &RedeemerWitnessKey::new(
-                    &RedeemerTag::new_spend(),
-                    &u64::from(0)
+                RedeemerWitnessKey::new(
+                    RedeemerTag::Spend,
+                    0
                 ),
-                &ExUnits::new(
-                    &u64::from_str("5000000").unwrap(),
-                    &u64::from_str("2000000000").unwrap()
-                )
+                ExUnits::new(5000000, 2000000000)
             );
             tx_builder.set_exunits(
-                &RedeemerWitnessKey::new(
-                    &RedeemerTag::new_spend(),
-                    &u64::from(0)
+                RedeemerWitnessKey::new(
+                    RedeemerTag::Spend,
+                    0
                 ),
-                &ExUnits::new(
-                    &u64::from_str("5000000").unwrap(),
-                    &u64::from_str("2000000000").unwrap()
-                )
+                ExUnits::new(5000000, 2000000000)
             );
         }
         let signed_tx_builder = tx_builder.build(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap()).unwrap();
-        let real_script_hash = signed_tx_builder.body().script_data_hash().unwrap();
+        let real_script_hash = signed_tx_builder.body.script_data_hash.as_ref().unwrap();
         assert_eq!(real_script_hash.to_hex(), "684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d9");
 
-        let tx = signed_tx_builder.body();
-        assert_eq!(tx.to_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c").unwrap());
+        let tx = &signed_tx_builder.body;
+        assert_eq!(tx.to_cbor_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c").unwrap());
     }
 
     #[test]
@@ -4735,14 +4592,14 @@ mod tests {
         // variant of the tx 18565ab3c960c000531e5b359432397907d663c0ac5f5dbae80e1bf88d25c8a0 on mainnet
 
         let mut spacebudz_asset = MultiAsset::new();
-        spacebudz_asset.set_asset(
-            &PolicyID::from_hex("6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52").unwrap(),
-            &AssetName::new(hex::decode("537061636542756442696433303533").unwrap()).unwrap(),
-            &u64::from_str("1").unwrap()
+        spacebudz_asset.set(
+            PolicyId::from_hex("6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52").unwrap(),
+            AssetName::new(hex::decode("537061636542756442696433303533").unwrap()).unwrap(),
+            1
         );
 
         // not the real private key used for the tx on Cardano mainnet
-        let private_key = &PrivateKey::from_normal_bytes(
+        let private_key = PrivateKey::from_normal_bytes(
             &hex::decode("c660e50315d76a53d80732efda7630cae8885dfb85c46378684b3c6103e1284a").unwrap()
         ).unwrap();
 
@@ -4750,130 +4607,119 @@ mod tests {
         {
             let mut required_signers = RequiredSigners::new();
             // real tx was using 5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9 instead
-            required_signers.add(&private_key.to_public().hash());
+            required_signers.push(private_key.to_public().hash());
 
             let input_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
+                .with_address(Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
                 .next()
                 .unwrap()
-                .with_coin_and_asset(
-                    &Coin::from_str("70000000").unwrap(),
-                    &spacebudz_asset
-                )
+                .with_value(Value::new(70000000, spacebudz_asset.clone()))
                 .build()
                 .unwrap();
-            tx_builder.add_input(&SingleInputBuilder::new(
-                &TransactionInput::new(
-                    &TransactionHash::from_hex("473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c").unwrap(),
-                    &TransactionIndex::from_str("0").unwrap()
+            tx_builder.add_input(SingleInputBuilder::new(
+                TransactionInput::new(
+                    TransactionHash::from_hex("473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c").unwrap(),
+                    0
                 ),
-                &input_utxo.output()
+                input_utxo.output
             ).plutus_script(
-                &PartialPlutusWitness::new(
-                    &PlutusScriptWitness::from_script(
-                        PlutusScript::from_v1(
-                            &PlutusV1Script::new(
-                                hex::decode("59193d010000332332233223232333332222233332222332232333222323332223233333333222222223233322232333322223232332232333222323332223232332233223232333332222233223322332233223322332222323223223232533530343330093333573466e1d401920042304e3055357426aae7940208cccd5cd19b875007480088c140c158d5d09aab9e500923333573466e1d40212000204f235058353059335738921035054310005a49926499263333573466e1d40112006205223333573466e1d40152004205523333573466e1d40192002205323333573466e1d401d2000205623505935305a3357389201035054310005b4992649926498cccd5cd19b8735573aa004900011980619191919191919191919191999ab9a3370e6aae75402920002333333333301a335028232323333573466e1cd55cea8012400046604060766ae854008c0b4d5d09aba25002235066353067335738921035054310006849926135573ca00226ea8004d5d0a80519a8140149aba150093335502f75ca05c6ae854020ccd540bdd728171aba1500733502804435742a00c66a05066aa0aa09aeb4d5d0a8029919191999ab9a3370e6aae754009200023350223232323333573466e1cd55cea80124000466a05466a086eb4d5d0a80118241aba135744a00446a0d46a60d666ae712401035054310006c49926135573ca00226ea8004d5d0a8011919191999ab9a3370e6aae7540092000233502833504375a6ae854008c120d5d09aba2500223506a35306b3357389201035054310006c49926135573ca00226ea8004d5d09aba250022350663530673357389201035054310006849926135573ca00226ea8004d5d0a80219a8143ae35742a00666a05066aa0aaeb88004d5d0a801181d1aba135744a00446a0c46a60c666ae71241035054310006449926135744a00226ae8940044d5d1280089aba25001135744a00226ae8940044d5d1280089aba25001135573ca00226ea8004d5d0a8011919191999ab9a3370ea00290031180f981e1aba135573ca00646666ae68cdc3a801240084603c608c6ae84d55cf280211999ab9a3370ea00690011180f18189aba135573ca00a46666ae68cdc3a80224000460426eb8d5d09aab9e500623505d35305e3357389201035054310005f49926499264984d55cea80089baa001357426ae8940088d4158d4c15ccd5ce2490350543100058499261057135055353056335738920103505435000574984d55cf280089baa001135573a6ea80044d55cea80089baa0012212330010030022001222222222212333333333300100b00a00900800700600500400300220012212330010030022001122123300100300212001122123300100300212001122123300100300212001212222300400521222230030052122223002005212222300100520011232230023758002640026aa080446666aae7c004940388cd4034c010d5d080118019aba200203f23232323333573466e1cd55cea801a4000466600e6464646666ae68cdc39aab9d5002480008cc034c0c4d5d0a80119a8098169aba135744a00446a0846a608666ae712401035054310004449926135573ca00226ea8004d5d0a801999aa805bae500a35742a00466a01eeb8d5d09aba2500223503e35303f335738921035054310004049926135744a00226aae7940044dd50009110919980080200180110009109198008018011000899aa800bae75a224464460046eac004c8004d540e888c8cccd55cf80112804919a80419aa81718031aab9d5002300535573ca00460086ae8800c0e84d5d08008891001091091198008020018900089119191999ab9a3370ea002900011a80418029aba135573ca00646666ae68cdc3a801240044a01046a06a6a606c66ae7124010350543100037499264984d55cea80089baa001121223002003112200112001232323333573466e1cd55cea8012400046600c600e6ae854008dd69aba135744a00446a05e6a606066ae71241035054310003149926135573ca00226ea80048848cc00400c00880048c8cccd5cd19b8735573aa002900011bae357426aae7940088d40acd4c0b0cd5ce2481035054310002d499261375400224464646666ae68cdc3a800a40084a00e46666ae68cdc3a8012400446a014600c6ae84d55cf280211999ab9a3370ea00690001280511a8171a981799ab9c490103505431000304992649926135573aa00226ea8004484888c00c0104488800844888004480048c8cccd5cd19b8750014800880188cccd5cd19b8750024800080188d4098d4c09ccd5ce2490350543100028499264984d55ce9baa0011220021220012001232323232323333573466e1d4005200c200b23333573466e1d4009200a200d23333573466e1d400d200823300b375c6ae854014dd69aba135744a00a46666ae68cdc3a8022400c46601a6eb8d5d0a8039bae357426ae89401c8cccd5cd19b875005480108cc048c050d5d0a8049bae357426ae8940248cccd5cd19b875006480088c050c054d5d09aab9e500b23333573466e1d401d2000230133016357426aae7940308d40acd4c0b0cd5ce2481035054310002d49926499264992649926135573aa00826aae79400c4d55cf280109aab9e500113754002424444444600e01044244444446600c012010424444444600a010244444440082444444400644244444446600401201044244444446600201201040024646464646666ae68cdc3a800a400446660106eb4d5d0a8021bad35742a0066eb4d5d09aba2500323333573466e1d400920002300a300b357426aae7940188d4070d4c074cd5ce249035054310001e499264984d55cea80189aba25001135573ca00226ea80048488c00800c888488ccc00401401000c80048c8c8cccd5cd19b875001480088c018dd71aba135573ca00646666ae68cdc3a80124000460106eb8d5d09aab9e500423501635301733573892010350543100018499264984d55cea80089baa001212230020032122300100320011122232323333573466e1cd55cea80124000466aa010600c6ae854008c014d5d09aba25002235013353014335738921035054310001549926135573ca00226ea8004448848cc00400c00844800484888c00c01084888c00801048880048004488880104888800c488880084888800480048c8c8c8cccd5cd19b8735573aa006900011999111998068018010009bae35742a0066eb8d5d0a8011bad357426ae8940088d4018d4c01ccd5ce2481035054310000849926135744a00226aae7940044dd5000893090009000911091998008020018011000889191800800911980198010010009991999111919191991199991111991199911191919191919991119911919191919199999111119191919191999111999111999999991111111199119999911111991191919191991199119911919999111199119911991199119911919191919191991199119191919191919191919999111199119191191919191919111191919191919192999a983d80510a9999a9831805099835199a8342839183f8009a9aa83d280311000998351991199ab9a3371200400211202110026603860bea00460506a604802444444444400260bea00a660d46601aa00a60c4002a66a610a026603aa010603e002210e0226605260be66026a010603e00260bea0042c2660d46603aa010603e002660d4666a0d0a0e46a6aa0f4a00c440020fa6601aa00a60c40022660d4666a0d0a0e46a6aa0f4a00c440020fa660d46601aa00a60c4002660d46601866026a010603e00260c4002660086a05460bea004a00642a6666a60c60142c2660d46601866026a010a00660c4002660d46605260420026046024660086042002603e00226603aa010603e0022c2a6666a60c40122a66a6108026644666ae68cdc4801000843808440098082800a40042a66a6a0ec605401026102022c442a66a6a0f000226106022c46442a66a6a0f600226a6aa0fc6a6aa0fca0044400444a666a61040200242660e26602800660d2002660e2660606a06260cc0066054032660e2666a0de0ca605000290011a9aa840809a9aa84080a80291000912999a98428080090b10b0999a83883399814980d2805a4004603400442c2660e0666a0dc0c86604c602ea0109001180b8011a9aa840009a9aa84000a80211000912999a98420080090998399980b001983580099839998191a8199834001981600d999a8388339815000a400442c2c4426110022c266aa0fa601200660120022a66a6a0ec605401026104022c4646442a66a6a0f40022a666a60fe6a6aa0faa0064400242660dc66022a00660cc002660dc6605a6a05c60c6a006604e02c666a0d80c4604a002900110b0b1109844008b09a9aa83da80091001098038008b0b0b0a99a9a8369a9816003911a981800111111111111982300500590980e9a981e000910008b0a99a9a83a191a98170009111111111001a802898390b110a99a9a83b0008801110983b0b1191919191299a98438099815803241012179fa042660d86605660c26602aa014a0226054a004660d86605660c26602aa0146a6aa0f8a020440046054a0066605660c26602aa014002605466044660446604400ca004a0066a6aaa050a0084440022660d86605660c26602aa014a0226054a00a6605660c26602aa01400260546604400ca00a26a6aaa04ca00444400626a6aaa04aa0024440042666aaa04a660e40046a6aaa048a01c444002660e40046a6aa0f0a01844002660e40046a60440204444444440062660e20026a6aaa046a01a44400426a6aa0eaa002440042a66a6a0e2604a006260e02c442a66a6a0e60022600600444260e82c46a60766a60720024440064466a60ae0044c4a66a6a0d86a607800844400242a66a6a0da646a605e0024444444444a66a6a0f0666aa609824002a09e46a6aa1080200244a66a612202666ae68cdc7801007849808490089a83e8018a83e001109a83d9a9aa84200800910008a83ca80311919190a99a9a8389999999aba400423333573466e1d40092004233335573ea0084a0ea46666aae7cd5d128029299a9a83a98389aba150062135078308501001150762507607307223333573466e1d400d2002233335573ea00a4a0ec46666aae7cd5d128031299a9a83b18391aba150072135079308701001150772507707407323333573466e1d40112000233335573ea00c46a0f0108024a0ee0e84a0ec9324c93128399283992839928398381099aa83f18108050008b09aab9d5002135573ca00226ea800458584d4c0980048800888cc07cccc158008d4c068020888888888024ccd417dc51a980d004111111111003800a4004446603c6660aa004602e00e666a0bce28d4c06401c8888888880180052002135301600422222222200413535550175001222003135301400222222222200523322300200132233200132001333550023233503b22333503a0030010023503700133503a22230033002001200122337000029001000a400060662400266466aa603a2400244a66a60f06006004266a0d60040022002a0d446a6aaa02e002444660bc666a0b8042602c00c006666a0b80a400290011919a800a834a835091199aa829911a9aa83700111199aa82b911a9aa83900111299a983f999ab9a3370e002900004080840008801899805199aaa81080300100080180180080080191199aa980d890009119aa98060900091a9aa8360009119aa83780119aa98078900091a9aa8378009119aa839001199a9aa80700091980a24000002446602a004002466028002900000099aa98060900091a9aa8360009119aa837801199a9aa805800919aa98080900091a9aa8380009119aa8398011aa80900080091199aaa805011801000919aa98080900091a9aa8380009119aa8398011aa808000800999aaa80280f001000a8341a980f8011111111111199aa981289000911a981d0011111a981f8019119a982d8011299a984300999ab9a3371e0260021100210e02266a0f200a00e200e400ea0e4012222444666aa603624002a0ce66aa60142400246a6aa0d40024466aa0da0046aa018002666aa603624002446a6aa0d600444a66a60f0666aa606c240026466a07844666a6a016006440040040026a6a0120024400266a01244a66a60f400420f820020f246a6aa0dc002446601400400a00c2006266a0d6008006a0d000266aa60142400246a6aa0d4002446466aa0dc006600200a640026aa0f444a66a6a0d600226aa0180064426a6aa0e000444a66a60fa66018004010266aa02200e0022600c00600424424660020060042400222424446006008224424446600400a00822424446002008224002640026aa0da442244a66a6a0c00022a0c444266a0c6600800466aa600c240020080024466e0000800488d4c05400888888888894cd4d4178ccd54c0c84800540d494cd4c1d4ccd5cd19b8f00c0010770761350610011506000321077107523530220012220022353062001222003223370200400246a60c000244400246a600600244444444401046a60040024444444440044444444442466666666600201401201000e00c00a0080060044002222444246660020080060042224002400244666ae68cdc400100082f8300900091a9802000911a98040011111111111299a9a8289980f005005909a9810000911a9812000911199aa980a09000911a98148011111a9817004111a98180029119299a983b99a9826802919a98270021299a983c999ab9a3371e0040020f60f42a00620f440f4466a609c00840f44a66a60f2666ae68cdc780100083d83d0a801883d099a83500500488048a99a9a83000190a99a9a8308011099a9825801119a9826001119a9828001119a9828801119812001000903e919a9828801103e91981200100091103e91119a9827002103e911299a983f199ab9a3370e00c006100020fe2a66a60fc666ae68cdc38028010400083f89982b802000883f883f883c0a99a9a8300009083c083c283080789931a982799ab9c4901024c6600050498c8004d5417088448894cd4d41400044008884cc014008ccd54c01c4800401401000488ccd5cd19b8f00200105c05b2212330010030022001222222222212333333333300100b00a0090080070060050040030022001122123300100300212001122123300100300212001122123300100300212001121222300300411222002112220011200122533335300f0012150372150372150372133355300a12001500d2353005001225335304f5335304f333573466e3cd4c06000888008d4c060010880081441404ccd5cd19b873530180022200135301800422001051050105013503b0031503a003221233001003002200122212333001004003002200122123300100300220013200135504522112225335350390011350060032213335009005300400233355300712001005004001123535004001220011235350030012200213350022253353502b002210031001502a12212330010030021200121222230040052122223003005212222300200521222230010052001221233001003002200121222222230070082212222222330060090082122222223005008122222220041222222200322122222223300200900822122222223300100900820012122300200322212233300100500400320012122300200321223001003200122333573466e1c0080040ac0a88ccc00800522100488100222323230010053200135502c223353501d0014800088d4d54088008894cd4c0bcccd5cd19b8f00200903103013007001130060033200135502b223353501c0014800088d4d54084008894cd4c0b8ccd5cd19b8f00200703002f100113006003112232001320013550292253353501a0011003221330060023004001235301f0012220021222200412222003122220021222200120011200112001225335301d0021001101e2323232323333333574800a46666ae68cdc39aab9d5005480008cccd55cfa8029280691999aab9f50052500e233335573ea00a4a01e46666aae7cd5d128031299a9a807a99a9a807a99a9a80798061aba150092135012223330240030020011501021533535010300d35742a012426a02660040022a0222a02042a66a6a020646666666ae900049404c9404c9404c8d4050dd6801128098081aba150082135013300200115011150102501000d00c00b00a2500c4989402c9402c9402c9402c0204d5d1280089aba25001135573ca00226ea80048ccccccd5d20009280312803128031280311a8039bae00200312001200112122300200311220011200112253335300c0022153335300d00221330050020012130161613015162153335300d0022130161621330050020011301516153335300c001213015162130151610172253353014333573466e3cd4c03c008888008d4c03c0048880080580544ccd5cd19b8735300f00222200135300f00122200101601510152233223370600400266e080092014001262611220021221223300100400312001112212330010030021120012122230030042122230020041222001200122212333001004003002200126262612200212200120011123230010012233003300200200133223322332233333333300248811cd5e6bf0500378d4f0da4e8dde6becec7621cd8cbf5cbb9b87013d4cc0048811c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d520048810853706163654275640048810b5370616365427564426964003335550044891c826d9fafe1b3acf15bd250de69c04e3fc92c4493785939e069932e8900483001920e209335500648811c88269f8b051a739300fe743a7b315026f4614ce1216a4bb45d7fd0f500482209d20882748203db810920a09c012222222221233333333300100a0090080070060050040030022001111222123330010040030021112001112212330010030021120011").unwrap()
-                            )
-                        )
+                PartialPlutusWitness::new(
+                    PlutusScriptWitness::from(
+                        PlutusScript::PlutusV1(PlutusV1Script::new(
+                            hex::decode("59193d010000332332233223232333332222233332222332232333222323332223233333333222222223233322232333322223232332232333222323332223232332233223232333332222233223322332233223322332222323223223232533530343330093333573466e1d401920042304e3055357426aae7940208cccd5cd19b875007480088c140c158d5d09aab9e500923333573466e1d40212000204f235058353059335738921035054310005a49926499263333573466e1d40112006205223333573466e1d40152004205523333573466e1d40192002205323333573466e1d401d2000205623505935305a3357389201035054310005b4992649926498cccd5cd19b8735573aa004900011980619191919191919191919191999ab9a3370e6aae75402920002333333333301a335028232323333573466e1cd55cea8012400046604060766ae854008c0b4d5d09aba25002235066353067335738921035054310006849926135573ca00226ea8004d5d0a80519a8140149aba150093335502f75ca05c6ae854020ccd540bdd728171aba1500733502804435742a00c66a05066aa0aa09aeb4d5d0a8029919191999ab9a3370e6aae754009200023350223232323333573466e1cd55cea80124000466a05466a086eb4d5d0a80118241aba135744a00446a0d46a60d666ae712401035054310006c49926135573ca00226ea8004d5d0a8011919191999ab9a3370e6aae7540092000233502833504375a6ae854008c120d5d09aba2500223506a35306b3357389201035054310006c49926135573ca00226ea8004d5d09aba250022350663530673357389201035054310006849926135573ca00226ea8004d5d0a80219a8143ae35742a00666a05066aa0aaeb88004d5d0a801181d1aba135744a00446a0c46a60c666ae71241035054310006449926135744a00226ae8940044d5d1280089aba25001135744a00226ae8940044d5d1280089aba25001135573ca00226ea8004d5d0a8011919191999ab9a3370ea00290031180f981e1aba135573ca00646666ae68cdc3a801240084603c608c6ae84d55cf280211999ab9a3370ea00690011180f18189aba135573ca00a46666ae68cdc3a80224000460426eb8d5d09aab9e500623505d35305e3357389201035054310005f49926499264984d55cea80089baa001357426ae8940088d4158d4c15ccd5ce2490350543100058499261057135055353056335738920103505435000574984d55cf280089baa001135573a6ea80044d55cea80089baa0012212330010030022001222222222212333333333300100b00a00900800700600500400300220012212330010030022001122123300100300212001122123300100300212001122123300100300212001212222300400521222230030052122223002005212222300100520011232230023758002640026aa080446666aae7c004940388cd4034c010d5d080118019aba200203f23232323333573466e1cd55cea801a4000466600e6464646666ae68cdc39aab9d5002480008cc034c0c4d5d0a80119a8098169aba135744a00446a0846a608666ae712401035054310004449926135573ca00226ea8004d5d0a801999aa805bae500a35742a00466a01eeb8d5d09aba2500223503e35303f335738921035054310004049926135744a00226aae7940044dd50009110919980080200180110009109198008018011000899aa800bae75a224464460046eac004c8004d540e888c8cccd55cf80112804919a80419aa81718031aab9d5002300535573ca00460086ae8800c0e84d5d08008891001091091198008020018900089119191999ab9a3370ea002900011a80418029aba135573ca00646666ae68cdc3a801240044a01046a06a6a606c66ae7124010350543100037499264984d55cea80089baa001121223002003112200112001232323333573466e1cd55cea8012400046600c600e6ae854008dd69aba135744a00446a05e6a606066ae71241035054310003149926135573ca00226ea80048848cc00400c00880048c8cccd5cd19b8735573aa002900011bae357426aae7940088d40acd4c0b0cd5ce2481035054310002d499261375400224464646666ae68cdc3a800a40084a00e46666ae68cdc3a8012400446a014600c6ae84d55cf280211999ab9a3370ea00690001280511a8171a981799ab9c490103505431000304992649926135573aa00226ea8004484888c00c0104488800844888004480048c8cccd5cd19b8750014800880188cccd5cd19b8750024800080188d4098d4c09ccd5ce2490350543100028499264984d55ce9baa0011220021220012001232323232323333573466e1d4005200c200b23333573466e1d4009200a200d23333573466e1d400d200823300b375c6ae854014dd69aba135744a00a46666ae68cdc3a8022400c46601a6eb8d5d0a8039bae357426ae89401c8cccd5cd19b875005480108cc048c050d5d0a8049bae357426ae8940248cccd5cd19b875006480088c050c054d5d09aab9e500b23333573466e1d401d2000230133016357426aae7940308d40acd4c0b0cd5ce2481035054310002d49926499264992649926135573aa00826aae79400c4d55cf280109aab9e500113754002424444444600e01044244444446600c012010424444444600a010244444440082444444400644244444446600401201044244444446600201201040024646464646666ae68cdc3a800a400446660106eb4d5d0a8021bad35742a0066eb4d5d09aba2500323333573466e1d400920002300a300b357426aae7940188d4070d4c074cd5ce249035054310001e499264984d55cea80189aba25001135573ca00226ea80048488c00800c888488ccc00401401000c80048c8c8cccd5cd19b875001480088c018dd71aba135573ca00646666ae68cdc3a80124000460106eb8d5d09aab9e500423501635301733573892010350543100018499264984d55cea80089baa001212230020032122300100320011122232323333573466e1cd55cea80124000466aa010600c6ae854008c014d5d09aba25002235013353014335738921035054310001549926135573ca00226ea8004448848cc00400c00844800484888c00c01084888c00801048880048004488880104888800c488880084888800480048c8c8c8cccd5cd19b8735573aa006900011999111998068018010009bae35742a0066eb8d5d0a8011bad357426ae8940088d4018d4c01ccd5ce2481035054310000849926135744a00226aae7940044dd5000893090009000911091998008020018011000889191800800911980198010010009991999111919191991199991111991199911191919191919991119911919191919199999111119191919191999111999111999999991111111199119999911111991191919191991199119911919999111199119911991199119911919191919191991199119191919191919191919999111199119191191919191919111191919191919192999a983d80510a9999a9831805099835199a8342839183f8009a9aa83d280311000998351991199ab9a3371200400211202110026603860bea00460506a604802444444444400260bea00a660d46601aa00a60c4002a66a610a026603aa010603e002210e0226605260be66026a010603e00260bea0042c2660d46603aa010603e002660d4666a0d0a0e46a6aa0f4a00c440020fa6601aa00a60c40022660d4666a0d0a0e46a6aa0f4a00c440020fa660d46601aa00a60c4002660d46601866026a010603e00260c4002660086a05460bea004a00642a6666a60c60142c2660d46601866026a010a00660c4002660d46605260420026046024660086042002603e00226603aa010603e0022c2a6666a60c40122a66a6108026644666ae68cdc4801000843808440098082800a40042a66a6a0ec605401026102022c442a66a6a0f000226106022c46442a66a6a0f600226a6aa0fc6a6aa0fca0044400444a666a61040200242660e26602800660d2002660e2660606a06260cc0066054032660e2666a0de0ca605000290011a9aa840809a9aa84080a80291000912999a98428080090b10b0999a83883399814980d2805a4004603400442c2660e0666a0dc0c86604c602ea0109001180b8011a9aa840009a9aa84000a80211000912999a98420080090998399980b001983580099839998191a8199834001981600d999a8388339815000a400442c2c4426110022c266aa0fa601200660120022a66a6a0ec605401026104022c4646442a66a6a0f40022a666a60fe6a6aa0faa0064400242660dc66022a00660cc002660dc6605a6a05c60c6a006604e02c666a0d80c4604a002900110b0b1109844008b09a9aa83da80091001098038008b0b0b0a99a9a8369a9816003911a981800111111111111982300500590980e9a981e000910008b0a99a9a83a191a98170009111111111001a802898390b110a99a9a83b0008801110983b0b1191919191299a98438099815803241012179fa042660d86605660c26602aa014a0226054a004660d86605660c26602aa0146a6aa0f8a020440046054a0066605660c26602aa014002605466044660446604400ca004a0066a6aaa050a0084440022660d86605660c26602aa014a0226054a00a6605660c26602aa01400260546604400ca00a26a6aaa04ca00444400626a6aaa04aa0024440042666aaa04a660e40046a6aaa048a01c444002660e40046a6aa0f0a01844002660e40046a60440204444444440062660e20026a6aaa046a01a44400426a6aa0eaa002440042a66a6a0e2604a006260e02c442a66a6a0e60022600600444260e82c46a60766a60720024440064466a60ae0044c4a66a6a0d86a607800844400242a66a6a0da646a605e0024444444444a66a6a0f0666aa609824002a09e46a6aa1080200244a66a612202666ae68cdc7801007849808490089a83e8018a83e001109a83d9a9aa84200800910008a83ca80311919190a99a9a8389999999aba400423333573466e1d40092004233335573ea0084a0ea46666aae7cd5d128029299a9a83a98389aba150062135078308501001150762507607307223333573466e1d400d2002233335573ea00a4a0ec46666aae7cd5d128031299a9a83b18391aba150072135079308701001150772507707407323333573466e1d40112000233335573ea00c46a0f0108024a0ee0e84a0ec9324c93128399283992839928398381099aa83f18108050008b09aab9d5002135573ca00226ea800458584d4c0980048800888cc07cccc158008d4c068020888888888024ccd417dc51a980d004111111111003800a4004446603c6660aa004602e00e666a0bce28d4c06401c8888888880180052002135301600422222222200413535550175001222003135301400222222222200523322300200132233200132001333550023233503b22333503a0030010023503700133503a22230033002001200122337000029001000a400060662400266466aa603a2400244a66a60f06006004266a0d60040022002a0d446a6aaa02e002444660bc666a0b8042602c00c006666a0b80a400290011919a800a834a835091199aa829911a9aa83700111199aa82b911a9aa83900111299a983f999ab9a3370e002900004080840008801899805199aaa81080300100080180180080080191199aa980d890009119aa98060900091a9aa8360009119aa83780119aa98078900091a9aa8378009119aa839001199a9aa80700091980a24000002446602a004002466028002900000099aa98060900091a9aa8360009119aa837801199a9aa805800919aa98080900091a9aa8380009119aa8398011aa80900080091199aaa805011801000919aa98080900091a9aa8380009119aa8398011aa808000800999aaa80280f001000a8341a980f8011111111111199aa981289000911a981d0011111a981f8019119a982d8011299a984300999ab9a3371e0260021100210e02266a0f200a00e200e400ea0e4012222444666aa603624002a0ce66aa60142400246a6aa0d40024466aa0da0046aa018002666aa603624002446a6aa0d600444a66a60f0666aa606c240026466a07844666a6a016006440040040026a6a0120024400266a01244a66a60f400420f820020f246a6aa0dc002446601400400a00c2006266a0d6008006a0d000266aa60142400246a6aa0d4002446466aa0dc006600200a640026aa0f444a66a6a0d600226aa0180064426a6aa0e000444a66a60fa66018004010266aa02200e0022600c00600424424660020060042400222424446006008224424446600400a00822424446002008224002640026aa0da442244a66a6a0c00022a0c444266a0c6600800466aa600c240020080024466e0000800488d4c05400888888888894cd4d4178ccd54c0c84800540d494cd4c1d4ccd5cd19b8f00c0010770761350610011506000321077107523530220012220022353062001222003223370200400246a60c000244400246a600600244444444401046a60040024444444440044444444442466666666600201401201000e00c00a0080060044002222444246660020080060042224002400244666ae68cdc400100082f8300900091a9802000911a98040011111111111299a9a8289980f005005909a9810000911a9812000911199aa980a09000911a98148011111a9817004111a98180029119299a983b99a9826802919a98270021299a983c999ab9a3371e0040020f60f42a00620f440f4466a609c00840f44a66a60f2666ae68cdc780100083d83d0a801883d099a83500500488048a99a9a83000190a99a9a8308011099a9825801119a9826001119a9828001119a9828801119812001000903e919a9828801103e91981200100091103e91119a9827002103e911299a983f199ab9a3370e00c006100020fe2a66a60fc666ae68cdc38028010400083f89982b802000883f883f883c0a99a9a8300009083c083c283080789931a982799ab9c4901024c6600050498c8004d5417088448894cd4d41400044008884cc014008ccd54c01c4800401401000488ccd5cd19b8f00200105c05b2212330010030022001222222222212333333333300100b00a0090080070060050040030022001122123300100300212001122123300100300212001122123300100300212001121222300300411222002112220011200122533335300f0012150372150372150372133355300a12001500d2353005001225335304f5335304f333573466e3cd4c06000888008d4c060010880081441404ccd5cd19b873530180022200135301800422001051050105013503b0031503a003221233001003002200122212333001004003002200122123300100300220013200135504522112225335350390011350060032213335009005300400233355300712001005004001123535004001220011235350030012200213350022253353502b002210031001502a12212330010030021200121222230040052122223003005212222300200521222230010052001221233001003002200121222222230070082212222222330060090082122222223005008122222220041222222200322122222223300200900822122222223300100900820012122300200322212233300100500400320012122300200321223001003200122333573466e1c0080040ac0a88ccc00800522100488100222323230010053200135502c223353501d0014800088d4d54088008894cd4c0bcccd5cd19b8f00200903103013007001130060033200135502b223353501c0014800088d4d54084008894cd4c0b8ccd5cd19b8f00200703002f100113006003112232001320013550292253353501a0011003221330060023004001235301f0012220021222200412222003122220021222200120011200112001225335301d0021001101e2323232323333333574800a46666ae68cdc39aab9d5005480008cccd55cfa8029280691999aab9f50052500e233335573ea00a4a01e46666aae7cd5d128031299a9a807a99a9a807a99a9a80798061aba150092135012223330240030020011501021533535010300d35742a012426a02660040022a0222a02042a66a6a020646666666ae900049404c9404c9404c8d4050dd6801128098081aba150082135013300200115011150102501000d00c00b00a2500c4989402c9402c9402c9402c0204d5d1280089aba25001135573ca00226ea80048ccccccd5d20009280312803128031280311a8039bae00200312001200112122300200311220011200112253335300c0022153335300d00221330050020012130161613015162153335300d0022130161621330050020011301516153335300c001213015162130151610172253353014333573466e3cd4c03c008888008d4c03c0048880080580544ccd5cd19b8735300f00222200135300f00122200101601510152233223370600400266e080092014001262611220021221223300100400312001112212330010030021120012122230030042122230020041222001200122212333001004003002200126262612200212200120011123230010012233003300200200133223322332233333333300248811cd5e6bf0500378d4f0da4e8dde6becec7621cd8cbf5cbb9b87013d4cc0048811c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d520048810853706163654275640048810b5370616365427564426964003335550044891c826d9fafe1b3acf15bd250de69c04e3fc92c4493785939e069932e8900483001920e209335500648811c88269f8b051a739300fe743a7b315026f4614ce1216a4bb45d7fd0f500482209d20882748203db810920a09c012222222221233333333300100a0090080070060050040030022001111222123330010040030021112001112212330010030021120011").unwrap()
+                        ))
                     ),
-                    &PlutusData::from_bytes(hex::decode("D866820380").unwrap()).unwrap(),
+                    PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                &required_signers,
-                &PlutusData::from_bytes(hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
+                required_signers,
+                PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
 
         // add change output
         {
             let output_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
-                .with_data(&Datum::new_data_hash(&DataHash::from_hex("f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8").unwrap()))
+                .with_address(Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap())
+                .with_data(DatumOption::new_hash(DatumHash::from_hex("f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8").unwrap()))
                 .next()
                 .unwrap()
-                .with_coin_and_asset(
-                    &Coin::from_str("1851850").unwrap(),
-                    &spacebudz_asset
-                )
+                .with_value(Value::new(1851850, spacebudz_asset))
                 .build()
                 .unwrap();
-            tx_builder.add_output(&output_utxo).unwrap();
+            tx_builder.add_output(output_utxo).unwrap();
         }
 
         // add user output
         {
             let output_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
+                .with_address(Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
                 .next()
                 .unwrap()
-                .with_coin(&Coin::from_str("67250397").unwrap())
+                .with_value(67250397)
                 .build()
                 .unwrap();
-            tx_builder.add_output(&output_utxo).unwrap();
+            tx_builder.add_output(output_utxo).unwrap();
         }
 
         // add collateral
         {
             let input_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
+                .with_address(Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
                 .next()
                 .unwrap()
-                .with_coin(&Coin::from_str("5000000").unwrap())
+                .with_value(5000000)
                 .build()
                 .unwrap();
-            tx_builder.add_collateral(&SingleInputBuilder::new(
-                &TransactionInput::new(
-                    &TransactionHash::from_hex("a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b").unwrap(),
-                    &TransactionIndex::from_str("0").unwrap()
+            tx_builder.add_collateral(SingleInputBuilder::new(
+                TransactionInput::new(
+                    TransactionHash::from_hex("a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b").unwrap(),
+                    0
                 ),
-                &input_utxo.output()
+                input_utxo.output
             ).payment_key().unwrap()).unwrap();
         }
 
         // metadata
         {
-            let mut map = MetadataMap::new();
+            let mut map = OrderedHashMap::new();
             map.insert(
-                &TransactionMetadatum::new_int(&Int::from_str("0").unwrap()),
-                &TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()).unwrap()
+                TransactionMetadatum::new_int(0u64.into()),
+                TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap())
             );
 
             let mut aux_data = AuxiliaryData::new();
-            aux_data.add_metadatum(
-                &u64::from_str("405").unwrap(),
-                &TransactionMetadatum::new_map(&map)
+            aux_data.metadata_mut().insert(
+                405,
+                TransactionMetadatum::new_map(map)
             );
-            tx_builder.add_auxiliary_data(&aux_data);
+            tx_builder.add_auxiliary_data(aux_data);
         }
 
         tx_builder.set_collateral_return(
-            &TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
+            TransactionOutputBuilder::new()
+                .with_address(Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
                 .next()
                 .unwrap()
-                .with_coin(&Coin::from_str("2000000").unwrap())
+                .with_value(2000000)
                 .build()
                 .unwrap()
-                .output()
+                .output
         );
 
-        tx_builder.set_fee(&u64::from_str("897753").unwrap());
+        tx_builder.set_fee(897753);
 
 
         {
             tx_builder.set_exunits(
-                &RedeemerWitnessKey::new(
-                    &RedeemerTag::new_spend(),
-                    &u64::from(0)
+                RedeemerWitnessKey::new(
+                    RedeemerTag::Spend,
+                    0
                 ),
-                &ExUnits::new(
-                    &u64::from_str("5000000").unwrap(),
-                    &u64::from_str("2000000000").unwrap()
-                )
+                ExUnits::new(5000000, 2000000000)
             );
         }
         let signed_tx_builder = tx_builder.build(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap()).unwrap();
-        assert_eq!(signed_tx_builder.body().total_collateral, Some(Coin::from_str("3000000").unwrap()));
+        assert_eq!(signed_tx_builder.body.total_collateral, Some(3000000));
     }
 
     #[test]
@@ -4889,68 +4735,68 @@ mod tests {
         let (_, (_, stake_cred), addr_net_0) = create_account();
         let input = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(5_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(addr_net_0.clone(), Value::from(5_000_000), None, None)
             ).payment_key().unwrap()
         };
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
         //add collateral
         {
             let input_utxo = TransactionOutputBuilder::new()
-                .with_address(&Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
+                .with_address(Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap())
                 .next()
                 .unwrap()
-                .with_coin(&Coin::from_str("5000000").unwrap())
+                .with_value(5000000)
                 .build()
                 .unwrap();
-            tx_builder.add_collateral(&SingleInputBuilder::new(
-                &TransactionInput::new(
-                    &TransactionHash::from_hex("a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b").unwrap(),
-                    &TransactionIndex::from_str("0").unwrap()
+            tx_builder.add_collateral(SingleInputBuilder::new(
+                TransactionInput::new(
+                    TransactionHash::from_hex("a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b").unwrap(),
+                    0
                 ),
-                &input_utxo.output()
+                input_utxo.output
             ).payment_key().unwrap()).unwrap();
         }
 
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
         {
-            let output = &TransactionOutputBuilder::new()
-                .with_address(&BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address())
-                .with_reference_script(&ScriptRef::new(
-                    &Script::new_plutus_v1(
-                        &PlutusV1Script::new(
+            let output = TransactionOutputBuilder::new()
+                .with_address(BaseAddress::new(NetworkInfo::testnet().network_id(), change_cred.clone(), stake_cred.clone()).to_address())
+                .with_reference_script(
+                    Script::new_plutus_v1(
+                        PlutusV1Script::new(
                             hex::decode("59193d010000332332233223232333332222233332222332232333222323332223233333333222222223233322232333322223232332232333222323332223232332233223232333332222233223322332233223322332222323223223232533530343330093333573466e1d401920042304e3055357426aae7940208cccd5cd19b875007480088c140c158d5d09aab9e500923333573466e1d40212000204f235058353059335738921035054310005a49926499263333573466e1d40112006205223333573466e1d40152004205523333573466e1d40192002205323333573466e1d401d2000205623505935305a3357389201035054310005b4992649926498cccd5cd19b8735573aa004900011980619191919191919191919191999ab9a3370e6aae75402920002333333333301a335028232323333573466e1cd55cea8012400046604060766ae854008c0b4d5d09aba25002235066353067335738921035054310006849926135573ca00226ea8004d5d0a80519a8140149aba150093335502f75ca05c6ae854020ccd540bdd728171aba1500733502804435742a00c66a05066aa0aa09aeb4d5d0a8029919191999ab9a3370e6aae754009200023350223232323333573466e1cd55cea80124000466a05466a086eb4d5d0a80118241aba135744a00446a0d46a60d666ae712401035054310006c49926135573ca00226ea8004d5d0a8011919191999ab9a3370e6aae7540092000233502833504375a6ae854008c120d5d09aba2500223506a35306b3357389201035054310006c49926135573ca00226ea8004d5d09aba250022350663530673357389201035054310006849926135573ca00226ea8004d5d0a80219a8143ae35742a00666a05066aa0aaeb88004d5d0a801181d1aba135744a00446a0c46a60c666ae71241035054310006449926135744a00226ae8940044d5d1280089aba25001135744a00226ae8940044d5d1280089aba25001135573ca00226ea8004d5d0a8011919191999ab9a3370ea00290031180f981e1aba135573ca00646666ae68cdc3a801240084603c608c6ae84d55cf280211999ab9a3370ea00690011180f18189aba135573ca00a46666ae68cdc3a80224000460426eb8d5d09aab9e500623505d35305e3357389201035054310005f49926499264984d55cea80089baa001357426ae8940088d4158d4c15ccd5ce2490350543100058499261057135055353056335738920103505435000574984d55cf280089baa001135573a6ea80044d55cea80089baa0012212330010030022001222222222212333333333300100b00a00900800700600500400300220012212330010030022001122123300100300212001122123300100300212001122123300100300212001212222300400521222230030052122223002005212222300100520011232230023758002640026aa080446666aae7c004940388cd4034c010d5d080118019aba200203f23232323333573466e1cd55cea801a4000466600e6464646666ae68cdc39aab9d5002480008cc034c0c4d5d0a80119a8098169aba135744a00446a0846a608666ae712401035054310004449926135573ca00226ea8004d5d0a801999aa805bae500a35742a00466a01eeb8d5d09aba2500223503e35303f335738921035054310004049926135744a00226aae7940044dd50009110919980080200180110009109198008018011000899aa800bae75a224464460046eac004c8004d540e888c8cccd55cf80112804919a80419aa81718031aab9d5002300535573ca00460086ae8800c0e84d5d08008891001091091198008020018900089119191999ab9a3370ea002900011a80418029aba135573ca00646666ae68cdc3a801240044a01046a06a6a606c66ae7124010350543100037499264984d55cea80089baa001121223002003112200112001232323333573466e1cd55cea8012400046600c600e6ae854008dd69aba135744a00446a05e6a606066ae71241035054310003149926135573ca00226ea80048848cc00400c00880048c8cccd5cd19b8735573aa002900011bae357426aae7940088d40acd4c0b0cd5ce2481035054310002d499261375400224464646666ae68cdc3a800a40084a00e46666ae68cdc3a8012400446a014600c6ae84d55cf280211999ab9a3370ea00690001280511a8171a981799ab9c490103505431000304992649926135573aa00226ea8004484888c00c0104488800844888004480048c8cccd5cd19b8750014800880188cccd5cd19b8750024800080188d4098d4c09ccd5ce2490350543100028499264984d55ce9baa0011220021220012001232323232323333573466e1d4005200c200b23333573466e1d4009200a200d23333573466e1d400d200823300b375c6ae854014dd69aba135744a00a46666ae68cdc3a8022400c46601a6eb8d5d0a8039bae357426ae89401c8cccd5cd19b875005480108cc048c050d5d0a8049bae357426ae8940248cccd5cd19b875006480088c050c054d5d09aab9e500b23333573466e1d401d2000230133016357426aae7940308d40acd4c0b0cd5ce2481035054310002d49926499264992649926135573aa00826aae79400c4d55cf280109aab9e500113754002424444444600e01044244444446600c012010424444444600a010244444440082444444400644244444446600401201044244444446600201201040024646464646666ae68cdc3a800a400446660106eb4d5d0a8021bad35742a0066eb4d5d09aba2500323333573466e1d400920002300a300b357426aae7940188d4070d4c074cd5ce249035054310001e499264984d55cea80189aba25001135573ca00226ea80048488c00800c888488ccc00401401000c80048c8c8cccd5cd19b875001480088c018dd71aba135573ca00646666ae68cdc3a80124000460106eb8d5d09aab9e500423501635301733573892010350543100018499264984d55cea80089baa001212230020032122300100320011122232323333573466e1cd55cea80124000466aa010600c6ae854008c014d5d09aba25002235013353014335738921035054310001549926135573ca00226ea8004448848cc00400c00844800484888c00c01084888c00801048880048004488880104888800c488880084888800480048c8c8c8cccd5cd19b8735573aa006900011999111998068018010009bae35742a0066eb8d5d0a8011bad357426ae8940088d4018d4c01ccd5ce2481035054310000849926135744a00226aae7940044dd5000893090009000911091998008020018011000889191800800911980198010010009991999111919191991199991111991199911191919191919991119911919191919199999111119191919191999111999111999999991111111199119999911111991191919191991199119911919999111199119911991199119911919191919191991199119191919191919191919999111199119191191919191919111191919191919192999a983d80510a9999a9831805099835199a8342839183f8009a9aa83d280311000998351991199ab9a3371200400211202110026603860bea00460506a604802444444444400260bea00a660d46601aa00a60c4002a66a610a026603aa010603e002210e0226605260be66026a010603e00260bea0042c2660d46603aa010603e002660d4666a0d0a0e46a6aa0f4a00c440020fa6601aa00a60c40022660d4666a0d0a0e46a6aa0f4a00c440020fa660d46601aa00a60c4002660d46601866026a010603e00260c4002660086a05460bea004a00642a6666a60c60142c2660d46601866026a010a00660c4002660d46605260420026046024660086042002603e00226603aa010603e0022c2a6666a60c40122a66a6108026644666ae68cdc4801000843808440098082800a40042a66a6a0ec605401026102022c442a66a6a0f000226106022c46442a66a6a0f600226a6aa0fc6a6aa0fca0044400444a666a61040200242660e26602800660d2002660e2660606a06260cc0066054032660e2666a0de0ca605000290011a9aa840809a9aa84080a80291000912999a98428080090b10b0999a83883399814980d2805a4004603400442c2660e0666a0dc0c86604c602ea0109001180b8011a9aa840009a9aa84000a80211000912999a98420080090998399980b001983580099839998191a8199834001981600d999a8388339815000a400442c2c4426110022c266aa0fa601200660120022a66a6a0ec605401026104022c4646442a66a6a0f40022a666a60fe6a6aa0faa0064400242660dc66022a00660cc002660dc6605a6a05c60c6a006604e02c666a0d80c4604a002900110b0b1109844008b09a9aa83da80091001098038008b0b0b0a99a9a8369a9816003911a981800111111111111982300500590980e9a981e000910008b0a99a9a83a191a98170009111111111001a802898390b110a99a9a83b0008801110983b0b1191919191299a98438099815803241012179fa042660d86605660c26602aa014a0226054a004660d86605660c26602aa0146a6aa0f8a020440046054a0066605660c26602aa014002605466044660446604400ca004a0066a6aaa050a0084440022660d86605660c26602aa014a0226054a00a6605660c26602aa01400260546604400ca00a26a6aaa04ca00444400626a6aaa04aa0024440042666aaa04a660e40046a6aaa048a01c444002660e40046a6aa0f0a01844002660e40046a60440204444444440062660e20026a6aaa046a01a44400426a6aa0eaa002440042a66a6a0e2604a006260e02c442a66a6a0e60022600600444260e82c46a60766a60720024440064466a60ae0044c4a66a6a0d86a607800844400242a66a6a0da646a605e0024444444444a66a6a0f0666aa609824002a09e46a6aa1080200244a66a612202666ae68cdc7801007849808490089a83e8018a83e001109a83d9a9aa84200800910008a83ca80311919190a99a9a8389999999aba400423333573466e1d40092004233335573ea0084a0ea46666aae7cd5d128029299a9a83a98389aba150062135078308501001150762507607307223333573466e1d400d2002233335573ea00a4a0ec46666aae7cd5d128031299a9a83b18391aba150072135079308701001150772507707407323333573466e1d40112000233335573ea00c46a0f0108024a0ee0e84a0ec9324c93128399283992839928398381099aa83f18108050008b09aab9d5002135573ca00226ea800458584d4c0980048800888cc07cccc158008d4c068020888888888024ccd417dc51a980d004111111111003800a4004446603c6660aa004602e00e666a0bce28d4c06401c8888888880180052002135301600422222222200413535550175001222003135301400222222222200523322300200132233200132001333550023233503b22333503a0030010023503700133503a22230033002001200122337000029001000a400060662400266466aa603a2400244a66a60f06006004266a0d60040022002a0d446a6aaa02e002444660bc666a0b8042602c00c006666a0b80a400290011919a800a834a835091199aa829911a9aa83700111199aa82b911a9aa83900111299a983f999ab9a3370e002900004080840008801899805199aaa81080300100080180180080080191199aa980d890009119aa98060900091a9aa8360009119aa83780119aa98078900091a9aa8378009119aa839001199a9aa80700091980a24000002446602a004002466028002900000099aa98060900091a9aa8360009119aa837801199a9aa805800919aa98080900091a9aa8380009119aa8398011aa80900080091199aaa805011801000919aa98080900091a9aa8380009119aa8398011aa808000800999aaa80280f001000a8341a980f8011111111111199aa981289000911a981d0011111a981f8019119a982d8011299a984300999ab9a3371e0260021100210e02266a0f200a00e200e400ea0e4012222444666aa603624002a0ce66aa60142400246a6aa0d40024466aa0da0046aa018002666aa603624002446a6aa0d600444a66a60f0666aa606c240026466a07844666a6a016006440040040026a6a0120024400266a01244a66a60f400420f820020f246a6aa0dc002446601400400a00c2006266a0d6008006a0d000266aa60142400246a6aa0d4002446466aa0dc006600200a640026aa0f444a66a6a0d600226aa0180064426a6aa0e000444a66a60fa66018004010266aa02200e0022600c00600424424660020060042400222424446006008224424446600400a00822424446002008224002640026aa0da442244a66a6a0c00022a0c444266a0c6600800466aa600c240020080024466e0000800488d4c05400888888888894cd4d4178ccd54c0c84800540d494cd4c1d4ccd5cd19b8f00c0010770761350610011506000321077107523530220012220022353062001222003223370200400246a60c000244400246a600600244444444401046a60040024444444440044444444442466666666600201401201000e00c00a0080060044002222444246660020080060042224002400244666ae68cdc400100082f8300900091a9802000911a98040011111111111299a9a8289980f005005909a9810000911a9812000911199aa980a09000911a98148011111a9817004111a98180029119299a983b99a9826802919a98270021299a983c999ab9a3371e0040020f60f42a00620f440f4466a609c00840f44a66a60f2666ae68cdc780100083d83d0a801883d099a83500500488048a99a9a83000190a99a9a8308011099a9825801119a9826001119a9828001119a9828801119812001000903e919a9828801103e91981200100091103e91119a9827002103e911299a983f199ab9a3370e00c006100020fe2a66a60fc666ae68cdc38028010400083f89982b802000883f883f883c0a99a9a8300009083c083c283080789931a982799ab9c4901024c6600050498c8004d5417088448894cd4d41400044008884cc014008ccd54c01c4800401401000488ccd5cd19b8f00200105c05b2212330010030022001222222222212333333333300100b00a0090080070060050040030022001122123300100300212001122123300100300212001122123300100300212001121222300300411222002112220011200122533335300f0012150372150372150372133355300a12001500d2353005001225335304f5335304f333573466e3cd4c06000888008d4c060010880081441404ccd5cd19b873530180022200135301800422001051050105013503b0031503a003221233001003002200122212333001004003002200122123300100300220013200135504522112225335350390011350060032213335009005300400233355300712001005004001123535004001220011235350030012200213350022253353502b002210031001502a12212330010030021200121222230040052122223003005212222300200521222230010052001221233001003002200121222222230070082212222222330060090082122222223005008122222220041222222200322122222223300200900822122222223300100900820012122300200322212233300100500400320012122300200321223001003200122333573466e1c0080040ac0a88ccc00800522100488100222323230010053200135502c223353501d0014800088d4d54088008894cd4c0bcccd5cd19b8f00200903103013007001130060033200135502b223353501c0014800088d4d54084008894cd4c0b8ccd5cd19b8f00200703002f100113006003112232001320013550292253353501a0011003221330060023004001235301f0012220021222200412222003122220021222200120011200112001225335301d0021001101e2323232323333333574800a46666ae68cdc39aab9d5005480008cccd55cfa8029280691999aab9f50052500e233335573ea00a4a01e46666aae7cd5d128031299a9a807a99a9a807a99a9a80798061aba150092135012223330240030020011501021533535010300d35742a012426a02660040022a0222a02042a66a6a020646666666ae900049404c9404c9404c8d4050dd6801128098081aba150082135013300200115011150102501000d00c00b00a2500c4989402c9402c9402c9402c0204d5d1280089aba25001135573ca00226ea80048ccccccd5d20009280312803128031280311a8039bae00200312001200112122300200311220011200112253335300c0022153335300d00221330050020012130161613015162153335300d0022130161621330050020011301516153335300c001213015162130151610172253353014333573466e3cd4c03c008888008d4c03c0048880080580544ccd5cd19b8735300f00222200135300f00122200101601510152233223370600400266e080092014001262611220021221223300100400312001112212330010030021120012122230030042122230020041222001200122212333001004003002200126262612200212200120011123230010012233003300200200133223322332233333333300248811cd5e6bf0500378d4f0da4e8dde6becec7621cd8cbf5cbb9b87013d4cc0048811c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d520048810853706163654275640048810b5370616365427564426964003335550044891c826d9fafe1b3acf15bd250de69c04e3fc92c4493785939e069932e8900483001920e209335500648811c88269f8b051a739300fe743a7b315026f4614ce1216a4bb45d7fd0f500482209d20882748203db810920a09c012222222221233333333300100a0090080070060050040030022001111222123330010040030021112001112212330010030021120011").unwrap()
                         )
                     )
-                ))
-                .with_data(&Datum::new_data(&PlutusData::from_bytes(hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()))
+                )
+                .with_data(DatumOption::new_datum(PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()))
                 .next().unwrap()
-                .with_coin(&to_bignum(880_000))
+                .with_value(880_000)
                 .build().unwrap();
             
-            tx_builder.add_reference_input(&TransactionUnspentOutput::new(
-                &TransactionInput::new(&genesis_id(), &1.into()),
-                &output.output(),
+            tx_builder.add_reference_input(TransactionUnspentOutput::new(
+                TransactionInput::new(genesis_id(), 1),
+                output.output,
             ));
         }
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_coin(880_000)
+                .with_value(880_000)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(&1000.into());
+        tx_builder.set_ttl(1000);
 
-        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
+        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), change_cred, stake_cred).to_address();
         tx_builder.add_change_if_needed_for_tests(
             &change_addr
         ).unwrap();
         assert_eq!(tx_builder.outputs.len(), 2);
         let final_tx = tx_builder.build(ChangeSelectionAlgo::Default, &change_addr).unwrap().build_unchecked();
 
-        assert_eq!(final_tx.body().reference_inputs().unwrap().len(), 1);
-        assert!(final_tx.witness_set().plutus_v1_scripts().is_none());
+        assert_eq!(final_tx.body.reference_inputs.unwrap().len(), 1);
+        assert!(final_tx.witness_set.plutus_v1_scripts.is_none());
     }
 
     #[test]
@@ -4966,72 +4812,71 @@ mod tests {
         let (_, (_, stake_cred), addr_net_0) = create_account();
         
         let script = Script::new_plutus_v2(
-            &PlutusV2Script::new(
+            PlutusV2Script::new(
                 hex::decode("59193d020000332332233223232333332222233332222332232333222323332223233333333222222223233322232333322223232332232333222323332223232332233223232333332222233223322332233223322332222323223223232533530343330093333573466e1d401920042304e3055357426aae7940208cccd5cd19b875007480088c140c158d5d09aab9e500923333573466e1d40212000204f235058353059335738921035054310005a49926499263333573466e1d40112006205223333573466e1d40152004205523333573466e1d40192002205323333573466e1d401d2000205623505935305a3357389201035054310005b4992649926498cccd5cd19b8735573aa004900011980619191919191919191919191999ab9a3370e6aae75402920002333333333301a335028232323333573466e1cd55cea8012400046604060766ae854008c0b4d5d09aba25002235066353067335738921035054310006849926135573ca00226ea8004d5d0a80519a8140149aba150093335502f75ca05c6ae854020ccd540bdd728171aba1500733502804435742a00c66a05066aa0aa09aeb4d5d0a8029919191999ab9a3370e6aae754009200023350223232323333573466e1cd55cea80124000466a05466a086eb4d5d0a80118241aba135744a00446a0d46a60d666ae712401035054310006c49926135573ca00226ea8004d5d0a8011919191999ab9a3370e6aae7540092000233502833504375a6ae854008c120d5d09aba2500223506a35306b3357389201035054310006c49926135573ca00226ea8004d5d09aba250022350663530673357389201035054310006849926135573ca00226ea8004d5d0a80219a8143ae35742a00666a05066aa0aaeb88004d5d0a801181d1aba135744a00446a0c46a60c666ae71241035054310006449926135744a00226ae8940044d5d1280089aba25001135744a00226ae8940044d5d1280089aba25001135573ca00226ea8004d5d0a8011919191999ab9a3370ea00290031180f981e1aba135573ca00646666ae68cdc3a801240084603c608c6ae84d55cf280211999ab9a3370ea00690011180f18189aba135573ca00a46666ae68cdc3a80224000460426eb8d5d09aab9e500623505d35305e3357389201035054310005f49926499264984d55cea80089baa001357426ae8940088d4158d4c15ccd5ce2490350543100058499261057135055353056335738920103505435000574984d55cf280089baa001135573a6ea80044d55cea80089baa0012212330010030022001222222222212333333333300100b00a00900800700600500400300220012212330010030022001122123300100300212001122123300100300212001122123300100300212001212222300400521222230030052122223002005212222300100520011232230023758002640026aa080446666aae7c004940388cd4034c010d5d080118019aba200203f23232323333573466e1cd55cea801a4000466600e6464646666ae68cdc39aab9d5002480008cc034c0c4d5d0a80119a8098169aba135744a00446a0846a608666ae712401035054310004449926135573ca00226ea8004d5d0a801999aa805bae500a35742a00466a01eeb8d5d09aba2500223503e35303f335738921035054310004049926135744a00226aae7940044dd50009110919980080200180110009109198008018011000899aa800bae75a224464460046eac004c8004d540e888c8cccd55cf80112804919a80419aa81718031aab9d5002300535573ca00460086ae8800c0e84d5d08008891001091091198008020018900089119191999ab9a3370ea002900011a80418029aba135573ca00646666ae68cdc3a801240044a01046a06a6a606c66ae7124010350543100037499264984d55cea80089baa001121223002003112200112001232323333573466e1cd55cea8012400046600c600e6ae854008dd69aba135744a00446a05e6a606066ae71241035054310003149926135573ca00226ea80048848cc00400c00880048c8cccd5cd19b8735573aa002900011bae357426aae7940088d40acd4c0b0cd5ce2481035054310002d499261375400224464646666ae68cdc3a800a40084a00e46666ae68cdc3a8012400446a014600c6ae84d55cf280211999ab9a3370ea00690001280511a8171a981799ab9c490103505431000304992649926135573aa00226ea8004484888c00c0104488800844888004480048c8cccd5cd19b8750014800880188cccd5cd19b8750024800080188d4098d4c09ccd5ce2490350543100028499264984d55ce9baa0011220021220012001232323232323333573466e1d4005200c200b23333573466e1d4009200a200d23333573466e1d400d200823300b375c6ae854014dd69aba135744a00a46666ae68cdc3a8022400c46601a6eb8d5d0a8039bae357426ae89401c8cccd5cd19b875005480108cc048c050d5d0a8049bae357426ae8940248cccd5cd19b875006480088c050c054d5d09aab9e500b23333573466e1d401d2000230133016357426aae7940308d40acd4c0b0cd5ce2481035054310002d49926499264992649926135573aa00826aae79400c4d55cf280109aab9e500113754002424444444600e01044244444446600c012010424444444600a010244444440082444444400644244444446600401201044244444446600201201040024646464646666ae68cdc3a800a400446660106eb4d5d0a8021bad35742a0066eb4d5d09aba2500323333573466e1d400920002300a300b357426aae7940188d4070d4c074cd5ce249035054310001e499264984d55cea80189aba25001135573ca00226ea80048488c00800c888488ccc00401401000c80048c8c8cccd5cd19b875001480088c018dd71aba135573ca00646666ae68cdc3a80124000460106eb8d5d09aab9e500423501635301733573892010350543100018499264984d55cea80089baa001212230020032122300100320011122232323333573466e1cd55cea80124000466aa010600c6ae854008c014d5d09aba25002235013353014335738921035054310001549926135573ca00226ea8004448848cc00400c00844800484888c00c01084888c00801048880048004488880104888800c488880084888800480048c8c8c8cccd5cd19b8735573aa006900011999111998068018010009bae35742a0066eb8d5d0a8011bad357426ae8940088d4018d4c01ccd5ce2481035054310000849926135744a00226aae7940044dd5000893090009000911091998008020018011000889191800800911980198010010009991999111919191991199991111991199911191919191919991119911919191919199999111119191919191999111999111999999991111111199119999911111991191919191991199119911919999111199119911991199119911919191919191991199119191919191919191919999111199119191191919191919111191919191919192999a983d80510a9999a9831805099835199a8342839183f8009a9aa83d280311000998351991199ab9a3371200400211202110026603860bea00460506a604802444444444400260bea00a660d46601aa00a60c4002a66a610a026603aa010603e002210e0226605260be66026a010603e00260bea0042c2660d46603aa010603e002660d4666a0d0a0e46a6aa0f4a00c440020fa6601aa00a60c40022660d4666a0d0a0e46a6aa0f4a00c440020fa660d46601aa00a60c4002660d46601866026a010603e00260c4002660086a05460bea004a00642a6666a60c60142c2660d46601866026a010a00660c4002660d46605260420026046024660086042002603e00226603aa010603e0022c2a6666a60c40122a66a6108026644666ae68cdc4801000843808440098082800a40042a66a6a0ec605401026102022c442a66a6a0f000226106022c46442a66a6a0f600226a6aa0fc6a6aa0fca0044400444a666a61040200242660e26602800660d2002660e2660606a06260cc0066054032660e2666a0de0ca605000290011a9aa840809a9aa84080a80291000912999a98428080090b10b0999a83883399814980d2805a4004603400442c2660e0666a0dc0c86604c602ea0109001180b8011a9aa840009a9aa84000a80211000912999a98420080090998399980b001983580099839998191a8199834001981600d999a8388339815000a400442c2c4426110022c266aa0fa601200660120022a66a6a0ec605401026104022c4646442a66a6a0f40022a666a60fe6a6aa0faa0064400242660dc66022a00660cc002660dc6605a6a05c60c6a006604e02c666a0d80c4604a002900110b0b1109844008b09a9aa83da80091001098038008b0b0b0a99a9a8369a9816003911a981800111111111111982300500590980e9a981e000910008b0a99a9a83a191a98170009111111111001a802898390b110a99a9a83b0008801110983b0b1191919191299a98438099815803241012179fa042660d86605660c26602aa014a0226054a004660d86605660c26602aa0146a6aa0f8a020440046054a0066605660c26602aa014002605466044660446604400ca004a0066a6aaa050a0084440022660d86605660c26602aa014a0226054a00a6605660c26602aa01400260546604400ca00a26a6aaa04ca00444400626a6aaa04aa0024440042666aaa04a660e40046a6aaa048a01c444002660e40046a6aa0f0a01844002660e40046a60440204444444440062660e20026a6aaa046a01a44400426a6aa0eaa002440042a66a6a0e2604a006260e02c442a66a6a0e60022600600444260e82c46a60766a60720024440064466a60ae0044c4a66a6a0d86a607800844400242a66a6a0da646a605e0024444444444a66a6a0f0666aa609824002a09e46a6aa1080200244a66a612202666ae68cdc7801007849808490089a83e8018a83e001109a83d9a9aa84200800910008a83ca80311919190a99a9a8389999999aba400423333573466e1d40092004233335573ea0084a0ea46666aae7cd5d128029299a9a83a98389aba150062135078308501001150762507607307223333573466e1d400d2002233335573ea00a4a0ec46666aae7cd5d128031299a9a83b18391aba150072135079308701001150772507707407323333573466e1d40112000233335573ea00c46a0f0108024a0ee0e84a0ec9324c93128399283992839928398381099aa83f18108050008b09aab9d5002135573ca00226ea800458584d4c0980048800888cc07cccc158008d4c068020888888888024ccd417dc51a980d004111111111003800a4004446603c6660aa004602e00e666a0bce28d4c06401c8888888880180052002135301600422222222200413535550175001222003135301400222222222200523322300200132233200132001333550023233503b22333503a0030010023503700133503a22230033002001200122337000029001000a400060662400266466aa603a2400244a66a60f06006004266a0d60040022002a0d446a6aaa02e002444660bc666a0b8042602c00c006666a0b80a400290011919a800a834a835091199aa829911a9aa83700111199aa82b911a9aa83900111299a983f999ab9a3370e002900004080840008801899805199aaa81080300100080180180080080191199aa980d890009119aa98060900091a9aa8360009119aa83780119aa98078900091a9aa8378009119aa839001199a9aa80700091980a24000002446602a004002466028002900000099aa98060900091a9aa8360009119aa837801199a9aa805800919aa98080900091a9aa8380009119aa8398011aa80900080091199aaa805011801000919aa98080900091a9aa8380009119aa8398011aa808000800999aaa80280f001000a8341a980f8011111111111199aa981289000911a981d0011111a981f8019119a982d8011299a984300999ab9a3371e0260021100210e02266a0f200a00e200e400ea0e4012222444666aa603624002a0ce66aa60142400246a6aa0d40024466aa0da0046aa018002666aa603624002446a6aa0d600444a66a60f0666aa606c240026466a07844666a6a016006440040040026a6a0120024400266a01244a66a60f400420f820020f246a6aa0dc002446601400400a00c2006266a0d6008006a0d000266aa60142400246a6aa0d4002446466aa0dc006600200a640026aa0f444a66a6a0d600226aa0180064426a6aa0e000444a66a60fa66018004010266aa02200e0022600c00600424424660020060042400222424446006008224424446600400a00822424446002008224002640026aa0da442244a66a6a0c00022a0c444266a0c6600800466aa600c240020080024466e0000800488d4c05400888888888894cd4d4178ccd54c0c84800540d494cd4c1d4ccd5cd19b8f00c0010770761350610011506000321077107523530220012220022353062001222003223370200400246a60c000244400246a600600244444444401046a60040024444444440044444444442466666666600201401201000e00c00a0080060044002222444246660020080060042224002400244666ae68cdc400100082f8300900091a9802000911a98040011111111111299a9a8289980f005005909a9810000911a9812000911199aa980a09000911a98148011111a9817004111a98180029119299a983b99a9826802919a98270021299a983c999ab9a3371e0040020f60f42a00620f440f4466a609c00840f44a66a60f2666ae68cdc780100083d83d0a801883d099a83500500488048a99a9a83000190a99a9a8308011099a9825801119a9826001119a9828001119a9828801119812001000903e919a9828801103e91981200100091103e91119a9827002103e911299a983f199ab9a3370e00c006100020fe2a66a60fc666ae68cdc38028010400083f89982b802000883f883f883c0a99a9a8300009083c083c283080789931a982799ab9c4901024c6600050498c8004d5417088448894cd4d41400044008884cc014008ccd54c01c4800401401000488ccd5cd19b8f00200105c05b2212330010030022001222222222212333333333300100b00a0090080070060050040030022001122123300100300212001122123300100300212001122123300100300212001121222300300411222002112220011200122533335300f0012150372150372150372133355300a12001500d2353005001225335304f5335304f333573466e3cd4c06000888008d4c060010880081441404ccd5cd19b873530180022200135301800422001051050105013503b0031503a003221233001003002200122212333001004003002200122123300100300220013200135504522112225335350390011350060032213335009005300400233355300712001005004001123535004001220011235350030012200213350022253353502b002210031001502a12212330010030021200121222230040052122223003005212222300200521222230010052001221233001003002200121222222230070082212222222330060090082122222223005008122222220041222222200322122222223300200900822122222223300100900820012122300200322212233300100500400320012122300200321223001003200122333573466e1c0080040ac0a88ccc00800522100488100222323230010053200135502c223353501d0014800088d4d54088008894cd4c0bcccd5cd19b8f00200903103013007001130060033200135502b223353501c0014800088d4d54084008894cd4c0b8ccd5cd19b8f00200703002f100113006003112232001320013550292253353501a0011003221330060023004001235301f0012220021222200412222003122220021222200120011200112001225335301d0021001101e2323232323333333574800a46666ae68cdc39aab9d5005480008cccd55cfa8029280691999aab9f50052500e233335573ea00a4a01e46666aae7cd5d128031299a9a807a99a9a807a99a9a80798061aba150092135012223330240030020011501021533535010300d35742a012426a02660040022a0222a02042a66a6a020646666666ae900049404c9404c9404c8d4050dd6801128098081aba150082135013300200115011150102501000d00c00b00a2500c4989402c9402c9402c9402c0204d5d1280089aba25001135573ca00226ea80048ccccccd5d20009280312803128031280311a8039bae00200312001200112122300200311220011200112253335300c0022153335300d00221330050020012130161613015162153335300d0022130161621330050020011301516153335300c001213015162130151610172253353014333573466e3cd4c03c008888008d4c03c0048880080580544ccd5cd19b8735300f00222200135300f00122200101601510152233223370600400266e080092014001262611220021221223300100400312001112212330010030021120012122230030042122230020041222001200122212333001004003002200126262612200212200120011123230010012233003300200200133223322332233333333300248811cd5e6bf0500378d4f0da4e8dde6becec7621cd8cbf5cbb9b87013d4cc0048811c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d520048810853706163654275640048810b5370616365427564426964003335550044891c826d9fafe1b3acf15bd250de69c04e3fc92c4493785939e069932e8900483001920e209335500648811c88269f8b051a739300fe743a7b315026f4614ce1216a4bb45d7fd0f500482209d20882748203db810920a09c012222222221233333333300100a0090080070060050040030022001111222123330010040030021112001112212330010030021120011").unwrap()
             )
         );
 
         let script_hash = script.hash();
 
-        let script_base_address = BaseAddress::new(NetworkInfo::testnet().network_id(), &StakeCredential::from_scripthash(&script_hash), &stake_cred) ;
+        let script_base_address = BaseAddress::new(NetworkInfo::testnet().network_id(), StakeCredential::new_script(script_hash.clone()), stake_cred.clone()) ;
 
         let input = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &0.into()),
-                &TransactionOutput::new(&addr_net_0, &Value::new(&to_bignum(5_000_000)))
+                TransactionInput::new(genesis_id(), 0),
+                TransactionOutput::new(addr_net_0.clone(), Value::from(5_000_000), None, None)
             ).payment_key().unwrap()
         };
 
         let input2 = {
             SingleInputBuilder::new(
-                &TransactionInput::new(&genesis_id(), &1.into()),
-                &TransactionOutput::new(&script_base_address.to_address(), &Value::new(&to_bignum(5_000_000)))
-            ).plutus_script(&PartialPlutusWitness::new(&PlutusScriptWitness::from_ref(script_hash), &PlutusData::new_bytes(vec![])), &Ed25519KeyHashes::new(), &PlutusData::from_bytes(hex::decode("D866820380").unwrap()).unwrap())
+                TransactionInput::new(genesis_id(), 1),
+                TransactionOutput::new(script_base_address.to_address(), Value::from(5_000_000), None, None)
+            ).plutus_script(PartialPlutusWitness::new(PlutusScriptWitness::from(script_hash), PlutusData::new_bytes(vec![])), vec![], PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap())
             .unwrap()
         };
         
-        let change_cred = StakeCredential::from_keyhash(&change_key.to_raw_key().hash());
-        let output = &TransactionOutputBuilder::new()
-            .with_address(&BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address())
-            .with_reference_script(&ScriptRef::new(
-                &Script::new_plutus_v2(
-                    &PlutusV2Script::new(
+        let change_cred = StakeCredential::new_pub_key(change_key.to_raw_key().hash());
+        let output = TransactionOutputBuilder::new()
+            .with_address(BaseAddress::new(NetworkInfo::testnet().network_id(), change_cred.clone(), stake_cred.clone()).to_address())
+            .with_reference_script(
+                Script::new_plutus_v2(
+                    PlutusV2Script::new(
                         hex::decode("59193d020000332332233223232333332222233332222332232333222323332223233333333222222223233322232333322223232332232333222323332223232332233223232333332222233223322332233223322332222323223223232533530343330093333573466e1d401920042304e3055357426aae7940208cccd5cd19b875007480088c140c158d5d09aab9e500923333573466e1d40212000204f235058353059335738921035054310005a49926499263333573466e1d40112006205223333573466e1d40152004205523333573466e1d40192002205323333573466e1d401d2000205623505935305a3357389201035054310005b4992649926498cccd5cd19b8735573aa004900011980619191919191919191919191999ab9a3370e6aae75402920002333333333301a335028232323333573466e1cd55cea8012400046604060766ae854008c0b4d5d09aba25002235066353067335738921035054310006849926135573ca00226ea8004d5d0a80519a8140149aba150093335502f75ca05c6ae854020ccd540bdd728171aba1500733502804435742a00c66a05066aa0aa09aeb4d5d0a8029919191999ab9a3370e6aae754009200023350223232323333573466e1cd55cea80124000466a05466a086eb4d5d0a80118241aba135744a00446a0d46a60d666ae712401035054310006c49926135573ca00226ea8004d5d0a8011919191999ab9a3370e6aae7540092000233502833504375a6ae854008c120d5d09aba2500223506a35306b3357389201035054310006c49926135573ca00226ea8004d5d09aba250022350663530673357389201035054310006849926135573ca00226ea8004d5d0a80219a8143ae35742a00666a05066aa0aaeb88004d5d0a801181d1aba135744a00446a0c46a60c666ae71241035054310006449926135744a00226ae8940044d5d1280089aba25001135744a00226ae8940044d5d1280089aba25001135573ca00226ea8004d5d0a8011919191999ab9a3370ea00290031180f981e1aba135573ca00646666ae68cdc3a801240084603c608c6ae84d55cf280211999ab9a3370ea00690011180f18189aba135573ca00a46666ae68cdc3a80224000460426eb8d5d09aab9e500623505d35305e3357389201035054310005f49926499264984d55cea80089baa001357426ae8940088d4158d4c15ccd5ce2490350543100058499261057135055353056335738920103505435000574984d55cf280089baa001135573a6ea80044d55cea80089baa0012212330010030022001222222222212333333333300100b00a00900800700600500400300220012212330010030022001122123300100300212001122123300100300212001122123300100300212001212222300400521222230030052122223002005212222300100520011232230023758002640026aa080446666aae7c004940388cd4034c010d5d080118019aba200203f23232323333573466e1cd55cea801a4000466600e6464646666ae68cdc39aab9d5002480008cc034c0c4d5d0a80119a8098169aba135744a00446a0846a608666ae712401035054310004449926135573ca00226ea8004d5d0a801999aa805bae500a35742a00466a01eeb8d5d09aba2500223503e35303f335738921035054310004049926135744a00226aae7940044dd50009110919980080200180110009109198008018011000899aa800bae75a224464460046eac004c8004d540e888c8cccd55cf80112804919a80419aa81718031aab9d5002300535573ca00460086ae8800c0e84d5d08008891001091091198008020018900089119191999ab9a3370ea002900011a80418029aba135573ca00646666ae68cdc3a801240044a01046a06a6a606c66ae7124010350543100037499264984d55cea80089baa001121223002003112200112001232323333573466e1cd55cea8012400046600c600e6ae854008dd69aba135744a00446a05e6a606066ae71241035054310003149926135573ca00226ea80048848cc00400c00880048c8cccd5cd19b8735573aa002900011bae357426aae7940088d40acd4c0b0cd5ce2481035054310002d499261375400224464646666ae68cdc3a800a40084a00e46666ae68cdc3a8012400446a014600c6ae84d55cf280211999ab9a3370ea00690001280511a8171a981799ab9c490103505431000304992649926135573aa00226ea8004484888c00c0104488800844888004480048c8cccd5cd19b8750014800880188cccd5cd19b8750024800080188d4098d4c09ccd5ce2490350543100028499264984d55ce9baa0011220021220012001232323232323333573466e1d4005200c200b23333573466e1d4009200a200d23333573466e1d400d200823300b375c6ae854014dd69aba135744a00a46666ae68cdc3a8022400c46601a6eb8d5d0a8039bae357426ae89401c8cccd5cd19b875005480108cc048c050d5d0a8049bae357426ae8940248cccd5cd19b875006480088c050c054d5d09aab9e500b23333573466e1d401d2000230133016357426aae7940308d40acd4c0b0cd5ce2481035054310002d49926499264992649926135573aa00826aae79400c4d55cf280109aab9e500113754002424444444600e01044244444446600c012010424444444600a010244444440082444444400644244444446600401201044244444446600201201040024646464646666ae68cdc3a800a400446660106eb4d5d0a8021bad35742a0066eb4d5d09aba2500323333573466e1d400920002300a300b357426aae7940188d4070d4c074cd5ce249035054310001e499264984d55cea80189aba25001135573ca00226ea80048488c00800c888488ccc00401401000c80048c8c8cccd5cd19b875001480088c018dd71aba135573ca00646666ae68cdc3a80124000460106eb8d5d09aab9e500423501635301733573892010350543100018499264984d55cea80089baa001212230020032122300100320011122232323333573466e1cd55cea80124000466aa010600c6ae854008c014d5d09aba25002235013353014335738921035054310001549926135573ca00226ea8004448848cc00400c00844800484888c00c01084888c00801048880048004488880104888800c488880084888800480048c8c8c8cccd5cd19b8735573aa006900011999111998068018010009bae35742a0066eb8d5d0a8011bad357426ae8940088d4018d4c01ccd5ce2481035054310000849926135744a00226aae7940044dd5000893090009000911091998008020018011000889191800800911980198010010009991999111919191991199991111991199911191919191919991119911919191919199999111119191919191999111999111999999991111111199119999911111991191919191991199119911919999111199119911991199119911919191919191991199119191919191919191919999111199119191191919191919111191919191919192999a983d80510a9999a9831805099835199a8342839183f8009a9aa83d280311000998351991199ab9a3371200400211202110026603860bea00460506a604802444444444400260bea00a660d46601aa00a60c4002a66a610a026603aa010603e002210e0226605260be66026a010603e00260bea0042c2660d46603aa010603e002660d4666a0d0a0e46a6aa0f4a00c440020fa6601aa00a60c40022660d4666a0d0a0e46a6aa0f4a00c440020fa660d46601aa00a60c4002660d46601866026a010603e00260c4002660086a05460bea004a00642a6666a60c60142c2660d46601866026a010a00660c4002660d46605260420026046024660086042002603e00226603aa010603e0022c2a6666a60c40122a66a6108026644666ae68cdc4801000843808440098082800a40042a66a6a0ec605401026102022c442a66a6a0f000226106022c46442a66a6a0f600226a6aa0fc6a6aa0fca0044400444a666a61040200242660e26602800660d2002660e2660606a06260cc0066054032660e2666a0de0ca605000290011a9aa840809a9aa84080a80291000912999a98428080090b10b0999a83883399814980d2805a4004603400442c2660e0666a0dc0c86604c602ea0109001180b8011a9aa840009a9aa84000a80211000912999a98420080090998399980b001983580099839998191a8199834001981600d999a8388339815000a400442c2c4426110022c266aa0fa601200660120022a66a6a0ec605401026104022c4646442a66a6a0f40022a666a60fe6a6aa0faa0064400242660dc66022a00660cc002660dc6605a6a05c60c6a006604e02c666a0d80c4604a002900110b0b1109844008b09a9aa83da80091001098038008b0b0b0a99a9a8369a9816003911a981800111111111111982300500590980e9a981e000910008b0a99a9a83a191a98170009111111111001a802898390b110a99a9a83b0008801110983b0b1191919191299a98438099815803241012179fa042660d86605660c26602aa014a0226054a004660d86605660c26602aa0146a6aa0f8a020440046054a0066605660c26602aa014002605466044660446604400ca004a0066a6aaa050a0084440022660d86605660c26602aa014a0226054a00a6605660c26602aa01400260546604400ca00a26a6aaa04ca00444400626a6aaa04aa0024440042666aaa04a660e40046a6aaa048a01c444002660e40046a6aa0f0a01844002660e40046a60440204444444440062660e20026a6aaa046a01a44400426a6aa0eaa002440042a66a6a0e2604a006260e02c442a66a6a0e60022600600444260e82c46a60766a60720024440064466a60ae0044c4a66a6a0d86a607800844400242a66a6a0da646a605e0024444444444a66a6a0f0666aa609824002a09e46a6aa1080200244a66a612202666ae68cdc7801007849808490089a83e8018a83e001109a83d9a9aa84200800910008a83ca80311919190a99a9a8389999999aba400423333573466e1d40092004233335573ea0084a0ea46666aae7cd5d128029299a9a83a98389aba150062135078308501001150762507607307223333573466e1d400d2002233335573ea00a4a0ec46666aae7cd5d128031299a9a83b18391aba150072135079308701001150772507707407323333573466e1d40112000233335573ea00c46a0f0108024a0ee0e84a0ec9324c93128399283992839928398381099aa83f18108050008b09aab9d5002135573ca00226ea800458584d4c0980048800888cc07cccc158008d4c068020888888888024ccd417dc51a980d004111111111003800a4004446603c6660aa004602e00e666a0bce28d4c06401c8888888880180052002135301600422222222200413535550175001222003135301400222222222200523322300200132233200132001333550023233503b22333503a0030010023503700133503a22230033002001200122337000029001000a400060662400266466aa603a2400244a66a60f06006004266a0d60040022002a0d446a6aaa02e002444660bc666a0b8042602c00c006666a0b80a400290011919a800a834a835091199aa829911a9aa83700111199aa82b911a9aa83900111299a983f999ab9a3370e002900004080840008801899805199aaa81080300100080180180080080191199aa980d890009119aa98060900091a9aa8360009119aa83780119aa98078900091a9aa8378009119aa839001199a9aa80700091980a24000002446602a004002466028002900000099aa98060900091a9aa8360009119aa837801199a9aa805800919aa98080900091a9aa8380009119aa8398011aa80900080091199aaa805011801000919aa98080900091a9aa8380009119aa8398011aa808000800999aaa80280f001000a8341a980f8011111111111199aa981289000911a981d0011111a981f8019119a982d8011299a984300999ab9a3371e0260021100210e02266a0f200a00e200e400ea0e4012222444666aa603624002a0ce66aa60142400246a6aa0d40024466aa0da0046aa018002666aa603624002446a6aa0d600444a66a60f0666aa606c240026466a07844666a6a016006440040040026a6a0120024400266a01244a66a60f400420f820020f246a6aa0dc002446601400400a00c2006266a0d6008006a0d000266aa60142400246a6aa0d4002446466aa0dc006600200a640026aa0f444a66a6a0d600226aa0180064426a6aa0e000444a66a60fa66018004010266aa02200e0022600c00600424424660020060042400222424446006008224424446600400a00822424446002008224002640026aa0da442244a66a6a0c00022a0c444266a0c6600800466aa600c240020080024466e0000800488d4c05400888888888894cd4d4178ccd54c0c84800540d494cd4c1d4ccd5cd19b8f00c0010770761350610011506000321077107523530220012220022353062001222003223370200400246a60c000244400246a600600244444444401046a60040024444444440044444444442466666666600201401201000e00c00a0080060044002222444246660020080060042224002400244666ae68cdc400100082f8300900091a9802000911a98040011111111111299a9a8289980f005005909a9810000911a9812000911199aa980a09000911a98148011111a9817004111a98180029119299a983b99a9826802919a98270021299a983c999ab9a3371e0040020f60f42a00620f440f4466a609c00840f44a66a60f2666ae68cdc780100083d83d0a801883d099a83500500488048a99a9a83000190a99a9a8308011099a9825801119a9826001119a9828001119a9828801119812001000903e919a9828801103e91981200100091103e91119a9827002103e911299a983f199ab9a3370e00c006100020fe2a66a60fc666ae68cdc38028010400083f89982b802000883f883f883c0a99a9a8300009083c083c283080789931a982799ab9c4901024c6600050498c8004d5417088448894cd4d41400044008884cc014008ccd54c01c4800401401000488ccd5cd19b8f00200105c05b2212330010030022001222222222212333333333300100b00a0090080070060050040030022001122123300100300212001122123300100300212001122123300100300212001121222300300411222002112220011200122533335300f0012150372150372150372133355300a12001500d2353005001225335304f5335304f333573466e3cd4c06000888008d4c060010880081441404ccd5cd19b873530180022200135301800422001051050105013503b0031503a003221233001003002200122212333001004003002200122123300100300220013200135504522112225335350390011350060032213335009005300400233355300712001005004001123535004001220011235350030012200213350022253353502b002210031001502a12212330010030021200121222230040052122223003005212222300200521222230010052001221233001003002200121222222230070082212222222330060090082122222223005008122222220041222222200322122222223300200900822122222223300100900820012122300200322212233300100500400320012122300200321223001003200122333573466e1c0080040ac0a88ccc00800522100488100222323230010053200135502c223353501d0014800088d4d54088008894cd4c0bcccd5cd19b8f00200903103013007001130060033200135502b223353501c0014800088d4d54084008894cd4c0b8ccd5cd19b8f00200703002f100113006003112232001320013550292253353501a0011003221330060023004001235301f0012220021222200412222003122220021222200120011200112001225335301d0021001101e2323232323333333574800a46666ae68cdc39aab9d5005480008cccd55cfa8029280691999aab9f50052500e233335573ea00a4a01e46666aae7cd5d128031299a9a807a99a9a807a99a9a80798061aba150092135012223330240030020011501021533535010300d35742a012426a02660040022a0222a02042a66a6a020646666666ae900049404c9404c9404c8d4050dd6801128098081aba150082135013300200115011150102501000d00c00b00a2500c4989402c9402c9402c9402c0204d5d1280089aba25001135573ca00226ea80048ccccccd5d20009280312803128031280311a8039bae00200312001200112122300200311220011200112253335300c0022153335300d00221330050020012130161613015162153335300d0022130161621330050020011301516153335300c001213015162130151610172253353014333573466e3cd4c03c008888008d4c03c0048880080580544ccd5cd19b8735300f00222200135300f00122200101601510152233223370600400266e080092014001262611220021221223300100400312001112212330010030021120012122230030042122230020041222001200122212333001004003002200126262612200212200120011123230010012233003300200200133223322332233333333300248811cd5e6bf0500378d4f0da4e8dde6becec7621cd8cbf5cbb9b87013d4cc0048811c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d520048810853706163654275640048810b5370616365427564426964003335550044891c826d9fafe1b3acf15bd250de69c04e3fc92c4493785939e069932e8900483001920e209335500648811c88269f8b051a739300fe743a7b315026f4614ce1216a4bb45d7fd0f500482209d20882748203db810920a09c012222222221233333333300100a0090080070060050040030022001111222123330010040030021112001112212330010030021120011").unwrap()
                     )
                 )
-            ))
-            .with_data(&Datum::new_data(&PlutusData::from_bytes(hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()))
+            )
+            .with_data(DatumOption::new_datum(PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()))
             .next().unwrap()
-            .with_coin(&to_bignum(880_000))
+            .with_value(880_000)
             .build().unwrap();
             
-        tx_builder.add_reference_input(&TransactionUnspentOutput::new(
-            &TransactionInput::new(&genesis_id(), &1.into()),
-            &output.output(),
+        tx_builder.add_reference_input(TransactionUnspentOutput::new(
+            TransactionInput::new(genesis_id(), 1),
+            output.output,
         ));
-        tx_builder.add_input(&input).unwrap();
+        tx_builder.add_input(input).unwrap();
 
-        tx_builder.add_input(&input2).unwrap();
+        tx_builder.add_input(input2).unwrap();
 
         tx_builder.add_output(
-            &TransactionOutputBuilder::new()
-                .with_address(&addr_net_0)
+            TransactionOutputBuilder::new()
+                .with_address(addr_net_0)
                 .next().unwrap()
-                .with_coin(&to_bignum(880_000))
+                .with_value(880_000)
                 .build().unwrap()
             ).unwrap();
-        tx_builder.set_ttl(&1000.into());
+        tx_builder.set_ttl(1000);
 
-        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), &change_cred, &stake_cred).to_address();
+        let change_addr = BaseAddress::new(NetworkInfo::testnet().network_id(), change_cred, stake_cred).to_address();
         tx_builder.add_change_if_needed_for_tests(
             &change_addr
         ).unwrap();
         assert_eq!(tx_builder.outputs.len(), 2);
         let final_tx = tx_builder.build(ChangeSelectionAlgo::Default, &change_addr).unwrap().build_unchecked();
 
-        assert_eq!(final_tx.body().reference_inputs().unwrap().len(), 1);
-        assert!(final_tx.witness_set().plutus_v2_scripts().is_none());
-        assert!(final_tx.witness_set().plutus_v1_scripts().is_none());
+        assert_eq!(final_tx.body.reference_inputs.unwrap().len(), 1);
+        assert!(final_tx.witness_set.plutus_v2_scripts.is_none());
+        assert!(final_tx.witness_set.plutus_v1_scripts.is_none());
     }
 }
-*/

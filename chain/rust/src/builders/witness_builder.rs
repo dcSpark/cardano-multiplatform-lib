@@ -69,6 +69,15 @@ pub struct PartialPlutusWitness {
     pub data: PlutusData,
 }
 
+impl PartialPlutusWitness {
+    pub fn new(script: PlutusScriptWitness, data: PlutusData) -> Self {
+        Self {
+            script,
+            data,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum InputAggregateWitnessData {
     NativeScript(NativeScript, NativeScriptWitnessInfo),
@@ -652,7 +661,7 @@ mod tests {
         let mut required_wits = RequiredWitnessSet::new();
         required_wits.add_vkey_key_hash(fake_raw_key_public(0).hash());
         required_wits.add_script_hash(NativeScript::new_script_invalid_before(2).hash());
-        builder.add_required_wits(&required_wits);
+        builder.add_required_wits(required_wits);
 
         // add a different element
         builder.add_vkey(Vkeywitness::new(
@@ -669,7 +678,7 @@ mod tests {
 
         let mut required_wits = RequiredWitnessSet::new();
         required_wits.add_vkey_key_hash(fake_raw_key_public(0).hash());
-        builder.add_required_wits(&required_wits);
+        builder.add_required_wits(required_wits);
 
         // add a different element
         builder.add_vkey(Vkeywitness::new(

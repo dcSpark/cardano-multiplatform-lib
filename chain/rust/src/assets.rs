@@ -29,6 +29,12 @@ pub enum AssetArithmeticError {
 #[derive(Clone, Debug, Default, PartialEq, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AssetBundle<T>(OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>);
 
+impl<T: Default> AssetBundle<T> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 impl<T> From<OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>> for AssetBundle<T> {
     fn from(bundle: OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>) -> Self {
         Self(bundle)

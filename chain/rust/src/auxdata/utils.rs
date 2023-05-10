@@ -1,17 +1,36 @@
 use std::ops::DerefMut;
 
-use cml_core::metadata::Metadata;
+use cml_core::{metadata::{Metadata, TransactionMetadatum, TransactionMetadatumLabel}, ordered_hash_map::OrderedHashMap};
 
 use crate::{transaction::NativeScript, plutus::{PlutusV1Script, PlutusV2Script}};
 
 use super::{AuxiliaryData, AlonzoAuxData, ShelleyMaAuxData};
 
 impl AuxiliaryData {
+    pub fn new() -> Self {
+        Self::new_shelley(OrderedHashMap::default())
+    }
+
     pub fn metadata(&self) -> Option<&Metadata> {
         match self {
             Self::Shelley { shelley, .. } => Some(shelley),
             Self::ShelleyMA(shelley_ma) => Some(&shelley_ma.transaction_metadata),
             Self::Alonzo(alonzo) => alonzo.metadata.as_ref(),
+        }
+    }
+
+    /// Mut ref to the general tx metadata.
+    /// Will be created if it didn't exist (i.e. Alonzo format)
+    pub fn metadata_mut(&mut self) -> &mut Metadata {
+        match self {
+            Self::Shelley { shelley, .. } => shelley,
+            Self::ShelleyMA(shelley_ma) => &mut shelley_ma.transaction_metadata,
+            Self::Alonzo(alonzo) => {
+                if alonzo.metadata.is_none() {
+                    alonzo.metadata = Some(Metadata::new());
+                }
+                alonzo.metadata.as_mut().unwrap()
+            },
         }
     }
 
@@ -39,7 +58,7 @@ impl AuxiliaryData {
         }
     }
 
-    /// Warning: overwrites any metadatum labels present
+    /// Warning: overwrites any conflicting metadatum labels present
     pub fn add_metadata(&mut self, other: Metadata) {
         let metadata = match self {
             Self::Shelley { shelley, .. } => shelley,
@@ -78,14 +97,20 @@ impl AuxiliaryData {
         match self {
             Self::Shelley { shelley, .. } => {
                 let mut alonzo = AlonzoAuxData::new();
-                alonzo.metadata = Some(shelley.clone());
+                if !shelley.is_empty() {
+                    alonzo.metadata = Some(shelley.clone());
+                }
                 alonzo.plutus_v1_scripts = Some(scripts);
                 *self = Self::Alonzo(alonzo);
             }
             Self::ShelleyMA(shelley_ma) => {
                 let mut alonzo = AlonzoAuxData::new();
-                alonzo.metadata = Some(shelley_ma.transaction_metadata.clone());
-                alonzo.native_scripts = Some(shelley_ma.auxiliary_scripts.clone());
+                if !shelley_ma.transaction_metadata.is_empty() {
+                    alonzo.metadata = Some(shelley_ma.transaction_metadata.clone());
+                }
+                if !shelley_ma.auxiliary_scripts.is_empty() {
+                    alonzo.native_scripts = Some(shelley_ma.auxiliary_scripts.clone());
+                }
                 alonzo.plutus_v1_scripts = Some(scripts);
                 *self = Self::Alonzo(alonzo);
             },
@@ -104,14 +129,20 @@ impl AuxiliaryData {
         match self {
             Self::Shelley { shelley, .. } => {
                 let mut alonzo = AlonzoAuxData::new();
-                alonzo.metadata = Some(shelley.clone());
+                if !shelley.is_empty() {
+                    alonzo.metadata = Some(shelley.clone());
+                }
                 alonzo.plutus_v2_scripts = Some(scripts);
                 *self = Self::Alonzo(alonzo);
             }
             Self::ShelleyMA(shelley_ma) => {
                 let mut alonzo = AlonzoAuxData::new();
-                alonzo.metadata = Some(shelley_ma.transaction_metadata.clone());
-                alonzo.native_scripts = Some(shelley_ma.auxiliary_scripts.clone());
+                if !shelley_ma.transaction_metadata.is_empty() {
+                    alonzo.metadata = Some(shelley_ma.transaction_metadata.clone());
+                }
+                if !shelley_ma.auxiliary_scripts.is_empty() {
+                    alonzo.native_scripts = Some(shelley_ma.auxiliary_scripts.clone());
+                }
                 alonzo.plutus_v2_scripts = Some(scripts);
                 *self = Self::Alonzo(alonzo);
             },

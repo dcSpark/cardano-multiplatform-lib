@@ -99,22 +99,24 @@
 //     }
 // }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use crate::auxdata::AuxiliaryData;
 
-    #[test]
-    fn copy_aux_data() {
-        let aux_data = AuxiliaryData {
-            metadata: Some(GeneralTransactionMetadata::new()),
-            native_scripts: Some(NativeScripts::new()),
-            plutus_v1_scripts: Some(PlutusV1Scripts::new()),
-            plutus_v2_scripts: Some(PlutusV2Scripts::new()),
-            prefer_alonzo_format: false,
-        };
+//     use super::*;
 
-        let mut base_aux = AuxiliaryData::new();
-        base_aux.add(&aux_data);
-        assert_eq!(base_aux, aux_data);
-    }
-}
+//     #[test]
+//     fn copy_aux_data() {
+//         let aux_data = AuxiliaryData {
+//             metadata: Some(GeneralTransactionMetadata::new()),
+//             native_scripts: Some(NativeScripts::new()),
+//             plutus_v1_scripts: Some(PlutusV1Scripts::new()),
+//             plutus_v2_scripts: Some(PlutusV2Scripts::new()),
+//             prefer_alonzo_format: false,
+//         };
+
+//         let mut base_aux = AuxiliaryData::new();
+//         base_aux.add(&aux_data);
+//         assert_eq!(base_aux, aux_data);
+//     }
+// }

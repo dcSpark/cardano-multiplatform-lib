@@ -39,7 +39,7 @@ impl AuxiliaryData {
             Self::Shelley { .. } => None,
             Self::ShelleyMA(shelley_ma) => Some(&shelley_ma.auxiliary_scripts),
             Self::Alonzo(alonzo) => alonzo.native_scripts.as_ref(),
-        }
+        }.filter(|scripts| !scripts.is_empty())
     }
 
     pub fn plutus_v1_scripts(&self) -> Option<&Vec<PlutusV1Script>> {
@@ -47,7 +47,7 @@ impl AuxiliaryData {
             Self::Shelley { .. } => None,
             Self::ShelleyMA(_shelley_ma) => None,
             Self::Alonzo(alonzo) => alonzo.plutus_v1_scripts.as_ref(),
-        }
+        }.filter(|scripts| !scripts.is_empty())
     }
 
     pub fn plutus_v2_scripts(&self) -> Option<&Vec<PlutusV2Script>> {
@@ -55,7 +55,7 @@ impl AuxiliaryData {
             Self::Shelley { .. } => None,
             Self::ShelleyMA(_shelley_ma) => None,
             Self::Alonzo(alonzo) => alonzo.plutus_v2_scripts.as_ref(),
-        }
+        }.filter(|scripts| !scripts.is_empty())
     }
 
     /// Warning: overwrites any conflicting metadatum labels present

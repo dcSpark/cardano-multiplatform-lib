@@ -1015,7 +1015,8 @@ impl TransactionBuilder {
                         &redeemers,
                         &self.witness_builders.witness_set_builder.get_plutus_datum(),
                         &self.config.cost_models,
-                        &languages.iter().copied().collect::<Vec<_>>()
+                        &languages.iter().copied().collect::<Vec<_>>(),
+                        None,
                     )?
                 },
             }
@@ -2997,7 +2998,7 @@ mod tests {
         assert_eq!(15, change_ma.get(&pid1, &asset_name1).unwrap());
         assert_eq!(24, change_ma.get(&pid1, &asset_name2).unwrap());
         assert_eq!(1, change_ma.get(&pid2, &asset_name2).unwrap());
-        assert_eq!(0, change_ma.get(&pid2, &asset_name3).unwrap());
+        assert_eq!(0, change_ma.get(&pid2, &asset_name3).unwrap_or_default());
         let expected_input = input2.utxo_info.amount()
             .checked_add(&input3.utxo_info.amount())
             .unwrap()
@@ -3452,19 +3453,18 @@ mod tests {
 
         let policy_id = PolicyId::from([0u8; 28]);
         let names = [
-            AssetName::new(vec![99u8; 32]).unwrap(),
             AssetName::new(vec![0u8, 1, 2, 3]).unwrap(),
             AssetName::new(vec![4u8, 5, 6, 7]).unwrap(),
             AssetName::new(vec![5u8, 5, 6, 7]).unwrap(),
             AssetName::new(vec![6u8, 5, 6, 7]).unwrap(),
+            AssetName::new(vec![99u8; 32]).unwrap(),
         ];
         let mut multiasset = MultiAsset::new();
         for name in names.iter() {
             multiasset.set(policy_id.clone(), name.clone(), 500);
         }
 
-        let mut input_value = Value::from(1300);
-        input_value.multiasset = multiasset;
+        let input_value = Value::new(1300, multiasset);
 
         let input = {
             let builder = SingleInputBuilder::new(
@@ -3677,7 +3677,7 @@ mod tests {
         let mut tx_builder = create_default_tx_builder();
 
         let num = 42;
-        tx_builder.add_auxiliary_data(create_aux_with_metadata(num));
+        tx_builder.add_auxiliary_data(AuxiliaryData::new_shelley(create_general_metadata(num)));
 
         assert!(tx_builder.auxiliary_data.is_some());
 
@@ -3743,7 +3743,7 @@ mod tests {
         let mut tx_builder = create_default_tx_builder();
          
         let key = 42;
-        tx_builder.add_auxiliary_data(create_aux_with_metadata(key));
+        tx_builder.add_auxiliary_data(AuxiliaryData::new_shelley(create_general_metadata(key)));
 
         let aux = tx_builder.auxiliary_data.unwrap();
         assert!(aux.metadata().is_some());
@@ -4431,7 +4431,7 @@ mod tests {
         }
 
         let original_tx_fee = tx_builder.min_fee(false).unwrap();
-        assert_eq!(original_tx_fee, 469673);
+        assert_eq!(original_tx_fee, 469629);
         tx_builder.set_fee(897753);
 
         {
@@ -4444,7 +4444,7 @@ mod tests {
             );
         }
         let tx = tx_builder.build(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap()).unwrap();
-        assert_eq!(tx.body.to_cbor_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c").unwrap());
+        assert_eq!(hex::encode(tx.body.to_cbor_bytes()), "a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58201907c235a0df870e95152669f7c147d6e3a7e251b57e4d5227556d1fd0caca0b0d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c");
     }
 
     #[test]
@@ -4579,10 +4579,10 @@ mod tests {
         }
         let signed_tx_builder = tx_builder.build(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1wx468s53gytznzs5dt6hmq2kk9vr7xplcpwq4fywa9d7cug7fd0ed").unwrap()).unwrap();
         let real_script_hash = signed_tx_builder.body.script_data_hash.as_ref().unwrap();
-        assert_eq!(real_script_hash.to_hex(), "684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d9");
+        assert_eq!(real_script_hash.to_hex(), "1907c235a0df870e95152669f7c147d6e3a7e251b57e4d5227556d1fd0caca0b");
 
         let tx = &signed_tx_builder.body;
-        assert_eq!(tx.to_cbor_bytes(), hex::decode("a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820684a0970c04e9a2f374e4054cf30399fa892ebf24a7edbf17870172c804807d90d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c").unwrap());
+        assert_eq!(hex::encode(tx.to_cbor_bytes()), "a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58201907c235a0df870e95152669f7c147d6e3a7e251b57e4d5227556d1fd0caca0b0d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c");
     }
 
     #[test]

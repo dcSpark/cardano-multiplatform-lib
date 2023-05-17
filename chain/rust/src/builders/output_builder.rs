@@ -88,14 +88,13 @@ impl TransactionOutputAmountBuilder {
         self
     }
 
-    pub fn with_asset_and_min_required_coin(mut self, multiasset: MultiAsset, coins_per_utxo_byte: Coin) -> Result<Self, OutputBuilderError> {
-        let mut min_output = TransactionOutput::new_babbage_tx_out(BabbageTxOut {
-            address: self.address.clone(),
-            amount: self.amount.clone().unwrap_or_else(|| Value::from(0)),
-            datum_option: self.datum.clone(),
-            script_reference: self.script_ref.clone(),
-            encodings: None,
-        });
+    pub fn with_asset_and_min_required_coin(self, multiasset: MultiAsset, coins_per_utxo_byte: Coin) -> Result<Self, OutputBuilderError> {
+        let mut min_output = TransactionOutput::new(
+            self.address.clone(),
+            self.amount.clone().unwrap_or_else(|| Value::from(0)),
+            self.datum.clone(),
+            self.script_ref.clone(),
+        );
         let min_possible_coin = min_ada_required(&min_output, coins_per_utxo_byte)?;
 
         let check_output = &mut min_output;
@@ -107,13 +106,12 @@ impl TransactionOutputAmountBuilder {
     }
 
     pub fn build(self) -> Result<SingleOutputBuilderResult, OutputBuilderError> {
-        let output = TransactionOutput::new_babbage_tx_out(BabbageTxOut {
-            address: self.address,
-            amount: self.amount.ok_or(OutputBuilderError::AmountMissing)?,
-            datum_option: self.datum,
-            script_reference: self.script_ref,
-            encodings: None,
-        });
+        let output = TransactionOutput::new(
+            self.address,
+            self.amount.ok_or(OutputBuilderError::AmountMissing)?,
+            self.datum,
+            self.script_ref,
+        );
         Ok(SingleOutputBuilderResult {
             output,
             communication_datum: self.communication_datum

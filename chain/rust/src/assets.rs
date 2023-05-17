@@ -26,14 +26,44 @@ pub enum AssetArithmeticError {
 }
 
 /// Bundle of assets within range of T, grouped by PolicyID then AssetName
-#[derive(Clone, Debug, Default, PartialEq, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Default, PartialEq, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AssetBundle<T>(OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>);
+
+impl<T: std::fmt::Debug> std::fmt::Debug for AssetBundle<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        let mut ds = f.debug_struct(if self.0.iter().any(|(_, a)| !a.is_empty()) { "" } else { "{}" });
+        for (pid, assets) in self.0.iter() {
+            let pid_hex = hex::encode(pid.to_raw_bytes());
+            for (an, val) in assets.iter() {
+                let an_hex = hex::encode(an.get());
+                let an_name = if an_hex.len() > 8 {
+                    format!(
+                        "{}..{}",
+                        an_hex.get(0..3).unwrap(),
+                        an_hex.get(an_hex.len() - 2 .. an_hex.len() - 1).unwrap())
+                } else {
+                    an_hex
+                };
+                ds.field(
+                    &format!(
+                        "{}..{}:{}",
+                        pid_hex.get(0..3).unwrap(),
+                        pid_hex.get(pid_hex.len() - 4..pid_hex.len() - 1).unwrap(),
+                        an_name
+                    ),
+                    val);
+            }
+        }
+        ds.finish()
+    }
+}
 
 impl<T: Default> AssetBundle<T> {
     pub fn new() -> Self {
         Self::default()
     }
 }
+
 
 impl<T> From<OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>> for AssetBundle<T> {
     fn from(bundle: OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>) -> Self {
@@ -141,26 +171,24 @@ impl<T> AssetBundle<T>
     pub fn checked_add(&self, rhs: &Self) -> Result<Self, AssetArithmeticError> {
         use linked_hash_map::Entry;
         let mut bundle = self.0.clone();
-        for ma in &[&self.0, &rhs.0] {
-            for (policy, assets) in ma.iter() {
-                for (asset_name, amount) in assets.iter() {
-                    match bundle.entry(policy.clone()) {
-                        Entry::Occupied(mut assets) => {
-                            match assets.get_mut().entry(asset_name.clone()) {
-                                Entry::Occupied(mut assets) => {
-                                    let current = assets.get_mut();
-                                    *current = current.checked_add(amount).ok_or(ArithmeticError::IntegerOverflow)?;
-                                }
-                                Entry::Vacant(vacant_entry) => {
-                                    vacant_entry.insert(*amount);
-                                }
+        for (policy, assets) in rhs.0.iter() {
+            for (asset_name, amount) in assets.iter() {
+                match bundle.entry(policy.clone()) {
+                    Entry::Occupied(mut assets) => {
+                        match assets.get_mut().entry(asset_name.clone()) {
+                            Entry::Occupied(mut assets2) => {
+                                let current = assets2.get_mut();
+                                *current = current.checked_add(amount).ok_or(ArithmeticError::IntegerOverflow)?;
+                            }
+                            Entry::Vacant(vacant_entry) => {
+                                vacant_entry.insert(*amount);
                             }
                         }
-                        Entry::Vacant(entry) => {
-                            let mut assets = OrderedHashMap::new();
-                            assets.insert(asset_name.clone(), *amount);
-                            entry.insert(assets);
-                        }
+                    }
+                    Entry::Vacant(entry) => {
+                        let mut assets = OrderedHashMap::new();
+                        assets.insert(asset_name.clone(), *amount);
+                        entry.insert(assets);
                     }
                 }
             }

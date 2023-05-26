@@ -157,6 +157,8 @@ pub enum TxBuilderError {
     CollateralReturnRequiresCollateralInput,
     #[error("ScriptDatumHash failed: {0}")]
     ScriptDatumHashFailed(#[from] ScriptDataHashError),
+    #[error("Duplicate Mint Asset: {0:?}:{1:?}")]
+    DuplicateMint(PolicyId, AssetName),
 }
 
 fn min_fee(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuilderError> {
@@ -696,11 +698,6 @@ impl TransactionBuilder {
         self.validity_start_interval = Some(*validity_start_interval)
     }
 
-    // TODO: remove?
-    // pub fn get_certs(&self) -> Option<Certificates> {
-    //     self.certs.clone()
-    // }
-
     pub fn add_cert(&mut self, result: CertificateBuilderResult) {
         self.witness_builders.redeemer_set_builder.add_cert(&result);
         if self.certs.is_none() {
@@ -756,15 +753,15 @@ impl TransactionBuilder {
         }
     }
 
-    pub fn add_mint(&mut self, result: MintBuilderResult) {
+    pub fn add_mint(&mut self, result: MintBuilderResult) -> Result<(), TxBuilderError> {
         self.witness_builders.redeemer_set_builder.add_mint(&result);
         self.witness_builders.witness_set_builder.add_required_wits(result.required_wits.clone());
-        // TODO: old behavior was to overwrite if for some reason there was already an asset here.
-        // Should we keep that or should we return an error or should we sum them?
         let mut mint = self.mint.take().unwrap_or_default();
-        let combined_assets = mint.deref_mut().entry(result.policy_id).or_default();
+        let combined_assets = mint.deref_mut().entry(result.policy_id.clone()).or_default();
         for (asset_name, asset_value) in result.assets.iter() {
-            combined_assets.insert(asset_name.clone(), *asset_value);
+            if combined_assets.insert(asset_name.clone(), *asset_value).is_some() {
+                return Err(TxBuilderError::DuplicateMint(result.policy_id.clone(), asset_name.clone()));
+            }
         }
         self.mint = Some(mint);
         if let Some(data) = result.aggregate_witness {
@@ -774,6 +771,7 @@ impl TransactionBuilder {
                 required_signers.into_iter().for_each(|signer| self.add_required_signer(signer));
             }
         }
+        Ok(())
     }
 
     /// Returns a copy of the current mint state in the builder
@@ -835,13 +833,6 @@ impl TransactionBuilder {
         Ok(())
     }
 
-    // TODO: remove?
-    // pub fn collateral(&self) -> Option<TransactionInputs> {
-    //     self.collateral
-    //         .as_ref()
-    //         .map(|list| TransactionInputs(list.iter().map(|input| input.input.clone()).collect()))
-    // }
-
     pub fn add_required_signer(&mut self, hash: Ed25519KeyHash) {
         let mut set = RequiredWitnessSet::new();
         set.add_vkey_key_hash(hash.clone());
@@ -858,11 +849,6 @@ impl TransactionBuilder {
             }
         }
     }
-
-    // TODO: remove?
-    // pub fn required_signers(&self) -> Option<RequiredSigners> {
-    //     self.required_signers.as_ref().map(|set| Ed25519KeyHashes(set.iter().cloned().collect()))
-    // }
 
     pub fn set_network_id(&mut self, network_id: NetworkId) {
         self.network_id = Some(network_id)

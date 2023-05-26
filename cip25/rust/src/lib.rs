@@ -6,6 +6,8 @@
 pub mod serialization;
 pub mod utils;
 
+pub use utils::{CIP25Version, LabelMetadata};
+
 use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::{Serialize, Serializer};
@@ -132,8 +134,6 @@ impl ChunkableString {
     }
 }
 
-pub type Data = BTreeMap<PolicyIdV2, BTreeMap<AssetNameV2, MetadataDetails>>;
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct FilesDetails {
     pub name: String64,
@@ -148,35 +148,6 @@ impl FilesDetails {
             media_type,
             src,
         }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub enum LabelMetadata {
-    LabelMetadataV1(LabelMetadataV1),
-    LabelMetadataV2(LabelMetadataV2),
-}
-
-impl LabelMetadata {
-    pub fn new_label_metadata_v1(label_metadata_v1: LabelMetadataV1) -> Self {
-        Self::LabelMetadataV1(label_metadata_v1)
-    }
-
-    pub fn new_label_metadata_v2(label_metadata_v2: LabelMetadataV2) -> Self {
-        Self::LabelMetadataV2(label_metadata_v2)
-    }
-}
-
-pub type LabelMetadataV1 = BTreeMap<PolicyIdV1, BTreeMap<AssetNameV1, MetadataDetails>>;
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct LabelMetadataV2 {
-    pub data: Data,
-}
-
-impl LabelMetadataV2 {
-    pub fn new(data: Data) -> Self {
-        Self { data }
     }
 }
 

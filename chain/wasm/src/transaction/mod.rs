@@ -2,18 +2,21 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use super::{
-    BootstrapWitnessList, CertificateList, Coin, Mint, NativeScriptList, NetworkId, PlutusDataList,
-    PlutusV1ScriptList, PlutusV2ScriptList, RedeemerList, Script, Slot, TransactionInputList,
-    TransactionOutputList, Update, Value, VkeywitnessList, Withdrawals,
+    Value, BootstrapWitnessList, CertificateList, NativeScriptList, NetworkId, PlutusDataList,
+    PlutusV1ScriptList, PlutusV2ScriptList, RedeemerList, Slot, TransactionInputList,
+    TransactionOutputList, Update, VkeywitnessList, Withdrawals,
 };
+use crate::Script;
 use crate::address::Address;
+use crate::assets::{Coin, Mint};
 use crate::auxdata::AuxiliaryData;
-use crate::plutus::PlutusData;
-use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_crypto_wasm::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
 };
+use crate::plutus::PlutusData;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+
+pub mod utils;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -122,8 +125,8 @@ impl BabbageTxOut {
         self.0.address.clone().into()
     }
 
-    pub fn value(&self) -> Value {
-        self.0.value.clone().into()
+    pub fn amount(&self) -> Value {
+        self.0.amount.clone().into()
     }
 
     pub fn set_datum_option(&mut self, datum_option: &DatumOption) {
@@ -145,10 +148,10 @@ impl BabbageTxOut {
             .map(std::convert::Into::into)
     }
 
-    pub fn new(address: &Address, value: &Value) -> Self {
+    pub fn new(address: &Address, amount: &Value) -> Self {
         Self(cml_chain::transaction::BabbageTxOut::new(
             address.clone().into(),
-            value.clone().into(),
+            amount.clone().into(),
         ))
     }
 }
@@ -428,61 +431,41 @@ pub enum NativeScriptKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct RequiredSigners(cml_chain::transaction::RequiredSigners);
+pub struct RequiredSigners(Vec<cml_chain::crypto::Ed25519KeyHash>);
 
 #[wasm_bindgen]
 impl RequiredSigners {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
+    pub fn new() -> Self {
+        Self(Vec::new())
     }
 
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<RequiredSigners, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+    pub fn get(&self, index: usize) -> Ed25519KeyHash {
+        self.0[index].clone().into()
     }
 
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<RequiredSigners, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
-    pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.clone().into()
-    }
-
-    pub fn new(ed25519_key_hash: &Ed25519KeyHash) -> Self {
-        Self(cml_chain::transaction::RequiredSigners::new(
-            ed25519_key_hash.clone().into(),
-        ))
+    pub fn add(&mut self, elem: &Ed25519KeyHash) {
+        self.0.push(elem.clone().into());
     }
 }
 
-impl From<cml_chain::transaction::RequiredSigners> for RequiredSigners {
-    fn from(native: cml_chain::transaction::RequiredSigners) -> Self {
+impl From<Vec<cml_chain::crypto::Ed25519KeyHash>> for RequiredSigners {
+    fn from(native: Vec<cml_chain::crypto::Ed25519KeyHash>) -> Self {
         Self(native)
     }
 }
 
-impl From<RequiredSigners> for cml_chain::transaction::RequiredSigners {
+impl From<RequiredSigners> for Vec<cml_chain::crypto::Ed25519KeyHash> {
     fn from(wasm: RequiredSigners) -> Self {
         wasm.0
     }
 }
 
-impl AsRef<cml_chain::transaction::RequiredSigners> for RequiredSigners {
-    fn as_ref(&self) -> &cml_chain::transaction::RequiredSigners {
+impl AsRef<Vec<cml_chain::crypto::Ed25519KeyHash>> for RequiredSigners {
+    fn as_ref(&self) -> &Vec<cml_chain::crypto::Ed25519KeyHash> {
         &self.0
     }
 }

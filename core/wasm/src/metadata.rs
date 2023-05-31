@@ -306,3 +306,9 @@ impl From<TransactionMetadatum> for core::TransactionMetadatum {
         wasm.0
     }
 }
+
+impl AsRef<core::TransactionMetadatum> for TransactionMetadatum {
+    fn as_ref(&self) -> &core::TransactionMetadatum {
+        &self.0
+    }
+}

@@ -147,3 +147,12 @@ impl From<cbor_event::Error> for DeserializeError {
         }
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum ArithmeticError {
+    #[error("Integer overflow")]
+    IntegerOverflow,
+    #[error("Integer underflow")]
+    IntegerUnderflow,
+}
+

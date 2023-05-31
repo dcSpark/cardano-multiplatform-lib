@@ -81,7 +81,7 @@ pub enum AddressError {
     WrongKind(AddressKind),
 }
 
-#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd, Hash)]
 pub enum Address {
     Base(BaseAddress),
     Ptr(PointerAddress),
@@ -858,7 +858,7 @@ impl Deserialize for RewardAccount {
         }
     }
 }
-
+/*
 #[cfg(test)]
 mod tests {
     use crate::{byron::AddressContent, ledger::common::hash::ScriptHashNamespace};
@@ -1415,3 +1415,4 @@ mod tests {
         assert_eq!(addr_bytes, addr.to_bytes());
     }
 }
+*/

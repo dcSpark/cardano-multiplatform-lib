@@ -5,7 +5,7 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use super::{PositiveInterval, SubCoin};
+use super::{Rational, SubCoin};
 use crate::utils::BigInt;
 use cbor_encodings::{
     CostModelsEncoding, ExUnitPricesEncoding, ExUnitsEncoding, PlutusV1ScriptEncoding,
@@ -63,11 +63,16 @@ impl ExUnitPrices {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(PartialEq, Hash, Eq)]
 pub struct ExUnits {
     pub mem: u64,
     pub steps: u64,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Hash = "ignore",
+    )]
     pub encodings: Option<ExUnitsEncoding>,
 }
 
@@ -178,10 +183,15 @@ impl PlutusData {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, PartialEq, Eq)]
 pub struct PlutusV1Script {
     pub inner: Vec<u8>,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Hash = "ignore",
+    )]
     pub encodings: Option<PlutusV1ScriptEncoding>,
 }
 
@@ -210,10 +220,15 @@ impl From<PlutusV1Script> for Vec<u8> {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, PartialEq, Eq)]
 pub struct PlutusV2Script {
     pub inner: Vec<u8>,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Hash = "ignore",
+    )]
     pub encodings: Option<PlutusV2ScriptEncoding>,
 }
 

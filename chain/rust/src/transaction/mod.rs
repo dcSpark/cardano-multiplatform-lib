@@ -28,12 +28,17 @@ use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, Eq, PartialEq)]
 pub struct AlonzoTxOut {
     pub address: Address,
     pub amount: Value,
     pub datum_hash: DatumHash,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Hash = "ignore",
+    )]
     pub encodings: Option<AlonzoTxOutEncoding>,
 }
 
@@ -48,13 +53,18 @@ impl AlonzoTxOut {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, Eq, PartialEq)]
 pub struct BabbageTxOut {
     pub address: Address,
     pub amount: Value,
     pub datum_option: Option<DatumOption>,
     pub script_reference: Option<ScriptRef>,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Hash = "ignore",
+    )]
     pub encodings: Option<BabbageTxOutEncoding>,
 }
 
@@ -70,26 +80,55 @@ impl BabbageTxOut {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Eq, PartialEq, Hash)]
 pub enum DatumOption {
     Hash {
         datum_hash: DatumHash,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         len_encoding: LenEncoding,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         tag_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         datum_hash_encoding: StringEncoding,
     },
     Datum {
         datum: PlutusData,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         len_encoding: LenEncoding,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         tag_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         datum_tag_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
+        #[derivative(
+            PartialEq = "ignore",
+            Hash = "ignore",
+        )]
         datum_bytes_encoding: StringEncoding,
     },
 }
@@ -115,7 +154,7 @@ impl DatumOption {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum NativeScript {
     ScriptPubkey(ScriptPubkey),
     ScriptAll(ScriptAll),
@@ -153,10 +192,15 @@ impl NativeScript {
 
 pub type RequiredSigners = Vec<Ed25519KeyHash>;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, PartialEq, Eq)]
 pub struct ScriptAll {
     pub native_scripts: Vec<NativeScript>,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Hash = "ignore",
+    )]
     pub encodings: Option<ScriptAllEncoding>,
 }
 
@@ -169,10 +213,15 @@ impl ScriptAll {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, PartialEq, Eq)]
 pub struct ScriptAny {
     pub native_scripts: Vec<NativeScript>,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Hash = "ignore",
+    )]
     pub encodings: Option<ScriptAnyEncoding>,
 }
 
@@ -185,10 +234,15 @@ impl ScriptAny {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, PartialEq, Eq)]
 pub struct ScriptInvalidBefore {
     pub before: Slot,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Hash = "ignore",
+    )]
     pub encodings: Option<ScriptInvalidBeforeEncoding>,
 }
 
@@ -201,10 +255,15 @@ impl ScriptInvalidBefore {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, PartialEq, Eq)]
 pub struct ScriptInvalidHereafter {
     pub after: Slot,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Hash = "ignore",
+    )]
     pub encodings: Option<ScriptInvalidHereafterEncoding>,
 }
 
@@ -217,11 +276,16 @@ impl ScriptInvalidHereafter {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, PartialEq, Eq)]
 pub struct ScriptNOfK {
     pub n: u64,
     pub native_scripts: Vec<NativeScript>,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Hash = "ignore",
+    )]
     pub encodings: Option<ScriptNOfKEncoding>,
 }
 
@@ -235,10 +299,15 @@ impl ScriptNOfK {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, PartialEq, Eq)]
 pub struct ScriptPubkey {
     pub ed25519_key_hash: Ed25519KeyHash,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Hash = "ignore",
+    )]
     pub encodings: Option<ScriptPubkeyEncoding>,
 }
 
@@ -253,11 +322,16 @@ impl ScriptPubkey {
 
 pub type ScriptRef = Script;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derivative(Hash, Eq, PartialEq)]
 pub struct ShelleyTxOut {
     pub address: Address,
     pub amount: Value,
     #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Hash = "ignore",
+    )]
     pub encodings: Option<ShelleyTxOutEncoding>,
 }
 
@@ -371,7 +445,7 @@ impl TransactionInput {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum TransactionOutput {
     ShelleyTxOut(ShelleyTxOut),
     AlonzoTxOut(AlonzoTxOut),

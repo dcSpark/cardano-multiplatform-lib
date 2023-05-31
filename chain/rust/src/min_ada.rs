@@ -1,5 +1,6 @@
 use std::convert::TryInto;
 
+use cml_core::ArithmeticError;
 use cml_crypto::Serialize;
 
 use crate::{
@@ -9,31 +10,10 @@ use crate::{
     transaction::{TransactionOutput, DatumOption, ScriptRef, BabbageTxOut},
 };
 
-#[derive(Debug, thiserror::Error)]
-pub enum MinAdaError {
-    #[error("Arithmetic overflow")]
-    ArithmeticOverflow,
-}
-
-// /// Provide backwards compatibility to Alonzo by taking the max min value of both er
-// #[deprecated(
-//     since = "0.0.0",
-//     note = "If you don't need to support Alonzo, you don't need this function"
-// )]
-// pub fn compatible_min_ada_required(
-//     output: &TransactionOutput,
-//     coins_per_utxo_byte: Coin, // protocol parameter (in lovelace)
-//     coins_per_utxo_word: Coin, // protocol parameter (in lovelace)
-// ) -> Result<Coin, MinAdaError> {
-//     let babbage_min = min_ada_required(output, coins_per_utxo_byte)?;
-//     let alonzo_min = crate::ledger::alonzo::min_ada::min_ada_required(&output.amount(), output.datum_option.is_some(), coins_per_utxo_word)?;
-//     Ok(std::cmp::max(babbage_min, alonzo_min))
-// }
-
 pub fn min_ada_required(
     output: &TransactionOutput,
     coins_per_utxo_byte: Coin, // protocol parameter (in lovelace)
-) -> Result<Coin, MinAdaError> {
+) -> Result<Coin, ArithmeticError> {
     use cml_core::serialization::fit_sz;
 
     let output_size = output.to_cbor_bytes().len();
@@ -59,7 +39,7 @@ pub fn min_ada_required(
             .try_into()
             .ok()
             .and_then(|x: u64| x.checked_mul(coins_per_utxo_byte))
-            .ok_or(MinAdaError::ArithmeticOverflow)?;
+            .ok_or(ArithmeticError::IntegerOverflow)?;
 
         let new_coin_size = 1 + fit_sz(tentative_min_ada, None, false)
             .bytes_following();
@@ -78,7 +58,7 @@ pub fn min_ada_required(
         .try_into()
         .ok()
         .and_then(|x: u64| x.checked_mul(coins_per_utxo_byte))
-        .ok_or(MinAdaError::ArithmeticOverflow)?;
+        .ok_or(ArithmeticError::IntegerOverflow)?;
     Ok(adjusted_min_ada)
 }
 

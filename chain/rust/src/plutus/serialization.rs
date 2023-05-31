@@ -276,9 +276,9 @@ impl Deserialize for ExUnitPrices {
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
-            let mem_price = PositiveInterval::deserialize(raw)
+            let mem_price = Rational::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("mem_price"))?;
-            let step_price = PositiveInterval::deserialize(raw)
+            let step_price = Rational::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("step_price"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),

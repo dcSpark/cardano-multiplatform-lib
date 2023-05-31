@@ -11,7 +11,7 @@ use std::io::{BufRead, Seek, Write};
 use crate::{
     NativeScript, Script,
     crypto::hash::{hash_script, ScriptHashNamespace},
-    plutus::{PlutusV1Script, PlutusV2Script, PlutusScript},
+    plutus::{PlutusV1Script, PlutusV2Script, PlutusScript, Language},
 };
 
 impl Script {
@@ -22,6 +22,16 @@ impl Script {
             Self::PlutusV2 { script, .. } => script.hash(),
         }
     }
+
+    // Returns which language the script is if it's a Plutus script
+    // Returns None otherwise (i.e. NativeScript)
+    pub fn language(&self) -> Option<Language> {
+        match self {
+            Self::Native { .. } => None,
+            Self::PlutusV1 { .. } => Some(Language::PlutusV1),
+            Self::PlutusV2 { .. } => Some(Language::PlutusV2),
+        }
+    } 
 }
 
 impl NativeScript {

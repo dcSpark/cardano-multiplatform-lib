@@ -1,14 +1,14 @@
 ; Basic Cardano Types
 
 ; blake2b224 = bytes .size 28
-; public_ed_25519_bip32 = bytes .size 64
+; bip32_public_key = bytes .size 64
 ; script = bytes .size 32
-; public_ed_25519 = bytes .size 32
+; public_key = bytes .size 32
 
 blake2b224 = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-public_ed_25519_bip32 = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+bip32_public_key = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 byron_script = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-public_ed_25519 = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+public_key = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 
 ; blake2b224 of sha256 of cbor(byron_addr_type, spending_data, addr_attributes)
 address_id = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; blake2b224 
@@ -29,11 +29,11 @@ stake_distribution = [
 
 spending_data = [
   ; @name SpendingDataPubKey
-  tag: 0, pubkey: public_ed_25519_bip32 //
+  tag: 0, pubkey: bip32_public_key //
   ; @name SpendingDataScript
   tag: 1, script: byron_script //
   ; @name SpendingDataRedeem
-  tag: 2, redeem: public_ed_25519
+  tag: 2, redeem: public_key
 ]
 
 

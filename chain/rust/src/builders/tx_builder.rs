@@ -42,6 +42,9 @@ use cml_crypto::{Ed25519KeyHash, ScriptHash, Serialize, ScriptDataHash};
 use rand::Rng;
 use crate::builders::output_builder::TransactionOutputBuilder;
 
+// for enums:
+use wasm_bindgen::prelude::wasm_bindgen;
+
 #[derive(Clone, Debug)]
 pub struct TransactionUnspentOutput {
     pub input: TransactionInput,
@@ -174,6 +177,7 @@ fn min_fee_with_exunits(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuild
         .map_err(Into::into)
 }
 
+#[wasm_bindgen]
 pub enum CoinSelectionStrategyCIP2 {
     /// Performs CIP2's Largest First ada-only selection. Will error if outputs contain non-ADA assets.
     LargestFirst,
@@ -694,8 +698,8 @@ impl TransactionBuilder {
         self.ttl = Some(ttl)
     }
 
-    pub fn set_validity_start_interval(&mut self, validity_start_interval: &Slot) {
-        self.validity_start_interval = Some(*validity_start_interval)
+    pub fn set_validity_start_interval(&mut self, validity_start_interval: Slot) {
+        self.validity_start_interval = Some(validity_start_interval)
     }
 
     pub fn add_cert(&mut self, result: CertificateBuilderResult) {
@@ -1140,6 +1144,7 @@ impl TransactionBuilder {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct TxRedeemerBuilder {
     draft_body: TransactionBody,
     witness_builders: WitnessBuilders,
@@ -1183,6 +1188,7 @@ impl TxRedeemerBuilder {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct SignedTxBuilder {
     body: TransactionBody,
     witness_set: TransactionWitnessSetBuilder,
@@ -1272,13 +1278,15 @@ impl SignedTxBuilder {
     }
 }
 
+
+#[wasm_bindgen]
 pub enum ChangeSelectionAlgo {
     Default,
 }
 
 pub fn choose_change_selection_algo(algo: ChangeSelectionAlgo) -> fn(&mut TransactionBuilder, &Address, include_exunits: bool) -> Result<bool, TxBuilderError>  {
     match algo {
-        Default => {
+        ChangeSelectionAlgo::Default => {
             add_change_if_needed
         }
     }

@@ -5,7 +5,9 @@ transaction_metadatum =
   / bytes .size (0..64)
   / text .size (0..64)
 
-metadata = { * transaction_metadatum_label => transaction_metadatum }
+; metadata = { * transaction_metadatum_label => transaction_metadatum }
+; the above is correct but we needed to hand-write it to allow for duplicate keys
+metadata = _CDDL_CODEGEN_EXTERN_TYPE_
 
 shelley_aux_data = metadata
 shelley_ma_aux_data = [ transaction_metadata: metadata ; Shelley-ma

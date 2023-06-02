@@ -61,18 +61,6 @@ impl From<MetadatumList> for Vec<core::TransactionMetadatum> {
     }
 }
 
-impl From<OrderedHashMap<TransactionMetadatumLabel, core::TransactionMetadatum>> for Metadata {
-    fn from(native: OrderedHashMap<TransactionMetadatumLabel, core::TransactionMetadatum>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Metadata> for OrderedHashMap<TransactionMetadatumLabel, core::TransactionMetadatum> {
-    fn from(wrapper: Metadata) -> Self {
-        wrapper.0
-    }
-}
-
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct TransactionMetadatumLabels(Vec<TransactionMetadatumLabel>);
@@ -141,48 +129,54 @@ impl MetadatumMap {
     }
 }
 
+impl_wasm_list!(core::TransactionMetadatum, TransactionMetadatum, TransactionMetadatumList);
+
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct Metadata(core::Metadata);
 
+impl_wasm_conversions!(core::Metadata, Metadata);
+
 #[wasm_bindgen]
 impl Metadata {
     pub fn new() -> Self {
-        Self(OrderedHashMap::new())
+        Self(core::Metadata::new())
     }
 
+    /// How many metadatum labels there are.
     pub fn len(&self) -> usize {
-        self.0.len()
+        self.0.entries.len()
     }
 
-    pub fn insert(
+    /// Replaces all metadatums of a given label, if any exist.
+    pub fn set(
         &mut self,
         key: TransactionMetadatumLabel,
         value: &TransactionMetadatum,
-    ) -> Option<TransactionMetadatum> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
+    ) {
+        self.0.set(key, value.clone().into())
     }
 
-    pub fn get(&self, key: TransactionMetadatumLabel) -> Option<TransactionMetadatum> {
-        self.0.get(&key).map(|v| v.clone().into())
+    /// Gets the Metadatum corresponding to a given label, if it exists.
+    /// Note: In the case of duplicate labels this only returns the first metadatum.
+    /// This is an extremely rare occurence on-chain but can happen.
+    pub fn get(&self, label: TransactionMetadatumLabel) -> Option<TransactionMetadatum> {
+        self.0.get(label).map(|x| x.clone().into())
     }
 
-    pub fn keys(&self) -> TransactionMetadatumLabels {
-        TransactionMetadatumLabels(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    /// In the extremely unlikely situation there are duplicate labels, this gets all of a single label
+    pub fn get_all(&self, label: TransactionMetadatumLabel) -> Option<TransactionMetadatumList> {
+        self.0.get_all(label).map(|mds| mds.into_iter().map(|md| md.clone().into()).collect::<Vec<_>>().into())
+    }
+
+    pub fn labels(&self) -> TransactionMetadatumLabels {
+        TransactionMetadatumLabels(self.0.entries.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
     }
 }
 
 impl AsMut<core::Metadata> for Metadata {
     fn as_mut(&mut self) -> &mut core::Metadata {
         &mut self.0
-    }
-}
-
-impl AsRef<core::Metadata> for Metadata {
-    fn as_ref(&self) -> &core::Metadata {
-        &self.0
     }
 }
 

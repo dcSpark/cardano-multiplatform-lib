@@ -286,11 +286,13 @@ impl PrivateKey {
 
     /// Get private key from its bech32 representation
     /// ```rust
-    /// PrivateKey::from_bech32(&#39;ed25519_sk1ahfetf02qwwg4dkq7mgp4a25lx5vh9920cr5wnxmpzz9906qvm8qwvlts0&#39;);
+    /// use cml_crypto::PrivateKey;
+    /// let key = PrivateKey::from_bech32("ed25519_sk1ahfetf02qwwg4dkq7mgp4a25lx5vh9920cr5wnxmpzz9906qvm8qwvlts0").unwrap();
     /// ```
     /// For an extended 25519 key
     /// ```rust
-    /// PrivateKey::from_bech32(&#39;ed25519e_sk1gqwl4szuwwh6d0yk3nsqcc6xxc3fpvjlevgwvt60df59v8zd8f8prazt8ln3lmz096ux3xvhhvm3ca9wj2yctdh3pnw0szrma07rt5gl748fp&#39;);
+    /// use cml_crypto::PrivateKey;
+    /// let key = PrivateKey::from_bech32("ed25519e_sk1gqwl4szuwwh6d0yk3nsqcc6xxc3fpvjlevgwvt60df59v8zd8f8prazt8ln3lmz096ux3xvhhvm3ca9wj2yctdh3pnw0szrma07rt5gl748fp").unwrap();
     /// ```
     pub fn from_bech32(bech32_str: &str) -> Result<PrivateKey, CryptoError> {
         chain_crypto::SecretKey::try_from_bech32_str(&bech32_str)
@@ -358,7 +360,8 @@ impl PublicKey {
     /// Get public key from its bech32 representation
     /// Example:
     /// ```rust
-    /// let pkey = PublicKey::from_bech32(&#39;ed25519_pk1dgaagyh470y66p899txcl3r0jaeaxu6yd7z2dxyk55qcycdml8gszkxze2&#39;)?;
+    /// use cml_crypto::PublicKey;
+    /// let key = PublicKey::from_bech32("ed25519_pk1dgaagyh470y66p899txcl3r0jaeaxu6yd7z2dxyk55qcycdml8gszkxze2").unwrap();
     /// ```
     pub fn from_bech32(bech32_str: &str) -> Result<PublicKey, CryptoError> {
         chain_crypto::PublicKey::try_from_bech32_str(&bech32_str)
@@ -624,6 +627,7 @@ impl_hash_type!(KESVkey, 32);
 //impl_hash_type!(KESSignature, 448);
 impl_hash_type!(NonceHash, 32);
 
+#[derive(Clone)]
 pub struct LegacyDaedalusPrivateKey(chain_crypto::SecretKey<chain_crypto::LegacyDaedalus>);
 
 impl LegacyDaedalusPrivateKey {

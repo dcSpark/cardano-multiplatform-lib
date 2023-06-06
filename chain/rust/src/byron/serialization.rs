@@ -18,10 +18,13 @@ impl cbor_event::se::Serialize for AddrAttributes {
         &self,
         serializer: &'se mut Serializer<W>,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        // NOTE: This was manually modified *slightly*
+        // The direct cddl-codegen code will always include the stake distribution
+        // but the old byron code seems to only put it in when it's not bootstrap.
         serializer.write_map(cbor_event::Len::Len(
             match &self.stake_distribution {
-                Some(_) => 1,
-                None => 0,
+                Some(StakeDistribution::SingleKey(_)) => 1,
+                _ => 0,
             } + match &self.derivation_path {
                 Some(_) => 1,
                 None => 0,
@@ -30,10 +33,10 @@ impl cbor_event::se::Serialize for AddrAttributes {
                 None => 0,
             },
         ))?;
-        if let Some(field) = &self.stake_distribution {
+        if let Some(StakeDistribution::SingleKey(_)) = &self.stake_distribution {
             serializer.write_unsigned_integer(0u64)?;
             let mut stake_distribution_inner_se = Serializer::new_vec();
-            field.serialize(&mut stake_distribution_inner_se)?;
+            self.stake_distribution.as_ref().unwrap().serialize(&mut stake_distribution_inner_se)?;
             let stake_distribution_bytes = stake_distribution_inner_se.finalize();
             serializer.write_bytes(&stake_distribution_bytes)?;
         }

@@ -858,12 +858,13 @@ impl Deserialize for RewardAccount {
         }
     }
 }
-/*
+
 #[cfg(test)]
 mod tests {
-    use crate::{byron::AddressContent, ledger::common::hash::ScriptHashNamespace};
+    use crate::{byron::AddressContent, transaction::NativeScript};
 
     use super::*;
+    use cml_core::serialization::ToBytes;
     use cml_crypto::*;
 
     #[test]
@@ -881,53 +882,53 @@ mod tests {
     fn base_serialize_consistency() {
         let base = BaseAddress::new(
             5,
-            StakeCredential::from_keyhash(Ed25519KeyHash::from([23; Ed25519KeyHash::BYTE_COUNT])),
-            StakeCredential::from_scripthash(ScriptHash::from([42; ScriptHash::BYTE_COUNT])),
+            StakeCredential::new_pub_key(Ed25519KeyHash::from([23; Ed25519KeyHash::BYTE_COUNT])),
+            StakeCredential::new_script(ScriptHash::from([42; ScriptHash::BYTE_COUNT])),
         );
         let addr = base.to_address();
-        let addr2 = Address::from_bytes(addr.to_bytes()).unwrap();
-        assert_eq!(addr.to_bytes(), addr2.to_bytes());
+        let addr2 = Address::from_cbor_bytes(&addr.to_cbor_bytes()).unwrap();
+        assert_eq!(addr.to_cbor_bytes(), addr2.to_cbor_bytes());
     }
 
     #[test]
     fn ptr_serialize_consistency() {
         let ptr = PointerAddress::new(
             25,
-            StakeCredential::from_keyhash(Ed25519KeyHash::from([23; Ed25519KeyHash::BYTE_COUNT])),
+            StakeCredential::new_pub_key(Ed25519KeyHash::from([23; Ed25519KeyHash::BYTE_COUNT])),
             Pointer::new(2354556573, 127, 0),
         );
         let addr = ptr.to_address();
-        let addr2 = Address::from_bytes(addr.to_bytes()).unwrap();
-        assert_eq!(addr.to_bytes(), addr2.to_bytes());
+        let addr2 = Address::from_cbor_bytes(&addr.to_cbor_bytes()).unwrap();
+        assert_eq!(addr.to_cbor_bytes(), addr2.to_cbor_bytes());
     }
 
     #[test]
     fn enterprise_serialize_consistency() {
         let enterprise = EnterpriseAddress::new(
             64,
-            StakeCredential::from_keyhash(Ed25519KeyHash::from([23; Ed25519KeyHash::BYTE_COUNT])),
+            StakeCredential::new_pub_key(Ed25519KeyHash::from([23; Ed25519KeyHash::BYTE_COUNT])),
         );
         let addr = enterprise.to_address();
-        let addr2 = Address::from_bytes(addr.to_bytes()).unwrap();
-        assert_eq!(addr.to_bytes(), addr2.to_bytes());
+        let addr2 = Address::from_cbor_bytes(&addr.to_cbor_bytes()).unwrap();
+        assert_eq!(addr.to_cbor_bytes(), addr2.to_cbor_bytes());
     }
 
     #[test]
     fn reward_serialize_consistency() {
         let reward = RewardAddress::new(
             9,
-            StakeCredential::from_scripthash(ScriptHash::from([127; Ed25519KeyHash::BYTE_COUNT])),
+            StakeCredential::new_script(ScriptHash::from([127; Ed25519KeyHash::BYTE_COUNT])),
         );
         let addr = reward.to_address();
-        let addr2 = Address::from_bytes(addr.to_bytes()).unwrap();
-        assert_eq!(addr.to_bytes(), addr2.to_bytes());
+        let addr2 = Address::from_cbor_bytes(&addr.to_cbor_bytes()).unwrap();
+        assert_eq!(addr.to_cbor_bytes(), addr2.to_cbor_bytes());
     }
 
     #[test]
     fn address_header_matching() {
         let reward = RewardAddress::new(
             0b1001,
-            StakeCredential::from_scripthash(ScriptHash::from([127; Ed25519KeyHash::BYTE_COUNT])),
+            StakeCredential::new_script(ScriptHash::from([127; Ed25519KeyHash::BYTE_COUNT])),
         )
         .to_address();
         assert_eq!(reward.header(), 0b1111_1001);
@@ -995,8 +996,8 @@ mod tests {
             .derive(2)
             .derive(0)
             .to_public();
-        let spend_cred = StakeCredential::from_keyhash(spend.to_raw_key().hash());
-        let stake_cred = StakeCredential::from_keyhash(stake.to_raw_key().hash());
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
+        let stake_cred = StakeCredential::new_pub_key(stake.to_raw_key().hash());
         let addr_net_0 = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
             spend_cred.clone(),
@@ -1019,7 +1020,7 @@ mod tests {
             .derive(0)
             .derive(0)
             .to_public();
-        let spend_cred = StakeCredential::from_keyhash(spend.to_raw_key().hash());
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
         let addr_net_0 =
             EnterpriseAddress::new(NetworkInfo::testnet().network_id(), spend_cred.clone())
                 .to_address();
@@ -1044,7 +1045,7 @@ mod tests {
             .derive(0)
             .derive(0)
             .to_public();
-        let spend_cred = StakeCredential::from_keyhash(spend.to_raw_key().hash());
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
         let addr_net_0 = PointerAddress::new(
             NetworkInfo::testnet().network_id(),
             spend_cred.clone(),
@@ -1083,8 +1084,8 @@ mod tests {
             .derive(2)
             .derive(0)
             .to_public();
-        let spend_cred = StakeCredential::from_keyhash(&spend.to_raw_key().hash());
-        let stake_cred = StakeCredential::from_keyhash(&stake.to_raw_key().hash());
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
+        let stake_cred = StakeCredential::new_pub_key(stake.to_raw_key().hash());
         let addr_net_0 = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
             spend_cred.clone(),
@@ -1107,7 +1108,7 @@ mod tests {
             .derive(0)
             .derive(0)
             .to_public();
-        let spend_cred = StakeCredential::from_keyhash(spend.to_raw_key().hash());
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
         let addr_net_0 =
             EnterpriseAddress::new(NetworkInfo::testnet().network_id(), spend_cred.clone())
                 .to_address();
@@ -1132,7 +1133,7 @@ mod tests {
             .derive(0)
             .derive(0)
             .to_public();
-        let spend_cred = StakeCredential::from_keyhash(spend.to_raw_key().hash());
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
         let addr_net_0 = PointerAddress::new(
             NetworkInfo::testnet().network_id(),
             spend_cred.clone(),
@@ -1165,7 +1166,7 @@ mod tests {
             .derive(0)
             .to_public();
         let byron_addr =
-            AddressContent::icarus_from_key(&byron_key, NetworkInfo::mainnet().protocol_magic());
+            AddressContent::icarus_from_key(byron_key, NetworkInfo::mainnet().protocol_magic());
         assert_eq!(
             byron_addr.to_address().to_base58(),
             "Ae2tdPwUPEZHtBmjZBF4YpMkK9tMSPTE2ADEZTPN97saNkhG78TvXdp3GDk"
@@ -1176,8 +1177,8 @@ mod tests {
         assert_eq!(byron_addr.network_id().unwrap(), 0b0001);
 
         // round-trip from generic address type and back
-        let generic_addr = Address::from_bytes(byron_addr.to_address().to_bytes()).unwrap();
-        let byron_addr_2 = ByronAddress::from_address(generic_addr).unwrap();
+        let generic_addr = Address::from_raw_bytes(&byron_addr.to_address().to_bytes()).unwrap();
+        let byron_addr_2 = ByronAddress::from_address(&generic_addr).unwrap();
         assert_eq!(
             byron_addr.to_address().to_base58(),
             byron_addr_2.to_base58()
@@ -1200,8 +1201,8 @@ mod tests {
             .derive(2)
             .derive(0)
             .to_public();
-        let spend_cred = StakeCredential::from_keyhash(spend.to_raw_key().hash());
-        let stake_cred = StakeCredential::from_keyhash(stake.to_raw_key().hash());
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
+        let stake_cred = StakeCredential::new_pub_key(stake.to_raw_key().hash());
         let addr_net_0 = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
             spend_cred.clone(),
@@ -1224,7 +1225,7 @@ mod tests {
             .derive(0)
             .derive(0)
             .to_public();
-        let spend_cred = StakeCredential::from_keyhash(spend.to_raw_key().hash());
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
         let addr_net_0 =
             EnterpriseAddress::new(NetworkInfo::testnet().network_id(), spend_cred.clone())
                 .to_address();
@@ -1249,11 +1250,11 @@ mod tests {
             .derive(0)
             .derive(0)
             .to_public();
-        let spend_cred = StakeCredential::from_keyhash(spend.to_raw_key().hash());
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
         let addr_net_0 = PointerAddress::new(
             NetworkInfo::testnet().network_id(),
             spend_cred.clone(),
-            &Pointer::new(1, 2, 3),
+            Pointer::new(1, 2, 3),
         )
         .to_address();
         assert_eq!(
@@ -1263,7 +1264,7 @@ mod tests {
         let addr_net_3 = PointerAddress::new(
             NetworkInfo::mainnet().network_id(),
             spend_cred,
-            &Pointer::new(24157, 177, 42),
+            Pointer::new(24157, 177, 42),
         )
         .to_address();
         assert_eq!(
@@ -1281,7 +1282,7 @@ mod tests {
             .derive(2)
             .derive(0)
             .to_public();
-        let staking_cred = StakeCredential::from_keyhash(staking_key.to_raw_key().hash());
+        let staking_cred = StakeCredential::new_pub_key(staking_key.to_raw_key().hash());
         let addr_net_0 =
             RewardAddress::new(NetworkInfo::testnet().network_id(), staking_cred.clone())
                 .to_address();
@@ -1313,8 +1314,8 @@ mod tests {
             .derive(2)
             .derive(0)
             .to_public();
-        let spend_cred = StakeCredential::from_keyhash(spend.to_raw_key().hash());
-        let stake_cred = StakeCredential::from_keyhash(stake.to_raw_key().hash());
+        let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
+        let stake_cred = StakeCredential::new_pub_key(stake.to_raw_key().hash());
         let addr_net_0 = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
             spend_cred.clone(),
@@ -1338,19 +1339,17 @@ mod tests {
             .derive(0)
             .to_public();
 
-        let mut pubkey_native_scripts = NativeScripts::new();
+        let mut pubkey_native_scripts = Vec::new();
 
         let spending_hash = spend.to_raw_key().hash();
-        pubkey_native_scripts.add(NativeScript::new_script_pubkey(ScriptPubkey::new(
-            spending_hash,
-        )));
+        pubkey_native_scripts.push(NativeScript::new_script_pubkey(spending_hash));
         let oneof_native_script =
-            NativeScript::new_script_n_of_k(ScriptNOfK::new(1, pubkey_native_scripts));
+            NativeScript::new_script_n_of_k(1, pubkey_native_scripts);
 
-        let script_hash = ScriptHash::from_bytes(oneof_native_script.hash().to_bytes()).unwrap();
+        let script_hash = ScriptHash::from_raw_bytes(oneof_native_script.hash().to_raw_bytes()).unwrap();
 
-        let spend_cred = StakeCredential::from_scripthash(script_hash);
-        let stake_cred = StakeCredential::from_scripthash(script_hash);
+        let spend_cred = StakeCredential::new_script(script_hash.clone());
+        let stake_cred = StakeCredential::new_script(script_hash);
         let addr_net_0 = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
             spend_cred.clone(),
@@ -1367,7 +1366,7 @@ mod tests {
     #[test]
     fn pointer_address_big() {
         let addr = Address::from_bech32("addr_test1grqe6lg9ay8wkcu5k5e38lne63c80h3nq6xxhqfmhewf645pllllllllllll7lupllllllllllll7lupllllllllllll7lc9wayvj").unwrap();
-        let ptr = PointerAddress::from_address(addr).unwrap().stake;
+        let ptr = PointerAddress::from_address(&addr).unwrap().stake;
         let u64_max = num_bigint::BigUint::from(u64::MAX);
         assert_eq!(u64_max, ptr.slot);
         assert_eq!(u64_max, ptr.tx_index);
@@ -1380,14 +1379,17 @@ mod tests {
         let long_trimmed = Address::from_bech32("addr1q9d66zzs27kppmx8qc8h43q7m4hkxp5d39377lvxefvxd8j7eukjsdqc5c97t2zg5guqadepqqx6rc9m7wtnxy6tajjq6r54x9").unwrap();
         assert_eq!(long, long_trimmed);
         assert_eq!(
-            long.trailing,
+            long.encoding().unwrap().trailing,
             Some(vec![
                 203u8, 87, 175, 176, 179, 95, 200, 156, 99, 6, 28, 153, 20, 224, 85, 0, 26, 81,
                 140, 117, 22
             ])
         );
-        assert_eq!(long_trimmed.trailing, None);
-        assert_eq!(long.to_bytes(), hex::decode("015bad085057ac10ecc7060f7ac41edd6f63068d8963ef7d86ca58669e5ecf2d283418a60be5a848a2380eb721000da1e0bbf39733134beca4cb57afb0b35fc89c63061c9914e055001a518c7516").unwrap());
+        assert_eq!(long_trimmed.encoding().and_then(|enc| enc.trailing.clone()), None);
+        assert_eq!(
+            hex::encode(long.to_raw_bytes()),
+            "015bad085057ac10ecc7060f7ac41edd6f63068d8963ef7d86ca58669e5ecf2d283418a60be5a848a2380eb721000da1e0bbf39733134beca4cb57afb0b35fc89c63061c9914e055001a518c7516"
+        );
         let long_not_whitelisted = Address::from_bech32(
             "addr_test1vqt3w9chzut3w9chzut3w9chzut3w9chzut3w9chzut3w9cqqspqvqcqsmxqdssg97",
         );
@@ -1411,8 +1413,7 @@ mod tests {
             255, 255, 255, 255, 255, 255, 255, 255, 127, 129, 255, 255, 255, 255, 255, 255, 255,
             255, 127, 129, 255, 255, 255, 255, 255, 255, 255, 255, 127,
         ];
-        let addr = Address::from_bytes(addr_bytes.clone()).unwrap();
-        assert_eq!(addr_bytes, addr.to_bytes());
+        let addr = Address::from_raw_bytes(&addr_bytes.clone()).unwrap();
+        assert_eq!(addr_bytes, addr.to_raw_bytes());
     }
 }
-*/

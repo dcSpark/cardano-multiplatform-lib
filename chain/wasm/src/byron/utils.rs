@@ -97,8 +97,8 @@ impl AddressContent {
     }
 
     // icarus-style address (Ae2)
-    pub fn icarus_from_key(key: &Bip32PublicKey, protocol_magic: u32) -> AddressContent {
-        cml_chain::byron::AddressContent::icarus_from_key(key.clone().into(), protocol_magic).into()
+    pub fn icarus_from_key(key: &Bip32PublicKey, protocol_magic: &ProtocolMagic) -> AddressContent {
+        cml_chain::byron::AddressContent::icarus_from_key(key.clone().into(), protocol_magic.clone().into()).into()
     }
 
     /// Check if the Addr can be reconstructed with a specific xpub

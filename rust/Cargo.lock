@@ -60,7 +60,7 @@ dependencies = [
  "cfg-if",
  "clear_on_drop",
  "cryptoxide",
- "digest 0.9.0",
+ "digest",
  "ed25519-bip32",
  "flaky_test",
  "fraction",
@@ -145,15 +145,6 @@ name = "cryptoxide"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "382ce8820a5bb815055d3553a610e8cb542b2d767bbacea99038afda96cd760d"
-
-[[package]]
-name = "digest"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
-dependencies = [
- "generic-array",
-]
 
 [[package]]
 name = "digest"
@@ -662,7 +653,7 @@ checksum = "82e6b795fe2e3b1e845bafcb27aa35405c4d47cdfc92af5fc8d3002f76cebdc0"
 dependencies = [
  "cfg-if",
  "cpufeatures",
- "digest 0.10.5",
+ "digest",
 ]
 
 [[package]]

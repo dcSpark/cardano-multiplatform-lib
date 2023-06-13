@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use std::io::Read;
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
+use base64::Engine;
 
 use crate::byron::{ProtocolMagic, StakeholderId, ByronAddress, AddressContent};
 use crate::chain_crypto::byron_proxy_key::ProxySecretKey;
@@ -33,7 +34,7 @@ pub fn parse<R: Read>(json: R) -> config::GenesisData {
     let mut avvm_distr = BTreeMap::new();
     for (avvm, balance) in &data.avvmDistr {
         avvm_distr.insert(
-            chain_crypto::PublicKey::<Ed25519>::from_binary(&base64::decode_config(avvm, base64::URL_SAFE).unwrap())
+            chain_crypto::PublicKey::<Ed25519>::from_binary(&base64::engine::general_purpose::URL_SAFE.decode(avvm).unwrap())
                 .unwrap(),
             Coin::from(balance.parse::<u64>().unwrap()),
         );
@@ -132,7 +133,7 @@ mod test {
     #[test]
     pub fn calc_redeem_txid() {
         let (hash, address) = redeem_pubkey_to_txid(
-            &chain_crypto::PublicKey::<Ed25519>::from_binary(&base64::decode_config("AAG3vJwTzCcL0zp2-1yfI-mn_7haYvSYJln2xR_aBS8=", base64::URL_SAFE).unwrap())
+            &chain_crypto::PublicKey::<Ed25519>::from_binary(&base64::engine::general_purpose::URL_SAFE.decode("AAG3vJwTzCcL0zp2-1yfI-mn_7haYvSYJln2xR_aBS8=").unwrap())
                 .unwrap(),
             None,
         );
@@ -169,15 +170,12 @@ mod test {
         assert_eq!(u64::from(genesis_data.fee_policy.constant()), 155381 * 1_000_000_000u64);
 
         assert_eq!(
-            base64::encode_config(
-                genesis_data
-                    .avvm_distr
-                    .iter()
-                    .find(|(_, v)| **v == Coin::from(9999300000000))
-                    .unwrap()
-                    .0,
-                base64::URL_SAFE
-            ),
+            base64::engine::general_purpose::URL_SAFE.encode(genesis_data
+                .avvm_distr
+                .iter()
+                .find(|(_, v)| **v == Coin::from(9999300000000))
+                .unwrap()
+                .0),
             "-0BJDi-gauylk4LptQTgjMeo7kY9lTCbZv12vwOSTZk="
         );
 

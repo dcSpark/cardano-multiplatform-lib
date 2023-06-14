@@ -86,50 +86,7 @@ impl Serialize for AlonzoAuxData {
                                 force_canonical,
                             ),
                         )?;
-                        serializer.write_map_sz(
-                            self.encodings
-                                .as_ref()
-                                .map(|encs| encs.metadata_encoding)
-                                .unwrap_or_default()
-                                .to_len_sz(field.len() as u64, force_canonical),
-                        )?;
-                        let mut key_order = field
-                            .iter()
-                            .map(|(k, v)| {
-                                let mut buf = cbor_event::se::Serializer::new_vec();
-                                let metadata_key_encoding = self
-                                    .encodings
-                                    .as_ref()
-                                    .and_then(|encs| encs.metadata_key_encodings.get(k))
-                                    .cloned()
-                                    .unwrap_or_default();
-                                buf.write_unsigned_integer_sz(
-                                    *k,
-                                    fit_sz(*k, metadata_key_encoding, force_canonical),
-                                )?;
-                                Ok((buf.finalize(), k, v))
-                            })
-                            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
-                        if force_canonical {
-                            key_order.sort_by(
-                                |(lhs_bytes, _, _), (rhs_bytes, _, _)| match lhs_bytes
-                                    .len()
-                                    .cmp(&rhs_bytes.len())
-                                {
-                                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                                    diff_ord => diff_ord,
-                                },
-                            );
-                        }
-                        for (key_bytes, _key, value) in key_order {
-                            serializer.write_raw_bytes(&key_bytes)?;
-                            value.serialize(serializer, force_canonical)?;
-                        }
-                        self.encodings
-                            .as_ref()
-                            .map(|encs| encs.metadata_encoding)
-                            .unwrap_or_default()
-                            .end(serializer, force_canonical)?;
+                        field.serialize(serializer, force_canonical)?;
                     }
                 }
                 1 => {
@@ -250,8 +207,6 @@ impl Deserialize for AlonzoAuxData {
         let mut read_len = CBORReadLen::new(len);
         (|| -> Result<_, DeserializeError> {
             let mut orig_deser_order = Vec::new();
-            let mut metadata_encoding = LenEncoding::default();
-            let mut metadata_key_encodings = BTreeMap::new();
             let mut metadata_key_encoding = None;
             let mut metadata = None;
             let mut native_scripts_encoding = LenEncoding::default();
@@ -274,48 +229,12 @@ impl Deserialize for AlonzoAuxData {
                             if metadata.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(0)).into());
                             }
-                            let (tmp_metadata, tmp_metadata_encoding, tmp_metadata_key_encodings) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    let mut metadata_table = OrderedHashMap::new();
-                                    let metadata_len = raw.map_sz()?;
-                                    let metadata_encoding = metadata_len.into();
-                                    let mut metadata_key_encodings = BTreeMap::new();
-                                    while match metadata_len {
-                                        cbor_event::LenSz::Len(n, _) => {
-                                            (metadata_table.len() as u64) < n
-                                        }
-                                        cbor_event::LenSz::Indefinite => true,
-                                    } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                            break;
-                                        }
-                                        let (metadata_key, metadata_key_encoding) = raw
-                                            .unsigned_integer_sz()
-                                            .map(|(x, enc)| (x, Some(enc)))?;
-                                        let metadata_value =
-                                            TransactionMetadatum::deserialize(raw)?;
-                                        if metadata_table
-                                            .insert(metadata_key, metadata_value)
-                                            .is_some()
-                                        {
-                                            return Err(DeserializeFailure::DuplicateKey(
-                                                Key::Str(String::from(
-                                                    "some complicated/unsupported type",
-                                                )),
-                                            )
-                                            .into());
-                                        }
-                                        metadata_key_encodings
-                                            .insert(metadata_key, metadata_key_encoding);
-                                    }
-                                    Ok((metadata_table, metadata_encoding, metadata_key_encodings))
-                                })()
-                                .map_err(|e| e.annotate("metadata"))?;
+                            let tmp_metadata = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                Metadata::deserialize(raw)
+                            })()
+                            .map_err(|e| e.annotate("metadata"))?;
                             metadata = Some(tmp_metadata);
-                            metadata_encoding = tmp_metadata_encoding;
-                            metadata_key_encodings = tmp_metadata_key_encodings;
                             metadata_key_encoding = Some(key_enc);
                             orig_deser_order.push(0);
                         }
@@ -446,8 +365,6 @@ impl Deserialize for AlonzoAuxData {
                     len_encoding,
                     orig_deser_order,
                     metadata_key_encoding,
-                    metadata_encoding,
-                    metadata_key_encodings,
                     native_scripts_key_encoding,
                     native_scripts_encoding,
                     plutus_v1_scripts_key_encoding,
@@ -468,41 +385,7 @@ impl Serialize for AuxiliaryData {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
-            AuxiliaryData::Shelley {
-                shelley,
-                shelley_encoding,
-                shelley_key_encodings,
-            } => {
-                serializer.write_map_sz(
-                    shelley_encoding.to_len_sz(shelley.len() as u64, force_canonical),
-                )?;
-                let mut key_order = shelley
-                    .iter()
-                    .map(|(k, v)| {
-                        let mut buf = cbor_event::se::Serializer::new_vec();
-                        let shelley_key_encoding =
-                            shelley_key_encodings.get(k).cloned().unwrap_or_default();
-                        buf.write_unsigned_integer_sz(
-                            *k,
-                            fit_sz(*k, shelley_key_encoding, force_canonical),
-                        )?;
-                        Ok((buf.finalize(), k, v))
-                    })
-                    .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
-                if force_canonical {
-                    key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
-                        match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                            std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                            diff_ord => diff_ord,
-                        }
-                    });
-                }
-                for (key_bytes, _key, value) in key_order {
-                    serializer.write_raw_bytes(&key_bytes)?;
-                    value.serialize(serializer, force_canonical)?;
-                }
-                shelley_encoding.end(serializer, force_canonical)
-            }
+            AuxiliaryData::Shelley(shelley) => shelley.serialize(serializer, force_canonical),
             AuxiliaryData::ShelleyMA(shelley_m_a) => {
                 shelley_m_a.serialize(serializer, force_canonical)
             }
@@ -515,40 +398,9 @@ impl Deserialize for AuxiliaryData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let mut shelley_table = OrderedHashMap::new();
-                let shelley_len = raw.map_sz()?;
-                let shelley_encoding = shelley_len.into();
-                let mut shelley_key_encodings = BTreeMap::new();
-                while match shelley_len {
-                    cbor_event::LenSz::Len(n, _) => (shelley_table.len() as u64) < n,
-                    cbor_event::LenSz::Indefinite => true,
-                } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
-                    }
-                    let (shelley_key, shelley_key_encoding) =
-                        raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
-                    let shelley_value = TransactionMetadatum::deserialize(raw)?;
-                    if shelley_table.insert(shelley_key, shelley_value).is_some() {
-                        return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
-                            "some complicated/unsupported type",
-                        )))
-                        .into());
-                    }
-                    shelley_key_encodings.insert(shelley_key, shelley_key_encoding);
-                }
-                Ok((shelley_table, shelley_encoding, shelley_key_encodings))
-            })(raw)
-            {
-                Ok((shelley, shelley_encoding, shelley_key_encodings)) => {
-                    return Ok(Self::Shelley {
-                        shelley,
-                        shelley_encoding,
-                        shelley_key_encodings,
-                    })
-                }
+            let deser_variant: Result<_, DeserializeError> = Metadata::deserialize(raw);
+            match deser_variant {
+                Ok(shelley) => return Ok(Self::Shelley(shelley)),
                 Err(_) => raw
                     .as_mut_ref()
                     .seek(SeekFrom::Start(initial_position))
@@ -592,48 +444,8 @@ impl Serialize for ShelleyMaAuxData {
                 .unwrap_or_default()
                 .to_len_sz(2, force_canonical),
         )?;
-        serializer.write_map_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.transaction_metadata_encoding)
-                .unwrap_or_default()
-                .to_len_sz(self.transaction_metadata.len() as u64, force_canonical),
-        )?;
-        let mut key_order = self
-            .transaction_metadata
-            .iter()
-            .map(|(k, v)| {
-                let mut buf = cbor_event::se::Serializer::new_vec();
-                let transaction_metadata_key_encoding = self
-                    .encodings
-                    .as_ref()
-                    .and_then(|encs| encs.transaction_metadata_key_encodings.get(k))
-                    .cloned()
-                    .unwrap_or_default();
-                buf.write_unsigned_integer_sz(
-                    *k,
-                    fit_sz(*k, transaction_metadata_key_encoding, force_canonical),
-                )?;
-                Ok((buf.finalize(), k, v))
-            })
-            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
-        if force_canonical {
-            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
-                match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                    diff_ord => diff_ord,
-                }
-            });
-        }
-        for (key_bytes, _key, value) in key_order {
-            serializer.write_raw_bytes(&key_bytes)?;
-            value.serialize(serializer, force_canonical)?;
-        }
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.transaction_metadata_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)?;
+        self.transaction_metadata
+            .serialize(serializer, force_canonical)?;
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -665,45 +477,8 @@ impl Deserialize for ShelleyMaAuxData {
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
-            let (
-                transaction_metadata,
-                transaction_metadata_encoding,
-                transaction_metadata_key_encodings,
-            ) = (|| -> Result<_, DeserializeError> {
-                let mut transaction_metadata_table = OrderedHashMap::new();
-                let transaction_metadata_len = raw.map_sz()?;
-                let transaction_metadata_encoding = transaction_metadata_len.into();
-                let mut transaction_metadata_key_encodings = BTreeMap::new();
-                while match transaction_metadata_len {
-                    cbor_event::LenSz::Len(n, _) => (transaction_metadata_table.len() as u64) < n,
-                    cbor_event::LenSz::Indefinite => true,
-                } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
-                    }
-                    let (transaction_metadata_key, transaction_metadata_key_encoding) =
-                        raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
-                    let transaction_metadata_value = TransactionMetadatum::deserialize(raw)?;
-                    if transaction_metadata_table
-                        .insert(transaction_metadata_key, transaction_metadata_value)
-                        .is_some()
-                    {
-                        return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
-                            "some complicated/unsupported type",
-                        )))
-                        .into());
-                    }
-                    transaction_metadata_key_encodings
-                        .insert(transaction_metadata_key, transaction_metadata_key_encoding);
-                }
-                Ok((
-                    transaction_metadata_table,
-                    transaction_metadata_encoding,
-                    transaction_metadata_key_encodings,
-                ))
-            })()
-            .map_err(|e| e.annotate("transaction_metadata"))?;
+            let transaction_metadata = Metadata::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("transaction_metadata"))?;
             let (auxiliary_scripts, auxiliary_scripts_encoding) =
                 (|| -> Result<_, DeserializeError> {
                     let mut auxiliary_scripts_arr = Vec::new();
@@ -734,8 +509,6 @@ impl Deserialize for ShelleyMaAuxData {
                 auxiliary_scripts,
                 encodings: Some(ShelleyMaAuxDataEncoding {
                     len_encoding,
-                    transaction_metadata_encoding,
-                    transaction_metadata_key_encodings,
                     auxiliary_scripts_encoding,
                 }),
             })

@@ -44,10 +44,10 @@ impl DeregistrationCbor {
     pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), DeserializeError> {
         let dereg_metadatum =
             TransactionMetadatum::from_cbor_bytes(&self.key_deregistration.to_cbor_bytes())?;
-        metadata.insert(KEY_DEREGISTRATION_LABEL, dereg_metadatum);
+        metadata.set(KEY_DEREGISTRATION_LABEL, dereg_metadatum);
         let witness_metadatum =
             TransactionMetadatum::from_cbor_bytes(&self.deregistration_witness.to_cbor_bytes())?;
-        metadata.insert(DEREGISTRATION_WITNESS_LABEL, witness_metadatum);
+        metadata.set(DEREGISTRATION_WITNESS_LABEL, witness_metadatum);
         Ok(())
     }
 
@@ -187,10 +187,10 @@ impl std::convert::TryFrom<&Metadata> for DeregistrationCbor {
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
         use cml_core::error::Key;
-        let dereg_metadatum = metadata.get(&KEY_DEREGISTRATION_LABEL).ok_or_else(|| {
+        let dereg_metadatum = metadata.get(KEY_DEREGISTRATION_LABEL).ok_or_else(|| {
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(KEY_DEREGISTRATION_LABEL))
         })?;
-        let witness_metadatum = metadata.get(&DEREGISTRATION_WITNESS_LABEL).ok_or_else(|| {
+        let witness_metadatum = metadata.get(DEREGISTRATION_WITNESS_LABEL).ok_or_else(|| {
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(DEREGISTRATION_WITNESS_LABEL))
         })?;
         Ok(Self {
@@ -302,10 +302,10 @@ impl RegistrationCbor {
             .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?;
         let reg_metadatum =
             TransactionMetadatum::from_cbor_bytes(&self.key_registration.to_cbor_bytes())?;
-        metadata.insert(KEY_REGISTRATION_LABEL, reg_metadatum);
+        metadata.set(KEY_REGISTRATION_LABEL, reg_metadatum);
         let witness_metadatum =
             TransactionMetadatum::from_cbor_bytes(&self.registration_witness.to_cbor_bytes())?;
-        metadata.insert(REGISTRATION_WITNESS_LABEL, witness_metadatum);
+        metadata.set(REGISTRATION_WITNESS_LABEL, witness_metadatum);
         Ok(())
     }
 
@@ -468,10 +468,10 @@ impl std::convert::TryFrom<&Metadata> for RegistrationCbor {
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
         use cml_core::error::Key;
-        let reg_metadatum = metadata.get(&KEY_REGISTRATION_LABEL).ok_or_else(|| {
+        let reg_metadatum = metadata.get(KEY_REGISTRATION_LABEL).ok_or_else(|| {
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(KEY_REGISTRATION_LABEL))
         })?;
-        let witness_metadatum = metadata.get(&REGISTRATION_WITNESS_LABEL).ok_or_else(|| {
+        let witness_metadatum = metadata.get(REGISTRATION_WITNESS_LABEL).ok_or_else(|| {
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(REGISTRATION_WITNESS_LABEL))
         })?;
         Ok(Self {

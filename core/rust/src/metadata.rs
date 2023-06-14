@@ -1,15 +1,147 @@
 use crate::error::{DeserializeError, DeserializeFailure, Key};
 use crate::ordered_hash_map::OrderedHashMap;
-use crate::serialization::{Deserialize, LenEncoding, Serialize, StringEncoding};
+use crate::serialization::{Deserialize, LenEncoding, Serialize, StringEncoding, fit_sz};
 use crate::Int;
 use cbor_event::{de::Deserializer, se::Serializer};
 use derivative::Derivative;
 
+use std::collections::BTreeMap;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 pub type TransactionMetadatumLabel = u64;
 
-pub type Metadata = OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>;
+/// Collection of TransactionMetadatums indexed by TransactionMetadatumLabels
+/// Handles the extremely rare edge-case of in previous generations allowing
+/// duplicate metadatum labels.
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct Metadata {
+    pub entries: Vec<(TransactionMetadatumLabel, TransactionMetadatum)>,
+    #[serde(skip)]
+    pub encodings: Option<MetadataEncoding>,
+}
+
+impl Metadata {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    /// Replaces all metadatums of a given label, if any exist.
+    pub fn set(&mut self, label: TransactionMetadatumLabel, datum: TransactionMetadatum) {
+        self.entries.retain(|(l, _)| *l != label);
+        self.entries.push((label, datum));
+    }
+
+    /// Gets the Metadatum corresponding to a given label, if it exists.
+    /// Note: In the case of duplicate labels this only returns the first metadatum.
+    /// This is an extremely rare occurence on-chain but can happen.
+    pub fn get(&self, label: TransactionMetadatumLabel) -> Option<&TransactionMetadatum> {
+        self.entries.iter().find(|(l, _)| *l == label).map(|(_, md)| md)
+    }
+
+    /// In the extremely unlikely situation there are duplicate labels, this gets all of a single label
+    pub fn get_all(&self, label: TransactionMetadatumLabel) -> Option<Vec<&TransactionMetadatum>> {
+        let matches = self
+            .entries
+            .iter()
+            .filter_map(|(l, md)| if *l == label { Some(md) } else { None })
+            .collect::<Vec<_>>();
+        if matches.is_empty() {
+            None
+        } else {
+            Some(matches)
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct MetadataEncoding {
+    pub len_encoding: LenEncoding,
+    pub label_encodings: Vec<cbor_event::Sz>,
+}
+
+impl Serialize for Metadata {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_map_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.entries.len() as u64, force_canonical),
+        )?;
+        let mut key_order = Vec::new();
+        for (i, (label, datum)) in self.entries.iter().enumerate() {
+            let mut buf = cbor_event::se::Serializer::new_vec();
+            let metadata_key_encoding = self
+                .encodings
+                .as_ref()
+                .and_then(|encs| encs.label_encodings.get(i))
+                .cloned();
+            buf.write_unsigned_integer_sz(
+                *label,
+                fit_sz(*label, metadata_key_encoding, force_canonical),
+            )?;
+            key_order.push((buf.finalize(), label, datum));
+        }
+        if force_canonical {
+            key_order.sort_by(
+                |(lhs_bytes, _, _), (rhs_bytes, _, _)| match lhs_bytes
+                    .len()
+                    .cmp(&rhs_bytes.len())
+                {
+                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                    diff_ord => diff_ord,
+                },
+            );
+        }
+        for (key_bytes, _key, value) in key_order {
+            serializer.write_raw_bytes(&key_bytes)?;
+            value.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for Metadata {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let mut entries = Vec::new();
+        let len = raw.map_sz()?;
+        let len_encoding = len.into();
+        let mut label_encodings = Vec::new();
+        while match len {
+            cbor_event::LenSz::Len(n, _) => (entries.len() as u64) < n,
+            cbor_event::LenSz::Indefinite => true,
+        } {
+            if raw.cbor_type()? == cbor_event::Type::Special {
+                assert_eq!(raw.special()?, cbor_event::Special::Break);
+                break;
+            }
+            let (metadatum_label, label_encoding) =
+                raw.unsigned_integer_sz()?;
+            let metadatum = TransactionMetadatum::deserialize(raw)?;
+            entries.push((metadatum_label, metadatum));
+            label_encodings.push(label_encoding);
+        }
+        Ok(Self {
+            entries,
+            encodings: Some(MetadataEncoding {
+                len_encoding,
+                label_encodings,
+            })
+        })
+    }
+}
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
 #[derivative(
@@ -285,4 +417,11 @@ impl Deserialize for TransactionMetadatum {
         })()
         .map_err(|e| e.annotate("TransactionMetadatum"))
     }
+}
+
+#[test]
+fn metadata_duplicate_labels() {
+    let bytes_hex = "a219270fa16474657374747365636f6e64206d657461646174612066696c6519270fa16474657374736669727374206d657461646174612066696c65";
+    let md = Metadata::from_cbor_bytes(&hex::decode(bytes_hex).unwrap()).unwrap();
+    assert_eq!(bytes_hex, hex::encode(md.to_cbor_bytes()));
 }

@@ -3529,7 +3529,7 @@ mod tests {
 
     fn create_general_metadata(metadatum_key: TransactionMetadatumLabel) -> Metadata {
         let mut metadata = Metadata::new();
-        metadata.insert(metadatum_key, create_metadatum());
+        metadata.set(metadatum_key, create_metadatum());
         metadata
     }
 
@@ -3567,7 +3567,7 @@ mod tests {
         let num = 42;
         {
             let mut aux_data = AuxiliaryData::new();
-            aux_data.metadata_mut().insert(num, create_metadatum());
+            aux_data.metadata_mut().set(num, create_metadatum());
             tx_builder.add_auxiliary_data(aux_data);
         }
 
@@ -3582,7 +3582,7 @@ mod tests {
         let met = aux.metadata().unwrap();
 
         assert_eq!(met.len(), 1);
-        assert_json_metadatum(&met.get(&num).unwrap());
+        assert_json_metadatum(&met.get(num).unwrap());
     }
 
     #[test]
@@ -3595,7 +3595,7 @@ mod tests {
         let num2 = 84;
         {
             let mut aux_data = AuxiliaryData::new();
-            aux_data.metadata_mut().insert(num2,create_metadatum());
+            aux_data.metadata_mut().set(num2,create_metadatum());
             tx_builder.set_auxiliary_data(aux_data);
         }
 
@@ -3607,8 +3607,8 @@ mod tests {
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 1);
-        assert!(met.get(&num1).is_none());
-        assert_json_metadatum(&met.get(&num2).unwrap());
+        assert!(met.get(num1).is_none());
+        assert_json_metadatum(&met.get(num2).unwrap());
     }
 
     #[test]
@@ -3618,7 +3618,7 @@ mod tests {
         let num = 42;
         {
             let mut aux_data = AuxiliaryData::new();
-            aux_data.metadata_mut().insert(num, create_metadatum());
+            aux_data.metadata_mut().set(num, create_metadatum());
             tx_builder.add_auxiliary_data(aux_data);
         }
 
@@ -3633,7 +3633,7 @@ mod tests {
         let met = aux.metadata().unwrap();
 
         assert_eq!(met.len(), 1);
-        assert_json_metadatum(&met.get(&num).unwrap());
+        assert_json_metadatum(&met.get(num).unwrap());
     }
 
     #[test]
@@ -3654,8 +3654,8 @@ mod tests {
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 2);
-        assert_json_metadatum(&met.get(&num1).unwrap());
-        assert_json_metadatum(&met.get(&num2).unwrap());
+        assert_json_metadatum(&met.get(num1).unwrap());
+        assert_json_metadatum(&met.get(num2).unwrap());
     }
 
     #[test]
@@ -3676,7 +3676,7 @@ mod tests {
         let met = aux.metadata().unwrap();
 
         assert_eq!(met.len(), 1);
-        assert_json_metadatum(&met.get(&num).unwrap());
+        assert_json_metadatum(&met.get(num).unwrap());
     }
 
     #[test]
@@ -3697,8 +3697,8 @@ mod tests {
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 2);
-        assert_json_metadatum(&met.get(&num1).unwrap());
-        assert_json_metadatum(&met.get(&num2).unwrap());
+        assert_json_metadatum(&met.get(num1).unwrap());
+        assert_json_metadatum(&met.get(num2).unwrap());
     }
 
     #[test]
@@ -3709,7 +3709,7 @@ mod tests {
         let value = TransactionMetadatum::new_text("Hello World".to_string());
         {
             let mut aux_data = AuxiliaryData::new();
-            aux_data.metadata_mut().insert(key, value.clone());
+            aux_data.metadata_mut().set(key, value.clone());
             tx_builder.add_auxiliary_data(aux_data);
         }
 
@@ -3721,7 +3721,7 @@ mod tests {
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 1);
-        assert_eq!(*met.deref().get(&key).unwrap(), value);
+        assert_eq!(*met.get(key).unwrap(), value);
     }
 
     #[test]
@@ -3739,7 +3739,7 @@ mod tests {
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 1);
-        assert_json_metadatum( &met.get(&key).unwrap());
+        assert_json_metadatum( &met.get(key).unwrap());
     }
 
     #[test]
@@ -3753,7 +3753,7 @@ mod tests {
         let val2 = TransactionMetadatum::new_text("Hello World".to_string());
         {   
             let mut aux_data = AuxiliaryData::new();
-            aux_data.metadata_mut().insert(key2, val2.clone());
+            aux_data.metadata_mut().set(key2, val2.clone());
             tx_builder.add_auxiliary_data(aux_data);
         }
         
@@ -3764,9 +3764,9 @@ mod tests {
         assert!(aux.plutus_v2_scripts().is_none()); 
 
         let met = aux.metadata().unwrap();
-        assert_eq!(met.len(), 2);
-        assert_json_metadatum(&met.get(&key1).unwrap());
-        assert_eq!(*met.get(&key2).unwrap(), val2); 
+        assert_eq!(met.entries.len(), 2);
+        assert_json_metadatum(&met.get(key1).unwrap());
+        assert_eq!(*met.get(key2).unwrap(), val2); 
     }
 
     #[test]
@@ -3786,9 +3786,9 @@ mod tests {
         assert!(aux.plutus_v2_scripts().is_none()); 
 
         let met = aux.metadata().unwrap();
-        assert_eq!(met.len(), 2);
-        assert_json_metadatum(&met.get(&key1).unwrap());
-        assert_json_metadatum(&met.get(&key2).unwrap());  
+        assert_eq!(met.entries.len(), 2);
+        assert_json_metadatum(&met.get(key1).unwrap());
+        assert_json_metadatum(&met.get(key2).unwrap());  
     }
 
     fn create_asset_name() -> AssetName {
@@ -4409,7 +4409,7 @@ mod tests {
             );
 
             let mut aux_data = AuxiliaryData::new();
-            aux_data.metadata_mut().insert(
+            aux_data.metadata_mut().set(
                 405,
                 TransactionMetadatum::new_map(map)
             );
@@ -4534,7 +4534,7 @@ mod tests {
             );
 
             let mut aux_data = AuxiliaryData::new();
-            aux_data.metadata_mut().insert(
+            aux_data.metadata_mut().set(
                 405,
                 TransactionMetadatum::new_map(map)
             );
@@ -4674,7 +4674,7 @@ mod tests {
             );
 
             let mut aux_data = AuxiliaryData::new();
-            aux_data.metadata_mut().insert(
+            aux_data.metadata_mut().set(
                 405,
                 TransactionMetadatum::new_map(map)
             );

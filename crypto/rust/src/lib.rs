@@ -624,6 +624,7 @@ impl_hash_type!(KESVkey, 32);
 //impl_hash_type!(KESSignature, 448);
 impl_hash_type!(NonceHash, 32);
 
+#[derive(Clone)]
 pub struct LegacyDaedalusPrivateKey(chain_crypto::SecretKey<chain_crypto::LegacyDaedalus>);
 
 impl LegacyDaedalusPrivateKey {

@@ -11,7 +11,8 @@ use crate::PolicyId;
 
 use std::collections::BTreeMap;
 
-use super::{AssetName, ScriptHash};
+pub use super::AssetName;
+use super::ScriptHash;
 
 pub type Coin = u64;
 

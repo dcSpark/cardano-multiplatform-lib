@@ -122,7 +122,7 @@ pub type DeltaCoin = Int;
 
 pub type GenesisHashList = Vec<GenesisHash>;
 
-pub type NetworkId = u8;
+pub type NetworkId = u32;// TODO: u8? or custom struct? (u8 can't be exposed to wasm)
 
 pub type PolicyId = ScriptHash;
 

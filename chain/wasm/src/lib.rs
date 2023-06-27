@@ -4,20 +4,26 @@
     clippy::new_without_default
 )]
 
-use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+use ::wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 use cml_core::error::DeserializeError;
 pub use cml_core_wasm::Int;
 
 pub mod address;
+pub mod assets;
 pub mod auxdata;
 pub mod block;
+pub mod byron;
+pub mod builders;
 pub mod certs;
 pub mod crypto;
+pub mod fees;
 pub mod plutus;
 pub mod transaction;
+pub mod utils;
 
 use address::RewardAccount;
+use assets::{AssetName};//, MutliAsset};
 use auxdata::{AuxiliaryData, TransactionMetadatum};
 use block::ProtocolVersion;
 use certs::{Certificate, Relay, StakeCredential};
@@ -30,8 +36,7 @@ use plutus::{
 use transaction::{
     NativeScript, TransactionBody, TransactionInput, TransactionOutput, TransactionWitnessSet,
 };
-
-pub mod utils;
+use cml_chain::NetworkId;
 
 //extern crate serde_wasm_bindgen;
 // Code below here was code-generated using an experimental CDDL to rust tool:
@@ -39,62 +44,7 @@ pub mod utils;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AssetName(cml_chain::AssetName);
-
-#[wasm_bindgen]
-impl AssetName {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AssetName, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AssetName, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
-    pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
-    }
-}
-
-impl From<cml_chain::AssetName> for AssetName {
-    fn from(native: cml_chain::AssetName) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AssetName> for cml_chain::AssetName {
-    fn from(wasm: AssetName) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::AssetName> for AssetName {
-    fn as_ref(&self) -> &cml_chain::AssetName {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct AssetNameList(Vec<cml_chain::AssetName>);
+pub struct AssetNameList(Vec<cml_chain::assets::AssetName>);
 
 #[wasm_bindgen]
 impl AssetNameList {
@@ -115,20 +65,20 @@ impl AssetNameList {
     }
 }
 
-impl From<Vec<cml_chain::AssetName>> for AssetNameList {
-    fn from(native: Vec<cml_chain::AssetName>) -> Self {
+impl From<Vec<cml_chain::assets::AssetName>> for AssetNameList {
+    fn from(native: Vec<cml_chain::assets::AssetName>) -> Self {
         Self(native)
     }
 }
 
-impl From<AssetNameList> for Vec<cml_chain::AssetName> {
+impl From<AssetNameList> for Vec<cml_chain::assets::AssetName> {
     fn from(wasm: AssetNameList) -> Self {
         wasm.0
     }
 }
 
-impl AsRef<Vec<cml_chain::AssetName>> for AssetNameList {
-    fn as_ref(&self) -> &Vec<cml_chain::AssetName> {
+impl AsRef<Vec<cml_chain::assets::AssetName>> for AssetNameList {
+    fn as_ref(&self) -> &Vec<cml_chain::assets::AssetName> {
         &self.0
     }
 }
@@ -346,7 +296,7 @@ impl AsRef<Vec<cml_chain::Int>> for IntList {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MapAssetNameToI64(OrderedHashMap<cml_chain::AssetName, i64>);
+pub struct MapAssetNameToI64(OrderedHashMap<cml_chain::assets::AssetName, i64>);
 
 #[wasm_bindgen]
 impl MapAssetNameToI64 {
@@ -371,65 +321,20 @@ impl MapAssetNameToI64 {
     }
 }
 
-impl From<OrderedHashMap<cml_chain::AssetName, i64>> for MapAssetNameToI64 {
-    fn from(native: OrderedHashMap<cml_chain::AssetName, i64>) -> Self {
+impl From<OrderedHashMap<cml_chain::assets::AssetName, i64>> for MapAssetNameToI64 {
+    fn from(native: OrderedHashMap<cml_chain::assets::AssetName, i64>) -> Self {
         Self(native)
     }
 }
 
-impl From<MapAssetNameToI64> for OrderedHashMap<cml_chain::AssetName, i64> {
+impl From<MapAssetNameToI64> for OrderedHashMap<cml_chain::assets::AssetName, i64> {
     fn from(wasm: MapAssetNameToI64) -> Self {
         wasm.0
     }
 }
 
-impl AsRef<OrderedHashMap<cml_chain::AssetName, i64>> for MapAssetNameToI64 {
-    fn as_ref(&self) -> &OrderedHashMap<cml_chain::AssetName, i64> {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapAssetNameToU64(OrderedHashMap<cml_chain::AssetName, u64>);
-
-#[wasm_bindgen]
-impl MapAssetNameToU64 {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &AssetName, value: u64) -> Option<u64> {
-        self.0.insert(key.clone().into(), value)
-    }
-
-    pub fn get(&self, key: &AssetName) -> Option<u64> {
-        self.0.get(key.as_ref()).copied()
-    }
-
-    pub fn keys(&self) -> AssetNameList {
-        AssetNameList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
-
-impl From<OrderedHashMap<cml_chain::AssetName, u64>> for MapAssetNameToU64 {
-    fn from(native: OrderedHashMap<cml_chain::AssetName, u64>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MapAssetNameToU64> for OrderedHashMap<cml_chain::AssetName, u64> {
-    fn from(wasm: MapAssetNameToU64) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<OrderedHashMap<cml_chain::AssetName, u64>> for MapAssetNameToU64 {
-    fn as_ref(&self) -> &OrderedHashMap<cml_chain::AssetName, u64> {
+impl AsRef<OrderedHashMap<cml_chain::assets::AssetName, i64>> for MapAssetNameToI64 {
+    fn as_ref(&self) -> &OrderedHashMap<cml_chain::assets::AssetName, i64> {
         &self.0
     }
 }
@@ -613,10 +518,15 @@ impl AsRef<OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::Auxil
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Mint(cml_chain::Mint);
+pub struct MapTransactionMetadatumToTransactionMetadatum(
+    OrderedHashMap<
+        cml_chain::auxdata::TransactionMetadatum,
+        cml_chain::auxdata::TransactionMetadatum,
+    >,
+);
 
 #[wasm_bindgen]
-impl Mint {
+impl MapTransactionMetadatumToTransactionMetadatum {
     pub fn new() -> Self {
         Self(OrderedHashMap::new())
     }
@@ -627,88 +537,66 @@ impl Mint {
 
     pub fn insert(
         &mut self,
-        key: &PolicyId,
-        value: &MapAssetNameToI64,
-    ) -> Option<MapAssetNameToI64> {
+        key: &TransactionMetadatum,
+        value: &TransactionMetadatum,
+    ) -> Option<TransactionMetadatum> {
         self.0
             .insert(key.clone().into(), value.clone().into())
             .map(Into::into)
     }
 
-    pub fn get(&self, key: &PolicyId) -> Option<MapAssetNameToI64> {
+    pub fn get(&self, key: &TransactionMetadatum) -> Option<TransactionMetadatum> {
         self.0.get(key.as_ref()).map(|v| v.clone().into())
     }
 
-    pub fn keys(&self) -> PolicyIdList {
-        PolicyIdList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    pub fn keys(&self) -> TransactionMetadatumList {
+        TransactionMetadatumList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
     }
 }
 
-impl From<cml_chain::Mint> for Mint {
-    fn from(native: cml_chain::Mint) -> Self {
+impl
+    From<
+        OrderedHashMap<
+            cml_chain::auxdata::TransactionMetadatum,
+            cml_chain::auxdata::TransactionMetadatum,
+        >,
+    > for MapTransactionMetadatumToTransactionMetadatum
+{
+    fn from(
+        native: OrderedHashMap<
+            cml_chain::auxdata::TransactionMetadatum,
+            cml_chain::auxdata::TransactionMetadatum,
+        >,
+    ) -> Self {
         Self(native)
     }
 }
 
-impl From<Mint> for cml_chain::Mint {
-    fn from(wasm: Mint) -> Self {
+impl From<MapTransactionMetadatumToTransactionMetadatum>
+    for OrderedHashMap<
+        cml_chain::auxdata::TransactionMetadatum,
+        cml_chain::auxdata::TransactionMetadatum,
+    >
+{
+    fn from(wasm: MapTransactionMetadatumToTransactionMetadatum) -> Self {
         wasm.0
     }
 }
 
-impl AsRef<cml_chain::Mint> for Mint {
-    fn as_ref(&self) -> &cml_chain::Mint {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct Multiasset(cml_chain::Multiasset);
-
-#[wasm_bindgen]
-impl Multiasset {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(
-        &mut self,
-        key: &PolicyId,
-        value: &MapAssetNameToU64,
-    ) -> Option<MapAssetNameToU64> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
-    }
-
-    pub fn get(&self, key: &PolicyId) -> Option<MapAssetNameToU64> {
-        self.0.get(key.as_ref()).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> PolicyIdList {
-        PolicyIdList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
-
-impl From<cml_chain::Multiasset> for Multiasset {
-    fn from(native: cml_chain::Multiasset) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Multiasset> for cml_chain::Multiasset {
-    fn from(wasm: Multiasset) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::Multiasset> for Multiasset {
-    fn as_ref(&self) -> &cml_chain::Multiasset {
+impl
+    AsRef<
+        OrderedHashMap<
+            cml_chain::auxdata::TransactionMetadatum,
+            cml_chain::auxdata::TransactionMetadatum,
+        >,
+    > for MapTransactionMetadatumToTransactionMetadatum
+{
+    fn as_ref(
+        &self,
+    ) -> &OrderedHashMap<
+        cml_chain::auxdata::TransactionMetadatum,
+        cml_chain::auxdata::TransactionMetadatum,
+    > {
         &self.0
     }
 }
@@ -754,7 +642,6 @@ impl AsRef<Vec<cml_chain::transaction::NativeScript>> for NativeScriptList {
     }
 }
 
-pub type NetworkId = u8;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -1677,7 +1564,7 @@ impl AsRef<Vec<cml_chain::certs::StakeCredential>> for StakeCredentialList {
     }
 }
 
-pub type SubCoin = PositiveInterval;
+pub type SubCoin = Rational;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -2026,43 +1913,7 @@ pub struct Value(cml_chain::Value);
 
 #[wasm_bindgen]
 impl Value {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Value, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Value, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
-    pub fn coin(&self) -> Coin {
-        self.0.coin
-    }
-
-    pub fn multiasset(&self) -> Multiasset {
-        self.0.multiasset.clone().into()
-    }
-
-    pub fn new(coin: Coin, multiasset: &Multiasset) -> Self {
-        Self(cml_chain::Value::new(coin, multiasset.clone().into()))
-    }
+    // TODO: API
 }
 
 impl From<cml_chain::Value> for Value {

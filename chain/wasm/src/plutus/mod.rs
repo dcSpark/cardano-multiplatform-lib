@@ -1,76 +1,14 @@
+pub mod utils;
+
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use super::{IntList, MapPlutusDataToPlutusData, PlutusDataList, SubCoin};
 use crate::utils::BigInt;
+
+use super::{IntList, MapPlutusDataToPlutusData, PlutusDataList, SubCoin};
 pub use cml_chain::plutus::{Language, RedeemerTag};
+pub use utils::ConstrPlutusData;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct ConstrPlutusData(cml_chain::plutus::ConstrPlutusData);
-
-#[wasm_bindgen]
-impl ConstrPlutusData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ConstrPlutusData, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ConstrPlutusData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
-    pub fn alternative(&self) -> u64 {
-        self.0.alternative
-    }
-
-    pub fn fields(&self) -> PlutusDataList {
-        self.0.fields.clone().into()
-    }
-
-    pub fn new(alternative: u64, fields: &PlutusDataList) -> Self {
-        Self(cml_chain::plutus::ConstrPlutusData::new(
-            alternative,
-            fields.clone().into(),
-        ))
-    }
-}
-
-impl From<cml_chain::plutus::ConstrPlutusData> for ConstrPlutusData {
-    fn from(native: cml_chain::plutus::ConstrPlutusData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ConstrPlutusData> for cml_chain::plutus::ConstrPlutusData {
-    fn from(wasm: ConstrPlutusData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::plutus::ConstrPlutusData> for ConstrPlutusData {
-    fn as_ref(&self) -> &cml_chain::plutus::ConstrPlutusData {
-        &self.0
-    }
-}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -334,7 +272,7 @@ impl PlutusData {
             cml_chain::plutus::PlutusData::Map { .. } => PlutusDataKind::Map,
             cml_chain::plutus::PlutusData::List { .. } => PlutusDataKind::List,
             cml_chain::plutus::PlutusData::BigInt(_) => PlutusDataKind::BigInt,
-            cml_chain::plutus::PlutusData::Bytes{ .. } => PlutusDataKind::Bytes,
+            cml_chain::plutus::PlutusData::Bytes { .. } => PlutusDataKind::Bytes,
         }
     }
 
@@ -370,7 +308,7 @@ impl PlutusData {
 
     pub fn as_bytes(&self) -> Option<Vec<u8>> {
         match &self.0 {
-            cml_chain::plutus::PlutusData::Bytes{ bytes, .. } => Some(bytes.clone().into()),
+            cml_chain::plutus::PlutusData::Bytes { bytes, .. } => Some(bytes.clone()),
             _ => None,
         }
     }

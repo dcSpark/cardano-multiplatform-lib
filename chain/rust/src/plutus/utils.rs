@@ -339,6 +339,13 @@ impl PlutusScript {
             Self::PlutusV2(script) => script.hash(),
         }
     }
+
+    pub fn version(&self) -> Language {
+        match self {
+            Self::PlutusV1(_) => Language::PlutusV1,
+            Self::PlutusV2(_) => Language::PlutusV2,
+        }
+    }
 }
 use cml_crypto::ScriptHash;
 use crate::crypto::hash::{hash_script, ScriptHashNamespace};

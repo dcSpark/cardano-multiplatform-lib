@@ -41,7 +41,7 @@ pub struct UntaggedRedeemer {
 }
 
 impl UntaggedRedeemer {
-    fn new(data: PlutusData, ex_units: ExUnits) -> Self {
+    pub fn new(data: PlutusData, ex_units: ExUnits) -> Self {
         Self {
             data,
             ex_units

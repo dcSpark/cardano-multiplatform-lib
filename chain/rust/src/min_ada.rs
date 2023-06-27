@@ -5,9 +5,7 @@ use cml_crypto::Serialize;
 
 use crate::{
     Coin,
-    Value,
-    address::Address,
-    transaction::{TransactionOutput, DatumOption, ScriptRef, BabbageTxOut},
+    transaction::TransactionOutput,
 };
 
 pub fn min_ada_required(
@@ -72,7 +70,7 @@ mod tests {
         assets::{MultiAsset, Value},
         PolicyId,
         AssetName,
-        transaction::{AlonzoTxOut, ShelleyTxOut}
+        transaction::{ShelleyTxOut}
     };
 
     use cml_core::ordered_hash_map::OrderedHashMap;

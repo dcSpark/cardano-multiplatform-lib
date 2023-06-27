@@ -6,7 +6,6 @@ use super::{
     TransactionWitnessSetList,
 };
 use crate::crypto::{KESSignature, VRFCert, Vkey};
-use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_crypto_wasm::{BlockBodyHash, BlockHeaderHash, Ed25519Signature, KESVkey, VRFVkey};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 

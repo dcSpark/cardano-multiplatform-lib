@@ -9,7 +9,6 @@
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 use cml_chain_wasm::address::RewardAddress;
-use cml_crypto_wasm::{Ed25519Signature, PublicKey};
 pub mod utils;
 
 #[derive(Clone, Debug)]
@@ -496,7 +495,7 @@ impl AsRef<cml_cip36::KeyRegistration> for KeyRegistration {
     }
 }
 
-pub type LegacyKeyRegistration = PublicKey;
+pub type LegacyKeyRegistration = cml_crypto_wasm::PublicKey;
 
 pub type Nonce = u64;
 

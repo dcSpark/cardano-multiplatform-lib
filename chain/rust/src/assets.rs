@@ -4,7 +4,7 @@ use cml_core::{
     serialization::{fit_sz, Deserialize, Serialize, StringEncoding, LenEncoding, CBORReadLen},
     ordered_hash_map::OrderedHashMap, ArithmeticError,
 };
-use cml_crypto::RawBytesEncoding;
+use cml_crypto::{ScriptHash, RawBytesEncoding};
 use std::{io::{BufRead, Seek, Write}};
 use std::cmp::PartialOrd;
 use crate::PolicyId;
@@ -12,7 +12,6 @@ use crate::PolicyId;
 use std::collections::BTreeMap;
 
 pub use super::AssetName;
-use super::ScriptHash;
 
 pub type Coin = u64;
 

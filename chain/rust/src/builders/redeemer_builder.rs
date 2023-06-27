@@ -56,13 +56,6 @@ enum UntaggedRedeemerPlaceholder {
 }
 
 impl UntaggedRedeemerPlaceholder {
-    fn take_data(self) -> PlutusData {
-        match self {
-            Self::JustData(data) => data,
-            Self::Full(untagged_redeemer) => untagged_redeemer.data,
-        }
-    }
-
     fn data(&self) -> &PlutusData {
         match self {
             Self::JustData(data) => data,

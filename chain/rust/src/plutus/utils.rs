@@ -1,4 +1,3 @@
-use super::cbor_encodings::CostModelsEncoding;
 use super::{CostModels, Language, Redeemer};
 use super::{ExUnits, PlutusData, PlutusV1Script, PlutusV2Script};
 use cbor_event::de::Deserializer;
@@ -6,7 +5,7 @@ use cbor_event::se::Serializer;
 use cml_core::{error::*, Int};
 use cml_core::serialization::*;
 use std::collections::BTreeMap;
-use std::io::{BufRead, Seek, SeekFrom, Write};
+use std::io::{BufRead, Seek, Write};
 
 #[derive(
     Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,

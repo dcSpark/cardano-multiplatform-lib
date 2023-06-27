@@ -2,14 +2,14 @@ use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 use std::collections::{HashSet};
 
-use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitness};
+use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo};
 
 use crate::{
-    certs::{Certificate, StakeDeregistration, StakeCredential},
+    certs::{Certificate, StakeCredential},
     transaction::RequiredSigners,
 };
 
-use cml_crypto::RawBytesEncoding;
+use cml_crypto::{RawBytesEncoding, Ed25519KeyHash, ScriptHash};
 
 
 #[derive(Debug, thiserror::Error)]

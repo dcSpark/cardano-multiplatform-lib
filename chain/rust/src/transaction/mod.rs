@@ -6,13 +6,14 @@ pub mod serialization;
 pub mod utils;
 
 use super::{
-    BootstrapWitness, Coin, Mint, NetworkId, Slot, Update, Value, Vkeywitness, Withdrawals,
+    Coin, Mint, NetworkId, Slot, Update, Value, Withdrawals,
 };
 use crate::address::Address;
 use crate::auxdata::AuxiliaryData;
 use crate::certs::Certificate;
 use crate::crypto::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
+    BootstrapWitness, Vkeywitness
 };
 use crate::plutus::{PlutusData, PlutusV1Script, PlutusV2Script, Redeemer};
 use crate::Script;
@@ -22,11 +23,9 @@ use cbor_encodings::{
     ScriptNOfKEncoding, ScriptPubkeyEncoding, ShelleyTxOutEncoding, TransactionBodyEncoding,
     TransactionEncoding, TransactionInputEncoding, TransactionWitnessSetEncoding,
 };
-use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 #[derivative(Hash, Eq, PartialEq)]

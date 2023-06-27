@@ -5,7 +5,6 @@ use crate::Int;
 use cbor_event::{de::Deserializer, se::Serializer};
 use derivative::Derivative;
 
-use std::collections::BTreeMap;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 pub type TransactionMetadatumLabel = u64;

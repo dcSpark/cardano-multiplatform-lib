@@ -1,8 +1,6 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_chain::{address::Address};
-use cml_core::ordered_hash_map::OrderedHashMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 use cml_crypto_wasm::{Ed25519Signature, NonceHash};

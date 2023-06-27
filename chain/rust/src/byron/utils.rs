@@ -153,9 +153,9 @@ impl AddressContent {
     }
 
     // icarus-style address (Ae2)
-    pub fn icarus_from_key(key: Bip32PublicKey, protocol_magic: u32) -> AddressContent {
+    pub fn icarus_from_key(key: Bip32PublicKey, protocol_magic: ProtocolMagic) -> AddressContent {
         // need to ensure we use None for mainnet since Byron-era addresses omitted the network id
-        let filtered_protocol_magic = if protocol_magic == NetworkInfo::mainnet().protocol_magic().0 { None } else { Some(ProtocolMagic(protocol_magic)) };
+        let filtered_protocol_magic = if protocol_magic == NetworkInfo::mainnet().protocol_magic() { None } else { Some(protocol_magic) };
         AddressContent::new_simple( key, filtered_protocol_magic)
     }
 

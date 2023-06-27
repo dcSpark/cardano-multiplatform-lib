@@ -1,8 +1,3 @@
-use std::io::{BufRead, Seek, Write};
-
-use cbor_event::Special as CBORSpecial;
-use cbor_event::Type as CBORType;
-use cbor_event::{self, de::Deserializer, se::Serializer};
 use std::collections::BTreeMap;
 use std::convert::{From, TryFrom};
 
@@ -23,11 +18,6 @@ pub mod serialization;
 pub mod transaction;
 pub mod utils;
 
-use address::*;
-use auxdata::*;
-
-use crypto::*;
-
 use assets::{Mint};
 
 pub use assets::{Coin, Value};
@@ -44,12 +34,7 @@ pub use cml_core::{
 
 pub mod cbor_encodings;
 
-use cbor_encodings::*;
-
 extern crate derivative;
-
-pub(crate) use derivative::Derivative;
-//#![allow(clippy::too_many_arguments)]
 
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
@@ -57,11 +42,11 @@ pub(crate) use derivative::Derivative;
 use address::RewardAccount;
 use block::ProtocolVersion;
 use cbor_encodings::{
-    AssetNameEncoding, BootstrapWitnessEncoding, PositiveIntervalEncoding,
+    AssetNameEncoding, PositiveIntervalEncoding,
     ProtocolParamUpdateEncoding, ProtocolVersionStructEncoding, RationalEncoding,
-    UnitIntervalEncoding, UpdateEncoding, VkeywitnessEncoding,
+    UnitIntervalEncoding, UpdateEncoding,
 };
-use crypto::{Ed25519Signature, GenesisHash, Vkey};
+use crypto::{GenesisHash};
 use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
 use transaction::NativeScript;
 
@@ -124,7 +109,7 @@ pub type GenesisHashList = Vec<GenesisHash>;
 
 pub type NetworkId = u32;// TODO: u8? or custom struct? (u8 can't be exposed to wasm)
 
-pub type PolicyId = ScriptHash;
+pub type PolicyId = cml_crypto::ScriptHash;
 
 pub type PolicyIdList = Vec<PolicyId>;
 

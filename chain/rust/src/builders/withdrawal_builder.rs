@@ -1,7 +1,7 @@
 use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 
-use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitness};
+use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo};
 
 use crate::{
     address::RewardAddress,

@@ -7,7 +7,6 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use cml_crypto::RawBytesEncoding;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for AlonzoAuxData {

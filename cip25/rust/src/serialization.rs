@@ -4,36 +4,6 @@ use super::*;
 pub use cml_core::{error::*, serialization::*};
 use std::io::{Seek, SeekFrom};
 
-impl cbor_event::se::Serialize for AssetNameV1 {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        self.0.serialize(serializer)
-    }
-}
-
-impl Deserialize for AssetNameV1 {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        Ok(Self(String64::deserialize(raw)?))
-    }
-}
-
-impl cbor_event::se::Serialize for AssetNameV2 {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes(&self.0)
-    }
-}
-
-impl Deserialize for AssetNameV2 {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        Ok(Self(raw.bytes()? as Vec<u8>))
-    }
-}
-
 impl cbor_event::se::Serialize for FilesDetails {
     fn serialize<'se, W: Write>(
         &self,
@@ -458,36 +428,6 @@ impl Deserialize for MetadataDetails {
             })
         })()
         .map_err(|e| e.annotate("MetadataDetails"))
-    }
-}
-
-impl cbor_event::se::Serialize for PolicyIdV1 {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        self.0.serialize(serializer)
-    }
-}
-
-impl Deserialize for PolicyIdV1 {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        Ok(Self(String64::deserialize(raw)?))
-    }
-}
-
-impl cbor_event::se::Serialize for PolicyIdV2 {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes(&self.0)
-    }
-}
-
-impl Deserialize for PolicyIdV2 {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        Ok(Self(raw.bytes()? as Vec<u8>))
     }
 }
 

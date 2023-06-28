@@ -1,8 +1,11 @@
+use cml_chain_wasm::{assets::AssetName, PolicyId};
+use cml_core::ordered_hash_map::OrderedHashMap;
+
 use crate::*;
 
 use wasm_bindgen::prelude::JsError;
 
-use cml_core_wasm::metadata::{Metadata, TransactionMetadatum};
+use cml_core_wasm::{metadata::{Metadata, TransactionMetadatum}, impl_wasm_map};
 
 #[wasm_bindgen]
 impl CIP25Metadata {
@@ -116,6 +119,85 @@ impl From<core::utils::MiniMetadataDetails> for MiniMetadataDetails {
 
 impl From<MiniMetadataDetails> for core::utils::MiniMetadataDetails {
     fn from(wasm: MiniMetadataDetails) -> Self {
+        wasm.0
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct LabelMetadata(core::LabelMetadata);
+
+#[wasm_bindgen]
+impl LabelMetadata {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        use core::serialization::ToBytes;
+        ToBytes::to_bytes(&self.0)
+    }
+
+    pub fn from_bytes(data: Vec<u8>) -> Result<LabelMetadata, JsValue> {
+        use core::serialization::FromBytes;
+        FromBytes::from_bytes(data)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+    }
+
+    pub fn to_json(&self) -> Result<String, JsValue> {
+        serde_json::to_string_pretty(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+    }
+
+    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+    }
+
+    pub fn from_json(json: &str) -> Result<LabelMetadata, JsValue> {
+        serde_json::from_str(json)
+            .map(Self)
+            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+    }
+
+    /// Note that Version 1 can only support utf8 string asset names.
+    /// Version 2 can support any asset name.
+    pub fn new(version: CIP25Version) -> Self {
+        Self(core::LabelMetadata::new(version))
+    }
+
+    /// If this is version 1 and the asset name is not a utf8 asset name
+    /// then this will return an error.
+    /// This function will never return an error for version 2.
+    /// On success, returns the previous details that were overwritten, or None otherwise.
+    pub fn set(&mut self, policy_id: &PolicyId, asset_name: &AssetName, details: &MetadataDetails) -> Result<Option<MetadataDetails>, JsError> {
+        self
+            .0
+            .set(
+                policy_id.clone().into(),
+                asset_name.clone().into(),
+                details.clone().into())
+            .map(|old| old.map(Into::into))
+            .map_err(Into::into)
+    }
+
+    pub fn get(&self, policy_id: &PolicyId, asset_name: &AssetName) -> Option<MetadataDetails> {
+        self
+            .0
+            .get(policy_id.as_ref(), asset_name.as_ref())
+            .map(|details| details.clone().into())
+    }
+
+    pub fn version(&self) -> CIP25Version {
+        self.0.version()
+    }
+}
+
+impl From<core::LabelMetadata> for LabelMetadata {
+    fn from(native: core::LabelMetadata) -> Self {
+        Self(native)
+    }
+}
+
+impl From<LabelMetadata> for core::LabelMetadata {
+    fn from(wasm: LabelMetadata) -> Self {
         wasm.0
     }
 }

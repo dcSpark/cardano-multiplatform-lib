@@ -1,7 +1,7 @@
-use std::{convert::TryFrom, collections::BTreeMap, str::Utf8Error};
+use std::{convert::TryFrom, collections::BTreeMap, string::FromUtf8Error};
 
 pub use cml_core::{error::*, serialization::*};
-use cml_crypto::{RawBytesEncoding, CryptoError};
+use cml_crypto::{RawBytesEncoding};
 use std::io::{Write, BufRead, Seek, SeekFrom};
 use cbor_event::{se::Serializer, de::Deserializer};
 pub use cml_core::{
@@ -194,14 +194,15 @@ impl MiniMetadataDetails {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CIP25Error {
-    #[error("Version 1 Asset Name must be string. Asset: {:?0}, Err: {1}")]
-    Version1NonStringAsset(AssetName, Utf8Error),
+    #[error("Version 1 Asset Name must be string. Asset: {0:?}, Err: {1}")]
+    Version1NonStringAsset(AssetName, FromUtf8Error),
 }
 
 /// Which version of the CIP25 spec to use. See CIP25 for details.
 /// This will change how things are encoded but for the most part contains
 /// the same information.
-#[derive(Copy, Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[wasm_bindgen::prelude::wasm_bindgen]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum CIP25Version {
     /// Initial version of CIP25 with only string (utf8) asset names allowed.
     V1,
@@ -229,8 +230,8 @@ impl LabelMetadata {
     /// then this will return an error.
     /// This function will never return an error for version 2.
     /// On success, returns the previous details that were overwritten, or None otherwise.
-    pub fn set(&mut self, policy_id: PolicyId, asset_name: AssetName, details: MetadataDetails) -> Result<Option<MetadataDetails, CIP25Error>> {
-        if version == CIP25Version::V1 {
+    pub fn set(&mut self, policy_id: PolicyId, asset_name: AssetName, details: MetadataDetails) -> Result<Option<MetadataDetails>, CIP25Error> {
+        if self.version == CIP25Version::V1 {
             if let Err(e) = String::from_utf8(asset_name.get().clone()) {
                 return Err(CIP25Error::Version1NonStringAsset(asset_name, e));
             }

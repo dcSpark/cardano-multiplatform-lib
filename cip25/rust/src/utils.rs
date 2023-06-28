@@ -1,12 +1,17 @@
-use std::convert::TryFrom;
+use std::{convert::TryFrom, collections::BTreeMap, string::FromUtf8Error};
 
+pub use cml_core::{error::*, serialization::*};
+use cml_crypto::{RawBytesEncoding};
+use std::io::{Write, BufRead, Seek, SeekFrom};
+use cbor_event::{se::Serializer, de::Deserializer};
 pub use cml_core::{
     error::*,
     metadata::{Metadata, TransactionMetadatum},
     serialization::*,
 };
+pub use cml_chain::{PolicyId, AssetName};
 
-use crate::{CIP25Metadata, ChunkableString, LabelMetadata, String64};
+use crate::{CIP25Metadata, ChunkableString, String64, MetadataDetails};
 
 pub static CIP25_METADATA_LABEL: u64 = 721;
 
@@ -187,11 +192,432 @@ impl MiniMetadataDetails {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum CIP25Error {
+    #[error("Version 1 Asset Name must be string. Asset: {0:?}, Err: {1}")]
+    Version1NonStringAsset(AssetName, FromUtf8Error),
+}
+
+/// Which version of the CIP25 spec to use. See CIP25 for details.
+/// This will change how things are encoded but for the most part contains
+/// the same information.
+#[wasm_bindgen::prelude::wasm_bindgen]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub enum CIP25Version {
+    /// Initial version of CIP25 with only string (utf8) asset names allowed.
+    V1,
+    /// Second version of CIP25. Supports any type of asset names.
+    V2,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct LabelMetadata {
+    nfts: BTreeMap<PolicyId, BTreeMap<AssetName, MetadataDetails>>,
+    version: CIP25Version,
+}
+
+impl LabelMetadata {
+    /// Note that Version 1 can only support utf8 string asset names.
+    /// Version 2 can support any asset name.
+    pub fn new(version: CIP25Version) -> Self {
+        Self {
+            nfts: BTreeMap::new(),
+            version,
+        }
+    }
+
+    /// If this is version 1 and the asset name is not a utf8 asset name
+    /// then this will return an error.
+    /// This function will never return an error for version 2.
+    /// On success, returns the previous details that were overwritten, or None otherwise.
+    pub fn set(&mut self, policy_id: PolicyId, asset_name: AssetName, details: MetadataDetails) -> Result<Option<MetadataDetails>, CIP25Error> {
+        if self.version == CIP25Version::V1 {
+            if let Err(e) = String::from_utf8(asset_name.get().clone()) {
+                return Err(CIP25Error::Version1NonStringAsset(asset_name, e));
+            }
+        }
+        Ok(self.nfts.entry(policy_id).or_default().insert(asset_name, details))
+    }
+
+    pub fn get(&self, policy_id: &PolicyId, asset_name: &AssetName) -> Option<&MetadataDetails> {
+        self.nfts.get(policy_id)?.get(asset_name)
+    }
+
+    pub fn nfts(&self) -> &BTreeMap<PolicyId, BTreeMap<AssetName, MetadataDetails>> {
+        &self.nfts
+    }
+
+    pub fn version(&self) -> CIP25Version {
+        self.version
+    }
+}
+
+
+
+// serialization:
+
+impl cbor_event::se::Serialize for LabelMetadata {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        match self.version {
+            CIP25Version::V1 => {
+                serializer.write_map(cbor_event::Len::Len(self.nfts.len() as u64))?;
+                for (policy_id, assets) in self.nfts.iter() {
+                    // hand-edit: write hex string
+                    serializer.write_text(policy_id.to_hex())?;
+                    serializer.write_map(cbor_event::Len::Len(assets.len() as u64))?;
+                    for (asset_name, details) in assets.iter() {
+                        // hand-edit: write as string
+                        // note: this invariant is checked during setting and data is private
+                        let asset_name_str = String::from_utf8(asset_name.get().clone()).unwrap();
+                        serializer.write_text(asset_name_str)?;
+                        details.serialize(serializer)?;
+                    }
+                }
+            },
+            CIP25Version::V2 => {
+                serializer.write_map(cbor_event::Len::Len(2))?;
+                serializer.write_text(&"data")?;
+                serializer.write_map(cbor_event::Len::Len(self.nfts.len() as u64))?;
+                for (policy_id, assets) in self.nfts.iter() {
+                    // hand-edit: write bytes
+                    serializer.write_bytes(policy_id.to_raw_bytes())?;
+
+                    serializer.write_map(cbor_event::Len::Len(assets.len() as u64))?;
+                    for (asset_name, details) in assets.iter() {
+                        // hand-edit: write bytes
+                        serializer.write_bytes(asset_name.get())?;
+
+                        details.serialize(serializer)?;
+                    }
+                }
+                serializer.write_text(&"version")?;
+                serializer.write_unsigned_integer(2u64)?;
+            },
+        }
+        Ok(serializer)
+    }
+}
+
+impl Deserialize for LabelMetadata {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            // largely taken from result of generating the original CDDL then modifying to merge v1/v2
+            // this has to be modified anyway to allow for permissive parsing in the first place.
+            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+
+            // Try parsing V1
+            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut label_metadata_v1_table = BTreeMap::new();
+                let mut label_metadata_v1_table_len = 0;
+                let label_metadata_v1_len = raw.map()?;
+                while match label_metadata_v1_len {
+                    cbor_event::Len::Len(n) => label_metadata_v1_table_len < n as usize,
+                    cbor_event::Len::Indefinite => true,
+                } {
+                    match raw.cbor_type()? {
+                        cbor_event::Type::Text => {
+                            // hand-edit: read as hex text
+                            let label_metadata_v1_key = PolicyId::from_hex(&raw.text()?)
+                                .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?;
+
+                            let mut label_metadata_v1_value_table = BTreeMap::new();
+                            let mut label_metadata_v1_value_table_len = 0;
+                            let label_metadata_v1_value_len = raw.map()?;
+                            while match label_metadata_v1_value_len {
+                                cbor_event::Len::Len(n) => {
+                                    label_metadata_v1_value_table_len < n as usize
+                                }
+                                cbor_event::Len::Indefinite => true,
+                            } {
+                                match raw.cbor_type()? {
+                                    cbor_event::Type::Text => {
+                                        // hand-edit: read as text
+                                        let label_metadata_v1_value_key = AssetName::new(raw.text()?.as_bytes().to_vec())?;
+
+                                        let label_metadata_v1_value_value =
+                                            MetadataDetails::deserialize(raw)?;
+                                        if label_metadata_v1_value_table
+                                            .insert(
+                                                label_metadata_v1_value_key.clone(),
+                                                label_metadata_v1_value_value,
+                                            )
+                                            .is_some()
+                                        {
+                                            return Err(DeserializeFailure::DuplicateKey(
+                                                Key::Str(String::from(
+                                                    "some complicated/unsupported type",
+                                                )),
+                                            )
+                                            .into());
+                                        }
+                                        label_metadata_v1_value_table_len += 1;
+                                    }
+                                    cbor_event::Type::Special => {
+                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                        break;
+                                    }
+                                    _other_type => {
+                                        // we still need to read the data to move on to the CBOR after it
+                                        let _other_key =
+                                            cml_core::metadata::TransactionMetadatum::deserialize(
+                                                raw,
+                                            )?;
+                                        let _other_value =
+                                            cml_core::metadata::TransactionMetadatum::deserialize(
+                                                raw,
+                                            )?;
+                                        label_metadata_v1_value_table_len += 1;
+                                    }
+                                }
+                            }
+                            let label_metadata_v1_value = label_metadata_v1_value_table;
+                            if label_metadata_v1_table
+                                .insert(label_metadata_v1_key.clone(), label_metadata_v1_value)
+                                .is_some()
+                            {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Str(
+                                    String::from("some complicated/unsupported type"),
+                                ))
+                                .into());
+                            }
+                            label_metadata_v1_table_len += 1;
+                        }
+                        cbor_event::Type::Special => {
+                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                            break;
+                        }
+                        _other_type => {
+                            // we still need to read the data to move on to the CBOR after it
+                            let _other_key =
+                                cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                            let _other_value =
+                                cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                            label_metadata_v1_table_len += 1;
+                        }
+                    }
+                }
+                Ok(label_metadata_v1_table)
+            })(raw)
+            {
+                Ok(label_metadata_v1) => {
+                    // hand-edit: construct merged type
+                    return Ok(Self {
+                        nfts: label_metadata_v1,
+                        version: CIP25Version::V1,
+                    });
+                },
+                Err(_) => raw
+                    .as_mut_ref()
+                    .seek(SeekFrom::Start(initial_position))
+                    .unwrap(),
+            };
+
+            // Try paring V2
+            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let len = raw.map()?;
+                let mut read_len = CBORReadLen::new(match len {
+                    cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, cbor_event::Sz::canonical(n)),
+                    cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
+                });
+                read_len.read_elems(2)?;
+                let mut data = None;
+                let mut version_present = false;
+                let mut read = 0;
+                while match len {
+                    cbor_event::Len::Len(n) => read < n as usize,
+                    cbor_event::Len::Indefinite => true,
+                } {
+                    match raw.cbor_type()? {
+                        cbor_event::Type::Text => match raw.text()?.as_str() {
+                            "data" => {
+                                if data.is_some() {
+                                    return Err(DeserializeFailure::DuplicateKey(Key::Str(
+                                        "data".into(),
+                                    ))
+                                    .into());
+                                }
+                                data = Some(
+                                    (|| -> Result<_, DeserializeError> {
+                                        let mut data_table = BTreeMap::new();
+                                        let data_len = raw.map()?;
+                                        let mut data_table_len = 0;
+                                        while match data_len {
+                                            cbor_event::Len::Len(n) => data_table_len < n as usize,
+                                            cbor_event::Len::Indefinite => true,
+                                        } {
+                                            match raw.cbor_type()? {
+                                                cbor_event::Type::Bytes => {
+                                                    // hand-edit: read as bytes
+                                                    let data_key = PolicyId::from_raw_bytes(&raw.bytes()?)
+                                                        .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?;
+
+                                                    let mut data_value_table_len = 0;
+                                                    let mut data_value_table = BTreeMap::new();
+                                                    let data_value_len = raw.map()?;
+                                                    while match data_value_len {
+                                                        cbor_event::Len::Len(n) => data_value_table_len < n as usize,
+                                                        cbor_event::Len::Indefinite => true,
+                                                    } {
+                                                        match raw.cbor_type()? {
+                                                            cbor_event::Type::Bytes => {
+                                                                // hand-edit: read as bytes
+                                                                let data_value_key = AssetName::new(raw.bytes()?)?;
+
+                                                                let data_value_value =
+                                                                    MetadataDetails::deserialize(raw)?;
+                                                                if data_value_table
+                                                                    .insert(data_value_key.clone(), data_value_value)
+                                                                    .is_some()
+                                                                {
+                                                                    return Err(DeserializeFailure::DuplicateKey(
+                                                                        Key::Str(String::from(
+                                                                            "some complicated/unsupported type",
+                                                                        )),
+                                                                    )
+                                                                    .into());
+                                                                }
+                                                                data_value_table_len += 1;
+                                                            },
+                                                            cbor_event::Type::Special => {
+                                                                assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                                                break;
+                                                            },
+                                                            _other_type => {
+                                                                // we still need to read the data to move on to the CBOR after it
+                                                                let _other_key = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                                                let _other_value = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                                                data_value_table_len += 1;
+                                                            },
+                                                        }
+                                                    }
+                                                    let data_value = data_value_table;
+                                                    if data_table.insert(data_key.clone(), data_value).is_some()
+                                                    {
+                                                        return Err(DeserializeFailure::DuplicateKey(
+                                                            Key::Str(String::from(
+                                                                "some complicated/unsupported type",
+                                                            )),
+                                                        )
+                                                        .into());
+                                                    }
+                                                    data_table_len += 1;
+                                                },
+                                                cbor_event::Type::Special => {
+                                                    assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                                    break;
+                                                },
+                                                _other_type => {
+                                                    // we still need to read the data to move on to the CBOR after it
+                                                    let _other_key = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                                    let _other_value = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                                    data_table_len += 1;
+                                                },
+                                            }
+                                        }
+                                        Ok(data_table)
+                                    })()
+                                    .map_err(|e| e.annotate("data"))?,
+                                );
+                            }
+                            "version" => {
+                                if version_present {
+                                    return Err(DeserializeFailure::DuplicateKey(Key::Str(
+                                        "version".into(),
+                                    ))
+                                    .into());
+                                }
+                                version_present = (|| -> Result<_, DeserializeError> {
+                                    let version_value = raw.unsigned_integer()?;
+                                    if version_value != 2 {
+                                        return Err(DeserializeFailure::FixedValueMismatch {
+                                            found: Key::Uint(version_value),
+                                            expected: Key::Uint(2),
+                                        }
+                                        .into());
+                                    }
+                                    Ok(true)
+                                })()
+                                .map_err(|e| e.annotate("version"))?;
+                            }
+                            _unknown_key => {
+                                // CIP-25 allows permissive parsing
+                                read_len.read_elems(1)?;
+                                // we still need to read the data to move on to the CBOR after it
+                                let _other_metadatum = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                            }
+                        },
+                        cbor_event::Type::Special => match len {
+                            cbor_event::Len::Len(_) => {
+                                return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            }
+                            cbor_event::Len::Indefinite => match raw.special()? {
+                                cbor_event::Special::Break => break,
+                                _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                            },
+                        },
+                        _other_type => {
+                            // CIP-25 allows permissive parsing
+                            read_len.read_elems(1)?;
+                            // we still need to read the data to move on to the CBOR after it
+                            let _other_key = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                            let _other_value = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                        }
+                    }
+                    read += 1;
+                }
+                let data = match data {
+                    Some(x) => x,
+                    None => {
+                        return Err(
+                            DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("data")))
+                                .into(),
+                        )
+                    }
+                };
+                if !version_present {
+                    return Err(
+                        DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("version")))
+                            .into(),
+                    );
+                }
+                // hand-edit: expression only here, no Self wrapper
+                Ok(data)
+            })(raw)
+            .map_err(|e| e.annotate("LabelMetadataV2"))
+            {
+                Ok(label_metadata_v2) => {
+                    // hand-edit: construct merged type
+                    return Ok(Self {
+                        nfts: label_metadata_v2,
+                        version: CIP25Version::V2,
+                    });
+                },
+                Err(_) => raw
+                    .as_mut_ref()
+                    .seek(SeekFrom::Start(initial_position))
+                    .unwrap(),
+            };
+
+            // Neither worked
+            Err(DeserializeError::new(
+                "LabelMetadata",
+                DeserializeFailure::NoVariantMatched.into(),
+            ))
+        })()
+        .map_err(|e| e.annotate("LabelMetadata"))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
 
-    use crate::{AssetNameV2, Data, FilesDetails, LabelMetadataV2, MetadataDetails, PolicyIdV2};
+    use cml_chain::OrderedHashMap;
+
+    use crate::{FilesDetails, MetadataDetails};
 
     use super::*;
 
@@ -215,13 +641,21 @@ mod tests {
                 ChunkableString::from("src2"),
             ),
         ]);
-        let mut v2 = Data::new();
-        let mut v2_inner = BTreeMap::new();
-        v2_inner.insert(AssetNameV2::from(vec![0xCA, 0xFE, 0xD0, 0x0D]), details);
-        v2.insert(PolicyIdV2::from(vec![0xBA, 0xAD, 0xF0, 0x0D]), v2_inner);
-        let metadata = CIP25Metadata::new(LabelMetadata::new_label_metadata_v2(
-            LabelMetadataV2::new(v2),
-        ));
+        let policy_id_bytes = [
+            0xBA, 0xAD, 0xF0, 0x0D,
+            0xBA, 0xAD, 0xF0, 0x0D,
+            0xBA, 0xAD, 0xF0, 0x0D,
+            0xBA, 0xAD, 0xF0, 0x0D,
+            0xBA, 0xAD, 0xF0, 0x0D,
+            0xBA, 0xAD, 0xF0, 0x0D,
+            0xBA, 0xAD, 0xF0, 0x0D
+        ];
+        let mut v2 = LabelMetadata::new(CIP25Version::V2);
+        v2.set(
+            PolicyId::from_raw_bytes(&policy_id_bytes).unwrap(),
+            AssetName::new(vec![0xCA, 0xFE, 0xD0, 0x0D]).unwrap(),
+            details);
+        let metadata = CIP25Metadata::new(v2);
         let metadata_bytes = metadata.to_bytes();
         let roundtrip = CIP25Metadata::from_cbor_bytes(&metadata_bytes).unwrap();
         assert_eq!(metadata_bytes, roundtrip.to_bytes());
@@ -284,7 +718,8 @@ mod tests {
 
     #[test]
     fn noisy_metadata() {
-        // generatd by adding this to the create() test case
+        // generated by adding this to the create() test case at the bottom:
+
         // as_metadata.insert(1337, TransactionMetadatum::new_list(vec![
         //     TransactionMetadatum::new_bytes(vec![0xBA, 0xAD, 0xF0, 0x0D]),
         // ]));
@@ -303,7 +738,7 @@ mod tests {
         //     _ => panic!(),
         // };
         // data_entries.insert(TransactionMetadatum::new_map(filler_map.clone()), TransactionMetadatum::new_map(filler_map.clone()));
-        // let policy_entries: &mut _ = match data_entries.get_mut(&TransactionMetadatum::new_bytes(vec![0xBA, 0xAD, 0xF0, 0x0D])).unwrap() {
+        // let policy_entries: &mut _ = match data_entries.get_mut(&TransactionMetadatum::new_bytes(policy_id_bytes.to_vec())).unwrap() {
         //     TransactionMetadatum::Map{ entries, .. } => entries,
         //     _ => panic!(),
         // };
@@ -339,7 +774,8 @@ mod tests {
         // }
         // buf.write_special(cbor_event::Special::Break).unwrap();
         // panic!("{}", hex::encode(buf.finalize()));
-        let bytes = "bf1902d1a36464617461a244baadf00da344cafed00da6646e616d656d4d65746164617461204e616d656566696c657382a4637372636473726331646e616d656966696c656e616d6531696d65646961547970656966696c657479706531816864736b6a66616b7381a1403864a3637372636473726332646e616d656966696c656e616d6532696d65646961547970656966696c65747970653265696d6167657821687474733a2f2f736f6d652e776562736974652e636f6d2f696d6167652e706e67696d656469615479706567696d6167652f2a6b6465736372697074696f6e776465736372697074696f6e206f662074686973204e4654a14038641832a1403864a140386481a1403864816864736b6a66616b73a1403864a14038646776657273696f6e02a1403864a14038641905398144baadf00dff";
+
+        let bytes = "bf1902d1a36464617461a2581cbaadf00dbaadf00dbaadf00dbaadf00dbaadf00dbaadf00dbaadf00da344cafed00da6646e616d656d4d65746164617461204e616d656566696c657382a4637372636473726331646e616d656966696c656e616d6531696d65646961547970656966696c657479706531816864736b6a66616b7381a1403864a3637372636473726332646e616d656966696c656e616d6532696d65646961547970656966696c65747970653265696d6167657821687474733a2f2f736f6d652e776562736974652e636f6d2f696d6167652e706e67696d656469615479706567696d6167652f2a6b6465736372697074696f6e776465736372697074696f6e206f662074686973204e4654a14038641832a1403864a140386481a1403864816864736b6a66616b73a1403864a14038646776657273696f6e02a1403864a14038641905398144baadf00dff";
         let _ = CIP25Metadata::from_bytes(hex::decode(bytes).unwrap()).unwrap();
     }
 }

@@ -6,80 +6,16 @@
 pub mod serialization;
 pub mod utils;
 
+pub use utils::{CIP25Version, LabelMetadata};
+
 use cbor_event;
 use cbor_event::de::Deserializer;
-use cbor_event::se::{Serialize, Serializer};
+use cbor_event::se::{Serializer};
 use cbor_event::Special as CBORSpecial;
 use cbor_event::Type as CBORType;
 pub use cml_core::error::*;
-use serialization::*;
-use std::collections::BTreeMap;
 use std::convert::{From, TryFrom};
 use std::io::{BufRead, Write};
-
-#[derive(
-    Clone,
-    Debug,
-    serde::Deserialize,
-    serde::Serialize,
-    schemars::JsonSchema,
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-)]
-pub struct AssetNameV1(pub String64);
-
-impl AssetNameV1 {
-    pub fn get(&self) -> &String64 {
-        &self.0
-    }
-
-    pub fn new(inner: String64) -> Self {
-        Self(inner)
-    }
-}
-
-impl From<String64> for AssetNameV1 {
-    fn from(inner: String64) -> Self {
-        AssetNameV1::new(inner.clone().into())
-    }
-}
-
-#[derive(
-    Clone,
-    Debug,
-    serde::Deserialize,
-    serde::Serialize,
-    schemars::JsonSchema,
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-)]
-pub struct AssetNameV2(pub Vec<u8>);
-
-impl AssetNameV2 {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.0
-    }
-
-    pub fn new(inner: Vec<u8>) -> Self {
-        Self(inner)
-    }
-}
-
-impl From<Vec<u8>> for AssetNameV2 {
-    fn from(inner: Vec<u8>) -> Self {
-        AssetNameV2::new(inner)
-    }
-}
-
-impl From<AssetNameV2> for Vec<u8> {
-    fn from(wrapper: AssetNameV2) -> Self {
-        wrapper.0
-    }
-}
 
 /// This is the entire metadata schema for CIP-25
 /// It can be parsed by passing in the CBOR bytes of the entire transaction metadata
@@ -132,8 +68,6 @@ impl ChunkableString {
     }
 }
 
-pub type Data = BTreeMap<PolicyIdV2, BTreeMap<AssetNameV2, MetadataDetails>>;
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct FilesDetails {
     pub name: String64,
@@ -148,35 +82,6 @@ impl FilesDetails {
             media_type,
             src,
         }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub enum LabelMetadata {
-    LabelMetadataV1(LabelMetadataV1),
-    LabelMetadataV2(LabelMetadataV2),
-}
-
-impl LabelMetadata {
-    pub fn new_label_metadata_v1(label_metadata_v1: LabelMetadataV1) -> Self {
-        Self::LabelMetadataV1(label_metadata_v1)
-    }
-
-    pub fn new_label_metadata_v2(label_metadata_v2: LabelMetadataV2) -> Self {
-        Self::LabelMetadataV2(label_metadata_v2)
-    }
-}
-
-pub type LabelMetadataV1 = BTreeMap<PolicyIdV1, BTreeMap<AssetNameV1, MetadataDetails>>;
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct LabelMetadataV2 {
-    pub data: Data,
-}
-
-impl LabelMetadataV2 {
-    pub fn new(data: Data) -> Self {
-        Self { data }
     }
 }
 
@@ -201,74 +106,6 @@ impl MetadataDetails {
     }
 }
 
-#[derive(
-    Clone,
-    Debug,
-    serde::Deserialize,
-    serde::Serialize,
-    schemars::JsonSchema,
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-)]
-pub struct PolicyIdV1(pub String64);
-
-impl PolicyIdV1 {
-    pub fn get(&self) -> &String64 {
-        &self.0
-    }
-
-    pub fn new(inner: String64) -> Self {
-        Self(inner)
-    }
-}
-
-impl From<String64> for PolicyIdV1 {
-    fn from(inner: String64) -> Self {
-        PolicyIdV1::new(inner.clone().into())
-    }
-}
-
-pub type PolicyIdV1s = Vec<PolicyIdV1>;
-
-#[derive(
-    Clone,
-    Debug,
-    serde::Deserialize,
-    serde::Serialize,
-    schemars::JsonSchema,
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-)]
-pub struct PolicyIdV2(pub Vec<u8>);
-
-impl PolicyIdV2 {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.0
-    }
-
-    pub fn new(inner: Vec<u8>) -> Self {
-        Self(inner)
-    }
-}
-
-impl From<Vec<u8>> for PolicyIdV2 {
-    fn from(inner: Vec<u8>) -> Self {
-        PolicyIdV2::new(inner)
-    }
-}
-
-impl From<PolicyIdV2> for Vec<u8> {
-    fn from(wrapper: PolicyIdV2) -> Self {
-        wrapper.0
-    }
-}
-
-pub type PolicyIdV2s = Vec<PolicyIdV2>;
-
 impl From<String64> for String {
     fn from(wrapper: String64) -> Self {
         wrapper.0
@@ -287,18 +124,6 @@ impl From<String64> for String {
     PartialOrd,
 )]
 pub struct String64(pub String);
-
-impl From<AssetNameV1> for String64 {
-    fn from(wrapper: AssetNameV1) -> Self {
-        wrapper.0
-    }
-}
-
-impl From<PolicyIdV1> for String64 {
-    fn from(wrapper: PolicyIdV1) -> Self {
-        wrapper.0
-    }
-}
 
 impl String64 {
     pub fn get(&self) -> &String {

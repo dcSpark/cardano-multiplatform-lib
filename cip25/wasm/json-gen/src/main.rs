@@ -15,16 +15,11 @@ fn main() {
     let schema_path = std::path::Path::new(&"schemas");
     if !schema_path.exists() {
         std::fs::create_dir(schema_path).unwrap();
-    }
-    gen_json_schema!(AssetNameV1);
-    gen_json_schema!(AssetNameV2);
+    }    
     gen_json_schema!(CIP25Metadata);
     gen_json_schema!(ChunkableString);
     gen_json_schema!(FilesDetails);
     gen_json_schema!(LabelMetadata);
-    gen_json_schema!(LabelMetadataV2);
     gen_json_schema!(MetadataDetails);
-    gen_json_schema!(PolicyIdV1);
-    gen_json_schema!(PolicyIdV2);
     gen_json_schema!(String64);
 }

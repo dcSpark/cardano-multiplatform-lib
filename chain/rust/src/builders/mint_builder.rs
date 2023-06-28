@@ -31,6 +31,14 @@ impl SingleMintBuilder {
         }
     }
 
+    pub fn new_single_asset(asset: AssetName, amount: i64) -> Self {
+        let mut assets = OrderedHashMap::new();
+        assets.insert(asset, amount);
+        Self {
+            assets,
+        }
+    }
+
     pub fn native_script(self, native_script: NativeScript, witness_info: NativeScriptWitnessInfo) -> MintBuilderResult {
         let mut required_wits = RequiredWitnessSet::default();
         let script_hash = native_script.hash();

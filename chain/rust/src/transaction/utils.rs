@@ -10,6 +10,24 @@ use cml_crypto::{DatumHash, Ed25519KeyHash};
 use super::{NativeScript, ShelleyTxOut, AlonzoTxOut, BabbageTxOut};
 
 impl TransactionOutput {
+    pub fn new(
+        address: Address,
+        amount: Value,
+        datum_option: Option<DatumOption>,
+        script_reference: Option<ScriptRef>
+    ) -> Self {
+        match (datum_option, script_reference) {
+            (None, None) => Self::ShelleyTxOut(ShelleyTxOut::new(address, amount)),
+            (Some(DatumOption::Hash { datum_hash, .. }), None) => Self::AlonzoTxOut(AlonzoTxOut::new(address, amount, datum_hash)),
+            (datum, script_ref) => {
+                let mut tx_out = BabbageTxOut::new(address, amount);
+                tx_out.datum_option = datum;
+                tx_out.script_reference = script_ref;
+                Self::BabbageTxOut(tx_out)
+            }
+        }
+    }
+
     pub fn address(&self) -> &Address {
         match self {
             Self::ShelleyTxOut(tx_out) => &tx_out.address,

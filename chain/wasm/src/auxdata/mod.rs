@@ -162,7 +162,7 @@ impl AuxiliaryData {
 
     pub fn as_shelley(&self) -> Option<ShelleyAuxData> {
         match &self.0 {
-            cml_chain::auxdata::AuxiliaryData::Shelley { shelley, .. } => {
+            cml_chain::auxdata::AuxiliaryData::Shelley(shelley) => {
                 Some(shelley.clone().into())
             }
             _ => None,

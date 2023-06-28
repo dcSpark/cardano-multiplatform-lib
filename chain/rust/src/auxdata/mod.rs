@@ -3,6 +3,7 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
+pub mod utils;
 
 use super::Int;
 use crate::plutus::{PlutusV1Script, PlutusV2Script};
@@ -46,24 +47,14 @@ impl Default for AlonzoAuxData {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AuxiliaryData {
-    Shelley {
-        shelley: ShelleyAuxData,
-        #[serde(skip)]
-        shelley_encoding: LenEncoding,
-        #[serde(skip)]
-        shelley_key_encodings: BTreeMap<u64, Option<cbor_event::Sz>>,
-    },
+    Shelley(ShelleyAuxData),
     ShelleyMA(ShelleyMaAuxData),
     Alonzo(AlonzoAuxData),
 }
 
 impl AuxiliaryData {
     pub fn new_shelley(shelley: ShelleyAuxData) -> Self {
-        Self::Shelley {
-            shelley,
-            shelley_encoding: LenEncoding::default(),
-            shelley_key_encodings: BTreeMap::new(),
-        }
+        Self::Shelley(shelley)
     }
 
     pub fn new_shelley_m_a(shelley_m_a: ShelleyMaAuxData) -> Self {
@@ -75,9 +66,7 @@ impl AuxiliaryData {
     }
 }
 
-pub type Metadata = OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>;
-
-pub type ShelleyAuxData = OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>;
+pub type ShelleyAuxData = Metadata;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ShelleyMaAuxData {

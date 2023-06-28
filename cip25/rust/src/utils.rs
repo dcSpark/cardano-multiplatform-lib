@@ -31,7 +31,7 @@ impl CIP25Metadata {
     /// Add to an existing metadata (could be empty) the full CIP25 metadata
     pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), DeserializeError> {
         let cip25_metadatum = TransactionMetadatum::from_cbor_bytes(&self.key_721.to_bytes())?;
-        metadata.insert(CIP25_METADATA_LABEL, cip25_metadatum);
+        metadata.set(CIP25_METADATA_LABEL, cip25_metadatum);
         Ok(())
     }
 }
@@ -40,7 +40,7 @@ impl std::convert::TryFrom<&Metadata> for CIP25Metadata {
     type Error = DeserializeError;
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
-        let cip25_metadatum = metadata.get(&CIP25_METADATA_LABEL).ok_or_else(|| {
+        let cip25_metadatum = metadata.get(CIP25_METADATA_LABEL).ok_or_else(|| {
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(CIP25_METADATA_LABEL))
         })?;
         Ok(Self {

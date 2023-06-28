@@ -25,7 +25,7 @@ base64 = "0.13"
 num-bigint = "0.4.0"
 num-integer = "0.1.45"
 #rand_os = "0.1"
-#thiserror = "1.0.37"
+thiserror = "1.0.37"
 cfg-if = "1"
 
 # These can be removed if we make wasm bindings for ALL functionality here.

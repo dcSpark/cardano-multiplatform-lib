@@ -1,10 +1,13 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+use cml_chain::{address::Address};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 use cml_crypto_wasm::{Ed25519Signature, NonceHash};
+
+use crate::byron::AddrAttributes;
 
 pub type Vkey = cml_crypto_wasm::PublicKey;
 
@@ -52,21 +55,21 @@ impl BootstrapWitness {
         self.0.chain_code.clone()
     }
 
-    pub fn attributes(&self) -> Vec<u8> {
-        self.0.attributes.clone()
+    pub fn attributes(&self) -> AddrAttributes {
+        self.0.attributes.clone().into()
     }
 
     pub fn new(
         public_key: &Vkey,
         signature: &Ed25519Signature,
         chain_code: Vec<u8>,
-        attributes: Vec<u8>,
+        attributes: &AddrAttributes,
     ) -> Self {
         Self(cml_chain::crypto::BootstrapWitness::new(
             public_key.clone().into(),
             signature.clone().into(),
             chain_code,
-            attributes,
+            attributes.clone().into(),
         ))
     }
 }

@@ -2548,7 +2548,7 @@ impl Deserialize for TransactionBody {
                             }
                             let (tmp_network_id, tmp_network_id_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x as u8, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x as u32, Some(enc))).map_err(Into::<DeserializeError>::into)
                             })().map_err(|e| e.annotate("network_id"))?;
                             network_id = Some(tmp_network_id);
                             network_id_encoding = tmp_network_id_encoding;

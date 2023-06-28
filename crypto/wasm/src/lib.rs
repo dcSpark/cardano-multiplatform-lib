@@ -1,9 +1,9 @@
 use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
-use core_crypto::RawBytesEncoding;
+use cml_crypto::RawBytesEncoding;
 
 #[wasm_bindgen]
-pub struct Bip32PrivateKey(core_crypto::Bip32PrivateKey);
+pub struct Bip32PrivateKey(cml_crypto::Bip32PrivateKey);
 
 #[wasm_bindgen]
 impl Bip32PrivateKey {
@@ -39,7 +39,7 @@ impl Bip32PrivateKey {
     /// so be careful if you see the term "xprv" as it could refer to either one
     /// our library does not require the pub (instead we compute the pub key when needed)
     pub fn from_128_xprv(bytes: &[u8]) -> Result<Bip32PrivateKey, JsError> {
-        core_crypto::Bip32PrivateKey::from_128_xprv(bytes)
+        cml_crypto::Bip32PrivateKey::from_128_xprv(bytes)
             .map(Self)
             .map_err(Into::into)
     }
@@ -49,7 +49,7 @@ impl Bip32PrivateKey {
     }
 
     pub fn generate_ed25519_bip32() -> Bip32PrivateKey {
-        Self(core_crypto::Bip32PrivateKey::generate_ed25519_bip32())
+        Self(cml_crypto::Bip32PrivateKey::generate_ed25519_bip32())
     }
 
     pub fn to_raw_key(&self) -> PrivateKey {
@@ -61,7 +61,7 @@ impl Bip32PrivateKey {
     }
 
     pub fn from_raw_bytes(bytes: &[u8]) -> Result<Bip32PrivateKey, JsError> {
-        core_crypto::Bip32PrivateKey::from_raw_bytes(bytes)
+        cml_crypto::Bip32PrivateKey::from_raw_bytes(bytes)
             .map(Self)
             .map_err(Into::into)
     }
@@ -71,7 +71,7 @@ impl Bip32PrivateKey {
     }
 
     pub fn from_bech32(bech32_str: &str) -> Result<Bip32PrivateKey, JsError> {
-        core_crypto::Bip32PrivateKey::from_bech32(bech32_str)
+        cml_crypto::Bip32PrivateKey::from_bech32(bech32_str)
             .map(Self)
             .map_err(Into::into)
     }
@@ -81,7 +81,7 @@ impl Bip32PrivateKey {
     }
 
     pub fn from_bip39_entropy(entropy: &[u8], password: &[u8]) -> Self {
-        Self(core_crypto::Bip32PrivateKey::from_bip39_entropy(
+        Self(cml_crypto::Bip32PrivateKey::from_bip39_entropy(
             entropy, password,
         ))
     }
@@ -91,26 +91,27 @@ impl Bip32PrivateKey {
     }
 }
 
-impl From<core_crypto::Bip32PrivateKey> for Bip32PrivateKey {
-    fn from(inner: core_crypto::Bip32PrivateKey) -> Self {
+impl From<cml_crypto::Bip32PrivateKey> for Bip32PrivateKey {
+    fn from(inner: cml_crypto::Bip32PrivateKey) -> Self {
         Self(inner)
     }
 }
 
-impl From<Bip32PrivateKey> for core_crypto::Bip32PrivateKey {
+impl From<Bip32PrivateKey> for cml_crypto::Bip32PrivateKey {
     fn from(wrapper: Bip32PrivateKey) -> Self {
         wrapper.0
     }
 }
 
-impl AsRef<core_crypto::Bip32PrivateKey> for Bip32PrivateKey {
-    fn as_ref(&self) -> &core_crypto::Bip32PrivateKey {
+impl AsRef<cml_crypto::Bip32PrivateKey> for Bip32PrivateKey {
+    fn as_ref(&self) -> &cml_crypto::Bip32PrivateKey {
         &self.0
     }
 }
 
 #[wasm_bindgen]
-pub struct Bip32PublicKey(core_crypto::Bip32PublicKey);
+#[derive(Clone)]
+pub struct Bip32PublicKey(cml_crypto::Bip32PublicKey);
 
 #[wasm_bindgen]
 impl Bip32PublicKey {
@@ -147,7 +148,7 @@ impl Bip32PublicKey {
     }
 
     pub fn from_raw_bytes(bytes: &[u8]) -> Result<Bip32PublicKey, JsError> {
-        core_crypto::Bip32PublicKey::from_raw_bytes(bytes)
+        cml_crypto::Bip32PublicKey::from_raw_bytes(bytes)
             .map(Self)
             .map_err(Into::into)
     }
@@ -157,7 +158,7 @@ impl Bip32PublicKey {
     }
 
     pub fn from_bech32(bech32_str: &str) -> Result<Bip32PublicKey, JsError> {
-        core_crypto::Bip32PublicKey::from_bech32(bech32_str)
+        cml_crypto::Bip32PublicKey::from_bech32(bech32_str)
             .map(Self)
             .map_err(Into::into)
     }
@@ -171,26 +172,26 @@ impl Bip32PublicKey {
     }
 }
 
-impl From<core_crypto::Bip32PublicKey> for Bip32PublicKey {
-    fn from(inner: core_crypto::Bip32PublicKey) -> Self {
+impl From<cml_crypto::Bip32PublicKey> for Bip32PublicKey {
+    fn from(inner: cml_crypto::Bip32PublicKey) -> Self {
         Self(inner)
     }
 }
 
-impl From<Bip32PublicKey> for core_crypto::Bip32PublicKey {
+impl From<Bip32PublicKey> for cml_crypto::Bip32PublicKey {
     fn from(wrapper: Bip32PublicKey) -> Self {
         wrapper.0
     }
 }
 
-impl AsRef<core_crypto::Bip32PublicKey> for Bip32PublicKey {
-    fn as_ref(&self) -> &core_crypto::Bip32PublicKey {
+impl AsRef<cml_crypto::Bip32PublicKey> for Bip32PublicKey {
+    fn as_ref(&self) -> &cml_crypto::Bip32PublicKey {
         &self.0
     }
 }
 
 #[wasm_bindgen]
-pub struct PrivateKey(core_crypto::PrivateKey);
+pub struct PrivateKey(cml_crypto::PrivateKey);
 
 #[wasm_bindgen]
 impl PrivateKey {
@@ -199,11 +200,11 @@ impl PrivateKey {
     }
 
     pub fn generate_ed25519() -> Self {
-        Self(core_crypto::PrivateKey::generate_ed25519())
+        Self(cml_crypto::PrivateKey::generate_ed25519())
     }
 
     pub fn generate_ed25519extended() -> Self {
-        Self(core_crypto::PrivateKey::generate_ed25519extended())
+        Self(cml_crypto::PrivateKey::generate_ed25519extended())
     }
 
     /// Get private key from its bech32 representation
@@ -215,7 +216,7 @@ impl PrivateKey {
     /// PrivateKey.from_bech32(&#39;ed25519e_sk1gqwl4szuwwh6d0yk3nsqcc6xxc3fpvjlevgwvt60df59v8zd8f8prazt8ln3lmz096ux3xvhhvm3ca9wj2yctdh3pnw0szrma07rt5gl748fp&#39;);
     /// ```
     pub fn from_bech32(bech32_str: &str) -> Result<PrivateKey, JsError> {
-        core_crypto::PrivateKey::from_bech32(bech32_str)
+        cml_crypto::PrivateKey::from_bech32(bech32_str)
             .map(Self)
             .map_err(Into::into)
     }
@@ -229,13 +230,13 @@ impl PrivateKey {
     }
 
     pub fn from_extended_bytes(bytes: &[u8]) -> Result<PrivateKey, JsError> {
-        core_crypto::PrivateKey::from_extended_bytes(bytes)
+        cml_crypto::PrivateKey::from_extended_bytes(bytes)
             .map(Self)
             .map_err(Into::into)
     }
 
     pub fn from_normal_bytes(bytes: &[u8]) -> Result<PrivateKey, JsError> {
-        core_crypto::PrivateKey::from_normal_bytes(bytes)
+        cml_crypto::PrivateKey::from_normal_bytes(bytes)
             .map(Self)
             .map_err(Into::into)
     }
@@ -245,20 +246,20 @@ impl PrivateKey {
     }
 }
 
-impl From<core_crypto::PrivateKey> for PrivateKey {
-    fn from(inner: core_crypto::PrivateKey) -> Self {
+impl From<cml_crypto::PrivateKey> for PrivateKey {
+    fn from(inner: cml_crypto::PrivateKey) -> Self {
         Self(inner)
     }
 }
 
-impl From<PrivateKey> for core_crypto::PrivateKey {
+impl From<PrivateKey> for cml_crypto::PrivateKey {
     fn from(wrapper: PrivateKey) -> Self {
         wrapper.0
     }
 }
 
-impl AsRef<core_crypto::PrivateKey> for PrivateKey {
-    fn as_ref(&self) -> &core_crypto::PrivateKey {
+impl AsRef<cml_crypto::PrivateKey> for PrivateKey {
+    fn as_ref(&self) -> &cml_crypto::PrivateKey {
         &self.0
     }
 }
@@ -266,7 +267,7 @@ impl AsRef<core_crypto::PrivateKey> for PrivateKey {
 /// ED25519 key used as public key
 #[wasm_bindgen]
 #[derive(Clone)]
-pub struct PublicKey(core_crypto::PublicKey);
+pub struct PublicKey(cml_crypto::PublicKey);
 
 #[wasm_bindgen]
 impl PublicKey {
@@ -276,7 +277,7 @@ impl PublicKey {
     /// const pkey = PublicKey.from_bech32(&#39;ed25519_pk1dgaagyh470y66p899txcl3r0jaeaxu6yd7z2dxyk55qcycdml8gszkxze2&#39;);
     /// ```
     pub fn from_bech32(bech32_str: &str) -> Result<PublicKey, JsError> {
-        core_crypto::PublicKey::from_bech32(bech32_str)
+        cml_crypto::PublicKey::from_bech32(bech32_str)
             .map(Self)
             .map_err(Into::into)
     }
@@ -290,7 +291,7 @@ impl PublicKey {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, JsError> {
-        core_crypto::PublicKey::from_raw_bytes(bytes)
+        cml_crypto::PublicKey::from_raw_bytes(bytes)
             .map(Self)
             .map_err(Into::into)
     }
@@ -304,20 +305,20 @@ impl PublicKey {
     }
 }
 
-impl From<core_crypto::PublicKey> for PublicKey {
-    fn from(inner: core_crypto::PublicKey) -> Self {
+impl From<cml_crypto::PublicKey> for PublicKey {
+    fn from(inner: cml_crypto::PublicKey) -> Self {
         Self(inner)
     }
 }
 
-impl From<PublicKey> for core_crypto::PublicKey {
+impl From<PublicKey> for cml_crypto::PublicKey {
     fn from(wrapper: PublicKey) -> Self {
         wrapper.0
     }
 }
 
-impl AsRef<core_crypto::PublicKey> for PublicKey {
-    fn as_ref(&self) -> &core_crypto::PublicKey {
+impl AsRef<cml_crypto::PublicKey> for PublicKey {
+    fn as_ref(&self) -> &cml_crypto::PublicKey {
         &self.0
     }
 }
@@ -326,7 +327,7 @@ macro_rules! impl_signature {
     ($name:ident) => {
         #[wasm_bindgen]
         #[derive(Debug, Clone)]
-        pub struct $name(core_crypto::$name);
+        pub struct $name(cml_crypto::$name);
 
         #[wasm_bindgen]
         impl $name {
@@ -343,40 +344,40 @@ macro_rules! impl_signature {
             }
 
             pub fn from_bech32(bech32_str: &str) -> Result<$name, JsError> {
-                core_crypto::$name::from_bech32(bech32_str)
+                cml_crypto::$name::from_bech32(bech32_str)
                     .map(Into::into)
                     .map(Self)
                     .map_err(Into::into)
             }
 
             pub fn from_hex(input: &str) -> Result<$name, JsError> {
-                core_crypto::$name::from_raw_hex(input)
+                cml_crypto::$name::from_raw_hex(input)
                     .map(Into::into)
                     .map(Self)
                     .map_err(Into::into)
             }
 
             pub fn from_raw_bytes(bytes: &[u8]) -> Result<$name, JsError> {
-                core_crypto::$name::from_raw_bytes(bytes)
+                cml_crypto::$name::from_raw_bytes(bytes)
                     .map(Self)
                     .map_err(Into::into)
             }
         }
 
-        impl From<core_crypto::$name> for $name {
-            fn from(inner: core_crypto::$name) -> Self {
+        impl From<cml_crypto::$name> for $name {
+            fn from(inner: cml_crypto::$name) -> Self {
                 Self(inner)
             }
         }
 
-        impl From<$name> for core_crypto::$name {
-            fn from(wrapper: $name) -> core_crypto::$name {
+        impl From<$name> for cml_crypto::$name {
+            fn from(wrapper: $name) -> cml_crypto::$name {
                 wrapper.0
             }
         }
 
-        impl AsRef<core_crypto::$name> for $name {
-            fn as_ref(&self) -> &core_crypto::$name {
+        impl AsRef<cml_crypto::$name> for $name {
+            fn as_ref(&self) -> &cml_crypto::$name {
                 &self.0
             }
         }
@@ -385,64 +386,75 @@ macro_rules! impl_signature {
 
 impl_signature!(Ed25519Signature);
 
-macro_rules! impl_hash_type {
-    ($name:ident) => {
-        #[wasm_bindgen]
+#[macro_export]
+macro_rules! impl_hash_type_ext {
+    ($rust_name:ty, $wasm_name:ident) => {
+        #[wasm_bindgen::prelude::wasm_bindgen]
         #[derive(Debug, Clone)]
-        pub struct $name(core_crypto::$name);
+        pub struct $wasm_name($rust_name);
 
-        #[wasm_bindgen]
-        impl $name {
+        #[wasm_bindgen::prelude::wasm_bindgen]
+        impl $wasm_name {
             pub fn to_raw_bytes(&self) -> Vec<u8> {
+                use cml_crypto::RawBytesEncoding;
                 self.0.to_raw_bytes().to_vec()
             }
 
-            pub fn to_bech32(&self, prefix: &str) -> Result<String, JsError> {
+            pub fn to_bech32(&self, prefix: &str) -> Result<String, wasm_bindgen::prelude::JsError> {
                 self.0.to_bech32(prefix).map_err(Into::into)
             }
 
             pub fn to_hex(&self) -> String {
+                use cml_crypto::RawBytesEncoding;
                 self.0.to_raw_hex()
             }
 
-            pub fn from_bech32(bech32_str: &str) -> Result<$name, JsError> {
-                core_crypto::$name::from_bech32(bech32_str)
+            pub fn from_bech32(bech32_str: &str) -> Result<$wasm_name, wasm_bindgen::prelude::JsError> {
+                <$rust_name>::from_bech32(bech32_str)
                     .map(Into::into)
                     .map(Self)
                     .map_err(Into::into)
             }
 
-            pub fn from_hex(input: &str) -> Result<$name, JsError> {
-                core_crypto::$name::from_raw_hex(input)
+            pub fn from_hex(input: &str) -> Result<$wasm_name, wasm_bindgen::prelude::JsError> {
+                use cml_crypto::RawBytesEncoding;
+                <$rust_name>::from_raw_hex(input)
                     .map(Self)
                     .map_err(Into::into)
             }
 
-            pub fn from_raw_bytes(bytes: &[u8]) -> Result<$name, JsError> {
-                core_crypto::$name::from_raw_bytes(bytes)
+            pub fn from_raw_bytes(bytes: &[u8]) -> Result<$wasm_name, wasm_bindgen::prelude::JsError> {
+                use cml_crypto::RawBytesEncoding;
+                <$rust_name>::from_raw_bytes(bytes)
                     .map(Self)
                     .map_err(Into::into)
             }
         }
 
-        impl From<core_crypto::$name> for $name {
-            fn from(inner: core_crypto::$name) -> Self {
+        impl From<$rust_name> for $wasm_name {
+            fn from(inner: $rust_name) -> Self {
                 Self(inner)
             }
         }
 
-        impl From<$name> for core_crypto::$name {
-            fn from(wrapper: $name) -> core_crypto::$name {
+        impl From<$wasm_name> for $rust_name {
+            fn from(wrapper: $wasm_name) -> $rust_name {
                 wrapper.0
             }
         }
 
-        impl AsRef<core_crypto::$name> for $name {
-            fn as_ref(&self) -> &core_crypto::$name {
+        impl AsRef<$rust_name> for $wasm_name {
+            fn as_ref(&self) -> &$rust_name {
                 &self.0
             }
         }
     };
+}
+
+macro_rules! impl_hash_type {
+    ($name:ident) => {
+        impl_hash_type_ext!(cml_crypto::$name, $name);
+    }
 }
 
 impl_hash_type!(Ed25519KeyHash);
@@ -462,3 +474,32 @@ impl_hash_type!(ScriptDataHash);
 impl_hash_type!(VRFVkey);
 impl_hash_type!(KESVkey);
 impl_hash_type!(NonceHash);
+
+#[wasm_bindgen]
+#[derive(Clone)]
+pub struct LegacyDaedalusPrivateKey(cml_crypto::LegacyDaedalusPrivateKey);
+
+#[wasm_bindgen]
+impl LegacyDaedalusPrivateKey {
+    pub fn chaincode(&self) -> Vec<u8> {
+        self.0.chaincode()
+    }
+}
+
+impl From<cml_crypto::LegacyDaedalusPrivateKey> for LegacyDaedalusPrivateKey {
+    fn from(native: cml_crypto::LegacyDaedalusPrivateKey) -> Self {
+        Self(native)
+    }
+}
+
+impl From<LegacyDaedalusPrivateKey> for cml_crypto::LegacyDaedalusPrivateKey {
+    fn from(wasm: LegacyDaedalusPrivateKey) -> Self {
+        wasm.0
+    }
+}
+
+impl AsRef<cml_crypto::LegacyDaedalusPrivateKey> for LegacyDaedalusPrivateKey {
+    fn as_ref(&self) -> &cml_crypto::LegacyDaedalusPrivateKey {
+        &self.0
+    }
+}

@@ -1,5 +1,5 @@
 use super::cbor_encodings::CostModelsEncoding;
-use super::{CostModels, Language};
+use super::{CostModels, Language, Redeemer};
 use super::{ExUnits, PlutusData, PlutusV1Script, PlutusV2Script};
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
@@ -339,6 +339,13 @@ impl PlutusScript {
             Self::PlutusV2(script) => script.hash(),
         }
     }
+
+    pub fn version(&self) -> Language {
+        match self {
+            Self::PlutusV1(_) => Language::PlutusV1,
+            Self::PlutusV2(_) => Language::PlutusV2,
+        }
+    }
 }
 use cml_crypto::ScriptHash;
 use crate::crypto::hash::{hash_script, ScriptHashNamespace};
@@ -356,16 +363,24 @@ impl PlutusV2Script {
 }
 
 impl ExUnits {
-    pub fn checked_add(&self, other: &ExUnits) -> Option<ExUnits> {
-        let mem = self.mem.checked_add(other.mem)?;
-        let step = self.steps.checked_add(other.steps)?;
-        Some(ExUnits::new(mem, step))
+    pub fn checked_add(&self, other: &ExUnits) -> Result<ExUnits, ArithmeticError> {
+        let mem = self.mem.checked_add(other.mem).ok_or(ArithmeticError::IntegerOverflow)?;
+        let step = self.steps.checked_add(other.steps).ok_or(ArithmeticError::IntegerOverflow)?;
+        Ok(ExUnits::new(mem, step))
     }
 
      /// used to create a dummy ExUnits that takes up the maximum size possible in cbor to provide an upper bound on tx size
      pub fn dummy() -> ExUnits {
         ExUnits::new(u64::MAX, u64::MAX)
     }
+}
+
+pub fn compute_total_ex_units(redeemers: &[Redeemer]) -> Result<ExUnits, ArithmeticError> {
+    let mut sum = ExUnits::new(0, 0);
+    for redeemer in redeemers {
+        sum = sum.checked_add(&redeemer.ex_units)?;
+    }
+    Ok(sum)
 }
 
 #[cfg(test)]

@@ -1,9 +1,9 @@
 use std::convert::{TryFrom, TryInto};
 
 use crate::byron::AddressContent;
-use super::BootstrapWitness;
+use super::{BootstrapWitness, Vkeywitness};
 
-use cml_crypto::{chain_crypto::{self, derive::combine_pk_and_chaincode}, CryptoError};
+use cml_crypto::{chain_crypto::{self, derive::combine_pk_and_chaincode}, CryptoError, TransactionHash, PrivateKey, RawBytesEncoding};
 
 impl BootstrapWitness {
     // pub fn to_public_key(&self) -> Result<crypto::Bip32PublicKey, crypto::CryptoError> {
@@ -36,4 +36,12 @@ impl TryFrom<BootstrapWitness> for AddressContent {
         let address_content = AddressContent::new_simple(cml_crypto::Bip32PublicKey::from(key), protocol_magic);
         Ok(address_content)
     }
+}
+
+pub fn make_vkey_witness(
+    tx_body_hash: &TransactionHash,
+    sk: &PrivateKey
+) -> Vkeywitness {
+    let sig = sk.sign(tx_body_hash.to_raw_bytes());
+    Vkeywitness::new(sk.to_public(), sig)
 }

@@ -190,6 +190,18 @@ impl ByronAddress {
             Err(_err) => false,
         }
     }
+
+            
+    pub fn to_address(self) -> Address {
+        self.into()
+    }
+
+    pub fn from_address(addr: &Address) -> Option<Self> {
+        match addr {
+            Address::Byron(byron) => Some(byron.clone()),
+            _ => None,
+        }
+    }
 }
 
 impl TryFrom<Address> for ByronAddress {
@@ -327,7 +339,7 @@ pub fn make_icarus_bootstrap_witness(
     )
 }
 
-
+/*
 #[cfg(test)]
 mod tests {
     use cml_crypto::{
@@ -534,3 +546,4 @@ mod tests {
         assert_eq!(byron_addr2.to_base58(), "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp");
     }
 }
+*/

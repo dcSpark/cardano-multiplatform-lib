@@ -18,7 +18,7 @@ rational =  #6.30(
   ; but this produces numbers outside the unit interval
   ; and can also produce a zero in the denominator
 
-positive_interval = #6.30([strart: uint, end: uint])
+;positive_interval = #6.30([strart: uint, end: uint])
 ;positive_interval = #6.30([1, 2])
 ;  ; fractional positive_interval is: #6.30([uint, uint])
 ;  ; but this can produce a zero in the denominator
@@ -59,7 +59,7 @@ protocol_param_update = {
   ? 24: uint,               ; @name max_collateral_inputs
 }
 
-sub_coin = positive_interval
+sub_coin = rational
 
 policy_id = script_hash
 

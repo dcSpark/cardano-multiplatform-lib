@@ -6,6 +6,8 @@ use cml_core::{
 };
 
 pub mod metadata;
+#[macro_use]
+pub mod wasm_wrappers;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]

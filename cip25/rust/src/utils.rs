@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, collections::BTreeMap};
+use std::{convert::TryFrom, collections::BTreeMap, str::Utf8Error};
 
 pub use cml_core::{error::*, serialization::*};
 use cml_crypto::{RawBytesEncoding, CryptoError};
@@ -192,19 +192,32 @@ impl MiniMetadataDetails {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum CIP25Error {
+    #[error("Version 1 Asset Name must be string. Asset: {:?0}, Err: {1}")]
+    Version1NonStringAsset(AssetName, Utf8Error),
+}
+
+/// Which version of the CIP25 spec to use. See CIP25 for details.
+/// This will change how things are encoded but for the most part contains
+/// the same information.
 #[derive(Copy, Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum CIP25Version {
+    /// Initial version of CIP25 with only string (utf8) asset names allowed.
     V1,
+    /// Second version of CIP25. Supports any type of asset names.
     V2,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct LabelMetadata {
-    pub nfts: BTreeMap<PolicyId, BTreeMap<AssetName, MetadataDetails>>,
-    pub version: CIP25Version,
+    nfts: BTreeMap<PolicyId, BTreeMap<AssetName, MetadataDetails>>,
+    version: CIP25Version,
 }
 
 impl LabelMetadata {
+    /// Note that Version 1 can only support utf8 string asset names.
+    /// Version 2 can support any asset name.
     pub fn new(version: CIP25Version) -> Self {
         Self {
             nfts: BTreeMap::new(),
@@ -212,12 +225,29 @@ impl LabelMetadata {
         }
     }
 
-    pub fn set(&mut self, policy_id: PolicyId, asset_name: AssetName, details: MetadataDetails) -> Option<MetadataDetails> {
-        self.nfts.entry(policy_id).or_default().insert(asset_name, details)
+    /// If this is version 1 and the asset name is not a utf8 asset name
+    /// then this will return an error.
+    /// This function will never return an error for version 2.
+    /// On success, returns the previous details that were overwritten, or None otherwise.
+    pub fn set(&mut self, policy_id: PolicyId, asset_name: AssetName, details: MetadataDetails) -> Result<Option<MetadataDetails, CIP25Error>> {
+        if version == CIP25Version::V1 {
+            if let Err(e) = String::from_utf8(asset_name.get().clone()) {
+                return Err(CIP25Error::Version1NonStringAsset(asset_name, e));
+            }
+        }
+        Ok(self.nfts.entry(policy_id).or_default().insert(asset_name, details))
     }
 
     pub fn get(&self, policy_id: &PolicyId, asset_name: &AssetName) -> Option<&MetadataDetails> {
         self.nfts.get(policy_id)?.get(asset_name)
+    }
+
+    pub fn nfts(&self) -> &BTreeMap<PolicyId, BTreeMap<AssetName, MetadataDetails>> {
+        &self.nfts
+    }
+
+    pub fn version(&self) -> CIP25Version {
+        self.version
     }
 }
 
@@ -238,8 +268,10 @@ impl cbor_event::se::Serialize for LabelMetadata {
                     serializer.write_text(policy_id.to_hex())?;
                     serializer.write_map(cbor_event::Len::Len(assets.len() as u64))?;
                     for (asset_name, details) in assets.iter() {
-                        // hand-edit: write hex string
-                        serializer.write_text(hex::encode(asset_name.get()))?;
+                        // hand-edit: write as string
+                        // note: this invariant is checked during setting and data is private
+                        let asset_name_str = String::from_utf8(asset_name.get().clone()).unwrap();
+                        serializer.write_text(asset_name_str)?;
                         details.serialize(serializer)?;
                     }
                 }
@@ -301,9 +333,7 @@ impl Deserialize for LabelMetadata {
                             } {
                                 match raw.cbor_type()? {
                                     cbor_event::Type::Text => {
-                                        // hand-edit: read as hex text
-                                        //let asset_bytes = hex::decode(raw.text()?)
-                                        //    .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?;
+                                        // hand-edit: read as text
                                         let label_metadata_v1_value_key = AssetName::new(raw.text()?.as_bytes().to_vec())?;
 
                                         let label_metadata_v1_value_value =

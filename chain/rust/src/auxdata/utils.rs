@@ -1,6 +1,4 @@
-use std::ops::DerefMut;
-
-use cml_core::{metadata::{Metadata, TransactionMetadatum, TransactionMetadatumLabel}, ordered_hash_map::OrderedHashMap};
+use cml_core::metadata::Metadata;
 
 use crate::{transaction::NativeScript, plutus::{PlutusV1Script, PlutusV2Script}};
 

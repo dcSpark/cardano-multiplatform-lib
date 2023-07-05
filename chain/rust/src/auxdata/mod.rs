@@ -5,15 +5,9 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use super::Int;
 use crate::plutus::{PlutusV1Script, PlutusV2Script};
 use crate::transaction::NativeScript;
 use cbor_encodings::{AlonzoAuxDataEncoding, ShelleyMaAuxDataEncoding};
-use cml_core::error::*;
-use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 pub use cml_core::metadata::*;
 

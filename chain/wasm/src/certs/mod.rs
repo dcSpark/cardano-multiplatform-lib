@@ -6,7 +6,6 @@ use super::{
 };
 use crate::address::RewardAccount;
 pub use cml_chain::certs::MIRPot;
-use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_crypto_wasm::{
     Ed25519KeyHash, GenesisDelegateHash, GenesisHash, PoolMetadataHash, ScriptHash, VRFKeyHash,
 };

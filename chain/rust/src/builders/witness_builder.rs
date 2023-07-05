@@ -1,5 +1,4 @@
 use std::{collections::{HashMap, BTreeSet}, fmt::Debug};
-use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 
 use cml_crypto::{
@@ -10,7 +9,7 @@ use crate::{
     byron::ByronAddress,
     crypto::{BootstrapWitness, Vkey, Vkeywitness, hash::hash_plutus_data},
     transaction::{RequiredSigners, TransactionWitnessSet},
-    plutus::{PlutusData, PlutusScript, PlutusV1Script, PlutusV2Script, Redeemer, RedeemerTag, self},
+    plutus::{PlutusData, PlutusScript, PlutusV1Script, PlutusV2Script, Redeemer},
 };
 
 use super::redeemer_builder::{RedeemerWitnessKey, MissingExunitError, RedeemerBuilderError};

@@ -11,7 +11,6 @@ pub mod utils;
 
 pub use cml_chain::byron::ByronAddrType;
 use cml_crypto_wasm::{PublicKey, Bip32PublicKey};
-use std::collections::BTreeMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 pub use self::crc32::Crc32;
 pub use self::utils::{AddressId, ByronScript, StakeholderId, ProtocolMagic};

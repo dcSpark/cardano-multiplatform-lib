@@ -4,7 +4,7 @@
 use super::*;
 use cbor_event::{self, LenSz};
 use cbor_event::de::Deserializer;
-use cbor_event::se::{Serialize, Serializer};
+use cbor_event::se::{Serializer};
 use cml_core::serialization::fit_sz;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 use cml_core::{

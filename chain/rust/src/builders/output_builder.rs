@@ -2,7 +2,7 @@ use cml_core::ArithmeticError;
 
 use crate::{
     address::Address,
-    transaction::{DatumOption, ScriptRef, TransactionOutput, ShelleyTxOut, BabbageTxOut},
+    transaction::{DatumOption, ScriptRef, TransactionOutput},
     plutus::PlutusData,
     assets::{MultiAsset, Value, Coin},
     crypto::hash::hash_plutus_data,

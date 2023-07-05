@@ -6,7 +6,6 @@
 
 use ::wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
-use cml_core::error::DeserializeError;
 pub use cml_core_wasm::Int;
 
 pub mod address;

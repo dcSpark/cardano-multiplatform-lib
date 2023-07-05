@@ -2,7 +2,6 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct CostModelsEncoding {

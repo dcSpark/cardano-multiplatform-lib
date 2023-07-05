@@ -346,7 +346,7 @@ impl Serialize for BigInt {
         };
         // use encoding if possible
         match &self.encoding {
-            Some(BigIntEncoding::Int(sz)) if !force_canonical => {
+            Some(BigIntEncoding::Int(_sz)) if !force_canonical => {
                 // as_int() retains encoding info so we can direclty use Int::serialize()
                 if let Some(int) = self.as_int() {
                     return int.serialize(serializer, force_canonical);

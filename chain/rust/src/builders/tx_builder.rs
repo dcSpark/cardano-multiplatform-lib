@@ -12,7 +12,7 @@ use crate::fees::LinearFee;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use fraction::Zero;
 use std::convert::TryInto;
-use std::ops::{Deref, DerefMut};
+use std::ops::{DerefMut};
 use crate::transaction::{
     ScriptRef, Transaction, TransactionOutput, TransactionInput,
     TransactionBody, TransactionWitnessSet, DatumOption
@@ -663,7 +663,6 @@ impl TransactionBuilder {
             self.config.coins_per_utxo_byte,
         )?;
         if output.amount().coin < min_ada {
-            panic!();
             Err(TxBuilderError::ValueBelowMinUTXOValue(output.amount().coin, min_ada))
         } else {
             if let Some(datum) = builder_result.communication_datum {
@@ -1080,10 +1079,6 @@ impl TransactionBuilder {
         } else {
             Ok(body)
         }
-    }
-
-    fn add_change_if_needed_for_tests(&mut self, change_address: &Address) -> Result<bool, TxBuilderError>{
-        choose_change_selection_algo(ChangeSelectionAlgo::Default)(self, change_address, false)
     }
 
     // TODO: switch from ChangeSelectionAlgo to ChangeSelectionBuilder
@@ -1593,6 +1588,7 @@ pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address,
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
+    use std::ops::Deref;
 
     use cml_core::Int;
     use cml_core::metadata::{TransactionMetadatum, TransactionMetadatumLabel, Metadata};
@@ -1608,7 +1604,7 @@ mod tests {
     use crate::crypto::hash::hash_transaction;
     use crate::genesis::network_info::{plutus_alonzo_cost_models, NetworkInfo};
     use crate::plutus::{RedeemerTag, PlutusV2Script, PlutusV1Script, PlutusScript};
-    use crate::transaction::{ShelleyTxOut, ScriptNOfK, NativeScript, RequiredSigners};
+    use crate::transaction::{NativeScript, RequiredSigners};
 
     use super::*;
     use crate::builders::output_builder::TransactionOutputBuilder;
@@ -1617,6 +1613,12 @@ mod tests {
     const MAX_TX_SIZE: u32 = 8000; // might be out of date but suffices for our tests
     // this is what is used in mainnet
     static COINS_PER_UTXO_BYTE: u64 = 4310;
+
+    impl TransactionBuilder {
+        fn add_change_if_needed_for_tests(&mut self, change_address: &Address) -> Result<bool, TxBuilderError>{
+            choose_change_selection_algo(ChangeSelectionAlgo::Default)(self, change_address, false)
+        }
+    }
 
     fn genesis_id() -> TransactionHash {
         TransactionHash::from([0u8; TransactionHash::BYTE_COUNT])
@@ -2103,7 +2105,7 @@ mod tests {
         let result = SingleMintBuilder::new_single_asset(name.clone(), amount as i64)
             .native_script(min_script, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         let mut mass = MultiAsset::new();
         mass.set(policy_id, name.clone(), amount);
@@ -2148,7 +2150,7 @@ mod tests {
             .derive(1)
             .derive(0)
             .to_public();
-        let ((spend, spend_cred), (_, stake_cred), _) = create_account();
+        let ((_spend, spend_cred), (_, stake_cred), _) = create_account();
 
         let input = {
             let address = EnterpriseAddress::new(NetworkInfo::testnet().network_id(), spend_cred.clone()).to_address();
@@ -2175,7 +2177,7 @@ mod tests {
         let result = SingleMintBuilder::new_single_asset(name.clone(), amount_minted)
             .native_script(min_script, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         let mut mass = MultiAsset::new();
         mass.set(policy_id.clone(), name.clone(), amount_sent);
@@ -2639,7 +2641,7 @@ mod tests {
         tx_builder.add_input(input).unwrap();
 
         // add an input that contains an asset & ADA
-        let mut output_amount = {
+        let output_amount = {
             let mut output_multiasset = MultiAsset::new();
             output_multiasset.set(policy_id.clone(), name.clone(), 100);
             Value::new(2_000_000, output_multiasset)
@@ -3840,7 +3842,7 @@ mod tests {
         let result = create_mint_asset_builder()
             .native_script(mint_script, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         assert!(tx_builder.mint.is_some());
 
@@ -3860,12 +3862,12 @@ mod tests {
         let result = create_mint_asset_builder()
             .native_script(mint_script1, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         let result = create_mint_asset_builder()
             .native_script(mint_script2, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         assert!(tx_builder.mint.is_some());
 
@@ -3885,7 +3887,7 @@ mod tests {
         let result = create_mint_asset_builder()
             .native_script(mint_script, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         assert!(tx_builder.mint.is_some());
 
@@ -3905,12 +3907,12 @@ mod tests {
         let result = create_mint_asset_builder()
             .native_script(mint_script1, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         let result = create_mint_asset_builder()
             .native_script(mint_script2, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         assert!(tx_builder.mint.is_some());
 
@@ -3963,22 +3965,22 @@ mod tests {
         let result = SingleMintBuilder::new_single_asset(name1, amount)
             .native_script(mint_script1, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         let result = SingleMintBuilder::new_single_asset(name2, amount)
             .native_script(mint_script2, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         let result = SingleMintBuilder::new_single_asset(name3, amount)
             .native_script(mint_script3.clone(), NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         let result = SingleMintBuilder::new_single_asset(name4, amount)
             .native_script(mint_script3, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         let mint = tx_builder.get_mint().unwrap();
 
@@ -4109,7 +4111,7 @@ mod tests {
         let result = SingleMintBuilder::new_single_asset(name.clone(), amount)
             .native_script(mint_script0, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         let multiasset = {
             let mut multiasset = MultiAsset::new();
@@ -4130,7 +4132,7 @@ mod tests {
         let result = SingleMintBuilder::new_single_asset(name.clone(), amount)
             .native_script(mint_script1, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         assert!(tx_builder.mint.is_some());
 
@@ -4175,7 +4177,7 @@ mod tests {
         let result = SingleMintBuilder::new_single_asset(name.clone(), amount)
             .native_script(mint_script0, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         let multiasset = {
             let mut multiasset = MultiAsset::new();
@@ -4197,7 +4199,7 @@ mod tests {
         let result = SingleMintBuilder::new_single_asset(name.clone(), amount)
             .native_script(mint_script1, NativeScriptWitnessInfo::assume_signature_count());
 
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         assert!(tx_builder.mint.is_some());
 
@@ -4289,12 +4291,12 @@ mod tests {
         // Adding mint
         let result = SingleMintBuilder::new_single_asset(name.clone(), 40)
             .native_script(mint_script1, NativeScriptWitnessInfo::assume_signature_count());
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         // Adding burn
         let result = SingleMintBuilder::new_single_asset(name.clone(), -40)
             .native_script(mint_script2, NativeScriptWitnessInfo::assume_signature_count());
-        tx_builder.add_mint(result);
+        tx_builder.add_mint(result).unwrap();
 
         let total_input_after_mint = tx_builder.get_total_input().unwrap();
         let total_output_after_mint = tx_builder.get_total_output().unwrap();

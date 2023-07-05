@@ -7,7 +7,7 @@ use schemars::JsonSchema;
 
 use cml_crypto::{
     Bip32PublicKey, PublicKey,
-    chain_crypto::{hash::Blake2b224, Ed25519, Ed25519Bip32},
+    chain_crypto::{hash::Blake2b224},
 };
 
 use crate::Coin;
@@ -15,13 +15,7 @@ use crate::Coin;
 // This library was code-generated using an experimental CDDL to rust tool:
 // https://github.com/Emurgo/cddl-codegen
 
-use cbor_event::{self, de::Deserializer, se::{Serialize, Serializer}};
-
-use cbor_event::Type as CBORType;
-
-use cbor_event::Special as CBORSpecial;
-
-use bech32::ToBase32;
+use cbor_event::{self, de::Deserializer, se::{Serializer}};
 
 pub use self::crc32::Crc32;
 pub use utils::{AddressId, ByronAddressError, ByronScript, ProtocolMagic, StakeholderId, make_daedalus_bootstrap_witness, make_icarus_bootstrap_witness};
@@ -35,9 +29,6 @@ mod base58;
 
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
-
-use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AddrAttributes {

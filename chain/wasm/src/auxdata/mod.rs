@@ -2,10 +2,8 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use super::{
-    Int, NativeScriptList, PlutusV1ScriptList, PlutusV2ScriptList, TransactionMetadatumList,
+    NativeScriptList, PlutusV1ScriptList, PlutusV2ScriptList,
 };
-
-use cml_core::ordered_hash_map::OrderedHashMap;
 pub use cml_core_wasm::metadata::{Metadata, TransactionMetadatum, TransactionMetadatumLabel};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 

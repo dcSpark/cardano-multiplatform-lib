@@ -8,7 +8,7 @@ pub mod utils;
 use super::{Coin, DeltaCoin, Epoch, Port, UnitInterval};
 use crate::address::RewardAccount;
 use crate::crypto::{
-    Ed25519KeyHash, Ed25519Signature, GenesisDelegateHash, GenesisHash, PoolMetadataHash,
+    Ed25519KeyHash, GenesisDelegateHash, GenesisHash, PoolMetadataHash,
     ScriptHash, VRFKeyHash,
 };
 use cbor_encodings::{
@@ -21,7 +21,6 @@ use cbor_encodings::{
 use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]

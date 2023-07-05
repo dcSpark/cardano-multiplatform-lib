@@ -1,6 +1,6 @@
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 
-use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo, PlutusScriptWitness};
+use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo};
 
 use cml_core::ordered_hash_map::OrderedHashMap;
 

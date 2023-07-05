@@ -1,8 +1,8 @@
 use bech32::ToBase32;
 use cbor_event::{de::Deserializer, se::Serializer};
 use schemars::JsonSchema;
-use std::io::{BufRead, Seek, SeekFrom, Write};
-use crate::byron::{ProtocolMagic, ByronAddress, ByronAddressError};
+use std::io::{BufRead, Write};
+use crate::byron::{ByronAddress, ByronAddressError};
 use derivative::Derivative;
 use crate::genesis::network_info::NetworkInfo;
 use std::convert::{TryInto, TryFrom};
@@ -10,18 +10,14 @@ use std::convert::{TryInto, TryFrom};
 // for enums
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use super::{Ed25519KeyHash, ScriptHash};
+use cml_crypto::{Ed25519KeyHash, ScriptHash};
 
 use crate::certs::StakeCredential;
-
-use cml_core;
-use cml_crypto;
 
 use cml_core::{
     error::{DeserializeError, DeserializeFailure},
     serialization::{
-        fit_sz, CBORReadLen, Deserialize, DeserializeEmbeddedGroup, LenEncoding, Serialize,
-        SerializeEmbeddedGroup, StringEncoding,
+        Deserialize, LenEncoding, Serialize, StringEncoding,
     },
     CertificateIndex, Slot, TransactionIndex,
 };
@@ -260,16 +256,16 @@ impl Address {
         (|| -> Result<Self, DeserializeError> {
             let header = data[0];
             let network = header & 0x0F;
-            const HASH_LEN: usize = cml_crypto::Ed25519KeyHash::BYTE_COUNT;
+            const HASH_LEN: usize = Ed25519KeyHash::BYTE_COUNT;
             // should be static assert but it's maybe not worth importing a whole external crate for it now
-            assert_eq!(cml_crypto::ScriptHash::BYTE_COUNT, HASH_LEN);
+            assert_eq!(ScriptHash::BYTE_COUNT, HASH_LEN);
             // checks the /bit/ bit of the header for key vs scripthash then reads the credential starting at byte position /pos/
             let read_addr_cred = |bit: u8, pos: usize| {
                 let hash_bytes: [u8; HASH_LEN] = data[pos..pos + HASH_LEN].try_into().unwrap();
                 if header & (1 << bit) == 0 {
-                    StakeCredential::new_pub_key(cml_crypto::Ed25519KeyHash::from(hash_bytes))
+                    StakeCredential::new_pub_key(Ed25519KeyHash::from(hash_bytes))
                 } else {
-                    StakeCredential::new_script(cml_crypto::ScriptHash::from(hash_bytes))
+                    StakeCredential::new_script(ScriptHash::from(hash_bytes))
                 }
             };
             fn make_encoding(

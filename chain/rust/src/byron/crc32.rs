@@ -1,5 +1,4 @@
 use super::*;
-use schemars::JsonSchema;
 
 use cml_core::{
     error::DeserializeError,

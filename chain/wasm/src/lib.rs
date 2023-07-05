@@ -35,7 +35,7 @@ use plutus::{
 use transaction::{
     NativeScript, TransactionBody, TransactionInput, TransactionOutput, TransactionWitnessSet,
 };
-use cml_chain::NetworkId;
+pub use cml_chain::{Epoch, NetworkId};
 
 //extern crate serde_wasm_bindgen;
 // Code below here was code-generated using an experimental CDDL to rust tool:
@@ -209,8 +209,6 @@ impl AsRef<Vec<cml_chain::crypto::Ed25519KeyHash>> for Ed25519KeyHashList {
     }
 }
 
-pub type Epoch = u64;
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct GenesisHashList(Vec<cml_chain::crypto::GenesisHash>);
@@ -334,65 +332,6 @@ impl From<MapAssetNameToI64> for OrderedHashMap<cml_chain::assets::AssetName, i6
 
 impl AsRef<OrderedHashMap<cml_chain::assets::AssetName, i64>> for MapAssetNameToI64 {
     fn as_ref(&self) -> &OrderedHashMap<cml_chain::assets::AssetName, i64> {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapPlutusDataToPlutusData(
-    OrderedHashMap<cml_chain::plutus::PlutusData, cml_chain::plutus::PlutusData>,
-);
-
-#[wasm_bindgen]
-impl MapPlutusDataToPlutusData {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &PlutusData, value: &PlutusData) -> Option<PlutusData> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
-    }
-
-    pub fn get(&self, key: &PlutusData) -> Option<PlutusData> {
-        self.0.get(key.as_ref()).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> PlutusDataList {
-        PlutusDataList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
-
-impl From<OrderedHashMap<cml_chain::plutus::PlutusData, cml_chain::plutus::PlutusData>>
-    for MapPlutusDataToPlutusData
-{
-    fn from(
-        native: OrderedHashMap<cml_chain::plutus::PlutusData, cml_chain::plutus::PlutusData>,
-    ) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MapPlutusDataToPlutusData>
-    for OrderedHashMap<cml_chain::plutus::PlutusData, cml_chain::plutus::PlutusData>
-{
-    fn from(wasm: MapPlutusDataToPlutusData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<OrderedHashMap<cml_chain::plutus::PlutusData, cml_chain::plutus::PlutusData>>
-    for MapPlutusDataToPlutusData
-{
-    fn as_ref(
-        &self,
-    ) -> &OrderedHashMap<cml_chain::plutus::PlutusData, cml_chain::plutus::PlutusData> {
         &self.0
     }
 }

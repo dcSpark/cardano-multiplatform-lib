@@ -382,6 +382,122 @@ pub fn compute_total_ex_units(redeemers: &[Redeemer]) -> Result<ExUnits, Arithme
     Ok(sum)
 }
 
+#[derive(
+    Clone, Debug, Default, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct PlutusMap {
+    // possibly duplicates (very rare - only found on testnet)
+    pub entries: Vec<(PlutusData, PlutusData)>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
+    #[serde(skip)]
+    pub encoding: LenEncoding,
+}
+
+impl PlutusMap {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    /// Replaces all datums of a given key, if any exist.
+    pub fn set(&mut self, key: PlutusData, value: PlutusData) {
+        self.entries.retain(|(k, _)| *k != key);
+        self.entries.push((key, value));
+    }
+
+    /// Gets the plutus datum corresponding to a given key, if it exists.
+    /// Note: In the case of duplicate keys this only returns the first datum.
+    /// This is an extremely rare occurence on-chain but can happen.
+    pub fn get(&self, key: &PlutusData) -> Option<&PlutusData> {
+        self.entries.iter().find(|(k, _)| *k == *key).map(|(_, value)| value)
+    }
+
+    /// In the extremely unlikely situation there are duplicate keys, this gets all of a single key
+    pub fn get_all(&self, key: &PlutusData) -> Option<Vec<&PlutusData>> {
+        let matches = self
+            .entries
+            .iter()
+            .filter_map(|(k, v)| if *k == *key { Some(v) } else { None })
+            .collect::<Vec<_>>();
+        if matches.is_empty() {
+            None
+        } else {
+            Some(matches)
+        }
+    }
+}
+
+
+impl Serialize for PlutusMap {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer
+            .write_map_sz(self.encoding.to_len_sz(self.entries.len() as u64, force_canonical))?;
+        let mut key_order = self
+            .entries
+            .iter()
+            .map(|(k, v)| {
+                let mut buf = cbor_event::se::Serializer::new_vec();
+                k.serialize(&mut buf, force_canonical)?;
+                Ok((buf.finalize(), k, v))
+            })
+            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
+        if force_canonical {
+            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
+                match lhs_bytes.len().cmp(&rhs_bytes.len()) {
+                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                    diff_ord => diff_ord,
+                }
+            });
+        }
+        for (key_bytes, _key, value) in key_order {
+            serializer.write_raw_bytes(&key_bytes)?;
+            value.serialize(serializer, force_canonical)?;
+        }
+        self.encoding.end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for PlutusMap {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let mut entries = Vec::new();
+            let map_len = raw.map_sz()?;
+            let encoding = map_len.into();
+            while match map_len {
+                cbor_event::LenSz::Len(n, _) => (entries.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if raw.cbor_type()? == cbor_event::Type::Special {
+                    assert_eq!(raw.special()?, cbor_event::Special::Break);
+                    break;
+                }
+                let map_key = PlutusData::deserialize(raw)?;
+                let map_value = PlutusData::deserialize(raw)?;
+                entries.push((map_key, map_value));
+            }
+            Ok(Self {
+                entries,
+                encoding
+            })
+        })()
+        .map_err(|e| e.annotate("PlutusMap"))
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use cml_core::Int;

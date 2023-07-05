@@ -15,7 +15,7 @@ use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use cml_core::Int;
 
-pub use utils::{ConstrPlutusData, PlutusScript};
+pub use utils::{ConstrPlutusData, PlutusMap, PlutusScript};
 
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -113,17 +113,7 @@ pub enum Language {
 )]
 pub enum PlutusData {
     ConstrPlutusData(ConstrPlutusData),
-    Map {
-        map: OrderedHashMap<PlutusData, PlutusData>,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        map_encoding: LenEncoding,
-    },
+    Map(PlutusMap),
     List {
         list: Vec<PlutusData>,
         #[derivative(
@@ -154,11 +144,8 @@ impl PlutusData {
         Self::ConstrPlutusData(constr_plutus_data)
     }
 
-    pub fn new_map(map: OrderedHashMap<PlutusData, PlutusData>) -> Self {
-        Self::Map {
-            map,
-            map_encoding: LenEncoding::default(),
-        }
+    pub fn new_map(map: PlutusMap) -> Self {
+        Self::Map(map)
     }
 
     pub fn new_list(list: Vec<PlutusData>) -> Self {

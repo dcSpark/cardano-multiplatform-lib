@@ -289,9 +289,18 @@ impl BigInt {
     /// Retains encoding info if the original was encoded as an Int
     pub fn as_int(&self) -> Option<Int> {
         let (sign, u64_digits) = self.num.to_u64_digits();
-        let u64_digit = match u64_digits.len() {
+        // unsigned raw value that can fit in the up to 8 bytes of a CBOR uint or nint
+        // negative values evaluate to -u64_value - 1
+        let u64_value = match u64_digits.len() {
             0 => 0u64,
-            1 => *u64_digits.first().unwrap(),
+            1 => if sign == num_bigint::Sign::Minus {
+                (*u64_digits.first().unwrap()).checked_sub(1).expect("negative (non-zero) so can't underflow")
+            } else {
+                *u64_digits.first().unwrap()
+            },
+            // this could actually be -u64::MAX which in CBOR can be a single u64 as the sign
+            // is encoded separately so values here start from -1 instead of 0.
+            2 if sign == num_bigint::Sign::Minus && u64_digits[0] == 0 && u64_digits[1] == 1 => u64::MAX,
             _ => return None,
         };
         let encoding = match &self.encoding {
@@ -300,11 +309,11 @@ impl BigInt {
         };
         match sign {
             num_bigint::Sign::NoSign | num_bigint::Sign::Plus => Some(Int::Uint {
-                value: u64_digit,
+                value: u64_value,
                 encoding,
             }),
             num_bigint::Sign::Minus => Some(Int::Nint {
-                value: u64_digit,
+                value: u64_value,
                 encoding,
             }),
         }
@@ -472,3 +481,66 @@ where
     }
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bigint_uint_min() {
+        let bytes = [0x00];
+        let x = BigInt::from_cbor_bytes(&bytes).unwrap();
+        assert_eq!(bytes, x.to_cbor_bytes().as_slice());
+        assert_eq!(x.as_u64(), Some(u64::MIN));
+        assert_eq!(x.as_int().unwrap().to_string(), x.to_string());
+        assert_eq!(x.to_string(), "0");
+    }
+
+    #[test]
+    fn bigint_uint_max() {
+        let bytes = [0x1B, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+        let x = BigInt::from_cbor_bytes(&bytes).unwrap();
+        assert_eq!(bytes, x.to_cbor_bytes().as_slice());
+        assert_eq!(x.as_u64(), Some(u64::MAX));
+        assert_eq!(x.as_int().unwrap().to_string(), x.to_string());
+        assert_eq!(x.to_string(), "18446744073709551615");
+    }
+
+    #[test]
+    fn bigint_above_uint_min() {
+        let bytes = [0xC2, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let x = BigInt::from_cbor_bytes(&bytes).unwrap();
+        assert_eq!(bytes, x.to_cbor_bytes().as_slice());
+        assert_eq!(x.as_int(), None);
+        assert_eq!(x.to_string(), "18446744073709551616");
+    }
+
+    #[test]
+    fn bigint_nint_min() {
+        let bytes = [0x3B, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+        let x = BigInt::from_cbor_bytes(&bytes).unwrap();
+        assert_eq!(bytes, x.to_cbor_bytes().as_slice());
+        assert_eq!(Into::<i128>::into(&x.as_int().unwrap()), -((u64::MAX as i128) + 1));
+        assert_eq!(x.as_int().unwrap().to_string(), x.to_string());
+        assert_eq!(x.to_string(), "-18446744073709551616");
+    }
+
+    #[test]
+    fn bigint_nint_max() {
+        let bytes = [0x20];
+        let x = BigInt::from_cbor_bytes(&bytes).unwrap();
+        assert_eq!(bytes, x.to_cbor_bytes().as_slice());
+        assert_eq!(x.as_u64(), None);
+        assert_eq!(x.as_int().unwrap().to_string(), x.to_string());
+        assert_eq!(x.to_string(), "-1");
+    }
+
+    #[test]
+    fn bigint_below_nint_min() {
+        let bytes = [0xC3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let x = BigInt::from_cbor_bytes(&bytes).unwrap();
+        assert_eq!(bytes, x.to_cbor_bytes().as_slice());
+        assert_eq!(x.as_int(), None);
+        assert_eq!(x.to_string(), "-18446744073709551617");
+    }
+}

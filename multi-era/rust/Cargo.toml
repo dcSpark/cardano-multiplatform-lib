@@ -1,0 +1,19 @@
+[package]
+name = "cml-multi-era"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+cml-core = { path = "../../core/rust" }
+cml-crypto = { path = "../../crypto/rust" }
+cml-chain = { path = "../../chain/rust" }
+cbor_event = "2.4.0"
+linked-hash-map = "0.5.3"
+derivative = "2.2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.57"
+schemars = "0.8.8"
+wasm-bindgen = { version = "0.2", features=["serde-serialize"] }

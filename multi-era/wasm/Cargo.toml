@@ -1,0 +1,19 @@
+[package]
+name = "cml-multi-era-wasm"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+cml-chain = { path = "../../chain/rust" }
+cml-chain-wasm = { path = "../../chain/wasm" }
+cml-crypto-wasm = { path = "../../crypto/wasm" }
+cml-core = { path = "../../core/rust" }
+cml-multi-era = { path = "../rust" }
+cbor_event = "2.4.0"
+linked-hash-map = "0.5.3"
+serde_json = "1.0.57"
+serde-wasm-bindgen = "0.4.5"
+wasm-bindgen = { version = "0.2", features=["serde-serialize"] }

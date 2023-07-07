@@ -1,0 +1,112 @@
+shelley_block = [
+  header: shelley_header,
+  transaction_bodies         : [* shelley_transaction_body],
+  transaction_witness_sets   : [* shelley_transaction_witness_set],
+  transaction_metadata_set   : metadata,
+]
+   ; Valid blocks must also satisfy the following two constraints:
+   ; 1) the length of transaction_bodies and transaction_witness_sets
+   ;    must be the same
+   ; 2) every transaction_index must be strictly smaller than the
+   ;    length of transaction_bodies
+
+shelley_transaction = [
+  body: shelley_transaction_body,
+  witness_set: shelley_transaction_witness_set,
+  metadata: metadata / null,
+]
+
+shelley_transaction_index = uint .size 2
+
+shelley_header = [
+  body: shelley_header_body,
+  signature : KES_signature,
+]
+
+shelley_header_body = [
+  block_number     : uint,
+  slot             : uint,
+  prev_hash        : block_header_hash / null,
+  issuer_vkey      : $vkey,
+  VRF_vkey         : $VRF_vkey,
+  nonce_vrf        : $VRF_cert,
+  leader_vrf       : $VRF_cert,
+  block_body_size  : uint,
+  block_body_hash  : block_body_hash, ; merkle triple root
+  operational_cert,
+  protocol_version,
+]
+
+shelley_operational_cert =
+  ( hot_vkey        : $kes_vkey
+  , sequence_number : uint
+  , kes_period      : uint
+  , sigma           : $signature
+  )
+
+shelley_transaction_body = {
+    0 : [* transaction_input],           ; @name inputs
+    1 : [* shelley_transaction_output],  ; @name outputs
+    2 : coin,                            ; @name fee
+    3 : uint,                            ; @name ttl
+  ? 4 : [* certificate],                 ; @name certs
+  ? 5 : withdrawals,                     ; @name withdrawals
+  ? 6 : shelley_update,                  ; @name update
+  ? 7 : auxiliary_data_hash,             ; @name auxiliary_data_hash
+}
+
+shelley_transaction_output = [address, amount : coin]
+
+move_instantaneous_reward = [
+  pot: MIR_pot,
+  to_stake_credentials: { * stake_credential => coin }
+]
+; The first field determines where the funds are drawn from.
+; 0 denotes the reserves, 1 denotes the treasury.
+
+shelley_update = [ shelley_proposed_protocol_parameter_updates
+         , epoch
+         ]
+
+shelley_proposed_protocol_parameter_updates =
+  { * genesis_hash => shelley_protocol_param_update }
+
+shelley_protocol_param_update = {
+  ? 0:  uint,               ; @name minfee_a
+  ? 1:  uint,               ; @name minfee_b
+  ? 2:  uint,               ; @name max_block_body_size
+  ? 3:  uint,               ; @name max_transaction_size
+  ? 4:  uint,               ; @name max_block_header_size
+  ? 5:  coin,               ; @name key_deposit
+  ? 6:  coin,               ; @name pool_deposit
+  ? 7: epoch,               ; @name maximum_epoch
+  ? 8: uint,                ; @name n_opt desired number of stake pools
+  ? 9: rational,            ; @name pool_pledge_influence
+  ? 10: unit_interval,      ; @name expansion_rate
+  ? 11: unit_interval,      ; @name treasury_growth_rate
+  ? 12: unit_interval,      ; @name decentralization_constant
+  ? 13: $nonce,             ; @name extra_entropy
+  ? 14: protocol_version_struct, ; @name protocol_version
+  ? 15: coin,               ; @name min_utxo_value
+}
+
+shelley_transaction_witness_set = {
+  ? 0 => [* vkeywitness ],       ; @name vkeywitnesses
+  ? 1 => [* multisig_script ],   ; @name native_scripts
+  ? 2 => [* bootstrap_witness ], ; @name bootstrap_witnesses
+  ; In the future, new kinds of witnesses can be added like this:
+  ; , ?3 => [* monetary_policy_script ]
+  ; , ?4 => [* plutus_script ]
+}
+
+multisig_script =
+  [ multisig_pubkey
+  // multisig_all
+  // multisig_any
+  // multisig_n_of_k
+  ]
+
+multisig_pubkey = (tag: 0, ed25519_key_hash)
+multisig_all = (tag: 1, [ * multisig_script ])
+multisig_any = (tag: 2, [ * multisig_script ])
+multisig_n_of_k = (tag: 3, n: uint, [ * multisig_script ])

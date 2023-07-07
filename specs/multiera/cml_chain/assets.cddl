@@ -1,0 +1,7 @@
+value = _CDDL_CODEGEN_EXTERN_TYPE_
+asset_name = _CDDL_CODEGEN_EXTERN_TYPE_
+policy_id = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+
+int64 = -9223372036854775808 .. 9223372036854775807 ; @no_alias
+mint = { * policy_id => { * asset_name => int64 } }
+coin = uint

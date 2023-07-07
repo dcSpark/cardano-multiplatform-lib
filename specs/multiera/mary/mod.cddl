@@ -1,0 +1,32 @@
+mary_block = [
+  header: shelley_header,
+  transaction_bodies         : [* mary_transaction_body],
+  transaction_witness_sets   : [* allegra_transaction_witness_set],
+  auxiliary_data_set   :
+      { * transaction_index => allegra_auxiliary_data }
+  ]; Valid blocks must also satisfy the following two constraints:
+   ; 1) the length of transaction_bodies and transaction_witness_sets
+   ;    must be the same
+   ; 2) every transaction_index must be strictly smaller than the
+   ;    length of transaction_bodies
+
+mary_transaction = [
+  body: mary_transaction_body,
+  witness_set: allegra_transaction_witness_set,
+  auxiliary_data: allegra_auxiliary_data / null,
+]
+
+mary_transaction_body = {
+    0 : [* transaction_input],  ; @name inputs
+    1 : [* shelley_tx_out],     ; @name outputs
+    2 : coin,                   ; @name fee
+  ? 3 : uint,                 ; @name ttl
+  ? 4 : [* certificate],      ; @name certs
+  ? 5 : withdrawals,          ; @name withdrawals
+  ? 6 : shelley_update,       ; @name update
+  ? 7 : auxiliary_data_hash,  ; @name auxiliary_data_hash
+  ? 8 : uint,                 ; @name validity_interval_start
+  ? 9 : mint,                 ; @name mint
+}
+
+

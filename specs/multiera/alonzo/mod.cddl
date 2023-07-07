@@ -1,0 +1,101 @@
+alonzo_block =
+  [ header: shelley_header
+  , transaction_bodies         : [* alonzo_transaction_body]
+  , transaction_witness_sets   : [* alonzo_transaction_witness_set]
+  , auxiliary_data_set         : {* transaction_index => alonzo_auxiliary_data }
+  , invalid_transactions       : [* transaction_index ]                   
+  ]; Valid blocks must also satisfy the following two constraints:
+   ; 1) the length of transaction_bodies and transaction_witness_sets
+   ;    must be the same
+   ; 2) every transaction_index must be strictly smaller than the
+   ;    length of transaction_bodies
+
+alonzo_transaction = [
+  body: alonzo_transaction_body,
+  witness_set: alonzo_transaction_witness_set,
+  is_valid: bool,
+  auxiliary_data: alonzo_auxiliary_data / null,
+]
+
+alonzo_transaction_output = shelley_tx_out / alonzo_tx_out
+
+alonzo_transaction_body = {
+    0 : [* transaction_input],   ; @name inputs
+    1 : [* alonzo_transaction_output], ; @name outputs
+    2 : coin,                    ; @name fee
+  ? 3 : uint,                    ; @name ttl
+  ? 4 : [* certificate],         ; @name certs
+  ? 5 : withdrawals,             ; @name withdrawals
+  ? 6 : alonzo_update,           ; @name update
+  ? 7 : auxiliary_data_hash,     ; @name auxiliary_data_hash
+  ? 8 : uint,                    ; @name validity_interval_start
+  ? 9 : mint,                    ; @name mint
+  ? 11 : script_data_hash,       ; @name script_data_hash
+  ? 13 : [* transaction_input],  ; @name collateral_inputs
+  ? 14 : required_signers,       ; @name required_signers
+  ? 15 : network_id,             ; @name network_id
+ }
+
+alonzo_update = [
+  proposed_protocol_parameter_updates: alonzo_proposed_protocol_parameter_updates,
+  epoch,
+]
+
+alonzo_proposed_protocol_parameter_updates =
+  { * genesis_hash => alonzo_protocol_param_update }
+
+alonzo_protocol_param_update = {
+  ? 0:  uint,               ; @name minfee_a
+  ? 1:  uint,               ; @name minfee_b
+  ? 2:  uint,               ; @name max_block_body_size
+  ? 3:  uint,               ; @name max_transaction_size
+  ? 4:  uint,               ; @name max_block_header_size
+  ? 5:  coin,               ; @name key_deposit
+  ? 6:  coin,               ; @name pool_deposit
+  ? 7: epoch,               ; @name maximum_epoch
+  ? 8: uint,                ; @name n_opt desired number of stake pools
+  ? 9: rational,            ; @name pool_pledge_influence
+  ? 10: unit_interval,      ; @name expansion_rate
+  ? 11: unit_interval,      ; @name treasury_growth_rate
+  ? 12: unit_interval,      ; @name decentralization_constant
+  ? 13: $nonce,             ; @name extra_entropy
+  ? 14: protocol_version_struct, ; @name protocol_version
+  ? 16: coin,               ; @name min_pool_cost
+  ? 17: coin,               ; @name ada_per_utxo_byte
+  ? 18: alonzo_costmdls,    ; @name cost_models_for_script_languages
+  ? 19: ex_unit_prices,     ; @name execution_costs
+  ? 20: ex_units,           ; @name max_tx_ex_units
+  ? 21: ex_units,           ; @name max_block_ex_units
+  ? 22: uint,               ; @name max value size
+  ? 23: uint,               ; @name collateral_percentage
+  ? 24: uint,               ; @name max_collateral_inputs
+}
+
+alonzo_transaction_witness_set = {
+  ? 0: [* vkeywitness ],        ; @name vkeywitnesses
+  ? 1: [* native_script ],      ; @name native_scripts
+  ? 2: [* bootstrap_witness ],  ; @name bootstrap_witnesses
+  ? 3: [* plutus_v1_script ],   ; @name plutus_v1_scripts
+  ? 4: [* plutus_data ],        ; @name plutus_datums
+  ? 5: [* redeemer ],           ; @name redeemers
+}
+
+; The keys to the cost model map are not present in the serialization.
+; The values in the serialization are assumed to be ordered
+; lexicographically by their correpsonding key value.
+; The key values are listed in sorted_cost_model_keys.txt.
+alonzo_costmdls = {
+  0 : [ 166*166 int ], ; @name plutus_v1
+}
+
+; TODO: rename babbage structs and define them here
+alonzo_only_aux_data = #6.259({
+	? 0 => metadata,               ; @name metadata        
+  ? 1 => [ * native_script ],    ; @name native_scripts
+  ? 2 => [ * plutus_v1_script ], ; @name plutus_v1_scripts
+})
+
+alonzo_auxiliary_data =
+    shelley_aux_data     ; @name shelley
+  / shelley_ma_aux_data  ; @name shelley_m_a
+  / alonzo_only_aux_data ; @name alonzo 

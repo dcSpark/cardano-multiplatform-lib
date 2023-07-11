@@ -1,0 +1,10 @@
+certificate = _CDDL_CODEGEN_EXTERN_TYPE_
+stake_credential = _CDDL_CODEGEN_EXTERN_TYPE_
+pool_params = _CDDL_CODEGEN_EXTERN_TYPE_
+; also port, ipv4, single_host_addr, etc but these are only used by relay
+relay = _CDDL_CODEGEN_EXTERN_TYPE_
+pool_metadata = _CDDL_CODEGEN_EXTERN_TYPE_
+
+; to be deleted - to make sure it stores the encoding vars
+MIR_pot = 0 ; @name reserve
+        / 1 ; @name treasury

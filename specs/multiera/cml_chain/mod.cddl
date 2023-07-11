@@ -1,0 +1,21 @@
+; this module is structured so that imports won't have to be changed at all.
+; just replace use crate::cml_chain::{foo, bar, etc...} with use cml_chain::{foo, bar, etc...}
+; some types aren't _CDDL_CODEGEN_EXTERN_TYPE_ or _CDDL_CODEGEN_RAW_BYTES_TYPE_
+; and instead have their original definitions.
+; this is in places where _CDDL_CODEGEN_EXTERN_TYPE_ needs the extra type info
+; to be able to remember encodings (needs to know type and where to store the info
+; since you can't just call member.serialize() generically and have it remember the encodings
+; for when the encodings aren't interally stored (primtives mostly)).
+; so just delete the cml_chain directory afterwards and change the import crate with ctrl-r.
+
+
+unit_interval = _CDDL_CODEGEN_EXTERN_TYPE_
+rational = _CDDL_CODEGEN_EXTERN_TYPE_
+
+
+delta_coin = _CDDL_CODEGEN_EXTERN_TYPE_
+
+network_id = uint .size 4
+
+epoch = uint
+withdrawals = { * reward_account => coin }

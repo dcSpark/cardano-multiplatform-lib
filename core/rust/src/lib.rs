@@ -90,7 +90,8 @@ impl std::fmt::Display for Int {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Uint { value, .. } => write!(f, "{}", value),
-            Self::Nint { value, .. } => write!(f, "-{}", value + 1),
+            // need to cast to avoid potential overflow when value == u64::max
+            Self::Nint { value, .. } => write!(f, "-{}", (*value as i128) + 1),
         }
     }
 }
@@ -143,7 +144,7 @@ impl Into<i128> for &Int {
     fn into(self) -> i128 {
         match self {
             Int::Uint { value, .. } => (*value).into(),
-            Int::Nint { value, .. } => -((*value + 1) as i128),
+            Int::Nint { value, .. } => -((*value as i128) + 1),
         }
     }
 }
@@ -187,5 +188,48 @@ impl Deserialize for Int {
             }
         })()
         .map_err(|e| e.annotate("Int"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn int_uint_min() {
+        let bytes = [0x00];
+        let x = Int::from_cbor_bytes(&bytes).unwrap();
+        assert_eq!(bytes, x.to_cbor_bytes().as_slice());
+        assert_eq!(Into::<i128>::into(&x), u64::MIN as i128);
+        assert_eq!(x.to_string(), "0");
+    }
+
+    #[test]
+    fn int_uint_max() {
+        let bytes = [0x1B, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+        let x = Int::from_cbor_bytes(&bytes).unwrap();
+        assert_eq!(bytes, x.to_cbor_bytes().as_slice());
+        assert_eq!(Into::<i128>::into(&x), u64::MAX as i128);
+        assert_eq!(x.to_string(), "18446744073709551615");
+    }
+
+    #[test]
+    fn int_nint_min() {
+        let bytes = [0x3B, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+        let x = Int::from_cbor_bytes(&bytes).unwrap();
+        assert_eq!(bytes, x.to_cbor_bytes().as_slice());
+        assert_eq!(Into::<i128>::into(&x), -((u64::MAX as i128) + 1));
+        assert_eq!(x.to_string(), "-18446744073709551616");
+    }
+
+    #[test]
+    fn int_nint_max() {
+        let bytes = [0x20];
+        let x = Int::from_cbor_bytes(&bytes).unwrap();
+        assert_eq!(bytes, x.to_cbor_bytes().as_slice());
+        assert_eq!(Into::<i128>::into(&x), -1i128);
+        assert_eq!(x.to_string(), "-1");
+        let y = Int::from(-1i64);
+        assert_eq!(x.to_canonical_cbor_bytes(), y.to_canonical_cbor_bytes());
     }
 }

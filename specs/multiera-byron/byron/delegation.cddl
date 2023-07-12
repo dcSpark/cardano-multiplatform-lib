@@ -1,0 +1,18 @@
+; Delegation
+
+byron_delegation = [ epoch : epoch_id
+             , issuer : byron_pub_key
+             , delegate : byron_pub_key
+             , certificate : byron_signature
+             ]
+
+byron_delegation_signature = [byron_delegation, byron_signature]
+
+epoch_range = [epoch_id, epoch_id]
+light_weight_dlg = [  epochRange : epoch_range
+                    , issuer : byron_pub_key
+                    , delegate : byron_pub_key
+                    , certificate : byron_signature
+                   ]
+
+light_weight_delegation_signature = [light_weight_dlg, byron_signature]

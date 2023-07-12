@@ -1,0 +1,75 @@
+; Updates
+
+; is this the same one? is big_int here. is this the cbor prelude?
+big_int = _CDDL_CODEGEN_EXTERN_TYPE_
+
+byron_block_version = [
+      u16 ; @name major
+    , u16 ; @name minor
+    , u8 ; @name alt
+]
+
+std_fee_policy = [ big_int ; @name summand
+                 , big_int ; @name multiplier
+                 ]
+byron_tx_fee_policy = [ 0
+                , #6.24(bytes .cbor (std_fee_policy)) ; @name std_fee_policy
+                ]
+
+coin_portion = u64
+soft_fork_rule = [ coin_portion ; @name init_threshold
+                 , coin_portion ; @name min_threshold
+                 , coin_portion ; @name threshold_decrement
+                 ]
+bvermod = [ scriptVersion : [? u16]
+          , slotDuration : [? big_int]
+          , maxBlockSize : [? big_int]
+          , maxHeaderSize  : [? big_int]
+          , maxTxSize : [? big_int]
+          , maxProposalSize : [? big_int]
+          , mpcThd : [? u64]
+          , heavyDelThd : [? u64]
+          , updateVoteThd : [? u64]
+          , updateProposalThd : [? u64]
+          , updateImplicit : [? u64]
+          , softForkRule : [? soft_fork_rule]
+          , txFeePolicy : [? byron_tx_fee_policy]
+          , unlockStakeEpoch : [? epoch_id]
+          ]
+
+byron_update_data = [ blake2b256 ; @name app_diff_hash
+              , blake2b256 ; @name pkg_hash
+              , blake2b256 ; @name updater_hash
+              , blake2b256 ; @name metadata_hash
+              ]
+
+byron_software_version = [ text ; @name application_name
+                   , u32 ; @name application_version
+                   ]
+
+;byron_update_proposal_data_entry = [ text ; @name system_tag
+;                             , byron_update_data
+;                             ]
+system_tag = text
+
+byron_update_proposal = [ blockVersion : byron_block_version
+                  , blockVersionMod : bvermod
+                  , softwareVersion : byron_software_version
+; this does not match the on-chain data I've seen
+;                  , data : #6.258(byron_update_proposal_data_entry)
+; this is what we're seeing:
+                  , data: { * system_tag => byron_update_data }
+                  , byron_attributes : byron_attributes
+                  , from : byron_pub_key
+                  , signature : byron_signature
+                  ]
+
+byron_update_vote = [ voter : byron_pub_key
+              , proposalId : byron_update_id
+              , vote : bool
+              , signature : byron_signature
+              ]
+
+byron_update = [ proposal :  [? byron_update_proposal]
+         , votes : [* byron_update_vote]
+         ]

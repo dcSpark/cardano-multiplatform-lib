@@ -1,0 +1,27 @@
+; Cardano Byron blockchain CBOR schema
+
+u8 = uint .lt 256 ; @no_alias
+u16 = uint .lt 65536 ; @no_alias
+u32 = uint .size 4 ; @no_alias
+u64 = uint .size 8 ; @no_alias
+
+; Basic Cardano Types
+
+; we could maybe replace these all with named hashes but too many things
+; in the spec are still directly defined here and byron isn't a priority
+blake2b224 = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+blake2b256 = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+
+byron_tx_id = blake2b256
+byron_block_id = blake2b256
+byron_update_id = blake2b256
+
+
+epoch_id = u64
+byron_slot_id = [ epoch: epoch_id, slot : u64 ]
+
+; TODO: are either of these things we could use from cml-crypto? I assume so
+; we can replace them later on with _CDDL_CODEGEN_RAW_BYTES_TYPE_ later once
+; we get blocks parsing
+byron_pub_key = bytes
+byron_signature = bytes

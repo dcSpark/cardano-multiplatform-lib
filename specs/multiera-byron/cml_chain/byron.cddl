@@ -1,0 +1,35 @@
+; Basic Cardano Types
+
+; blake2b224 = bytes .size 28
+; bip32_public_key = bytes .size 64
+; script = bytes .size 32
+; public_key = bytes .size 32
+
+bip32_public_key = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+byron_script = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+public_key = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+
+; blake2b224 of sha256 of cbor(byron_addr_type, spending_data, addr_attributes)
+address_id = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; blake2b224 
+stakeholder_id = _CDDL_CODEGEN_RAW_BYTES_TYPE_; blake2b224
+crc32 = _CDDL_CODEGEN_EXTERN_TYPE_ ; uint .size 4 ; @newtype
+protocol_magic = _CDDL_CODEGEN_EXTERN_TYPE_ ; uint .size 4 ; @newtype
+hd_address_payload = _CDDL_CODEGEN_EXTERN_TYPE_
+
+; Addresses
+
+; cddl had bootstrap as (1, uint) but byron/mod.rs had no uint field.
+stake_distribution = _CDDL_CODEGEN_EXTERN_TYPE_
+
+spending_data = _CDDL_CODEGEN_EXTERN_TYPE_
+
+
+byron_addr_type = 0 ; @name PublicKey
+          / 1 ; @name Script
+          / 2 ; @name Redeem
+
+addr_attributes = _CDDL_CODEGEN_EXTERN_TYPE_
+
+address_content = _CDDL_CODEGEN_EXTERN_TYPE_
+byron_address = _CDDL_CODEGEN_EXTERN_TYPE_
+byron_tx_out = _CDDL_CODEGEN_EXTERN_TYPE_

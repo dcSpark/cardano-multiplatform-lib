@@ -389,31 +389,7 @@ impl Serialize for PlutusData {
             PlutusData::ConstrPlutusData(constr_plutus_data) => {
                 constr_plutus_data.serialize(serializer, force_canonical)
             }
-            PlutusData::Map { map, map_encoding } => {
-                serializer
-                    .write_map_sz(map_encoding.to_len_sz(map.len() as u64, force_canonical))?;
-                let mut key_order = map
-                    .iter()
-                    .map(|(k, v)| {
-                        let mut buf = cbor_event::se::Serializer::new_vec();
-                        k.serialize(&mut buf, force_canonical)?;
-                        Ok((buf.finalize(), k, v))
-                    })
-                    .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
-                if force_canonical {
-                    key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
-                        match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                            std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                            diff_ord => diff_ord,
-                        }
-                    });
-                }
-                for (key_bytes, _key, value) in key_order {
-                    serializer.write_raw_bytes(&key_bytes)?;
-                    value.serialize(serializer, force_canonical)?;
-                }
-                map_encoding.end(serializer, force_canonical)
-            }
+            PlutusData::Map(map) => map.serialize(serializer, force_canonical),
             PlutusData::List {
                 list,
                 list_encoding,
@@ -438,99 +414,60 @@ impl Serialize for PlutusData {
 impl Deserialize for PlutusData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
-            let deser_variant: Result<_, DeserializeError> = ConstrPlutusData::deserialize(raw);
-            match deser_variant {
-                Ok(constr_plutus_data) => return Ok(Self::ConstrPlutusData(constr_plutus_data)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let mut map_table = OrderedHashMap::new();
-                let map_len = raw.map_sz()?;
-                let map_encoding = map_len.into();
-                while match map_len {
-                    cbor_event::LenSz::Len(n, _) => (map_table.len() as u64) < n,
-                    cbor_event::LenSz::Indefinite => true,
-                } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
+            // hand-coded based on generated code
+            // 1) we use bounded bytes not 
+            // 2) to give better errors / direct branch on cbor_type()?
+            match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    // could be large BigInt or ConstrPlutusData so check tag to see which it is
+                    let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+                    let tag = raw.tag()?;
+                    raw
+                        .as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                    if tag == 2 || tag == 3 {
+                        BigInt::deserialize(raw)
+                            .map(Self::BigInt)
+                            .map_err(|e| e.annotate("BigInt"))
+                    } else {
+                        ConstrPlutusData::deserialize(raw)
+                            .map(Self::ConstrPlutusData)
+                            .map_err(|e| e.annotate("ConstrPlutusData"))
                     }
-                    let map_key = PlutusData::deserialize(raw)?;
-                    let map_value = PlutusData::deserialize(raw)?;
-                    if map_table.insert(map_key.clone(), map_value).is_some() {
-                        return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
-                            "some complicated/unsupported type",
-                        )))
-                        .into());
+                },
+                cbor_event::Type::Map => PlutusMap::deserialize(raw)
+                    .map(Self::Map)
+                    .map_err(|e| e.annotate("Map")),
+                cbor_event::Type::Array => (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                    let mut list_arr = Vec::new();
+                    let len = raw.array_sz()?;
+                    let list_encoding = len.into();
+                    while match len {
+                        cbor_event::LenSz::Len(n, _) => (list_arr.len() as u64) < n,
+                        cbor_event::LenSz::Indefinite => true,
+                    } {
+                        if raw.cbor_type()? == cbor_event::Type::Special {
+                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                            break;
+                        }
+                        list_arr.push(PlutusData::deserialize(raw)?);
                     }
-                }
-                Ok((map_table, map_encoding))
-            })(raw)
-            {
-                Ok((map, map_encoding)) => return Ok(Self::Map { map, map_encoding }),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let mut list_arr = Vec::new();
-                let len = raw.array_sz()?;
-                let list_encoding = len.into();
-                while match len {
-                    cbor_event::LenSz::Len(n, _) => (list_arr.len() as u64) < n,
-                    cbor_event::LenSz::Indefinite => true,
-                } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
-                    }
-                    list_arr.push(PlutusData::deserialize(raw)?);
-                }
-                Ok((list_arr, list_encoding))
-            })(raw)
-            {
-                Ok((list, list_encoding)) => {
-                    return Ok(Self::List {
-                        list,
-                        list_encoding,
-                    })
-                }
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            let deser_variant: Result<_, DeserializeError> = BigInt::deserialize(raw);
-            match deser_variant {
-                Ok(big_int) => return Ok(Self::BigInt(big_int)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            // hand-written
-            let deser_variant: Result<_, DeserializeError> = read_bounded_bytes(raw);
-            match deser_variant {
-                Ok((bytes, bytes_encoding)) => {
-                    return Ok(Self::Bytes {
+                    Ok(Self::List { list: list_arr, list_encoding })
+                })(raw).map_err(|e| e.annotate("List")),
+                cbor_event::Type::UnsignedInteger |
+                cbor_event::Type::NegativeInteger => BigInt::deserialize(raw)
+                    .map(Self::BigInt)
+                    .map_err(|e| e.annotate("BigInt")),
+                // hand-written 100% since the format is not just arbitrary CBOR bytes
+                cbor_event::Type::Bytes => read_bounded_bytes(raw)
+                    .map(|(bytes, bytes_encoding)| Self::Bytes {
                         bytes,
                         bytes_encoding,
                     })
-                }
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            Err(DeserializeError::new(
-                "PlutusData",
-                DeserializeFailure::NoVariantMatched,
-            ))
+                    .map_err(|e| e.annotate("Bytes")),
+                _ => Err(DeserializeFailure::NoVariantMatched.into()),
+            }
         })()
         .map_err(|e| e.annotate("PlutusData"))
     }

@@ -5,9 +5,9 @@ pub mod utils;
 
 use crate::utils::BigInt;
 
-use super::{IntList, MapPlutusDataToPlutusData, PlutusDataList, SubCoin};
+use super::{IntList, PlutusDataList, SubCoin};
 pub use cml_chain::plutus::{Language, RedeemerTag};
-pub use utils::ConstrPlutusData;
+pub use utils::{ConstrPlutusData, PlutusMap};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
@@ -248,7 +248,7 @@ impl PlutusData {
         ))
     }
 
-    pub fn new_map(map: &MapPlutusDataToPlutusData) -> Self {
+    pub fn new_map(map: &PlutusMap) -> Self {
         Self(cml_chain::plutus::PlutusData::new_map(map.clone().into()))
     }
 
@@ -285,9 +285,9 @@ impl PlutusData {
         }
     }
 
-    pub fn as_map(&self) -> Option<MapPlutusDataToPlutusData> {
+    pub fn as_map(&self) -> Option<PlutusMap> {
         match &self.0 {
-            cml_chain::plutus::PlutusData::Map { map, .. } => Some(map.clone().into()),
+            cml_chain::plutus::PlutusData::Map(map) => Some(map.clone().into()),
             _ => None,
         }
     }

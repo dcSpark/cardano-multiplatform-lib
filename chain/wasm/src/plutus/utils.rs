@@ -1,7 +1,8 @@
 use cml_chain::plutus::Language;
+use cml_core_wasm::impl_wasm_conversions;
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 use cml_crypto_wasm::ScriptHash;
-use crate::{PlutusDataList, RedeemerList};
+use crate::{PlutusDataList, RedeemerList, plutus::PlutusData};
 
 use super::{ExUnits, PlutusV1Script, PlutusV2Script};
 
@@ -68,6 +69,51 @@ impl From<ConstrPlutusData> for cml_chain::plutus::ConstrPlutusData {
 impl AsRef<cml_chain::plutus::ConstrPlutusData> for ConstrPlutusData {
     fn as_ref(&self) -> &cml_chain::plutus::ConstrPlutusData {
         &self.0
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct PlutusMap(cml_chain::plutus::PlutusMap);
+
+impl_wasm_conversions!(cml_chain::plutus::PlutusMap, PlutusMap);
+
+#[wasm_bindgen]
+impl PlutusMap {
+    pub fn new() -> Self {
+        Self(cml_chain::plutus::PlutusMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Replaces all datums of a given key, if any exist.
+    pub fn set(&mut self, key: &PlutusData, value: &PlutusData) {
+        self.0.set(key.clone().into(), value.clone().into())
+    }
+
+    /// Gets the plutus datum corresponding to a given key, if it exists.
+    /// Note: In the case of duplicate keys this only returns the first datum.
+    /// This is an extremely rare occurence on-chain but can happen.
+    pub fn get(&self, key: &PlutusData) -> Option<PlutusData> {
+        self.0.get(key.as_ref()).map(|pd| pd.clone().into())
+    }
+
+    /// In the extremely unlikely situation there are duplicate keys, this gets all of a single key
+    pub fn get_all(&self, key: &PlutusData) -> Option<PlutusDataList> {
+        self
+            .0
+            .get_all(key.as_ref())
+            .map(|datums| datums
+                .into_iter()
+                .map(|d| d.clone().into())
+                .collect::<Vec<_>>()
+                .into())
+    }
+
+    pub fn keys(&self) -> PlutusDataList {
+        PlutusDataList(self.0.entries.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
     }
 }
 

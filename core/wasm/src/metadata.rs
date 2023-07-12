@@ -12,19 +12,7 @@ use super::*;
 
 pub use cml_core::metadata::TransactionMetadatumLabel;
 
-impl From<OrderedHashMap<core::TransactionMetadatum, core::TransactionMetadatum>> for MetadatumMap {
-    fn from(
-        native: OrderedHashMap<core::TransactionMetadatum, core::TransactionMetadatum>,
-    ) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MetadatumMap> for OrderedHashMap<core::TransactionMetadatum, core::TransactionMetadatum> {
-    fn from(wrapper: MetadatumMap) -> Self {
-        wrapper.0
-    }
-}
+impl_wasm_conversions!(core::MetadatumMap, MetadatumMap);
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
@@ -98,34 +86,49 @@ impl From<TransactionMetadatumLabels> for Vec<TransactionMetadatumLabel> {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct MetadatumMap(OrderedHashMap<core::TransactionMetadatum, core::TransactionMetadatum>);
+pub struct MetadatumMap(core::MetadatumMap);
 
 #[wasm_bindgen]
 impl MetadatumMap {
     pub fn new() -> Self {
-        Self(OrderedHashMap::new())
+        Self(core::MetadatumMap::new())
     }
 
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
-    pub fn insert(
+    /// Replaces all metadatums of a given key, if any exist.
+    pub fn set(
         &mut self,
         key: &TransactionMetadatum,
         value: &TransactionMetadatum,
-    ) -> Option<TransactionMetadatum> {
+    ) {
         self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
+            .set(key.clone().into(), value.clone().into())
     }
 
+    /// Gets the Metadatum corresponding to a given key, if it exists.
+    /// Note: In the case of duplicate keys this only returns the first metadatum.
+    /// This is an extremely rare occurence (2 total on mainnet) on-chain but can happen.
     pub fn get(&self, key: &TransactionMetadatum) -> Option<TransactionMetadatum> {
         self.0.get(&key.0).map(|v| v.clone().into())
     }
 
+    /// In the extremely unlikely situation there are duplicate keys, this gets all of a single key
+    pub fn get_all(&self, key: &TransactionMetadatum) -> Option<TransactionMetadatumList> {
+        self
+            .0
+            .get_all(key.as_ref())
+            .map(|datums| datums
+                .into_iter()
+                .map(|d| d.clone().into())
+                .collect::<Vec<_>>()
+                .into())
+    }
+
     pub fn keys(&self) -> MetadatumList {
-        MetadatumList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+        MetadatumList(self.0.entries.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
     }
 }
 
@@ -221,8 +224,8 @@ impl TransactionMetadatum {
             .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
-    pub fn new_map(entries: &MetadatumMap) -> Self {
-        Self(core::TransactionMetadatum::new_map(entries.clone().into()))
+    pub fn new_map(map: &MetadatumMap) -> Self {
+        Self(core::TransactionMetadatum::new_map(map.clone().into()))
     }
 
     pub fn new_list(elements: &MetadatumList) -> Self {
@@ -255,7 +258,7 @@ impl TransactionMetadatum {
 
     pub fn as_map(&self) -> Option<MetadatumMap> {
         match &self.0 {
-            core::TransactionMetadatum::Map { entries, .. } => Some(entries.clone().into()),
+            core::TransactionMetadatum::Map(map) => Some(map.clone().into()),
             _ => None,
         }
     }

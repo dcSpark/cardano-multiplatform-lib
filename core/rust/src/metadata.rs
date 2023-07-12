@@ -142,6 +142,124 @@ impl Deserialize for Metadata {
     }
 }
 
+
+/// Handles the extremely rare (2 total instances on mainnet) edge-case of in
+/// previous generations allowing duplicate metadatum keys.
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
+#[derivative(
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash
+)]
+pub struct MetadatumMap {
+    pub entries: Vec<(TransactionMetadatum, TransactionMetadatum)>,
+    #[serde(skip)]
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
+    pub entries_encoding: LenEncoding,
+}
+
+impl MetadatumMap {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    /// Replaces all metadatums of a given key, if any exist.
+    pub fn set(&mut self, key: TransactionMetadatum, datum: TransactionMetadatum) {
+        self.entries.retain(|(k, _)| *k != key);
+        self.entries.push((key, datum));
+    }
+
+    /// Gets the Metadatum corresponding to a given key, if it exists.
+    /// Note: In the case of duplicate keys this only returns the first metadatum.
+    /// This is an extremely rare occurence (2 total on mainnet) on-chain but can happen.
+    pub fn get(&self, key: &TransactionMetadatum) -> Option<&TransactionMetadatum> {
+        self.entries.iter().find(|(k, _)| *k == *key).map(|(_, md)| md)
+    }
+
+    /// In the extremely unlikely situation there are duplicate keys, this gets all of a single key
+    pub fn get_all(&self, key: &TransactionMetadatum) -> Option<Vec<&TransactionMetadatum>> {
+        let matches = self
+            .entries
+            .iter()
+            .filter_map(|(k, md)| if *k == *key { Some(md) } else { None })
+            .collect::<Vec<_>>();
+        if matches.is_empty() {
+            None
+        } else {
+            Some(matches)
+        }
+    }
+}
+
+impl Serialize for MetadatumMap {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_map_sz(
+            self.entries_encoding.to_len_sz(self.entries.len() as u64, force_canonical),
+        )?;
+        let mut key_order = self
+            .entries
+            .iter()
+            .map(|(k, v)| {
+                let mut buf = cbor_event::se::Serializer::new_vec();
+                k.serialize(&mut buf, force_canonical)?;
+                Ok((buf.finalize(), k, v))
+            })
+            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
+        if force_canonical {
+            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
+                match lhs_bytes.len().cmp(&rhs_bytes.len()) {
+                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                    diff_ord => diff_ord,
+                }
+            });
+        }
+        for (key_bytes, _key, value) in key_order {
+            serializer.write_raw_bytes(&key_bytes)?;
+            value.serialize(serializer, force_canonical)?;
+        }
+        self.entries_encoding.end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for MetadatumMap {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let mut entries = Vec::new();
+        let entries_len = raw.map_sz()?;
+        let entries_encoding = entries_len.into();
+        while match entries_len {
+            cbor_event::LenSz::Len(n, _) => (entries.len() as u64) < n,
+            cbor_event::LenSz::Indefinite => true,
+        } {
+            if raw.cbor_type()? == cbor_event::Type::Special {
+                assert_eq!(raw.special()?, cbor_event::Special::Break);
+                break;
+            }
+            let key = TransactionMetadatum::deserialize(raw)?;
+            let value = TransactionMetadatum::deserialize(raw)?;
+            entries.push((key, value));
+        }
+        Ok(Self {
+            entries,
+            entries_encoding,
+        })
+    }
+}
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
 #[derivative(
     Eq,
@@ -151,17 +269,7 @@ impl Deserialize for Metadata {
     Hash
 )]
 pub enum TransactionMetadatum {
-    Map {
-        entries: OrderedHashMap<TransactionMetadatum, TransactionMetadatum>,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        entries_encoding: LenEncoding,
-    },
+    Map(MetadatumMap),
     List {
         elements: Vec<TransactionMetadatum>,
         #[derivative(
@@ -199,11 +307,8 @@ pub enum TransactionMetadatum {
 }
 
 impl TransactionMetadatum {
-    pub fn new_map(entries: OrderedHashMap<TransactionMetadatum, TransactionMetadatum>) -> Self {
-        Self::Map {
-            entries,
-            entries_encoding: LenEncoding::default(),
-        }
+    pub fn new_map(map: MetadatumMap) -> Self {
+        Self::Map(map)
     }
 
     pub fn new_list(elements: Vec<TransactionMetadatum>) -> Self {
@@ -239,35 +344,7 @@ impl Serialize for TransactionMetadatum {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
-            TransactionMetadatum::Map {
-                entries,
-                entries_encoding,
-            } => {
-                serializer.write_map_sz(
-                    entries_encoding.to_len_sz(entries.len() as u64, force_canonical),
-                )?;
-                let mut key_order = entries
-                    .iter()
-                    .map(|(k, v)| {
-                        let mut buf = cbor_event::se::Serializer::new_vec();
-                        k.serialize(&mut buf, force_canonical)?;
-                        Ok((buf.finalize(), k, v))
-                    })
-                    .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
-                if force_canonical {
-                    key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
-                        match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                            std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                            diff_ord => diff_ord,
-                        }
-                    });
-                }
-                for (key_bytes, _key, value) in key_order {
-                    serializer.write_raw_bytes(&key_bytes)?;
-                    value.serialize(serializer, force_canonical)?;
-                }
-                entries_encoding.end(serializer, force_canonical)
-            }
+            TransactionMetadatum::Map(map) => map.serialize(serializer, force_canonical),
             TransactionMetadatum::List {
                 elements,
                 elements_encoding,
@@ -302,125 +379,69 @@ impl Serialize for TransactionMetadatum {
 impl Deserialize for TransactionMetadatum {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let mut entries_table = OrderedHashMap::new();
-                let entries_len = raw.map_sz()?;
-                let entries_encoding = entries_len.into();
-                while match entries_len {
-                    cbor_event::LenSz::Len(n, _) => (entries_table.len() as u64) < n,
-                    cbor_event::LenSz::Indefinite => true,
-                } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
+            match raw.cbor_type()? {
+                cbor_event::Type::Map => MetadatumMap::deserialize(raw).map(Self::Map),
+                cbor_event::Type::Array => {
+                    let mut elements_arr = Vec::new();
+                    let len = raw.array_sz()?;
+                    let elements_encoding = len.into();
+                    while match len {
+                        cbor_event::LenSz::Len(n, _) => (elements_arr.len() as u64) < n,
+                        cbor_event::LenSz::Indefinite => true,
+                    } {
+                        if raw.cbor_type()? == cbor_event::Type::Special {
+                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                            break;
+                        }
+                        elements_arr.push(TransactionMetadatum::deserialize(raw)?);
                     }
-                    let entries_key = TransactionMetadatum::deserialize(raw)?;
-                    let entries_value = TransactionMetadatum::deserialize(raw)?;
-                    if entries_table
-                        .insert(entries_key.clone(), entries_value)
-                        .is_some()
-                    {
-                        return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
-                            "some complicated/unsupported type",
-                        )))
-                        .into());
-                    }
-                }
-                Ok((entries_table, entries_encoding))
-            })(raw)
-            {
-                Ok((entries, entries_encoding)) => {
-                    return Ok(Self::Map {
-                        entries,
-                        entries_encoding,
-                    })
-                }
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let mut elements_arr = Vec::new();
-                let len = raw.array_sz()?;
-                let elements_encoding = len.into();
-                while match len {
-                    cbor_event::LenSz::Len(n, _) => (elements_arr.len() as u64) < n,
-                    cbor_event::LenSz::Indefinite => true,
-                } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
-                    }
-                    elements_arr.push(TransactionMetadatum::deserialize(raw)?);
-                }
-                Ok((elements_arr, elements_encoding))
-            })(raw)
-            {
-                Ok((elements, elements_encoding)) => {
-                    return Ok(Self::List {
-                        elements,
+                    Ok(Self::List {
+                        elements: elements_arr,
                         elements_encoding,
                     })
-                }
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            let deser_variant: Result<_, DeserializeError> = Int::deserialize(raw);
-            match deser_variant {
-                Ok(int) => return Ok(Self::Int(int)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            let deser_variant: Result<_, DeserializeError> = raw
-                .bytes_sz()
-                .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))
-                .map_err(Into::<DeserializeError>::into);
-            match deser_variant {
-                Ok((bytes, bytes_encoding)) => {
-                    return Ok(Self::Bytes {
-                        bytes,
-                        bytes_encoding,
-                    })
-                }
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            let deser_variant: Result<_, DeserializeError> = raw
-                .text_sz()
-                .map(|(s, enc)| (s, StringEncoding::from(enc)))
-                .map_err(Into::<DeserializeError>::into);
-            match deser_variant {
-                Ok((text, text_encoding)) => {
-                    return Ok(Self::Text {
-                        text,
-                        text_encoding,
-                    })
-                }
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            Err(DeserializeError::new(
-                "TransactionMetadatum",
-                DeserializeFailure::NoVariantMatched,
-            ))
+                },
+                cbor_event::Type::UnsignedInteger |
+                cbor_event::Type::NegativeInteger => Int::deserialize(raw).map(Self::Int),
+                cbor_event::Type::Bytes => {
+                    raw
+                        .bytes_sz()
+                        .map(|(bytes, enc)| Self::Bytes {
+                            bytes,
+                            bytes_encoding: StringEncoding::from(enc),
+                        })
+                        .map_err(Into::<DeserializeError>::into)
+                },
+                cbor_event::Type::Text => {
+                    raw
+                        .text_sz()
+                        .map(|(text, enc)| Self::Text {
+                            text,
+                            text_encoding: StringEncoding::from(enc),
+                        })
+                        .map_err(Into::<DeserializeError>::into)
+                },
+                _ => Err(DeserializeFailure::NoVariantMatched.into()),
+            }
         })()
         .map_err(|e| e.annotate("TransactionMetadatum"))
     }
 }
 
-#[test]
-fn metadata_duplicate_labels() {
-    let bytes_hex = "a219270fa16474657374747365636f6e64206d657461646174612066696c6519270fa16474657374736669727374206d657461646174612066696c65";
-    let md = Metadata::from_cbor_bytes(&hex::decode(bytes_hex).unwrap()).unwrap();
-    assert_eq!(bytes_hex, hex::encode(md.to_cbor_bytes()));
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn metadata_duplicate_labels() {
+        let bytes_hex = "a219270fa16474657374747365636f6e64206d657461646174612066696c6519270fa16474657374736669727374206d657461646174612066696c65";
+        let md = Metadata::from_cbor_bytes(&hex::decode(bytes_hex).unwrap()).unwrap();
+        assert_eq!(bytes_hex, hex::encode(md.to_cbor_bytes()));
+    }
+
+    #[test]
+    fn metdatum_duplicate_keys() {
+        let bytes_hex = "a100a567536572766963656c4c4946542042616c6c6f7473685175657374696f6e6d536f6d65207175657374696f6e66417574686f7273736f6d652d677569642d686572652d736f6f6e64547970656653696e676c656743686f69636573a26643686f6963656b536f6d652043686f6963656643686f69636573536f6d6520416e6f746865722043686f696365";
+        let md = Metadata::from_cbor_bytes(&hex::decode(bytes_hex).unwrap()).unwrap();
+        assert_eq!(bytes_hex, hex::encode(md.to_cbor_bytes()));
+    }
 }

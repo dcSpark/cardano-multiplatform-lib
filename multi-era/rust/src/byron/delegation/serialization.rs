@@ -26,7 +26,7 @@ impl cbor_event::se::Serialize for ByronDelegation {
 impl Deserialize for ByronDelegation {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(4)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -71,7 +71,7 @@ impl cbor_event::se::Serialize for ByronDelegationSignature {
 impl Deserialize for ByronDelegationSignature {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -110,7 +110,7 @@ impl cbor_event::se::Serialize for EpochRange {
 impl Deserialize for EpochRange {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -149,7 +149,7 @@ impl cbor_event::se::Serialize for LightWeightDelegationSignature {
 impl Deserialize for LightWeightDelegationSignature {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -190,7 +190,7 @@ impl cbor_event::se::Serialize for LightWeightDlg {
 impl Deserialize for LightWeightDlg {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(4)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {

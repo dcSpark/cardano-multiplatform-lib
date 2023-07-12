@@ -7,6 +7,9 @@ pub mod mpc;
 pub mod serialization;
 pub mod transaction;
 pub mod update;
+pub mod utils;
+
+pub use utils::*;
 
 use cml_core::error::*;
 use std::collections::BTreeMap;

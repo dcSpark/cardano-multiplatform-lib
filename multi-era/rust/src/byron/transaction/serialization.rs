@@ -8,6 +8,7 @@ use cbor_event::se::{Serialize, Serializer};
 use cml_core::error::*;
 use cml_core::serialization::*;
 use std::io::{BufRead, Seek, SeekFrom, Write};
+use cml_crypto::RawBytesEncoding;
 
 impl cbor_event::se::Serialize for ByronPkWitness {
     fn serialize<'se, W: Write>(
@@ -15,7 +16,7 @@ impl cbor_event::se::Serialize for ByronPkWitness {
         serializer: &'se mut Serializer<W>,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(2))?;
-        self.serialize_as_embedded_group(serializer)
+        self.serialize_as_embedded_group(serializer, true)
     }
 }
 
@@ -23,6 +24,7 @@ impl SerializeEmbeddedGroup for ByronPkWitness {
     fn serialize_as_embedded_group<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
+        _force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_unsigned_integer(0u64)?;
         serializer.write_tag(24u64)?;
@@ -37,10 +39,10 @@ impl SerializeEmbeddedGroup for ByronPkWitness {
 impl Deserialize for ByronPkWitness {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
-        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len_to_len_sz(len));
         match len {
             cbor_event::Len::Len(_) => (),
             cbor_event::Len::Indefinite => match raw.special()? {
@@ -56,7 +58,7 @@ impl DeserializeEmbeddedGroup for ByronPkWitness {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(
         raw: &mut Deserializer<R>,
         _read_len: &mut CBORReadLen,
-        len: cbor_event::Len,
+        len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             (|| -> Result<_, DeserializeError> {
@@ -107,7 +109,7 @@ impl cbor_event::se::Serialize for ByronPkWitnessEntry {
 impl Deserialize for ByronPkWitnessEntry {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -137,7 +139,7 @@ impl cbor_event::se::Serialize for ByronRedeemWitness {
         serializer: &'se mut Serializer<W>,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(2))?;
-        self.serialize_as_embedded_group(serializer)
+        self.serialize_as_embedded_group(serializer, true)
     }
 }
 
@@ -145,6 +147,7 @@ impl SerializeEmbeddedGroup for ByronRedeemWitness {
     fn serialize_as_embedded_group<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
+        _force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_unsigned_integer(2u64)?;
         serializer.write_tag(24u64)?;
@@ -159,10 +162,10 @@ impl SerializeEmbeddedGroup for ByronRedeemWitness {
 impl Deserialize for ByronRedeemWitness {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
-        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len_to_len_sz(len));
         match len {
             cbor_event::Len::Len(_) => (),
             cbor_event::Len::Indefinite => match raw.special()? {
@@ -178,7 +181,7 @@ impl DeserializeEmbeddedGroup for ByronRedeemWitness {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(
         raw: &mut Deserializer<R>,
         _read_len: &mut CBORReadLen,
-        len: cbor_event::Len,
+        len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             (|| -> Result<_, DeserializeError> {
@@ -229,7 +232,7 @@ impl cbor_event::se::Serialize for ByronRedeemerScript {
 impl Deserialize for ByronRedeemerScript {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -265,7 +268,7 @@ impl cbor_event::se::Serialize for ByronRedeemerWitnessEntry {
 impl Deserialize for ByronRedeemerWitnessEntry {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -295,7 +298,7 @@ impl cbor_event::se::Serialize for ByronScriptWitness {
         serializer: &'se mut Serializer<W>,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(2))?;
-        self.serialize_as_embedded_group(serializer)
+        self.serialize_as_embedded_group(serializer, true)
     }
 }
 
@@ -303,6 +306,7 @@ impl SerializeEmbeddedGroup for ByronScriptWitness {
     fn serialize_as_embedded_group<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
+        _force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_unsigned_integer(1u64)?;
         serializer.write_tag(24u64)?;
@@ -317,10 +321,10 @@ impl SerializeEmbeddedGroup for ByronScriptWitness {
 impl Deserialize for ByronScriptWitness {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
-        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len_to_len_sz(len));
         match len {
             cbor_event::Len::Len(_) => (),
             cbor_event::Len::Indefinite => match raw.special()? {
@@ -336,7 +340,7 @@ impl DeserializeEmbeddedGroup for ByronScriptWitness {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(
         raw: &mut Deserializer<R>,
         _read_len: &mut CBORReadLen,
-        len: cbor_event::Len,
+        len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             (|| -> Result<_, DeserializeError> {
@@ -387,7 +391,7 @@ impl cbor_event::se::Serialize for ByronScriptWitnessEntry {
 impl Deserialize for ByronScriptWitnessEntry {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -417,14 +421,18 @@ impl cbor_event::se::Serialize for ByronTx {
         serializer: &'se mut Serializer<W>,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(3))?;
-        serializer.write_array(cbor_event::Len::Len(self.inputs.len() as u64))?;
+        serializer.write_array(cbor_event::Len::Indefinite)?;
+        //serializer.write_array(cbor_event::Len::Len(self.inputs.len() as u64))?;
         for element in self.inputs.iter() {
             element.serialize(serializer)?;
         }
-        serializer.write_array(cbor_event::Len::Len(self.outputs.len() as u64))?;
+        serializer.write_special(cbor_event::Special::Break)?;
+        serializer.write_array(cbor_event::Len::Indefinite)?;
+        //serializer.write_array(cbor_event::Len::Len(self.outputs.len() as u64))?;
         for element in self.outputs.iter() {
             element.serialize(serializer)?;
         }
+        serializer.write_special(cbor_event::Special::Break)?;
         serializer.write_map(cbor_event::Len::Len(self.attrs.len() as u64))?;
         for (key, value) in self.attrs.iter() {
             key.serialize(serializer)?;
@@ -437,7 +445,7 @@ impl cbor_event::se::Serialize for ByronTx {
 impl Deserialize for ByronTx {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(3)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -579,7 +587,7 @@ impl cbor_event::se::Serialize for ByronTxInGenesis {
 impl Deserialize for ByronTxInGenesis {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -628,7 +636,7 @@ impl cbor_event::se::Serialize for ByronTxInRegular {
 impl Deserialize for ByronTxInRegular {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -687,7 +695,7 @@ impl cbor_event::se::Serialize for ByronTxOutPtr {
 impl Deserialize for ByronTxOutPtr {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -730,7 +738,7 @@ impl cbor_event::se::Serialize for ByronTxProof {
 impl Deserialize for ByronTxProof {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(3)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -792,11 +800,11 @@ impl Deserialize for ByronTxWitness {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array()?;
-            let mut read_len = CBORReadLen::new(len);
+            let mut read_len = CBORReadLen::from(len);
             let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> =
-                ByronPkWitness::deserialize_as_embedded_group(raw, &mut read_len, len);
+                ByronPkWitness::deserialize_as_embedded_group(raw, &mut read_len, len_to_len_sz(len));
             match deser_variant {
                 Ok(byron_pk_witness) => return Ok(Self::ByronPkWitness(byron_pk_witness)),
                 Err(e) => {
@@ -807,7 +815,7 @@ impl Deserialize for ByronTxWitness {
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
-                ByronScriptWitness::deserialize_as_embedded_group(raw, &mut read_len, len);
+                ByronScriptWitness::deserialize_as_embedded_group(raw, &mut read_len, len_to_len_sz(len));
             match deser_variant {
                 Ok(byron_script_witness) => {
                     return Ok(Self::ByronScriptWitness(byron_script_witness))
@@ -820,7 +828,7 @@ impl Deserialize for ByronTxWitness {
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
-                ByronRedeemWitness::deserialize_as_embedded_group(raw, &mut read_len, len);
+                ByronRedeemWitness::deserialize_as_embedded_group(raw, &mut read_len, len_to_len_sz(len));
             match deser_variant {
                 Ok(byron_redeem_witness) => {
                     return Ok(Self::ByronRedeemWitness(byron_redeem_witness))
@@ -863,7 +871,7 @@ impl cbor_event::se::Serialize for ByronValidatorScript {
 impl Deserialize for ByronValidatorScript {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {

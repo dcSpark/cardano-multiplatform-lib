@@ -1,13 +1,17 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+use crate::byron::ByronAny;
+
 use super::*;
 use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::{Serialize, Serializer};
+use cml_chain::utils::BigInt;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use std::io::{BufRead, Seek, SeekFrom, Write};
+use cml_crypto::RawBytesEncoding;
 
 impl cbor_event::se::Serialize for Bvermod {
     fn serialize<'se, W: Write>(
@@ -21,23 +25,28 @@ impl cbor_event::se::Serialize for Bvermod {
         }
         serializer.write_array(cbor_event::Len::Len(self.slot_duration.len() as u64))?;
         for element in self.slot_duration.iter() {
-            element.serialize(serializer)?;
+            // hand-edit to use cml's Serialize
+            cml_core::serialization::Serialize::serialize(element, serializer, true)?;
         }
         serializer.write_array(cbor_event::Len::Len(self.max_block_size.len() as u64))?;
         for element in self.max_block_size.iter() {
-            element.serialize(serializer)?;
+            // hand-edit to use cml's Serialize
+            cml_core::serialization::Serialize::serialize(element, serializer, true)?;
         }
         serializer.write_array(cbor_event::Len::Len(self.max_header_size.len() as u64))?;
         for element in self.max_header_size.iter() {
-            element.serialize(serializer)?;
+            // hand-edit to use cml's Serialize
+            cml_core::serialization::Serialize::serialize(element, serializer, true)?;
         }
         serializer.write_array(cbor_event::Len::Len(self.max_tx_size.len() as u64))?;
         for element in self.max_tx_size.iter() {
-            element.serialize(serializer)?;
+            // hand-edit to use cml's Serialize
+            cml_core::serialization::Serialize::serialize(element, serializer, true)?;
         }
         serializer.write_array(cbor_event::Len::Len(self.max_proposal_size.len() as u64))?;
         for element in self.max_proposal_size.iter() {
-            element.serialize(serializer)?;
+            // hand-edit to use cml's Serialize
+            cml_core::serialization::Serialize::serialize(element, serializer, true)?;
         }
         serializer.write_array(cbor_event::Len::Len(self.mpc_thd.len() as u64))?;
         for element in self.mpc_thd.iter() {
@@ -78,7 +87,7 @@ impl cbor_event::se::Serialize for Bvermod {
 impl Deserialize for Bvermod {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(14)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -350,7 +359,7 @@ impl cbor_event::se::Serialize for ByronBlockVersion {
 impl Deserialize for ByronBlockVersion {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(3)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -388,7 +397,7 @@ impl cbor_event::se::Serialize for ByronSoftwareVersion {
 impl Deserialize for ByronSoftwareVersion {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -431,7 +440,7 @@ impl cbor_event::se::Serialize for ByronTxFeePolicy {
 impl Deserialize for ByronTxFeePolicy {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -485,10 +494,12 @@ impl cbor_event::se::Serialize for ByronUpdate {
         for element in self.proposal.iter() {
             element.serialize(serializer)?;
         }
-        serializer.write_array(cbor_event::Len::Len(self.votes.len() as u64))?;
+        serializer.write_array(cbor_event::Len::Indefinite)?;
+        //serializer.write_array(cbor_event::Len::Len((self.votes.len()) as u64))?;
         for element in self.votes.iter() {
             element.serialize(serializer)?;
         }
+        serializer.write_special(cbor_event::Special::Break)?;
         Ok(serializer)
     }
 }
@@ -496,7 +507,7 @@ impl cbor_event::se::Serialize for ByronUpdate {
 impl Deserialize for ByronUpdate {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -562,7 +573,7 @@ impl cbor_event::se::Serialize for ByronUpdateData {
 impl Deserialize for ByronUpdateData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(4)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -644,7 +655,7 @@ impl cbor_event::se::Serialize for ByronUpdateProposal {
 impl Deserialize for ByronUpdateProposal {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(7)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -745,7 +756,7 @@ impl cbor_event::se::Serialize for ByronUpdateVote {
 impl Deserialize for ByronUpdateVote {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(4)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -761,6 +772,7 @@ impl Deserialize for ByronUpdateVote {
                 .map_err(|e: DeserializeError| e.annotate("proposal_id"))?;
             let vote = raw
                 .bool()
+                .map_err(Into::into)
                 .map_err(|e: DeserializeError| e.annotate("vote"))?;
             let signature = Ok(raw.bytes()? as Vec<u8>)
                 .map_err(|e: DeserializeError| e.annotate("signature"))?;
@@ -798,7 +810,7 @@ impl cbor_event::se::Serialize for SoftForkRule {
 impl Deserialize for SoftForkRule {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(3)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
@@ -831,8 +843,16 @@ impl cbor_event::se::Serialize for StdFeePolicy {
         serializer: &'se mut Serializer<W>,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(2))?;
-        self.big_int.serialize(serializer)?;
-        self.big_int2.serialize(serializer)?;
+        // hand-edit to call our serialize instead
+        cml_core::serialization::Serialize::serialize(
+            &self.big_int,
+            serializer,
+            true)?;
+        cml_core::serialization::Serialize::serialize(
+            &self.big_int2,
+            serializer,
+            true)?;
+
         Ok(serializer)
     }
 }
@@ -840,7 +860,7 @@ impl cbor_event::se::Serialize for StdFeePolicy {
 impl Deserialize for StdFeePolicy {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
-        let mut read_len = CBORReadLen::new(len);
+        let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {

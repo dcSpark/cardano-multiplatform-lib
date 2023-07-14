@@ -3,11 +3,11 @@
 
 use crate::byron::transaction::ByronAttributes;
 use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronUpdateId, EpochId};
-use crate::{
+use crate::byron::{
     BigIntList, ByronTxFeePolicyList, ByronUpdateProposalList, ByronUpdateVoteList,
     MapSystemTagToByronUpdateData, SoftForkRuleList,
 };
-use std::collections::BTreeMap;
+use cml_chain_wasm::utils::BigInt;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
@@ -17,11 +17,11 @@ pub struct Bvermod(cml_multi_era::byron::update::Bvermod);
 #[wasm_bindgen]
 impl Bvermod {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Bvermod, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -158,11 +158,11 @@ pub struct ByronBlockVersion(cml_multi_era::byron::update::ByronBlockVersion);
 #[wasm_bindgen]
 impl ByronBlockVersion {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronBlockVersion, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -227,11 +227,11 @@ pub struct ByronSoftwareVersion(cml_multi_era::byron::update::ByronSoftwareVersi
 #[wasm_bindgen]
 impl ByronSoftwareVersion {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronSoftwareVersion, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -293,11 +293,11 @@ pub struct ByronTxFeePolicy(cml_multi_era::byron::update::ByronTxFeePolicy);
 #[wasm_bindgen]
 impl ByronTxFeePolicy {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronTxFeePolicy, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -354,11 +354,11 @@ pub struct ByronUpdate(cml_multi_era::byron::update::ByronUpdate);
 #[wasm_bindgen]
 impl ByronUpdate {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronUpdate, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -420,11 +420,11 @@ pub struct ByronUpdateData(cml_multi_era::byron::update::ByronUpdateData);
 #[wasm_bindgen]
 impl ByronUpdateData {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronUpdateData, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -501,11 +501,11 @@ pub struct ByronUpdateProposal(cml_multi_era::byron::update::ByronUpdateProposal
 #[wasm_bindgen]
 impl ByronUpdateProposal {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronUpdateProposal, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -600,11 +600,11 @@ pub struct ByronUpdateVote(cml_multi_era::byron::update::ByronUpdateVote);
 #[wasm_bindgen]
 impl ByronUpdateVote {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronUpdateVote, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -683,11 +683,11 @@ pub struct SoftForkRule(cml_multi_era::byron::update::SoftForkRule);
 #[wasm_bindgen]
 impl SoftForkRule {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SoftForkRule, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -758,11 +758,11 @@ pub struct StdFeePolicy(cml_multi_era::byron::update::StdFeePolicy);
 #[wasm_bindgen]
 impl StdFeePolicy {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<StdFeePolicy, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }

@@ -17,6 +17,9 @@ impl_hash_type!(Blake2b256, 32);
 #[derive(Debug, Clone)]
 pub struct ByronAny(cbor_event::Value);
 
+// more methods on ByronAny to inspect it aren't offered as we don't encounter anything
+// useful on-chain for this. It's either not present or is an empty array
+
 impl PartialEq for ByronAny {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other).is_eq()

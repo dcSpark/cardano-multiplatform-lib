@@ -1,8 +1,11 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, EpochId};
-use crate::cml_chain::byron::{AddressId, StakeholderId};
+use crate::byron::{
+    Blake2b256, ByronPubKey, ByronSignature, EpochId, AddressIdList,
+    StakeholderIdList, VssPubKeyList, BytesList, VssDecryptedShareList
+};
+use cml_chain_wasm::byron::{AddressId, StakeholderId};
 use std::collections::BTreeMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
@@ -13,11 +16,11 @@ pub struct Ssc(cml_multi_era::byron::mpc::Ssc);
 #[wasm_bindgen]
 impl Ssc {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Ssc, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -139,11 +142,11 @@ pub struct SscCert(cml_multi_era::byron::mpc::SscCert);
 #[wasm_bindgen]
 impl SscCert {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SscCert, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -220,11 +223,11 @@ pub struct SscCertificatesPayload(cml_multi_era::byron::mpc::SscCertificatesPayl
 #[wasm_bindgen]
 impl SscCertificatesPayload {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SscCertificatesPayload, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -281,11 +284,11 @@ pub struct SscCertificatesProof(cml_multi_era::byron::mpc::SscCertificatesProof)
 #[wasm_bindgen]
 impl SscCertificatesProof {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SscCertificatesProof, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -383,11 +386,11 @@ pub struct SscCommitment(cml_multi_era::byron::mpc::SscCommitment);
 #[wasm_bindgen]
 impl SscCommitment {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SscCommitment, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -449,11 +452,11 @@ pub struct SscCommitmentsPayload(cml_multi_era::byron::mpc::SscCommitmentsPayloa
 #[wasm_bindgen]
 impl SscCommitmentsPayload {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SscCommitmentsPayload, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -515,11 +518,11 @@ pub struct SscCommitmentsProof(cml_multi_era::byron::mpc::SscCommitmentsProof);
 #[wasm_bindgen]
 impl SscCommitmentsProof {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SscCommitmentsProof, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -589,11 +592,11 @@ pub struct SscOpeningsPayload(cml_multi_era::byron::mpc::SscOpeningsPayload);
 #[wasm_bindgen]
 impl SscOpeningsPayload {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SscOpeningsPayload, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -655,11 +658,11 @@ pub struct SscOpeningsProof(cml_multi_era::byron::mpc::SscOpeningsProof);
 #[wasm_bindgen]
 impl SscOpeningsProof {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SscOpeningsProof, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -766,11 +769,11 @@ pub struct SscProof(cml_multi_era::byron::mpc::SscProof);
 #[wasm_bindgen]
 impl SscProof {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SscProof, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -951,11 +954,11 @@ pub struct SscSharesPayload(cml_multi_era::byron::mpc::SscSharesPayload);
 #[wasm_bindgen]
 impl SscSharesPayload {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SscSharesPayload, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -1017,11 +1020,11 @@ pub struct SscSharesProof(cml_multi_era::byron::mpc::SscSharesProof);
 #[wasm_bindgen]
 impl SscSharesProof {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SscSharesProof, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -1134,11 +1137,11 @@ pub struct SscSignedCommitment(cml_multi_era::byron::mpc::SscSignedCommitment);
 #[wasm_bindgen]
 impl SscSignedCommitment {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SscSignedCommitment, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -1252,11 +1255,11 @@ pub struct VssEncryptedShare(cml_multi_era::byron::mpc::VssEncryptedShare);
 #[wasm_bindgen]
 impl VssEncryptedShare {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<VssEncryptedShare, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -1311,11 +1314,11 @@ pub struct VssProof(cml_multi_era::byron::mpc::VssProof);
 #[wasm_bindgen]
 impl VssProof {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<VssProof, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }

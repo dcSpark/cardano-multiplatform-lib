@@ -9,8 +9,10 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 cml-chain = { path = "../../chain/rust" }
 cml-chain-wasm = { path = "../../chain/wasm" }
+cml-crypto = { path = "../../crypto/rust" }
 cml-crypto-wasm = { path = "../../crypto/wasm" }
 cml-core = { path = "../../core/rust" }
+cml-core-wasm = { path = "../../core/wasm" }
 cml-multi-era = { path = "../rust" }
 cbor_event = "2.4.0"
 linked-hash-map = "0.5.3"

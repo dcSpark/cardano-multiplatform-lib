@@ -1,8 +1,10 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronTxId};
-use crate::{ByronTxInList, ByronTxOutList};
+use crate::byron::{
+    Blake2b256, ByronPubKey, ByronSignature, ByronTxId,
+    ByronTxInList, ByronTxOutList, ByronAny, ByronAnyList,
+};
 use std::collections::BTreeMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
@@ -60,11 +62,11 @@ pub struct ByronPkWitness(cml_multi_era::byron::transaction::ByronPkWitness);
 #[wasm_bindgen]
 impl ByronPkWitness {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronPkWitness, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -121,11 +123,11 @@ pub struct ByronPkWitnessEntry(cml_multi_era::byron::transaction::ByronPkWitness
 #[wasm_bindgen]
 impl ByronPkWitnessEntry {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronPkWitnessEntry, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -187,11 +189,11 @@ pub struct ByronRedeemWitness(cml_multi_era::byron::transaction::ByronRedeemWitn
 #[wasm_bindgen]
 impl ByronRedeemWitness {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronRedeemWitness, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -248,11 +250,11 @@ pub struct ByronRedeemerScript(cml_multi_era::byron::transaction::ByronRedeemerS
 #[wasm_bindgen]
 impl ByronRedeemerScript {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronRedeemerScript, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -313,11 +315,11 @@ pub struct ByronRedeemerWitnessEntry(cml_multi_era::byron::transaction::ByronRed
 #[wasm_bindgen]
 impl ByronRedeemerWitnessEntry {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronRedeemerWitnessEntry, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -387,11 +389,11 @@ pub struct ByronScriptWitness(cml_multi_era::byron::transaction::ByronScriptWitn
 #[wasm_bindgen]
 impl ByronScriptWitness {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronScriptWitness, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -448,11 +450,11 @@ pub struct ByronScriptWitnessEntry(cml_multi_era::byron::transaction::ByronScrip
 #[wasm_bindgen]
 impl ByronScriptWitnessEntry {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronScriptWitnessEntry, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -519,11 +521,11 @@ pub struct ByronTx(cml_multi_era::byron::transaction::ByronTx);
 #[wasm_bindgen]
 impl ByronTx {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronTx, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -590,11 +592,11 @@ pub struct ByronTxIn(cml_multi_era::byron::transaction::ByronTxIn);
 #[wasm_bindgen]
 impl ByronTxIn {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronTxIn, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -686,11 +688,11 @@ pub struct ByronTxInGenesis(cml_multi_era::byron::transaction::ByronTxInGenesis)
 #[wasm_bindgen]
 impl ByronTxInGenesis {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronTxInGenesis, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -757,11 +759,11 @@ pub struct ByronTxInRegular(cml_multi_era::byron::transaction::ByronTxInRegular)
 #[wasm_bindgen]
 impl ByronTxInRegular {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronTxInRegular, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -818,11 +820,11 @@ pub struct ByronTxOutPtr(cml_multi_era::byron::transaction::ByronTxOutPtr);
 #[wasm_bindgen]
 impl ByronTxOutPtr {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronTxOutPtr, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -884,11 +886,11 @@ pub struct ByronTxProof(cml_multi_era::byron::transaction::ByronTxProof);
 #[wasm_bindgen]
 impl ByronTxProof {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronTxProof, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -955,11 +957,11 @@ pub struct ByronTxWitness(cml_multi_era::byron::transaction::ByronTxWitness);
 #[wasm_bindgen]
 impl ByronTxWitness {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronTxWitness, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -1078,11 +1080,11 @@ pub struct ByronValidatorScript(cml_multi_era::byron::transaction::ByronValidato
 #[wasm_bindgen]
 impl ByronValidatorScript {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronValidatorScript, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }

@@ -18,7 +18,8 @@ members = [
     "crypto/rust",
     "crypto/wasm",
     "multi-era/rust",
-    "multi-era/wasm"
+    "multi-era/wasm",
+    "multi-era/wasm/json-gen"
 ]
 
 # exclude old crate structure to avoid error in it

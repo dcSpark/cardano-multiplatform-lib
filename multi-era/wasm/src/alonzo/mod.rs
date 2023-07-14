@@ -10,7 +10,7 @@ use cml_chain_wasm::assets::{Coin, Mint};
 use cml_chain_wasm::auxdata::{Metadata, ShelleyAuxData, ShelleyMaAuxData};
 use cml_chain_wasm::crypto::{Nonce};
 use cml_chain_wasm::plutus::{ExUnitPrices, ExUnits};
-use cml_chain_wasm::transaction::{RequiredSigners};
+use cml_chain_wasm::transaction::{AlonzoTxOut, RequiredSigners, ShelleyTxOut};
 use cml_chain_wasm::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
 use crate::shelley::ShelleyHeader;
 use cml_chain_wasm::{
@@ -19,7 +19,7 @@ use cml_chain_wasm::{
 };
 use cml_crypto_wasm::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
 use crate::{
-    AlonzoTransactionBodyList, AlonzoTransactionWitnessSetList, AlonzoTxOutList, MapTransactionIndexToAlonzoAuxiliaryData,
+    AlonzoTransactionBodyList, AlonzoTransactionWitnessSetList, AlonzoTransactionOutputList, MapTransactionIndexToAlonzoAuxiliaryData,
 };
 use cml_core::ordered_hash_map::OrderedHashMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
@@ -816,7 +816,7 @@ impl AlonzoTransactionBody {
         self.0.inputs.clone().into()
     }
 
-    pub fn outputs(&self) -> AlonzoTxOutList {
+    pub fn outputs(&self) -> AlonzoTransactionOutputList {
         self.0.outputs.clone().into()
     }
 
@@ -962,11 +962,11 @@ pub struct AlonzoTransactionOutput(cml_multi_era::alonzo::AlonzoTransactionOutpu
 #[wasm_bindgen]
 impl AlonzoTransactionOutput {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::Serialize::to_cbor_bytes(&self.0)
+        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoTransactionOutput, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }

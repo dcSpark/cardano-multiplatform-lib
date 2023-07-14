@@ -2,7 +2,6 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use crate::byron::{ByronPubKey, ByronSignature, EpochId};
-use std::collections::BTreeMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
@@ -12,11 +11,11 @@ pub struct ByronDelegation(cml_multi_era::byron::delegation::ByronDelegation);
 #[wasm_bindgen]
 impl ByronDelegation {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronDelegation, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -93,11 +92,11 @@ pub struct ByronDelegationSignature(cml_multi_era::byron::delegation::ByronDeleg
 #[wasm_bindgen]
 impl ByronDelegationSignature {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronDelegationSignature, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -163,11 +162,11 @@ pub struct EpochRange(cml_multi_era::byron::delegation::EpochRange);
 #[wasm_bindgen]
 impl EpochRange {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<EpochRange, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -230,11 +229,11 @@ pub struct LightWeightDelegationSignature(
 #[wasm_bindgen]
 impl LightWeightDelegationSignature {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<LightWeightDelegationSignature, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }
@@ -304,11 +303,11 @@ pub struct LightWeightDlg(cml_multi_era::byron::delegation::LightWeightDlg);
 #[wasm_bindgen]
 impl LightWeightDlg {
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_multi_era::serialization::ToCBORBytes::to_cbor_bytes(&self.0)
+        cml_core::serialization::ToBytes::to_bytes(&self.0)
     }
 
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<LightWeightDlg, JsValue> {
-        cml_multi_era::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
     }

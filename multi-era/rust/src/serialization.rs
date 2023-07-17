@@ -12,6 +12,7 @@ impl Serialize for MultiEraBlock {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
+            MultiEraBlock::Byron(byron) => cbor_event::se::Serialize::serialize(byron, serializer),
             MultiEraBlock::Shelley(shelley) => shelley.serialize(serializer, force_canonical),
             MultiEraBlock::Allegra(allegra) => allegra.serialize(serializer, force_canonical),
             MultiEraBlock::Mary(mary) => mary.serialize(serializer, force_canonical),
@@ -25,6 +26,16 @@ impl Deserialize for MultiEraBlock {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let deser_variant: Result<_, DeserializeError> = ByronBlock::deserialize(raw);
+            match deser_variant {
+                Ok(byron) => return Ok(Self::Byron(byron)),
+                Err(e) => {
+                    raw
+                        .as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap()
+                },
+            };
             let deser_variant: Result<_, DeserializeError> = ShelleyBlock::deserialize(raw);
             match deser_variant {
                 Ok(shelley) => return Ok(Self::Shelley(shelley)),

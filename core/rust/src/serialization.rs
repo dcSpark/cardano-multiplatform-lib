@@ -53,10 +53,14 @@ impl From<cbor_event::Len> for CBORReadLen {
     // to facilitate mixing with crates that use preserve-encodings=false to generate
     // we need to create it from cbor_event::Len instead
     fn from(len: cbor_event::Len) -> Self {
-        Self::new(match len {
-            cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, fit_sz(n, None, true)),
-            cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
-        })
+        Self::new(len_to_len_sz(len))
+    }
+}
+
+pub fn len_to_len_sz(len: cbor_event::Len) -> cbor_event::LenSz {
+    match len {
+        cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, fit_sz(n, None, true)),
+        cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
     }
 }
 

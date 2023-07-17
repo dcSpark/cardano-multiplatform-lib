@@ -1,0 +1,5 @@
+; note: this is in a separate directory due to byron not using the --preserve-encodings=true flag
+; this is since:
+; a) not supported for floats
+; a) for consistency with what we generated before in cml-chain/byron module
+; c) not needed since byron is all canonical

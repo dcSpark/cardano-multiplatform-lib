@@ -54,7 +54,7 @@ byron_address = [
   content: #6.24(bytes .cbor address_content),
   crc: crc32,
 ]
-tx_out = [
+byron_tx_out = [
   address: byron_address,
   amount: uint,
 ]

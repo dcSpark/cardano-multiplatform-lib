@@ -1,8 +1,11 @@
 ; babbage block
 block = _CDDL_CODEGEN_EXTERN_TYPE_
 
-mutli_era_block =
-    shelley_block ; @name Shelley
+byron_block = _CDDL_CODEGEN_EXTERN_TYPE_
+
+multi_era_block =
+    byron_block   ; @name byron
+  / shelley_block ; @name Shelley
   / allegra_block ; @name Allegra
   / mary_block    ; @name Mary
   / alonzo_block  ; @name Alonzo

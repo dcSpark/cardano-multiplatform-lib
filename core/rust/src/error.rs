@@ -30,6 +30,7 @@ pub enum DeserializeFailure {
     InvalidStructure(Box<dyn std::error::Error>),
     MandatoryFieldMissing(Key),
     NoVariantMatched,
+    NoVariantMatchedWithCauses(Vec<DeserializeError>),
     OutOfRange{
         min: usize,
         max: usize,
@@ -70,12 +71,12 @@ impl DeserializeError {
             None => Self::new(location, self.failure),
         }
     }
-}
 
-impl std::error::Error for DeserializeError {}
-
-impl std::fmt::Display for DeserializeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt_indent(&self, f: &mut std::fmt::Formatter<'_>, indent: u32) -> std::fmt::Result {
+        use std::fmt::Display;
+        for _ in 0..indent {
+            write!(f, "\t")?;
+        }
         match &self.location {
             Some(loc) => write!(f, "Deserialization failed in {} because: ", loc),
             None => write!(f, "Deserialization: "),
@@ -109,6 +110,14 @@ impl std::fmt::Display for DeserializeError {
                 write!(f, "Mandatory field {} not found", key)
             }
             DeserializeFailure::NoVariantMatched => write!(f, "No variant matched"),
+            DeserializeFailure::NoVariantMatchedWithCauses(errs) => {
+                write!(f, "No variant matched. Failures:\n")?;
+                for e in errs {
+                    e.fmt_indent(f, indent + 1)?;
+                    write!(f, "\n")?;
+                }
+                Ok(())
+            },
             DeserializeFailure::OutOfRange{ min, max, found } => write!(f, "Out of range: {} - must be in range {} - {}", found, min, max),
             DeserializeFailure::RangeCheck { found, min, max } => match (min, max) {
                 (Some(min), Some(max)) => write!(f, "{} not in range {} - {}", found, min, max),
@@ -127,6 +136,14 @@ impl std::fmt::Display for DeserializeError {
                 write!(f, "Variable length natural number decode failed")
             }
         }
+    }
+}
+
+impl std::error::Error for DeserializeError {}
+
+impl std::fmt::Display for DeserializeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.fmt_indent(f, 0)
     }
 }
 

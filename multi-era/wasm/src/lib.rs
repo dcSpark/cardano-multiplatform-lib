@@ -5,6 +5,7 @@
 )]
 pub mod allegra;
 pub mod alonzo;
+pub mod byron;
 pub mod mary;
 pub mod shelley;
 // This file was code-generated using an experimental CDDL to rust tool:
@@ -13,7 +14,7 @@ pub mod shelley;
 use cml_chain_wasm::{
     block::Block,
     certs::{StakeCredential},
-    transaction::{AlonzoTxOut, ShelleyTxOut},
+    transaction::{ShelleyTxOut},
     Coin, TransactionIndex, StakeCredentialList,
 };
 use cml_core::ordered_hash_map::OrderedHashMap;
@@ -23,7 +24,8 @@ use crate::{
         AlonzoAuxiliaryData,
         AlonzoBlock,
         AlonzoTransactionBody,
-        AlonzoTransactionWitnessSet
+        AlonzoTransactionWitnessSet,
+        AlonzoTransactionOutput
     },
     allegra::{
         AllegraAuxiliaryData,
@@ -31,6 +33,7 @@ use crate::{
         AllegraTransactionBody,
         AllegraTransactionWitnessSet,
     },
+    byron::block::ByronBlock,
     mary::{
         MaryBlock,
         MaryTransactionBody
@@ -224,10 +227,10 @@ impl AsRef<Vec<cml_multi_era::alonzo::AlonzoTransactionWitnessSet>>
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoTxOutList(Vec<cml_chain::transaction::AlonzoTxOut>);
+pub struct AlonzoTransactionOutputList(Vec<cml_multi_era::alonzo::AlonzoTransactionOutput>);
 
 #[wasm_bindgen]
-impl AlonzoTxOutList {
+impl AlonzoTransactionOutputList {
     pub fn new() -> Self {
         Self(Vec::new())
     }
@@ -236,29 +239,29 @@ impl AlonzoTxOutList {
         self.0.len()
     }
 
-    pub fn get(&self, index: usize) -> AlonzoTxOut {
+    pub fn get(&self, index: usize) -> AlonzoTransactionOutput {
         self.0[index].clone().into()
     }
 
-    pub fn add(&mut self, elem: &AlonzoTxOut) {
+    pub fn add(&mut self, elem: &AlonzoTransactionOutput) {
         self.0.push(elem.clone().into());
     }
 }
 
-impl From<Vec<cml_chain::transaction::AlonzoTxOut>> for AlonzoTxOutList {
-    fn from(native: Vec<cml_chain::transaction::AlonzoTxOut>) -> Self {
+impl From<Vec<cml_multi_era::alonzo::AlonzoTransactionOutput>> for AlonzoTransactionOutputList {
+    fn from(native: Vec<cml_multi_era::alonzo::AlonzoTransactionOutput>) -> Self {
         Self(native)
     }
 }
 
-impl From<AlonzoTxOutList> for Vec<cml_chain::transaction::AlonzoTxOut> {
-    fn from(wasm: AlonzoTxOutList) -> Self {
+impl From<AlonzoTransactionOutputList> for Vec<cml_multi_era::alonzo::AlonzoTransactionOutput> {
+    fn from(wasm: AlonzoTransactionOutputList) -> Self {
         wasm.0
     }
 }
 
-impl AsRef<Vec<cml_chain::transaction::AlonzoTxOut>> for AlonzoTxOutList {
-    fn as_ref(&self) -> &Vec<cml_chain::transaction::AlonzoTxOut> {
+impl AsRef<Vec<cml_multi_era::alonzo::AlonzoTransactionOutput>> for AlonzoTransactionOutputList {
+    fn as_ref(&self) -> &Vec<cml_multi_era::alonzo::AlonzoTransactionOutput> {
         &self.0
     }
 }
@@ -622,6 +625,12 @@ impl MultiEraBlock {
             .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
+    pub fn new_byron(byron: &ByronBlock) -> Self {
+        Self(cml_multi_era::MultiEraBlock::new_byron(
+            byron.clone().into(),
+        ))
+    }
+
     pub fn new_shelley(shelley: &ShelleyBlock) -> Self {
         Self(cml_multi_era::MultiEraBlock::new_shelley(
             shelley.clone().into(),
@@ -652,11 +661,19 @@ impl MultiEraBlock {
 
     pub fn kind(&self) -> MultiEraBlockKind {
         match &self.0 {
+            cml_multi_era::MultiEraBlock::Byron(_) => MultiEraBlockKind::Byron,
             cml_multi_era::MultiEraBlock::Shelley(_) => MultiEraBlockKind::Shelley,
             cml_multi_era::MultiEraBlock::Allegra(_) => MultiEraBlockKind::Allegra,
             cml_multi_era::MultiEraBlock::Mary(_) => MultiEraBlockKind::Mary,
             cml_multi_era::MultiEraBlock::Alonzo(_) => MultiEraBlockKind::Alonzo,
             cml_multi_era::MultiEraBlock::Babbage(_) => MultiEraBlockKind::Babbage,
+        }
+    }
+
+    pub fn as_byron(&self) -> Option<ByronBlock> {
+        match &self.0 {
+            cml_multi_era::MultiEraBlock::Byron(byron) => Some(byron.clone().into()),
+            _ => None,
         }
     }
 
@@ -716,6 +733,7 @@ impl AsRef<cml_multi_era::MultiEraBlock> for MultiEraBlock {
 
 #[wasm_bindgen]
 pub enum MultiEraBlockKind {
+    Byron,
     Shelley,
     Allegra,
     Mary,

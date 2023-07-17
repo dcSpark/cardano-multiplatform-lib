@@ -3,6 +3,7 @@
 extern crate derivative;
 pub mod allegra;
 pub mod alonzo;
+pub mod byron;
 pub mod mary;
 pub mod shelley;
 pub mod serialization;
@@ -16,6 +17,7 @@ use crate::{
     allegra::AllegraBlock,
     mary::MaryBlock,
     alonzo::AlonzoBlock,
+    byron::block::ByronBlock,
 };
 use cml_chain::block::Block;
 
@@ -25,6 +27,7 @@ pub type RewardAccountList = Vec<RewardAccount>;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum MultiEraBlock {
+    Byron(ByronBlock),
     Shelley(ShelleyBlock),
     Allegra(AllegraBlock),
     Mary(MaryBlock),
@@ -33,6 +36,10 @@ pub enum MultiEraBlock {
 }
 
 impl MultiEraBlock {
+    pub fn new_byron(byron: ByronBlock) -> Self {
+        Self::Byron(byron)
+    }
+
     pub fn new_shelley(shelley: ShelleyBlock) -> Self {
         Self::Shelley(shelley)
     }

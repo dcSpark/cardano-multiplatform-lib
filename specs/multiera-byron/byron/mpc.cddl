@@ -1,0 +1,74 @@
+; MPC: Shared Seed Computation (ssc) - Verifiable Secret Sharing (vss)
+
+; This is encoded using the 'Binary' instance for Scrape.PublicKey
+; https://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:PublicKey
+; stakeholder ids correspond to 'vcSigningKey's of associated certs
+; no two certs have the same 'vcVssKey'
+vss_pub_key = bytes
+
+; This is encoded using the 'Binary' instance for Scrape.Secret.
+; http://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:Secret
+vsssec = bytes
+
+; This is encoded using the 'Binary' instance for Scrape.EncryptedSi.
+; http://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:EncryptedSi
+; TODO work out why this seems to be in a length 1 array
+vss_encrypted_share = [bytes]
+
+; This is encoded using the 'Binary' instance for Scrape.DecryptedShare
+; https://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:DecryptedShare
+vss_decrypted_share = bytes
+
+; This is encoded using the 'Binary' instance for Scrape.Proof
+; http://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:ExtraGen
+; http://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:Proof
+; http://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:ParallelProofs
+; http://hackage.haskell.org/package/pvss-0.2.0/docs/Crypto-SCRAPE.html#t:Commitment
+vss_proof = [ bytes ; @name extra_gen
+            , bytes ; @name proof
+            , bytes ; @name parallel_proofs
+            , [* bytes] ; @name commitments
+            ]
+
+vss_shares = {vss_pub_key => vss_encrypted_share}
+
+ssc_commitment = [vss_shares, vss_proof]
+ssc_signed_commitment = [ byron_pub_key
+                        , ssc_commitment
+                        , byron_signature
+                        ]
+ssc_signed_commitments = #6.258([* ssc_signed_commitment])
+
+ssc_opens = {stakeholder_id => vsssec}
+
+; TODO: this is serialized as serialize_fixed_map. Not sure if codegen does the same
+;ssc_shares_submap = [address_id, [* vss_decrypted_share]]
+; the above doesn't work. it seems to be a map between those two:
+ssc_shares_submap = { * address_id => [* vss_decrypted_share] }
+ssc_shares = {address_id => ssc_shares_submap}
+
+; original: but this isn't the order we're finding
+; ssc_cert = [vss_pub_key, byron_pub_key, epoch_id, byron_signature]
+; instead we're getting the uint as 2nd thing
+ssc_cert = [vss_pub_key, epoch_id, byron_pub_key, byron_signature]
+ssc_certs = #6.258([* ssc_cert])
+
+ssc_commitments_payload = [0, ssc_signed_commitments, ssc_certs]
+ssc_openings_payload = [1, ssc_opens, ssc_certs]
+ssc_shares_payload = [2, ssc_shares, ssc_certs]
+ssc_certificates_payload = [3, ssc_certs]
+
+ssc = ssc_commitments_payload
+    / ssc_openings_payload
+    / ssc_shares_payload
+    / ssc_certificates_payload
+
+ssc_commitments_proof = [0, blake2b256, blake2b256]
+ssc_openings_proof = [1, blake2b256, blake2b256]
+ssc_shares_proof = [2, blake2b256, blake2b256]
+ssc_certificates_proof = [3, blake2b256]
+
+ssc_proof = ssc_commitments_proof
+          / ssc_openings_proof
+          / ssc_shares_proof
+          / ssc_certificates_proof

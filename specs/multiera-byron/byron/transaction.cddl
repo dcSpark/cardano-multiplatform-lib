@@ -1,0 +1,60 @@
+; Transactions
+
+; Attributes - at the moment we do not bother deserialising these, since they
+; don't contain anything
+byron_any = _CDDL_CODEGEN_EXTERN_TYPE_
+byron_attributes = { * byron_any => byron_any} ; @name byron_attributes
+;byron_attributes = {* any => any}
+
+
+byron_tx_out_ptr = [ byron_tx_id
+                    , u32 ; @name index
+                    ]
+
+byron_tx_in_regular = [ 0
+                , #6.24(bytes .cbor (byron_tx_out_ptr))
+                ]
+; TODO: better type
+byron_tx_in_genesis = [
+  u8 .ne 0,
+  #6.24(bytes),
+]
+byron_tx_in = byron_tx_in_regular / byron_tx_in_genesis
+
+byron_tx = [
+  inputs: [+ byron_tx_in],
+  outputs: [+ byron_tx_out],
+  attrs: byron_attributes,
+]
+
+byron_tx_proof = [ u32 ; @name number - number of transactions in this tree
+           , blake2b256 ; @name root - root of the merkle tree of transactions
+           , blake2b256 ; @name witnesses_hash - hash of Sequence of TxWitnesses encoded in CBOR
+           ]
+
+byron_pk_witness_entry = [byron_pub_key, byron_signature]
+; TODO: what are these types? I think they were never used in mainnet
+byron_validator_script = [ u16
+                   , bytes
+                   ]
+; TODO: what are these types? I think they were never used in mainnet
+byron_redeemer_script = [ u16
+                  , bytes
+                  ]
+byron_script_witness_entry = [byron_validator_script, byron_redeemer_script]
+byron_redeemer_witness_entry = [byron_pub_key, byron_signature]
+
+; TODO: debug why cddl-codegen isn't emitting these normally
+; byron_tx_witness = [0, #6.24(bytes .cbor (byron_pk_witness_entry))] ; @name pk_witness
+;     / [1, #6.24(bytes .cbor (byron_script_witness_entry))] ; @name script_witness
+;     / [2, #6.24(bytes .cbor (byron_redeemer_witness_entry))] ; @name redeem_witness
+
+byron_pk_witness = (0, #6.24(bytes .cbor (byron_pk_witness_entry)))
+byron_script_witness = (1, #6.24(bytes .cbor (byron_script_witness_entry)))
+byron_redeem_witness = (2, #6.24(bytes .cbor (byron_redeemer_witness_entry)))
+
+byron_tx_witness = [
+     byron_pk_witness
+  // byron_script_witness
+  // byron_redeem_witness
+]

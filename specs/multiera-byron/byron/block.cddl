@@ -1,0 +1,79 @@
+; Blocks
+
+byron_difficulty = [u64]
+
+byron_block_signature_normal = [tag: 0, signature: byron_signature]
+byron_block_signature_proxy_light = [tag: 1, signature: light_weight_delegation_signature]
+byron_block_signature_proxy_heavy = [tag: 2, signature: byron_delegation_signature]
+
+byron_block_signature = byron_block_signature_normal ; @name signature
+                      / byron_block_signature_proxy_light ; @name proxy_light
+                      / byron_block_signature_proxy_heavy ; @name proxy_heavy
+
+byron_block_consensus_data = [byron_slot_id, byron_pub_key, byron_difficulty, byron_block_signature]
+
+block_header_extra_data = [
+  block_version: byron_block_version,
+  software_version: byron_software_version,
+  byron_attributes: byron_attributes,
+  extraProof: blake2b256,
+]
+
+byron_body_proof = [ txProof : byron_tx_proof
+             , sscProof : ssc_proof 
+             , dlgProof : blake2b256
+             , updProof : blake2b256
+             ]
+
+byron_block_header = [ protocol_magic : u32
+               , prevBlock : byron_block_id
+               , bodyProof : byron_body_proof
+               , consensusData : byron_block_consensus_data
+               , extraData : block_header_extra_data
+               ]
+
+tx_aux = [ byron_tx
+         , [* byron_tx_witness] ; @name witness
+         ]
+tx_payload = [* tx_aux]
+byron_block_body = [ txPayload : tx_payload
+            , sscPayload : ssc
+            , dlgPayload : [* byron_delegation]
+            , updPayload : byron_update
+            ]
+
+; Epoch Boundary Blocks
+
+ebb_consensus_data = [ epoch_id, byron_difficulty ]
+
+ebb_head = [ protocol_magic : u32
+          , prevBlock : byron_block_id
+          , bodyProof : blake2b256
+          , consensusData : ebb_consensus_data
+          , extraData : [* byron_attributes]
+          ]
+
+;byron_ebb_wrapper = [0, byron_eb_block]
+;byron_main_block_wrapper = [1, byron_main_block]
+;byron_block = ebb_wrapper
+;            / main_block_wrapper
+
+; this doesn't match what we're getting. we're getting the inner block instead directly
+;byron_block = [
+;     ; @name ebb_wrapper
+;     tag: 0, block: byron_eb_block //
+;     ; @name main_block_wrapper
+;     tag: 1, block: byron_main_block
+;]
+byron_block = byron_eb_block ; @name epoch_boundary
+            / byron_main_block ; @name main
+
+byron_main_block = [ header : byron_block_header
+            , body : byron_block_body
+            , extra : [* byron_attributes]
+            ]
+
+byron_eb_block = [ header : ebb_head
+          , body : [+ stakeholder_id]
+          , extra : [* byron_attributes]
+          ]

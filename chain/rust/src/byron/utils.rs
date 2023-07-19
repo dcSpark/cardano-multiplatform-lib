@@ -339,20 +339,18 @@ pub fn make_icarus_bootstrap_witness(
     )
 }
 
-/*
 #[cfg(test)]
 mod tests {
+    use cml_core::serialization::ToBytes;
     use cml_crypto::{
-        Bip32PublicKey,
-        chain_crypto::{self, Ed25519Bip32}
+        chain_crypto::{self, Ed25519Bip32}, Deserialize
     };
     use crate::genesis::network_info::NetworkInfo;
     use super::{ByronAddress};
 
     fn assert_same_address(address: ByronAddress, xpub: chain_crypto::PublicKey<Ed25519Bip32>) {
-        assert_eq!(
-            address.address_content().identical_with_pubkey(&Bip32PublicKey(xpub.clone())),
-            true,
+        assert!(
+            address.content.identical_with_pubkey(xpub.clone().into()),
             "expected public key {} to match address {}",
             xpub,
             address,
@@ -361,8 +359,7 @@ mod tests {
 
     #[test]
     fn test_vector_1() {
-        let address: ByronAddress     = "DdzFFzCqrhsrcTVhLygT24QwTnNqQqQ8mZrq5jykUzMveU26sxaH529kMpo7VhPrt5pwW3dXeB2k3EEvKcNBRmzCfcQ7dTkyGzTs658C".parse().unwrap();
-        println!("{}", hex::encode(address.addr()));
+        let address: ByronAddress = "DdzFFzCqrhsrcTVhLygT24QwTnNqQqQ8mZrq5jykUzMveU26sxaH529kMpo7VhPrt5pwW3dXeB2k3EEvKcNBRmzCfcQ7dTkyGzTs658C".parse().unwrap();
         let public_key = chain_crypto::PublicKey::<Ed25519Bip32>::from_binary(&[
             0x6a, 0x50, 0x96, 0x89, 0xc6, 0x53, 0x17, 0x58, 0x65, 0x98, 0x5a, 0xd1, 0xe0, 0xeb,
             0x5f, 0xf9, 0xad, 0xa6, 0x99, 0x7a, 0xa4, 0x03, 0xe6, 0x48, 0x61, 0x4b, 0x3b, 0x78,
@@ -494,16 +491,13 @@ mod tests {
     fn byron_magic_parsing() {
         // mainnet address w/ protocol magic omitted
         let addr = ByronAddress::from_base58("Ae2tdPwUPEZ4YjgvykNpoFeYUxoyhNj2kg8KfKWN2FizsSpLUPv68MpTVDo").unwrap();
-        println!("{}", hex::encode(addr.addr()));
-        let content = addr.address_content();
-        assert_eq!(content.byron_protocol_magic(), NetworkInfo::mainnet().protocol_magic());
-        assert_eq!(content.network_id().unwrap(), NetworkInfo::mainnet().network_id());
+        assert_eq!(addr.content.byron_protocol_magic(), NetworkInfo::mainnet().protocol_magic());
+        assert_eq!(addr.content.network_id().unwrap(), NetworkInfo::mainnet().network_id());
 
         // original Byron testnet address
         let addr = ByronAddress::from_base58("2cWKMJemoBaipzQe9BArYdo2iPUfJQdZAjm4iCzDA1AfNxJSTgm9FZQTmFCYhKkeYrede").unwrap();
-        let content = addr.address_content();
-        assert_eq!(content.byron_protocol_magic(), NetworkInfo::testnet().protocol_magic());
-        assert_eq!(content.network_id().unwrap(), NetworkInfo::testnet().network_id());
+        assert_eq!(addr.content.byron_protocol_magic(), NetworkInfo::testnet().protocol_magic());
+        assert_eq!(addr.content.network_id().unwrap(), NetworkInfo::testnet().network_id());
     }
 
     #[test]
@@ -511,29 +505,25 @@ mod tests {
         // mainnet address
         let start = "DdzFFzCqrhsqTG4t3uq5UBqFrxhxGVM6bvF4q1QcZXqUpizFddEEip7dx5rbife2s9o2fRU3hVKhRp4higog7As8z42s4AMw6Pcu8vL4";
         let addr = ByronAddress::from_base58(start).unwrap();
-        let content = addr.address_content();
-        let end = content.to_address().to_base58();
+        let end = addr.content.to_address().to_base58();
         assert_eq!(start, end);
 
         // mainnet address w/ protocol magic omitted
         let start = "Ae2tdPwUPEZ4YjgvykNpoFeYUxoyhNj2kg8KfKWN2FizsSpLUPv68MpTVDo";
         let addr = ByronAddress::from_base58(start).unwrap();
-        let content = addr.address_content();
-        let end = content.to_address().to_base58();
+        let end = addr.content.to_address().to_base58();
         assert_eq!(start, end);
 
         // original Byron testnet address
         let start = "2cWKMJemoBaipzQe9BArYdo2iPUfJQdZAjm4iCzDA1AfNxJSTgm9FZQTmFCYhKkeYrede";
         let addr = ByronAddress::from_base58(start).unwrap();
-        let content = addr.address_content();
-        let end = content.to_address().to_base58();
+        let end = addr.content.to_address().to_base58();
         assert_eq!(start, end);
 
          // testnet genesis address
          let start = "37btjrVyb4KEg6anTcJ9E4EAvYtNV9xXL6LNpA15YLhgvm9zJ1D2jwme574HikZ36rKdTwaUmpEicCoL1bDw4CtH5PNcFnTRGQNaFd5ai6Wvo6CZsi";
          let addr = ByronAddress::from_base58(start).unwrap();
-         let content = addr.address_content();
-         let end = content.to_address().to_base58();
+         let end = addr.content.to_address().to_base58();
          assert_eq!(start, end);
     }
 
@@ -542,8 +532,7 @@ mod tests {
         assert!(ByronAddress::is_valid("Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp"));
         let byron_addr = ByronAddress::from_base58("Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp").unwrap();
         assert_eq!(byron_addr.to_base58(), "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp");
-        let byron_addr2 = ByronAddress::from_bytes(byron_addr.to_bytes()).unwrap();
+        let byron_addr2 = ByronAddress::from_cbor_bytes(&byron_addr.to_bytes()).unwrap();
         assert_eq!(byron_addr2.to_base58(), "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp");
     }
 }
-*/

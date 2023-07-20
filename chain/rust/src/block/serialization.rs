@@ -8,7 +8,7 @@ use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::RawBytesEncoding;
-use std::io::{BufRead, Seek, SeekFrom, Write};
+use std::io::{BufRead, Seek, Write};
 
 impl Serialize for Block {
     fn serialize<'se, W: Write>(
@@ -292,7 +292,7 @@ impl Serialize for HeaderBody {
                 .as_ref()
                 .map(|encs| encs.len_encoding)
                 .unwrap_or_default()
-                .to_len_sz(14, force_canonical),
+                .to_len_sz(10, force_canonical),
         )?;
         serializer.write_unsigned_integer_sz(
             self.block_number,
@@ -370,9 +370,9 @@ impl Serialize for HeaderBody {
                 ),
         )?;
         self.operational_cert
-            .serialize_as_embedded_group(serializer, force_canonical)?;
+            .serialize(serializer, force_canonical)?;
         self.protocol_version
-            .serialize_as_embedded_group(serializer, force_canonical)?;
+            .serialize(serializer, force_canonical)?;
         self.encodings
             .as_ref()
             .map(|encs| encs.len_encoding)
@@ -386,7 +386,7 @@ impl Deserialize for HeaderBody {
         let len = raw.array_sz()?;
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(14)?;
+        read_len.read_elems(10)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (block_number, block_number_encoding) = raw
@@ -457,10 +457,10 @@ impl Deserialize for HeaderBody {
                 })
                 .map_err(|e: DeserializeError| e.annotate("block_body_hash"))?;
             let operational_cert =
-                OperationalCert::deserialize_as_embedded_group(raw, &mut read_len, len)
+                OperationalCert::deserialize(raw)
                     .map_err(|e: DeserializeError| e.annotate("operational_cert"))?;
             let protocol_version =
-                ProtocolVersion::deserialize_as_embedded_group(raw, &mut read_len, len)
+                ProtocolVersion::deserialize(raw)
                     .map_err(|e: DeserializeError| e.annotate("protocol_version"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),

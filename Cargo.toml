@@ -5,7 +5,7 @@ members = [
     "chain/rust",
     "chain/wasm",
 # names changed - will be replaced in the PR coming soon to regen chain
-#    "chain/wasm/json-gen",
+    "chain/wasm/json-gen",
     "cip25/rust",
     "cip25/wasm",
     "cip25/wasm/json-gen",

@@ -6,8 +6,11 @@ pub mod delegation;
 pub mod mpc;
 pub mod transaction;
 pub mod update;
+#[macro_use]
 pub mod utils;
 
+use crate::impl_wasm_cbor_json_api_byron;
+use cml_core_wasm::impl_wasm_conversions;
 use cml_chain_wasm::byron::ByronTxOut;
 pub use utils::{Blake2b224, Blake2b256, ByronAny};
 use cml_chain_wasm::utils::BigInt;
@@ -26,34 +29,12 @@ pub type ByronSignature = Vec<u8>;
 #[wasm_bindgen]
 pub struct ByronSlotId(cml_multi_era::byron::ByronSlotId);
 
+impl_wasm_cbor_json_api_byron!(ByronSlotId);
+
+impl_wasm_conversions!(cml_multi_era::byron::ByronSlotId, ByronSlotId);
+
 #[wasm_bindgen]
 impl ByronSlotId {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronSlotId, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronSlotId, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn epoch(&self) -> EpochId {
         self.0.epoch
     }
@@ -64,24 +45,6 @@ impl ByronSlotId {
 
     pub fn new(epoch: EpochId, slot: u64) -> Self {
         Self(cml_multi_era::byron::ByronSlotId::new(epoch, slot))
-    }
-}
-
-impl From<cml_multi_era::byron::ByronSlotId> for ByronSlotId {
-    fn from(native: cml_multi_era::byron::ByronSlotId) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronSlotId> for cml_multi_era::byron::ByronSlotId {
-    fn from(wasm: ByronSlotId) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::ByronSlotId> for ByronSlotId {
-    fn as_ref(&self) -> &cml_multi_era::byron::ByronSlotId {
-        &self.0
     }
 }
 

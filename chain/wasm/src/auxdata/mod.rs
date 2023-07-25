@@ -5,40 +5,19 @@ use super::{
     NativeScriptList, PlutusV1ScriptList, PlutusV2ScriptList,
 };
 pub use cml_core_wasm::metadata::{Metadata, TransactionMetadatum, TransactionMetadatumLabel};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AlonzoAuxData(cml_chain::auxdata::AlonzoAuxData);
 
+impl_wasm_cbor_json_api!(AlonzoAuxData);
+
+impl_wasm_conversions!(cml_chain::auxdata::AlonzoAuxData, AlonzoAuxData);
+
 #[wasm_bindgen]
 impl AlonzoAuxData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoAuxData, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AlonzoAuxData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn set_metadata(&mut self, metadata: &Metadata) {
         self.0.metadata = Some(metadata.clone().into())
     }
@@ -82,56 +61,16 @@ impl AlonzoAuxData {
     }
 }
 
-impl From<cml_chain::auxdata::AlonzoAuxData> for AlonzoAuxData {
-    fn from(native: cml_chain::auxdata::AlonzoAuxData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoAuxData> for cml_chain::auxdata::AlonzoAuxData {
-    fn from(wasm: AlonzoAuxData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::auxdata::AlonzoAuxData> for AlonzoAuxData {
-    fn as_ref(&self) -> &cml_chain::auxdata::AlonzoAuxData {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AuxiliaryData(cml_chain::auxdata::AuxiliaryData);
 
+impl_wasm_cbor_json_api!(AuxiliaryData);
+
+impl_wasm_conversions!(cml_chain::auxdata::AuxiliaryData, AuxiliaryData);
+
 #[wasm_bindgen]
 impl AuxiliaryData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AuxiliaryData, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AuxiliaryData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_shelley(shelley: &ShelleyAuxData) -> Self {
         Self(cml_chain::auxdata::AuxiliaryData::new_shelley(
             shelley.clone().into(),
@@ -184,24 +123,6 @@ impl AuxiliaryData {
     }
 }
 
-impl From<cml_chain::auxdata::AuxiliaryData> for AuxiliaryData {
-    fn from(native: cml_chain::auxdata::AuxiliaryData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AuxiliaryData> for cml_chain::auxdata::AuxiliaryData {
-    fn from(wasm: AuxiliaryData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::auxdata::AuxiliaryData> for AuxiliaryData {
-    fn as_ref(&self) -> &cml_chain::auxdata::AuxiliaryData {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum AuxiliaryDataKind {
     Shelley,
@@ -215,34 +136,12 @@ pub type ShelleyAuxData = Metadata;
 #[wasm_bindgen]
 pub struct ShelleyMaAuxData(cml_chain::auxdata::ShelleyMaAuxData);
 
+impl_wasm_cbor_json_api!(ShelleyMaAuxData);
+
+impl_wasm_conversions!(cml_chain::auxdata::ShelleyMaAuxData, ShelleyMaAuxData);
+
 #[wasm_bindgen]
 impl ShelleyMaAuxData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ShelleyMaAuxData, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ShelleyMaAuxData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn transaction_metadata(&self) -> Metadata {
         self.0.transaction_metadata.clone().into()
     }
@@ -259,20 +158,3 @@ impl ShelleyMaAuxData {
     }
 }
 
-impl From<cml_chain::auxdata::ShelleyMaAuxData> for ShelleyMaAuxData {
-    fn from(native: cml_chain::auxdata::ShelleyMaAuxData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ShelleyMaAuxData> for cml_chain::auxdata::ShelleyMaAuxData {
-    fn from(wasm: ShelleyMaAuxData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::auxdata::ShelleyMaAuxData> for ShelleyMaAuxData {
-    fn as_ref(&self) -> &cml_chain::auxdata::ShelleyMaAuxData {
-        &self.0
-    }
-}

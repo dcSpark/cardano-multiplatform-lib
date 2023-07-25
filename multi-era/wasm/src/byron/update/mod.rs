@@ -2,11 +2,13 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use crate::byron::transaction::ByronAttributes;
+use crate::impl_wasm_cbor_json_api_byron;
 use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronUpdateId, EpochId};
 use crate::byron::{
     BigIntList, ByronTxFeePolicyList, ByronUpdateProposalList, ByronUpdateVoteList,
     MapSystemTagToByronUpdateData, SoftForkRuleList,
 };
+use cml_core_wasm::impl_wasm_conversions;
 use cml_chain_wasm::utils::BigInt;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
@@ -14,34 +16,12 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 #[wasm_bindgen]
 pub struct Bvermod(cml_multi_era::byron::update::Bvermod);
 
+impl_wasm_cbor_json_api_byron!(Bvermod);
+
+impl_wasm_conversions!(cml_multi_era::byron::update::Bvermod, Bvermod);
+
 #[wasm_bindgen]
 impl Bvermod {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Bvermod, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Bvermod, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn script_version(&self) -> Vec<u16> {
         self.0.script_version.clone()
     }
@@ -133,56 +113,19 @@ impl Bvermod {
     }
 }
 
-impl From<cml_multi_era::byron::update::Bvermod> for Bvermod {
-    fn from(native: cml_multi_era::byron::update::Bvermod) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Bvermod> for cml_multi_era::byron::update::Bvermod {
-    fn from(wasm: Bvermod) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::update::Bvermod> for Bvermod {
-    fn as_ref(&self) -> &cml_multi_era::byron::update::Bvermod {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronBlockVersion(cml_multi_era::byron::update::ByronBlockVersion);
 
+impl_wasm_cbor_json_api_byron!(ByronBlockVersion);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::update::ByronBlockVersion,
+    ByronBlockVersion
+);
+
 #[wasm_bindgen]
 impl ByronBlockVersion {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronBlockVersion, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronBlockVersion, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn u16(&self) -> u16 {
         self.0.u16
     }
@@ -202,56 +145,19 @@ impl ByronBlockVersion {
     }
 }
 
-impl From<cml_multi_era::byron::update::ByronBlockVersion> for ByronBlockVersion {
-    fn from(native: cml_multi_era::byron::update::ByronBlockVersion) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronBlockVersion> for cml_multi_era::byron::update::ByronBlockVersion {
-    fn from(wasm: ByronBlockVersion) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::update::ByronBlockVersion> for ByronBlockVersion {
-    fn as_ref(&self) -> &cml_multi_era::byron::update::ByronBlockVersion {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronSoftwareVersion(cml_multi_era::byron::update::ByronSoftwareVersion);
 
+impl_wasm_cbor_json_api_byron!(ByronSoftwareVersion);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::update::ByronSoftwareVersion,
+    ByronSoftwareVersion
+);
+
 #[wasm_bindgen]
 impl ByronSoftwareVersion {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronSoftwareVersion, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronSoftwareVersion, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn application_name(&self) -> String {
         self.0.application_name.clone()
     }
@@ -268,56 +174,19 @@ impl ByronSoftwareVersion {
     }
 }
 
-impl From<cml_multi_era::byron::update::ByronSoftwareVersion> for ByronSoftwareVersion {
-    fn from(native: cml_multi_era::byron::update::ByronSoftwareVersion) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronSoftwareVersion> for cml_multi_era::byron::update::ByronSoftwareVersion {
-    fn from(wasm: ByronSoftwareVersion) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::update::ByronSoftwareVersion> for ByronSoftwareVersion {
-    fn as_ref(&self) -> &cml_multi_era::byron::update::ByronSoftwareVersion {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronTxFeePolicy(cml_multi_era::byron::update::ByronTxFeePolicy);
 
+impl_wasm_cbor_json_api_byron!(ByronTxFeePolicy);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::update::ByronTxFeePolicy,
+    ByronTxFeePolicy
+);
+
 #[wasm_bindgen]
 impl ByronTxFeePolicy {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronTxFeePolicy, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronTxFeePolicy, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn index_1(&self) -> StdFeePolicy {
         self.0.index_1.clone().into()
     }
@@ -329,56 +198,16 @@ impl ByronTxFeePolicy {
     }
 }
 
-impl From<cml_multi_era::byron::update::ByronTxFeePolicy> for ByronTxFeePolicy {
-    fn from(native: cml_multi_era::byron::update::ByronTxFeePolicy) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronTxFeePolicy> for cml_multi_era::byron::update::ByronTxFeePolicy {
-    fn from(wasm: ByronTxFeePolicy) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::update::ByronTxFeePolicy> for ByronTxFeePolicy {
-    fn as_ref(&self) -> &cml_multi_era::byron::update::ByronTxFeePolicy {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronUpdate(cml_multi_era::byron::update::ByronUpdate);
 
+impl_wasm_cbor_json_api_byron!(ByronUpdate);
+
+impl_wasm_conversions!(cml_multi_era::byron::update::ByronUpdate, ByronUpdate);
+
 #[wasm_bindgen]
 impl ByronUpdate {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronUpdate, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronUpdate, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn proposal(&self) -> ByronUpdateProposalList {
         self.0.proposal.clone().into()
     }
@@ -395,56 +224,19 @@ impl ByronUpdate {
     }
 }
 
-impl From<cml_multi_era::byron::update::ByronUpdate> for ByronUpdate {
-    fn from(native: cml_multi_era::byron::update::ByronUpdate) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronUpdate> for cml_multi_era::byron::update::ByronUpdate {
-    fn from(wasm: ByronUpdate) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::update::ByronUpdate> for ByronUpdate {
-    fn as_ref(&self) -> &cml_multi_era::byron::update::ByronUpdate {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronUpdateData(cml_multi_era::byron::update::ByronUpdateData);
 
+impl_wasm_cbor_json_api_byron!(ByronUpdateData);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::update::ByronUpdateData,
+    ByronUpdateData
+);
+
 #[wasm_bindgen]
 impl ByronUpdateData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronUpdateData, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronUpdateData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn blake2b256(&self) -> Blake2b256 {
         self.0.blake2b256.clone().into()
     }
@@ -476,56 +268,19 @@ impl ByronUpdateData {
     }
 }
 
-impl From<cml_multi_era::byron::update::ByronUpdateData> for ByronUpdateData {
-    fn from(native: cml_multi_era::byron::update::ByronUpdateData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronUpdateData> for cml_multi_era::byron::update::ByronUpdateData {
-    fn from(wasm: ByronUpdateData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::update::ByronUpdateData> for ByronUpdateData {
-    fn as_ref(&self) -> &cml_multi_era::byron::update::ByronUpdateData {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronUpdateProposal(cml_multi_era::byron::update::ByronUpdateProposal);
 
+impl_wasm_cbor_json_api_byron!(ByronUpdateProposal);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::update::ByronUpdateProposal,
+    ByronUpdateProposal
+);
+
 #[wasm_bindgen]
 impl ByronUpdateProposal {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronUpdateProposal, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronUpdateProposal, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn block_version(&self) -> ByronBlockVersion {
         self.0.block_version.clone().into()
     }
@@ -575,56 +330,19 @@ impl ByronUpdateProposal {
     }
 }
 
-impl From<cml_multi_era::byron::update::ByronUpdateProposal> for ByronUpdateProposal {
-    fn from(native: cml_multi_era::byron::update::ByronUpdateProposal) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronUpdateProposal> for cml_multi_era::byron::update::ByronUpdateProposal {
-    fn from(wasm: ByronUpdateProposal) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::update::ByronUpdateProposal> for ByronUpdateProposal {
-    fn as_ref(&self) -> &cml_multi_era::byron::update::ByronUpdateProposal {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronUpdateVote(cml_multi_era::byron::update::ByronUpdateVote);
 
+impl_wasm_cbor_json_api_byron!(ByronUpdateVote);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::update::ByronUpdateVote,
+    ByronUpdateVote
+);
+
 #[wasm_bindgen]
 impl ByronUpdateVote {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronUpdateVote, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronUpdateVote, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn voter(&self) -> ByronPubKey {
         self.0.voter.clone()
     }
@@ -656,58 +374,18 @@ impl ByronUpdateVote {
     }
 }
 
-impl From<cml_multi_era::byron::update::ByronUpdateVote> for ByronUpdateVote {
-    fn from(native: cml_multi_era::byron::update::ByronUpdateVote) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronUpdateVote> for cml_multi_era::byron::update::ByronUpdateVote {
-    fn from(wasm: ByronUpdateVote) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::update::ByronUpdateVote> for ByronUpdateVote {
-    fn as_ref(&self) -> &cml_multi_era::byron::update::ByronUpdateVote {
-        &self.0
-    }
-}
-
 pub type CoinPortion = u64;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct SoftForkRule(cml_multi_era::byron::update::SoftForkRule);
 
+impl_wasm_cbor_json_api_byron!(SoftForkRule);
+
+impl_wasm_conversions!(cml_multi_era::byron::update::SoftForkRule, SoftForkRule);
+
 #[wasm_bindgen]
 impl SoftForkRule {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SoftForkRule, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<SoftForkRule, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn coin_portion(&self) -> CoinPortion {
         self.0.coin_portion
     }
@@ -733,56 +411,16 @@ impl SoftForkRule {
     }
 }
 
-impl From<cml_multi_era::byron::update::SoftForkRule> for SoftForkRule {
-    fn from(native: cml_multi_era::byron::update::SoftForkRule) -> Self {
-        Self(native)
-    }
-}
-
-impl From<SoftForkRule> for cml_multi_era::byron::update::SoftForkRule {
-    fn from(wasm: SoftForkRule) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::update::SoftForkRule> for SoftForkRule {
-    fn as_ref(&self) -> &cml_multi_era::byron::update::SoftForkRule {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct StdFeePolicy(cml_multi_era::byron::update::StdFeePolicy);
 
+impl_wasm_cbor_json_api_byron!(StdFeePolicy);
+
+impl_wasm_conversions!(cml_multi_era::byron::update::StdFeePolicy, StdFeePolicy);
+
 #[wasm_bindgen]
 impl StdFeePolicy {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<StdFeePolicy, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<StdFeePolicy, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn big_int(&self) -> BigInt {
         self.0.big_int.clone().into()
     }
@@ -796,24 +434,6 @@ impl StdFeePolicy {
             big_int.clone().into(),
             big_int2.clone().into(),
         ))
-    }
-}
-
-impl From<cml_multi_era::byron::update::StdFeePolicy> for StdFeePolicy {
-    fn from(native: cml_multi_era::byron::update::StdFeePolicy) -> Self {
-        Self(native)
-    }
-}
-
-impl From<StdFeePolicy> for cml_multi_era::byron::update::StdFeePolicy {
-    fn from(wasm: StdFeePolicy) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::update::StdFeePolicy> for StdFeePolicy {
-    fn as_ref(&self) -> &cml_multi_era::byron::update::StdFeePolicy {
-        &self.0
     }
 }
 

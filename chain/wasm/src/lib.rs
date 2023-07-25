@@ -4,6 +4,8 @@
     clippy::new_without_default
 )]
 
+use cml_core_wasm::metadata::TransactionMetadatumList;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use ::wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 pub use cml_core_wasm::Int;
@@ -35,7 +37,8 @@ use plutus::{
 use transaction::{
     NativeScript, TransactionBody, TransactionInput, TransactionOutput, TransactionWitnessSet,
 };
-pub use cml_chain::{Epoch, NetworkId};
+pub use cml_chain::{Epoch, NetworkId, Coin};
+pub use assets::Value;
 
 //extern crate serde_wasm_bindgen;
 // Code below here was code-generated using an experimental CDDL to rust tool:
@@ -44,6 +47,8 @@ pub use cml_chain::{Epoch, NetworkId};
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AssetNameList(Vec<cml_chain::assets::AssetName>);
+
+impl_wasm_conversions!(Vec<cml_chain::assets::AssetName>, AssetNameList);
 
 #[wasm_bindgen]
 impl AssetNameList {
@@ -64,27 +69,14 @@ impl AssetNameList {
     }
 }
 
-impl From<Vec<cml_chain::assets::AssetName>> for AssetNameList {
-    fn from(native: Vec<cml_chain::assets::AssetName>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AssetNameList> for Vec<cml_chain::assets::AssetName> {
-    fn from(wasm: AssetNameList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::assets::AssetName>> for AssetNameList {
-    fn as_ref(&self) -> &Vec<cml_chain::assets::AssetName> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct BootstrapWitnessList(Vec<cml_chain::crypto::BootstrapWitness>);
+
+impl_wasm_conversions!(
+    Vec<cml_chain::crypto::BootstrapWitness>,
+    BootstrapWitnessList
+);
 
 #[wasm_bindgen]
 impl BootstrapWitnessList {
@@ -105,27 +97,11 @@ impl BootstrapWitnessList {
     }
 }
 
-impl From<Vec<cml_chain::crypto::BootstrapWitness>> for BootstrapWitnessList {
-    fn from(native: Vec<cml_chain::crypto::BootstrapWitness>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<BootstrapWitnessList> for Vec<cml_chain::crypto::BootstrapWitness> {
-    fn from(wasm: BootstrapWitnessList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::crypto::BootstrapWitness>> for BootstrapWitnessList {
-    fn as_ref(&self) -> &Vec<cml_chain::crypto::BootstrapWitness> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct CertificateList(Vec<cml_chain::certs::Certificate>);
+
+impl_wasm_conversions!(Vec<cml_chain::certs::Certificate>, CertificateList);
 
 #[wasm_bindgen]
 impl CertificateList {
@@ -146,31 +122,13 @@ impl CertificateList {
     }
 }
 
-impl From<Vec<cml_chain::certs::Certificate>> for CertificateList {
-    fn from(native: Vec<cml_chain::certs::Certificate>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<CertificateList> for Vec<cml_chain::certs::Certificate> {
-    fn from(wasm: CertificateList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::certs::Certificate>> for CertificateList {
-    fn as_ref(&self) -> &Vec<cml_chain::certs::Certificate> {
-        &self.0
-    }
-}
-
-pub type Coin = u64;
-
 pub type DeltaCoin = Int;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Ed25519KeyHashList(Vec<cml_chain::crypto::Ed25519KeyHash>);
+
+impl_wasm_conversions!(Vec<cml_chain::crypto::Ed25519KeyHash>, Ed25519KeyHashList);
 
 #[wasm_bindgen]
 impl Ed25519KeyHashList {
@@ -191,27 +149,12 @@ impl Ed25519KeyHashList {
     }
 }
 
-impl From<Vec<cml_chain::crypto::Ed25519KeyHash>> for Ed25519KeyHashList {
-    fn from(native: Vec<cml_chain::crypto::Ed25519KeyHash>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Ed25519KeyHashList> for Vec<cml_chain::crypto::Ed25519KeyHash> {
-    fn from(wasm: Ed25519KeyHashList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::crypto::Ed25519KeyHash>> for Ed25519KeyHashList {
-    fn as_ref(&self) -> &Vec<cml_chain::crypto::Ed25519KeyHash> {
-        &self.0
-    }
-}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct GenesisHashList(Vec<cml_chain::crypto::GenesisHash>);
+
+impl_wasm_conversions!(Vec<cml_chain::crypto::GenesisHash>, GenesisHashList);
 
 #[wasm_bindgen]
 impl GenesisHashList {
@@ -232,27 +175,13 @@ impl GenesisHashList {
     }
 }
 
-impl From<Vec<cml_chain::crypto::GenesisHash>> for GenesisHashList {
-    fn from(native: Vec<cml_chain::crypto::GenesisHash>) -> Self {
-        Self(native)
-    }
-}
 
-impl From<GenesisHashList> for Vec<cml_chain::crypto::GenesisHash> {
-    fn from(wasm: GenesisHashList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::crypto::GenesisHash>> for GenesisHashList {
-    fn as_ref(&self) -> &Vec<cml_chain::crypto::GenesisHash> {
-        &self.0
-    }
-}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct IntList(Vec<cml_chain::Int>);
+
+impl_wasm_conversions!(Vec<cml_chain::Int>, IntList);
 
 #[wasm_bindgen]
 impl IntList {
@@ -273,27 +202,11 @@ impl IntList {
     }
 }
 
-impl From<Vec<cml_chain::Int>> for IntList {
-    fn from(native: Vec<cml_chain::Int>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<IntList> for Vec<cml_chain::Int> {
-    fn from(wasm: IntList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::Int>> for IntList {
-    fn as_ref(&self) -> &Vec<cml_chain::Int> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapAssetNameToI64(OrderedHashMap<cml_chain::assets::AssetName, i64>);
+
+impl_wasm_conversions!(OrderedHashMap<cml_chain::assets::AssetName, i64>, MapAssetNameToI64);
 
 #[wasm_bindgen]
 impl MapAssetNameToI64 {
@@ -318,29 +231,14 @@ impl MapAssetNameToI64 {
     }
 }
 
-impl From<OrderedHashMap<cml_chain::assets::AssetName, i64>> for MapAssetNameToI64 {
-    fn from(native: OrderedHashMap<cml_chain::assets::AssetName, i64>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MapAssetNameToI64> for OrderedHashMap<cml_chain::assets::AssetName, i64> {
-    fn from(wasm: MapAssetNameToI64) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<OrderedHashMap<cml_chain::assets::AssetName, i64>> for MapAssetNameToI64 {
-    fn as_ref(&self) -> &OrderedHashMap<cml_chain::assets::AssetName, i64> {
-        &self.0
-    }
-}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapStakeCredentialToDeltaCoin(
     OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>,
 );
+
+impl_wasm_conversions!(OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>, MapStakeCredentialToDeltaCoin);
 
 #[wasm_bindgen]
 impl MapStakeCredentialToDeltaCoin {
@@ -367,37 +265,13 @@ impl MapStakeCredentialToDeltaCoin {
     }
 }
 
-impl From<OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>>
-    for MapStakeCredentialToDeltaCoin
-{
-    fn from(
-        native: OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>,
-    ) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MapStakeCredentialToDeltaCoin>
-    for OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>
-{
-    fn from(wasm: MapStakeCredentialToDeltaCoin) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>>
-    for MapStakeCredentialToDeltaCoin
-{
-    fn as_ref(&self) -> &OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapTransactionIndexToAuxiliaryData(
     OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::AuxiliaryData>,
 );
+
+impl_wasm_conversions!(OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::AuxiliaryData>, MapTransactionIndexToAuxiliaryData);
 
 #[wasm_bindgen]
 impl MapTransactionIndexToAuxiliaryData {
@@ -426,34 +300,6 @@ impl MapTransactionIndexToAuxiliaryData {
     }
 }
 
-impl From<OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::AuxiliaryData>>
-    for MapTransactionIndexToAuxiliaryData
-{
-    fn from(
-        native: OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::AuxiliaryData>,
-    ) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MapTransactionIndexToAuxiliaryData>
-    for OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::AuxiliaryData>
-{
-    fn from(wasm: MapTransactionIndexToAuxiliaryData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::AuxiliaryData>>
-    for MapTransactionIndexToAuxiliaryData
-{
-    fn as_ref(
-        &self,
-    ) -> &OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::AuxiliaryData> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapTransactionMetadatumToTransactionMetadatum(
@@ -462,6 +308,8 @@ pub struct MapTransactionMetadatumToTransactionMetadatum(
         cml_chain::auxdata::TransactionMetadatum,
     >,
 );
+
+impl_wasm_conversions!(OrderedHashMap<cml_chain::auxdata::TransactionMetadatum, cml_chain::auxdata::TransactionMetadatum>, MapTransactionMetadatumToTransactionMetadatum);
 
 #[wasm_bindgen]
 impl MapTransactionMetadatumToTransactionMetadatum {
@@ -488,60 +336,15 @@ impl MapTransactionMetadatumToTransactionMetadatum {
     }
 
     pub fn keys(&self) -> TransactionMetadatumList {
-        TransactionMetadatumList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
-
-impl
-    From<
-        OrderedHashMap<
-            cml_chain::auxdata::TransactionMetadatum,
-            cml_chain::auxdata::TransactionMetadatum,
-        >,
-    > for MapTransactionMetadatumToTransactionMetadatum
-{
-    fn from(
-        native: OrderedHashMap<
-            cml_chain::auxdata::TransactionMetadatum,
-            cml_chain::auxdata::TransactionMetadatum,
-        >,
-    ) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MapTransactionMetadatumToTransactionMetadatum>
-    for OrderedHashMap<
-        cml_chain::auxdata::TransactionMetadatum,
-        cml_chain::auxdata::TransactionMetadatum,
-    >
-{
-    fn from(wasm: MapTransactionMetadatumToTransactionMetadatum) -> Self {
-        wasm.0
-    }
-}
-
-impl
-    AsRef<
-        OrderedHashMap<
-            cml_chain::auxdata::TransactionMetadatum,
-            cml_chain::auxdata::TransactionMetadatum,
-        >,
-    > for MapTransactionMetadatumToTransactionMetadatum
-{
-    fn as_ref(
-        &self,
-    ) -> &OrderedHashMap<
-        cml_chain::auxdata::TransactionMetadatum,
-        cml_chain::auxdata::TransactionMetadatum,
-    > {
-        &self.0
+        self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>().into()
     }
 }
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct NativeScriptList(Vec<cml_chain::transaction::NativeScript>);
+
+impl_wasm_conversions!(Vec<cml_chain::transaction::NativeScript>, NativeScriptList);
 
 #[wasm_bindgen]
 impl NativeScriptList {
@@ -562,28 +365,11 @@ impl NativeScriptList {
     }
 }
 
-impl From<Vec<cml_chain::transaction::NativeScript>> for NativeScriptList {
-    fn from(native: Vec<cml_chain::transaction::NativeScript>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<NativeScriptList> for Vec<cml_chain::transaction::NativeScript> {
-    fn from(wasm: NativeScriptList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::transaction::NativeScript>> for NativeScriptList {
-    fn as_ref(&self) -> &Vec<cml_chain::transaction::NativeScript> {
-        &self.0
-    }
-}
-
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PlutusDataList(Vec<cml_chain::plutus::PlutusData>);
+
+impl_wasm_conversions!(Vec<cml_chain::plutus::PlutusData>, PlutusDataList);
 
 #[wasm_bindgen]
 impl PlutusDataList {
@@ -604,27 +390,11 @@ impl PlutusDataList {
     }
 }
 
-impl From<Vec<cml_chain::plutus::PlutusData>> for PlutusDataList {
-    fn from(native: Vec<cml_chain::plutus::PlutusData>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<PlutusDataList> for Vec<cml_chain::plutus::PlutusData> {
-    fn from(wasm: PlutusDataList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::plutus::PlutusData>> for PlutusDataList {
-    fn as_ref(&self) -> &Vec<cml_chain::plutus::PlutusData> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PlutusV1ScriptList(Vec<cml_chain::plutus::PlutusV1Script>);
+
+impl_wasm_conversions!(Vec<cml_chain::plutus::PlutusV1Script>, PlutusV1ScriptList);
 
 #[wasm_bindgen]
 impl PlutusV1ScriptList {
@@ -645,27 +415,11 @@ impl PlutusV1ScriptList {
     }
 }
 
-impl From<Vec<cml_chain::plutus::PlutusV1Script>> for PlutusV1ScriptList {
-    fn from(native: Vec<cml_chain::plutus::PlutusV1Script>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<PlutusV1ScriptList> for Vec<cml_chain::plutus::PlutusV1Script> {
-    fn from(wasm: PlutusV1ScriptList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::plutus::PlutusV1Script>> for PlutusV1ScriptList {
-    fn as_ref(&self) -> &Vec<cml_chain::plutus::PlutusV1Script> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PlutusV2ScriptList(Vec<cml_chain::plutus::PlutusV2Script>);
+
+impl_wasm_conversions!(Vec<cml_chain::plutus::PlutusV2Script>, PlutusV2ScriptList);
 
 #[wasm_bindgen]
 impl PlutusV2ScriptList {
@@ -686,29 +440,13 @@ impl PlutusV2ScriptList {
     }
 }
 
-impl From<Vec<cml_chain::plutus::PlutusV2Script>> for PlutusV2ScriptList {
-    fn from(native: Vec<cml_chain::plutus::PlutusV2Script>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<PlutusV2ScriptList> for Vec<cml_chain::plutus::PlutusV2Script> {
-    fn from(wasm: PlutusV2ScriptList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::plutus::PlutusV2Script>> for PlutusV2ScriptList {
-    fn as_ref(&self) -> &Vec<cml_chain::plutus::PlutusV2Script> {
-        &self.0
-    }
-}
-
 pub type PolicyId = ScriptHash;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PolicyIdList(Vec<cml_chain::PolicyId>);
+
+impl_wasm_conversions!(Vec<cml_chain::PolicyId>, PolicyIdList);
 
 #[wasm_bindgen]
 impl PolicyIdList {
@@ -729,92 +467,16 @@ impl PolicyIdList {
     }
 }
 
-impl From<Vec<cml_chain::PolicyId>> for PolicyIdList {
-    fn from(native: Vec<cml_chain::PolicyId>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<PolicyIdList> for Vec<cml_chain::PolicyId> {
-    fn from(wasm: PolicyIdList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::PolicyId>> for PolicyIdList {
-    fn as_ref(&self) -> &Vec<cml_chain::PolicyId> {
-        &self.0
-    }
-}
-
 pub type Port = u16;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct PositiveInterval(cml_chain::PositiveInterval);
-
-#[wasm_bindgen]
-impl PositiveInterval {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<PositiveInterval, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<PositiveInterval, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
-    pub fn strart(&self) -> u64 {
-        self.0.strart
-    }
-
-    pub fn end(&self) -> u64 {
-        self.0.end
-    }
-
-    pub fn new(strart: u64, end: u64) -> Self {
-        Self(cml_chain::PositiveInterval::new(strart, end))
-    }
-}
-
-impl From<cml_chain::PositiveInterval> for PositiveInterval {
-    fn from(native: cml_chain::PositiveInterval) -> Self {
-        Self(native)
-    }
-}
-
-impl From<PositiveInterval> for cml_chain::PositiveInterval {
-    fn from(wasm: PositiveInterval) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::PositiveInterval> for PositiveInterval {
-    fn as_ref(&self) -> &cml_chain::PositiveInterval {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
 pub struct ProposedProtocolParameterUpdates(cml_chain::ProposedProtocolParameterUpdates);
+
+impl_wasm_conversions!(
+    cml_chain::ProposedProtocolParameterUpdates,
+    ProposedProtocolParameterUpdates
+);
 
 #[wasm_bindgen]
 impl ProposedProtocolParameterUpdates {
@@ -845,56 +507,16 @@ impl ProposedProtocolParameterUpdates {
     }
 }
 
-impl From<cml_chain::ProposedProtocolParameterUpdates> for ProposedProtocolParameterUpdates {
-    fn from(native: cml_chain::ProposedProtocolParameterUpdates) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ProposedProtocolParameterUpdates> for cml_chain::ProposedProtocolParameterUpdates {
-    fn from(wasm: ProposedProtocolParameterUpdates) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::ProposedProtocolParameterUpdates> for ProposedProtocolParameterUpdates {
-    fn as_ref(&self) -> &cml_chain::ProposedProtocolParameterUpdates {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ProtocolParamUpdate(cml_chain::ProtocolParamUpdate);
 
+impl_wasm_cbor_json_api!(ProtocolParamUpdate);
+
+impl_wasm_conversions!(cml_chain::ProtocolParamUpdate, ProtocolParamUpdate);
+
 #[wasm_bindgen]
 impl ProtocolParamUpdate {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ProtocolParamUpdate, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ProtocolParamUpdate, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn set_minfee_a(&mut self, minfee_a: u64) {
         self.0.minfee_a = Some(minfee_a)
     }
@@ -1095,56 +717,16 @@ impl ProtocolParamUpdate {
     }
 }
 
-impl From<cml_chain::ProtocolParamUpdate> for ProtocolParamUpdate {
-    fn from(native: cml_chain::ProtocolParamUpdate) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ProtocolParamUpdate> for cml_chain::ProtocolParamUpdate {
-    fn from(wasm: ProtocolParamUpdate) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::ProtocolParamUpdate> for ProtocolParamUpdate {
-    fn as_ref(&self) -> &cml_chain::ProtocolParamUpdate {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ProtocolVersionStruct(cml_chain::ProtocolVersionStruct);
 
+impl_wasm_cbor_json_api!(ProtocolVersionStruct);
+
+impl_wasm_conversions!(cml_chain::ProtocolVersionStruct, ProtocolVersionStruct);
+
 #[wasm_bindgen]
 impl ProtocolVersionStruct {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ProtocolVersionStruct, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ProtocolVersionStruct, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn protocol_version(&self) -> ProtocolVersion {
         self.0.protocol_version.clone().into()
     }
@@ -1156,56 +738,16 @@ impl ProtocolVersionStruct {
     }
 }
 
-impl From<cml_chain::ProtocolVersionStruct> for ProtocolVersionStruct {
-    fn from(native: cml_chain::ProtocolVersionStruct) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ProtocolVersionStruct> for cml_chain::ProtocolVersionStruct {
-    fn from(wasm: ProtocolVersionStruct) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::ProtocolVersionStruct> for ProtocolVersionStruct {
-    fn as_ref(&self) -> &cml_chain::ProtocolVersionStruct {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Rational(cml_chain::Rational);
 
+impl_wasm_cbor_json_api!(Rational);
+
+impl_wasm_conversions!(cml_chain::Rational, Rational);
+
 #[wasm_bindgen]
 impl Rational {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Rational, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Rational, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn numerator(&self) -> u64 {
         self.0.numerator
     }
@@ -1219,27 +761,11 @@ impl Rational {
     }
 }
 
-impl From<cml_chain::Rational> for Rational {
-    fn from(native: cml_chain::Rational) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Rational> for cml_chain::Rational {
-    fn from(wasm: Rational) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::Rational> for Rational {
-    fn as_ref(&self) -> &cml_chain::Rational {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct RedeemerList(Vec<cml_chain::plutus::Redeemer>);
+
+impl_wasm_conversions!(Vec<cml_chain::plutus::Redeemer>, RedeemerList);
 
 #[wasm_bindgen]
 impl RedeemerList {
@@ -1260,27 +786,11 @@ impl RedeemerList {
     }
 }
 
-impl From<Vec<cml_chain::plutus::Redeemer>> for RedeemerList {
-    fn from(native: Vec<cml_chain::plutus::Redeemer>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<RedeemerList> for Vec<cml_chain::plutus::Redeemer> {
-    fn from(wasm: RedeemerList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::plutus::Redeemer>> for RedeemerList {
-    fn as_ref(&self) -> &Vec<cml_chain::plutus::Redeemer> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct RelayList(Vec<cml_chain::certs::Relay>);
+
+impl_wasm_conversions!(Vec<cml_chain::certs::Relay>, RelayList);
 
 #[wasm_bindgen]
 impl RelayList {
@@ -1301,27 +811,11 @@ impl RelayList {
     }
 }
 
-impl From<Vec<cml_chain::certs::Relay>> for RelayList {
-    fn from(native: Vec<cml_chain::certs::Relay>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<RelayList> for Vec<cml_chain::certs::Relay> {
-    fn from(wasm: RelayList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::certs::Relay>> for RelayList {
-    fn as_ref(&self) -> &Vec<cml_chain::certs::Relay> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct RewardAccountList(Vec<cml_chain::address::RewardAccount>);
+
+impl_wasm_conversions!(Vec<cml_chain::address::RewardAccount>, RewardAccountList);
 
 #[wasm_bindgen]
 impl RewardAccountList {
@@ -1342,56 +836,16 @@ impl RewardAccountList {
     }
 }
 
-impl From<Vec<cml_chain::address::RewardAccount>> for RewardAccountList {
-    fn from(native: Vec<cml_chain::address::RewardAccount>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<RewardAccountList> for Vec<cml_chain::address::RewardAccount> {
-    fn from(wasm: RewardAccountList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::address::RewardAccount>> for RewardAccountList {
-    fn as_ref(&self) -> &Vec<cml_chain::address::RewardAccount> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Script(cml_chain::Script);
 
+impl_wasm_cbor_json_api!(Script);
+
+impl_wasm_conversions!(cml_chain::Script, Script);
+
 #[wasm_bindgen]
 impl Script {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Script, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Script, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_native(script: &NativeScript) -> Self {
         Self(cml_chain::Script::new_native(script.clone().into()))
     }
@@ -1434,24 +888,6 @@ impl Script {
     }
 }
 
-impl From<cml_chain::Script> for Script {
-    fn from(native: cml_chain::Script) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Script> for cml_chain::Script {
-    fn from(wasm: Script) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::Script> for Script {
-    fn as_ref(&self) -> &cml_chain::Script {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum ScriptKind {
     Native,
@@ -1464,6 +900,8 @@ pub type Slot = u64;
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct StakeCredentialList(Vec<cml_chain::certs::StakeCredential>);
+
+impl_wasm_conversions!(Vec<cml_chain::certs::StakeCredential>, StakeCredentialList);
 
 #[wasm_bindgen]
 impl StakeCredentialList {
@@ -1484,29 +922,16 @@ impl StakeCredentialList {
     }
 }
 
-impl From<Vec<cml_chain::certs::StakeCredential>> for StakeCredentialList {
-    fn from(native: Vec<cml_chain::certs::StakeCredential>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<StakeCredentialList> for Vec<cml_chain::certs::StakeCredential> {
-    fn from(wasm: StakeCredentialList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::certs::StakeCredential>> for StakeCredentialList {
-    fn as_ref(&self) -> &Vec<cml_chain::certs::StakeCredential> {
-        &self.0
-    }
-}
-
 pub type SubCoin = Rational;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct TransactionBodyList(Vec<cml_chain::transaction::TransactionBody>);
+
+impl_wasm_conversions!(
+    Vec<cml_chain::transaction::TransactionBody>,
+    TransactionBodyList
+);
 
 #[wasm_bindgen]
 impl TransactionBodyList {
@@ -1527,29 +952,16 @@ impl TransactionBodyList {
     }
 }
 
-impl From<Vec<cml_chain::transaction::TransactionBody>> for TransactionBodyList {
-    fn from(native: Vec<cml_chain::transaction::TransactionBody>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<TransactionBodyList> for Vec<cml_chain::transaction::TransactionBody> {
-    fn from(wasm: TransactionBodyList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::transaction::TransactionBody>> for TransactionBodyList {
-    fn as_ref(&self) -> &Vec<cml_chain::transaction::TransactionBody> {
-        &self.0
-    }
-}
-
 pub type TransactionIndex = u16;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct TransactionInputList(Vec<cml_chain::transaction::TransactionInput>);
+
+impl_wasm_conversions!(
+    Vec<cml_chain::transaction::TransactionInput>,
+    TransactionInputList
+);
 
 #[wasm_bindgen]
 impl TransactionInputList {
@@ -1570,70 +982,15 @@ impl TransactionInputList {
     }
 }
 
-impl From<Vec<cml_chain::transaction::TransactionInput>> for TransactionInputList {
-    fn from(native: Vec<cml_chain::transaction::TransactionInput>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<TransactionInputList> for Vec<cml_chain::transaction::TransactionInput> {
-    fn from(wasm: TransactionInputList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::transaction::TransactionInput>> for TransactionInputList {
-    fn as_ref(&self) -> &Vec<cml_chain::transaction::TransactionInput> {
-        &self.0
-    }
-}
-
-pub type TransactionMetadatumLabel = u64;
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct TransactionMetadatumList(Vec<cml_chain::auxdata::TransactionMetadatum>);
-
-#[wasm_bindgen]
-impl TransactionMetadatumList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> TransactionMetadatum {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &TransactionMetadatum) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_chain::auxdata::TransactionMetadatum>> for TransactionMetadatumList {
-    fn from(native: Vec<cml_chain::auxdata::TransactionMetadatum>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<TransactionMetadatumList> for Vec<cml_chain::auxdata::TransactionMetadatum> {
-    fn from(wasm: TransactionMetadatumList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::auxdata::TransactionMetadatum>> for TransactionMetadatumList {
-    fn as_ref(&self) -> &Vec<cml_chain::auxdata::TransactionMetadatum> {
-        &self.0
-    }
-}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct TransactionOutputList(Vec<cml_chain::transaction::TransactionOutput>);
+
+impl_wasm_conversions!(
+    Vec<cml_chain::transaction::TransactionOutput>,
+    TransactionOutputList
+);
 
 #[wasm_bindgen]
 impl TransactionOutputList {
@@ -1654,27 +1011,14 @@ impl TransactionOutputList {
     }
 }
 
-impl From<Vec<cml_chain::transaction::TransactionOutput>> for TransactionOutputList {
-    fn from(native: Vec<cml_chain::transaction::TransactionOutput>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<TransactionOutputList> for Vec<cml_chain::transaction::TransactionOutput> {
-    fn from(wasm: TransactionOutputList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::transaction::TransactionOutput>> for TransactionOutputList {
-    fn as_ref(&self) -> &Vec<cml_chain::transaction::TransactionOutput> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct TransactionWitnessSetList(Vec<cml_chain::transaction::TransactionWitnessSet>);
+
+impl_wasm_conversions!(
+    Vec<cml_chain::transaction::TransactionWitnessSet>,
+    TransactionWitnessSetList
+);
 
 #[wasm_bindgen]
 impl TransactionWitnessSetList {
@@ -1695,56 +1039,16 @@ impl TransactionWitnessSetList {
     }
 }
 
-impl From<Vec<cml_chain::transaction::TransactionWitnessSet>> for TransactionWitnessSetList {
-    fn from(native: Vec<cml_chain::transaction::TransactionWitnessSet>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<TransactionWitnessSetList> for Vec<cml_chain::transaction::TransactionWitnessSet> {
-    fn from(wasm: TransactionWitnessSetList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::transaction::TransactionWitnessSet>> for TransactionWitnessSetList {
-    fn as_ref(&self) -> &Vec<cml_chain::transaction::TransactionWitnessSet> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct UnitInterval(cml_chain::UnitInterval);
 
+impl_wasm_cbor_json_api!(UnitInterval);
+
+impl_wasm_conversions!(cml_chain::UnitInterval, UnitInterval);
+
 #[wasm_bindgen]
 impl UnitInterval {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<UnitInterval, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<UnitInterval, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn start(&self) -> u64 {
         self.0.start
     }
@@ -1758,56 +1062,16 @@ impl UnitInterval {
     }
 }
 
-impl From<cml_chain::UnitInterval> for UnitInterval {
-    fn from(native: cml_chain::UnitInterval) -> Self {
-        Self(native)
-    }
-}
-
-impl From<UnitInterval> for cml_chain::UnitInterval {
-    fn from(wasm: UnitInterval) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::UnitInterval> for UnitInterval {
-    fn as_ref(&self) -> &cml_chain::UnitInterval {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Update(cml_chain::Update);
 
+impl_wasm_cbor_json_api!(Update);
+
+impl_wasm_conversions!(cml_chain::Update, Update);
+
 #[wasm_bindgen]
 impl Update {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Update, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Update, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn proposed_protocol_parameter_updates(&self) -> ProposedProtocolParameterUpdates {
         self.0.proposed_protocol_parameter_updates.clone().into()
     }
@@ -1827,54 +1091,11 @@ impl Update {
     }
 }
 
-impl From<cml_chain::Update> for Update {
-    fn from(native: cml_chain::Update) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Update> for cml_chain::Update {
-    fn from(wasm: Update) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::Update> for Update {
-    fn as_ref(&self) -> &cml_chain::Update {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct Value(cml_chain::Value);
-
-#[wasm_bindgen]
-impl Value {
-    // TODO: API
-}
-
-impl From<cml_chain::Value> for Value {
-    fn from(native: cml_chain::Value) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Value> for cml_chain::Value {
-    fn from(wasm: Value) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::Value> for Value {
-    fn as_ref(&self) -> &cml_chain::Value {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct VkeywitnessList(Vec<cml_chain::crypto::Vkeywitness>);
+
+impl_wasm_conversions!(Vec<cml_chain::crypto::Vkeywitness>, VkeywitnessList);
 
 #[wasm_bindgen]
 impl VkeywitnessList {
@@ -1895,27 +1116,11 @@ impl VkeywitnessList {
     }
 }
 
-impl From<Vec<cml_chain::crypto::Vkeywitness>> for VkeywitnessList {
-    fn from(native: Vec<cml_chain::crypto::Vkeywitness>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<VkeywitnessList> for Vec<cml_chain::crypto::Vkeywitness> {
-    fn from(wasm: VkeywitnessList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::crypto::Vkeywitness>> for VkeywitnessList {
-    fn as_ref(&self) -> &Vec<cml_chain::crypto::Vkeywitness> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Withdrawals(cml_chain::Withdrawals);
+
+impl_wasm_conversions!(cml_chain::Withdrawals, Withdrawals);
 
 #[wasm_bindgen]
 impl Withdrawals {
@@ -1937,23 +1142,5 @@ impl Withdrawals {
 
     pub fn keys(&self) -> RewardAccountList {
         RewardAccountList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
-
-impl From<cml_chain::Withdrawals> for Withdrawals {
-    fn from(native: cml_chain::Withdrawals) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Withdrawals> for cml_chain::Withdrawals {
-    fn from(wasm: Withdrawals) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::Withdrawals> for Withdrawals {
-    fn as_ref(&self) -> &cml_chain::Withdrawals {
-        &self.0
     }
 }

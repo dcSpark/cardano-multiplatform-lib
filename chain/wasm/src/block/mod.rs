@@ -7,40 +7,19 @@ use super::{
 };
 use crate::crypto::{KESSignature, VRFCert, Vkey};
 use cml_crypto_wasm::{BlockBodyHash, BlockHeaderHash, Ed25519Signature, KESVkey, VRFVkey};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Block(cml_chain::block::Block);
 
+impl_wasm_cbor_json_api!(Block);
+
+impl_wasm_conversions!(cml_chain::block::Block, Block);
+
 #[wasm_bindgen]
 impl Block {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Block, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Block, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn header(&self) -> Header {
         self.0.header.clone().into()
     }
@@ -78,56 +57,16 @@ impl Block {
     }
 }
 
-impl From<cml_chain::block::Block> for Block {
-    fn from(native: cml_chain::block::Block) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Block> for cml_chain::block::Block {
-    fn from(wasm: Block) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::block::Block> for Block {
-    fn as_ref(&self) -> &cml_chain::block::Block {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Header(cml_chain::block::Header);
 
+impl_wasm_cbor_json_api!(Header);
+
+impl_wasm_conversions!(cml_chain::block::Header, Header);
+
 #[wasm_bindgen]
 impl Header {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Header, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Header, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn header_body(&self) -> HeaderBody {
         self.0.header_body.clone().into()
     }
@@ -144,56 +83,16 @@ impl Header {
     }
 }
 
-impl From<cml_chain::block::Header> for Header {
-    fn from(native: cml_chain::block::Header) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Header> for cml_chain::block::Header {
-    fn from(wasm: Header) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::block::Header> for Header {
-    fn as_ref(&self) -> &cml_chain::block::Header {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct HeaderBody(cml_chain::block::HeaderBody);
 
+impl_wasm_cbor_json_api!(HeaderBody);
+
+impl_wasm_conversions!(cml_chain::block::HeaderBody, HeaderBody);
+
 #[wasm_bindgen]
 impl HeaderBody {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<HeaderBody, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<HeaderBody, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn block_number(&self) -> u64 {
         self.0.block_number
     }
@@ -261,56 +160,16 @@ impl HeaderBody {
     }
 }
 
-impl From<cml_chain::block::HeaderBody> for HeaderBody {
-    fn from(native: cml_chain::block::HeaderBody) -> Self {
-        Self(native)
-    }
-}
-
-impl From<HeaderBody> for cml_chain::block::HeaderBody {
-    fn from(wasm: HeaderBody) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::block::HeaderBody> for HeaderBody {
-    fn as_ref(&self) -> &cml_chain::block::HeaderBody {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct OperationalCert(cml_chain::block::OperationalCert);
 
+impl_wasm_cbor_json_api!(OperationalCert);
+
+impl_wasm_conversions!(cml_chain::block::OperationalCert, OperationalCert);
+
 #[wasm_bindgen]
 impl OperationalCert {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<OperationalCert, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<OperationalCert, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn hot_vkey(&self) -> KESVkey {
         self.0.hot_vkey.clone().into()
     }
@@ -342,56 +201,16 @@ impl OperationalCert {
     }
 }
 
-impl From<cml_chain::block::OperationalCert> for OperationalCert {
-    fn from(native: cml_chain::block::OperationalCert) -> Self {
-        Self(native)
-    }
-}
-
-impl From<OperationalCert> for cml_chain::block::OperationalCert {
-    fn from(wasm: OperationalCert) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::block::OperationalCert> for OperationalCert {
-    fn as_ref(&self) -> &cml_chain::block::OperationalCert {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ProtocolVersion(cml_chain::block::ProtocolVersion);
 
+impl_wasm_cbor_json_api!(ProtocolVersion);
+
+impl_wasm_conversions!(cml_chain::block::ProtocolVersion, ProtocolVersion);
+
 #[wasm_bindgen]
 impl ProtocolVersion {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ProtocolVersion, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ProtocolVersion, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn major(&self) -> u64 {
         self.0.major
     }
@@ -402,23 +221,5 @@ impl ProtocolVersion {
 
     pub fn new(major: u64, minor: u64) -> Self {
         Self(cml_chain::block::ProtocolVersion::new(major, minor))
-    }
-}
-
-impl From<cml_chain::block::ProtocolVersion> for ProtocolVersion {
-    fn from(native: cml_chain::block::ProtocolVersion) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ProtocolVersion> for cml_chain::block::ProtocolVersion {
-    fn from(wasm: ProtocolVersion) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::block::ProtocolVersion> for ProtocolVersion {
-    fn as_ref(&self) -> &cml_chain::block::ProtocolVersion {
-        &self.0
     }
 }

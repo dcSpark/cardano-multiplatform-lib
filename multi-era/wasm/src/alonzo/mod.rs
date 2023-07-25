@@ -17,6 +17,7 @@ use cml_chain_wasm::{
     CertificateList, IntList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
     RedeemerList, TransactionInputList, VkeywitnessList, BootstrapWitnessList
 };
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
 use crate::{
     AlonzoTransactionBodyList, AlonzoTransactionWitnessSetList, AlonzoTransactionOutputList, MapTransactionIndexToAlonzoAuxiliaryData,
@@ -28,34 +29,15 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 #[wasm_bindgen]
 pub struct AlonzoAuxiliaryData(cml_multi_era::alonzo::AlonzoAuxiliaryData);
 
+impl_wasm_cbor_json_api!(AlonzoAuxiliaryData);
+
+impl_wasm_conversions!(
+    cml_multi_era::alonzo::AlonzoAuxiliaryData,
+    AlonzoAuxiliaryData
+);
+
 #[wasm_bindgen]
 impl AlonzoAuxiliaryData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoAuxiliaryData, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AlonzoAuxiliaryData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_shelley(shelley: &ShelleyAuxData) -> Self {
         Self(cml_multi_era::alonzo::AlonzoAuxiliaryData::new_shelley(
             shelley.clone().into(),
@@ -116,24 +98,6 @@ impl AlonzoAuxiliaryData {
     }
 }
 
-impl From<cml_multi_era::alonzo::AlonzoAuxiliaryData> for AlonzoAuxiliaryData {
-    fn from(native: cml_multi_era::alonzo::AlonzoAuxiliaryData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoAuxiliaryData> for cml_multi_era::alonzo::AlonzoAuxiliaryData {
-    fn from(wasm: AlonzoAuxiliaryData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::alonzo::AlonzoAuxiliaryData> for AlonzoAuxiliaryData {
-    fn as_ref(&self) -> &cml_multi_era::alonzo::AlonzoAuxiliaryData {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum AlonzoAuxiliaryDataKind {
     Shelley,
@@ -145,34 +109,12 @@ pub enum AlonzoAuxiliaryDataKind {
 #[wasm_bindgen]
 pub struct AlonzoBlock(cml_multi_era::alonzo::AlonzoBlock);
 
+impl_wasm_cbor_json_api!(AlonzoBlock);
+
+impl_wasm_conversions!(cml_multi_era::alonzo::AlonzoBlock, AlonzoBlock);
+
 #[wasm_bindgen]
 impl AlonzoBlock {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoBlock, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AlonzoBlock, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn header(&self) -> ShelleyHeader {
         self.0.header.clone().into()
     }
@@ -210,56 +152,16 @@ impl AlonzoBlock {
     }
 }
 
-impl From<cml_multi_era::alonzo::AlonzoBlock> for AlonzoBlock {
-    fn from(native: cml_multi_era::alonzo::AlonzoBlock) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoBlock> for cml_multi_era::alonzo::AlonzoBlock {
-    fn from(wasm: AlonzoBlock) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::alonzo::AlonzoBlock> for AlonzoBlock {
-    fn as_ref(&self) -> &cml_multi_era::alonzo::AlonzoBlock {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AlonzoCostmdls(cml_multi_era::alonzo::AlonzoCostmdls);
 
+impl_wasm_cbor_json_api!(AlonzoCostmdls);
+
+impl_wasm_conversions!(cml_multi_era::alonzo::AlonzoCostmdls, AlonzoCostmdls);
+
 #[wasm_bindgen]
 impl AlonzoCostmdls {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoCostmdls, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AlonzoCostmdls, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn plutus_v1(&self) -> IntList {
         self.0.plutus_v1.clone().into()
     }
@@ -271,56 +173,16 @@ impl AlonzoCostmdls {
     }
 }
 
-impl From<cml_multi_era::alonzo::AlonzoCostmdls> for AlonzoCostmdls {
-    fn from(native: cml_multi_era::alonzo::AlonzoCostmdls) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoCostmdls> for cml_multi_era::alonzo::AlonzoCostmdls {
-    fn from(wasm: AlonzoCostmdls) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::alonzo::AlonzoCostmdls> for AlonzoCostmdls {
-    fn as_ref(&self) -> &cml_multi_era::alonzo::AlonzoCostmdls {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AlonzoOnlyAuxData(cml_multi_era::alonzo::AlonzoOnlyAuxData);
 
+impl_wasm_cbor_json_api!(AlonzoOnlyAuxData);
+
+impl_wasm_conversions!(cml_multi_era::alonzo::AlonzoOnlyAuxData, AlonzoOnlyAuxData);
+
 #[wasm_bindgen]
 impl AlonzoOnlyAuxData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoOnlyAuxData, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AlonzoOnlyAuxData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn set_metadata(&mut self, metadata: &Metadata) {
         self.0.metadata = Some(metadata.clone().into())
     }
@@ -353,28 +215,15 @@ impl AlonzoOnlyAuxData {
     }
 }
 
-impl From<cml_multi_era::alonzo::AlonzoOnlyAuxData> for AlonzoOnlyAuxData {
-    fn from(native: cml_multi_era::alonzo::AlonzoOnlyAuxData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoOnlyAuxData> for cml_multi_era::alonzo::AlonzoOnlyAuxData {
-    fn from(wasm: AlonzoOnlyAuxData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::alonzo::AlonzoOnlyAuxData> for AlonzoOnlyAuxData {
-    fn as_ref(&self) -> &cml_multi_era::alonzo::AlonzoOnlyAuxData {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AlonzoProposedProtocolParameterUpdates(
     cml_multi_era::alonzo::AlonzoProposedProtocolParameterUpdates,
+);
+
+impl_wasm_conversions!(
+    cml_multi_era::alonzo::AlonzoProposedProtocolParameterUpdates,
+    AlonzoProposedProtocolParameterUpdates
 );
 
 #[wasm_bindgen]
@@ -406,62 +255,19 @@ impl AlonzoProposedProtocolParameterUpdates {
     }
 }
 
-impl From<cml_multi_era::alonzo::AlonzoProposedProtocolParameterUpdates>
-    for AlonzoProposedProtocolParameterUpdates
-{
-    fn from(native: cml_multi_era::alonzo::AlonzoProposedProtocolParameterUpdates) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoProposedProtocolParameterUpdates>
-    for cml_multi_era::alonzo::AlonzoProposedProtocolParameterUpdates
-{
-    fn from(wasm: AlonzoProposedProtocolParameterUpdates) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::alonzo::AlonzoProposedProtocolParameterUpdates>
-    for AlonzoProposedProtocolParameterUpdates
-{
-    fn as_ref(&self) -> &cml_multi_era::alonzo::AlonzoProposedProtocolParameterUpdates {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AlonzoProtocolParamUpdate(cml_multi_era::alonzo::AlonzoProtocolParamUpdate);
 
+impl_wasm_cbor_json_api!(AlonzoProtocolParamUpdate);
+
+impl_wasm_conversions!(
+    cml_multi_era::alonzo::AlonzoProtocolParamUpdate,
+    AlonzoProtocolParamUpdate
+);
+
 #[wasm_bindgen]
 impl AlonzoProtocolParamUpdate {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoProtocolParamUpdate, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AlonzoProtocolParamUpdate, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn set_minfee_a(&mut self, minfee_a: u64) {
         self.0.minfee_a = Some(minfee_a)
     }
@@ -681,56 +487,16 @@ impl AlonzoProtocolParamUpdate {
     }
 }
 
-impl From<cml_multi_era::alonzo::AlonzoProtocolParamUpdate> for AlonzoProtocolParamUpdate {
-    fn from(native: cml_multi_era::alonzo::AlonzoProtocolParamUpdate) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoProtocolParamUpdate> for cml_multi_era::alonzo::AlonzoProtocolParamUpdate {
-    fn from(wasm: AlonzoProtocolParamUpdate) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::alonzo::AlonzoProtocolParamUpdate> for AlonzoProtocolParamUpdate {
-    fn as_ref(&self) -> &cml_multi_era::alonzo::AlonzoProtocolParamUpdate {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AlonzoTransaction(cml_multi_era::alonzo::AlonzoTransaction);
 
+impl_wasm_cbor_json_api!(AlonzoTransaction);
+
+impl_wasm_conversions!(cml_multi_era::alonzo::AlonzoTransaction, AlonzoTransaction);
+
 #[wasm_bindgen]
 impl AlonzoTransaction {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoTransaction, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AlonzoTransaction, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn body(&self) -> AlonzoTransactionBody {
         self.0.body.clone().into()
     }
@@ -762,56 +528,19 @@ impl AlonzoTransaction {
     }
 }
 
-impl From<cml_multi_era::alonzo::AlonzoTransaction> for AlonzoTransaction {
-    fn from(native: cml_multi_era::alonzo::AlonzoTransaction) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoTransaction> for cml_multi_era::alonzo::AlonzoTransaction {
-    fn from(wasm: AlonzoTransaction) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::alonzo::AlonzoTransaction> for AlonzoTransaction {
-    fn as_ref(&self) -> &cml_multi_era::alonzo::AlonzoTransaction {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AlonzoTransactionBody(cml_multi_era::alonzo::AlonzoTransactionBody);
 
+impl_wasm_cbor_json_api!(AlonzoTransactionBody);
+
+impl_wasm_conversions!(
+    cml_multi_era::alonzo::AlonzoTransactionBody,
+    AlonzoTransactionBody
+);
+
 #[wasm_bindgen]
 impl AlonzoTransactionBody {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoTransactionBody, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AlonzoTransactionBody, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn inputs(&self) -> TransactionInputList {
         self.0.inputs.clone().into()
     }
@@ -937,56 +666,19 @@ impl AlonzoTransactionBody {
     }
 }
 
-impl From<cml_multi_era::alonzo::AlonzoTransactionBody> for AlonzoTransactionBody {
-    fn from(native: cml_multi_era::alonzo::AlonzoTransactionBody) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoTransactionBody> for cml_multi_era::alonzo::AlonzoTransactionBody {
-    fn from(wasm: AlonzoTransactionBody) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::alonzo::AlonzoTransactionBody> for AlonzoTransactionBody {
-    fn as_ref(&self) -> &cml_multi_era::alonzo::AlonzoTransactionBody {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AlonzoTransactionOutput(cml_multi_era::alonzo::AlonzoTransactionOutput);
 
+impl_wasm_cbor_json_api!(AlonzoTransactionOutput);
+
+impl_wasm_conversions!(
+    cml_multi_era::alonzo::AlonzoTransactionOutput,
+    AlonzoTransactionOutput
+);
+
 #[wasm_bindgen]
 impl AlonzoTransactionOutput {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoTransactionOutput, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AlonzoTransactionOutput, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_shelley_tx_out(shelley_tx_out: &ShelleyTxOut) -> Self {
         Self(
             cml_multi_era::alonzo::AlonzoTransactionOutput::new_shelley_tx_out(
@@ -1033,24 +725,6 @@ impl AlonzoTransactionOutput {
     }
 }
 
-impl From<cml_multi_era::alonzo::AlonzoTransactionOutput> for AlonzoTransactionOutput {
-    fn from(native: cml_multi_era::alonzo::AlonzoTransactionOutput) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoTransactionOutput> for cml_multi_era::alonzo::AlonzoTransactionOutput {
-    fn from(wasm: AlonzoTransactionOutput) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::alonzo::AlonzoTransactionOutput> for AlonzoTransactionOutput {
-    fn as_ref(&self) -> &cml_multi_era::alonzo::AlonzoTransactionOutput {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum AlonzoTransactionOutputKind {
     ShelleyTxOut,
@@ -1061,34 +735,15 @@ pub enum AlonzoTransactionOutputKind {
 #[wasm_bindgen]
 pub struct AlonzoTransactionWitnessSet(cml_multi_era::alonzo::AlonzoTransactionWitnessSet);
 
+impl_wasm_cbor_json_api!(AlonzoTransactionWitnessSet);
+
+impl_wasm_conversions!(
+    cml_multi_era::alonzo::AlonzoTransactionWitnessSet,
+    AlonzoTransactionWitnessSet
+);
+
 #[wasm_bindgen]
 impl AlonzoTransactionWitnessSet {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoTransactionWitnessSet, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AlonzoTransactionWitnessSet, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn set_vkeywitnesses(&mut self, vkeywitnesses: &VkeywitnessList) {
         self.0.vkeywitnesses = Some(vkeywitnesses.clone().into())
     }
@@ -1148,56 +803,16 @@ impl AlonzoTransactionWitnessSet {
     }
 }
 
-impl From<cml_multi_era::alonzo::AlonzoTransactionWitnessSet> for AlonzoTransactionWitnessSet {
-    fn from(native: cml_multi_era::alonzo::AlonzoTransactionWitnessSet) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoTransactionWitnessSet> for cml_multi_era::alonzo::AlonzoTransactionWitnessSet {
-    fn from(wasm: AlonzoTransactionWitnessSet) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::alonzo::AlonzoTransactionWitnessSet> for AlonzoTransactionWitnessSet {
-    fn as_ref(&self) -> &cml_multi_era::alonzo::AlonzoTransactionWitnessSet {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AlonzoUpdate(cml_multi_era::alonzo::AlonzoUpdate);
 
+impl_wasm_cbor_json_api!(AlonzoUpdate);
+
+impl_wasm_conversions!(cml_multi_era::alonzo::AlonzoUpdate, AlonzoUpdate);
+
 #[wasm_bindgen]
 impl AlonzoUpdate {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoUpdate, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AlonzoUpdate, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn proposed_protocol_parameter_updates(&self) -> AlonzoProposedProtocolParameterUpdates {
         self.0.proposed_protocol_parameter_updates.clone().into()
     }
@@ -1214,23 +829,5 @@ impl AlonzoUpdate {
             proposed_protocol_parameter_updates.clone().into(),
             epoch,
         ))
-    }
-}
-
-impl From<cml_multi_era::alonzo::AlonzoUpdate> for AlonzoUpdate {
-    fn from(native: cml_multi_era::alonzo::AlonzoUpdate) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoUpdate> for cml_multi_era::alonzo::AlonzoUpdate {
-    fn from(wasm: AlonzoUpdate) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::alonzo::AlonzoUpdate> for AlonzoUpdate {
-    fn as_ref(&self) -> &cml_multi_era::alonzo::AlonzoUpdate {
-        &self.0
     }
 }

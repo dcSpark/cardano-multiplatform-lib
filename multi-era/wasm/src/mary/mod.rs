@@ -9,6 +9,7 @@ use cml_chain_wasm::{
     CertificateList, TransactionInputList
 };
 use cml_crypto_wasm::{AuxiliaryDataHash};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use crate::{
     AllegraTransactionWitnessSetList, MapTransactionIndexToAllegraAuxiliaryData,
     MaryTransactionBodyList, ShelleyTxOutList,
@@ -19,34 +20,12 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 #[wasm_bindgen]
 pub struct MaryBlock(cml_multi_era::mary::MaryBlock);
 
+impl_wasm_cbor_json_api!(MaryBlock);
+
+impl_wasm_conversions!(cml_multi_era::mary::MaryBlock, MaryBlock);
+
 #[wasm_bindgen]
 impl MaryBlock {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<MaryBlock, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<MaryBlock, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn header(&self) -> ShelleyHeader {
         self.0.header.clone().into()
     }
@@ -78,56 +57,16 @@ impl MaryBlock {
     }
 }
 
-impl From<cml_multi_era::mary::MaryBlock> for MaryBlock {
-    fn from(native: cml_multi_era::mary::MaryBlock) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MaryBlock> for cml_multi_era::mary::MaryBlock {
-    fn from(wasm: MaryBlock) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::mary::MaryBlock> for MaryBlock {
-    fn as_ref(&self) -> &cml_multi_era::mary::MaryBlock {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MaryTransaction(cml_multi_era::mary::MaryTransaction);
 
+impl_wasm_cbor_json_api!(MaryTransaction);
+
+impl_wasm_conversions!(cml_multi_era::mary::MaryTransaction, MaryTransaction);
+
 #[wasm_bindgen]
 impl MaryTransaction {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<MaryTransaction, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<MaryTransaction, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn body(&self) -> MaryTransactionBody {
         self.0.body.clone().into()
     }
@@ -153,56 +92,19 @@ impl MaryTransaction {
     }
 }
 
-impl From<cml_multi_era::mary::MaryTransaction> for MaryTransaction {
-    fn from(native: cml_multi_era::mary::MaryTransaction) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MaryTransaction> for cml_multi_era::mary::MaryTransaction {
-    fn from(wasm: MaryTransaction) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::mary::MaryTransaction> for MaryTransaction {
-    fn as_ref(&self) -> &cml_multi_era::mary::MaryTransaction {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MaryTransactionBody(cml_multi_era::mary::MaryTransactionBody);
 
+impl_wasm_cbor_json_api!(MaryTransactionBody);
+
+impl_wasm_conversions!(
+    cml_multi_era::mary::MaryTransactionBody,
+    MaryTransactionBody
+);
+
 #[wasm_bindgen]
 impl MaryTransactionBody {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<MaryTransactionBody, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<MaryTransactionBody, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn inputs(&self) -> TransactionInputList {
         self.0.inputs.clone().into()
     }
@@ -280,23 +182,5 @@ impl MaryTransactionBody {
             outputs.clone().into(),
             fee,
         ))
-    }
-}
-
-impl From<cml_multi_era::mary::MaryTransactionBody> for MaryTransactionBody {
-    fn from(native: cml_multi_era::mary::MaryTransactionBody) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MaryTransactionBody> for cml_multi_era::mary::MaryTransactionBody {
-    fn from(wasm: MaryTransactionBody) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::mary::MaryTransactionBody> for MaryTransactionBody {
-    fn as_ref(&self) -> &cml_multi_era::mary::MaryTransactionBody {
-        &self.0
     }
 }

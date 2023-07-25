@@ -71,8 +71,8 @@ fn main() {
     gen_json_schema!(cml_chain::crypto::Vkey);
     // lib.rs
     gen_json_schema!(cml_chain::AssetName);
-    gen_json_schema!(cml_chain::BootstrapWitness);
-    gen_json_schema!(cml_chain::BoundedBytes);
+    gen_json_schema!(cml_chain::crypto::BootstrapWitness);
+    //gen_json_schema!(cml_chain::BoundedBytes);
     gen_json_schema!(cml_chain::Int);
     gen_json_schema!(cml_chain::PositiveInterval);
     gen_json_schema!(cml_chain::ProtocolParamUpdate);
@@ -82,11 +82,10 @@ fn main() {
     gen_json_schema!(cml_chain::UnitInterval);
     gen_json_schema!(cml_chain::Update);
     gen_json_schema!(cml_chain::Value);
-    gen_json_schema!(cml_chain::Vkeywitness);
+    gen_json_schema!(cml_chain::crypto::Vkeywitness);
     // plutus.rs
-    gen_json_schema!(cml_chain::plutus::BigInt);
     gen_json_schema!(cml_chain::plutus::ConstrPlutusData);
-    gen_json_schema!(cml_chain::plutus::Costmdls);
+    gen_json_schema!(cml_chain::plutus::CostModels);
     gen_json_schema!(cml_chain::plutus::ExUnitPrices);
     gen_json_schema!(cml_chain::plutus::ExUnits);
     gen_json_schema!(cml_chain::plutus::PlutusData);
@@ -111,4 +110,6 @@ fn main() {
     gen_json_schema!(cml_chain::transaction::TransactionInput);
     gen_json_schema!(cml_chain::transaction::TransactionOutput);
     gen_json_schema!(cml_chain::transaction::TransactionWitnessSet);
+    // utils.rs
+    gen_json_schema!(cml_chain::utils::BigInt);
 }

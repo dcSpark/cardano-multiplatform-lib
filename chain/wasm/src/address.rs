@@ -2,11 +2,15 @@ use super::*;
 
 pub use cml_chain::address::{AddressKind, AddressHeaderKind};
 
+use cml_core_wasm::impl_wasm_conversions;
+
 use crate::certs::StakeCredential;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct Address(cml_chain::address::Address);
+
+impl_wasm_conversions!(cml_chain::address::Address, Address);
 
 #[wasm_bindgen]
 impl Address {
@@ -112,29 +116,13 @@ impl Address {
     }
 }
 
-impl From<cml_chain::address::Address> for Address {
-    fn from(native: cml_chain::address::Address) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Address> for cml_chain::address::Address {
-    fn from(wasm: Address) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::address::Address> for Address {
-    fn as_ref(&self) -> &cml_chain::address::Address {
-        &self.0
-    }
-}
-
 pub type RewardAccount = RewardAddress;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct RewardAddress(cml_chain::address::RewardAddress);
+
+impl_wasm_conversions!(cml_chain::address::RewardAddress, RewardAddress);
 
 #[wasm_bindgen]
 impl RewardAddress {
@@ -169,20 +157,3 @@ impl RewardAddress {
     }
 }
 
-impl From<cml_chain::address::RewardAddress> for RewardAddress {
-    fn from(native: cml_chain::address::RewardAddress) -> Self {
-        Self(native)
-    }
-}
-
-impl From<RewardAddress> for cml_chain::address::RewardAddress {
-    fn from(wasm: RewardAddress) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::address::RewardAddress> for RewardAddress {
-    fn as_ref(&self) -> &cml_chain::address::RewardAddress {
-        &self.0
-    }
-}

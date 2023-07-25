@@ -7,6 +7,7 @@ use crate::utils::BigInt;
 
 use super::{IntList, PlutusDataList, SubCoin};
 pub use cml_chain::plutus::{Language, RedeemerTag};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 pub use utils::{ConstrPlutusData, PlutusMap};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
@@ -14,34 +15,12 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 #[wasm_bindgen]
 pub struct CostModels(cml_chain::plutus::CostModels);
 
+impl_wasm_cbor_json_api!(CostModels);
+
+impl_wasm_conversions!(cml_chain::plutus::CostModels, CostModels);
+
 #[wasm_bindgen]
 impl CostModels {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<CostModels, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<CostModels, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn set_plutus_v1(&mut self, plutus_v1: &IntList) {
         self.0.plutus_v1 = Some(plutus_v1.clone().into())
     }
@@ -63,56 +42,16 @@ impl CostModels {
     }
 }
 
-impl From<cml_chain::plutus::CostModels> for CostModels {
-    fn from(native: cml_chain::plutus::CostModels) -> Self {
-        Self(native)
-    }
-}
-
-impl From<CostModels> for cml_chain::plutus::CostModels {
-    fn from(wasm: CostModels) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::plutus::CostModels> for CostModels {
-    fn as_ref(&self) -> &cml_chain::plutus::CostModels {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ExUnitPrices(cml_chain::plutus::ExUnitPrices);
 
+impl_wasm_cbor_json_api!(ExUnitPrices);
+
+impl_wasm_conversions!(cml_chain::plutus::ExUnitPrices, ExUnitPrices);
+
 #[wasm_bindgen]
 impl ExUnitPrices {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ExUnitPrices, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ExUnitPrices, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn mem_price(&self) -> SubCoin {
         self.0.mem_price.clone().into()
     }
@@ -129,56 +68,16 @@ impl ExUnitPrices {
     }
 }
 
-impl From<cml_chain::plutus::ExUnitPrices> for ExUnitPrices {
-    fn from(native: cml_chain::plutus::ExUnitPrices) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ExUnitPrices> for cml_chain::plutus::ExUnitPrices {
-    fn from(wasm: ExUnitPrices) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::plutus::ExUnitPrices> for ExUnitPrices {
-    fn as_ref(&self) -> &cml_chain::plutus::ExUnitPrices {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ExUnits(cml_chain::plutus::ExUnits);
 
+impl_wasm_cbor_json_api!(ExUnits);
+
+impl_wasm_conversions!(cml_chain::plutus::ExUnits, ExUnits);
+
 #[wasm_bindgen]
 impl ExUnits {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ExUnits, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ExUnits, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn mem(&self) -> u64 {
         self.0.mem
     }
@@ -192,56 +91,16 @@ impl ExUnits {
     }
 }
 
-impl From<cml_chain::plutus::ExUnits> for ExUnits {
-    fn from(native: cml_chain::plutus::ExUnits) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ExUnits> for cml_chain::plutus::ExUnits {
-    fn from(wasm: ExUnits) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::plutus::ExUnits> for ExUnits {
-    fn as_ref(&self) -> &cml_chain::plutus::ExUnits {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PlutusData(cml_chain::plutus::PlutusData);
 
+impl_wasm_cbor_json_api!(PlutusData);
+
+impl_wasm_conversions!(cml_chain::plutus::PlutusData, PlutusData);
+
 #[wasm_bindgen]
 impl PlutusData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<PlutusData, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<PlutusData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_constr_plutus_data(constr_plutus_data: &ConstrPlutusData) -> Self {
         Self(cml_chain::plutus::PlutusData::new_constr_plutus_data(
             constr_plutus_data.clone().into(),
@@ -314,24 +173,6 @@ impl PlutusData {
     }
 }
 
-impl From<cml_chain::plutus::PlutusData> for PlutusData {
-    fn from(native: cml_chain::plutus::PlutusData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<PlutusData> for cml_chain::plutus::PlutusData {
-    fn from(wasm: PlutusData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::plutus::PlutusData> for PlutusData {
-    fn as_ref(&self) -> &cml_chain::plutus::PlutusData {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum PlutusDataKind {
     ConstrPlutusData,
@@ -345,54 +186,14 @@ pub enum PlutusDataKind {
 #[wasm_bindgen]
 pub struct PlutusV1Script(cml_chain::plutus::PlutusV1Script);
 
+impl_wasm_cbor_json_api!(PlutusV1Script);
+
+impl_wasm_conversions!(cml_chain::plutus::PlutusV1Script, PlutusV1Script);
+
 #[wasm_bindgen]
 impl PlutusV1Script {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<PlutusV1Script, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<PlutusV1Script, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn get(&self) -> Vec<u8> {
         self.0.get().clone()
-    }
-}
-
-impl From<cml_chain::plutus::PlutusV1Script> for PlutusV1Script {
-    fn from(native: cml_chain::plutus::PlutusV1Script) -> Self {
-        Self(native)
-    }
-}
-
-impl From<PlutusV1Script> for cml_chain::plutus::PlutusV1Script {
-    fn from(wasm: PlutusV1Script) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::plutus::PlutusV1Script> for PlutusV1Script {
-    fn as_ref(&self) -> &cml_chain::plutus::PlutusV1Script {
-        &self.0
     }
 }
 
@@ -400,54 +201,14 @@ impl AsRef<cml_chain::plutus::PlutusV1Script> for PlutusV1Script {
 #[wasm_bindgen]
 pub struct PlutusV2Script(cml_chain::plutus::PlutusV2Script);
 
+impl_wasm_cbor_json_api!(PlutusV2Script);
+
+impl_wasm_conversions!(cml_chain::plutus::PlutusV2Script, PlutusV2Script);
+
 #[wasm_bindgen]
 impl PlutusV2Script {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<PlutusV2Script, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<PlutusV2Script, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn get(&self) -> Vec<u8> {
         self.0.get().clone()
-    }
-}
-
-impl From<cml_chain::plutus::PlutusV2Script> for PlutusV2Script {
-    fn from(native: cml_chain::plutus::PlutusV2Script) -> Self {
-        Self(native)
-    }
-}
-
-impl From<PlutusV2Script> for cml_chain::plutus::PlutusV2Script {
-    fn from(wasm: PlutusV2Script) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::plutus::PlutusV2Script> for PlutusV2Script {
-    fn as_ref(&self) -> &cml_chain::plutus::PlutusV2Script {
-        &self.0
     }
 }
 
@@ -455,34 +216,12 @@ impl AsRef<cml_chain::plutus::PlutusV2Script> for PlutusV2Script {
 #[wasm_bindgen]
 pub struct Redeemer(cml_chain::plutus::Redeemer);
 
+impl_wasm_cbor_json_api!(Redeemer);
+
+impl_wasm_conversions!(cml_chain::plutus::Redeemer, Redeemer);
+
 #[wasm_bindgen]
 impl Redeemer {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Redeemer, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Redeemer, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn tag(&self) -> RedeemerTag {
         self.0.tag
     }
@@ -506,23 +245,5 @@ impl Redeemer {
             data.clone().into(),
             ex_units.clone().into(),
         ))
-    }
-}
-
-impl From<cml_chain::plutus::Redeemer> for Redeemer {
-    fn from(native: cml_chain::plutus::Redeemer) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Redeemer> for cml_chain::plutus::Redeemer {
-    fn from(wasm: Redeemer) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::plutus::Redeemer> for Redeemer {
-    fn as_ref(&self) -> &cml_chain::plutus::Redeemer {
-        &self.0
     }
 }

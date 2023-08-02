@@ -17,6 +17,7 @@ fn main() {
         std::fs::create_dir(schema_path).unwrap();
     }    
     gen_json_schema!(CIP25Metadata);
+    gen_json_schema!(CIP25Version);
     gen_json_schema!(ChunkableString);
     gen_json_schema!(FilesDetails);
     gen_json_schema!(LabelMetadata);

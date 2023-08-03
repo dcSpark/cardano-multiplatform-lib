@@ -22,7 +22,7 @@ impl BigInt {
             .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
     }
 
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
+    pub fn to_js_value(&self) -> Result<JsValue, JsValue> {
         serde_wasm_bindgen::to_value(&self.0)
             .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
     }

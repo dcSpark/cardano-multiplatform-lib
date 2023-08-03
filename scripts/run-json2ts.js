@@ -102,7 +102,9 @@ Promise.all(schemaFiles.map(schemaFile => {
   // prepend 'JSON' to all identifiers here so they don't conflict with main .ts types
   for (let i = 0; i < dedupedDefs.length; ++i) {
     for (let id of added) {
-      dedupedDefs[i] = dedupedDefs[i].replace(new RegExp(`\\b${id}\\b`), id + 'JSON');
+      // 1) To avoid FooJSON: FooJSON instead of a more consistent Foo: FooJSON we don't replace if followed by :
+      // 2) For some reason we're getting recursive types having a 1 appended to the type so cover that too
+      dedupedDefs[i] = dedupedDefs[i].replaceAll(new RegExp(`\\b${id}1?(?!:)\\b`, 'g'), id + 'JSON');
     }
   }
   return fs.writeFileSync(path.join('json-gen', 'output', 'json-types.d.ts'), dedupedDefs.join('\n'));

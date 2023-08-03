@@ -140,22 +140,22 @@ impl MiniMetadataDetails {
     ///       however, since this is a lot of work, we use this temporary solution instead
     pub fn loose_parse(metadatum: &TransactionMetadatum) -> Result<Self, DeserializeError> {
         match metadatum {
-            TransactionMetadatum::Map { entries, .. } => {
-                let name: Option<String64> = entries
+            TransactionMetadatum::Map(map) => {
+                let name: Option<String64> = map
                 .get(&TransactionMetadatum::new_text("name".to_owned()))
                 // for some reason, 1% of NFTs seem to use the wrong case
-                .or_else(|| entries.get(&TransactionMetadatum::new_text("Name".to_owned())))
+                .or_else(|| map.get(&TransactionMetadatum::new_text("Name".to_owned())))
                 // for some reason, 0.5% of NFTs use "title" instead of name
-                .or_else(|| entries.get(&TransactionMetadatum::new_text("title".to_owned())))
+                .or_else(|| map.get(&TransactionMetadatum::new_text("title".to_owned())))
                 // for some reason, 0.3% of NFTs use "id" instead of name
-                .or_else(|| entries.get(&TransactionMetadatum::new_text("id".to_owned())))
+                .or_else(|| map.get(&TransactionMetadatum::new_text("id".to_owned())))
                 .map(|result| match result {
                     TransactionMetadatum::Text { text, .. } => String64::new_str(&text).ok(),
                     _ => None,
                 })
                 .flatten();
     
-                let image_base = entries
+                let image_base = map
                 .get(&TransactionMetadatum::new_text("image".to_owned()));
                 let image = match image_base {
                     None => None,
@@ -724,7 +724,7 @@ mod tests {
         //     TransactionMetadatum::new_bytes(vec![0xBA, 0xAD, 0xF0, 0x0D]),
         // ]));
         // let label_metadatum_entries: &mut _ = match as_metadata.get_mut(&721).unwrap() {
-        //     TransactionMetadatum::Map { entries, .. } => entries,
+        //     TransactionMetadatum::Map(map) => map.entries,
         //     _ => panic!(),
         // };
         // let mut filler_map = OrderedHashMap::new();
@@ -734,12 +734,12 @@ mod tests {
         // );
         // label_metadatum_entries.insert(TransactionMetadatum::new_map(filler_map.clone()), TransactionMetadatum::new_map(filler_map.clone()));
         // let data_entries: &mut _ = match label_metadatum_entries.get_mut(&TransactionMetadatum::new_text("data".to_owned())).unwrap() {
-        //     TransactionMetadatum::Map{ entries, .. } => entries,
+        //     TransactionMetadatum::Map{ map.entries, .. } => map.entries,
         //     _ => panic!(),
         // };
         // data_entries.insert(TransactionMetadatum::new_map(filler_map.clone()), TransactionMetadatum::new_map(filler_map.clone()));
         // let policy_entries: &mut _ = match data_entries.get_mut(&TransactionMetadatum::new_bytes(policy_id_bytes.to_vec())).unwrap() {
-        //     TransactionMetadatum::Map{ entries, .. } => entries,
+        //     TransactionMetadatum::Map{ map.entries, .. } => map.entries,
         //     _ => panic!(),
         // };
         // policy_entries.insert(TransactionMetadatum::new_map(filler_map.clone()), TransactionMetadatum::new_map(filler_map.clone()));
@@ -748,7 +748,7 @@ mod tests {
         //     TransactionMetadatum::new_list(vec![TransactionMetadatum::new_text("dskjfaks".to_owned())])
         // );
         // let details: &mut _ = match policy_entries.get_mut(&TransactionMetadatum::new_bytes(vec![0xCA, 0xFE, 0xD0, 0x0D])).unwrap() {
-        //     TransactionMetadatum::Map { entries, .. } => entries,
+        //     TransactionMetadatum::Map(map) => map.entries,
         //     _ => panic!(),
         // };
         // details.insert(
@@ -757,7 +757,7 @@ mod tests {
         // );
         // let file_details: &mut _ = match details.get_mut(&TransactionMetadatum::new_text("files".to_owned())).unwrap() {
         //     TransactionMetadatum::List{ elements, .. } => match elements.get_mut(0).unwrap() {
-        //         TransactionMetadatum::Map{ entries, .. } => entries,
+        //         TransactionMetadatum::Map{ map.entries, .. } => map.entries,
         //         _ => panic!(),
         //     },
         //     _ => panic!(),

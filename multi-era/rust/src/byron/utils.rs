@@ -6,7 +6,6 @@ use cml_crypto::impl_hash_type;
 use cml_core::error::{DeserializeError, DeserializeFailure};
 use cml_core::serialization::Deserialize;
 use cml_crypto::{CryptoError, RawBytesEncoding};
-use bech32::ToBase32;
 use schemars::JsonSchema;
 use cml_crypto::chain_crypto as chain_crypto;
 

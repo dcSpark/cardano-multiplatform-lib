@@ -13,6 +13,7 @@ use crate::auxdata::AuxiliaryData;
 use cml_crypto_wasm::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
 };
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use crate::plutus::PlutusData;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
@@ -22,34 +23,12 @@ pub mod utils;
 #[wasm_bindgen]
 pub struct AlonzoTxOut(cml_chain::transaction::AlonzoTxOut);
 
+impl_wasm_cbor_json_api!(AlonzoTxOut);
+
+impl_wasm_conversions!(cml_chain::transaction::AlonzoTxOut, AlonzoTxOut);
+
 #[wasm_bindgen]
 impl AlonzoTxOut {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AlonzoTxOut, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AlonzoTxOut, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn address(&self) -> Address {
         self.0.address.clone().into()
     }
@@ -71,56 +50,16 @@ impl AlonzoTxOut {
     }
 }
 
-impl From<cml_chain::transaction::AlonzoTxOut> for AlonzoTxOut {
-    fn from(native: cml_chain::transaction::AlonzoTxOut) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoTxOut> for cml_chain::transaction::AlonzoTxOut {
-    fn from(wasm: AlonzoTxOut) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::AlonzoTxOut> for AlonzoTxOut {
-    fn as_ref(&self) -> &cml_chain::transaction::AlonzoTxOut {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct BabbageTxOut(cml_chain::transaction::BabbageTxOut);
 
+impl_wasm_cbor_json_api!(BabbageTxOut);
+
+impl_wasm_conversions!(cml_chain::transaction::BabbageTxOut, BabbageTxOut);
+
 #[wasm_bindgen]
 impl BabbageTxOut {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<BabbageTxOut, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<BabbageTxOut, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn address(&self) -> Address {
         self.0.address.clone().into()
     }
@@ -156,56 +95,16 @@ impl BabbageTxOut {
     }
 }
 
-impl From<cml_chain::transaction::BabbageTxOut> for BabbageTxOut {
-    fn from(native: cml_chain::transaction::BabbageTxOut) -> Self {
-        Self(native)
-    }
-}
-
-impl From<BabbageTxOut> for cml_chain::transaction::BabbageTxOut {
-    fn from(wasm: BabbageTxOut) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::BabbageTxOut> for BabbageTxOut {
-    fn as_ref(&self) -> &cml_chain::transaction::BabbageTxOut {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct DatumOption(cml_chain::transaction::DatumOption);
 
+impl_wasm_cbor_json_api!(DatumOption);
+
+impl_wasm_conversions!(cml_chain::transaction::DatumOption, DatumOption);
+
 #[wasm_bindgen]
 impl DatumOption {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<DatumOption, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<DatumOption, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_hash(datum_hash: &DatumHash) -> Self {
         Self(cml_chain::transaction::DatumOption::new_hash(
             datum_hash.clone().into(),
@@ -242,24 +141,6 @@ impl DatumOption {
     }
 }
 
-impl From<cml_chain::transaction::DatumOption> for DatumOption {
-    fn from(native: cml_chain::transaction::DatumOption) -> Self {
-        Self(native)
-    }
-}
-
-impl From<DatumOption> for cml_chain::transaction::DatumOption {
-    fn from(wasm: DatumOption) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::DatumOption> for DatumOption {
-    fn as_ref(&self) -> &cml_chain::transaction::DatumOption {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum DatumOptionKind {
     Hash,
@@ -270,34 +151,12 @@ pub enum DatumOptionKind {
 #[wasm_bindgen]
 pub struct NativeScript(cml_chain::transaction::NativeScript);
 
+impl_wasm_cbor_json_api!(NativeScript);
+
+impl_wasm_conversions!(cml_chain::transaction::NativeScript, NativeScript);
+
 #[wasm_bindgen]
 impl NativeScript {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<NativeScript, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<NativeScript, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_script_pubkey(ed25519_key_hash: &Ed25519KeyHash) -> Self {
         Self(cml_chain::transaction::NativeScript::new_script_pubkey(
             ed25519_key_hash.clone().into(),
@@ -401,24 +260,6 @@ impl NativeScript {
     }
 }
 
-impl From<cml_chain::transaction::NativeScript> for NativeScript {
-    fn from(native: cml_chain::transaction::NativeScript) -> Self {
-        Self(native)
-    }
-}
-
-impl From<NativeScript> for cml_chain::transaction::NativeScript {
-    fn from(wasm: NativeScript) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::NativeScript> for NativeScript {
-    fn as_ref(&self) -> &cml_chain::transaction::NativeScript {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum NativeScriptKind {
     ScriptPubkey,
@@ -432,6 +273,8 @@ pub enum NativeScriptKind {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct RequiredSigners(Vec<cml_chain::crypto::Ed25519KeyHash>);
+
+impl_wasm_conversions!(Vec<cml_chain::crypto::Ed25519KeyHash>, RequiredSigners);
 
 #[wasm_bindgen]
 impl RequiredSigners {
@@ -452,56 +295,16 @@ impl RequiredSigners {
     }
 }
 
-impl From<Vec<cml_chain::crypto::Ed25519KeyHash>> for RequiredSigners {
-    fn from(native: Vec<cml_chain::crypto::Ed25519KeyHash>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<RequiredSigners> for Vec<cml_chain::crypto::Ed25519KeyHash> {
-    fn from(wasm: RequiredSigners) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::crypto::Ed25519KeyHash>> for RequiredSigners {
-    fn as_ref(&self) -> &Vec<cml_chain::crypto::Ed25519KeyHash> {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ScriptAll(cml_chain::transaction::ScriptAll);
 
+impl_wasm_cbor_json_api!(ScriptAll);
+
+impl_wasm_conversions!(cml_chain::transaction::ScriptAll, ScriptAll);
+
 #[wasm_bindgen]
 impl ScriptAll {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ScriptAll, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ScriptAll, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn native_scripts(&self) -> NativeScriptList {
         self.0.native_scripts.clone().into()
     }
@@ -513,56 +316,16 @@ impl ScriptAll {
     }
 }
 
-impl From<cml_chain::transaction::ScriptAll> for ScriptAll {
-    fn from(native: cml_chain::transaction::ScriptAll) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ScriptAll> for cml_chain::transaction::ScriptAll {
-    fn from(wasm: ScriptAll) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::ScriptAll> for ScriptAll {
-    fn as_ref(&self) -> &cml_chain::transaction::ScriptAll {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ScriptAny(cml_chain::transaction::ScriptAny);
 
+impl_wasm_cbor_json_api!(ScriptAny);
+
+impl_wasm_conversions!(cml_chain::transaction::ScriptAny, ScriptAny);
+
 #[wasm_bindgen]
 impl ScriptAny {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ScriptAny, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ScriptAny, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn native_scripts(&self) -> NativeScriptList {
         self.0.native_scripts.clone().into()
     }
@@ -574,56 +337,19 @@ impl ScriptAny {
     }
 }
 
-impl From<cml_chain::transaction::ScriptAny> for ScriptAny {
-    fn from(native: cml_chain::transaction::ScriptAny) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ScriptAny> for cml_chain::transaction::ScriptAny {
-    fn from(wasm: ScriptAny) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::ScriptAny> for ScriptAny {
-    fn as_ref(&self) -> &cml_chain::transaction::ScriptAny {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ScriptInvalidBefore(cml_chain::transaction::ScriptInvalidBefore);
 
+impl_wasm_cbor_json_api!(ScriptInvalidBefore);
+
+impl_wasm_conversions!(
+    cml_chain::transaction::ScriptInvalidBefore,
+    ScriptInvalidBefore
+);
+
 #[wasm_bindgen]
 impl ScriptInvalidBefore {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ScriptInvalidBefore, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ScriptInvalidBefore, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn before(&self) -> Slot {
         self.0.before
     }
@@ -633,56 +359,19 @@ impl ScriptInvalidBefore {
     }
 }
 
-impl From<cml_chain::transaction::ScriptInvalidBefore> for ScriptInvalidBefore {
-    fn from(native: cml_chain::transaction::ScriptInvalidBefore) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ScriptInvalidBefore> for cml_chain::transaction::ScriptInvalidBefore {
-    fn from(wasm: ScriptInvalidBefore) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::ScriptInvalidBefore> for ScriptInvalidBefore {
-    fn as_ref(&self) -> &cml_chain::transaction::ScriptInvalidBefore {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ScriptInvalidHereafter(cml_chain::transaction::ScriptInvalidHereafter);
 
+impl_wasm_cbor_json_api!(ScriptInvalidHereafter);
+
+impl_wasm_conversions!(
+    cml_chain::transaction::ScriptInvalidHereafter,
+    ScriptInvalidHereafter
+);
+
 #[wasm_bindgen]
 impl ScriptInvalidHereafter {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ScriptInvalidHereafter, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ScriptInvalidHereafter, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn after(&self) -> Slot {
         self.0.after
     }
@@ -692,56 +381,16 @@ impl ScriptInvalidHereafter {
     }
 }
 
-impl From<cml_chain::transaction::ScriptInvalidHereafter> for ScriptInvalidHereafter {
-    fn from(native: cml_chain::transaction::ScriptInvalidHereafter) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ScriptInvalidHereafter> for cml_chain::transaction::ScriptInvalidHereafter {
-    fn from(wasm: ScriptInvalidHereafter) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::ScriptInvalidHereafter> for ScriptInvalidHereafter {
-    fn as_ref(&self) -> &cml_chain::transaction::ScriptInvalidHereafter {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ScriptNOfK(cml_chain::transaction::ScriptNOfK);
 
+impl_wasm_cbor_json_api!(ScriptNOfK);
+
+impl_wasm_conversions!(cml_chain::transaction::ScriptNOfK, ScriptNOfK);
+
 #[wasm_bindgen]
 impl ScriptNOfK {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ScriptNOfK, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ScriptNOfK, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn n(&self) -> u64 {
         self.0.n
     }
@@ -758,56 +407,16 @@ impl ScriptNOfK {
     }
 }
 
-impl From<cml_chain::transaction::ScriptNOfK> for ScriptNOfK {
-    fn from(native: cml_chain::transaction::ScriptNOfK) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ScriptNOfK> for cml_chain::transaction::ScriptNOfK {
-    fn from(wasm: ScriptNOfK) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::ScriptNOfK> for ScriptNOfK {
-    fn as_ref(&self) -> &cml_chain::transaction::ScriptNOfK {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ScriptPubkey(cml_chain::transaction::ScriptPubkey);
 
+impl_wasm_cbor_json_api!(ScriptPubkey);
+
+impl_wasm_conversions!(cml_chain::transaction::ScriptPubkey, ScriptPubkey);
+
 #[wasm_bindgen]
 impl ScriptPubkey {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ScriptPubkey, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ScriptPubkey, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
         self.0.ed25519_key_hash.clone().into()
     }
@@ -819,58 +428,18 @@ impl ScriptPubkey {
     }
 }
 
-impl From<cml_chain::transaction::ScriptPubkey> for ScriptPubkey {
-    fn from(native: cml_chain::transaction::ScriptPubkey) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ScriptPubkey> for cml_chain::transaction::ScriptPubkey {
-    fn from(wasm: ScriptPubkey) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::ScriptPubkey> for ScriptPubkey {
-    fn as_ref(&self) -> &cml_chain::transaction::ScriptPubkey {
-        &self.0
-    }
-}
-
 pub type ScriptRef = Script;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ShelleyTxOut(cml_chain::transaction::ShelleyTxOut);
 
+impl_wasm_cbor_json_api!(ShelleyTxOut);
+
+impl_wasm_conversions!(cml_chain::transaction::ShelleyTxOut, ShelleyTxOut);
+
 #[wasm_bindgen]
 impl ShelleyTxOut {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ShelleyTxOut, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ShelleyTxOut, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn address(&self) -> Address {
         self.0.address.clone().into()
     }
@@ -887,56 +456,16 @@ impl ShelleyTxOut {
     }
 }
 
-impl From<cml_chain::transaction::ShelleyTxOut> for ShelleyTxOut {
-    fn from(native: cml_chain::transaction::ShelleyTxOut) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ShelleyTxOut> for cml_chain::transaction::ShelleyTxOut {
-    fn from(wasm: ShelleyTxOut) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::ShelleyTxOut> for ShelleyTxOut {
-    fn as_ref(&self) -> &cml_chain::transaction::ShelleyTxOut {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Transaction(cml_chain::transaction::Transaction);
 
+impl_wasm_cbor_json_api!(Transaction);
+
+impl_wasm_conversions!(cml_chain::transaction::Transaction, Transaction);
+
 #[wasm_bindgen]
 impl Transaction {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Transaction, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Transaction, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn body(&self) -> TransactionBody {
         self.0.body.clone().into()
     }
@@ -968,56 +497,16 @@ impl Transaction {
     }
 }
 
-impl From<cml_chain::transaction::Transaction> for Transaction {
-    fn from(native: cml_chain::transaction::Transaction) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Transaction> for cml_chain::transaction::Transaction {
-    fn from(wasm: Transaction) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::Transaction> for Transaction {
-    fn as_ref(&self) -> &cml_chain::transaction::Transaction {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct TransactionBody(cml_chain::transaction::TransactionBody);
 
+impl_wasm_cbor_json_api!(TransactionBody);
+
+impl_wasm_conversions!(cml_chain::transaction::TransactionBody, TransactionBody);
+
 #[wasm_bindgen]
 impl TransactionBody {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<TransactionBody, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<TransactionBody, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn inputs(&self) -> TransactionInputList {
         self.0.inputs.clone().into()
     }
@@ -1169,56 +658,16 @@ impl TransactionBody {
     }
 }
 
-impl From<cml_chain::transaction::TransactionBody> for TransactionBody {
-    fn from(native: cml_chain::transaction::TransactionBody) -> Self {
-        Self(native)
-    }
-}
-
-impl From<TransactionBody> for cml_chain::transaction::TransactionBody {
-    fn from(wasm: TransactionBody) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::TransactionBody> for TransactionBody {
-    fn as_ref(&self) -> &cml_chain::transaction::TransactionBody {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct TransactionInput(cml_chain::transaction::TransactionInput);
 
+impl_wasm_cbor_json_api!(TransactionInput);
+
+impl_wasm_conversions!(cml_chain::transaction::TransactionInput, TransactionInput);
+
 #[wasm_bindgen]
 impl TransactionInput {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<TransactionInput, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<TransactionInput, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn transaction_id(&self) -> TransactionHash {
         self.0.transaction_id.clone().into()
     }
@@ -1235,56 +684,16 @@ impl TransactionInput {
     }
 }
 
-impl From<cml_chain::transaction::TransactionInput> for TransactionInput {
-    fn from(native: cml_chain::transaction::TransactionInput) -> Self {
-        Self(native)
-    }
-}
-
-impl From<TransactionInput> for cml_chain::transaction::TransactionInput {
-    fn from(wasm: TransactionInput) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::TransactionInput> for TransactionInput {
-    fn as_ref(&self) -> &cml_chain::transaction::TransactionInput {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct TransactionOutput(cml_chain::transaction::TransactionOutput);
 
+impl_wasm_cbor_json_api!(TransactionOutput);
+
+impl_wasm_conversions!(cml_chain::transaction::TransactionOutput, TransactionOutput);
+
 #[wasm_bindgen]
 impl TransactionOutput {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<TransactionOutput, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<TransactionOutput, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_shelley_tx_out(shelley_tx_out: &ShelleyTxOut) -> Self {
         Self(
             cml_chain::transaction::TransactionOutput::new_shelley_tx_out(
@@ -1351,24 +760,6 @@ impl TransactionOutput {
     }
 }
 
-impl From<cml_chain::transaction::TransactionOutput> for TransactionOutput {
-    fn from(native: cml_chain::transaction::TransactionOutput) -> Self {
-        Self(native)
-    }
-}
-
-impl From<TransactionOutput> for cml_chain::transaction::TransactionOutput {
-    fn from(wasm: TransactionOutput) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::TransactionOutput> for TransactionOutput {
-    fn as_ref(&self) -> &cml_chain::transaction::TransactionOutput {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum TransactionOutputKind {
     ShelleyTxOut,
@@ -1380,34 +771,15 @@ pub enum TransactionOutputKind {
 #[wasm_bindgen]
 pub struct TransactionWitnessSet(cml_chain::transaction::TransactionWitnessSet);
 
+impl_wasm_cbor_json_api!(TransactionWitnessSet);
+
+impl_wasm_conversions!(
+    cml_chain::transaction::TransactionWitnessSet,
+    TransactionWitnessSet
+);
+
 #[wasm_bindgen]
 impl TransactionWitnessSet {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<TransactionWitnessSet, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<TransactionWitnessSet, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn set_vkeywitnesses(&mut self, vkeywitnesses: &VkeywitnessList) {
         self.0.vkeywitnesses = Some(vkeywitnesses.clone().into())
     }
@@ -1475,23 +847,5 @@ impl TransactionWitnessSet {
 
     pub fn new() -> Self {
         Self(cml_chain::transaction::TransactionWitnessSet::new())
-    }
-}
-
-impl From<cml_chain::transaction::TransactionWitnessSet> for TransactionWitnessSet {
-    fn from(native: cml_chain::transaction::TransactionWitnessSet) -> Self {
-        Self(native)
-    }
-}
-
-impl From<TransactionWitnessSet> for cml_chain::transaction::TransactionWitnessSet {
-    fn from(wasm: TransactionWitnessSet) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::transaction::TransactionWitnessSet> for TransactionWitnessSet {
-    fn as_ref(&self) -> &cml_chain::transaction::TransactionWitnessSet {
-        &self.0
     }
 }

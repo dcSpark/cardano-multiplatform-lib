@@ -5,7 +5,7 @@ use cml_core::{
     ordered_hash_map::OrderedHashMap, ArithmeticError,
 };
 use cml_crypto::{ScriptHash, RawBytesEncoding};
-use std::{io::{BufRead, Seek, Write}};
+use std::io::{BufRead, Seek, Write};
 use std::cmp::PartialOrd;
 use crate::PolicyId;
 

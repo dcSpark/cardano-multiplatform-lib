@@ -9,6 +9,7 @@ use crate::shelley::{ShelleyHeader, ShelleyUpdate};
 use cml_chain_wasm::{
     BootstrapWitnessList, NativeScriptList, VkeywitnessList, TransactionInputList, CertificateList, 
 };
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use crate::{
     AllegraTransactionBodyList, AllegraTransactionWitnessSetList,
     MapTransactionIndexToAllegraAuxiliaryData, ShelleyTransactionOutputList,
@@ -19,34 +20,15 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 #[wasm_bindgen]
 pub struct AllegraAuxiliaryData(cml_multi_era::allegra::AllegraAuxiliaryData);
 
+impl_wasm_cbor_json_api!(AllegraAuxiliaryData);
+
+impl_wasm_conversions!(
+    cml_multi_era::allegra::AllegraAuxiliaryData,
+    AllegraAuxiliaryData
+);
+
 #[wasm_bindgen]
 impl AllegraAuxiliaryData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AllegraAuxiliaryData, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AllegraAuxiliaryData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_shelley_aux_data(shelley_aux_data: &ShelleyAuxData) -> Self {
         Self(
             cml_multi_era::allegra::AllegraAuxiliaryData::new_shelley_aux_data(
@@ -93,24 +75,6 @@ impl AllegraAuxiliaryData {
     }
 }
 
-impl From<cml_multi_era::allegra::AllegraAuxiliaryData> for AllegraAuxiliaryData {
-    fn from(native: cml_multi_era::allegra::AllegraAuxiliaryData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AllegraAuxiliaryData> for cml_multi_era::allegra::AllegraAuxiliaryData {
-    fn from(wasm: AllegraAuxiliaryData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::allegra::AllegraAuxiliaryData> for AllegraAuxiliaryData {
-    fn as_ref(&self) -> &cml_multi_era::allegra::AllegraAuxiliaryData {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum AllegraAuxiliaryDataKind {
     ShelleyAuxData,
@@ -121,34 +85,12 @@ pub enum AllegraAuxiliaryDataKind {
 #[wasm_bindgen]
 pub struct AllegraBlock(cml_multi_era::allegra::AllegraBlock);
 
+impl_wasm_cbor_json_api!(AllegraBlock);
+
+impl_wasm_conversions!(cml_multi_era::allegra::AllegraBlock, AllegraBlock);
+
 #[wasm_bindgen]
 impl AllegraBlock {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AllegraBlock, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AllegraBlock, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn header(&self) -> ShelleyHeader {
         self.0.header.clone().into()
     }
@@ -180,56 +122,19 @@ impl AllegraBlock {
     }
 }
 
-impl From<cml_multi_era::allegra::AllegraBlock> for AllegraBlock {
-    fn from(native: cml_multi_era::allegra::AllegraBlock) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AllegraBlock> for cml_multi_era::allegra::AllegraBlock {
-    fn from(wasm: AllegraBlock) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::allegra::AllegraBlock> for AllegraBlock {
-    fn as_ref(&self) -> &cml_multi_era::allegra::AllegraBlock {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AllegraTransaction(cml_multi_era::allegra::AllegraTransaction);
 
+impl_wasm_cbor_json_api!(AllegraTransaction);
+
+impl_wasm_conversions!(
+    cml_multi_era::allegra::AllegraTransaction,
+    AllegraTransaction
+);
+
 #[wasm_bindgen]
 impl AllegraTransaction {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AllegraTransaction, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AllegraTransaction, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn body(&self) -> AllegraTransactionBody {
         self.0.body.clone().into()
     }
@@ -255,56 +160,19 @@ impl AllegraTransaction {
     }
 }
 
-impl From<cml_multi_era::allegra::AllegraTransaction> for AllegraTransaction {
-    fn from(native: cml_multi_era::allegra::AllegraTransaction) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AllegraTransaction> for cml_multi_era::allegra::AllegraTransaction {
-    fn from(wasm: AllegraTransaction) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::allegra::AllegraTransaction> for AllegraTransaction {
-    fn as_ref(&self) -> &cml_multi_era::allegra::AllegraTransaction {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AllegraTransactionBody(cml_multi_era::allegra::AllegraTransactionBody);
 
+impl_wasm_cbor_json_api!(AllegraTransactionBody);
+
+impl_wasm_conversions!(
+    cml_multi_era::allegra::AllegraTransactionBody,
+    AllegraTransactionBody
+);
+
 #[wasm_bindgen]
 impl AllegraTransactionBody {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AllegraTransactionBody, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AllegraTransactionBody, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn inputs(&self) -> TransactionInputList {
         self.0.inputs.clone().into()
     }
@@ -381,56 +249,19 @@ impl AllegraTransactionBody {
     }
 }
 
-impl From<cml_multi_era::allegra::AllegraTransactionBody> for AllegraTransactionBody {
-    fn from(native: cml_multi_era::allegra::AllegraTransactionBody) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AllegraTransactionBody> for cml_multi_era::allegra::AllegraTransactionBody {
-    fn from(wasm: AllegraTransactionBody) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::allegra::AllegraTransactionBody> for AllegraTransactionBody {
-    fn as_ref(&self) -> &cml_multi_era::allegra::AllegraTransactionBody {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AllegraTransactionWitnessSet(cml_multi_era::allegra::AllegraTransactionWitnessSet);
 
+impl_wasm_cbor_json_api!(AllegraTransactionWitnessSet);
+
+impl_wasm_conversions!(
+    cml_multi_era::allegra::AllegraTransactionWitnessSet,
+    AllegraTransactionWitnessSet
+);
+
 #[wasm_bindgen]
 impl AllegraTransactionWitnessSet {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AllegraTransactionWitnessSet, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AllegraTransactionWitnessSet, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn set_vkeywitnesses(&mut self, vkeywitnesses: &VkeywitnessList) {
         self.0.vkeywitnesses = Some(vkeywitnesses.clone().into())
     }
@@ -460,23 +291,5 @@ impl AllegraTransactionWitnessSet {
 
     pub fn new() -> Self {
         Self(cml_multi_era::allegra::AllegraTransactionWitnessSet::new())
-    }
-}
-
-impl From<cml_multi_era::allegra::AllegraTransactionWitnessSet> for AllegraTransactionWitnessSet {
-    fn from(native: cml_multi_era::allegra::AllegraTransactionWitnessSet) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AllegraTransactionWitnessSet> for cml_multi_era::allegra::AllegraTransactionWitnessSet {
-    fn from(wasm: AllegraTransactionWitnessSet) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::allegra::AllegraTransactionWitnessSet> for AllegraTransactionWitnessSet {
-    fn as_ref(&self) -> &cml_multi_era::allegra::AllegraTransactionWitnessSet {
-        &self.0
     }
 }

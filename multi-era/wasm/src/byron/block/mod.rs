@@ -5,42 +5,25 @@ use crate::byron::delegation::{ByronDelegationSignature, LightWeightDelegationSi
 use crate::byron::mpc::{Ssc, SscProof};
 use crate::byron::transaction::{ByronAttributes, ByronTx, ByronTxProof};
 use crate::byron::update::{ByronBlockVersion, ByronSoftwareVersion, ByronUpdate};
+use crate::impl_wasm_cbor_json_api_byron;
 use crate::byron::{Blake2b256, ByronBlockId, ByronPubKey, ByronSignature, ByronSlotId, EpochId};
 use crate::byron::{ByronAttributesList, ByronDelegationList, ByronTxWitnessList, StakeholderIdList};
+use cml_core_wasm::impl_wasm_conversions;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct BlockHeaderExtraData(cml_multi_era::byron::block::BlockHeaderExtraData);
 
+impl_wasm_cbor_json_api_byron!(BlockHeaderExtraData);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::block::BlockHeaderExtraData,
+    BlockHeaderExtraData
+);
+
 #[wasm_bindgen]
 impl BlockHeaderExtraData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<BlockHeaderExtraData, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<BlockHeaderExtraData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn block_version(&self) -> ByronBlockVersion {
         self.0.block_version.clone().into()
     }
@@ -72,56 +55,16 @@ impl BlockHeaderExtraData {
     }
 }
 
-impl From<cml_multi_era::byron::block::BlockHeaderExtraData> for BlockHeaderExtraData {
-    fn from(native: cml_multi_era::byron::block::BlockHeaderExtraData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<BlockHeaderExtraData> for cml_multi_era::byron::block::BlockHeaderExtraData {
-    fn from(wasm: BlockHeaderExtraData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::BlockHeaderExtraData> for BlockHeaderExtraData {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::BlockHeaderExtraData {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronBlock(cml_multi_era::byron::block::ByronBlock);
 
+impl_wasm_cbor_json_api_byron!(ByronBlock);
+
+impl_wasm_conversions!(cml_multi_era::byron::block::ByronBlock, ByronBlock);
+
 #[wasm_bindgen]
 impl ByronBlock {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronBlock, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronBlock, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_epoch_boundary(epoch_boundary: &ByronEbBlock) -> Self {
         Self(cml_multi_era::byron::block::ByronBlock::new_epoch_boundary(
             epoch_boundary.clone().into(),
@@ -160,56 +103,16 @@ impl ByronBlock {
     }
 }
 
-impl From<cml_multi_era::byron::block::ByronBlock> for ByronBlock {
-    fn from(native: cml_multi_era::byron::block::ByronBlock) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronBlock> for cml_multi_era::byron::block::ByronBlock {
-    fn from(wasm: ByronBlock) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::ByronBlock> for ByronBlock {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::ByronBlock {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronBlockBody(cml_multi_era::byron::block::ByronBlockBody);
 
+impl_wasm_cbor_json_api_byron!(ByronBlockBody);
+
+impl_wasm_conversions!(cml_multi_era::byron::block::ByronBlockBody, ByronBlockBody);
+
 #[wasm_bindgen]
 impl ByronBlockBody {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronBlockBody, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronBlockBody, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn tx_payload(&self) -> TxPayload {
         self.0.tx_payload.clone().into()
     }
@@ -241,56 +144,19 @@ impl ByronBlockBody {
     }
 }
 
-impl From<cml_multi_era::byron::block::ByronBlockBody> for ByronBlockBody {
-    fn from(native: cml_multi_era::byron::block::ByronBlockBody) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronBlockBody> for cml_multi_era::byron::block::ByronBlockBody {
-    fn from(wasm: ByronBlockBody) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::ByronBlockBody> for ByronBlockBody {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::ByronBlockBody {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronBlockConsensusData(cml_multi_era::byron::block::ByronBlockConsensusData);
 
+impl_wasm_cbor_json_api_byron!(ByronBlockConsensusData);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::block::ByronBlockConsensusData,
+    ByronBlockConsensusData
+);
+
 #[wasm_bindgen]
 impl ByronBlockConsensusData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronBlockConsensusData, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronBlockConsensusData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn byron_slot_id(&self) -> ByronSlotId {
         self.0.byron_slot_id.clone().into()
     }
@@ -322,56 +188,19 @@ impl ByronBlockConsensusData {
     }
 }
 
-impl From<cml_multi_era::byron::block::ByronBlockConsensusData> for ByronBlockConsensusData {
-    fn from(native: cml_multi_era::byron::block::ByronBlockConsensusData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronBlockConsensusData> for cml_multi_era::byron::block::ByronBlockConsensusData {
-    fn from(wasm: ByronBlockConsensusData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::ByronBlockConsensusData> for ByronBlockConsensusData {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::ByronBlockConsensusData {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronBlockHeader(cml_multi_era::byron::block::ByronBlockHeader);
 
+impl_wasm_cbor_json_api_byron!(ByronBlockHeader);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::block::ByronBlockHeader,
+    ByronBlockHeader
+);
+
 #[wasm_bindgen]
 impl ByronBlockHeader {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronBlockHeader, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronBlockHeader, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn protocol_magic(&self) -> u32 {
         self.0.protocol_magic
     }
@@ -409,24 +238,6 @@ impl ByronBlockHeader {
     }
 }
 
-impl From<cml_multi_era::byron::block::ByronBlockHeader> for ByronBlockHeader {
-    fn from(native: cml_multi_era::byron::block::ByronBlockHeader) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronBlockHeader> for cml_multi_era::byron::block::ByronBlockHeader {
-    fn from(wasm: ByronBlockHeader) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::ByronBlockHeader> for ByronBlockHeader {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::ByronBlockHeader {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum ByronBlockKind {
     EpochBoundary,
@@ -437,34 +248,15 @@ pub enum ByronBlockKind {
 #[wasm_bindgen]
 pub struct ByronBlockSignature(cml_multi_era::byron::block::ByronBlockSignature);
 
+impl_wasm_cbor_json_api_byron!(ByronBlockSignature);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::block::ByronBlockSignature,
+    ByronBlockSignature
+);
+
 #[wasm_bindgen]
 impl ByronBlockSignature {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronBlockSignature, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronBlockSignature, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_signature(signature: &ByronBlockSignatureNormal) -> Self {
         Self(
             cml_multi_era::byron::block::ByronBlockSignature::new_signature(
@@ -531,24 +323,6 @@ impl ByronBlockSignature {
     }
 }
 
-impl From<cml_multi_era::byron::block::ByronBlockSignature> for ByronBlockSignature {
-    fn from(native: cml_multi_era::byron::block::ByronBlockSignature) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronBlockSignature> for cml_multi_era::byron::block::ByronBlockSignature {
-    fn from(wasm: ByronBlockSignature) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::ByronBlockSignature> for ByronBlockSignature {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::ByronBlockSignature {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum ByronBlockSignatureKind {
     Signature,
@@ -560,34 +334,15 @@ pub enum ByronBlockSignatureKind {
 #[wasm_bindgen]
 pub struct ByronBlockSignatureNormal(cml_multi_era::byron::block::ByronBlockSignatureNormal);
 
+impl_wasm_cbor_json_api_byron!(ByronBlockSignatureNormal);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::block::ByronBlockSignatureNormal,
+    ByronBlockSignatureNormal
+);
+
 #[wasm_bindgen]
 impl ByronBlockSignatureNormal {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronBlockSignatureNormal, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronBlockSignatureNormal, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn signature(&self) -> ByronSignature {
         self.0.signature.clone()
     }
@@ -599,58 +354,21 @@ impl ByronBlockSignatureNormal {
     }
 }
 
-impl From<cml_multi_era::byron::block::ByronBlockSignatureNormal> for ByronBlockSignatureNormal {
-    fn from(native: cml_multi_era::byron::block::ByronBlockSignatureNormal) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronBlockSignatureNormal> for cml_multi_era::byron::block::ByronBlockSignatureNormal {
-    fn from(wasm: ByronBlockSignatureNormal) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::ByronBlockSignatureNormal> for ByronBlockSignatureNormal {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::ByronBlockSignatureNormal {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronBlockSignatureProxyHeavy(
     cml_multi_era::byron::block::ByronBlockSignatureProxyHeavy,
 );
 
+impl_wasm_cbor_json_api_byron!(ByronBlockSignatureProxyHeavy);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::block::ByronBlockSignatureProxyHeavy,
+    ByronBlockSignatureProxyHeavy
+);
+
 #[wasm_bindgen]
 impl ByronBlockSignatureProxyHeavy {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronBlockSignatureProxyHeavy, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronBlockSignatureProxyHeavy, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn signature(&self) -> ByronDelegationSignature {
         self.0.signature.clone().into()
     }
@@ -664,64 +382,21 @@ impl ByronBlockSignatureProxyHeavy {
     }
 }
 
-impl From<cml_multi_era::byron::block::ByronBlockSignatureProxyHeavy>
-    for ByronBlockSignatureProxyHeavy
-{
-    fn from(native: cml_multi_era::byron::block::ByronBlockSignatureProxyHeavy) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronBlockSignatureProxyHeavy>
-    for cml_multi_era::byron::block::ByronBlockSignatureProxyHeavy
-{
-    fn from(wasm: ByronBlockSignatureProxyHeavy) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::ByronBlockSignatureProxyHeavy>
-    for ByronBlockSignatureProxyHeavy
-{
-    fn as_ref(&self) -> &cml_multi_era::byron::block::ByronBlockSignatureProxyHeavy {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronBlockSignatureProxyLight(
     cml_multi_era::byron::block::ByronBlockSignatureProxyLight,
 );
 
+impl_wasm_cbor_json_api_byron!(ByronBlockSignatureProxyLight);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::block::ByronBlockSignatureProxyLight,
+    ByronBlockSignatureProxyLight
+);
+
 #[wasm_bindgen]
 impl ByronBlockSignatureProxyLight {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronBlockSignatureProxyLight, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronBlockSignatureProxyLight, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn signature(&self) -> LightWeightDelegationSignature {
         self.0.signature.clone().into()
     }
@@ -735,62 +410,16 @@ impl ByronBlockSignatureProxyLight {
     }
 }
 
-impl From<cml_multi_era::byron::block::ByronBlockSignatureProxyLight>
-    for ByronBlockSignatureProxyLight
-{
-    fn from(native: cml_multi_era::byron::block::ByronBlockSignatureProxyLight) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronBlockSignatureProxyLight>
-    for cml_multi_era::byron::block::ByronBlockSignatureProxyLight
-{
-    fn from(wasm: ByronBlockSignatureProxyLight) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::ByronBlockSignatureProxyLight>
-    for ByronBlockSignatureProxyLight
-{
-    fn as_ref(&self) -> &cml_multi_era::byron::block::ByronBlockSignatureProxyLight {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronBodyProof(cml_multi_era::byron::block::ByronBodyProof);
 
+impl_wasm_cbor_json_api_byron!(ByronBodyProof);
+
+impl_wasm_conversions!(cml_multi_era::byron::block::ByronBodyProof, ByronBodyProof);
+
 #[wasm_bindgen]
 impl ByronBodyProof {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronBodyProof, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronBodyProof, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn tx_proof(&self) -> ByronTxProof {
         self.0.tx_proof.clone().into()
     }
@@ -822,56 +451,19 @@ impl ByronBodyProof {
     }
 }
 
-impl From<cml_multi_era::byron::block::ByronBodyProof> for ByronBodyProof {
-    fn from(native: cml_multi_era::byron::block::ByronBodyProof) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronBodyProof> for cml_multi_era::byron::block::ByronBodyProof {
-    fn from(wasm: ByronBodyProof) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::ByronBodyProof> for ByronBodyProof {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::ByronBodyProof {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronDifficulty(cml_multi_era::byron::block::ByronDifficulty);
 
+impl_wasm_cbor_json_api_byron!(ByronDifficulty);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::block::ByronDifficulty,
+    ByronDifficulty
+);
+
 #[wasm_bindgen]
 impl ByronDifficulty {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronDifficulty, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronDifficulty, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn u64(&self) -> u64 {
         self.0.u64
     }
@@ -881,56 +473,16 @@ impl ByronDifficulty {
     }
 }
 
-impl From<cml_multi_era::byron::block::ByronDifficulty> for ByronDifficulty {
-    fn from(native: cml_multi_era::byron::block::ByronDifficulty) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronDifficulty> for cml_multi_era::byron::block::ByronDifficulty {
-    fn from(wasm: ByronDifficulty) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::ByronDifficulty> for ByronDifficulty {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::ByronDifficulty {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronEbBlock(cml_multi_era::byron::block::ByronEbBlock);
 
+impl_wasm_cbor_json_api_byron!(ByronEbBlock);
+
+impl_wasm_conversions!(cml_multi_era::byron::block::ByronEbBlock, ByronEbBlock);
+
 #[wasm_bindgen]
 impl ByronEbBlock {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronEbBlock, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronEbBlock, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn header(&self) -> EbbHead {
         self.0.header.clone().into()
     }
@@ -952,56 +504,16 @@ impl ByronEbBlock {
     }
 }
 
-impl From<cml_multi_era::byron::block::ByronEbBlock> for ByronEbBlock {
-    fn from(native: cml_multi_era::byron::block::ByronEbBlock) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronEbBlock> for cml_multi_era::byron::block::ByronEbBlock {
-    fn from(wasm: ByronEbBlock) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::ByronEbBlock> for ByronEbBlock {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::ByronEbBlock {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronMainBlock(cml_multi_era::byron::block::ByronMainBlock);
 
+impl_wasm_cbor_json_api_byron!(ByronMainBlock);
+
+impl_wasm_conversions!(cml_multi_era::byron::block::ByronMainBlock, ByronMainBlock);
+
 #[wasm_bindgen]
 impl ByronMainBlock {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronMainBlock, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronMainBlock, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn header(&self) -> ByronBlockHeader {
         self.0.header.clone().into()
     }
@@ -1027,56 +539,19 @@ impl ByronMainBlock {
     }
 }
 
-impl From<cml_multi_era::byron::block::ByronMainBlock> for ByronMainBlock {
-    fn from(native: cml_multi_era::byron::block::ByronMainBlock) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronMainBlock> for cml_multi_era::byron::block::ByronMainBlock {
-    fn from(wasm: ByronMainBlock) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::ByronMainBlock> for ByronMainBlock {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::ByronMainBlock {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct EbbConsensusData(cml_multi_era::byron::block::EbbConsensusData);
 
+impl_wasm_cbor_json_api_byron!(EbbConsensusData);
+
+impl_wasm_conversions!(
+    cml_multi_era::byron::block::EbbConsensusData,
+    EbbConsensusData
+);
+
 #[wasm_bindgen]
 impl EbbConsensusData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<EbbConsensusData, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<EbbConsensusData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn epoch_id(&self) -> EpochId {
         self.0.epoch_id
     }
@@ -1093,56 +568,16 @@ impl EbbConsensusData {
     }
 }
 
-impl From<cml_multi_era::byron::block::EbbConsensusData> for EbbConsensusData {
-    fn from(native: cml_multi_era::byron::block::EbbConsensusData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<EbbConsensusData> for cml_multi_era::byron::block::EbbConsensusData {
-    fn from(wasm: EbbConsensusData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::EbbConsensusData> for EbbConsensusData {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::EbbConsensusData {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct EbbHead(cml_multi_era::byron::block::EbbHead);
 
+impl_wasm_cbor_json_api_byron!(EbbHead);
+
+impl_wasm_conversions!(cml_multi_era::byron::block::EbbHead, EbbHead);
+
 #[wasm_bindgen]
 impl EbbHead {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<EbbHead, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<EbbHead, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn protocol_magic(&self) -> u32 {
         self.0.protocol_magic
     }
@@ -1180,56 +615,16 @@ impl EbbHead {
     }
 }
 
-impl From<cml_multi_era::byron::block::EbbHead> for EbbHead {
-    fn from(native: cml_multi_era::byron::block::EbbHead) -> Self {
-        Self(native)
-    }
-}
-
-impl From<EbbHead> for cml_multi_era::byron::block::EbbHead {
-    fn from(wasm: EbbHead) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::EbbHead> for EbbHead {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::EbbHead {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct TxAux(cml_multi_era::byron::block::TxAux);
 
+impl_wasm_cbor_json_api_byron!(TxAux);
+
+impl_wasm_conversions!(cml_multi_era::byron::block::TxAux, TxAux);
+
 #[wasm_bindgen]
 impl TxAux {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<TxAux, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<TxAux, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn byron_tx(&self) -> ByronTx {
         self.0.byron_tx.clone().into()
     }
@@ -1246,27 +641,11 @@ impl TxAux {
     }
 }
 
-impl From<cml_multi_era::byron::block::TxAux> for TxAux {
-    fn from(native: cml_multi_era::byron::block::TxAux) -> Self {
-        Self(native)
-    }
-}
-
-impl From<TxAux> for cml_multi_era::byron::block::TxAux {
-    fn from(wasm: TxAux) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::byron::block::TxAux> for TxAux {
-    fn as_ref(&self) -> &cml_multi_era::byron::block::TxAux {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct TxPayload(Vec<cml_multi_era::byron::block::TxAux>);
+
+impl_wasm_conversions!(Vec<cml_multi_era::byron::block::TxAux>, TxPayload);
 
 #[wasm_bindgen]
 impl TxPayload {
@@ -1284,23 +663,5 @@ impl TxPayload {
 
     pub fn add(&mut self, elem: &TxAux) {
         self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_multi_era::byron::block::TxAux>> for TxPayload {
-    fn from(native: Vec<cml_multi_era::byron::block::TxAux>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<TxPayload> for Vec<cml_multi_era::byron::block::TxAux> {
-    fn from(wasm: TxPayload) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_multi_era::byron::block::TxAux>> for TxPayload {
-    fn as_ref(&self) -> &Vec<cml_multi_era::byron::block::TxAux> {
-        &self.0
     }
 }

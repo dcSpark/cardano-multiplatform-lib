@@ -17,16 +17,35 @@ fn main() {
     // address.rs
     gen_json_schema!(cml_chain::address::Address);
     gen_json_schema!(cml_chain::address::RewardAccount);
+    // assets.rs
+    gen_json_schema!(cml_chain::assets::AssetBundle<u64>);
+    gen_json_schema!(cml_chain::assets::AssetBundle<i64>);
     // auxdata.rs
     gen_json_schema!(cml_chain::auxdata::AlonzoAuxData);
     gen_json_schema!(cml_chain::auxdata::AuxiliaryData);
     gen_json_schema!(cml_chain::auxdata::ShelleyMaAuxData);
     gen_json_schema!(cml_chain::auxdata::TransactionMetadatum);
+    gen_json_schema!(cml_chain::auxdata::Metadata);
+    gen_json_schema!(cml_chain::auxdata::MetadatumMap);
     // block.rs
+    gen_json_schema!(cml_chain::block::Block);
     gen_json_schema!(cml_chain::block::Header);
     gen_json_schema!(cml_chain::block::HeaderBody);
     gen_json_schema!(cml_chain::block::OperationalCert);
     gen_json_schema!(cml_chain::block::ProtocolVersion);
+    // byron.rs
+    gen_json_schema!(cml_chain::byron::AddrAttributes);
+    gen_json_schema!(cml_chain::byron::AddressContent);
+    gen_json_schema!(cml_chain::byron::ByronAddress);
+    gen_json_schema!(cml_chain::byron::ByronAddrType);
+    gen_json_schema!(cml_chain::byron::ByronTxOut);
+    gen_json_schema!(cml_chain::byron::Crc32);
+    gen_json_schema!(cml_chain::byron::HDAddressPayload);
+    gen_json_schema!(cml_chain::byron::SpendingData);
+    gen_json_schema!(cml_chain::byron::ProtocolMagic);
+    gen_json_schema!(cml_chain::byron::StakeDistribution);
+    gen_json_schema!(cml_chain::byron::StakeholderId);
+    gen_json_schema!(cml_crypto::Bip32PublicKey);
     // certs.rs
     gen_json_schema!(cml_chain::certs::Certificate);
     gen_json_schema!(cml_chain::certs::DnsName);
@@ -61,6 +80,7 @@ fn main() {
     gen_json_schema!(cml_chain::crypto::GenesisHash);
     gen_json_schema!(cml_chain::crypto::KESSignature);
     gen_json_schema!(cml_chain::crypto::KESVkey);
+    gen_json_schema!(cml_chain::crypto::Nonce);
     gen_json_schema!(cml_chain::crypto::PoolMetadataHash);
     gen_json_schema!(cml_chain::crypto::ScriptDataHash);
     gen_json_schema!(cml_chain::crypto::ScriptHash);
@@ -71,8 +91,8 @@ fn main() {
     gen_json_schema!(cml_chain::crypto::Vkey);
     // lib.rs
     gen_json_schema!(cml_chain::AssetName);
-    gen_json_schema!(cml_chain::BootstrapWitness);
-    gen_json_schema!(cml_chain::BoundedBytes);
+    gen_json_schema!(cml_chain::crypto::BootstrapWitness);
+    //gen_json_schema!(cml_chain::BoundedBytes);
     gen_json_schema!(cml_chain::Int);
     gen_json_schema!(cml_chain::PositiveInterval);
     gen_json_schema!(cml_chain::ProtocolParamUpdate);
@@ -82,14 +102,14 @@ fn main() {
     gen_json_schema!(cml_chain::UnitInterval);
     gen_json_schema!(cml_chain::Update);
     gen_json_schema!(cml_chain::Value);
-    gen_json_schema!(cml_chain::Vkeywitness);
+    gen_json_schema!(cml_chain::crypto::Vkeywitness);
     // plutus.rs
-    gen_json_schema!(cml_chain::plutus::BigInt);
     gen_json_schema!(cml_chain::plutus::ConstrPlutusData);
-    gen_json_schema!(cml_chain::plutus::Costmdls);
+    gen_json_schema!(cml_chain::plutus::CostModels);
     gen_json_schema!(cml_chain::plutus::ExUnitPrices);
     gen_json_schema!(cml_chain::plutus::ExUnits);
     gen_json_schema!(cml_chain::plutus::PlutusData);
+    gen_json_schema!(cml_chain::plutus::PlutusMap);
     gen_json_schema!(cml_chain::plutus::PlutusV1Script);
     gen_json_schema!(cml_chain::plutus::PlutusV2Script);
     gen_json_schema!(cml_chain::plutus::Redeemer);
@@ -107,8 +127,11 @@ fn main() {
     gen_json_schema!(cml_chain::transaction::ScriptNOfK);
     gen_json_schema!(cml_chain::transaction::ScriptPubkey);
     gen_json_schema!(cml_chain::transaction::ShelleyTxOut);
+    gen_json_schema!(cml_chain::transaction::Transaction);
     gen_json_schema!(cml_chain::transaction::TransactionBody);
     gen_json_schema!(cml_chain::transaction::TransactionInput);
     gen_json_schema!(cml_chain::transaction::TransactionOutput);
     gen_json_schema!(cml_chain::transaction::TransactionWitnessSet);
+    // utils.rs
+    gen_json_schema!(cml_chain::utils::BigInt);
 }

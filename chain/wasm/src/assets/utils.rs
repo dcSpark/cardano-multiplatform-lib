@@ -163,6 +163,14 @@ impl Value {
     pub fn new(coin: Coin, multiasset: &MultiAsset) -> Self {
         cml_chain::assets::Value::new(coin, multiasset.clone().into()).into()
     }
+
+    pub fn coin(&self) -> Coin {
+        self.0.coin
+    }
+
+    pub fn multi_asset(&self) -> MultiAsset {
+        self.0.multiasset.clone().into()
+    }
     
     pub fn zero() -> Value {
         cml_chain::assets::Value::zero().into()

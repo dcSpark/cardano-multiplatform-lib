@@ -102,7 +102,7 @@ macro_rules! impl_wasm_map {
             }
         
             pub fn get(&self, key: &$wasm_key) -> Option<$wasm_value> {
-                self.0.get(key.as_ref()).copied()
+                self.0.get(key.as_ref()).cloned()
             }
         
             pub fn keys(&self) -> $wasm_key_list {
@@ -128,4 +128,38 @@ macro_rules! impl_wasm_map {
             }
         }
     };
+}
+
+#[macro_export]
+macro_rules! impl_wasm_cbor_json_api {
+    ($wasm_name:ident) => {
+        #[wasm_bindgen::prelude::wasm_bindgen]
+        impl $wasm_name {
+            pub fn to_cbor_bytes(&self) -> Vec<u8> {
+                cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
+            }
+
+            pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<$wasm_name, JsValue> {
+                cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
+                    .map(Self)
+                    .map_err(|e| JsValue::from_str(&format!(concat!(stringify!($wasm_name), "::from_bytes: {}"), e)))
+            }
+
+            pub fn to_json(&self) -> Result<String, JsValue> {
+                serde_json::to_string_pretty(&self.0)
+                    .map_err(|e| JsValue::from_str(&format!(concat!(stringify!($wasm_name), "::to_json: {}"), e)))
+            }
+
+            pub fn to_js_value(&self) -> Result<JsValue, JsValue> {
+                serde_wasm_bindgen::to_value(&self.0)
+                    .map_err(|e| JsValue::from_str(&format!(concat!(stringify!($wasm_name), "::to_js_value: {}"), e)))
+            }
+
+            pub fn from_json(json: &str) -> Result<$wasm_name, JsValue> {
+                serde_json::from_str(json)
+                    .map(Self)
+                    .map_err(|e| JsValue::from_str(&format!(concat!(stringify!($wasm_name), "::from_json: {}"), e)))
+            }
+        }
+    }
 }

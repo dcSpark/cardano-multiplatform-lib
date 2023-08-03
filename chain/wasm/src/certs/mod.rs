@@ -9,40 +9,19 @@ pub use cml_chain::certs::MIRPot;
 use cml_crypto_wasm::{
     Ed25519KeyHash, GenesisDelegateHash, GenesisHash, PoolMetadataHash, ScriptHash, VRFKeyHash,
 };
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Certificate(cml_chain::certs::Certificate);
 
+impl_wasm_cbor_json_api!(Certificate);
+
+impl_wasm_conversions!(cml_chain::certs::Certificate, Certificate);
+
 #[wasm_bindgen]
 impl Certificate {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Certificate, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Certificate, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_stake_registration(stake_credential: &StakeCredential) -> Self {
         Self(cml_chain::certs::Certificate::new_stake_registration(
             stake_credential.clone().into(),
@@ -184,24 +163,6 @@ impl Certificate {
     }
 }
 
-impl From<cml_chain::certs::Certificate> for Certificate {
-    fn from(native: cml_chain::certs::Certificate) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Certificate> for cml_chain::certs::Certificate {
-    fn from(wasm: Certificate) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::Certificate> for Certificate {
-    fn as_ref(&self) -> &cml_chain::certs::Certificate {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum CertificateKind {
     StakeRegistration,
@@ -217,54 +178,14 @@ pub enum CertificateKind {
 #[wasm_bindgen]
 pub struct DnsName(cml_chain::certs::DnsName);
 
+impl_wasm_cbor_json_api!(DnsName);
+
+impl_wasm_conversions!(cml_chain::certs::DnsName, DnsName);
+
 #[wasm_bindgen]
 impl DnsName {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<DnsName, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<DnsName, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn get(&self) -> String {
         self.0.get().clone()
-    }
-}
-
-impl From<cml_chain::certs::DnsName> for DnsName {
-    fn from(native: cml_chain::certs::DnsName) -> Self {
-        Self(native)
-    }
-}
-
-impl From<DnsName> for cml_chain::certs::DnsName {
-    fn from(wasm: DnsName) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::DnsName> for DnsName {
-    fn as_ref(&self) -> &cml_chain::certs::DnsName {
-        &self.0
     }
 }
 
@@ -272,34 +193,12 @@ impl AsRef<cml_chain::certs::DnsName> for DnsName {
 #[wasm_bindgen]
 pub struct GenesisKeyDelegation(cml_chain::certs::GenesisKeyDelegation);
 
+impl_wasm_cbor_json_api!(GenesisKeyDelegation);
+
+impl_wasm_conversions!(cml_chain::certs::GenesisKeyDelegation, GenesisKeyDelegation);
+
 #[wasm_bindgen]
 impl GenesisKeyDelegation {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<GenesisKeyDelegation, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<GenesisKeyDelegation, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn genesis_hash(&self) -> GenesisHash {
         self.0.genesis_hash.clone().into()
     }
@@ -325,76 +224,18 @@ impl GenesisKeyDelegation {
     }
 }
 
-impl From<cml_chain::certs::GenesisKeyDelegation> for GenesisKeyDelegation {
-    fn from(native: cml_chain::certs::GenesisKeyDelegation) -> Self {
-        Self(native)
-    }
-}
-
-impl From<GenesisKeyDelegation> for cml_chain::certs::GenesisKeyDelegation {
-    fn from(wasm: GenesisKeyDelegation) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::GenesisKeyDelegation> for GenesisKeyDelegation {
-    fn as_ref(&self) -> &cml_chain::certs::GenesisKeyDelegation {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Ipv4(cml_chain::certs::Ipv4);
 
+impl_wasm_cbor_json_api!(Ipv4);
+
+impl_wasm_conversions!(cml_chain::certs::Ipv4, Ipv4);
+
 #[wasm_bindgen]
 impl Ipv4 {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Ipv4, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Ipv4, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn get(&self) -> Vec<u8> {
         self.0.get().clone()
-    }
-}
-
-impl From<cml_chain::certs::Ipv4> for Ipv4 {
-    fn from(native: cml_chain::certs::Ipv4) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Ipv4> for cml_chain::certs::Ipv4 {
-    fn from(wasm: Ipv4) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::Ipv4> for Ipv4 {
-    fn as_ref(&self) -> &cml_chain::certs::Ipv4 {
-        &self.0
     }
 }
 
@@ -402,54 +243,14 @@ impl AsRef<cml_chain::certs::Ipv4> for Ipv4 {
 #[wasm_bindgen]
 pub struct Ipv6(cml_chain::certs::Ipv6);
 
+impl_wasm_cbor_json_api!(Ipv6);
+
+impl_wasm_conversions!(cml_chain::certs::Ipv6, Ipv6);
+
 #[wasm_bindgen]
 impl Ipv6 {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Ipv6, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Ipv6, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn get(&self) -> Vec<u8> {
         self.0.get().clone()
-    }
-}
-
-impl From<cml_chain::certs::Ipv6> for Ipv6 {
-    fn from(native: cml_chain::certs::Ipv6) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Ipv6> for cml_chain::certs::Ipv6 {
-    fn from(wasm: Ipv6) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::Ipv6> for Ipv6 {
-    fn as_ref(&self) -> &cml_chain::certs::Ipv6 {
-        &self.0
     }
 }
 
@@ -457,34 +258,12 @@ impl AsRef<cml_chain::certs::Ipv6> for Ipv6 {
 #[wasm_bindgen]
 pub struct MIRAction(cml_chain::certs::MIRAction);
 
+impl_wasm_cbor_json_api!(MIRAction);
+
+impl_wasm_conversions!(cml_chain::certs::MIRAction, MIRAction);
+
 #[wasm_bindgen]
 impl MIRAction {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<MIRAction, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<MIRAction, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_to_stake_credentials(to_stake_credentials: &MapStakeCredentialToDeltaCoin) -> Self {
         Self(cml_chain::certs::MIRAction::new_to_stake_credentials(
             to_stake_credentials.clone().into(),
@@ -522,24 +301,6 @@ impl MIRAction {
     }
 }
 
-impl From<cml_chain::certs::MIRAction> for MIRAction {
-    fn from(native: cml_chain::certs::MIRAction) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MIRAction> for cml_chain::certs::MIRAction {
-    fn from(wasm: MIRAction) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::MIRAction> for MIRAction {
-    fn as_ref(&self) -> &cml_chain::certs::MIRAction {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum MIRActionKind {
     ToStakeCredentials,
@@ -550,34 +311,15 @@ pub enum MIRActionKind {
 #[wasm_bindgen]
 pub struct MoveInstantaneousReward(cml_chain::certs::MoveInstantaneousReward);
 
+impl_wasm_cbor_json_api!(MoveInstantaneousReward);
+
+impl_wasm_conversions!(
+    cml_chain::certs::MoveInstantaneousReward,
+    MoveInstantaneousReward
+);
+
 #[wasm_bindgen]
 impl MoveInstantaneousReward {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<MoveInstantaneousReward, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<MoveInstantaneousReward, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn pot(&self) -> MIRPot {
         self.0.pot
     }
@@ -594,56 +336,19 @@ impl MoveInstantaneousReward {
     }
 }
 
-impl From<cml_chain::certs::MoveInstantaneousReward> for MoveInstantaneousReward {
-    fn from(native: cml_chain::certs::MoveInstantaneousReward) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MoveInstantaneousReward> for cml_chain::certs::MoveInstantaneousReward {
-    fn from(wasm: MoveInstantaneousReward) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::MoveInstantaneousReward> for MoveInstantaneousReward {
-    fn as_ref(&self) -> &cml_chain::certs::MoveInstantaneousReward {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MoveInstantaneousRewardsCert(cml_chain::certs::MoveInstantaneousRewardsCert);
 
+impl_wasm_cbor_json_api!(MoveInstantaneousRewardsCert);
+
+impl_wasm_conversions!(
+    cml_chain::certs::MoveInstantaneousRewardsCert,
+    MoveInstantaneousRewardsCert
+);
+
 #[wasm_bindgen]
 impl MoveInstantaneousRewardsCert {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<MoveInstantaneousRewardsCert, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<MoveInstantaneousRewardsCert, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn move_instantaneous_reward(&self) -> MoveInstantaneousReward {
         self.0.move_instantaneous_reward.clone().into()
     }
@@ -655,56 +360,16 @@ impl MoveInstantaneousRewardsCert {
     }
 }
 
-impl From<cml_chain::certs::MoveInstantaneousRewardsCert> for MoveInstantaneousRewardsCert {
-    fn from(native: cml_chain::certs::MoveInstantaneousRewardsCert) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MoveInstantaneousRewardsCert> for cml_chain::certs::MoveInstantaneousRewardsCert {
-    fn from(wasm: MoveInstantaneousRewardsCert) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::MoveInstantaneousRewardsCert> for MoveInstantaneousRewardsCert {
-    fn as_ref(&self) -> &cml_chain::certs::MoveInstantaneousRewardsCert {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MultiHostName(cml_chain::certs::MultiHostName);
 
+impl_wasm_cbor_json_api!(MultiHostName);
+
+impl_wasm_conversions!(cml_chain::certs::MultiHostName, MultiHostName);
+
 #[wasm_bindgen]
 impl MultiHostName {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<MultiHostName, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<MultiHostName, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn dns_name(&self) -> DnsName {
         self.0.dns_name.clone().into()
     }
@@ -716,56 +381,16 @@ impl MultiHostName {
     }
 }
 
-impl From<cml_chain::certs::MultiHostName> for MultiHostName {
-    fn from(native: cml_chain::certs::MultiHostName) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MultiHostName> for cml_chain::certs::MultiHostName {
-    fn from(wasm: MultiHostName) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::MultiHostName> for MultiHostName {
-    fn as_ref(&self) -> &cml_chain::certs::MultiHostName {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PoolMetadata(cml_chain::certs::PoolMetadata);
 
+impl_wasm_cbor_json_api!(PoolMetadata);
+
+impl_wasm_conversions!(cml_chain::certs::PoolMetadata, PoolMetadata);
+
 #[wasm_bindgen]
 impl PoolMetadata {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<PoolMetadata, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<PoolMetadata, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn url(&self) -> Url {
         self.0.url.clone().into()
     }
@@ -782,56 +407,16 @@ impl PoolMetadata {
     }
 }
 
-impl From<cml_chain::certs::PoolMetadata> for PoolMetadata {
-    fn from(native: cml_chain::certs::PoolMetadata) -> Self {
-        Self(native)
-    }
-}
-
-impl From<PoolMetadata> for cml_chain::certs::PoolMetadata {
-    fn from(wasm: PoolMetadata) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::PoolMetadata> for PoolMetadata {
-    fn as_ref(&self) -> &cml_chain::certs::PoolMetadata {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PoolParams(cml_chain::certs::PoolParams);
 
+impl_wasm_cbor_json_api!(PoolParams);
+
+impl_wasm_conversions!(cml_chain::certs::PoolParams, PoolParams);
+
 #[wasm_bindgen]
 impl PoolParams {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<PoolParams, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<PoolParams, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn operator(&self) -> Ed25519KeyHash {
         self.0.operator.clone().into()
     }
@@ -893,56 +478,16 @@ impl PoolParams {
     }
 }
 
-impl From<cml_chain::certs::PoolParams> for PoolParams {
-    fn from(native: cml_chain::certs::PoolParams) -> Self {
-        Self(native)
-    }
-}
-
-impl From<PoolParams> for cml_chain::certs::PoolParams {
-    fn from(wasm: PoolParams) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::PoolParams> for PoolParams {
-    fn as_ref(&self) -> &cml_chain::certs::PoolParams {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PoolRegistration(cml_chain::certs::PoolRegistration);
 
+impl_wasm_cbor_json_api!(PoolRegistration);
+
+impl_wasm_conversions!(cml_chain::certs::PoolRegistration, PoolRegistration);
+
 #[wasm_bindgen]
 impl PoolRegistration {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<PoolRegistration, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<PoolRegistration, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn pool_params(&self) -> PoolParams {
         self.0.pool_params.clone().into()
     }
@@ -954,56 +499,16 @@ impl PoolRegistration {
     }
 }
 
-impl From<cml_chain::certs::PoolRegistration> for PoolRegistration {
-    fn from(native: cml_chain::certs::PoolRegistration) -> Self {
-        Self(native)
-    }
-}
-
-impl From<PoolRegistration> for cml_chain::certs::PoolRegistration {
-    fn from(wasm: PoolRegistration) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::PoolRegistration> for PoolRegistration {
-    fn as_ref(&self) -> &cml_chain::certs::PoolRegistration {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PoolRetirement(cml_chain::certs::PoolRetirement);
 
+impl_wasm_cbor_json_api!(PoolRetirement);
+
+impl_wasm_conversions!(cml_chain::certs::PoolRetirement, PoolRetirement);
+
 #[wasm_bindgen]
 impl PoolRetirement {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<PoolRetirement, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<PoolRetirement, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
         self.0.ed25519_key_hash.clone().into()
     }
@@ -1020,56 +525,16 @@ impl PoolRetirement {
     }
 }
 
-impl From<cml_chain::certs::PoolRetirement> for PoolRetirement {
-    fn from(native: cml_chain::certs::PoolRetirement) -> Self {
-        Self(native)
-    }
-}
-
-impl From<PoolRetirement> for cml_chain::certs::PoolRetirement {
-    fn from(wasm: PoolRetirement) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::PoolRetirement> for PoolRetirement {
-    fn as_ref(&self) -> &cml_chain::certs::PoolRetirement {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Relay(cml_chain::certs::Relay);
 
+impl_wasm_cbor_json_api!(Relay);
+
+impl_wasm_conversions!(cml_chain::certs::Relay, Relay);
+
 #[wasm_bindgen]
 impl Relay {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Relay, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Relay, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_single_host_addr(
         port: Option<Port>,
         ipv4: Option<Ipv4>,
@@ -1131,24 +596,6 @@ impl Relay {
     }
 }
 
-impl From<cml_chain::certs::Relay> for Relay {
-    fn from(native: cml_chain::certs::Relay) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Relay> for cml_chain::certs::Relay {
-    fn from(wasm: Relay) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::Relay> for Relay {
-    fn as_ref(&self) -> &cml_chain::certs::Relay {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum RelayKind {
     SingleHostAddr,
@@ -1160,34 +607,12 @@ pub enum RelayKind {
 #[wasm_bindgen]
 pub struct SingleHostAddr(cml_chain::certs::SingleHostAddr);
 
+impl_wasm_cbor_json_api!(SingleHostAddr);
+
+impl_wasm_conversions!(cml_chain::certs::SingleHostAddr, SingleHostAddr);
+
 #[wasm_bindgen]
 impl SingleHostAddr {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SingleHostAddr, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<SingleHostAddr, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn port(&self) -> Option<Port> {
         self.0.port
     }
@@ -1209,56 +634,16 @@ impl SingleHostAddr {
     }
 }
 
-impl From<cml_chain::certs::SingleHostAddr> for SingleHostAddr {
-    fn from(native: cml_chain::certs::SingleHostAddr) -> Self {
-        Self(native)
-    }
-}
-
-impl From<SingleHostAddr> for cml_chain::certs::SingleHostAddr {
-    fn from(wasm: SingleHostAddr) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::SingleHostAddr> for SingleHostAddr {
-    fn as_ref(&self) -> &cml_chain::certs::SingleHostAddr {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct SingleHostName(cml_chain::certs::SingleHostName);
 
+impl_wasm_cbor_json_api!(SingleHostName);
+
+impl_wasm_conversions!(cml_chain::certs::SingleHostName, SingleHostName);
+
 #[wasm_bindgen]
 impl SingleHostName {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SingleHostName, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<SingleHostName, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn port(&self) -> Option<Port> {
         self.0.port
     }
@@ -1275,56 +660,16 @@ impl SingleHostName {
     }
 }
 
-impl From<cml_chain::certs::SingleHostName> for SingleHostName {
-    fn from(native: cml_chain::certs::SingleHostName) -> Self {
-        Self(native)
-    }
-}
-
-impl From<SingleHostName> for cml_chain::certs::SingleHostName {
-    fn from(wasm: SingleHostName) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::SingleHostName> for SingleHostName {
-    fn as_ref(&self) -> &cml_chain::certs::SingleHostName {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct StakeCredential(cml_chain::certs::StakeCredential);
 
+impl_wasm_cbor_json_api!(StakeCredential);
+
+impl_wasm_conversions!(cml_chain::certs::StakeCredential, StakeCredential);
+
 #[wasm_bindgen]
 impl StakeCredential {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<StakeCredential, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<StakeCredential, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_pub_key(hash: &Ed25519KeyHash) -> Self {
         Self(cml_chain::certs::StakeCredential::new_pub_key(
             hash.clone().into(),
@@ -1359,24 +704,6 @@ impl StakeCredential {
     }
 }
 
-impl From<cml_chain::certs::StakeCredential> for StakeCredential {
-    fn from(native: cml_chain::certs::StakeCredential) -> Self {
-        Self(native)
-    }
-}
-
-impl From<StakeCredential> for cml_chain::certs::StakeCredential {
-    fn from(wasm: StakeCredential) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::StakeCredential> for StakeCredential {
-    fn as_ref(&self) -> &cml_chain::certs::StakeCredential {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum StakeCredentialKind {
     PubKey,
@@ -1387,34 +714,12 @@ pub enum StakeCredentialKind {
 #[wasm_bindgen]
 pub struct StakeDelegation(cml_chain::certs::StakeDelegation);
 
+impl_wasm_cbor_json_api!(StakeDelegation);
+
+impl_wasm_conversions!(cml_chain::certs::StakeDelegation, StakeDelegation);
+
 #[wasm_bindgen]
 impl StakeDelegation {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<StakeDelegation, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<StakeDelegation, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn stake_credential(&self) -> StakeCredential {
         self.0.stake_credential.clone().into()
     }
@@ -1431,56 +736,16 @@ impl StakeDelegation {
     }
 }
 
-impl From<cml_chain::certs::StakeDelegation> for StakeDelegation {
-    fn from(native: cml_chain::certs::StakeDelegation) -> Self {
-        Self(native)
-    }
-}
-
-impl From<StakeDelegation> for cml_chain::certs::StakeDelegation {
-    fn from(wasm: StakeDelegation) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::StakeDelegation> for StakeDelegation {
-    fn as_ref(&self) -> &cml_chain::certs::StakeDelegation {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct StakeDeregistration(cml_chain::certs::StakeDeregistration);
 
+impl_wasm_cbor_json_api!(StakeDeregistration);
+
+impl_wasm_conversions!(cml_chain::certs::StakeDeregistration, StakeDeregistration);
+
 #[wasm_bindgen]
 impl StakeDeregistration {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<StakeDeregistration, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<StakeDeregistration, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn stake_credential(&self) -> StakeCredential {
         self.0.stake_credential.clone().into()
     }
@@ -1492,56 +757,16 @@ impl StakeDeregistration {
     }
 }
 
-impl From<cml_chain::certs::StakeDeregistration> for StakeDeregistration {
-    fn from(native: cml_chain::certs::StakeDeregistration) -> Self {
-        Self(native)
-    }
-}
-
-impl From<StakeDeregistration> for cml_chain::certs::StakeDeregistration {
-    fn from(wasm: StakeDeregistration) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::StakeDeregistration> for StakeDeregistration {
-    fn as_ref(&self) -> &cml_chain::certs::StakeDeregistration {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct StakeRegistration(cml_chain::certs::StakeRegistration);
 
+impl_wasm_cbor_json_api!(StakeRegistration);
+
+impl_wasm_conversions!(cml_chain::certs::StakeRegistration, StakeRegistration);
+
 #[wasm_bindgen]
 impl StakeRegistration {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<StakeRegistration, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<StakeRegistration, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn stake_credential(&self) -> StakeCredential {
         self.0.stake_credential.clone().into()
     }
@@ -1553,75 +778,17 @@ impl StakeRegistration {
     }
 }
 
-impl From<cml_chain::certs::StakeRegistration> for StakeRegistration {
-    fn from(native: cml_chain::certs::StakeRegistration) -> Self {
-        Self(native)
-    }
-}
-
-impl From<StakeRegistration> for cml_chain::certs::StakeRegistration {
-    fn from(wasm: StakeRegistration) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::StakeRegistration> for StakeRegistration {
-    fn as_ref(&self) -> &cml_chain::certs::StakeRegistration {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Url(cml_chain::certs::Url);
 
+impl_wasm_cbor_json_api!(Url);
+
+impl_wasm_conversions!(cml_chain::certs::Url, Url);
+
 #[wasm_bindgen]
 impl Url {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Url, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Url, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn get(&self) -> String {
         self.0.get().clone()
-    }
-}
-
-impl From<cml_chain::certs::Url> for Url {
-    fn from(native: cml_chain::certs::Url) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Url> for cml_chain::certs::Url {
-    fn from(wasm: Url) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::certs::Url> for Url {
-    fn as_ref(&self) -> &cml_chain::certs::Url {
-        &self.0
     }
 }

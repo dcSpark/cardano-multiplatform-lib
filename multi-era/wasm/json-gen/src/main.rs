@@ -56,7 +56,7 @@ fn main() {
     gen_json_schema!(cml_multi_era::byron::mpc::VssEncryptedShare);
     gen_json_schema!(cml_multi_era::byron::mpc::VssProof);
     // byron::transaction.rs
-    gen_json_schema!(cml_multi_era::byron::transaction::ByronAny);
+    gen_json_schema!(cml_multi_era::byron::utils::ByronAny);
     gen_json_schema!(cml_multi_era::byron::transaction::ByronPkWitness);
     gen_json_schema!(cml_multi_era::byron::transaction::ByronPkWitnessEntry);
     gen_json_schema!(cml_multi_era::byron::transaction::ByronRedeemWitness);

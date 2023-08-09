@@ -164,9 +164,7 @@ impl Bip32PrivateKey {
     }
 
     pub fn from_bip39_entropy(entropy: &[u8], password: &[u8]) -> Bip32PrivateKey {
-        Bip32PrivateKey(chain_crypto::derive::from_bip39_entropy(
-            entropy, password,
-        ))
+        Bip32PrivateKey(chain_crypto::derive::from_bip39_entropy(entropy, password))
     }
 
     pub fn chaincode(&self) -> Vec<u8> {

@@ -5,21 +5,18 @@ pub mod allegra;
 pub mod alonzo;
 pub mod byron;
 pub mod mary;
-pub mod shelley;
 pub mod serialization;
+pub mod shelley;
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_chain::address::RewardAccount;
-use cml_chain::crypto::GenesisHash;
 use crate::{
+    allegra::AllegraBlock, alonzo::AlonzoBlock, byron::block::ByronBlock, mary::MaryBlock,
     shelley::ShelleyBlock,
-    allegra::AllegraBlock,
-    mary::MaryBlock,
-    alonzo::AlonzoBlock,
-    byron::block::ByronBlock,
 };
+use cml_chain::address::RewardAccount;
 use cml_chain::block::Block;
+use cml_chain::crypto::GenesisHash;
 
 pub type GenesisHashList = Vec<GenesisHash>;
 

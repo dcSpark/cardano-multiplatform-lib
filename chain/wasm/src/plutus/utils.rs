@@ -1,8 +1,8 @@
+use crate::{plutus::PlutusData, PlutusDataList, RedeemerList};
 use cml_chain::plutus::Language;
 use cml_core_wasm::impl_wasm_conversions;
-use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 use cml_crypto_wasm::ScriptHash;
-use crate::{PlutusDataList, RedeemerList, plutus::PlutusData};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 use super::{ExUnits, PlutusV1Script, PlutusV2Script};
 
@@ -102,18 +102,23 @@ impl PlutusMap {
 
     /// In the extremely unlikely situation there are duplicate keys, this gets all of a single key
     pub fn get_all(&self, key: &PlutusData) -> Option<PlutusDataList> {
-        self
-            .0
-            .get_all(key.as_ref())
-            .map(|datums| datums
+        self.0.get_all(key.as_ref()).map(|datums| {
+            datums
                 .into_iter()
                 .map(|d| d.clone().into())
                 .collect::<Vec<_>>()
-                .into())
+                .into()
+        })
     }
 
     pub fn keys(&self) -> PlutusDataList {
-        PlutusDataList(self.0.entries.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+        PlutusDataList(
+            self.0
+                .entries
+                .iter()
+                .map(|(k, _v)| k.clone())
+                .collect::<Vec<_>>(),
+        )
     }
 }
 
@@ -131,14 +136,14 @@ impl PlutusScript {
     pub fn as_v1(&self) -> Option<PlutusV1Script> {
         match &self.0 {
             cml_chain::plutus::utils::PlutusScript::PlutusV1(v1) => Some(v1.clone().into()),
-            _=> None,
+            _ => None,
         }
     }
 
     pub fn as_v2(&self) -> Option<PlutusV2Script> {
         match &self.0 {
             cml_chain::plutus::utils::PlutusScript::PlutusV2(v2) => Some(v2.clone().into()),
-            _=> None,
+            _ => None,
         }
     }
 
@@ -161,7 +166,8 @@ impl PlutusV2Script {
 
 impl ExUnits {
     pub fn checked_add(&self, other: &ExUnits) -> Result<ExUnits, JsError> {
-        self.0.checked_add(other.as_ref())
+        self.0
+            .checked_add(other.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }

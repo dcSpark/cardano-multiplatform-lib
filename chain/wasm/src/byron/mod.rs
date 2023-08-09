@@ -9,11 +9,11 @@
 pub mod crc32;
 pub mod utils;
 
-pub use cml_chain::byron::ByronAddrType;
-use cml_crypto_wasm::{PublicKey, Bip32PublicKey};
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 pub use self::crc32::Crc32;
-pub use self::utils::{AddressId, ByronScript, StakeholderId, ProtocolMagic};
+pub use self::utils::{AddressId, ByronScript, ProtocolMagic, StakeholderId};
+pub use cml_chain::byron::ByronAddrType;
+use cml_crypto_wasm::{Bip32PublicKey, PublicKey};
+use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -345,29 +345,41 @@ impl SpendingData {
 
     pub fn kind(&self) -> SpendingDataKind {
         match &self.0 {
-            cml_chain::byron::SpendingData::SpendingDataPubKey(_) => SpendingDataKind::SpendingDataPubKey,
-            cml_chain::byron::SpendingData::SpendingDataScript(_) => SpendingDataKind::SpendingDataScript,
-            cml_chain::byron::SpendingData::SpendingDataRedeem(_) => SpendingDataKind::SpendingDataRedeem,
+            cml_chain::byron::SpendingData::SpendingDataPubKey(_) => {
+                SpendingDataKind::SpendingDataPubKey
+            }
+            cml_chain::byron::SpendingData::SpendingDataScript(_) => {
+                SpendingDataKind::SpendingDataScript
+            }
+            cml_chain::byron::SpendingData::SpendingDataRedeem(_) => {
+                SpendingDataKind::SpendingDataRedeem
+            }
         }
     }
 
     pub fn as_spending_data_pub_key(&self) -> Option<Bip32PublicKey> {
         match &self.0 {
-            cml_chain::byron::SpendingData::SpendingDataPubKey(pubkey) => Some(pubkey.clone().into()),
+            cml_chain::byron::SpendingData::SpendingDataPubKey(pubkey) => {
+                Some(pubkey.clone().into())
+            }
             _ => None,
         }
     }
 
     pub fn as_spending_data_script(&self) -> Option<ByronScript> {
         match &self.0 {
-            cml_chain::byron::SpendingData::SpendingDataScript(script) => Some(script.clone().into()),
+            cml_chain::byron::SpendingData::SpendingDataScript(script) => {
+                Some(script.clone().into())
+            }
             _ => None,
         }
     }
 
     pub fn as_spending_data_redeem(&self) -> Option<PublicKey> {
         match &self.0 {
-            cml_chain::byron::SpendingData::SpendingDataRedeem(redeem) => Some(redeem.clone().into()),
+            cml_chain::byron::SpendingData::SpendingDataRedeem(redeem) => {
+                Some(redeem.clone().into())
+            }
             _ => None,
         }
     }
@@ -443,7 +455,9 @@ impl StakeDistribution {
     pub fn kind(&self) -> StakeDistributionKind {
         match &self.0 {
             cml_chain::byron::StakeDistribution::SingleKey(_) => StakeDistributionKind::SingleKey,
-            cml_chain::byron::StakeDistribution::BootstrapEra => StakeDistributionKind::BootstrapEra,
+            cml_chain::byron::StakeDistribution::BootstrapEra => {
+                StakeDistributionKind::BootstrapEra
+            }
         }
     }
 
@@ -522,7 +536,10 @@ impl ByronTxOut {
     }
 
     pub fn new(address: &ByronAddress, amount: u64) -> Self {
-        Self(cml_chain::byron::ByronTxOut::new(address.clone().into(), amount))
+        Self(cml_chain::byron::ByronTxOut::new(
+            address.clone().into(),
+            amount,
+        ))
     }
 }
 

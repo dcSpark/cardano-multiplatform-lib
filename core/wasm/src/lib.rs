@@ -1,8 +1,6 @@
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
-use cml_core::{
-    serialization::{Deserialize, Serialize},
-};
+use cml_core::serialization::{Deserialize, Serialize};
 
 pub mod metadata;
 #[macro_use]

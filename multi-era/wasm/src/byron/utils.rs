@@ -6,8 +6,8 @@
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use cml_crypto_wasm::impl_hash_type_ext;
 use cml_core_wasm::impl_wasm_conversions;
+use cml_crypto_wasm::impl_hash_type_ext;
 
 impl_hash_type_ext!(cml_multi_era::byron::Blake2b224, Blake2b224);
 impl_hash_type_ext!(cml_multi_era::byron::Blake2b256, Blake2b256);
@@ -36,24 +36,40 @@ macro_rules! impl_wasm_cbor_json_api_byron {
             pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<$wasm_name, JsValue> {
                 cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
                     .map(Self)
-                    .map_err(|e| JsValue::from_str(&format!(concat!(stringify!($wasm_name), "::from_cbor_bytes: {}"), e)))
+                    .map_err(|e| {
+                        JsValue::from_str(&format!(
+                            concat!(stringify!($wasm_name), "::from_cbor_bytes: {}"),
+                            e
+                        ))
+                    })
             }
 
             pub fn to_json(&self) -> Result<String, JsValue> {
-                serde_json::to_string_pretty(&self.0)
-                    .map_err(|e| JsValue::from_str(&format!(concat!(stringify!($wasm_name), "::to_json: {}"), e)))
+                serde_json::to_string_pretty(&self.0).map_err(|e| {
+                    JsValue::from_str(&format!(
+                        concat!(stringify!($wasm_name), "::to_json: {}"),
+                        e
+                    ))
+                })
             }
 
             pub fn to_js_value(&self) -> Result<JsValue, JsValue> {
-                serde_wasm_bindgen::to_value(&self.0)
-                    .map_err(|e| JsValue::from_str(&format!(concat!(stringify!($wasm_name), "::to_js_value: {}"), e)))
+                serde_wasm_bindgen::to_value(&self.0).map_err(|e| {
+                    JsValue::from_str(&format!(
+                        concat!(stringify!($wasm_name), "::to_js_value: {}"),
+                        e
+                    ))
+                })
             }
 
             pub fn from_json(json: &str) -> Result<$wasm_name, JsValue> {
-                serde_json::from_str(json)
-                    .map(Self)
-                    .map_err(|e| JsValue::from_str(&format!(concat!(stringify!($wasm_name), "::from_json: {}"), e)))
+                serde_json::from_str(json).map(Self).map_err(|e| {
+                    JsValue::from_str(&format!(
+                        concat!(stringify!($wasm_name), "::from_json: {}"),
+                        e
+                    ))
+                })
             }
         }
-    }
+    };
 }

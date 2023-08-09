@@ -10,12 +10,12 @@ pub mod update;
 pub mod utils;
 
 use crate::impl_wasm_cbor_json_api_byron;
-use cml_core_wasm::impl_wasm_conversions;
-use cml_chain_wasm::byron::ByronTxOut;
-pub use utils::{Blake2b224, Blake2b256, ByronAny};
-use cml_chain_wasm::utils::BigInt;
-use std::collections::BTreeMap;
 use ::wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+use cml_chain_wasm::byron::ByronTxOut;
+use cml_chain_wasm::utils::BigInt;
+use cml_core_wasm::impl_wasm_conversions;
+use std::collections::BTreeMap;
+pub use utils::{Blake2b224, Blake2b256, ByronAny};
 
 pub type SystemTag = String;
 
@@ -56,10 +56,17 @@ pub type EpochId = u64;
 
 // this is pasted from lib.rs due to the export structure being at cml-multi-era-wasm root:
 
-use mpc::VssPubKey;
 use cml_chain_wasm::byron::{AddressId, StakeholderId};
+use mpc::VssPubKey;
 
-use crate::byron::{mpc::VssDecryptedShare, update::{SoftForkRule, ByronUpdateProposal, ByronTxFeePolicy, ByronUpdateData, ByronUpdateVote}, transaction::{ByronTxWitness, ByronTxIn, ByronAttributes}, delegation::ByronDelegation};
+use crate::byron::{
+    delegation::ByronDelegation,
+    mpc::VssDecryptedShare,
+    transaction::{ByronAttributes, ByronTxIn, ByronTxWitness},
+    update::{
+        ByronTxFeePolicy, ByronUpdateData, ByronUpdateProposal, ByronUpdateVote, SoftForkRule,
+    },
+};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

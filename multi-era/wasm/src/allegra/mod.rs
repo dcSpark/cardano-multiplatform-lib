@@ -1,19 +1,19 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_chain_wasm::assets::Coin;
-use cml_chain_wasm::auxdata::{ShelleyAuxData, ShelleyMaAuxData};
-use cml_crypto_wasm::AuxiliaryDataHash;
-use cml_chain_wasm::Withdrawals;
 use crate::shelley::{ShelleyHeader, ShelleyUpdate};
-use cml_chain_wasm::{
-    BootstrapWitnessList, NativeScriptList, VkeywitnessList, TransactionInputList, CertificateList, 
-};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use crate::{
     AllegraTransactionBodyList, AllegraTransactionWitnessSetList,
     MapTransactionIndexToAllegraAuxiliaryData, ShelleyTransactionOutputList,
 };
+use cml_chain_wasm::assets::Coin;
+use cml_chain_wasm::auxdata::{ShelleyAuxData, ShelleyMaAuxData};
+use cml_chain_wasm::Withdrawals;
+use cml_chain_wasm::{
+    BootstrapWitnessList, CertificateList, NativeScriptList, TransactionInputList, VkeywitnessList,
+};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
+use cml_crypto_wasm::AuxiliaryDataHash;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]

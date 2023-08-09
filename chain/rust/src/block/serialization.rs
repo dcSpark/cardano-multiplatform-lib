@@ -456,12 +456,10 @@ impl Deserialize for HeaderBody {
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
                 .map_err(|e: DeserializeError| e.annotate("block_body_hash"))?;
-            let operational_cert =
-                OperationalCert::deserialize(raw)
-                    .map_err(|e: DeserializeError| e.annotate("operational_cert"))?;
-            let protocol_version =
-                ProtocolVersion::deserialize(raw)
-                    .map_err(|e: DeserializeError| e.annotate("protocol_version"))?;
+            let operational_cert = OperationalCert::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("operational_cert"))?;
+            let protocol_version = ProtocolVersion::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("protocol_version"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
                 cbor_event::LenSz::Indefinite => match raw.special()? {

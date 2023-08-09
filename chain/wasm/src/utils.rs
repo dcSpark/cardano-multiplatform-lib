@@ -1,6 +1,5 @@
-
-use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 use super::Int;
+use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct BigInt(cml_chain::utils::BigInt);

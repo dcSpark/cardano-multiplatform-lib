@@ -2,12 +2,12 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use crate::byron::{
-    Blake2b256, ByronPubKey, ByronSignature, EpochId, AddressIdList,
-    StakeholderIdList, VssPubKeyList, BytesList, VssDecryptedShareList
+    AddressIdList, Blake2b256, ByronPubKey, ByronSignature, BytesList, EpochId, StakeholderIdList,
+    VssDecryptedShareList, VssPubKeyList,
 };
 use crate::impl_wasm_cbor_json_api_byron;
-use cml_core_wasm::impl_wasm_conversions;
 use cml_chain_wasm::byron::{AddressId, StakeholderId};
+use cml_core_wasm::impl_wasm_conversions;
 use std::collections::BTreeMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 

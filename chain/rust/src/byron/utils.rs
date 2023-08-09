@@ -1,22 +1,23 @@
 use cbor_event::cbor;
 
-use std::{convert::{TryInto, TryFrom}, fmt};
 use super::*;
-use cml_crypto::{
-    chain_crypto::{self, Sha3_256},
-    Bip32PublicKey, PublicKey,
-    impl_hash_type,
-    CryptoError,
-    RawBytesEncoding, Bip32PrivateKey, TransactionHash, LegacyDaedalusPrivateKey, Ed25519Signature,
-};
 use crate::{
     address::{Address, AddressError},
     crypto::BootstrapWitness,
-    genesis::network_info::NetworkInfo
+    genesis::network_info::NetworkInfo,
 };
 use cml_core::{
     error::{DeserializeError, DeserializeFailure},
-    serialization::{Deserialize, ToBytes}
+    serialization::{Deserialize, ToBytes},
+};
+use cml_crypto::{
+    chain_crypto::{self, Sha3_256},
+    impl_hash_type, Bip32PrivateKey, Bip32PublicKey, CryptoError, Ed25519Signature,
+    LegacyDaedalusPrivateKey, PublicKey, RawBytesEncoding, TransactionHash,
+};
+use std::{
+    convert::{TryFrom, TryInto},
+    fmt,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -24,7 +25,7 @@ pub enum ByronAddressError {
     #[error("UnknownNetwork: {0}")]
     UnknownNetwork(ProtocolMagic),
     #[error("InvalidCRC: found {found}, expected {expected}")]
-    InvalidCRC{ found: Crc32, expected: Crc32 },
+    InvalidCRC { found: Crc32, expected: Crc32 },
 }
 
 impl_hash_type!(AddressId, 28);
@@ -44,12 +45,19 @@ impl StakeholderId {
 }
 
 impl AddrAttributes {
-    pub fn new_bootstrap_era(hdap: Option<HDAddressPayload>, protocol_magic: Option<ProtocolMagic>) -> Self {
+    pub fn new_bootstrap_era(
+        hdap: Option<HDAddressPayload>,
+        protocol_magic: Option<ProtocolMagic>,
+    ) -> Self {
         let adjusted_magic = match &protocol_magic {
             Some(magic) => {
-                if *magic == NetworkInfo::mainnet().protocol_magic() { None } else { protocol_magic }
+                if *magic == NetworkInfo::mainnet().protocol_magic() {
+                    None
+                } else {
+                    protocol_magic
+                }
             }
-            None => None
+            None => None,
         };
         AddrAttributes {
             derivation_path: hdap,
@@ -71,7 +79,11 @@ impl AddrAttributes {
 }
 
 impl AddressId {
-    pub fn new(addr_type: ByronAddrType, spending_data: &SpendingData, attrs: &AddrAttributes) -> Self {
+    pub fn new(
+        addr_type: ByronAddrType,
+        spending_data: &SpendingData,
+        attrs: &AddrAttributes,
+    ) -> Self {
         // the reason for this unwrap is that we have to dynamically allocate 66 bytes
         // to serialize 64 bytes in cbor (2 bytes of cbor overhead).
         let addr_type_uint = addr_type as u32;
@@ -92,13 +104,13 @@ impl From<AddressContent> for ByronAddress {
 }
 
 impl AddressContent {
-    pub fn hash_and_create(addr_type: ByronAddrType, spending_data: &SpendingData, attributes: AddrAttributes) -> AddressContent {
+    pub fn hash_and_create(
+        addr_type: ByronAddrType,
+        spending_data: &SpendingData,
+        attributes: AddrAttributes,
+    ) -> AddressContent {
         let address_id = AddressId::new(addr_type, spending_data, &attributes);
-        AddressContent::new(
-            address_id, 
-            attributes,
-            addr_type,
-        )
+        AddressContent::new(address_id, attributes, addr_type)
     }
 
     // bootstrap era + no hdpayload address
@@ -106,7 +118,7 @@ impl AddressContent {
         let attributes = AddrAttributes::new_bootstrap_era(None, protocol_magic);
         let addr_type = ByronAddrType::Redeem;
         let spending_data = &SpendingData::new_spending_data_redeem(pubkey);
-        
+
         AddressContent::hash_and_create(addr_type, spending_data, attributes)
     }
 
@@ -146,8 +158,12 @@ impl AddressContent {
         // mainnet is implied if omitted
         let protocol_magic = self.byron_protocol_magic();
         match protocol_magic {
-            magic if magic == NetworkInfo::mainnet().protocol_magic() => Ok(NetworkInfo::mainnet().network_id()),
-            magic if magic == NetworkInfo::testnet().protocol_magic() => Ok(NetworkInfo::testnet().network_id()),
+            magic if magic == NetworkInfo::mainnet().protocol_magic() => {
+                Ok(NetworkInfo::mainnet().network_id())
+            }
+            magic if magic == NetworkInfo::testnet().protocol_magic() => {
+                Ok(NetworkInfo::testnet().network_id())
+            }
             _ => Err(ByronAddressError::UnknownNetwork(protocol_magic)),
         }
     }
@@ -155,16 +171,24 @@ impl AddressContent {
     // icarus-style address (Ae2)
     pub fn icarus_from_key(key: Bip32PublicKey, protocol_magic: ProtocolMagic) -> AddressContent {
         // need to ensure we use None for mainnet since Byron-era addresses omitted the network id
-        let filtered_protocol_magic = if protocol_magic == NetworkInfo::mainnet().protocol_magic() { None } else { Some(protocol_magic) };
-        AddressContent::new_simple( key, filtered_protocol_magic)
+        let filtered_protocol_magic = if protocol_magic == NetworkInfo::mainnet().protocol_magic() {
+            None
+        } else {
+            Some(protocol_magic)
+        };
+        AddressContent::new_simple(key, filtered_protocol_magic)
     }
 
     /// Check if the Addr can be reconstructed with a specific xpub
     pub fn identical_with_pubkey(&self, xpub: Bip32PublicKey) -> bool {
         let addr_type = ByronAddrType::PublicKey;
         let spending_data = SpendingData::new_spending_data_pub_key(xpub);
-        let newea = AddressContent::hash_and_create(addr_type, &spending_data, self.addr_attributes.clone());
-        
+        let newea = AddressContent::hash_and_create(
+            addr_type,
+            &spending_data,
+            self.addr_attributes.clone(),
+        );
+
         *self == newea
     }
 }
@@ -175,12 +199,10 @@ impl ByronAddress {
     }
 
     pub fn from_base58(s: &str) -> Result<ByronAddress, ParseExtendedAddrError> {
-        let bytes = base58::decode(s)
-            .map_err(ParseExtendedAddrError::Base58Error)?;
-            //.map_err(|_| JsError::from_str("ByronAddress::from_base58 failed to parse base58"))?;
-        Self::from_cbor_bytes(&bytes)
-            .map_err(ParseExtendedAddrError::DeserializeError)
-            //.map_err(|_| JsError::from_str("ByronAddress::from_base58 failed to parse bytes"))
+        let bytes = base58::decode(s).map_err(ParseExtendedAddrError::Base58Error)?;
+        //.map_err(|_| JsError::from_str("ByronAddress::from_base58 failed to parse base58"))?;
+        Self::from_cbor_bytes(&bytes).map_err(ParseExtendedAddrError::DeserializeError)
+        //.map_err(|_| JsError::from_str("ByronAddress::from_base58 failed to parse bytes"))
     }
 
     pub fn is_valid(s: &str) -> bool {
@@ -191,7 +213,6 @@ impl ByronAddress {
         }
     }
 
-            
     pub fn to_address(self) -> Address {
         self.into()
     }
@@ -310,14 +331,11 @@ pub fn make_daedalus_bootstrap_witness(
 
     let pubkey = Bip32PublicKey::from_raw_bytes(key.as_ref().to_public().as_ref()).unwrap();
     let vkey = pubkey.to_raw_key();
-    let signature = Ed25519Signature::from_raw_bytes(key.as_ref().sign(&tx_body_hash.to_raw_bytes()).as_ref()).unwrap();
+    let signature =
+        Ed25519Signature::from_raw_bytes(key.as_ref().sign(&tx_body_hash.to_raw_bytes()).as_ref())
+            .unwrap();
 
-    BootstrapWitness::new(
-        vkey,
-        signature,
-        chain_code,
-        addr.content.addr_attributes,
-    )
+    BootstrapWitness::new(vkey, signature, chain_code, addr.content.addr_attributes)
 }
 
 pub fn make_icarus_bootstrap_witness(
@@ -331,22 +349,18 @@ pub fn make_icarus_bootstrap_witness(
     let vkey = raw_key.to_public();
     let signature = raw_key.sign(tx_body_hash.to_raw_bytes());
 
-    BootstrapWitness::new(
-        vkey,
-        signature,
-        chain_code,
-        addr.content.addr_attributes,
-    )
+    BootstrapWitness::new(vkey, signature, chain_code, addr.content.addr_attributes)
 }
 
 #[cfg(test)]
 mod tests {
+    use super::ByronAddress;
+    use crate::genesis::network_info::NetworkInfo;
     use cml_core::serialization::ToBytes;
     use cml_crypto::{
-        chain_crypto::{self, Ed25519Bip32}, Deserialize
+        chain_crypto::{self, Ed25519Bip32},
+        Deserialize,
     };
-    use crate::genesis::network_info::NetworkInfo;
-    use super::{ByronAddress};
 
     fn assert_same_address(address: ByronAddress, xpub: chain_crypto::PublicKey<Ed25519Bip32>) {
         assert!(
@@ -366,7 +380,8 @@ mod tests {
             0xfc, 0xba, 0x9c, 0x27, 0x30, 0x82, 0x28, 0xd9, 0x87, 0x2a, 0xf8, 0xb6, 0x5b, 0x98,
             0x7f, 0xf2, 0x3e, 0x1a, 0x20, 0xcd, 0x90, 0xd8, 0x34, 0x6c, 0x31, 0xf0, 0xed, 0xb8,
             0x99, 0x89, 0x52, 0xdc, 0x67, 0x66, 0x55, 0x80,
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_same_address(address, public_key);
     }
 
@@ -379,7 +394,8 @@ mod tests {
             0xb6, 0x8b, 0x44, 0x04, 0x82, 0x15, 0xcb, 0xac, 0x94, 0xbc, 0xb7, 0xf2, 0xcf, 0x33,
             0x6c, 0x6c, 0x18, 0xbc, 0x3e, 0x71, 0x3f, 0xfd, 0x82, 0x67, 0x59, 0x4f, 0xf6, 0x34,
             0x93, 0x32, 0xce, 0x4f, 0x98, 0x04, 0xa7, 0xff,
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -392,7 +408,8 @@ mod tests {
             0x72, 0x39, 0x50, 0xdc, 0x50, 0x22, 0x46, 0x68, 0x21, 0x8b, 0x8b, 0x36, 0x62, 0x02,
             0xfe, 0x5b, 0x7d, 0x55, 0x6f, 0x50, 0x1c, 0x5c, 0x4e, 0x2d, 0x58, 0xe0, 0x54, 0x67,
             0xe1, 0xab, 0xc0, 0x44, 0xc6, 0xc1, 0xbf, 0x8e,
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -405,7 +422,8 @@ mod tests {
             0xc5, 0x89, 0x57, 0x27, 0x1d, 0x4d, 0x14, 0x2a, 0x22, 0x94, 0xea, 0x5f, 0xa3, 0x16,
             0xa4, 0xad, 0xbf, 0xcd, 0x59, 0x7a, 0x7c, 0x89, 0x6a, 0x52, 0xa9, 0xa3, 0xa9, 0xce,
             0x49, 0x64, 0x4a, 0x10, 0x2d, 0x00, 0x71, 0x99,
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -418,7 +436,8 @@ mod tests {
             0xd5, 0xe6, 0x56, 0x9d, 0xcc, 0x37, 0xb7, 0xae, 0x6f, 0x39, 0x15, 0x82, 0xfb, 0x05,
             0x4b, 0x72, 0xba, 0xda, 0x90, 0xab, 0x14, 0x6c, 0xdd, 0x01, 0x42, 0x0e, 0x4b, 0x40,
             0x18, 0xf1, 0xa0, 0x55, 0x29, 0x82, 0xd2, 0x31,
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -431,7 +450,8 @@ mod tests {
             0xc0, 0xa2, 0x63, 0xb9, 0x6d, 0xac, 0x00, 0xbd, 0x0d, 0x7b, 0xda, 0x7d, 0x16, 0x3a,
             0x08, 0xdb, 0x20, 0xba, 0x64, 0xb6, 0x33, 0x4d, 0xca, 0x34, 0xea, 0xc8, 0x2c, 0xf7,
             0xb4, 0x91, 0xc3, 0x5f, 0x5c, 0xae, 0xc7, 0xb0,
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -444,7 +464,8 @@ mod tests {
             0x43, 0xe2, 0xd8, 0xd8, 0x27, 0x27, 0x4e, 0x2a, 0x12, 0x9f, 0x86, 0xc3, 0x80, 0x88,
             0x34, 0x37, 0x4d, 0xfe, 0x3f, 0xda, 0xa6, 0x28, 0x48, 0x30, 0xb8, 0xf6, 0xe4, 0x0d,
             0x29, 0x93, 0xde, 0xa2, 0xfb, 0x0a, 0xbe, 0x82,
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -457,7 +478,8 @@ mod tests {
             0xcb, 0xe4, 0x46, 0x30, 0x25, 0x9e, 0xd1, 0x91, 0x98, 0x93, 0x03, 0x9d, 0xfd, 0x40,
             0x02, 0x4a, 0x72, 0x03, 0x45, 0x5b, 0x03, 0xd6, 0xd0, 0x0d, 0x0a, 0x5c, 0xd6, 0xee,
             0x82, 0xde, 0x2e, 0xce, 0x73, 0x8a, 0xa1, 0xbf,
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -470,7 +492,8 @@ mod tests {
             0x25, 0x24, 0x64, 0xb6, 0x24, 0x50, 0xa2, 0x4e, 0xf5, 0x98, 0x7b, 0x4b, 0xd6, 0x5e,
             0x0d, 0x25, 0x23, 0x43, 0xab, 0xa8, 0xef, 0x77, 0x93, 0x34, 0x79, 0xde, 0xa8, 0xdd,
             0xe2, 0x9e, 0xec, 0x56, 0xcc, 0x6a, 0xc0, 0x69,
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -483,21 +506,40 @@ mod tests {
             0x53, 0xa3, 0x1d, 0xe7, 0x8f, 0x10, 0xe5, 0x55, 0x03, 0x7c, 0xd4, 0x00, 0x43, 0x6c,
             0xcf, 0xd5, 0x38, 0x0d, 0xbb, 0xcd, 0x4d, 0x7c, 0x28, 0x0a, 0xef, 0x9e, 0xc7, 0x57,
             0x4a, 0xe0, 0xac, 0xac, 0x0c, 0xf7, 0x9e, 0x89,
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_same_address(address, public_key)
     }
 
     #[test]
     fn byron_magic_parsing() {
         // mainnet address w/ protocol magic omitted
-        let addr = ByronAddress::from_base58("Ae2tdPwUPEZ4YjgvykNpoFeYUxoyhNj2kg8KfKWN2FizsSpLUPv68MpTVDo").unwrap();
-        assert_eq!(addr.content.byron_protocol_magic(), NetworkInfo::mainnet().protocol_magic());
-        assert_eq!(addr.content.network_id().unwrap(), NetworkInfo::mainnet().network_id());
+        let addr = ByronAddress::from_base58(
+            "Ae2tdPwUPEZ4YjgvykNpoFeYUxoyhNj2kg8KfKWN2FizsSpLUPv68MpTVDo",
+        )
+        .unwrap();
+        assert_eq!(
+            addr.content.byron_protocol_magic(),
+            NetworkInfo::mainnet().protocol_magic()
+        );
+        assert_eq!(
+            addr.content.network_id().unwrap(),
+            NetworkInfo::mainnet().network_id()
+        );
 
         // original Byron testnet address
-        let addr = ByronAddress::from_base58("2cWKMJemoBaipzQe9BArYdo2iPUfJQdZAjm4iCzDA1AfNxJSTgm9FZQTmFCYhKkeYrede").unwrap();
-        assert_eq!(addr.content.byron_protocol_magic(), NetworkInfo::testnet().protocol_magic());
-        assert_eq!(addr.content.network_id().unwrap(), NetworkInfo::testnet().network_id());
+        let addr = ByronAddress::from_base58(
+            "2cWKMJemoBaipzQe9BArYdo2iPUfJQdZAjm4iCzDA1AfNxJSTgm9FZQTmFCYhKkeYrede",
+        )
+        .unwrap();
+        assert_eq!(
+            addr.content.byron_protocol_magic(),
+            NetworkInfo::testnet().protocol_magic()
+        );
+        assert_eq!(
+            addr.content.network_id().unwrap(),
+            NetworkInfo::testnet().network_id()
+        );
     }
 
     #[test]
@@ -520,19 +562,30 @@ mod tests {
         let end = addr.content.to_address().to_base58();
         assert_eq!(start, end);
 
-         // testnet genesis address
-         let start = "37btjrVyb4KEg6anTcJ9E4EAvYtNV9xXL6LNpA15YLhgvm9zJ1D2jwme574HikZ36rKdTwaUmpEicCoL1bDw4CtH5PNcFnTRGQNaFd5ai6Wvo6CZsi";
-         let addr = ByronAddress::from_base58(start).unwrap();
-         let end = addr.content.to_address().to_base58();
-         assert_eq!(start, end);
+        // testnet genesis address
+        let start = "37btjrVyb4KEg6anTcJ9E4EAvYtNV9xXL6LNpA15YLhgvm9zJ1D2jwme574HikZ36rKdTwaUmpEicCoL1bDw4CtH5PNcFnTRGQNaFd5ai6Wvo6CZsi";
+        let addr = ByronAddress::from_base58(start).unwrap();
+        let end = addr.content.to_address().to_base58();
+        assert_eq!(start, end);
     }
 
     #[test]
     fn parse_redeem_address() {
-        assert!(ByronAddress::is_valid("Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp"));
-        let byron_addr = ByronAddress::from_base58("Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp").unwrap();
-        assert_eq!(byron_addr.to_base58(), "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp");
+        assert!(ByronAddress::is_valid(
+            "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp"
+        ));
+        let byron_addr = ByronAddress::from_base58(
+            "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp",
+        )
+        .unwrap();
+        assert_eq!(
+            byron_addr.to_base58(),
+            "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp"
+        );
         let byron_addr2 = ByronAddress::from_cbor_bytes(&byron_addr.to_bytes()).unwrap();
-        assert_eq!(byron_addr2.to_base58(), "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp");
+        assert_eq!(
+            byron_addr2.to_base58(),
+            "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp"
+        );
     }
 }

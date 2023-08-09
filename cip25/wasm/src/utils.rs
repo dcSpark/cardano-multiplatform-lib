@@ -65,7 +65,7 @@ impl MiniMetadataDetails {
     pub fn new() -> Self {
         MiniMetadataDetails(core::utils::MiniMetadataDetails {
             name: None,
-            image: None
+            image: None,
         })
     }
 
@@ -166,20 +166,24 @@ impl LabelMetadata {
     /// then this will return an error.
     /// This function will never return an error for version 2.
     /// On success, returns the previous details that were overwritten, or None otherwise.
-    pub fn set(&mut self, policy_id: &PolicyId, asset_name: &AssetName, details: &MetadataDetails) -> Result<Option<MetadataDetails>, JsError> {
-        self
-            .0
+    pub fn set(
+        &mut self,
+        policy_id: &PolicyId,
+        asset_name: &AssetName,
+        details: &MetadataDetails,
+    ) -> Result<Option<MetadataDetails>, JsError> {
+        self.0
             .set(
                 policy_id.clone().into(),
                 asset_name.clone().into(),
-                details.clone().into())
+                details.clone().into(),
+            )
             .map(|old| old.map(Into::into))
             .map_err(Into::into)
     }
 
     pub fn get(&self, policy_id: &PolicyId, asset_name: &AssetName) -> Option<MetadataDetails> {
-        self
-            .0
+        self.0
             .get(policy_id.as_ref(), asset_name.as_ref())
             .map(|details| details.clone().into())
     }

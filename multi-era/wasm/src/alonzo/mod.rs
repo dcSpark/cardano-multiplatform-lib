@@ -1,28 +1,25 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_chain_wasm::{
-    GenesisHashList,
-    TransactionIndex,
-    ProtocolVersionStruct,
+use crate::shelley::ShelleyHeader;
+use crate::{
+    AlonzoTransactionBodyList, AlonzoTransactionOutputList, AlonzoTransactionWitnessSetList,
+    MapTransactionIndexToAlonzoAuxiliaryData,
 };
 use cml_chain_wasm::assets::{Coin, Mint};
 use cml_chain_wasm::auxdata::{Metadata, ShelleyAuxData, ShelleyMaAuxData};
-use cml_chain_wasm::crypto::{Nonce};
+use cml_chain_wasm::crypto::Nonce;
 use cml_chain_wasm::plutus::{ExUnitPrices, ExUnits};
 use cml_chain_wasm::transaction::{AlonzoTxOut, RequiredSigners, ShelleyTxOut};
-use cml_chain_wasm::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
-use crate::shelley::ShelleyHeader;
 use cml_chain_wasm::{
-    CertificateList, IntList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
-    RedeemerList, TransactionInputList, VkeywitnessList, BootstrapWitnessList
+    BootstrapWitnessList, CertificateList, IntList, NativeScriptList, PlutusDataList,
+    PlutusV1ScriptList, RedeemerList, TransactionInputList, VkeywitnessList,
 };
+use cml_chain_wasm::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
+use cml_chain_wasm::{GenesisHashList, ProtocolVersionStruct, TransactionIndex};
+use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
-use crate::{
-    AlonzoTransactionBodyList, AlonzoTransactionWitnessSetList, AlonzoTransactionOutputList, MapTransactionIndexToAlonzoAuxiliaryData,
-};
-use cml_core::ordered_hash_map::OrderedHashMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
@@ -251,7 +248,11 @@ impl AlonzoProposedProtocolParameterUpdates {
     }
 
     pub fn keys(&self) -> GenesisHashList {
-        self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>().into()
+        self.0
+            .iter()
+            .map(|(k, _v)| k.clone())
+            .collect::<Vec<_>>()
+            .into()
     }
 }
 

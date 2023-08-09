@@ -108,16 +108,25 @@ impl std::str::FromStr for Int {
 
 impl From<u64> for Int {
     fn from(x: u64) -> Self {
-        Self::Uint { value: x, encoding: None }
+        Self::Uint {
+            value: x,
+            encoding: None,
+        }
     }
 }
 
 impl From<i64> for Int {
     fn from(x: i64) -> Self {
         if x >= 0 {
-            Self::Uint { value: x as u64, encoding: None }
+            Self::Uint {
+                value: x as u64,
+                encoding: None,
+            }
         } else {
-            Self::Nint { value: (x + 1).unsigned_abs(), encoding: None }
+            Self::Nint {
+                value: (x + 1).unsigned_abs(),
+                encoding: None,
+            }
         }
     }
 }

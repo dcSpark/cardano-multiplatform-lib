@@ -2,23 +2,25 @@ use std::collections::BTreeSet;
 
 use crate::{
     address::Address,
-    transaction::{DatumOption, TransactionOutput, ScriptRef},
+    transaction::{DatumOption, ScriptRef, TransactionOutput},
     Value,
 };
 use cml_crypto::{DatumHash, Ed25519KeyHash};
 
-use super::{NativeScript, ShelleyTxOut, AlonzoTxOut, BabbageTxOut};
+use super::{AlonzoTxOut, BabbageTxOut, NativeScript, ShelleyTxOut};
 
 impl TransactionOutput {
     pub fn new(
         address: Address,
         amount: Value,
         datum_option: Option<DatumOption>,
-        script_reference: Option<ScriptRef>
+        script_reference: Option<ScriptRef>,
     ) -> Self {
         match (datum_option, script_reference) {
             (None, None) => Self::ShelleyTxOut(ShelleyTxOut::new(address, amount)),
-            (Some(DatumOption::Hash { datum_hash, .. }), None) => Self::AlonzoTxOut(AlonzoTxOut::new(address, amount, datum_hash)),
+            (Some(DatumOption::Hash { datum_hash, .. }), None) => {
+                Self::AlonzoTxOut(AlonzoTxOut::new(address, amount, datum_hash))
+            }
             (datum, script_ref) => {
                 let mut tx_out = BabbageTxOut::new(address, amount);
                 tx_out.datum_option = datum;
@@ -70,14 +72,13 @@ impl TransactionOutput {
             Self::BabbageTxOut(tx_out) => match &tx_out.datum_option {
                 Some(DatumOption::Hash { datum_hash, .. }) => Some(datum_hash),
                 _ => None,
-            }
+            },
         }
     }
 
     pub fn script_ref(&self) -> Option<&ScriptRef> {
         match self {
-            Self::ShelleyTxOut(_) |
-            Self::AlonzoTxOut(_) => None,
+            Self::ShelleyTxOut(_) | Self::AlonzoTxOut(_) => None,
             Self::BabbageTxOut(tx_out) => tx_out.script_reference.as_ref(),
         }
     }
@@ -118,16 +119,10 @@ impl From<&NativeScript> for RequiredSignersSet {
                 let mut set = BTreeSet::new();
                 set.insert(spk.ed25519_key_hash.clone());
                 set
-            },
-            NativeScript::ScriptAll(all) => {
-                from_scripts(&all.native_scripts)
-            },
-            NativeScript::ScriptAny(any) => {
-                from_scripts(&any.native_scripts)
-            },
-            NativeScript::ScriptNOfK(ofk) => {
-                from_scripts(&ofk.native_scripts)
-            },
+            }
+            NativeScript::ScriptAll(all) => from_scripts(&all.native_scripts),
+            NativeScript::ScriptAny(any) => from_scripts(&any.native_scripts),
+            NativeScript::ScriptNOfK(ofk) => from_scripts(&ofk.native_scripts),
             _ => BTreeSet::new(),
         }
     }

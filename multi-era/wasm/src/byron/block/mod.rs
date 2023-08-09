@@ -5,9 +5,11 @@ use crate::byron::delegation::{ByronDelegationSignature, LightWeightDelegationSi
 use crate::byron::mpc::{Ssc, SscProof};
 use crate::byron::transaction::{ByronAttributes, ByronTx, ByronTxProof};
 use crate::byron::update::{ByronBlockVersion, ByronSoftwareVersion, ByronUpdate};
-use crate::impl_wasm_cbor_json_api_byron;
 use crate::byron::{Blake2b256, ByronBlockId, ByronPubKey, ByronSignature, ByronSlotId, EpochId};
-use crate::byron::{ByronAttributesList, ByronDelegationList, ByronTxWitnessList, StakeholderIdList};
+use crate::byron::{
+    ByronAttributesList, ByronDelegationList, ByronTxWitnessList, StakeholderIdList,
+};
+use crate::impl_wasm_cbor_json_api_byron;
 use cml_core_wasm::impl_wasm_conversions;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 

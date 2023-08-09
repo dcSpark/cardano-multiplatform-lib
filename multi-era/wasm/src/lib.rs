@@ -11,41 +11,27 @@ pub mod shelley;
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+use crate::{
+    allegra::{
+        AllegraAuxiliaryData, AllegraBlock, AllegraTransactionBody, AllegraTransactionWitnessSet,
+    },
+    alonzo::{
+        AlonzoAuxiliaryData, AlonzoBlock, AlonzoTransactionBody, AlonzoTransactionOutput,
+        AlonzoTransactionWitnessSet,
+    },
+    byron::block::ByronBlock,
+    mary::{MaryBlock, MaryTransactionBody},
+    shelley::{
+        MultisigScript, ShelleyBlock, ShelleyTransactionBody, ShelleyTransactionOutput,
+        ShelleyTransactionWitnessSet,
+    },
+};
 use cml_chain_wasm::{
-    block::Block,
-    certs::{StakeCredential},
-    transaction::{ShelleyTxOut},
-    Coin, TransactionIndex, StakeCredentialList,
+    block::Block, certs::StakeCredential, transaction::ShelleyTxOut, Coin, StakeCredentialList,
+    TransactionIndex,
 };
 use cml_core::ordered_hash_map::OrderedHashMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
-use crate::{
-    alonzo::{
-        AlonzoAuxiliaryData,
-        AlonzoBlock,
-        AlonzoTransactionBody,
-        AlonzoTransactionWitnessSet,
-        AlonzoTransactionOutput
-    },
-    allegra::{
-        AllegraAuxiliaryData,
-        AllegraBlock,
-        AllegraTransactionBody,
-        AllegraTransactionWitnessSet,
-    },
-    byron::block::ByronBlock,
-    mary::{
-        MaryBlock,
-        MaryTransactionBody
-    },
-    shelley::{
-        ShelleyBlock,
-        ShelleyTransactionBody,
-        ShelleyTransactionOutput,
-        ShelleyTransactionWitnessSet,
-        MultisigScript,
-    }
-};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -269,10 +255,7 @@ impl AsRef<Vec<cml_multi_era::alonzo::AlonzoTransactionOutput>> for AlonzoTransa
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapStakeCredentialToCoin(
-    OrderedHashMap<
-        cml_chain::certs::StakeCredential,
-        cml_chain::assets::Coin,
-    >,
+    OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>,
 );
 
 #[wasm_bindgen]
@@ -294,53 +277,38 @@ impl MapStakeCredentialToCoin {
     }
 
     pub fn keys(&self) -> StakeCredentialList {
-        self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>().into()
+        self.0
+            .iter()
+            .map(|(k, _v)| k.clone())
+            .collect::<Vec<_>>()
+            .into()
     }
 }
 
-impl
-    From<
-        OrderedHashMap<
-            cml_chain::certs::StakeCredential,
-            cml_chain::assets::Coin,
-        >,
-    > for MapStakeCredentialToCoin
+impl From<OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>>
+    for MapStakeCredentialToCoin
 {
     fn from(
-        native: OrderedHashMap<
-            cml_chain::certs::StakeCredential,
-            cml_chain::assets::Coin,
-        >,
+        native: OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>,
     ) -> Self {
         Self(native)
     }
 }
 
 impl From<MapStakeCredentialToCoin>
-    for OrderedHashMap<
-        cml_chain::certs::StakeCredential,
-        cml_chain::assets::Coin,
-    >
+    for OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>
 {
     fn from(wasm: MapStakeCredentialToCoin) -> Self {
         wasm.0
     }
 }
 
-impl
-    AsRef<
-        OrderedHashMap<
-            cml_chain::certs::StakeCredential,
-            cml_chain::assets::Coin,
-        >,
-    > for MapStakeCredentialToCoin
+impl AsRef<OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>>
+    for MapStakeCredentialToCoin
 {
     fn as_ref(
         &self,
-    ) -> &OrderedHashMap<
-        cml_chain::certs::StakeCredential,
-        cml_chain::assets::Coin,
-    > {
+    ) -> &OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin> {
         &self.0
     }
 }
@@ -348,10 +316,7 @@ impl
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapTransactionIndexToAllegraAuxiliaryData(
-    OrderedHashMap<
-        cml_chain::TransactionIndex,
-        cml_multi_era::allegra::AllegraAuxiliaryData,
-    >,
+    OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::allegra::AllegraAuxiliaryData>,
 );
 
 #[wasm_bindgen]
@@ -381,13 +346,8 @@ impl MapTransactionIndexToAllegraAuxiliaryData {
     }
 }
 
-impl
-    From<
-        OrderedHashMap<
-            cml_chain::TransactionIndex,
-            cml_multi_era::allegra::AllegraAuxiliaryData,
-        >,
-    > for MapTransactionIndexToAllegraAuxiliaryData
+impl From<OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::allegra::AllegraAuxiliaryData>>
+    for MapTransactionIndexToAllegraAuxiliaryData
 {
     fn from(
         native: OrderedHashMap<
@@ -400,10 +360,7 @@ impl
 }
 
 impl From<MapTransactionIndexToAllegraAuxiliaryData>
-    for OrderedHashMap<
-        cml_chain::TransactionIndex,
-        cml_multi_era::allegra::AllegraAuxiliaryData,
-    >
+    for OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::allegra::AllegraAuxiliaryData>
 {
     fn from(wasm: MapTransactionIndexToAllegraAuxiliaryData) -> Self {
         wasm.0
@@ -411,19 +368,13 @@ impl From<MapTransactionIndexToAllegraAuxiliaryData>
 }
 
 impl
-    AsRef<
-        OrderedHashMap<
-            cml_chain::TransactionIndex,
-            cml_multi_era::allegra::AllegraAuxiliaryData,
-        >,
-    > for MapTransactionIndexToAllegraAuxiliaryData
+    AsRef<OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::allegra::AllegraAuxiliaryData>>
+    for MapTransactionIndexToAllegraAuxiliaryData
 {
     fn as_ref(
         &self,
-    ) -> &OrderedHashMap<
-        cml_chain::TransactionIndex,
-        cml_multi_era::allegra::AllegraAuxiliaryData,
-    > {
+    ) -> &OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::allegra::AllegraAuxiliaryData>
+    {
         &self.0
     }
 }
@@ -431,10 +382,7 @@ impl
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapTransactionIndexToAlonzoAuxiliaryData(
-    OrderedHashMap<
-        cml_chain::TransactionIndex,
-        cml_multi_era::alonzo::AlonzoAuxiliaryData,
-    >,
+    OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::alonzo::AlonzoAuxiliaryData>,
 );
 
 #[wasm_bindgen]
@@ -464,13 +412,8 @@ impl MapTransactionIndexToAlonzoAuxiliaryData {
     }
 }
 
-impl
-    From<
-        OrderedHashMap<
-            cml_chain::TransactionIndex,
-            cml_multi_era::alonzo::AlonzoAuxiliaryData,
-        >,
-    > for MapTransactionIndexToAlonzoAuxiliaryData
+impl From<OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::alonzo::AlonzoAuxiliaryData>>
+    for MapTransactionIndexToAlonzoAuxiliaryData
 {
     fn from(
         native: OrderedHashMap<
@@ -483,30 +426,20 @@ impl
 }
 
 impl From<MapTransactionIndexToAlonzoAuxiliaryData>
-    for OrderedHashMap<
-        cml_chain::TransactionIndex,
-        cml_multi_era::alonzo::AlonzoAuxiliaryData,
-    >
+    for OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::alonzo::AlonzoAuxiliaryData>
 {
     fn from(wasm: MapTransactionIndexToAlonzoAuxiliaryData) -> Self {
         wasm.0
     }
 }
 
-impl
-    AsRef<
-        OrderedHashMap<
-            cml_chain::TransactionIndex,
-            cml_multi_era::alonzo::AlonzoAuxiliaryData,
-        >,
-    > for MapTransactionIndexToAlonzoAuxiliaryData
+impl AsRef<OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::alonzo::AlonzoAuxiliaryData>>
+    for MapTransactionIndexToAlonzoAuxiliaryData
 {
     fn as_ref(
         &self,
-    ) -> &OrderedHashMap<
-        cml_chain::TransactionIndex,
-        cml_multi_era::alonzo::AlonzoAuxiliaryData,
-    > {
+    ) -> &OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::alonzo::AlonzoAuxiliaryData>
+    {
         &self.0
     }
 }

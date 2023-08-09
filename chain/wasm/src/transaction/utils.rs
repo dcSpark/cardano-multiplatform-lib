@@ -1,15 +1,10 @@
+use crate::{
+    address::Address,
+    transaction::{DatumOption, ScriptRef, TransactionOutput},
+    Ed25519KeyHashList, NativeScript, Value,
+};
 use cml_crypto_wasm::DatumHash;
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{
-    transaction::{
-        TransactionOutput,
-        DatumOption,
-        ScriptRef,
-    },
-    NativeScript,
-    address::Address,
-    Value, Ed25519KeyHashList,
-};
 
 #[wasm_bindgen]
 impl TransactionOutput {
@@ -17,14 +12,15 @@ impl TransactionOutput {
         address: &Address,
         amount: &Value,
         datum_option: Option<DatumOption>,
-        script_reference: Option<ScriptRef>
+        script_reference: Option<ScriptRef>,
     ) -> Self {
         cml_chain::transaction::TransactionOutput::new(
             address.clone().into(),
             amount.clone().into(),
             datum_option.map(Into::into),
             script_reference.map(Into::into),
-        ).into()
+        )
+        .into()
     }
 
     pub fn address(&self) -> Address {

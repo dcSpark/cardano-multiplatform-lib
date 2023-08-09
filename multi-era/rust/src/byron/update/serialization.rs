@@ -10,8 +10,8 @@ use cbor_event::se::Serializer;
 use cml_chain::utils::BigInt;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, Write};
 use cml_crypto::RawBytesEncoding;
+use std::io::{BufRead, Seek, Write};
 
 impl cbor_event::se::Serialize for Bvermod {
     fn serialize<'se, W: Write>(
@@ -844,14 +844,8 @@ impl cbor_event::se::Serialize for StdFeePolicy {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(2))?;
         // hand-edit to call our serialize instead
-        cml_core::serialization::Serialize::serialize(
-            &self.big_int,
-            serializer,
-            true)?;
-        cml_core::serialization::Serialize::serialize(
-            &self.big_int2,
-            serializer,
-            true)?;
+        cml_core::serialization::Serialize::serialize(&self.big_int, serializer, true)?;
+        cml_core::serialization::Serialize::serialize(&self.big_int2, serializer, true)?;
 
         Ok(serializer)
     }

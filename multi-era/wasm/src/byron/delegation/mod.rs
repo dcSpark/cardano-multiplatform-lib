@@ -1,8 +1,8 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::impl_wasm_cbor_json_api_byron;
 use crate::byron::{ByronPubKey, ByronSignature, EpochId};
+use crate::impl_wasm_cbor_json_api_byron;
 use cml_core_wasm::impl_wasm_conversions;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 

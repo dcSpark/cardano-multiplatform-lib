@@ -6,8 +6,8 @@ use super::{
     TransactionWitnessSetList,
 };
 use crate::crypto::{KESSignature, VRFCert, Vkey};
-use cml_crypto_wasm::{BlockBodyHash, BlockHeaderHash, Ed25519Signature, KESVkey, VRFVkey};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
+use cml_crypto_wasm::{BlockBodyHash, BlockHeaderHash, Ed25519Signature, KESVkey, VRFVkey};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]

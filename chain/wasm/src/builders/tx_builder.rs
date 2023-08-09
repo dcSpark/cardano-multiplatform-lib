@@ -1,22 +1,33 @@
-use cml_chain::builders::tx_builder::{CoinSelectionStrategyCIP2, ChangeSelectionAlgo};
+use cml_chain::builders::tx_builder::{ChangeSelectionAlgo, CoinSelectionStrategyCIP2};
+use cml_core_wasm::impl_wasm_conversions;
 use cml_crypto_wasm::Ed25519KeyHash;
 use wasm_bindgen::prelude::{wasm_bindgen, JsError};
-use cml_core_wasm::impl_wasm_conversions;
 
 use crate::{
-    NetworkId,
-    fees::LinearFee,
-    transaction::{TransactionBody, Transaction, TransactionOutput, TransactionInput},
+    address::Address,
+    assets::Mint,
     auxdata::AuxiliaryData,
-    builders::{witness_builder::TransactionWitnessSetBuilder, mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult, certificate_builder::CertificateBuilderResult, output_builder::SingleOutputBuilderResult, input_builder::InputBuilderResult, redeemer_builder::RedeemerWitnessKey},
-    crypto::{BootstrapWitness, Vkeywitness}, Coin, plutus::{ExUnitPrices, CostModels, ExUnits}, Value, assets::Mint, Withdrawals, Slot, address::Address, RedeemerList
+    builders::{
+        certificate_builder::CertificateBuilderResult, input_builder::InputBuilderResult,
+        mint_builder::MintBuilderResult, output_builder::SingleOutputBuilderResult,
+        redeemer_builder::RedeemerWitnessKey, withdrawal_builder::WithdrawalBuilderResult,
+        witness_builder::TransactionWitnessSetBuilder,
+    },
+    crypto::{BootstrapWitness, Vkeywitness},
+    fees::LinearFee,
+    plutus::{CostModels, ExUnitPrices, ExUnits},
+    transaction::{Transaction, TransactionBody, TransactionInput, TransactionOutput},
+    Coin, NetworkId, RedeemerList, Slot, Value, Withdrawals,
 };
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct TransactionUnspentOutput(cml_chain::builders::tx_builder::TransactionUnspentOutput);
 
-impl_wasm_conversions!(cml_chain::builders::tx_builder::TransactionUnspentOutput, TransactionUnspentOutput);
+impl_wasm_conversions!(
+    cml_chain::builders::tx_builder::TransactionUnspentOutput,
+    TransactionUnspentOutput
+);
 
 #[wasm_bindgen]
 impl TransactionUnspentOutput {
@@ -24,7 +35,8 @@ impl TransactionUnspentOutput {
         cml_chain::builders::tx_builder::TransactionUnspentOutput::new(
             input.clone().into(),
             output.clone().into(),
-        ).into()
+        )
+        .into()
     }
 }
 
@@ -32,13 +44,21 @@ impl TransactionUnspentOutput {
 #[derive(Clone, Debug)]
 pub struct TransactionBuilderConfig(cml_chain::builders::tx_builder::TransactionBuilderConfig);
 
-impl_wasm_conversions!(cml_chain::builders::tx_builder::TransactionBuilderConfig, TransactionBuilderConfig);
+impl_wasm_conversions!(
+    cml_chain::builders::tx_builder::TransactionBuilderConfig,
+    TransactionBuilderConfig
+);
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Default)]
-pub struct TransactionBuilderConfigBuilder(cml_chain::builders::tx_builder::TransactionBuilderConfigBuilder);
+pub struct TransactionBuilderConfigBuilder(
+    cml_chain::builders::tx_builder::TransactionBuilderConfigBuilder,
+);
 
-impl_wasm_conversions!(cml_chain::builders::tx_builder::TransactionBuilderConfigBuilder, TransactionBuilderConfigBuilder);
+impl_wasm_conversions!(
+    cml_chain::builders::tx_builder::TransactionBuilderConfigBuilder,
+    TransactionBuilderConfigBuilder
+);
 
 #[wasm_bindgen]
 impl TransactionBuilderConfigBuilder {
@@ -52,7 +72,10 @@ impl TransactionBuilderConfigBuilder {
     }
 
     pub fn coins_per_utxo_byte(&self, coins_per_utxo_byte: Coin) -> Self {
-        self.0.clone().coins_per_utxo_byte(coins_per_utxo_byte).into()
+        self.0
+            .clone()
+            .coins_per_utxo_byte(coins_per_utxo_byte)
+            .into()
     }
 
     pub fn pool_deposit(&self, pool_deposit: u64) -> Self {
@@ -76,19 +99,31 @@ impl TransactionBuilderConfigBuilder {
     }
 
     pub fn ex_unit_prices(&self, ex_unit_prices: &ExUnitPrices) -> Self {
-        self.0.clone().ex_unit_prices(ex_unit_prices.clone().into()).into()
+        self.0
+            .clone()
+            .ex_unit_prices(ex_unit_prices.clone().into())
+            .into()
     }
 
     pub fn cost_models(&self, cost_models: &CostModels) -> Self {
-        self.0.clone().cost_models(cost_models.clone().into()).into()
+        self.0
+            .clone()
+            .cost_models(cost_models.clone().into())
+            .into()
     }
 
     pub fn collateral_percentage(&self, collateral_percentage: u32) -> Self {
-        self.0.clone().collateral_percentage(collateral_percentage).into()
+        self.0
+            .clone()
+            .collateral_percentage(collateral_percentage)
+            .into()
     }
 
     pub fn max_collateral_inputs(&self, max_collateral_inputs: u32) -> Self {
-        self.0.clone().max_collateral_inputs(max_collateral_inputs).into()
+        self.0
+            .clone()
+            .max_collateral_inputs(max_collateral_inputs)
+            .into()
     }
 
     pub fn build(&self) -> Result<TransactionBuilderConfig, JsError> {
@@ -100,7 +135,10 @@ impl TransactionBuilderConfigBuilder {
 #[derive(Clone, Debug)]
 pub struct TransactionBuilder(cml_chain::builders::tx_builder::TransactionBuilder);
 
-impl_wasm_conversions!(cml_chain::builders::tx_builder::TransactionBuilder, TransactionBuilder);
+impl_wasm_conversions!(
+    cml_chain::builders::tx_builder::TransactionBuilder,
+    TransactionBuilder
+);
 
 #[wasm_bindgen]
 impl TransactionBuilder {
@@ -132,10 +170,14 @@ impl TransactionBuilder {
         self.0.add_reference_input(utxo.clone().into())
     }
 
-
     /// Add explicit output via a TransactionOutput object
-    pub fn add_output(&mut self, builder_result: &SingleOutputBuilderResult) -> Result<(), JsError> {
-        self.0.add_output(builder_result.clone().into()).map_err(Into::into)
+    pub fn add_output(
+        &mut self,
+        builder_result: &SingleOutputBuilderResult,
+    ) -> Result<(), JsError> {
+        self.0
+            .add_output(builder_result.clone().into())
+            .map_err(Into::into)
     }
 
     /// calculates how much the fee would increase if you added a given output
@@ -192,8 +234,10 @@ impl TransactionBuilder {
         cml_chain::builders::tx_builder::TransactionBuilder::new(cfg.clone().into()).into()
     }
 
-    pub fn add_collateral(&mut self, result: &InputBuilderResult) -> Result<(), JsError>  {
-        self.0.add_collateral(result.clone().into()).map_err(Into::into)
+    pub fn add_collateral(&mut self, result: &InputBuilderResult) -> Result<(), JsError> {
+        self.0
+            .add_collateral(result.clone().into())
+            .map_err(Into::into)
     }
 
     pub fn add_required_signer(&mut self, hash: &Ed25519KeyHash) {
@@ -210,12 +254,18 @@ impl TransactionBuilder {
 
     /// does not include refunds or withdrawals
     pub fn get_explicit_input(&self) -> Result<Value, JsError> {
-        self.0.get_explicit_input().map(Into::into).map_err(Into::into)
+        self.0
+            .get_explicit_input()
+            .map(Into::into)
+            .map_err(Into::into)
     }
 
     /// withdrawals and refunds
     pub fn get_implicit_input(&self) -> Result<Value, JsError> {
-        self.0.get_implicit_input().map(Into::into).map_err(Into::into)
+        self.0
+            .get_implicit_input()
+            .map(Into::into)
+            .map_err(Into::into)
     }
 
     /// Return explicit input plus implicit input plus mint
@@ -225,12 +275,18 @@ impl TransactionBuilder {
 
     /// Return explicit output plus implicit output plus burn (does not consider fee directly)
     pub fn get_total_output(&self) -> Result<Value, JsError> {
-        self.0.get_total_output().map(Into::into).map_err(Into::into)
+        self.0
+            .get_total_output()
+            .map(Into::into)
+            .map_err(Into::into)
     }
 
     /// does not include fee
     pub fn get_explicit_output(&self) -> Result<Value, JsError> {
-        self.0.get_explicit_output().map(Into::into).map_err(Into::into)
+        self.0
+            .get_explicit_output()
+            .map(Into::into)
+            .map_err(Into::into)
     }
 
     pub fn get_deposit(&self) -> Result<Coin, JsError> {
@@ -257,8 +313,13 @@ impl TransactionBuilder {
     /// Builds the transaction and moves to the next step redeemer units can be added and a draft tx can
     /// be evaluated
     /// NOTE: is_valid set to true
-    pub fn build_for_evaluation(&self, algo: ChangeSelectionAlgo, change_address: &Address) -> Result<TxRedeemerBuilder, JsError> {
-        self.0.build_for_evaluation(algo, change_address.as_ref())
+    pub fn build_for_evaluation(
+        &self,
+        algo: ChangeSelectionAlgo,
+        change_address: &Address,
+    ) -> Result<TxRedeemerBuilder, JsError> {
+        self.0
+            .build_for_evaluation(algo, change_address.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }
@@ -266,15 +327,21 @@ impl TransactionBuilder {
     // TODO: switch from ChangeSelectionAlgo to ChangeSelectionBuilder
     /// Builds the transaction and moves to the next step where any real witness can be added
     /// NOTE: is_valid set to true
-    pub fn build(&mut self, algo: ChangeSelectionAlgo, change_address: &Address) -> Result<SignedTxBuilder, JsError> {
-        self.0.build(algo, change_address.as_ref())
+    pub fn build(
+        &mut self,
+        algo: ChangeSelectionAlgo,
+        change_address: &Address,
+    ) -> Result<SignedTxBuilder, JsError> {
+        self.0
+            .build(algo, change_address.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }
 
     /// used to override the exunit values initially provided when adding inputs
     pub fn set_exunits(&mut self, redeemer: &RedeemerWitnessKey, ex_units: &ExUnits) {
-        self.0.set_exunits(redeemer.clone().into(), ex_units.clone().into())
+        self.0
+            .set_exunits(redeemer.clone().into(), ex_units.clone().into())
     }
 
     /// warning: sum of all parts of a transaction must equal 0. You cannot just set the fee to the min value and forget about it
@@ -288,12 +355,17 @@ impl TransactionBuilder {
     /// Make sure to call this function last after setting all other tx-body properties
     /// Editing inputs, outputs, mint, etc. after change been calculated
     /// might cause a mismatch in calculated fee versus the required fee
-    pub fn add_change_if_needed(&mut self, address: &Address, include_exunits: bool) -> Result<bool, JsError> {
+    pub fn add_change_if_needed(
+        &mut self,
+        address: &Address,
+        include_exunits: bool,
+    ) -> Result<bool, JsError> {
         cml_chain::builders::tx_builder::add_change_if_needed(
             &mut self.0,
             address.as_ref(),
-            include_exunits
-        ).map_err(Into::into)
+            include_exunits,
+        )
+        .map_err(Into::into)
     }
 }
 
@@ -301,22 +373,24 @@ impl TransactionBuilder {
 #[derive(Debug, Clone)]
 pub struct TxRedeemerBuilder(cml_chain::builders::tx_builder::TxRedeemerBuilder);
 
-impl_wasm_conversions!(cml_chain::builders::tx_builder::TxRedeemerBuilder, TxRedeemerBuilder);
+impl_wasm_conversions!(
+    cml_chain::builders::tx_builder::TxRedeemerBuilder,
+    TxRedeemerBuilder
+);
 
 #[wasm_bindgen]
 impl TxRedeemerBuilder {
     /// Builds the transaction and moves to the next step where any real witness can be added
     /// NOTE: is_valid set to true
     /// Will NOT require you to have set required signers & witnesses
-   pub fn build(&self) -> Result<RedeemerList, JsError> {
+    pub fn build(&self) -> Result<RedeemerList, JsError> {
         self.0.build().map(Into::into).map_err(Into::into)
-   }
+    }
 
     /// used to override the exunit values initially provided when adding inputs
     pub fn set_exunits(&mut self, redeemer: &RedeemerWitnessKey, ex_units: &ExUnits) {
-        self.0.set_exunits(
-            redeemer.clone().into(),
-            ex_units.clone().into())
+        self.0
+            .set_exunits(redeemer.clone().into(), ex_units.clone().into())
     }
 
     /// Transaction body with a dummy values for redeemers & script_data_hash
@@ -324,7 +398,7 @@ impl TxRedeemerBuilder {
     pub fn draft_body(&self) -> TransactionBody {
         self.0.draft_body().into()
     }
-    
+
     pub fn auxiliary_data(&self) -> Option<AuxiliaryData> {
         self.0.auxiliary_data().map(Into::into)
     }
@@ -341,7 +415,10 @@ impl TxRedeemerBuilder {
 #[derive(Debug, Clone)]
 pub struct SignedTxBuilder(cml_chain::builders::tx_builder::SignedTxBuilder);
 
-impl_wasm_conversions!(cml_chain::builders::tx_builder::SignedTxBuilder, SignedTxBuilder);
+impl_wasm_conversions!(
+    cml_chain::builders::tx_builder::SignedTxBuilder,
+    SignedTxBuilder
+);
 
 #[wasm_bindgen]
 impl SignedTxBuilder {
@@ -349,14 +426,15 @@ impl SignedTxBuilder {
         body: &TransactionBody,
         witness_set: &TransactionWitnessSetBuilder,
         is_valid: bool,
-        auxiliary_data: &AuxiliaryData
+        auxiliary_data: &AuxiliaryData,
     ) -> SignedTxBuilder {
         cml_chain::builders::tx_builder::SignedTxBuilder::new_with_data(
             body.clone().into(),
             witness_set.clone().into(),
             is_valid,
             auxiliary_data.clone().into(),
-        ).into()
+        )
+        .into()
     }
 
     pub fn new_without_data(
@@ -368,11 +446,16 @@ impl SignedTxBuilder {
             body.clone().into(),
             witness_set.clone().into(),
             is_valid,
-        ).into()
+        )
+        .into()
     }
 
     pub fn build_checked(&self) -> Result<Transaction, JsError> {
-        self.0.clone().build_checked().map(Into::into).map_err(Into::into)
+        self.0
+            .clone()
+            .build_checked()
+            .map(Into::into)
+            .map_err(Into::into)
     }
 
     pub fn build_unchecked(&self) -> Transaction {

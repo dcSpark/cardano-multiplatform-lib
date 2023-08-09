@@ -29,62 +29,50 @@ impl Deserialize for MultiEraBlock {
             let deser_variant: Result<_, DeserializeError> = ByronBlock::deserialize(raw);
             match deser_variant {
                 Ok(byron) => return Ok(Self::Byron(byron)),
-                Err(_e) => {
-                    raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap()
-                },
+                Err(_e) => raw
+                    .as_mut_ref()
+                    .seek(SeekFrom::Start(initial_position))
+                    .unwrap(),
             };
             let deser_variant: Result<_, DeserializeError> = ShelleyBlock::deserialize(raw);
             match deser_variant {
                 Ok(shelley) => return Ok(Self::Shelley(shelley)),
-                Err(_e) => {
-                    raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap()
-                },
+                Err(_e) => raw
+                    .as_mut_ref()
+                    .seek(SeekFrom::Start(initial_position))
+                    .unwrap(),
             };
             let deser_variant: Result<_, DeserializeError> = AllegraBlock::deserialize(raw);
             match deser_variant {
                 Ok(allegra) => return Ok(Self::Allegra(allegra)),
-                Err(_e) => {
-                    raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap()
-                },
+                Err(_e) => raw
+                    .as_mut_ref()
+                    .seek(SeekFrom::Start(initial_position))
+                    .unwrap(),
             };
             let deser_variant: Result<_, DeserializeError> = MaryBlock::deserialize(raw);
             match deser_variant {
                 Ok(mary) => return Ok(Self::Mary(mary)),
-                Err(_e) => {
-                    raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap()
-                },
+                Err(_e) => raw
+                    .as_mut_ref()
+                    .seek(SeekFrom::Start(initial_position))
+                    .unwrap(),
             };
             let deser_variant: Result<_, DeserializeError> = AlonzoBlock::deserialize(raw);
             match deser_variant {
                 Ok(alonzo) => return Ok(Self::Alonzo(alonzo)),
-                Err(_e) => {
-                    raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap()
-                },
+                Err(_e) => raw
+                    .as_mut_ref()
+                    .seek(SeekFrom::Start(initial_position))
+                    .unwrap(),
             };
             let deser_variant: Result<_, DeserializeError> = Block::deserialize(raw);
             match deser_variant {
                 Ok(babbage) => return Ok(Self::Babbage(babbage)),
-                Err(_e) => {
-                    raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap()
-                },
+                Err(_e) => raw
+                    .as_mut_ref()
+                    .seek(SeekFrom::Start(initial_position))
+                    .unwrap(),
             };
             Err(DeserializeError::new(
                 "MultiEraBlock",

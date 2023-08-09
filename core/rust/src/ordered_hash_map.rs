@@ -6,7 +6,9 @@ where
     K: Hash + Eq + Ord;
 
 impl<K, V> Default for OrderedHashMap<K, V>
-where K: Hash + Eq + Ord {
+where
+    K: Hash + Eq + Ord,
+{
     fn default() -> Self {
         Self::new()
     }

@@ -31,10 +31,10 @@ pub enum DeserializeFailure {
     MandatoryFieldMissing(Key),
     NoVariantMatched,
     NoVariantMatchedWithCauses(Vec<DeserializeError>),
-    OutOfRange{
+    OutOfRange {
         min: usize,
         max: usize,
-        found: usize
+        found: usize,
     },
     RangeCheck {
         found: usize,
@@ -117,8 +117,10 @@ impl DeserializeError {
                     writeln!(f)?;
                 }
                 Ok(())
-            },
-            DeserializeFailure::OutOfRange{ min, max, found } => write!(f, "Out of range: {found} - must be in range {min} - {max}"),
+            }
+            DeserializeFailure::OutOfRange { min, max, found } => {
+                write!(f, "Out of range: {found} - must be in range {min} - {max}")
+            }
             DeserializeFailure::RangeCheck { found, min, max } => match (min, max) {
                 (Some(min), Some(max)) => write!(f, "{found} not in range {min} - {max}"),
                 (Some(min), None) => write!(f, "{found} not at least {min}"),
@@ -172,4 +174,3 @@ pub enum ArithmeticError {
     #[error("Integer underflow")]
     IntegerUnderflow,
 }
-

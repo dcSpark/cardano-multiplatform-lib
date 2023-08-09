@@ -1,13 +1,13 @@
 use std::io::{BufRead, Seek, Write};
 
-use cbor_event::{se::Serializer, de::Deserializer};
+use cbor_event::{de::Deserializer, se::Serializer};
 use cml_crypto::impl_hash_type;
 
 use cml_core::error::{DeserializeError, DeserializeFailure};
 use cml_core::serialization::Deserialize;
+use cml_crypto::chain_crypto;
 use cml_crypto::{CryptoError, RawBytesEncoding};
 use schemars::JsonSchema;
-use cml_crypto::chain_crypto as chain_crypto;
 
 impl_hash_type!(Blake2b224, 28);
 impl_hash_type!(Blake2b256, 32);
@@ -37,16 +37,10 @@ impl PartialOrd for ByronAny {
 impl Ord for ByronAny {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         let mut lhs_buf = cbor_event::se::Serializer::new_vec();
-        cbor_event::se::Serialize::serialize(
-            self,
-            &mut lhs_buf
-        ).unwrap();
+        cbor_event::se::Serialize::serialize(self, &mut lhs_buf).unwrap();
         let lhs_bytes = lhs_buf.finalize();
         let mut rhs_buf = cbor_event::se::Serializer::new_vec();
-        cbor_event::se::Serialize::serialize(
-            other,
-            &mut rhs_buf
-        ).unwrap();
+        cbor_event::se::Serialize::serialize(other, &mut rhs_buf).unwrap();
         let rhs_bytes = rhs_buf.finalize();
         lhs_bytes.cmp(&rhs_bytes)
     }
@@ -76,10 +70,7 @@ impl serde::Serialize for ByronAny {
         S: serde::Serializer,
     {
         let mut buf = cbor_event::se::Serializer::new_vec();
-        cbor_event::se::Serialize::serialize(
-            self,
-            &mut buf
-        ).unwrap();
+        cbor_event::se::Serialize::serialize(self, &mut buf).unwrap();
         let cbor_hex = hex::encode(buf.finalize());
         serializer.serialize_str(&cbor_hex)
     }
@@ -91,18 +82,20 @@ impl<'de> serde::de::Deserialize<'de> for ByronAny {
         D: serde::de::Deserializer<'de>,
     {
         let cbor_hex = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        let cbor = hex::decode(&cbor_hex)
-            .map_err(|_e| serde::de::Error::invalid_value(
+        let cbor = hex::decode(&cbor_hex).map_err(|_e| {
+            serde::de::Error::invalid_value(
                 serde::de::Unexpected::Str(&cbor_hex),
-                &"invalid hex string"
-            ))?;
+                &"invalid hex string",
+            )
+        })?;
         // this probably will never fail as we're cbor's any
         // but we'll keep this for uncovered things e.g. floats
-        cml_core::serialization::Deserialize::from_cbor_bytes(&cbor)
-            .map_err(|_e| serde::de::Error::invalid_value(
+        cml_core::serialization::Deserialize::from_cbor_bytes(&cbor).map_err(|_e| {
+            serde::de::Error::invalid_value(
                 serde::de::Unexpected::Str(&cbor_hex),
-                &"cbor parsing failed. Unsupported?"
-            ))
+                &"cbor parsing failed. Unsupported?",
+            )
+        })
     }
 }
 

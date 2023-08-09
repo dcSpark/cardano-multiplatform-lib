@@ -11,19 +11,19 @@ macro_rules! impl_wasm_conversions {
                 Self(native)
             }
         }
-        
+
         impl Into<$rust> for $wasm {
             fn into(self) -> $rust {
                 self.0
             }
         }
-        
+
         impl AsRef<$rust> for $wasm {
             fn as_ref(&self) -> &$rust {
                 &self.0
             }
         }
-    }
+    };
 }
 
 /// Convenience creator for generic WASM-exposable list
@@ -42,15 +42,15 @@ macro_rules! impl_wasm_list {
             pub fn new() -> Self {
                 Self(Vec::new())
             }
-        
+
             pub fn len(&self) -> usize {
                 self.0.len()
             }
-        
+
             pub fn get(&self, index: usize) -> $wasm_elem_name {
                 self.0[index].clone().into()
             }
-        
+
             pub fn add(&mut self, elem: &$wasm_elem_name) {
                 self.0.push(elem.clone().into());
             }
@@ -61,13 +61,13 @@ macro_rules! impl_wasm_list {
                 Self(native)
             }
         }
-        
+
         impl From<$wasm_list_name> for Vec<$rust_elem_name> {
             fn from(wasm: $wasm_list_name) -> Self {
                 wasm.0
             }
         }
-        
+
         impl AsRef<Vec<$rust_elem_name>> for $wasm_list_name {
             fn as_ref(&self) -> &Vec<$rust_elem_name> {
                 &self.0
@@ -85,45 +85,61 @@ macro_rules! impl_wasm_map {
     ($rust_key:ty, $rust_value:ty, $wasm_key:ty, $wasm_value:ty, $wasm_key_list:ty, $wasm_map_name:ident) => {
         #[wasm_bindgen::prelude::wasm_bindgen]
         #[derive(Debug, Clone)]
-        pub struct $wasm_map_name(cml_core::ordered_hash_map::OrderedHashMap<$rust_key, $rust_value>);
+        pub struct $wasm_map_name(
+            cml_core::ordered_hash_map::OrderedHashMap<$rust_key, $rust_value>,
+        );
 
         #[wasm_bindgen::prelude::wasm_bindgen]
         impl $wasm_map_name {
             pub fn new() -> Self {
                 Self(cml_core::ordered_hash_map::OrderedHashMap::new())
             }
-        
+
             pub fn len(&self) -> usize {
                 self.0.len()
             }
-        
+
             pub fn insert(&mut self, key: &$wasm_key, value: $wasm_value) -> Option<$wasm_value> {
                 self.0.insert(key.clone().into(), value)
             }
-        
+
             pub fn get(&self, key: &$wasm_key) -> Option<$wasm_value> {
                 self.0.get(key.as_ref()).cloned()
             }
-        
+
             pub fn keys(&self) -> $wasm_key_list {
-                self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>().into()
+                self.0
+                    .iter()
+                    .map(|(k, _v)| k.clone())
+                    .collect::<Vec<_>>()
+                    .into()
             }
         }
-        
-        impl From<cml_core::ordered_hash_map::OrderedHashMap<$rust_key, $rust_value>> for $wasm_map_name {
-            fn from(native: cml_core::ordered_hash_map::OrderedHashMap<$rust_key, $rust_value>) -> Self {
+
+        impl From<cml_core::ordered_hash_map::OrderedHashMap<$rust_key, $rust_value>>
+            for $wasm_map_name
+        {
+            fn from(
+                native: cml_core::ordered_hash_map::OrderedHashMap<$rust_key, $rust_value>,
+            ) -> Self {
                 Self(native)
             }
         }
-        
-        impl From<$wasm_map_name> for cml_core::ordered_hash_map::OrderedHashMap<$rust_key, $rust_value> {
+
+        impl From<$wasm_map_name>
+            for cml_core::ordered_hash_map::OrderedHashMap<$rust_key, $rust_value>
+        {
             fn from(wasm: $wasm_map_name) -> Self {
                 wasm.0
             }
         }
-        
-        impl AsRef<cml_core::ordered_hash_map::OrderedHashMap<$rust_key, $rust_value>> for $wasm_map_name {
-            fn as_ref(&self) -> &cml_core::ordered_hash_map::OrderedHashMap<$rust_key, $rust_value> {
+
+        impl AsRef<cml_core::ordered_hash_map::OrderedHashMap<$rust_key, $rust_value>>
+            for $wasm_map_name
+        {
+            fn as_ref(
+                &self,
+            ) -> &cml_core::ordered_hash_map::OrderedHashMap<$rust_key, $rust_value> {
                 &self.0
             }
         }
@@ -142,24 +158,40 @@ macro_rules! impl_wasm_cbor_json_api {
             pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<$wasm_name, JsValue> {
                 cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
                     .map(Self)
-                    .map_err(|e| JsValue::from_str(&format!(concat!(stringify!($wasm_name), "::from_bytes: {}"), e)))
+                    .map_err(|e| {
+                        JsValue::from_str(&format!(
+                            concat!(stringify!($wasm_name), "::from_bytes: {}"),
+                            e
+                        ))
+                    })
             }
 
             pub fn to_json(&self) -> Result<String, JsValue> {
-                serde_json::to_string_pretty(&self.0)
-                    .map_err(|e| JsValue::from_str(&format!(concat!(stringify!($wasm_name), "::to_json: {}"), e)))
+                serde_json::to_string_pretty(&self.0).map_err(|e| {
+                    JsValue::from_str(&format!(
+                        concat!(stringify!($wasm_name), "::to_json: {}"),
+                        e
+                    ))
+                })
             }
 
             pub fn to_js_value(&self) -> Result<JsValue, JsValue> {
-                serde_wasm_bindgen::to_value(&self.0)
-                    .map_err(|e| JsValue::from_str(&format!(concat!(stringify!($wasm_name), "::to_js_value: {}"), e)))
+                serde_wasm_bindgen::to_value(&self.0).map_err(|e| {
+                    JsValue::from_str(&format!(
+                        concat!(stringify!($wasm_name), "::to_js_value: {}"),
+                        e
+                    ))
+                })
             }
 
             pub fn from_json(json: &str) -> Result<$wasm_name, JsValue> {
-                serde_json::from_str(json)
-                    .map(Self)
-                    .map_err(|e| JsValue::from_str(&format!(concat!(stringify!($wasm_name), "::from_json: {}"), e)))
+                serde_json::from_str(json).map(Self).map_err(|e| {
+                    JsValue::from_str(&format!(
+                        concat!(stringify!($wasm_name), "::from_json: {}"),
+                        e
+                    ))
+                })
             }
         }
-    }
+    };
 }

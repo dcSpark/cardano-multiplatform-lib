@@ -7,8 +7,8 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::{Serialize, Serializer};
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 use cml_crypto::RawBytesEncoding;
+use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl cbor_event::se::Serialize for ByronPkWitness {
     fn serialize<'se, W: Write>(
@@ -804,7 +804,11 @@ impl Deserialize for ByronTxWitness {
             let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> =
-                ByronPkWitness::deserialize_as_embedded_group(raw, &mut read_len, len_to_len_sz(len));
+                ByronPkWitness::deserialize_as_embedded_group(
+                    raw,
+                    &mut read_len,
+                    len_to_len_sz(len),
+                );
             match deser_variant {
                 Ok(byron_pk_witness) => return Ok(Self::ByronPkWitness(byron_pk_witness)),
                 Err(e) => {
@@ -815,7 +819,11 @@ impl Deserialize for ByronTxWitness {
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
-                ByronScriptWitness::deserialize_as_embedded_group(raw, &mut read_len, len_to_len_sz(len));
+                ByronScriptWitness::deserialize_as_embedded_group(
+                    raw,
+                    &mut read_len,
+                    len_to_len_sz(len),
+                );
             match deser_variant {
                 Ok(byron_script_witness) => {
                     return Ok(Self::ByronScriptWitness(byron_script_witness))
@@ -828,7 +836,11 @@ impl Deserialize for ByronTxWitness {
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
-                ByronRedeemWitness::deserialize_as_embedded_group(raw, &mut read_len, len_to_len_sz(len));
+                ByronRedeemWitness::deserialize_as_embedded_group(
+                    raw,
+                    &mut read_len,
+                    len_to_len_sz(len),
+                );
             match deser_variant {
                 Ok(byron_redeem_witness) => {
                     return Ok(Self::ByronRedeemWitness(byron_redeem_witness))

@@ -334,10 +334,6 @@ mod tests {
         assert_eq!(v3, ev3);
         assert_eq!(v4, ev4);
         assert_eq!(&bs1[..], &ebs1[..]);
-        assert!(
-            is_end.is_ok(),
-            "not reached end {:?}",
-            is_end.unwrap_err()
-        );
+        assert!(is_end.is_ok(), "not reached end {:?}", is_end.unwrap_err());
     }
 }

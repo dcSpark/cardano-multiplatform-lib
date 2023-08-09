@@ -1,7 +1,7 @@
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 use cml_core_wasm::impl_wasm_conversions;
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
-use crate::{Coin, plutus::ExUnitPrices, transaction::Transaction};
+use crate::{plutus::ExUnitPrices, transaction::Transaction, Coin};
 
 /// Careful: although the linear fee is the same for Byron & Shelley
 /// The value of the parameters and how fees are computed is not the same
@@ -26,30 +26,18 @@ impl LinearFee {
 }
 
 pub fn min_script_fee(tx: &Transaction, ex_unit_prices: &ExUnitPrices) -> Result<Coin, JsError> {
-    cml_chain::fees::min_script_fee(
-        tx.as_ref(),
-        ex_unit_prices.as_ref()
-    ).map_err(Into::into)
+    cml_chain::fees::min_script_fee(tx.as_ref(), ex_unit_prices.as_ref()).map_err(Into::into)
 }
 
-pub fn min_no_script_fee(
-    tx: &Transaction,
-    linear_fee: &LinearFee,
-) -> Result<Coin, JsError> {
-    cml_chain::fees::min_no_script_fee(
-        tx.as_ref(),
-        linear_fee.as_ref()
-    ).map_err(Into::into)
+pub fn min_no_script_fee(tx: &Transaction, linear_fee: &LinearFee) -> Result<Coin, JsError> {
+    cml_chain::fees::min_no_script_fee(tx.as_ref(), linear_fee.as_ref()).map_err(Into::into)
 }
 
 pub fn min_fee(
     tx: &Transaction,
     linear_fee: &LinearFee,
-    ex_unit_prices: &ExUnitPrices
+    ex_unit_prices: &ExUnitPrices,
 ) -> Result<Coin, JsError> {
-    cml_chain::fees::min_fee(
-        tx.as_ref(),
-        linear_fee.as_ref(),
-        ex_unit_prices.as_ref(),
-    ).map_err(Into::into)
+    cml_chain::fees::min_fee(tx.as_ref(), linear_fee.as_ref(), ex_unit_prices.as_ref())
+        .map_err(Into::into)
 }

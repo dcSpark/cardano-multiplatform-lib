@@ -17,7 +17,6 @@ use cml_core::Int;
 
 pub use utils::{ConstrPlutusData, PlutusMap, PlutusScript};
 
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct CostModels {
     pub plutus_v1: Option<Vec<Int>>,
@@ -60,16 +59,15 @@ impl ExUnitPrices {
     }
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(PartialEq, Hash, Eq)]
 pub struct ExUnits {
     pub mem: u64,
     pub steps: u64,
     #[serde(skip)]
-    #[derivative(
-        PartialEq = "ignore",
-        Hash = "ignore",
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<ExUnitsEncoding>,
 }
 
@@ -167,15 +165,14 @@ impl PlutusData {
     }
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, PartialEq, Eq)]
 pub struct PlutusV1Script {
     pub inner: Vec<u8>,
     #[serde(skip)]
-    #[derivative(
-        PartialEq = "ignore",
-        Hash = "ignore",
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<PlutusV1ScriptEncoding>,
 }
 
@@ -204,15 +201,14 @@ impl From<PlutusV1Script> for Vec<u8> {
     }
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, PartialEq, Eq)]
 pub struct PlutusV2Script {
     pub inner: Vec<u8>,
     #[serde(skip)]
-    #[derivative(
-        PartialEq = "ignore",
-        Hash = "ignore",
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<PlutusV2ScriptEncoding>,
 }
 

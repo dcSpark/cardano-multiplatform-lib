@@ -1,17 +1,17 @@
-use std::{convert::TryFrom, collections::BTreeMap, string::FromUtf8Error};
+use std::{collections::BTreeMap, convert::TryFrom, string::FromUtf8Error};
 
-pub use cml_core::{error::*, serialization::*};
-use cml_crypto::{RawBytesEncoding};
-use std::io::{Write, BufRead, Seek, SeekFrom};
-use cbor_event::{se::Serializer, de::Deserializer};
+use cbor_event::{de::Deserializer, se::Serializer};
+pub use cml_chain::{AssetName, PolicyId};
 pub use cml_core::{
     error::*,
     metadata::{Metadata, TransactionMetadatum},
     serialization::*,
 };
-pub use cml_chain::{PolicyId, AssetName};
+pub use cml_core::{error::*, serialization::*};
+use cml_crypto::RawBytesEncoding;
+use std::io::{BufRead, Seek, SeekFrom, Write};
 
-use crate::{CIP25Metadata, ChunkableString, String64, MetadataDetails};
+use crate::{CIP25Metadata, ChunkableString, MetadataDetails, String64};
 
 pub static CIP25_METADATA_LABEL: u64 = 721;
 
@@ -114,7 +114,6 @@ impl From<&ChunkableString> for String {
     }
 }
 
-
 /// A subset of MetadataDetails where the keys are optional
 /// Useful to extract the key fields (name & image) of incorrectly formatted cip25
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -125,10 +124,7 @@ pub struct MiniMetadataDetails {
 
 impl MiniMetadataDetails {
     pub fn new(name: Option<String64>, image: Option<ChunkableString>) -> Self {
-        Self {
-            name,
-            image,
-        }
+        Self { name, image }
     }
 
     /// loose parsing of CIP25 metadata to allow for common exceptions to the format
@@ -142,21 +138,20 @@ impl MiniMetadataDetails {
         match metadatum {
             TransactionMetadatum::Map(map) => {
                 let name: Option<String64> = map
-                .get(&TransactionMetadatum::new_text("name".to_owned()))
-                // for some reason, 1% of NFTs seem to use the wrong case
-                .or_else(|| map.get(&TransactionMetadatum::new_text("Name".to_owned())))
-                // for some reason, 0.5% of NFTs use "title" instead of name
-                .or_else(|| map.get(&TransactionMetadatum::new_text("title".to_owned())))
-                // for some reason, 0.3% of NFTs use "id" instead of name
-                .or_else(|| map.get(&TransactionMetadatum::new_text("id".to_owned())))
-                .map(|result| match result {
-                    TransactionMetadatum::Text { text, .. } => String64::new_str(&text).ok(),
-                    _ => None,
-                })
-                .flatten();
-    
-                let image_base = map
-                .get(&TransactionMetadatum::new_text("image".to_owned()));
+                    .get(&TransactionMetadatum::new_text("name".to_owned()))
+                    // for some reason, 1% of NFTs seem to use the wrong case
+                    .or_else(|| map.get(&TransactionMetadatum::new_text("Name".to_owned())))
+                    // for some reason, 0.5% of NFTs use "title" instead of name
+                    .or_else(|| map.get(&TransactionMetadatum::new_text("title".to_owned())))
+                    // for some reason, 0.3% of NFTs use "id" instead of name
+                    .or_else(|| map.get(&TransactionMetadatum::new_text("id".to_owned())))
+                    .map(|result| match result {
+                        TransactionMetadatum::Text { text, .. } => String64::new_str(&text).ok(),
+                        _ => None,
+                    })
+                    .flatten();
+
+                let image_base = map.get(&TransactionMetadatum::new_text("image".to_owned()));
                 let image = match image_base {
                     None => None,
                     Some(base) => match base {
@@ -164,30 +159,31 @@ impl MiniMetadataDetails {
                             Ok(str64) => Some(ChunkableString::Single(str64)),
                             Err(_) => None,
                         },
-                        TransactionMetadatum::List { elements, .. } => {
-                            (|| {
-                                let mut chunks: Vec<String64> = vec![];
-                                for i in 0..elements.len() {
-                                    match elements.get(i) {
-                                        Some(TransactionMetadatum::Text { text, .. }) => {
-                                            match String64::new_str(&text) {
-                                                Ok(str64) => chunks.push(str64),
-                                                Err(_) => return None,
-                                            }
-                                        },
-                                        _ => return None
-                                    };
+                        TransactionMetadatum::List { elements, .. } => (|| {
+                            let mut chunks: Vec<String64> = vec![];
+                            for i in 0..elements.len() {
+                                match elements.get(i) {
+                                    Some(TransactionMetadatum::Text { text, .. }) => {
+                                        match String64::new_str(&text) {
+                                            Ok(str64) => chunks.push(str64),
+                                            Err(_) => return None,
+                                        }
+                                    }
+                                    _ => return None,
                                 };
-                                Some(ChunkableString::Chunked(chunks))
-                            })()
-                        },
+                            }
+                            Some(ChunkableString::Chunked(chunks))
+                        })(),
                         _ => None,
                     },
                 };
-    
+
                 Ok(MiniMetadataDetails::new(name, image))
-            },
-            _ => Err(DeserializeError::new("MiniMetadataDetails", DeserializeFailure::NoVariantMatched))
+            }
+            _ => Err(DeserializeError::new(
+                "MiniMetadataDetails",
+                DeserializeFailure::NoVariantMatched,
+            )),
         }
     }
 }
@@ -202,7 +198,18 @@ pub enum CIP25Error {
 /// This will change how things are encoded but for the most part contains
 /// the same information.
 #[wasm_bindgen::prelude::wasm_bindgen]
-#[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Copy,
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+)]
 pub enum CIP25Version {
     /// Initial version of CIP25 with only string (utf8) asset names allowed.
     V1,
@@ -230,13 +237,22 @@ impl LabelMetadata {
     /// then this will return an error.
     /// This function will never return an error for version 2.
     /// On success, returns the previous details that were overwritten, or None otherwise.
-    pub fn set(&mut self, policy_id: PolicyId, asset_name: AssetName, details: MetadataDetails) -> Result<Option<MetadataDetails>, CIP25Error> {
+    pub fn set(
+        &mut self,
+        policy_id: PolicyId,
+        asset_name: AssetName,
+        details: MetadataDetails,
+    ) -> Result<Option<MetadataDetails>, CIP25Error> {
         if self.version == CIP25Version::V1 {
             if let Err(e) = String::from_utf8(asset_name.get().clone()) {
                 return Err(CIP25Error::Version1NonStringAsset(asset_name, e));
             }
         }
-        Ok(self.nfts.entry(policy_id).or_default().insert(asset_name, details))
+        Ok(self
+            .nfts
+            .entry(policy_id)
+            .or_default()
+            .insert(asset_name, details))
     }
 
     pub fn get(&self, policy_id: &PolicyId, asset_name: &AssetName) -> Option<&MetadataDetails> {
@@ -251,8 +267,6 @@ impl LabelMetadata {
         self.version
     }
 }
-
-
 
 // serialization:
 
@@ -276,7 +290,7 @@ impl cbor_event::se::Serialize for LabelMetadata {
                         details.serialize(serializer)?;
                     }
                 }
-            },
+            }
             CIP25Version::V2 => {
                 serializer.write_map(cbor_event::Len::Len(2))?;
                 serializer.write_text(&"data")?;
@@ -295,7 +309,7 @@ impl cbor_event::se::Serialize for LabelMetadata {
                 }
                 serializer.write_text(&"version")?;
                 serializer.write_unsigned_integer(2u64)?;
-            },
+            }
         }
         Ok(serializer)
     }
@@ -642,19 +656,15 @@ mod tests {
             ),
         ]);
         let policy_id_bytes = [
-            0xBA, 0xAD, 0xF0, 0x0D,
-            0xBA, 0xAD, 0xF0, 0x0D,
-            0xBA, 0xAD, 0xF0, 0x0D,
-            0xBA, 0xAD, 0xF0, 0x0D,
-            0xBA, 0xAD, 0xF0, 0x0D,
-            0xBA, 0xAD, 0xF0, 0x0D,
-            0xBA, 0xAD, 0xF0, 0x0D
+            0xBA, 0xAD, 0xF0, 0x0D, 0xBA, 0xAD, 0xF0, 0x0D, 0xBA, 0xAD, 0xF0, 0x0D, 0xBA, 0xAD,
+            0xF0, 0x0D, 0xBA, 0xAD, 0xF0, 0x0D, 0xBA, 0xAD, 0xF0, 0x0D, 0xBA, 0xAD, 0xF0, 0x0D,
         ];
         let mut v2 = LabelMetadata::new(CIP25Version::V2);
         v2.set(
             PolicyId::from_raw_bytes(&policy_id_bytes).unwrap(),
             AssetName::new(vec![0xCA, 0xFE, 0xD0, 0x0D]).unwrap(),
-            details);
+            details,
+        );
         let metadata = CIP25Metadata::new(v2);
         let metadata_bytes = metadata.to_bytes();
         let roundtrip = CIP25Metadata::from_cbor_bytes(&metadata_bytes).unwrap();
@@ -691,7 +701,13 @@ mod tests {
     #[test]
     fn just_name() {
         // {"name":"Metaverse"}
-        let details = MiniMetadataDetails::loose_parse(&TransactionMetadatum::from_bytes(hex::decode("a1646e616d65694d6574617665727365").unwrap()).unwrap()).unwrap();
+        let details = MiniMetadataDetails::loose_parse(
+            &TransactionMetadatum::from_bytes(
+                hex::decode("a1646e616d65694d6574617665727365").unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
         assert_eq!(details.name.unwrap().0, "Metaverse");
     }
 
@@ -713,7 +729,10 @@ mod tests {
     fn just_image() {
         // {"image":"ipfs://QmSfYTF8B4ua6hFdr6URdRDZBZ9FjCQNUdDcLr2f7P8xn3"}
         let details = MiniMetadataDetails::loose_parse(&TransactionMetadatum::from_bytes(hex::decode("a165696d6167657835697066733a2f2f516d5366595446384234756136684664723655526452445a425a39466a43514e556444634c723266375038786e33").unwrap()).unwrap()).unwrap();
-        assert_eq!(String::from(&details.image.unwrap()), "ipfs://QmSfYTF8B4ua6hFdr6URdRDZBZ9FjCQNUdDcLr2f7P8xn3");
+        assert_eq!(
+            String::from(&details.image.unwrap()),
+            "ipfs://QmSfYTF8B4ua6hFdr6URdRDZBZ9FjCQNUdDcLr2f7P8xn3"
+        );
     }
 
     #[test]

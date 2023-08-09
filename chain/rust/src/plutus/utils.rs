@@ -2,8 +2,8 @@ use super::{CostModels, Language, Redeemer};
 use super::{ExUnits, PlutusData, PlutusV1Script, PlutusV2Script};
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
-use cml_core::{error::*, Int};
 use cml_core::serialization::*;
+use cml_core::{error::*, Int};
 use std::collections::BTreeMap;
 use std::io::{BufRead, Seek, Write};
 
@@ -80,7 +80,13 @@ impl Serialize for ConstrPlutusData {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match Self::alternative_to_compact_cbor_tag(self.alternative) {
-            Some(compact_tag) if self.encodings.as_ref().map(|encs| encs.prefer_compact).unwrap_or(true) => {
+            Some(compact_tag)
+                if self
+                    .encodings
+                    .as_ref()
+                    .map(|encs| encs.prefer_compact)
+                    .unwrap_or(true) =>
+            {
                 // compact form
                 serializer.write_tag_sz(
                     compact_tag,
@@ -108,7 +114,7 @@ impl Serialize for ConstrPlutusData {
                     .map(|encs| encs.fields_encoding)
                     .unwrap_or_default()
                     .end(serializer, force_canonical)
-            },
+            }
             _ => {
                 // general form
                 serializer.write_tag_sz(
@@ -160,7 +166,7 @@ impl Serialize for ConstrPlutusData {
                     .map(|encs| encs.len_encoding)
                     .unwrap_or_default()
                     .end(serializer, force_canonical)
-            },
+            }
         }
     }
 }
@@ -291,7 +297,10 @@ impl CostModels {
         let mut serializer = Serializer::new_vec();
         // as canonical encodings are used, we odn't need to check the keys' bytes encodings
         // and can order this statically.
-        serializer.write_map(cbor_event::Len::Len(if self.plutus_v1.is_some() { 1 } else { 0 } + if self.plutus_v2.is_some() { 1 } else { 0 }))?;
+        serializer.write_map(cbor_event::Len::Len(
+            if self.plutus_v1.is_some() { 1 } else { 0 }
+                + if self.plutus_v2.is_some() { 1 } else { 0 },
+        ))?;
         if let Some(v1_costs) = &self.plutus_v1 {
             // For PlutusV1 (language id 0), the language view is the following:
             //   * the value of costmdls map at key 0 is encoded as an indefinite length
@@ -346,8 +355,8 @@ impl PlutusScript {
         }
     }
 }
-use cml_crypto::ScriptHash;
 use crate::crypto::hash::{hash_script, ScriptHashNamespace};
+use cml_crypto::ScriptHash;
 
 impl PlutusV1Script {
     pub fn hash(&self) -> ScriptHash {
@@ -363,13 +372,19 @@ impl PlutusV2Script {
 
 impl ExUnits {
     pub fn checked_add(&self, other: &ExUnits) -> Result<ExUnits, ArithmeticError> {
-        let mem = self.mem.checked_add(other.mem).ok_or(ArithmeticError::IntegerOverflow)?;
-        let step = self.steps.checked_add(other.steps).ok_or(ArithmeticError::IntegerOverflow)?;
+        let mem = self
+            .mem
+            .checked_add(other.mem)
+            .ok_or(ArithmeticError::IntegerOverflow)?;
+        let step = self
+            .steps
+            .checked_add(other.steps)
+            .ok_or(ArithmeticError::IntegerOverflow)?;
         Ok(ExUnits::new(mem, step))
     }
 
-     /// used to create a dummy ExUnits that takes up the maximum size possible in cbor to provide an upper bound on tx size
-     pub fn dummy() -> ExUnits {
+    /// used to create a dummy ExUnits that takes up the maximum size possible in cbor to provide an upper bound on tx size
+    pub fn dummy() -> ExUnits {
         ExUnits::new(u64::MAX, u64::MAX)
     }
 }
@@ -383,7 +398,13 @@ pub fn compute_total_ex_units(redeemers: &[Redeemer]) -> Result<ExUnits, Arithme
 }
 
 #[derive(
-    Clone, Debug, Default, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+    Clone,
+    Debug,
+    Default,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+    derivative::Derivative,
 )]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PlutusMap {
@@ -418,7 +439,10 @@ impl PlutusMap {
     /// Note: In the case of duplicate keys this only returns the first datum.
     /// This is an extremely rare occurence on-chain but can happen.
     pub fn get(&self, key: &PlutusData) -> Option<&PlutusData> {
-        self.entries.iter().find(|(k, _)| *k == *key).map(|(_, value)| value)
+        self.entries
+            .iter()
+            .find(|(k, _)| *k == *key)
+            .map(|(_, value)| value)
     }
 
     /// In the extremely unlikely situation there are duplicate keys, this gets all of a single key
@@ -436,15 +460,16 @@ impl PlutusMap {
     }
 }
 
-
 impl Serialize for PlutusMap {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer
-            .write_map_sz(self.encoding.to_len_sz(self.entries.len() as u64, force_canonical))?;
+        serializer.write_map_sz(
+            self.encoding
+                .to_len_sz(self.entries.len() as u64, force_canonical),
+        )?;
         let mut key_order = self
             .entries
             .iter()
@@ -488,37 +513,31 @@ impl Deserialize for PlutusMap {
                 let map_value = PlutusData::deserialize(raw)?;
                 entries.push((map_key, map_value));
             }
-            Ok(Self {
-                entries,
-                encoding
-            })
+            Ok(Self { entries, encoding })
         })()
         .map_err(|e| e.annotate("PlutusMap"))
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use cml_core::Int;
     use crate::plutus::CostModels;
+    use cml_core::Int;
 
     #[test]
     pub fn test_cost_model() {
         let arr = vec![
-            197209, 0, 1, 1, 396231, 621, 0, 1, 150000, 1000, 0, 1, 150000, 32,
-            2477736, 29175, 4, 29773, 100, 29773, 100, 29773, 100, 29773, 100, 29773,
-            100, 29773, 100, 100, 100, 29773, 100, 150000, 32, 150000, 32, 150000, 32,
-            150000, 1000, 0, 1, 150000, 32, 150000, 1000, 0, 8, 148000, 425507, 118,
-            0, 1, 1, 150000, 1000, 0, 8, 150000, 112536, 247, 1, 150000, 10000, 1,
-            136542, 1326, 1, 1000, 150000, 1000, 1, 150000, 32, 150000, 32, 150000,
-            32, 1, 1, 150000, 1, 150000, 4, 103599, 248, 1, 103599, 248, 1, 145276,
-            1366, 1, 179690, 497, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32,
-            150000, 32, 150000, 32, 148000, 425507, 118, 0, 1, 1, 61516, 11218, 0, 1,
-            150000, 32, 148000, 425507, 118, 0, 1, 1, 148000, 425507, 118, 0, 1, 1,
-            2477736, 29175, 4, 0, 82363, 4, 150000, 5000, 0, 1, 150000, 32, 197209, 0,
-            1, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000,
-            32, 150000, 32, 3345831, 1, 1,
+            197209, 0, 1, 1, 396231, 621, 0, 1, 150000, 1000, 0, 1, 150000, 32, 2477736, 29175, 4,
+            29773, 100, 29773, 100, 29773, 100, 29773, 100, 29773, 100, 29773, 100, 100, 100,
+            29773, 100, 150000, 32, 150000, 32, 150000, 32, 150000, 1000, 0, 1, 150000, 32, 150000,
+            1000, 0, 8, 148000, 425507, 118, 0, 1, 1, 150000, 1000, 0, 8, 150000, 112536, 247, 1,
+            150000, 10000, 1, 136542, 1326, 1, 1000, 150000, 1000, 1, 150000, 32, 150000, 32,
+            150000, 32, 1, 1, 150000, 1, 150000, 4, 103599, 248, 1, 103599, 248, 1, 145276, 1366,
+            1, 179690, 497, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000,
+            32, 148000, 425507, 118, 0, 1, 1, 61516, 11218, 0, 1, 150000, 32, 148000, 425507, 118,
+            0, 1, 1, 148000, 425507, 118, 0, 1, 1, 2477736, 29175, 4, 0, 82363, 4, 150000, 5000, 0,
+            1, 150000, 32, 197209, 0, 1, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000,
+            32, 150000, 32, 150000, 32, 3345831, 1, 1,
         ];
         let mut cms = CostModels::new();
         cms.plutus_v1 = Some(arr.iter().map(|&i| Int::new_uint(i)).collect());

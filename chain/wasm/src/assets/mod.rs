@@ -25,4 +25,3 @@ impl AssetName {
         self.0.get().clone()
     }
 }
-

@@ -1,24 +1,26 @@
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
-use cml_core_wasm::impl_wasm_conversions;
-use cml_crypto_wasm::{
-    DatumHash, Ed25519KeyHash, ScriptHash
-};
 use crate::{
-    Script,
+    address::RewardAddress,
     byron::ByronAddress,
     crypto::{BootstrapWitness, Vkeywitness},
-    transaction::{TransactionWitnessSet},
     plutus::{PlutusData, Redeemer},
-    NativeScriptList, PlutusV1ScriptList, PlutusV2ScriptList, RedeemerList, PlutusDataList, Ed25519KeyHashList, address::RewardAddress,
+    transaction::TransactionWitnessSet,
+    Ed25519KeyHashList, NativeScriptList, PlutusDataList, PlutusV1ScriptList, PlutusV2ScriptList,
+    RedeemerList, Script,
 };
+use cml_core_wasm::impl_wasm_conversions;
+use cml_crypto_wasm::{DatumHash, Ed25519KeyHash, ScriptHash};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
-use super::redeemer_builder::{RedeemerWitnessKey};
+use super::redeemer_builder::RedeemerWitnessKey;
 
 #[wasm_bindgen]
 #[derive(Debug, Clone)]
 pub struct PlutusScriptWitness(cml_chain::builders::witness_builder::PlutusScriptWitness);
 
-impl_wasm_conversions!(cml_chain::builders::witness_builder::PlutusScriptWitness, PlutusScriptWitness);
+impl_wasm_conversions!(
+    cml_chain::builders::witness_builder::PlutusScriptWitness,
+    PlutusScriptWitness
+);
 
 #[wasm_bindgen]
 impl PlutusScriptWitness {
@@ -42,15 +44,19 @@ impl PlutusScriptWitness {
 #[derive(Clone, Debug)]
 pub struct PartialPlutusWitness(cml_chain::builders::witness_builder::PartialPlutusWitness);
 
-impl_wasm_conversions!(cml_chain::builders::witness_builder::PartialPlutusWitness, PartialPlutusWitness);
+impl_wasm_conversions!(
+    cml_chain::builders::witness_builder::PartialPlutusWitness,
+    PartialPlutusWitness
+);
 
 #[wasm_bindgen]
 impl PartialPlutusWitness {
     pub fn new(script: &PlutusScriptWitness, data: &PlutusData) -> Self {
         cml_chain::builders::witness_builder::PartialPlutusWitness::new(
             script.clone().into(),
-            data.clone().into()
-        ).into()
+            data.clone().into(),
+        )
+        .into()
     }
 
     pub fn script(&self) -> PlutusScriptWitness {
@@ -64,9 +70,14 @@ impl PartialPlutusWitness {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct InputAggregateWitnessData(cml_chain::builders::witness_builder::InputAggregateWitnessData);
+pub struct InputAggregateWitnessData(
+    cml_chain::builders::witness_builder::InputAggregateWitnessData,
+);
 
-impl_wasm_conversions!(cml_chain::builders::witness_builder::InputAggregateWitnessData, InputAggregateWitnessData);
+impl_wasm_conversions!(
+    cml_chain::builders::witness_builder::InputAggregateWitnessData,
+    InputAggregateWitnessData
+);
 
 #[wasm_bindgen]
 impl InputAggregateWitnessData {
@@ -75,13 +86,14 @@ impl InputAggregateWitnessData {
     }
 }
 
-
-
 #[wasm_bindgen]
 #[derive(Clone, Debug, Default)]
 pub struct RequiredWitnessSet(cml_chain::builders::witness_builder::RequiredWitnessSet);
 
-impl_wasm_conversions!(cml_chain::builders::witness_builder::RequiredWitnessSet, RequiredWitnessSet);
+impl_wasm_conversions!(
+    cml_chain::builders::witness_builder::RequiredWitnessSet,
+    RequiredWitnessSet
+);
 
 #[wasm_bindgen]
 impl RequiredWitnessSet {
@@ -120,16 +132,24 @@ impl RequiredWitnessSet {
     // comes from witsVKeyNeeded in the Ledger spec
     // this is here instead of withdrawal_builder.rs due to wasm restrictions on &mut params
     pub fn withdrawal_required_wits(&mut self, address: &RewardAddress) {
-        cml_chain::builders::withdrawal_builder::withdrawal_required_wits(address.as_ref(), &mut self.0);
+        cml_chain::builders::withdrawal_builder::withdrawal_required_wits(
+            address.as_ref(),
+            &mut self.0,
+        );
     }
 }
 
 /// Builder de-duplicates witnesses as they are added
 #[wasm_bindgen]
 #[derive(Clone, Default, Debug)]
-pub struct TransactionWitnessSetBuilder(cml_chain::builders::witness_builder::TransactionWitnessSetBuilder);
+pub struct TransactionWitnessSetBuilder(
+    cml_chain::builders::witness_builder::TransactionWitnessSetBuilder,
+);
 
-impl_wasm_conversions!(cml_chain::builders::witness_builder::TransactionWitnessSetBuilder, TransactionWitnessSetBuilder);
+impl_wasm_conversions!(
+    cml_chain::builders::witness_builder::TransactionWitnessSetBuilder,
+    TransactionWitnessSetBuilder
+);
 
 #[wasm_bindgen]
 impl TransactionWitnessSetBuilder {
@@ -194,11 +214,14 @@ impl TransactionWitnessSetBuilder {
     }
 
     pub fn try_build(&self) -> Result<TransactionWitnessSet, JsError> {
-        self.0.try_build().map(Into::into).map_err(Into::into)        
+        self.0.try_build().map(Into::into).map_err(Into::into)
     }
 
     pub fn merge_fake_witness(&mut self, required_wits: &RequiredWitnessSet) {
-        cml_chain::builders::witness_builder::merge_fake_witness(&mut self.0, required_wits.as_ref());
+        cml_chain::builders::witness_builder::merge_fake_witness(
+            &mut self.0,
+            required_wits.as_ref(),
+        );
     }
 }
 
@@ -206,7 +229,10 @@ impl TransactionWitnessSetBuilder {
 #[derive(Clone, Debug)]
 pub struct NativeScriptWitnessInfo(cml_chain::builders::witness_builder::NativeScriptWitnessInfo);
 
-impl_wasm_conversions!(cml_chain::builders::witness_builder::NativeScriptWitnessInfo, NativeScriptWitnessInfo);
+impl_wasm_conversions!(
+    cml_chain::builders::witness_builder::NativeScriptWitnessInfo,
+    NativeScriptWitnessInfo
+);
 
 #[wasm_bindgen]
 impl NativeScriptWitnessInfo {
@@ -217,11 +243,13 @@ impl NativeScriptWitnessInfo {
 
     /// This native script will be witnessed by exactly these keys
     pub fn vkeys(vkeys: &Ed25519KeyHashList) -> Self {
-        cml_chain::builders::witness_builder::NativeScriptWitnessInfo::vkeys(vkeys.clone().into()).into()
+        cml_chain::builders::witness_builder::NativeScriptWitnessInfo::vkeys(vkeys.clone().into())
+            .into()
     }
 
     /// You don't know how many keys will sign, so the maximum possible case will be assumed
     pub fn assume_signature_count() -> Self {
-        cml_chain::builders::witness_builder::NativeScriptWitnessInfo::assume_signature_count().into()
+        cml_chain::builders::witness_builder::NativeScriptWitnessInfo::assume_signature_count()
+            .into()
     }
 }

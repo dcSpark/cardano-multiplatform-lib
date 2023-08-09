@@ -2,18 +2,16 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use crate::allegra::{AllegraAuxiliaryData, AllegraTransactionWitnessSet};
-use cml_chain_wasm::assets::{Coin, Mint};
-use cml_chain_wasm::Withdrawals;
 use crate::shelley::{ShelleyHeader, ShelleyUpdate};
-use cml_chain_wasm::{
-    CertificateList, TransactionInputList
-};
-use cml_crypto_wasm::{AuxiliaryDataHash};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use crate::{
     AllegraTransactionWitnessSetList, MapTransactionIndexToAllegraAuxiliaryData,
     MaryTransactionBodyList, ShelleyTxOutList,
 };
+use cml_chain_wasm::assets::{Coin, Mint};
+use cml_chain_wasm::Withdrawals;
+use cml_chain_wasm::{CertificateList, TransactionInputList};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
+use cml_crypto_wasm::AuxiliaryDataHash;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]

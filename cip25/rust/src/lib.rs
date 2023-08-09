@@ -10,7 +10,7 @@ pub use utils::{CIP25Version, LabelMetadata};
 
 use cbor_event;
 use cbor_event::de::Deserializer;
-use cbor_event::se::{Serializer};
+use cbor_event::se::Serializer;
 use cbor_event::Special as CBORSpecial;
 use cbor_event::Type as CBORType;
 pub use cml_core::error::*;

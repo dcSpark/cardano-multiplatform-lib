@@ -81,10 +81,9 @@ impl<T, A: VerificationAlgorithm> FromStr for Signature<T, A> {
 impl fmt::Display for SignatureError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            SignatureError::SizeInvalid { expected, got } => write!(
-                f,
-                "Invalid Signature size expecting {expected} got {got}"
-            ),
+            SignatureError::SizeInvalid { expected, got } => {
+                write!(f, "Invalid Signature size expecting {expected} got {got}")
+            }
             SignatureError::StructureInvalid => write!(f, "Invalid Signature structure"),
         }
     }

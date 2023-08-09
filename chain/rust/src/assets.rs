@@ -1,13 +1,14 @@
+use crate::PolicyId;
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::{
     error::{DeserializeError, DeserializeFailure, Key},
-    serialization::{fit_sz, Deserialize, Serialize, StringEncoding, LenEncoding, CBORReadLen},
-    ordered_hash_map::OrderedHashMap, ArithmeticError,
+    ordered_hash_map::OrderedHashMap,
+    serialization::{fit_sz, CBORReadLen, Deserialize, LenEncoding, Serialize, StringEncoding},
+    ArithmeticError,
 };
-use cml_crypto::{ScriptHash, RawBytesEncoding};
-use std::io::{BufRead, Seek, Write};
+use cml_crypto::{RawBytesEncoding, ScriptHash};
 use std::cmp::PartialOrd;
-use crate::PolicyId;
+use std::io::{BufRead, Seek, Write};
 
 use std::collections::BTreeMap;
 
@@ -26,12 +27,18 @@ pub enum AssetArithmeticError {
 }
 
 /// Bundle of assets within range of T, grouped by PolicyID then AssetName
-#[derive(Clone, Default, PartialEq, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Default, PartialEq, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 pub struct AssetBundle<T>(OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>);
 
 impl<T: std::fmt::Debug> std::fmt::Debug for AssetBundle<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        let mut ds = f.debug_struct(if self.0.iter().any(|(_, a)| !a.is_empty()) { "" } else { "{}" });
+        let mut ds = f.debug_struct(if self.0.iter().any(|(_, a)| !a.is_empty()) {
+            ""
+        } else {
+            "{}"
+        });
         for (pid, assets) in self.0.iter() {
             let pid_hex = hex::encode(pid.to_raw_bytes());
             for (an, val) in assets.iter() {
@@ -40,7 +47,8 @@ impl<T: std::fmt::Debug> std::fmt::Debug for AssetBundle<T> {
                     format!(
                         "{}..{}",
                         an_hex.get(0..3).unwrap(),
-                        an_hex.get(an_hex.len() - 2 .. an_hex.len() - 1).unwrap())
+                        an_hex.get(an_hex.len() - 2..an_hex.len() - 1).unwrap()
+                    )
                 } else {
                     an_hex
                 };
@@ -51,7 +59,8 @@ impl<T: std::fmt::Debug> std::fmt::Debug for AssetBundle<T> {
                         pid_hex.get(pid_hex.len() - 4..pid_hex.len() - 1).unwrap(),
                         an_name
                     ),
-                    val);
+                    val,
+                );
             }
         }
         ds.finish()
@@ -63,7 +72,6 @@ impl<T: Default> AssetBundle<T> {
         Self::default()
     }
 }
-
 
 impl<T> From<OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>> for AssetBundle<T> {
     fn from(bundle: OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>) -> Self {
@@ -92,12 +100,20 @@ pub trait ClampedSub {
 
 impl<T: num::CheckedSub + num::Bounded + num::Zero + Ord> ClampedSub for T {
     fn clamped_sub(&self, rhs: &Self) -> Self {
-        self.checked_sub(rhs).unwrap_or_else(|| if *rhs < T::zero() { T::max_value() } else { T::min_value() })
+        self.checked_sub(rhs).unwrap_or_else(|| {
+            if *rhs < T::zero() {
+                T::max_value()
+            } else {
+                T::min_value()
+            }
+        })
     }
 }
 
 impl<T> ClampedSub for AssetBundle<T>
-where T: num::CheckedAdd + num::CheckedSub + num::Zero + num::Bounded + Copy + Clone + ClampedSub {
+where
+    T: num::CheckedAdd + num::CheckedSub + num::Zero + num::Bounded + Copy + Clone + ClampedSub,
+{
     fn clamped_sub(&self, rhs: &Self) -> Self {
         let mut bundle = self.clone();
         for (policy, rhs_assets) in rhs.iter() {
@@ -114,7 +130,7 @@ where T: num::CheckedAdd + num::CheckedSub + num::Zero + num::Bounded + Copy + C
                                 } else {
                                     *lhs_amount = new_lhs_amount;
                                 }
-                            },
+                            }
                             None => {
                                 if T::min_value().is_zero() {
                                     // if underflow and unsigned, remove
@@ -131,14 +147,22 @@ where T: num::CheckedAdd + num::CheckedSub + num::Zero + num::Bounded + Copy + C
                         None => {
                             // asset name is missing from left hand side
                             if !T::min_value().is_zero() {
-                                bundle.set(policy.clone(), asset_name.clone(), T::zero().clamped_sub(rhs_amount));
+                                bundle.set(
+                                    policy.clone(),
+                                    asset_name.clone(),
+                                    T::zero().clamped_sub(rhs_amount),
+                                );
                             }
                         }
                     },
                     None => {
                         // policy id missing from left hand side
                         if !T::min_value().is_zero() {
-                            bundle.set(policy.clone(), asset_name.clone(), T::zero().clamped_sub(rhs_amount));
+                            bundle.set(
+                                policy.clone(),
+                                asset_name.clone(),
+                                T::zero().clamped_sub(rhs_amount),
+                            );
                         }
                     }
                 }
@@ -149,18 +173,21 @@ where T: num::CheckedAdd + num::CheckedSub + num::Zero + num::Bounded + Copy + C
 }
 
 impl<T> AssetBundle<T>
-    where T: num::CheckedAdd + num::CheckedSub + num::Zero + num::Bounded + Copy + Clone,
+where
+    T: num::CheckedAdd + num::CheckedSub + num::Zero + num::Bounded + Copy + Clone,
 {
     /// Set the value of policy_id:asset_name to value.
     /// Returns the previous value, or None if it didn't exist
     pub fn set(&mut self, policy_id: PolicyId, asset_name: AssetName, value: T) -> Option<T> {
-        self.0.entry(policy_id).or_default().insert(asset_name, value)
+        self.0
+            .entry(policy_id)
+            .or_default()
+            .insert(asset_name, value)
     }
 
     /// Get the value of policy_id:asset_name if it exists.
     pub fn get(&self, policy_id: &PolicyId, asset_name: &AssetName) -> Option<T> {
-        self
-            .0
+        self.0
             .get(policy_id)
             .and_then(|assets| assets.get(asset_name))
             .copied()
@@ -178,7 +205,9 @@ impl<T> AssetBundle<T>
                         match assets.get_mut().entry(asset_name.clone()) {
                             Entry::Occupied(mut assets2) => {
                                 let current = assets2.get_mut();
-                                *current = current.checked_add(amount).ok_or(ArithmeticError::IntegerOverflow)?;
+                                *current = current
+                                    .checked_add(amount)
+                                    .ok_or(ArithmeticError::IntegerOverflow)?;
                             }
                             Entry::Vacant(vacant_entry) => {
                                 vacant_entry.insert(*amount);
@@ -216,7 +245,7 @@ impl<T> AssetBundle<T>
                                 } else {
                                     *lhs_amount = new_lhs_amount;
                                 }
-                            },
+                            }
                             None => {
                                 // underflow
                                 return Err(ArithmeticError::IntegerUnderflow.into());
@@ -244,18 +273,23 @@ pub type MultiAsset = AssetBundle<u64>;
 
 impl Mint {
     fn as_multiasset(&self, is_positive: bool) -> MultiAsset {
-        self.0.iter().fold(MultiAsset::default(), |mut acc, (policy, assets)| {
-            let new_assets = assets.iter().fold(OrderedHashMap::new(), |mut acc, (asset, value)| {
-                if (*value >= 0) == is_positive {
-                    acc.insert(asset.clone(), value.unsigned_abs());
+        self.0
+            .iter()
+            .fold(MultiAsset::default(), |mut acc, (policy, assets)| {
+                let new_assets =
+                    assets
+                        .iter()
+                        .fold(OrderedHashMap::new(), |mut acc, (asset, value)| {
+                            if (*value >= 0) == is_positive {
+                                acc.insert(asset.clone(), value.unsigned_abs());
+                            }
+                            acc
+                        });
+                if !assets.is_empty() {
+                    acc.insert(policy.clone(), new_assets);
                 }
                 acc
-            });
-            if !assets.is_empty() {
-                acc.insert(policy.clone(), new_assets);
-            }
-            acc
-        })
+            })
     }
 
     /// Returns the multiasset where only positive (minting) entries are present
@@ -272,17 +306,15 @@ impl Mint {
 // note: we purposefully don't derive or implement Ord for Value to avoid potentially confusing
 // orderings that don't obey Cardano semantics i.e. if x >= y then input x can cover cost y
 // If you need to use Value or something in a tree map please consider using a hash map instead.
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, Eq, PartialEq, PartialOrd)]
 pub struct Value {
     pub coin: Coin,
     pub multiasset: MultiAsset,
     #[serde(skip)]
-    #[derivative(
-        Hash = "ignore",
-        PartialEq = "ignore",
-        PartialOrd = "ignore",
-    )]
+    #[derivative(Hash = "ignore", PartialEq = "ignore", PartialOrd = "ignore")]
     pub encodings: Option<ValueEncoding>,
 }
 
@@ -294,7 +326,7 @@ impl Value {
             encodings: None,
         }
     }
-    
+
     pub fn zero() -> Value {
         0u64.into()
     }
@@ -304,11 +336,16 @@ impl Value {
     }
 
     pub fn has_multiassets(&self) -> bool {
-        self.multiasset.values().any(|assets| assets.values().any(|amount| *amount != 0))
+        self.multiasset
+            .values()
+            .any(|assets| assets.values().any(|amount| *amount != 0))
     }
 
     pub fn checked_add(&self, rhs: &Value) -> Result<Self, AssetArithmeticError> {
-        let coin = self.coin.checked_add(rhs.coin).ok_or(ArithmeticError::IntegerOverflow)?;
+        let coin = self
+            .coin
+            .checked_add(rhs.coin)
+            .ok_or(ArithmeticError::IntegerOverflow)?;
         let multiasset = self.multiasset.checked_add(&rhs.multiasset)?;
         Ok(Value {
             coin,
@@ -322,15 +359,26 @@ impl Value {
     /// Does not modify this object, instead the result is returned
     /// None is returned if there would be integer underflow
     pub fn checked_sub(&self, rhs: &Value) -> Result<Self, AssetArithmeticError> {
-        let coin = self.coin.checked_sub(rhs.coin).ok_or(ArithmeticError::IntegerUnderflow)?;
+        let coin = self
+            .coin
+            .checked_sub(rhs.coin)
+            .ok_or(ArithmeticError::IntegerUnderflow)?;
         let multiasset = self.multiasset.checked_sub(&rhs.multiasset)?;
-        Ok(Value { coin, multiasset, encodings: None })
+        Ok(Value {
+            coin,
+            multiasset,
+            encodings: None,
+        })
     }
 
     pub fn clamped_sub(&self, rhs: &Value) -> Value {
         let coin = self.coin.clamped_sub(&rhs.coin);
         let multiasset = self.multiasset.clamped_sub(&rhs.multiasset);
-        Value { coin, multiasset, encodings: None }
+        Value {
+            coin,
+            multiasset,
+            encodings: None,
+        }
     }
 }
 
@@ -341,19 +389,29 @@ impl Value {
 // this function instead compares amounts, assuming that if a pair (pid, aname)
 // is not in the MultiAsset then it has an amount of 0
 impl<T> PartialOrd for AssetBundle<T>
-where T: num::CheckedAdd + num::CheckedSub + num::Zero + num::Bounded + Copy + Clone + PartialOrd {
+where
+    T: num::CheckedAdd + num::CheckedSub + num::Zero + num::Bounded + Copy + Clone + PartialOrd,
+{
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         // idea: if (a-b) > 0 for some asset, then a > b for at least some asset
         fn is_all_zeros<T>(lhs: &AssetBundle<T>, rhs: &AssetBundle<T>) -> bool
-        where T: num::CheckedAdd + num::CheckedSub + num::Zero + num::Bounded + Copy + Clone + PartialOrd {
+        where
+            T: num::CheckedAdd
+                + num::CheckedSub
+                + num::Zero
+                + num::Bounded
+                + Copy
+                + Clone
+                + PartialOrd,
+        {
             for (pid, assets) in lhs.0.iter() {
                 for (aname, amount) in assets.iter() {
                     match amount
-                            .checked_sub(&rhs.get(pid, aname).unwrap_or(T::zero()))
-                            .and_then(|o| o.partial_cmp(&T::zero()))
+                        .checked_sub(&rhs.get(pid, aname).unwrap_or(T::zero()))
+                        .and_then(|o| o.partial_cmp(&T::zero()))
                     {
                         Some(std::cmp::Ordering::Equal) => (),
-                        _ => return false
+                        _ => return false,
                     }
                 }
             }
@@ -395,7 +453,13 @@ impl Serialize for Value {
         serializer: &'se mut Serializer<W>,
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        if self.multiasset.is_empty() && self.encodings.as_ref().map(|encs| !encs.use_multiasset_format).unwrap_or(true) {
+        if self.multiasset.is_empty()
+            && self
+                .encodings
+                .as_ref()
+                .map(|encs| !encs.use_multiasset_format)
+                .unwrap_or(true)
+        {
             // coin-only format
             serializer.write_unsigned_integer_sz(
                 self.coin,
@@ -539,7 +603,7 @@ impl Deserialize for Value {
                             use_multiasset_format: false,
                         }),
                     })
-                },
+                }
                 // general format
                 cbor_event::Type::Array => {
                     let len = raw.array_sz()?;
@@ -585,7 +649,9 @@ impl Deserialize for Value {
                             let multiasset_value_encoding = multiasset_value_len.into();
                             let mut multiasset_value_value_encodings = BTreeMap::new();
                             while match multiasset_value_len {
-                                cbor_event::LenSz::Len(n, _) => (multiasset_value_table.len() as u64) < n,
+                                cbor_event::LenSz::Len(n, _) => {
+                                    (multiasset_value_table.len() as u64) < n
+                                }
                                 cbor_event::LenSz::Indefinite => true,
                             } {
                                 if raw.cbor_type()? == cbor_event::Type::Special {
@@ -599,9 +665,9 @@ impl Deserialize for Value {
                                     .insert(multiasset_value_key.clone(), multiasset_value_value)
                                     .is_some()
                                 {
-                                    return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
-                                        "some complicated/unsupported type",
-                                    )))
+                                    return Err(DeserializeFailure::DuplicateKey(Key::Str(
+                                        String::from("some complicated/unsupported type"),
+                                    ))
                                     .into());
                                 }
                                 multiasset_value_value_encodings
@@ -620,9 +686,9 @@ impl Deserialize for Value {
                                 .insert(multiasset_key.clone(), multiasset_value)
                                 .is_some()
                             {
-                                return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
-                                    "some complicated/unsupported type",
-                                )))
+                                return Err(DeserializeFailure::DuplicateKey(Key::Str(
+                                    String::from("some complicated/unsupported type"),
+                                ))
                                 .into());
                             }
                             multiasset_key_encodings
@@ -659,7 +725,7 @@ impl Deserialize for Value {
                             use_multiasset_format: true,
                         }),
                     })
-                },
+                }
                 _ => Err(DeserializeFailure::NoVariantMatched.into()),
             }
         })()

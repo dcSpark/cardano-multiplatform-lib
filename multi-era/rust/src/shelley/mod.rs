@@ -4,30 +4,33 @@
 pub mod cbor_encodings;
 pub mod serialization;
 
-use cml_chain::ProtocolVersionStruct;
+use cbor_encodings::{
+    MultisigAllEncoding, MultisigAnyEncoding, MultisigNOfKEncoding, MultisigPubkeyEncoding,
+    ShelleyBlockEncoding, ShelleyHeaderBodyEncoding, ShelleyHeaderEncoding,
+    ShelleyProtocolParamUpdateEncoding, ShelleyTransactionBodyEncoding, ShelleyTransactionEncoding,
+    ShelleyTransactionOutputEncoding, ShelleyTransactionWitnessSetEncoding, ShelleyUpdateEncoding,
+};
 use cml_chain::address::Address;
 use cml_chain::assets::Coin;
 use cml_chain::auxdata::Metadata;
 use cml_chain::block::{OperationalCert, ProtocolVersion};
-use cml_chain::certs::{MIRPot, StakeCredential, PoolRegistration, StakeDeregistration, GenesisKeyDelegation, StakeDelegation, PoolRetirement, StakeRegistration};
+use cml_chain::certs::{
+    GenesisKeyDelegation, MIRPot, PoolRegistration, PoolRetirement, StakeCredential,
+    StakeDelegation, StakeDeregistration, StakeRegistration,
+};
 use cml_chain::crypto::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, BootstrapWitness, Ed25519KeyHash,
     GenesisHash, KESSignature, Nonce, VRFCert, VRFVkey, Vkey, Vkeywitness,
 };
 use cml_chain::transaction::TransactionInput;
+use cml_chain::ProtocolVersionStruct;
 use cml_chain::{Epoch, Rational, UnitInterval, Withdrawals};
-use cbor_encodings::{
-    MultisigAllEncoding, MultisigAnyEncoding,
-    MultisigNOfKEncoding, MultisigPubkeyEncoding, ShelleyBlockEncoding, ShelleyHeaderBodyEncoding,
-    ShelleyHeaderEncoding, ShelleyProtocolParamUpdateEncoding, ShelleyTransactionBodyEncoding,
-    ShelleyTransactionEncoding, ShelleyTransactionOutputEncoding,
-    ShelleyTransactionWitnessSetEncoding, ShelleyUpdateEncoding,
-};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use std::collections::BTreeMap;
 
-use self::cbor_encodings::{ShelleyMoveInstantaneousRewardEncoding, ShelleyMoveInstantaneousRewardsCertEncoding};
-
+use self::cbor_encodings::{
+    ShelleyMoveInstantaneousRewardEncoding, ShelleyMoveInstantaneousRewardsCertEncoding,
+};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct MultisigAll {

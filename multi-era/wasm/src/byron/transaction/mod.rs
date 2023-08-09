@@ -1,12 +1,12 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+use crate::byron::{
+    Blake2b256, ByronAny, ByronAnyList, ByronPubKey, ByronSignature, ByronTxId, ByronTxInList,
+    ByronTxOutList,
+};
 use crate::impl_wasm_cbor_json_api_byron;
 use cml_core_wasm::impl_wasm_conversions;
-use crate::byron::{
-    Blake2b256, ByronPubKey, ByronSignature, ByronTxId,
-    ByronTxInList, ByronTxOutList, ByronAny, ByronAnyList,
-};
 use std::collections::BTreeMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 

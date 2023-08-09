@@ -1,6 +1,6 @@
 use super::*;
 
-pub use cml_chain::address::{AddressKind, AddressHeaderKind};
+pub use cml_chain::address::{AddressHeaderKind, AddressKind};
 
 use cml_core_wasm::impl_wasm_conversions;
 
@@ -158,4 +158,3 @@ impl RewardAddress {
         serde_json::from_str(json).map(Self).map_err(Into::into)
     }
 }
-

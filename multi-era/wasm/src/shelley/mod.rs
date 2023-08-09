@@ -1,34 +1,34 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_chain_wasm::{
-    GenesisHashList,
-    ProtocolVersionStruct,
+use crate::{
+    MapStakeCredentialToCoin, MultisigScriptList, ShelleyTransactionBodyList,
+    ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
 };
 use cml_chain_wasm::address::Address;
 use cml_chain_wasm::assets::Coin;
 use cml_chain_wasm::auxdata::Metadata;
 use cml_chain_wasm::block::{OperationalCert, ProtocolVersion};
-use cml_chain_wasm::certs::{MIRPot, GenesisKeyDelegation, PoolRetirement, PoolRegistration, StakeRegistration, StakeDeregistration, StakeDelegation};
-use cml_chain_wasm::crypto::{
-    KESSignature, Nonce, VRFCert, Vkey
+use cml_chain_wasm::certs::{
+    GenesisKeyDelegation, MIRPot, PoolRegistration, PoolRetirement, StakeDelegation,
+    StakeDeregistration, StakeRegistration,
 };
+use cml_chain_wasm::crypto::{KESSignature, Nonce, VRFCert, Vkey};
+use cml_chain_wasm::{BootstrapWitnessList, TransactionInputList, VkeywitnessList};
+use cml_chain_wasm::{Epoch, Rational, UnitInterval, Withdrawals};
+use cml_chain_wasm::{GenesisHashList, ProtocolVersionStruct};
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list};
 use cml_crypto_wasm::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, Ed25519KeyHash, GenesisHash, VRFVkey,
 };
-use cml_chain_wasm::{Epoch, Rational, UnitInterval, Withdrawals};
-use cml_chain_wasm::{
-    BootstrapWitnessList, VkeywitnessList, TransactionInputList,
-};
-use crate::{
-    MapStakeCredentialToCoin, MultisigScriptList,
-    ShelleyTransactionBodyList, ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
-};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list};
-use cml_core::ordered_hash_map::OrderedHashMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
-impl_wasm_list!(cml_multi_era::shelley::ShelleyCertificate, ShelleyCertificate, ShelleyCertificateList);
+impl_wasm_list!(
+    cml_multi_era::shelley::ShelleyCertificate,
+    ShelleyCertificate,
+    ShelleyCertificateList
+);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -633,7 +633,11 @@ impl ShelleyProposedProtocolParameterUpdates {
     }
 
     pub fn keys(&self) -> GenesisHashList {
-        self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>().into()
+        self.0
+            .iter()
+            .map(|(k, _v)| k.clone())
+            .collect::<Vec<_>>()
+            .into()
     }
 }
 

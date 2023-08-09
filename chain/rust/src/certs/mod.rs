@@ -8,8 +8,7 @@ pub mod utils;
 use super::{Coin, DeltaCoin, Epoch, Port, UnitInterval};
 use crate::address::RewardAccount;
 use crate::crypto::{
-    Ed25519KeyHash, GenesisDelegateHash, GenesisHash, PoolMetadataHash,
-    ScriptHash, VRFKeyHash,
+    Ed25519KeyHash, GenesisDelegateHash, GenesisHash, PoolMetadataHash, ScriptHash, VRFKeyHash,
 };
 use cbor_encodings::{
     DnsNameEncoding, GenesisKeyDelegationEncoding, Ipv4Encoding, Ipv6Encoding,

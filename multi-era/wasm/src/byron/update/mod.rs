@@ -2,14 +2,14 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use crate::byron::transaction::ByronAttributes;
-use crate::impl_wasm_cbor_json_api_byron;
-use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronUpdateId, EpochId};
 use crate::byron::{
     BigIntList, ByronTxFeePolicyList, ByronUpdateProposalList, ByronUpdateVoteList,
     MapSystemTagToByronUpdateData, SoftForkRuleList,
 };
-use cml_core_wasm::impl_wasm_conversions;
+use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronUpdateId, EpochId};
+use crate::impl_wasm_cbor_json_api_byron;
 use cml_chain_wasm::utils::BigInt;
+use cml_core_wasm::impl_wasm_conversions;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]

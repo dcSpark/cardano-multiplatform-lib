@@ -3,10 +3,7 @@ use std::convert::TryInto;
 use cml_core::ArithmeticError;
 use cml_crypto::Serialize;
 
-use crate::{
-    Coin,
-    transaction::TransactionOutput,
-};
+use crate::{transaction::TransactionOutput, Coin};
 
 pub fn min_ada_required(
     output: &TransactionOutput,
@@ -22,9 +19,14 @@ pub fn min_ada_required(
     // how many bytes the Coin part of the Value will take. can vary based on encoding used.
     let old_coin_size = 1 + fit_sz(
         output.amount().coin,
-        output.amount().encodings.as_ref().and_then(|enc| enc.coin_encoding),
-        false
-    ).bytes_following();
+        output
+            .amount()
+            .encodings
+            .as_ref()
+            .and_then(|enc| enc.coin_encoding),
+        false,
+    )
+    .bytes_following();
 
     // most recent estimate of the size in bytes to include the minimum ADA value
     let mut latest_size = old_coin_size;
@@ -39,8 +41,7 @@ pub fn min_ada_required(
             .and_then(|x: u64| x.checked_mul(coins_per_utxo_byte))
             .ok_or(ArithmeticError::IntegerOverflow)?;
 
-        let new_coin_size = 1 + fit_sz(tentative_min_ada, None, false)
-            .bytes_following();
+        let new_coin_size = 1 + fit_sz(tentative_min_ada, None, false).bytes_following();
 
         let is_done = latest_size == new_coin_size;
         latest_size = new_coin_size;
@@ -60,21 +61,19 @@ pub fn min_ada_required(
     Ok(adjusted_min_ada)
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::{
-        genesis::network_info::NetworkInfo,
         address::BaseAddress,
-        certs::StakeCredential,
         assets::{MultiAsset, Value},
-        PolicyId,
-        AssetName,
-        transaction::{ShelleyTxOut}
+        certs::StakeCredential,
+        genesis::network_info::NetworkInfo,
+        transaction::ShelleyTxOut,
+        AssetName, PolicyId,
     };
 
     use cml_core::ordered_hash_map::OrderedHashMap;
-    use cml_crypto::{ScriptHash, Bip32PrivateKey};
+    use cml_crypto::{Bip32PrivateKey, ScriptHash};
 
     use super::*;
 
@@ -110,12 +109,8 @@ mod tests {
 
         let spend_cred = StakeCredential::new_pub_key(spend.to_raw_key().hash());
         let stake_cred = StakeCredential::new_pub_key(stake.to_raw_key().hash());
-        let address = BaseAddress::new(
-            NetworkInfo::testnet().network_id(),
-            spend_cred,
-            stake_cred,
-        )
-        .to_address();
+        let address = BaseAddress::new(NetworkInfo::testnet().network_id(), spend_cred, stake_cred)
+            .to_address();
         ShelleyTxOut::new(address, Value::from(0)).into()
     }
 
@@ -127,10 +122,7 @@ mod tests {
             AssetName::new(vec![]).unwrap(),
             1,
         );
-        Value::new(
-            0,
-            token_bundle,
-        )
+        Value::new(0, token_bundle)
     }
 
     fn one_policy_one_1_char_asset() -> Value {
@@ -140,31 +132,16 @@ mod tests {
             AssetName::new(vec![1]).unwrap(),
             1,
         );
-        Value::new(
-            1407406,
-            token_bundle,
-        )
+        Value::new(1407406, token_bundle)
     }
 
     fn one_policy_three_1_char_assets() -> Value {
         let mut token_bundle = MultiAsset::default();
         let mut asset_list = OrderedHashMap::new();
-        asset_list.insert(
-            AssetName::new(vec![1]).unwrap(),
-            1
-        );
-        asset_list.insert(
-            AssetName::new(vec![2]).unwrap(),
-            1
-        );
-        asset_list.insert(
-            AssetName::new(vec![3]).unwrap(),
-            1
-        );
-        token_bundle.insert(
-            PolicyId::from([0; ScriptHash::BYTE_COUNT]),
-            asset_list
-        );
+        asset_list.insert(AssetName::new(vec![1]).unwrap(), 1);
+        asset_list.insert(AssetName::new(vec![2]).unwrap(), 1);
+        asset_list.insert(AssetName::new(vec![3]).unwrap(), 1);
+        token_bundle.insert(PolicyId::from([0; ScriptHash::BYTE_COUNT]), asset_list);
         Value::new(1555554, token_bundle)
     }
 
@@ -173,12 +150,12 @@ mod tests {
         token_bundle.set(
             PolicyId::from([0; ScriptHash::BYTE_COUNT]),
             AssetName::new(vec![]).unwrap(),
-            1
+            1,
         );
         token_bundle.set(
             PolicyId::from([1; ScriptHash::BYTE_COUNT]),
             AssetName::new(vec![]).unwrap(),
-            1
+            1,
         );
         Value::new(1592591, token_bundle)
     }
@@ -204,15 +181,9 @@ mod tests {
             let mut asset_list = OrderedHashMap::new();
 
             for i in 0..32 {
-                asset_list.insert(
-                    AssetName::new(vec![index * 32 + i]).unwrap(),
-                    1
-                );
+                asset_list.insert(AssetName::new(vec![index * 32 + i]).unwrap(), 1);
             }
-            token_bundle.insert(
-                PolicyId::from([index; ScriptHash::BYTE_COUNT]),
-                asset_list
-            );
+            token_bundle.insert(PolicyId::from([index; ScriptHash::BYTE_COUNT]), asset_list);
         }
         add_policy(&mut token_bundle, 1);
         add_policy(&mut token_bundle, 2);
@@ -223,22 +194,10 @@ mod tests {
     fn one_policy_three_32_char_assets() -> Value {
         let mut token_bundle = MultiAsset::default();
         let mut asset_list = OrderedHashMap::new();
-        asset_list.insert(
-            AssetName::new(vec![1; 32]).unwrap(),
-            1
-        );
-        asset_list.insert(
-            AssetName::new(vec![2; 32]).unwrap(),
-            1
-        );
-        asset_list.insert(
-            AssetName::new(vec![3; 32]).unwrap(),
-            1
-        );
-        token_bundle.insert(
-            PolicyId::from([0; ScriptHash::BYTE_COUNT]),
-            asset_list
-        );
+        asset_list.insert(AssetName::new(vec![1; 32]).unwrap(), 1);
+        asset_list.insert(AssetName::new(vec![2; 32]).unwrap(), 1);
+        asset_list.insert(AssetName::new(vec![3; 32]).unwrap(), 1);
+        token_bundle.insert(PolicyId::from([0; ScriptHash::BYTE_COUNT]), asset_list);
         Value::new(1555554, token_bundle)
     }
 

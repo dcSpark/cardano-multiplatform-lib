@@ -12,208 +12,6 @@ use cml_core::serialization::*;
 use cml_crypto::RawBytesEncoding;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
-impl Serialize for MoveInstantaneousReward {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.len_encoding)
-                .unwrap_or_default()
-                .to_len_sz(2, force_canonical),
-        )?;
-        match &self.pot {
-            MIRPot::Reserve => serializer.write_unsigned_integer_sz(
-                0u64,
-                fit_sz(
-                    0u64,
-                    self.encodings
-                        .as_ref()
-                        .map(|encs| encs.pot_encoding)
-                        .unwrap_or_default(),
-                    force_canonical,
-                ),
-            ),
-            MIRPot::Treasury => serializer.write_unsigned_integer_sz(
-                1u64,
-                fit_sz(
-                    1u64,
-                    self.encodings
-                        .as_ref()
-                        .map(|encs| encs.pot_encoding)
-                        .unwrap_or_default(),
-                    force_canonical,
-                ),
-            ),
-        }?;
-        serializer.write_map_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.to_stake_credentials_encoding)
-                .unwrap_or_default()
-                .to_len_sz(self.to_stake_credentials.len() as u64, force_canonical),
-        )?;
-        let mut key_order = self
-            .to_stake_credentials
-            .iter()
-            .map(|(k, v)| {
-                let mut buf = cbor_event::se::Serializer::new_vec();
-                k.serialize(&mut buf, force_canonical)?;
-                Ok((buf.finalize(), k, v))
-            })
-            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
-        if force_canonical {
-            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
-                match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                    diff_ord => diff_ord,
-                }
-            });
-        }
-        for (key_bytes, key, value) in key_order {
-            serializer.write_raw_bytes(&key_bytes)?;
-            let to_stake_credentials_value_encoding = self
-                .encodings
-                .as_ref()
-                .and_then(|encs| encs.to_stake_credentials_value_encodings.get(key))
-                .cloned()
-                .unwrap_or_default();
-            serializer.write_unsigned_integer_sz(
-                *value,
-                fit_sz(*value, to_stake_credentials_value_encoding, force_canonical),
-            )?;
-        }
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.to_stake_credentials_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
-    }
-}
-
-impl Deserialize for MoveInstantaneousReward {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
-        (|| -> Result<_, DeserializeError> {
-            let (pot, pot_encoding) = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                    let (reserve_value, reserve_encoding) = raw.unsigned_integer_sz()?;
-                    if reserve_value != 0 {
-                        return Err(DeserializeFailure::FixedValueMismatch {
-                            found: Key::Uint(reserve_value),
-                            expected: Key::Uint(0),
-                        }
-                        .into());
-                    }
-                    Ok(Some(reserve_encoding))
-                })(raw)
-                {
-                    Ok((pot_encoding)) => return Ok((MIRPot::Reserve, pot_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
-                };
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                    let (treasury_value, treasury_encoding) = raw.unsigned_integer_sz()?;
-                    if treasury_value != 1 {
-                        return Err(DeserializeFailure::FixedValueMismatch {
-                            found: Key::Uint(treasury_value),
-                            expected: Key::Uint(1),
-                        }
-                        .into());
-                    }
-                    Ok(Some(treasury_encoding))
-                })(raw)
-                {
-                    Ok((pot_encoding)) => return Ok((MIRPot::Treasury, pot_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
-                };
-                Err(DeserializeError::new(
-                    "MIRPot",
-                    DeserializeFailure::NoVariantMatched,
-                ))
-            })()
-            .map_err(|e| e.annotate("pot"))?;
-            let (
-                to_stake_credentials,
-                to_stake_credentials_encoding,
-                to_stake_credentials_value_encodings,
-            ) = (|| -> Result<_, DeserializeError> {
-                let mut to_stake_credentials_table = OrderedHashMap::new();
-                let to_stake_credentials_len = raw.map_sz()?;
-                let to_stake_credentials_encoding = to_stake_credentials_len.into();
-                let mut to_stake_credentials_value_encodings = BTreeMap::new();
-                while match to_stake_credentials_len {
-                    cbor_event::LenSz::Len(n, _) => (to_stake_credentials_table.len() as u64) < n,
-                    cbor_event::LenSz::Indefinite => true,
-                } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
-                    }
-                    let to_stake_credentials_key = StakeCredential::deserialize(raw)?;
-                    let (to_stake_credentials_value, to_stake_credentials_value_encoding) =
-                        raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
-                    if to_stake_credentials_table
-                        .insert(to_stake_credentials_key.clone(), to_stake_credentials_value)
-                        .is_some()
-                    {
-                        return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
-                            "some complicated/unsupported type",
-                        )))
-                        .into());
-                    }
-                    to_stake_credentials_value_encodings.insert(
-                        to_stake_credentials_key,
-                        to_stake_credentials_value_encoding,
-                    );
-                }
-                Ok((
-                    to_stake_credentials_table,
-                    to_stake_credentials_encoding,
-                    to_stake_credentials_value_encodings,
-                ))
-            })()
-            .map_err(|e| e.annotate("to_stake_credentials"))?;
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
-            Ok(MoveInstantaneousReward {
-                pot,
-                to_stake_credentials,
-                encodings: Some(MoveInstantaneousRewardEncoding {
-                    len_encoding,
-                    pot_encoding,
-                    to_stake_credentials_encoding,
-                    to_stake_credentials_value_encodings,
-                }),
-            })
-        })()
-        .map_err(|e| e.annotate("MoveInstantaneousReward"))
-    }
-}
-
 impl Serialize for MultisigAll {
     fn serialize<'se, W: Write>(
         &self,
@@ -752,41 +550,50 @@ impl Deserialize for MultisigScript {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> =
                 MultisigPubkey::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(multisig_pubkey) => return Ok(Self::MultisigPubkey(multisig_pubkey)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("MultisigPubkey"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             let deser_variant: Result<_, DeserializeError> =
                 MultisigAll::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(multisig_all) => return Ok(Self::MultisigAll(multisig_all)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("MultisigAll"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             let deser_variant: Result<_, DeserializeError> =
                 MultisigAny::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(multisig_any) => return Ok(Self::MultisigAny(multisig_any)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("MultisigAny"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             let deser_variant: Result<_, DeserializeError> =
                 MultisigNOfK::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(multisig_n_of_k) => return Ok(Self::MultisigNOfK(multisig_n_of_k)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("MultisigNOfK"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
@@ -797,7 +604,7 @@ impl Deserialize for MultisigScript {
             }
             Err(DeserializeError::new(
                 "MultisigScript",
-                DeserializeFailure::NoVariantMatched,
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
             ))
         })()
         .map_err(|e| e.annotate("MultisigScript"))
@@ -932,6 +739,131 @@ impl Deserialize for ShelleyBlock {
             })
         })()
         .map_err(|e| e.annotate("ShelleyBlock"))
+    }
+}
+
+impl Serialize for ShelleyCertificate {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        match self {
+            ShelleyCertificate::StakeRegistration(stake_registration) => {
+                stake_registration.serialize(serializer, force_canonical)
+            }
+            ShelleyCertificate::StakeDeregistration(stake_deregistration) => {
+                stake_deregistration.serialize(serializer, force_canonical)
+            }
+            ShelleyCertificate::StakeDelegation(stake_delegation) => {
+                stake_delegation.serialize(serializer, force_canonical)
+            }
+            ShelleyCertificate::PoolRegistration(pool_registration) => {
+                pool_registration.serialize(serializer, force_canonical)
+            }
+            ShelleyCertificate::PoolRetirement(pool_retirement) => {
+                pool_retirement.serialize(serializer, force_canonical)
+            }
+            ShelleyCertificate::GenesisKeyDelegation(genesis_key_delegation) => {
+                genesis_key_delegation.serialize(serializer, force_canonical)
+            }
+            ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert(
+                shelley_move_instantaneous_rewards_cert,
+            ) => shelley_move_instantaneous_rewards_cert.serialize(serializer, force_canonical),
+        }
+    }
+}
+
+impl Deserialize for ShelleyCertificate {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let mut errs = Vec::new();
+            let deser_variant: Result<_, DeserializeError> = StakeRegistration::deserialize(raw);
+            match deser_variant {
+                Ok(stake_registration) => return Ok(Self::StakeRegistration(stake_registration)),
+                Err(e) => {
+                    errs.push(e.annotate("StakeRegistration"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> = StakeDeregistration::deserialize(raw);
+            match deser_variant {
+                Ok(stake_deregistration) => {
+                    return Ok(Self::StakeDeregistration(stake_deregistration))
+                }
+                Err(e) => {
+                    errs.push(e.annotate("StakeDeregistration"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> = StakeDelegation::deserialize(raw);
+            match deser_variant {
+                Ok(stake_delegation) => return Ok(Self::StakeDelegation(stake_delegation)),
+                Err(e) => {
+                    errs.push(e.annotate("StakeDelegation"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> = PoolRegistration::deserialize(raw);
+            match deser_variant {
+                Ok(pool_registration) => return Ok(Self::PoolRegistration(pool_registration)),
+                Err(e) => {
+                    errs.push(e.annotate("PoolRegistration"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> = PoolRetirement::deserialize(raw);
+            match deser_variant {
+                Ok(pool_retirement) => return Ok(Self::PoolRetirement(pool_retirement)),
+                Err(e) => {
+                    errs.push(e.annotate("PoolRetirement"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> = GenesisKeyDelegation::deserialize(raw);
+            match deser_variant {
+                Ok(genesis_key_delegation) => {
+                    return Ok(Self::GenesisKeyDelegation(genesis_key_delegation))
+                }
+                Err(e) => {
+                    errs.push(e.annotate("GenesisKeyDelegation"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> =
+                ShelleyMoveInstantaneousRewardsCert::deserialize(raw);
+            match deser_variant {
+                Ok(shelley_move_instantaneous_rewards_cert) => {
+                    return Ok(Self::ShelleyMoveInstantaneousRewardsCert(
+                        shelley_move_instantaneous_rewards_cert,
+                    ))
+                }
+                Err(e) => {
+                    errs.push(e.annotate("ShelleyMoveInstantaneousRewardsCert"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            Err(DeserializeError::new(
+                "ShelleyCertificate",
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
+            ))
+        })()
+        .map_err(|e| e.annotate("ShelleyCertificate"))
     }
 }
 
@@ -1203,6 +1135,285 @@ impl Deserialize for ShelleyHeaderBody {
             })
         })()
         .map_err(|e| e.annotate("ShelleyHeaderBody"))
+    }
+}
+
+impl Serialize for ShelleyMoveInstantaneousReward {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(2, force_canonical),
+        )?;
+        match &self.pot {
+            MIRPot::Reserve => serializer.write_unsigned_integer_sz(
+                0u64,
+                fit_sz(
+                    0u64,
+                    self.encodings
+                        .as_ref()
+                        .map(|encs| encs.pot_encoding)
+                        .unwrap_or_default(),
+                    force_canonical,
+                ),
+            ),
+            MIRPot::Treasury => serializer.write_unsigned_integer_sz(
+                1u64,
+                fit_sz(
+                    1u64,
+                    self.encodings
+                        .as_ref()
+                        .map(|encs| encs.pot_encoding)
+                        .unwrap_or_default(),
+                    force_canonical,
+                ),
+            ),
+        }?;
+        serializer.write_map_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.to_stake_credentials_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.to_stake_credentials.len() as u64, force_canonical),
+        )?;
+        let mut key_order = self
+            .to_stake_credentials
+            .iter()
+            .map(|(k, v)| {
+                let mut buf = cbor_event::se::Serializer::new_vec();
+                k.serialize(&mut buf, force_canonical)?;
+                Ok((buf.finalize(), k, v))
+            })
+            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
+        if force_canonical {
+            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
+                match lhs_bytes.len().cmp(&rhs_bytes.len()) {
+                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                    diff_ord => diff_ord,
+                }
+            });
+        }
+        for (key_bytes, key, value) in key_order {
+            serializer.write_raw_bytes(&key_bytes)?;
+            let to_stake_credentials_value_encoding = self
+                .encodings
+                .as_ref()
+                .and_then(|encs| encs.to_stake_credentials_value_encodings.get(key))
+                .cloned()
+                .unwrap_or_default();
+            serializer.write_unsigned_integer_sz(
+                *value,
+                fit_sz(*value, to_stake_credentials_value_encoding, force_canonical),
+            )?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.to_stake_credentials_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for ShelleyMoveInstantaneousReward {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let len_encoding: LenEncoding = len.into();
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(2)?;
+        read_len.finish()?;
+        (|| -> Result<_, DeserializeError> {
+            let (pot, pot_encoding) = (|| -> Result<_, DeserializeError> {
+                let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                    let (reserve_value, reserve_encoding) = raw.unsigned_integer_sz()?;
+                    if reserve_value != 0 {
+                        return Err(DeserializeFailure::FixedValueMismatch {
+                            found: Key::Uint(reserve_value),
+                            expected: Key::Uint(0),
+                        }
+                        .into());
+                    }
+                    Ok(Some(reserve_encoding))
+                })(raw)
+                {
+                    Ok((pot_encoding)) => return Ok((MIRPot::Reserve, pot_encoding)),
+                    Err(_) => raw
+                        .as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap(),
+                };
+                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                    let (treasury_value, treasury_encoding) = raw.unsigned_integer_sz()?;
+                    if treasury_value != 1 {
+                        return Err(DeserializeFailure::FixedValueMismatch {
+                            found: Key::Uint(treasury_value),
+                            expected: Key::Uint(1),
+                        }
+                        .into());
+                    }
+                    Ok(Some(treasury_encoding))
+                })(raw)
+                {
+                    Ok((pot_encoding)) => return Ok((MIRPot::Treasury, pot_encoding)),
+                    Err(_) => raw
+                        .as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap(),
+                };
+                Err(DeserializeError::new(
+                    "MIRPot",
+                    DeserializeFailure::NoVariantMatched,
+                ))
+            })()
+            .map_err(|e| e.annotate("pot"))?;
+            let (
+                to_stake_credentials,
+                to_stake_credentials_encoding,
+                to_stake_credentials_value_encodings,
+            ) = (|| -> Result<_, DeserializeError> {
+                let mut to_stake_credentials_table = OrderedHashMap::new();
+                let to_stake_credentials_len = raw.map_sz()?;
+                let to_stake_credentials_encoding = to_stake_credentials_len.into();
+                let mut to_stake_credentials_value_encodings = BTreeMap::new();
+                while match to_stake_credentials_len {
+                    cbor_event::LenSz::Len(n, _) => (to_stake_credentials_table.len() as u64) < n,
+                    cbor_event::LenSz::Indefinite => true,
+                } {
+                    if raw.cbor_type()? == cbor_event::Type::Special {
+                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                        break;
+                    }
+                    let to_stake_credentials_key = StakeCredential::deserialize(raw)?;
+                    let (to_stake_credentials_value, to_stake_credentials_value_encoding) =
+                        raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
+                    if to_stake_credentials_table
+                        .insert(to_stake_credentials_key.clone(), to_stake_credentials_value)
+                        .is_some()
+                    {
+                        return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
+                            "some complicated/unsupported type",
+                        )))
+                        .into());
+                    }
+                    to_stake_credentials_value_encodings.insert(
+                        to_stake_credentials_key,
+                        to_stake_credentials_value_encoding,
+                    );
+                }
+                Ok((
+                    to_stake_credentials_table,
+                    to_stake_credentials_encoding,
+                    to_stake_credentials_value_encodings,
+                ))
+            })()
+            .map_err(|e| e.annotate("to_stake_credentials"))?;
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            Ok(ShelleyMoveInstantaneousReward {
+                pot,
+                to_stake_credentials,
+                encodings: Some(ShelleyMoveInstantaneousRewardEncoding {
+                    len_encoding,
+                    pot_encoding,
+                    to_stake_credentials_encoding,
+                    to_stake_credentials_value_encodings,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("ShelleyMoveInstantaneousReward"))
+    }
+}
+
+impl Serialize for ShelleyMoveInstantaneousRewardsCert {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(2, force_canonical),
+        )?;
+        serializer.write_unsigned_integer_sz(
+            6u64,
+            fit_sz(
+                6u64,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.tag_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )?;
+        self.shelley_move_instantaneous_reward
+            .serialize(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for ShelleyMoveInstantaneousRewardsCert {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let len_encoding: LenEncoding = len.into();
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(2)?;
+        read_len.finish()?;
+        (|| -> Result<_, DeserializeError> {
+            let tag_encoding = (|| -> Result<_, DeserializeError> {
+                let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
+                if tag_value != 6 {
+                    return Err(DeserializeFailure::FixedValueMismatch {
+                        found: Key::Uint(tag_value),
+                        expected: Key::Uint(6),
+                    }
+                    .into());
+                }
+                Ok(Some(tag_encoding))
+            })()
+            .map_err(|e| e.annotate("tag"))?;
+            let shelley_move_instantaneous_reward = ShelleyMoveInstantaneousReward::deserialize(
+                raw,
+            )
+            .map_err(|e: DeserializeError| e.annotate("shelley_move_instantaneous_reward"))?;
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            Ok(ShelleyMoveInstantaneousRewardsCert {
+                shelley_move_instantaneous_reward,
+                encodings: Some(ShelleyMoveInstantaneousRewardsCertEncoding {
+                    len_encoding,
+                    tag_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("ShelleyMoveInstantaneousRewardsCert"))
     }
 }
 
@@ -2590,7 +2801,7 @@ impl Deserialize for ShelleyTransactionBody {
                                             assert_eq!(raw.special()?, cbor_event::Special::Break);
                                             break;
                                         }
-                                        certs_arr.push(Certificate::deserialize(raw)?);
+                                        certs_arr.push(ShelleyCertificate::deserialize(raw)?);
                                     }
                                     Ok((certs_arr, certs_encoding))
                                 })()

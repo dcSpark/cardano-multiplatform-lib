@@ -225,7 +225,7 @@ impl RedeemerSetBuilder {
             let redeemer = match entry.1 {
                 Some(UntaggedRedeemerPlaceholder::JustData(data)) => {
                     if !default_to_dummy_exunits {
-                        Err(RedeemerBuilderError::MissingExUnit(MissingExunitError::Key(key.0.clone(), key.1, format!("{:?}", key.2))))
+                        Err(RedeemerBuilderError::MissingExUnit(MissingExunitError::Key(key.0, key.1, format!("{:?}", key.2))))
                     } else {
                         Ok(Some(UntaggedRedeemer::new(data.clone(), ExUnits::dummy())))
                     }

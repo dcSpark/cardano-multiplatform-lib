@@ -26,8 +26,7 @@ impl fmt::Display for Error {
         match self {
             Error::InvalidDigestSize { got: sz, expected } => write!(
                 f,
-                "invalid digest size, expected {} but received {} bytes.",
-                expected, sz
+                "invalid digest size, expected {expected} but received {sz} bytes."
             ),
             Error::InvalidHexEncoding(_) => write!(f, "invalid hex encoding for digest value"),
         }

@@ -128,7 +128,7 @@ pub fn write_bounded_bytes<'se, W: Write>(
         _ =>
         /* handled below */
         {
-            ()
+            
         }
     };
     // This is a fallback for when either it's canonical or the passed in encoding isn't
@@ -367,17 +367,17 @@ impl Serialize for BigInt {
                     StringEncoding::Canonical => false,
                     StringEncoding::Definite(sz) => bytes.len() <= sz_max(*sz) as usize,
                     StringEncoding::Indefinite(chunks) => {
-                        valid_indefinite_string_encoding(&chunks, bytes.len())
+                        valid_indefinite_string_encoding(chunks, bytes.len())
                     }
                 };
                 if valid_non_canonical {
-                    return write_self_as_bytes(serializer, &str_enc);
+                    return write_self_as_bytes(serializer, str_enc);
                 }
             }
             _ =>
             /* always fallback to default */
             {
-                ()
+                
             }
         }
         // fallback for:

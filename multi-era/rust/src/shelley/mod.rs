@@ -9,7 +9,7 @@ use cml_chain::address::Address;
 use cml_chain::assets::Coin;
 use cml_chain::auxdata::Metadata;
 use cml_chain::block::{OperationalCert, ProtocolVersion};
-use cml_chain::certs::{Certificate, MIRPot, StakeCredential, PoolRegistration, StakeDeregistration, GenesisKeyDelegation, StakeDelegation, PoolRetirement, StakeRegistration};
+use cml_chain::certs::{MIRPot, StakeCredential, PoolRegistration, StakeDeregistration, GenesisKeyDelegation, StakeDelegation, PoolRetirement, StakeRegistration};
 use cml_chain::crypto::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, BootstrapWitness, Ed25519KeyHash,
     GenesisHash, KESSignature, Nonce, VRFCert, VRFVkey, Vkey, Vkeywitness,

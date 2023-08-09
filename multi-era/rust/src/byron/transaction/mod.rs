@@ -5,9 +5,7 @@ pub mod serialization;
 
 use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronTxId};
 use cml_chain::byron::ByronTxOut;
-use cml_core::error::*;
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 use super::ByronAny;
 

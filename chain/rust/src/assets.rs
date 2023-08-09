@@ -247,7 +247,7 @@ impl Mint {
         self.0.iter().fold(MultiAsset::default(), |mut acc, (policy, assets)| {
             let new_assets = assets.iter().fold(OrderedHashMap::new(), |mut acc, (asset, value)| {
                 if (*value >= 0) == is_positive {
-                    acc.insert(asset.clone(), value.abs() as u64);
+                    acc.insert(asset.clone(), value.unsigned_abs());
                 }
                 acc
             });
@@ -447,7 +447,7 @@ impl Serialize for Value {
                         .cloned()
                         .unwrap_or_default();
                     buf.write_bytes_sz(
-                        &k.to_raw_bytes(),
+                        k.to_raw_bytes(),
                         multiasset_key_encoding
                             .to_str_len_sz(k.to_raw_bytes().len() as u64, force_canonical),
                     )?;

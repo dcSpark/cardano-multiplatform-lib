@@ -1550,8 +1550,8 @@ impl Deserialize for Script {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let mut read_len = CBORReadLen::new(len);
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let _read_len = CBORReadLen::new(len);
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
@@ -1815,7 +1815,7 @@ impl Serialize for Update {
                     .cloned()
                     .unwrap_or_default();
                 buf.write_bytes_sz(
-                    &k.to_raw_bytes(),
+                    k.to_raw_bytes(),
                     proposed_protocol_parameter_updates_key_encoding
                         .to_str_len_sz(k.to_raw_bytes().len() as u64, force_canonical),
                 )?;

@@ -271,9 +271,9 @@ const CRC_TABLE: [u32; 256] = [
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Copy)]
 pub struct Crc32(u32);
 
-impl Into<u32> for Crc32 {
-    fn into(self) -> u32 {
-        self.0
+impl From<Crc32> for u32 {
+    fn from(val: Crc32) -> Self {
+        val.0
     }
 }
 

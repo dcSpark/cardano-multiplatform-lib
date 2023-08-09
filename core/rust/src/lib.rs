@@ -89,7 +89,7 @@ impl Int {
 impl std::fmt::Display for Int {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Uint { value, .. } => write!(f, "{}", value),
+            Self::Uint { value, .. } => write!(f, "{value}"),
             // need to cast to avoid potential overflow when value == u64::max
             Self::Nint { value, .. } => write!(f, "-{}", (*value as i128) + 1),
         }
@@ -117,7 +117,7 @@ impl From<i64> for Int {
         if x >= 0 {
             Self::Uint { value: x as u64, encoding: None }
         } else {
-            Self::Nint { value: (x + 1).abs() as u64, encoding: None }
+            Self::Nint { value: (x + 1).unsigned_abs(), encoding: None }
         }
     }
 }
@@ -140,9 +140,9 @@ impl std::convert::TryFrom<i128> for Int {
     }
 }
 
-impl Into<i128> for &Int {
-    fn into(self) -> i128 {
-        match self {
+impl From<&Int> for i128 {
+    fn from(val: &Int) -> Self {
+        match val {
             Int::Uint { value, .. } => (*value).into(),
             Int::Nint { value, .. } => -((*value as i128) + 1),
         }

@@ -162,7 +162,7 @@ impl cbor_event::se::Serialize for AddressContent {
         serializer: &'se mut Serializer<W>,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(3))?;
-        serializer.write_bytes(&self.address_id.to_raw_bytes())?;
+        serializer.write_bytes(self.address_id.to_raw_bytes())?;
         self.addr_attributes
             .serialize(serializer)?;
         match &self.addr_type {
@@ -194,7 +194,7 @@ impl Deserialize for AddressContent {
             let addr_attributes = AddrAttributes::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("addr_attributes"))?;
             let addr_type = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+                let initial_position = raw.as_mut_ref().stream_position().unwrap();
                 match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let public_key_value = raw.unsigned_integer()?;
                     if public_key_value != 0 {
@@ -351,7 +351,7 @@ impl Deserialize for ByronTxOut {
         (|| -> Result<_, DeserializeError> {
             let address = ByronAddress::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("address"))?;
-            let amount = Ok(raw.unsigned_integer()? as u64)
+            let amount = Ok(raw.unsigned_integer()?)
                 .map_err(|e: DeserializeError| e.annotate("amount"))?;
             match len {
                 cbor_event::Len::Len(_) => (),
@@ -390,19 +390,19 @@ impl cbor_event::se::Serialize for SpendingData {
             SpendingData::SpendingDataPubKey(pubkey) => {
                 serializer.write_array(cbor_event::Len::Len(2))?;
                 serializer.write_unsigned_integer(0u64)?;
-                serializer.write_bytes(&pubkey.to_raw_bytes())?;
+                serializer.write_bytes(pubkey.to_raw_bytes())?;
                 Ok(serializer)
             }
             SpendingData::SpendingDataScript(script) => {
                 serializer.write_array(cbor_event::Len::Len(2))?;
                 serializer.write_unsigned_integer(1u64)?;
-                serializer.write_bytes(&script.to_raw_bytes())?;
+                serializer.write_bytes(script.to_raw_bytes())?;
                 Ok(serializer)
             }
             SpendingData::SpendingDataRedeem(redeem) => {
                 serializer.write_array(cbor_event::Len::Len(2))?;
                 serializer.write_unsigned_integer(2u64)?;
-                serializer.write_bytes(&redeem.to_raw_bytes())?;
+                serializer.write_bytes(redeem.to_raw_bytes())?;
                 Ok(serializer)
             }
         }
@@ -413,8 +413,8 @@ impl Deserialize for SpendingData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array()?;
-            let mut read_len = CBORReadLen::from(len);
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let _read_len = CBORReadLen::from(len);
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 (|| -> Result<_, DeserializeError> {
                     let tag_value = raw.unsigned_integer()?;
@@ -551,7 +551,7 @@ impl cbor_event::se::Serialize for StakeDistribution {
             StakeDistribution::SingleKey(stakeholder_id) => {
                 serializer.write_array(cbor_event::Len::Len(2))?;
                 serializer.write_unsigned_integer(0u64)?;
-                serializer.write_bytes(&stakeholder_id.to_raw_bytes())?;
+                serializer.write_bytes(stakeholder_id.to_raw_bytes())?;
                 Ok(serializer)
             }
             StakeDistribution::BootstrapEra => {
@@ -566,8 +566,8 @@ impl Deserialize for StakeDistribution {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array()?;
-            let mut read_len = CBORReadLen::from(len);
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let _read_len = CBORReadLen::from(len);
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 (|| -> Result<_, DeserializeError> {
                     let tag_value = raw.unsigned_integer()?;

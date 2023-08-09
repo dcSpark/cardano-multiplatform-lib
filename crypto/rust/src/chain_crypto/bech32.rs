@@ -18,7 +18,7 @@ pub trait Bech32 {
 pub fn to_bech32_from_bytes<B: Bech32>(bytes: &[u8]) -> String {
     bech32::encode(B::BECH32_HRP, bytes.to_base32())
         .unwrap_or_else(|e| panic!("Failed to build bech32: {}", e))
-        .to_string()
+        
 }
 
 pub fn try_from_bech32_to_bytes<B: Bech32>(bech32_str: &str) -> Result<Vec<u8>> {
@@ -60,8 +60,7 @@ impl fmt::Display for Error {
             Error::Bech32Malformed(_) => write!(f, "Failed to parse bech32, invalid data format"),
             Error::HrpInvalid { expected, actual } => write!(
                 f,
-                "Parsed bech32 has invalid HRP prefix '{}', expected '{}'",
-                actual, expected
+                "Parsed bech32 has invalid HRP prefix '{actual}', expected '{expected}'"
             ),
             Error::DataInvalid(_) => write!(f, "Failed to parse data decoded from bech32"),
         }

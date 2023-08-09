@@ -1,11 +1,10 @@
 use cml_chain_wasm::{assets::AssetName, PolicyId};
-use cml_core::ordered_hash_map::OrderedHashMap;
 
 use crate::*;
 
 use wasm_bindgen::prelude::JsError;
 
-use cml_core_wasm::{metadata::{Metadata, TransactionMetadatum}, impl_wasm_map};
+use cml_core_wasm::metadata::{Metadata, TransactionMetadatum};
 
 #[wasm_bindgen]
 impl CIP25Metadata {

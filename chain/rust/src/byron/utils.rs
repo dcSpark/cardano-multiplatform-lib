@@ -107,7 +107,7 @@ impl AddressContent {
         let addr_type = ByronAddrType::Redeem;
         let spending_data = &SpendingData::new_spending_data_redeem(pubkey);
         
-        AddressContent::hash_and_create(addr_type, &spending_data, attributes)
+        AddressContent::hash_and_create(addr_type, spending_data, attributes)
     }
 
     // bootstrap era + no hdpayload address
@@ -261,9 +261,9 @@ impl fmt::Display for ProtocolMagic {
 )]
 pub struct ProtocolMagic(u32);
 
-impl Into<u32> for ProtocolMagic {
-    fn into(self) -> u32 {
-        self.0
+impl From<ProtocolMagic> for u32 {
+    fn from(val: ProtocolMagic) -> Self {
+        val.0
     }
 }
 
@@ -308,9 +308,9 @@ pub fn make_daedalus_bootstrap_witness(
 ) -> BootstrapWitness {
     let chain_code = key.chaincode();
 
-    let pubkey = Bip32PublicKey::from_raw_bytes(&key.as_ref().to_public().as_ref()).unwrap();
+    let pubkey = Bip32PublicKey::from_raw_bytes(key.as_ref().to_public().as_ref()).unwrap();
     let vkey = pubkey.to_raw_key();
-    let signature = Ed25519Signature::from_raw_bytes(&key.as_ref().sign(&tx_body_hash.to_raw_bytes()).as_ref().to_vec()).unwrap();
+    let signature = Ed25519Signature::from_raw_bytes(key.as_ref().sign(&tx_body_hash.to_raw_bytes()).as_ref()).unwrap();
 
     BootstrapWitness::new(
         vkey,
@@ -329,7 +329,7 @@ pub fn make_icarus_bootstrap_witness(
 
     let raw_key = key.to_raw_key();
     let vkey = raw_key.to_public();
-    let signature = raw_key.sign(&tx_body_hash.to_raw_bytes());
+    let signature = raw_key.sign(tx_body_hash.to_raw_bytes());
 
     BootstrapWitness::new(
         vkey,

@@ -138,6 +138,6 @@ impl NativeScript {
     /// contained within this script recursively on any depth level.
     /// The order of the keys in the result is not determined in any way.
     pub fn get_required_signers(&self) -> Vec<Ed25519KeyHash> {
-        RequiredSignersSet::from(self).iter().map(|k| { k.clone() }).collect()
+        RequiredSignersSet::from(self).iter().cloned().collect()
     }
 }

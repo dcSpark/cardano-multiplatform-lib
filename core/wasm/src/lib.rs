@@ -1,7 +1,6 @@
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 use cml_core::{
-    ordered_hash_map::OrderedHashMap,
     serialization::{Deserialize, Serialize},
 };
 
@@ -23,30 +22,30 @@ impl Int {
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Int, JsValue> {
         Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+            .map_err(|e| JsValue::from_str(&format!("from_bytes: {e}")))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+            .map_err(|e| JsValue::from_str(&format!("to_json: {e}")))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
         serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {e}")))
     }
 
     pub fn from_json(json: &str) -> Result<Int, JsValue> {
         serde_json::from_str(json)
             .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+            .map_err(|e| JsValue::from_str(&format!("from_json: {e}")))
     }
 
     pub fn new(x: i64) -> Self {
         if x >= 0 {
             Self(cml_core::Int::new_uint(x as u64))
         } else {
-            Self(cml_core::Int::new_nint((x + 1).abs() as u64))
+            Self(cml_core::Int::new_nint((x + 1).unsigned_abs()))
         }
     }
 
@@ -59,7 +58,7 @@ impl Int {
         // have to redefine so it's visible in WASM
         std::str::FromStr::from_str(string)
             .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("Int.from_str({}): {:?}", string, e)))
+            .map_err(|e| JsValue::from_str(&format!("Int.from_str({string}): {e:?}")))
     }
 }
 

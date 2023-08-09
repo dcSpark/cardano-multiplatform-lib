@@ -30,7 +30,7 @@ impl Serialize for AlonzoTxOut {
         self.address.serialize(serializer, force_canonical)?;
         self.amount.serialize(serializer, force_canonical)?;
         serializer.write_bytes_sz(
-            &self.datum_hash.to_raw_bytes(),
+            self.datum_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.datum_hash_encoding.clone())
@@ -392,7 +392,7 @@ impl Serialize for DatumOption {
                     fit_sz(0u64, *tag_encoding, force_canonical),
                 )?;
                 serializer.write_bytes_sz(
-                    &datum_hash.to_raw_bytes(),
+                    datum_hash.to_raw_bytes(),
                     datum_hash_encoding
                         .to_str_len_sz(datum_hash.to_raw_bytes().len() as u64, force_canonical),
                 )?;
@@ -432,8 +432,8 @@ impl Deserialize for DatumOption {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let mut read_len = CBORReadLen::new(len);
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let _read_len = CBORReadLen::new(len);
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
@@ -583,7 +583,7 @@ impl Deserialize for NativeScript {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let deser_variant: Result<_, DeserializeError> =
                 ScriptPubkey::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
@@ -1304,7 +1304,7 @@ impl SerializeEmbeddedGroup for ScriptPubkey {
             ),
         )?;
         serializer.write_bytes_sz(
-            &self.ed25519_key_hash.to_raw_bytes(),
+            self.ed25519_key_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.ed25519_key_hash_encoding.clone())
@@ -1846,7 +1846,7 @@ impl Serialize for TransactionBody {
                             ),
                         )?;
                         serializer.write_bytes_sz(
-                            &field.to_raw_bytes(),
+                            field.to_raw_bytes(),
                             self.encodings
                                 .as_ref()
                                 .map(|encs| encs.auxiliary_data_hash_encoding.clone())
@@ -1912,7 +1912,7 @@ impl Serialize for TransactionBody {
                                     .cloned()
                                     .unwrap_or_default();
                                 buf.write_bytes_sz(
-                                    &k.to_raw_bytes(),
+                                    k.to_raw_bytes(),
                                     mint_key_encoding.to_str_len_sz(
                                         k.to_raw_bytes().len() as u64,
                                         force_canonical,
@@ -1978,7 +1978,7 @@ impl Serialize for TransactionBody {
                                     serializer.write_negative_integer_sz(
                                         *value as i128,
                                         fit_sz(
-                                            (*value + 1).abs() as u64,
+                                            (*value + 1).unsigned_abs(),
                                             mint_value_value_encoding,
                                             force_canonical,
                                         ),
@@ -2008,7 +2008,7 @@ impl Serialize for TransactionBody {
                             ),
                         )?;
                         serializer.write_bytes_sz(
-                            &field.to_raw_bytes(),
+                            field.to_raw_bytes(),
                             self.encodings
                                 .as_ref()
                                 .map(|encs| encs.script_data_hash_encoding.clone())
@@ -2075,7 +2075,7 @@ impl Serialize for TransactionBody {
                                 .cloned()
                                 .unwrap_or_default();
                             serializer.write_bytes_sz(
-                                &element.to_raw_bytes(),
+                                element.to_raw_bytes(),
                                 required_signers_elem_encoding.to_str_len_sz(
                                     element.to_raw_bytes().len() as u64,
                                     force_canonical,
@@ -2707,7 +2707,7 @@ impl Serialize for TransactionInput {
                 .to_len_sz(2, force_canonical),
         )?;
         serializer.write_bytes_sz(
-            &self.transaction_id.to_raw_bytes(),
+            self.transaction_id.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.transaction_id_encoding.clone())
@@ -2802,7 +2802,7 @@ impl Serialize for TransactionOutput {
 impl Deserialize for TransactionOutput {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let deser_variant: Result<_, DeserializeError> = ShelleyTxOut::deserialize(raw);
             match deser_variant {
                 Ok(shelley_tx_out) => return Ok(Self::ShelleyTxOut(shelley_tx_out)),

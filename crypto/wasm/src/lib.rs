@@ -242,7 +242,7 @@ impl PrivateKey {
     }
 
     pub fn sign(&self, message: &[u8]) -> Ed25519Signature {
-        Ed25519Signature(self.0.sign(message).into())
+        Ed25519Signature(self.0.sign(message))
     }
 }
 
@@ -301,7 +301,7 @@ impl PublicKey {
     }
 
     pub fn hash(&self) -> Ed25519KeyHash {
-        Ed25519KeyHash(self.0.hash().into())
+        Ed25519KeyHash(self.0.hash())
     }
 }
 

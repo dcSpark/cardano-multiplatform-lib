@@ -318,7 +318,7 @@ impl Serialize for HeaderBody {
         )?;
         match &self.prev_hash {
             Some(x) => serializer.write_bytes_sz(
-                &x.to_raw_bytes(),
+                x.to_raw_bytes(),
                 self.encodings
                     .as_ref()
                     .map(|encs| encs.prev_hash_encoding.clone())
@@ -328,7 +328,7 @@ impl Serialize for HeaderBody {
             None => serializer.write_special(cbor_event::Special::Null),
         }?;
         serializer.write_bytes_sz(
-            &self.issuer_vkey.to_raw_bytes(),
+            self.issuer_vkey.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.issuer_vkey_encoding.clone())
@@ -339,7 +339,7 @@ impl Serialize for HeaderBody {
                 ),
         )?;
         serializer.write_bytes_sz(
-            &self.vrf_vkey.to_raw_bytes(),
+            self.vrf_vkey.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.vrf_vkey_encoding.clone())
@@ -359,7 +359,7 @@ impl Serialize for HeaderBody {
             ),
         )?;
         serializer.write_bytes_sz(
-            &self.block_body_hash.to_raw_bytes(),
+            self.block_body_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.block_body_hash_encoding.clone())
@@ -520,7 +520,7 @@ impl SerializeEmbeddedGroup for OperationalCert {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_bytes_sz(
-            &self.hot_vkey.to_raw_bytes(),
+            self.hot_vkey.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.hot_vkey_encoding.clone())
@@ -550,7 +550,7 @@ impl SerializeEmbeddedGroup for OperationalCert {
             ),
         )?;
         serializer.write_bytes_sz(
-            &self.sigma.to_raw_bytes(),
+            self.sigma.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.sigma_encoding.clone())

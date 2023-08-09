@@ -37,7 +37,7 @@ impl ConstrPlutusData {
     fn alternative_to_compact_cbor_tag(alt: u64) -> Option<u64> {
         if alt <= 6 {
             Some(121 + alt)
-        } else if alt >= 7 && alt <= 127 {
+        } else if (7..=127).contains(&alt) {
             Some(1280 - 7 + alt)
         } else {
             None
@@ -46,9 +46,9 @@ impl ConstrPlutusData {
 
     // None -> General tag(=102) OR Invalid CBOR tag for this scheme
     fn compact_cbor_tag_to_alternative(cbor_tag: u64) -> Option<u64> {
-        if cbor_tag >= 121 && cbor_tag <= 127 {
+        if (121..=127).contains(&cbor_tag) {
             Some(cbor_tag - 121)
-        } else if cbor_tag >= 1280 && cbor_tag <= 1400 {
+        } else if (1280..=1400).contains(&cbor_tag) {
             Some(cbor_tag - 1280 + 7)
         } else {
             None
@@ -83,9 +83,9 @@ impl Serialize for ConstrPlutusData {
             Some(compact_tag) if self.encodings.as_ref().map(|encs| encs.prefer_compact).unwrap_or(true) => {
                 // compact form
                 serializer.write_tag_sz(
-                    compact_tag as u64,
+                    compact_tag,
                     fit_sz(
-                        compact_tag as u64,
+                        compact_tag,
                         self.encodings
                             .as_ref()
                             .map(|encs| encs.tag_encoding)
@@ -249,11 +249,11 @@ impl Deserialize for ConstrPlutusData {
                             }),
                         })
                     } else {
-                        return Err(DeserializeFailure::TagMismatch {
+                        Err(DeserializeFailure::TagMismatch {
                             found: tag,
                             expected: Self::GENERAL_FORM_TAG,
                         }
-                        .into());
+                        .into())
                     }
                 }
             }
@@ -299,7 +299,7 @@ impl CostModels {
             //   * the language ID tag is also encoded twice. first as a uint then as
             //     a bytestring. (our apologies)
             let v1_key_canonical_bytes = [0];
-            serializer.write_bytes(&v1_key_canonical_bytes)?;
+            serializer.write_bytes(v1_key_canonical_bytes)?;
             // Due to a bug in the cardano-node input-output-hk/cardano-ledger-specs/issues/2512
             // we must use indefinite length serialization in this inner bytestring to match it
             let mut cost_model_serializer = Serializer::new_vec();

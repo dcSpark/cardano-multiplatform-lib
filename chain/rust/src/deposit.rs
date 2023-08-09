@@ -70,7 +70,7 @@ pub fn get_implicit_input(
 ) -> Result<Value, ArithmeticError> {
     internal_get_implicit_input(
         txbody.withdrawals.as_ref(),
-        txbody.certs.as_ref().map(Vec::as_slice),
+        txbody.certs.as_deref(),
         pool_deposit,
         key_deposit,
     )
@@ -82,7 +82,7 @@ pub fn get_deposit(
     key_deposit: Coin, // protocol parameter
 ) -> Result<Coin, ArithmeticError> {
     internal_get_deposit(
-        txbody.certs.as_ref().map(Vec::as_slice),
+        txbody.certs.as_deref(),
         pool_deposit,
         key_deposit,
     )

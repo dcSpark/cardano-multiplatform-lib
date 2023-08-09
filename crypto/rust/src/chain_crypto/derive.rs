@@ -36,7 +36,7 @@ pub fn combine_pk_and_chaincode(
     let mut buf = [0; ed25519_bip32::XPUB_SIZE];
     buf[0..cryptoxide::ed25519::PUBLIC_KEY_LENGTH].clone_from_slice(key.as_ref());
     buf[cryptoxide::ed25519::PUBLIC_KEY_LENGTH..ed25519_bip32::XPUB_SIZE]
-        .clone_from_slice(&chaincode);
+        .clone_from_slice(chaincode);
     let xpub = ed25519_bip32::XPub::from_slice(&buf)?;
     Ok(PublicKey(xpub))
 }

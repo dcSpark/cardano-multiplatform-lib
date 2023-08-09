@@ -1247,7 +1247,7 @@ impl Deserialize for ShelleyMoveInstantaneousReward {
                     Ok(Some(reserve_encoding))
                 })(raw)
                 {
-                    Ok((pot_encoding)) => return Ok((MIRPot::Reserve, pot_encoding)),
+                    Ok(pot_encoding) => return Ok((MIRPot::Reserve, pot_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
@@ -1265,7 +1265,7 @@ impl Deserialize for ShelleyMoveInstantaneousReward {
                     Ok(Some(treasury_encoding))
                 })(raw)
                 {
-                    Ok((pot_encoding)) => return Ok((MIRPot::Treasury, pot_encoding)),
+                    Ok(pot_encoding) => return Ok((MIRPot::Treasury, pot_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))

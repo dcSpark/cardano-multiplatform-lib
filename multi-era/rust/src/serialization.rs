@@ -29,7 +29,7 @@ impl Deserialize for MultiEraBlock {
             let deser_variant: Result<_, DeserializeError> = ByronBlock::deserialize(raw);
             match deser_variant {
                 Ok(byron) => return Ok(Self::Byron(byron)),
-                Err(e) => {
+                Err(_e) => {
                     raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))

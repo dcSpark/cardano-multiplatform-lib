@@ -21,7 +21,7 @@ pub fn hash_plutus_data(plutus_data: &PlutusData) -> DatumHash {
 
 pub fn hash_script_data(redeemers: &[Redeemer], cost_models: &CostModels, datums: Option<&[PlutusData]>, encoding: Option<&TransactionWitnessSetEncoding>) -> ScriptDataHash {
     let mut buf = cbor_event::se::Serializer::new_vec();
-    if redeemers.len() == 0 && datums.is_some() {
+    if redeemers.is_empty() && datums.is_some() {
         /*
         ; Finally, note that in the case that a transaction includes datums but does not
         ; include any redeemers, the script data format becomes (in hex):
@@ -97,15 +97,15 @@ pub enum ScriptDataHashError {
 }
 
 pub fn calc_script_data_hash(redeemers: &[Redeemer], datums: &[PlutusData], cost_models: &CostModels, used_langs: &[Language], encoding: Option<&TransactionWitnessSetEncoding>) -> Result<Option<ScriptDataHash>, ScriptDataHashError> {
-    if redeemers.len() > 0 || datums.len() > 0 {
+    if !redeemers.is_empty() || !datums.is_empty() {
         let mut required_costmdls = CostModels::new();
         for lang in used_langs {
             match lang {
                 Language::PlutusV1 => {
-                    required_costmdls.plutus_v1 = Some(cost_models.plutus_v1.as_ref().ok_or_else(|| ScriptDataHashError::MissingCostModel(*lang))?.clone());
+                    required_costmdls.plutus_v1 = Some(cost_models.plutus_v1.as_ref().ok_or(ScriptDataHashError::MissingCostModel(*lang))?.clone());
                 },
                 Language::PlutusV2 => {
-                    required_costmdls.plutus_v2 = Some(cost_models.plutus_v2.as_ref().ok_or_else(|| ScriptDataHashError::MissingCostModel(*lang))?.clone());
+                    required_costmdls.plutus_v2 = Some(cost_models.plutus_v2.as_ref().ok_or(ScriptDataHashError::MissingCostModel(*lang))?.clone());
                 },
             }
         }
@@ -136,7 +136,7 @@ pub (crate) enum ScriptHashNamespace {
 pub (crate) fn hash_script(namespace: ScriptHashNamespace, script: &[u8]) -> ScriptHash {
     let mut bytes = Vec::with_capacity(script.len() + 1);
     bytes.extend_from_slice(&[namespace as u8]);
-    bytes.extend_from_slice(&script);
+    bytes.extend_from_slice(script);
     ScriptHash::from(blake2b224(bytes.as_ref()))
 }
 

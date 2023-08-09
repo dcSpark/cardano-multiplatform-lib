@@ -199,7 +199,7 @@ pub struct TransactionBuilderConfig {
     coins_per_utxo_byte: Coin, // protocol parameter
     ex_unit_prices: ExUnitPrices, // protocol parameter
     cost_models: CostModels,           // protocol parameter
-    collateral_percentage: u32,   // protocol parameter
+    _collateral_percentage: u32,   // protocol parameter
     max_collateral_inputs: u32,   // protocol parameter
     prefer_pure_change: bool,
 }
@@ -282,22 +282,22 @@ impl TransactionBuilderConfigBuilder {
 
     pub fn build(self) -> Result<TransactionBuilderConfig, TxBuilderError> {
         Ok(TransactionBuilderConfig {
-            fee_algo: self.fee_algo.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::FeeAlgo))?,
-            pool_deposit: self.pool_deposit.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::PoolDeposit))?,
-            key_deposit: self.key_deposit.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::KeyDeposit))?,
-            max_value_size: self.max_value_size.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::MaxValueSize))?,
-            max_tx_size: self.max_tx_size.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::MaxTxSize))?,
-            coins_per_utxo_byte: self.coins_per_utxo_byte.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::CoinsPerUtxoBytes))?,
+            fee_algo: self.fee_algo.ok_or(TxBuilderError::UninitializedField(TxBuilderConfigField::FeeAlgo))?,
+            pool_deposit: self.pool_deposit.ok_or(TxBuilderError::UninitializedField(TxBuilderConfigField::PoolDeposit))?,
+            key_deposit: self.key_deposit.ok_or(TxBuilderError::UninitializedField(TxBuilderConfigField::KeyDeposit))?,
+            max_value_size: self.max_value_size.ok_or(TxBuilderError::UninitializedField(TxBuilderConfigField::MaxValueSize))?,
+            max_tx_size: self.max_tx_size.ok_or(TxBuilderError::UninitializedField(TxBuilderConfigField::MaxTxSize))?,
+            coins_per_utxo_byte: self.coins_per_utxo_byte.ok_or(TxBuilderError::UninitializedField(TxBuilderConfigField::CoinsPerUtxoBytes))?,
             ex_unit_prices: self
                 .ex_unit_prices
-                .ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::ExUnitPrices))?,
+                .ok_or(TxBuilderError::UninitializedField(TxBuilderConfigField::ExUnitPrices))?,
             cost_models: if self.cost_models.is_some() {
                 self.cost_models.unwrap()
             } else {
                 CostModels::new()
             },
-            collateral_percentage: self.collateral_percentage.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::CollateralPercentage))?,
-            max_collateral_inputs: self.max_collateral_inputs.ok_or_else(|| TxBuilderError::UninitializedField(TxBuilderConfigField::MaxCollateralInputs))?,
+            _collateral_percentage: self.collateral_percentage.ok_or(TxBuilderError::UninitializedField(TxBuilderConfigField::CollateralPercentage))?,
+            max_collateral_inputs: self.max_collateral_inputs.ok_or(TxBuilderError::UninitializedField(TxBuilderConfigField::MaxCollateralInputs))?,
             prefer_pure_change: self.prefer_pure_change,
         })
     }
@@ -497,7 +497,7 @@ impl TransactionBuilder {
             .filter(|output| by(output.amount()).is_some())
             .cloned()
             .collect::<Vec<TransactionOutput>>();
-        outputs.sort_by_key(|output| by(&output.amount()).expect("filtered above"));
+        outputs.sort_by_key(|output| by(output.amount()).expect("filtered above"));
         for output in outputs.iter().rev() {
             // TODO: how should we adapt this to inputs being associated when running for other assets?
             // if we do these two phases for each asset and don't take into account the other runs for other assets
@@ -515,7 +515,7 @@ impl TransactionBuilder {
             // It might make sense to diverge further and not consider it per-output and to instead just match against
             // the sum of all outputs as one single value.
             let mut added = u64::zero();
-            let needed = by(&output.amount()).unwrap();
+            let needed = by(output.amount()).unwrap();
             while added < needed {
                 if relevant_indices.is_empty() {
                     return Err(TxBuilderError::UTxOBalanceInsufficient);
@@ -742,7 +742,7 @@ impl TransactionBuilder {
     }
 
     pub fn set_auxiliary_data(&mut self, new_aux_data: AuxiliaryData) {
-        self.auxiliary_data = Some(new_aux_data.clone())
+        self.auxiliary_data = Some(new_aux_data)
     }
 
     pub fn add_auxiliary_data(&mut self, new_aux_data: AuxiliaryData) {
@@ -866,7 +866,7 @@ impl TransactionBuilder {
         self.inputs
             .iter()
             .try_fold(Value::zero(), |acc, tx_builder_input| {
-                acc.checked_add(&tx_builder_input.output.amount())
+                acc.checked_add(tx_builder_input.output.amount())
             })
             .map_err(Into::into)
     }
@@ -875,7 +875,7 @@ impl TransactionBuilder {
     pub fn get_implicit_input(&self) -> Result<Value, TxBuilderError> {
         internal_get_implicit_input(
             self.withdrawals.as_ref(),
-            self.certs.as_ref().map(Vec::as_slice),
+            self.certs.as_deref(),
             self.config.pool_deposit,
             self.config.key_deposit,
         )
@@ -913,14 +913,14 @@ impl TransactionBuilder {
         self.outputs
             .iter()
             .try_fold(Value::from(0), |acc, output| {
-                acc.checked_add(&output.amount())
+                acc.checked_add(output.amount())
             })
             .map_err(Into::into)
     }
 
     pub fn get_deposit(&self) -> Result<Coin, TxBuilderError> {
         internal_get_deposit(
-            self.certs.as_ref().map(Vec::as_slice),
+            self.certs.as_deref(),
             self.config.pool_deposit,
             self.config.key_deposit,
         )
@@ -1050,7 +1050,7 @@ impl TransactionBuilder {
 
                 let mut sorted_linked_hashmap = Withdrawals::new();
                 sorted_linked_hashmap = sorted_keys.iter().fold(sorted_linked_hashmap, |mut accum, key| {
-                    accum.insert((*key).clone(), withdrawals.get(key).unwrap().clone());
+                    accum.insert((*key).clone(), *withdrawals.get(key).unwrap());
                     accum
                 });
                 built.withdrawals = Some(sorted_linked_hashmap)
@@ -1333,7 +1333,7 @@ pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address,
                     current_assets_clone.insert(asset_name, value);
                     let mut amount_clone = output.amount().clone();
                     let mut val = Value::from(Coin::zero());
-                    val.multiasset.insert(policy.clone(), current_assets_clone);
+                    val.multiasset.insert(policy, current_assets_clone);
                     amount_clone = amount_clone.checked_add(&val).unwrap();
                 
                     let mut output_clone = output.clone();
@@ -1352,7 +1352,7 @@ pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address,
                     change_estimator: &Value,
                     datum: Option<DatumOption>,
                     script_ref: &Option<ScriptRef>,
-                    communication_datum: &Option<PlutusData>
+                    _communication_datum: &Option<PlutusData>
                 ) -> Result<Vec<MultiAsset>, TxBuilderError> {
                     // we insert the entire available ADA temporarily here since that could potentially impact the size
                     // as it could be 1, 2 3 or 4 bytes for Coin.
@@ -1495,7 +1495,7 @@ pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address,
                         if change_left.coin < change_ada_plus_fee {
                             return Err(TxBuilderError::InsufficientADAForAssets);
                         }
-                        change_left = change_left.checked_sub(&change_output.output.amount())?;
+                        change_left = change_left.checked_sub(change_output.output.amount())?;
                         builder.add_output(change_output)?;
                     }
                 }
@@ -1517,9 +1517,9 @@ pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address,
                         change_left = Value::zero();
                         let change_output = SingleOutputBuilderResult::new(TransactionOutput::new(
                             address.clone(),
-                            potential_pure_value.clone(),
-                            datum.clone(),
-                            script_ref.clone(),
+                            potential_pure_value,
+                            datum,
+                            script_ref,
                         ));
                         builder.add_output(change_output)?;
                     }
@@ -1568,7 +1568,7 @@ pub fn add_change_if_needed(builder: &mut TransactionBuilder, address: &Address,
                                 let change_output = SingleOutputBuilderResult::new(TransactionOutput::new(
                                     address.clone(),
                                     change_estimator.checked_sub(&Value::from(new_fee))?,
-                                    datum.clone(),
+                                    datum,
                                     script_ref,
                                 ));
 

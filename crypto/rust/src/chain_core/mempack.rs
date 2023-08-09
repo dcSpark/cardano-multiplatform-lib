@@ -49,17 +49,15 @@ impl fmt::Display for ReadError {
         match self {
             ReadError::NotEnoughBytes(left, demanded) => write!(
                 f,
-                "NotEnoughBytes: demanded {} bytes but got {}",
-                demanded, left
+                "NotEnoughBytes: demanded {demanded} bytes but got {left}"
             ),
-            ReadError::UnconsumedData(len) => write!(f, "Unconsumed data: {} bytes left", len),
+            ReadError::UnconsumedData(len) => write!(f, "Unconsumed data: {len} bytes left"),
             ReadError::SizeTooBig(e, limit) => write!(
                 f,
-                "Ask for number of elements {} above expected limit value: {}",
-                e, limit
+                "Ask for number of elements {e} above expected limit value: {limit}"
             ),
-            ReadError::StructureInvalid(s) => write!(f, "Structure invalid: {}", s),
-            ReadError::UnknownTag(t) => write!(f, "Unknown tag: {}", t),
+            ReadError::StructureInvalid(s) => write!(f, "Structure invalid: {s}"),
+            ReadError::UnknownTag(t) => write!(f, "Unknown tag: {t}"),
         }
     }
 }
@@ -217,9 +215,9 @@ impl<'a> ReadBuf<'a> {
         for (i, x) in self.data.iter().enumerate() {
             //self.trace.iter().find(|(ofs,_)| ofs == &i).map(|(_,name)| { s.push_str(&name); s.push(' ') });
             if i == self.offset {
-                s.push_str(&".. ");
+                s.push_str(".. ");
             }
-            let bytes = format!("{:02x} ", x);
+            let bytes = format!("{x:02x} ");
             s.push_str(&bytes);
         }
         s
@@ -306,14 +304,14 @@ pub fn read_from_raw<T: Readable>(raw: &[u8]) -> Result<T, std::io::Error> {
         Err(e) => {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                format!("invalid data {:?} {:?}", e, raw).to_owned(),
+                format!("invalid data {e:?} {raw:?}"),
             ));
         }
         Ok(h) => match rbuf.expect_end() {
             Err(e) => {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
-                    format!("end of data {:?}", e).to_owned(),
+                    format!("end of data {e:?}"),
                 ));
             }
             Ok(()) => Ok(h),

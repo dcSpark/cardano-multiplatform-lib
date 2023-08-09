@@ -1,11 +1,11 @@
-use crate::error::{DeserializeError, DeserializeFailure, Key};
-use crate::ordered_hash_map::OrderedHashMap;
+use crate::error::{DeserializeError, DeserializeFailure};
+
 use crate::serialization::{Deserialize, LenEncoding, Serialize, StringEncoding, fit_sz};
 use crate::Int;
 use cbor_event::{de::Deserializer, se::Serializer};
 use derivative::Derivative;
 
-use std::io::{BufRead, Seek, SeekFrom, Write};
+use std::io::{BufRead, Seek, Write};
 
 pub type TransactionMetadatumLabel = u64;
 
@@ -362,14 +362,14 @@ impl Serialize for TransactionMetadatum {
                 bytes,
                 bytes_encoding,
             } => serializer.write_bytes_sz(
-                &bytes,
+                bytes,
                 bytes_encoding.to_str_len_sz(bytes.len() as u64, force_canonical),
             ),
             TransactionMetadatum::Text {
                 text,
                 text_encoding,
             } => serializer.write_text_sz(
-                &text,
+                text,
                 text_encoding.to_str_len_sz(text.len() as u64, force_canonical),
             ),
         }

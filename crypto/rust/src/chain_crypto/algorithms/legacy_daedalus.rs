@@ -75,7 +75,7 @@ impl AsymmetricKey for LegacyDaedalus {
         let mut out = [0u8; XPRV_SIZE];
 
         loop {
-            let s = format!("Root Seed Chain {}", iter);
+            let s = format!("Root Seed Chain {iter}");
             mac.reset();
             mac.input(s.as_bytes());
             let mut block = [0u8; 64];

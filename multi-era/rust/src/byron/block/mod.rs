@@ -11,9 +11,7 @@ use crate::byron::transaction::{ByronAttributes, ByronTx, ByronTxProof, ByronTxW
 use crate::byron::update::{ByronBlockVersion, ByronSoftwareVersion, ByronUpdate};
 use crate::byron::{Blake2b256, ByronBlockId, ByronPubKey, ByronSignature, ByronSlotId, EpochId};
 use cml_chain::byron::StakeholderId;
-use cml_core::error::*;
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct BlockHeaderExtraData {

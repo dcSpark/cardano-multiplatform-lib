@@ -406,7 +406,7 @@ impl Serialize for PlutusData {
             PlutusData::Bytes {
                 bytes,
                 bytes_encoding,
-            } => write_bounded_bytes(serializer, &bytes, bytes_encoding, force_canonical),
+            } => write_bounded_bytes(serializer, bytes, bytes_encoding, force_canonical),
         }
     }
 }
@@ -420,7 +420,7 @@ impl Deserialize for PlutusData {
             match raw.cbor_type()? {
                 cbor_event::Type::Tag => {
                     // could be large BigInt or ConstrPlutusData so check tag to see which it is
-                    let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+                    let initial_position = raw.as_mut_ref().stream_position().unwrap();
                     let tag = raw.tag()?;
                     raw
                         .as_mut_ref()
@@ -620,7 +620,7 @@ impl Deserialize for Redeemer {
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (tag, tag_encoding) = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+                let initial_position = raw.as_mut_ref().stream_position().unwrap();
                 match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (spend_value, spend_encoding) = raw.unsigned_integer_sz()?;
                     if spend_value != 0 {
@@ -633,7 +633,7 @@ impl Deserialize for Redeemer {
                     Ok(Some(spend_encoding))
                 })(raw)
                 {
-                    Ok((tag_encoding)) => return Ok((RedeemerTag::Spend, tag_encoding)),
+                    Ok(tag_encoding) => return Ok((RedeemerTag::Spend, tag_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
@@ -651,7 +651,7 @@ impl Deserialize for Redeemer {
                     Ok(Some(mint_encoding))
                 })(raw)
                 {
-                    Ok((tag_encoding)) => return Ok((RedeemerTag::Mint, tag_encoding)),
+                    Ok(tag_encoding) => return Ok((RedeemerTag::Mint, tag_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
@@ -669,7 +669,7 @@ impl Deserialize for Redeemer {
                     Ok(Some(cert_encoding))
                 })(raw)
                 {
-                    Ok((tag_encoding)) => return Ok((RedeemerTag::Cert, tag_encoding)),
+                    Ok(tag_encoding) => return Ok((RedeemerTag::Cert, tag_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
@@ -687,7 +687,7 @@ impl Deserialize for Redeemer {
                     Ok(Some(reward_encoding))
                 })(raw)
                 {
-                    Ok((tag_encoding)) => return Ok((RedeemerTag::Reward, tag_encoding)),
+                    Ok(tag_encoding) => return Ok((RedeemerTag::Reward, tag_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))

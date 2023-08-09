@@ -99,7 +99,7 @@ impl<'de> serde::de::Deserialize<'de> for ByronAny {
         // this probably will never fail as we're cbor's any
         // but we'll keep this for uncovered things e.g. floats
         cml_core::serialization::Deserialize::from_cbor_bytes(&cbor)
-            .map_err(|e| serde::de::Error::invalid_value(
+            .map_err(|_e| serde::de::Error::invalid_value(
                 serde::de::Unexpected::Str(&cbor_hex),
                 &"cbor parsing failed. Unsupported?"
             ))

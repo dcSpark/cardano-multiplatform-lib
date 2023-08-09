@@ -24,8 +24,7 @@ impl fmt::Display for Error {
         match self {
             Error::InvalidHashSize(sz, expected) => write!(
                 f,
-                "invalid hash size, expected {} but received {} bytes.",
-                expected, sz
+                "invalid hash size, expected {expected} but received {sz} bytes."
             ),
             Error::InvalidHexEncoding(_) => write!(f, "invalid hex encoding for hash value"),
         }

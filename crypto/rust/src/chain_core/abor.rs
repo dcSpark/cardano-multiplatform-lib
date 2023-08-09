@@ -104,7 +104,7 @@ impl Encoder {
         assert!(bs.len() < 256);
         self.push_tag(Tag::Bytes)
             .push_byte(bs.len() as u8)
-            .push_slice(&bs)
+            .push_slice(bs)
             .incr()
     }
 
@@ -172,7 +172,7 @@ impl<'a> Decoder<'a> {
 
     #[must_use]
     fn pop(&mut self) -> Result<u8, DecodeError> {
-        if self.slice.len() > 0 {
+        if !self.slice.is_empty() {
             let v = self.slice[0];
             self.slice = &self.slice[1..];
             Ok(v)
@@ -284,7 +284,7 @@ impl<'a> Decoder<'a> {
 
     #[must_use]
     pub fn end(self) -> Result<(), DecodeError> {
-        if self.slice.len() == 0 {
+        if self.slice.is_empty() {
             Ok(())
         } else {
             Err(DecodeError::StreamPending {
@@ -304,7 +304,7 @@ mod tests {
         let e = Encoder::new().u32(v).finalize();
         let mut d = Decoder::new(&e);
         let ev = d.u32().unwrap();
-        assert_eq!(d.end().is_ok(), true);
+        assert!(d.end().is_ok());
         assert_eq!(v, ev)
     }
 
@@ -334,9 +334,8 @@ mod tests {
         assert_eq!(v3, ev3);
         assert_eq!(v4, ev4);
         assert_eq!(&bs1[..], &ebs1[..]);
-        assert_eq!(
+        assert!(
             is_end.is_ok(),
-            true,
             "not reached end {:?}",
             is_end.unwrap_err()
         );

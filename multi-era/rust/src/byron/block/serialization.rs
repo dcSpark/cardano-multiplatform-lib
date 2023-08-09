@@ -6,7 +6,7 @@ use crate::byron::ByronAny;
 use super::*;
 use cbor_event;
 use cbor_event::de::Deserializer;
-use cbor_event::se::{Serialize, Serializer};
+use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use std::io::{BufRead, Seek, SeekFrom, Write};

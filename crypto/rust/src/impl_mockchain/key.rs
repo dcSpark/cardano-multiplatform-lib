@@ -60,7 +60,7 @@ fn chain_crypto_pub_err(e: crypto::PublicKeyError) -> ReadError {
 fn chain_crypto_sig_err(e: crypto::SignatureError) -> ReadError {
     match e {
         crypto::SignatureError::SizeInvalid { expected, got } => ReadError::StructureInvalid(
-            format!("signature size invalid, expected {} got {}", expected, got),
+            format!("signature size invalid, expected {expected} got {got}"),
         ),
         crypto::SignatureError::StructureInvalid => {
             ReadError::StructureInvalid("signature structure invalid".to_string())
@@ -147,7 +147,7 @@ where
     let bytes = data.serialize_as_vec().unwrap();
     let signature = secret_key.sign(&bytes).coerce();
     Signed {
-        data: data,
+        data,
         sig: signature,
     }
 }

@@ -58,7 +58,7 @@ impl DeserializeEmbeddedGroup for ByronPkWitness {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(
         raw: &mut Deserializer<R>,
         _read_len: &mut CBORReadLen,
-        len: cbor_event::LenSz,
+        _len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             (|| -> Result<_, DeserializeError> {
@@ -181,7 +181,7 @@ impl DeserializeEmbeddedGroup for ByronRedeemWitness {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(
         raw: &mut Deserializer<R>,
         _read_len: &mut CBORReadLen,
-        len: cbor_event::LenSz,
+        _len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             (|| -> Result<_, DeserializeError> {
@@ -340,7 +340,7 @@ impl DeserializeEmbeddedGroup for ByronScriptWitness {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(
         raw: &mut Deserializer<R>,
         _read_len: &mut CBORReadLen,
-        len: cbor_event::LenSz,
+        _len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             (|| -> Result<_, DeserializeError> {

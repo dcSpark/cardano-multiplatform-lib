@@ -1,6 +1,6 @@
 //! bitcoin's base58 encoding format
 
-pub const ALPHABET: &'static str = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+pub const ALPHABET: &str = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 pub enum Error {
@@ -11,7 +11,7 @@ pub enum Error {
 impl ::std::fmt::Display for Error {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         match self {
-            &Error::UnknownSymbol(idx) => write!(f, "Unknown symbol at byte index {}", idx),
+            &Error::UnknownSymbol(idx) => write!(f, "Unknown symbol at byte index {idx}"),
         }
     }
 }
@@ -106,18 +106,18 @@ fn base_encode(alphabet_s: &str, input: &[u8]) -> Vec<u8> {
     let alphabet = alphabet_s.as_bytes();
     let base = alphabet.len() as u32;
 
-    let mut digits = vec![0 as u8];
+    let mut digits = vec![0_u8];
     for input in input.iter() {
-        let mut carry = input.clone() as u32;
+        let mut carry = *input as u32;
         for j in 0..digits.len() {
-            carry = carry + ((digits[j] as u32) << 8);
+            carry += (digits[j] as u32) << 8;
             digits[j] = (carry % base) as u8;
-            carry = carry / base;
+            carry /= base;
         }
 
         while carry > 0 {
             digits.push((carry % base) as u8);
-            carry = carry / base;
+            carry /= base;
         }
     }
 
@@ -129,7 +129,7 @@ fn base_encode(alphabet_s: &str, input: &[u8]) -> Vec<u8> {
         k += 1;
     }
     for digit in digits.iter().rev() {
-        string.push(alphabet[digit.clone() as usize]);
+        string.push(alphabet[*digit as usize]);
     }
 
     string
@@ -149,14 +149,14 @@ fn base_decode(alphabet_s: &str, input: &[u8]) -> Result<Vec<u8>> {
         };
         let mut carry = value as u32;
         for j in 0..bytes.len() {
-            carry = carry + (bytes[j] as u32 * base);
+            carry += bytes[j] as u32 * base;
             bytes[j] = carry as u8;
-            carry = carry >> 8;
+            carry >>= 8;
         }
 
         while carry > 0 {
             bytes.push(carry as u8);
-            carry = carry >> 8;
+            carry >>= 8;
         }
     }
     let leading_zeros = bytes.iter().rev().take_while(|x| **x == 0).count();

@@ -11,7 +11,7 @@ use cbor_encodings::{
     CostModelsEncoding, ExUnitPricesEncoding, ExUnitsEncoding, PlutusV1ScriptEncoding,
     PlutusV2ScriptEncoding, RedeemerEncoding,
 };
-use cml_core::ordered_hash_map::OrderedHashMap;
+
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use cml_core::Int;
 

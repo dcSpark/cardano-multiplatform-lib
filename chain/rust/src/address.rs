@@ -93,7 +93,7 @@ impl serde::Serialize for Address {
     {
         let bech32 = self
             .to_bech32(None)
-            .map_err(|e| serde::ser::Error::custom(format!("to_bech32: {:?}", e)))?;
+            .map_err(|e| serde::ser::Error::custom(format!("to_bech32: {e:?}")))?;
         serializer.serialize_str(&bech32)
     }
 }
@@ -441,7 +441,7 @@ impl Address {
                     id if id == NetworkInfo::testnet().network_id() => "_test",
                     _ => "",
                 };
-                format!("{}{}", prefix_header, prefix_tail)
+                format!("{prefix_header}{prefix_tail}")
             }
         };
         bech32::encode(&final_prefix, self.to_raw_bytes().to_base32()).map_err(|e| e.into())
@@ -695,7 +695,7 @@ impl serde::Serialize for RewardAddress {
             .clone()
             .to_address()
             .to_bech32(None)
-            .map_err(|e| serde::ser::Error::custom(format!("to_bech32: {:?}", e)))?;
+            .map_err(|e| serde::ser::Error::custom(format!("to_bech32: {e:?}")))?;
         serializer.serialize_str(&bech32)
     }
 }

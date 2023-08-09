@@ -24,7 +24,7 @@ impl LinearFee {
 
 pub fn min_script_fee(tx: &Transaction, ex_unit_prices: &ExUnitPrices) -> Result<Coin, ArithmeticError> {
     if let Some(redeemers) = &tx.witness_set.redeemers {
-        let total_ex_units = compute_total_ex_units(&redeemers)?;
+        let total_ex_units = compute_total_ex_units(redeemers)?;
         let script_fee = (
             (
                 Fraction::new(total_ex_units.mem, 1u64)

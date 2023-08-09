@@ -1829,7 +1829,7 @@ mod tests {
     use std::collections::BTreeMap;
     use std::ops::Deref;
 
-    use cml_core::metadata::{Metadata, TransactionMetadatum, TransactionMetadatumLabel};
+    use cml_core::metadata::{Metadata, TransactionMetadatum, TransactionMetadatumLabel, MetadatumMap};
     use cml_core::Int;
     use cml_crypto::{
         Bip32PrivateKey, Bip32PublicKey, DatumHash, Deserialize, PrivateKey, RawBytesEncoding,
@@ -4174,8 +4174,8 @@ mod tests {
     }
 
     fn create_metadatum() -> TransactionMetadatum {
-        let mut entries = OrderedHashMap::new();
-        entries.insert(
+        let mut entries = MetadatumMap::new();
+        entries.set(
             TransactionMetadatum::new_text("qwe".into()),
             TransactionMetadatum::new_int(123i64.into()),
         );
@@ -4202,10 +4202,10 @@ mod tests {
 
     fn assert_json_metadatum(dat: &TransactionMetadatum) {
         match dat {
-            TransactionMetadatum::Map { entries, .. } => {
-                assert_eq!(entries.len(), 1);
+            TransactionMetadatum::Map(map) => {
+                assert_eq!(map.len(), 1);
                 let key = TransactionMetadatum::new_text(String::from("qwe"));
-                let val = entries.get(&key).unwrap();
+                let val = map.get(&key).unwrap();
                 match val {
                     TransactionMetadatum::Int(x) => assert_eq!(*x, 123u64.into()),
                     _ => panic!(),
@@ -5153,8 +5153,8 @@ mod tests {
 
         // metadata
         {
-            let mut map = OrderedHashMap::new();
-            map.insert(
+            let mut map = MetadatumMap::new();
+            map.set(
                 TransactionMetadatum::new_int(Int::from(0u64)),
                 TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()),
             );
@@ -5300,8 +5300,8 @@ mod tests {
 
         // metadata
         {
-            let mut map = OrderedHashMap::new();
-            map.insert(
+            let mut map = MetadatumMap::new();
+            map.set(
                 TransactionMetadatum::new_int(0u64.into()),
                 TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()),
             );
@@ -5477,8 +5477,8 @@ mod tests {
 
         // metadata
         {
-            let mut map = OrderedHashMap::new();
-            map.insert(
+            let mut map = MetadatumMap::new();
+            map.set(
                 TransactionMetadatum::new_int(0u64.into()),
                 TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()),
             );

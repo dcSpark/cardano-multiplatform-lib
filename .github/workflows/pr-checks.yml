@@ -42,3 +42,41 @@ jobs:
       - name: rust:build-browser
         run: |
           npm run rust:build-browser
+      - name: all:test
+        run: cargo test
+      - name: chain:install
+        working-directory: chain/wasm
+        run: npm install
+      - name: chain:rust:build-nodejs
+        working-directory: chain/wasm
+        run: npm run rust:build-nodejs
+      - name: chain:rust:build-browser
+        working-directory: chain/wasm
+        run: npm run rust:build-browser
+      - name: multi-era:install
+        working-directory: multi-era/wasm
+        run: npm install
+      - name: multi-era:rust:build-nodejs
+        working-directory: multi-era/wasm
+        run: npm run rust:build-nodejs
+      - name: multi-era:rust:build-browser
+        working-directory: multi-era/wasm
+        run: npm run rust:build-browser
+      - name: cip25:install
+        working-directory: cip25/wasm
+        run: npm install
+      - name: cip25:rust:build-nodejs
+        working-directory: cip25/wasm
+        run: npm run rust:build-nodejs
+      - name: cip25:rust:build-browser
+        working-directory: cip25/wasm
+        run: npm run rust:build-browser
+      - name: cip36:install
+        working-directory: cip36/wasm
+        run: npm install
+      - name: cip36:rust:build-nodejs
+        working-directory: cip36/wasm
+        run: npm run rust:build-nodejs
+      - name: cip36:rust:build-browser
+        working-directory: cip36/wasm
+        run: npm run rust:build-browser

@@ -42,6 +42,16 @@ jobs:
       - name: rust:build-browser
         run: |
           npm run rust:build-browser
+      - name: cargo-fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+      - name: cargo-clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --workspace --all-features --all-targets -- --deny "clippy::all"
       - name: all:test
         run: cargo test
       - name: chain:install

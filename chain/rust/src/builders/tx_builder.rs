@@ -1829,7 +1829,9 @@ mod tests {
     use std::collections::BTreeMap;
     use std::ops::Deref;
 
-    use cml_core::metadata::{Metadata, TransactionMetadatum, TransactionMetadatumLabel, MetadatumMap};
+    use cml_core::metadata::{
+        Metadata, MetadatumMap, TransactionMetadatum, TransactionMetadatumLabel,
+    };
     use cml_core::Int;
     use cml_crypto::{
         Bip32PrivateKey, Bip32PublicKey, DatumHash, Deserialize, PrivateKey, RawBytesEncoding,
@@ -1848,7 +1850,7 @@ mod tests {
     use crate::crypto::utils::make_vkey_witness;
     use crate::genesis::network_info::{plutus_alonzo_cost_models, NetworkInfo};
     use crate::plutus::{PlutusScript, PlutusV1Script, PlutusV2Script, RedeemerTag};
-    use crate::transaction::{NativeScript, RequiredSigners};
+    use crate::transaction::NativeScript;
     use crate::{Script, SubCoin};
 
     use super::*;
@@ -1882,7 +1884,7 @@ mod tests {
     }
 
     fn fake_key_hash(x: u8) -> Ed25519KeyHash {
-        Ed25519KeyHash::from_raw_bytes(&vec![
+        Ed25519KeyHash::from_raw_bytes(&[
             x, 239, 181, 120, 142, 135, 19, 200, 68, 223, 211, 43, 46, 145, 222, 30, 48, 159, 239,
             255, 213, 85, 248, 39, 204, 158, 225, 100,
         ])
@@ -2410,12 +2412,10 @@ mod tests {
         tx_builder.add_input(input).unwrap();
 
         let input = {
-            let address = AddressContent::icarus_from_key(
-                spend,
-                NetworkInfo::testnet().protocol_magic().into(),
-            )
-            .to_address()
-            .to_address();
+            let address =
+                AddressContent::icarus_from_key(spend, NetworkInfo::testnet().protocol_magic())
+                    .to_address()
+                    .to_address();
             SingleInputBuilder::new(
                 TransactionInput::new(genesis_id(), 0),
                 TransactionOutput::new(address, Value::from(1_000_000), None, None),
@@ -2455,7 +2455,7 @@ mod tests {
 
         let addr_net_0 = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
-            spend_cred.clone(),
+            spend_cred,
             stake_cred.clone(),
         )
         .to_address();
@@ -2473,7 +2473,7 @@ mod tests {
         tx_builder.add_mint(result).unwrap();
 
         let mut mass = MultiAsset::new();
-        mass.set(policy_id, name.clone(), amount);
+        mass.set(policy_id, name, amount);
 
         // One coin and the minted asset goes into the output
         let mut output_amount = Value::from(264);
@@ -2535,7 +2535,7 @@ mod tests {
 
         let addr_net_0 = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
-            spend_cred.clone(),
+            spend_cred,
             stake_cred.clone(),
         )
         .to_address();
@@ -2837,7 +2837,7 @@ mod tests {
             final_tx.outputs[1]
                 .amount()
                 .multiasset
-                .get(&policy_id, &name)
+                .get(policy_id, &name)
                 .unwrap(),
             ma_input1 + ma_input2 - ma_output1
         );
@@ -3063,7 +3063,7 @@ mod tests {
         // add an input that contains an asset & ADA
         let output_amount = {
             let mut output_multiasset = MultiAsset::new();
-            output_multiasset.set(policy_id.clone(), name.clone(), 100);
+            output_multiasset.set(policy_id, name, 100);
             Value::new(2_000_000, output_multiasset)
         };
 
@@ -3246,7 +3246,7 @@ mod tests {
             AssetName::new(vec![4u8, 5, 6, 7, 8, 9]).unwrap(),
         ];
 
-        let multiasset = policy_ids.into_iter().zip(names.into_iter()).fold(
+        let multiasset = policy_ids.iter().zip(names.iter()).fold(
             MultiAsset::new(),
             |mut acc, (policy_id, name)| {
                 acc.set(policy_id.clone(), name.clone(), 500);
@@ -3516,11 +3516,11 @@ mod tests {
         let expected_input = input2
             .utxo_info
             .amount()
-            .checked_add(&input3.utxo_info.amount())
+            .checked_add(input3.utxo_info.amount())
             .unwrap()
-            .checked_add(&input5.utxo_info.amount())
+            .checked_add(input5.utxo_info.amount())
             .unwrap()
-            .checked_add(&input6.utxo_info.amount())
+            .checked_add(input6.utxo_info.amount())
             .unwrap();
         let expected_change = expected_input.checked_sub(&output_value).unwrap();
         assert_eq!(expected_change, *change);
@@ -3564,7 +3564,7 @@ mod tests {
         let mut ma2 = MultiAsset::new();
         ma2.set(pid1.clone(), asset_name1.clone(), 20);
         ma2.set(pid2.clone(), asset_name3.clone(), 4);
-        let mut input2 = make_input(2u8, Value::new(10, ma2));
+        let input2 = make_input(2u8, Value::new(10, ma2));
         tx_builder.add_utxo(input2);
 
         let mut ma3 = MultiAsset::new();
@@ -3574,13 +3574,13 @@ mod tests {
         tx_builder.add_utxo(input3);
 
         let mut ma4 = MultiAsset::new();
-        ma4.set(pid1.clone(), asset_name1.clone(), 10);
+        ma4.set(pid1.clone(), asset_name1, 10);
         ma4.set(pid1.clone(), asset_name2.clone(), 10);
         let input4 = make_input(4u8, Value::new(10, ma4));
         tx_builder.add_utxo(input4);
 
         let mut ma5 = MultiAsset::new();
-        ma5.set(pid1.clone(), asset_name2.clone(), 10);
+        ma5.set(pid1, asset_name2.clone(), 10);
         ma5.set(pid2.clone(), asset_name2.clone(), 3);
         let input5 = make_input(5u8, Value::new(10, ma5));
         tx_builder.add_utxo(input5);
@@ -3590,12 +3590,12 @@ mod tests {
         tx_builder.add_utxo(make_input(7u8, Value::from(100)));
 
         let mut ma8 = MultiAsset::new();
-        ma8.set(pid2.clone(), asset_name2.clone(), 10);
+        ma8.set(pid2.clone(), asset_name2, 10);
         let input8 = make_input(8u8, Value::new(10, ma8));
         tx_builder.add_utxo(input8);
 
         let mut ma9 = MultiAsset::new();
-        ma9.set(pid2.clone(), asset_name3.clone(), 10);
+        ma9.set(pid2, asset_name3, 10);
         let input9 = make_input(9u8, Value::new(10, ma9));
         tx_builder.add_utxo(input9);
 
@@ -4032,17 +4032,15 @@ mod tests {
         );
 
         let mut witness_set = TransactionWitnessSet::new();
-        let mut vkw = Vec::new();
 
-        vkw.push(make_vkey_witness(
+        witness_set.vkeywitnesses = Some(vec![make_vkey_witness(
             &hash_transaction(&body),
             &PrivateKey::from_normal_bytes(
                 &hex::decode("c660e50315d76a53d80732efda7630cae8885dfb85c46378684b3c6103e1284a")
                     .unwrap(),
             )
             .unwrap(),
-        ));
-        witness_set.vkeywitnesses = Some(vkw);
+        )]);
 
         let final_tx = Transaction::new(body, witness_set, true, None);
         let deser_t = Transaction::from_cbor_bytes(&final_tx.to_cbor_bytes()).unwrap();
@@ -4193,9 +4191,7 @@ mod tests {
 
         let mut aux = AuxiliaryData::new_shelley(metadata);
 
-        let mut nats = Vec::new();
-        nats.push(NativeScript::new_script_invalid_before(123));
-        aux.add_native_scripts(nats);
+        aux.add_native_scripts(vec![NativeScript::new_script_invalid_before(123)]);
 
         aux
     }
@@ -4237,7 +4233,7 @@ mod tests {
         let met = aux.metadata().unwrap();
 
         assert_eq!(met.len(), 1);
-        assert_json_metadatum(&met.get(num).unwrap());
+        assert_json_metadatum(met.get(num).unwrap());
     }
 
     #[test]
@@ -4263,7 +4259,7 @@ mod tests {
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 1);
         assert!(met.get(num1).is_none());
-        assert_json_metadatum(&met.get(num2).unwrap());
+        assert_json_metadatum(met.get(num2).unwrap());
     }
 
     #[test]
@@ -4288,7 +4284,7 @@ mod tests {
         let met = aux.metadata().unwrap();
 
         assert_eq!(met.len(), 1);
-        assert_json_metadatum(&met.get(num).unwrap());
+        assert_json_metadatum(met.get(num).unwrap());
     }
 
     #[test]
@@ -4309,8 +4305,8 @@ mod tests {
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 2);
-        assert_json_metadatum(&met.get(num1).unwrap());
-        assert_json_metadatum(&met.get(num2).unwrap());
+        assert_json_metadatum(met.get(num1).unwrap());
+        assert_json_metadatum(met.get(num2).unwrap());
     }
 
     #[test]
@@ -4331,7 +4327,7 @@ mod tests {
         let met = aux.metadata().unwrap();
 
         assert_eq!(met.len(), 1);
-        assert_json_metadatum(&met.get(num).unwrap());
+        assert_json_metadatum(met.get(num).unwrap());
     }
 
     #[test]
@@ -4352,8 +4348,8 @@ mod tests {
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 2);
-        assert_json_metadatum(&met.get(num1).unwrap());
-        assert_json_metadatum(&met.get(num2).unwrap());
+        assert_json_metadatum(met.get(num1).unwrap());
+        assert_json_metadatum(met.get(num2).unwrap());
     }
 
     #[test]
@@ -4394,7 +4390,7 @@ mod tests {
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.len(), 1);
-        assert_json_metadatum(&met.get(key).unwrap());
+        assert_json_metadatum(met.get(key).unwrap());
     }
 
     #[test]
@@ -4420,7 +4416,7 @@ mod tests {
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.entries.len(), 2);
-        assert_json_metadatum(&met.get(key1).unwrap());
+        assert_json_metadatum(met.get(key1).unwrap());
         assert_eq!(*met.get(key2).unwrap(), val2);
     }
 
@@ -4442,8 +4438,8 @@ mod tests {
 
         let met = aux.metadata().unwrap();
         assert_eq!(met.entries.len(), 2);
-        assert_json_metadatum(&met.get(key1).unwrap());
-        assert_json_metadatum(&met.get(key2).unwrap());
+        assert_json_metadatum(met.get(key1).unwrap());
+        assert_json_metadatum(met.get(key2).unwrap());
     }
 
     fn create_asset_name() -> AssetName {
@@ -4612,12 +4608,8 @@ mod tests {
         // One input from a related address
         let input = {
             let cred = StakeCredential::new_script(policy_id1.clone());
-            let address = BaseAddress::new(
-                NetworkInfo::testnet().network_id(),
-                cred.clone(),
-                cred.clone(),
-            )
-            .to_address();
+            let address = BaseAddress::new(NetworkInfo::testnet().network_id(), cred.clone(), cred)
+                .to_address();
             let builder = SingleInputBuilder::new(
                 TransactionInput::new(genesis_id(), 0),
                 TransactionOutput::new(address, Value::from(10_000_000), None, None),
@@ -5053,9 +5045,10 @@ mod tests {
 
         // add input
         {
-            let mut required_signers = RequiredSigners::new();
-            // real tx was using 5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9 instead
-            required_signers.push(private_key.to_public().hash());
+            let required_signers = vec![
+                // real tx was using 5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9 instead
+                private_key.to_public().hash(),
+            ];
 
             let input_utxo = TransactionOutputBuilder::new()
                 .with_address(
@@ -5200,9 +5193,10 @@ mod tests {
 
         // add input
         {
-            let mut required_signers = RequiredSigners::new();
-            // real tx was using 5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9 instead
-            required_signers.push(private_key.to_public().hash());
+            let required_signers = vec![
+                // real tx was using 5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9 instead
+                private_key.to_public().hash(),
+            ];
 
             let input_utxo = TransactionOutputBuilder::new()
                 .with_address(
@@ -5377,9 +5371,10 @@ mod tests {
 
         // add input
         {
-            let mut required_signers = RequiredSigners::new();
-            // real tx was using 5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9 instead
-            required_signers.push(private_key.to_public().hash());
+            let required_signers = vec![
+                // real tx was using 5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9 instead
+                private_key.to_public().hash(),
+            ];
 
             let input_utxo = TransactionOutputBuilder::new()
                 .with_address(

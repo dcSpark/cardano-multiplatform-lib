@@ -13,7 +13,11 @@ impl_wasm_map!(
     AssetName,
     Coin,
     AssetNameList,
-    MapAssetNameToCoin
+    MapAssetNameToCoin,
+    false,
+    true,
+    false,
+    true
 );
 
 #[derive(Clone, Debug)]

@@ -5,17 +5,18 @@ use crate::byron::{
     AddressIdList, Blake2b256, ByronPubKey, ByronSignature, BytesList, EpochId, StakeholderIdList,
     VssDecryptedShareList, VssPubKeyList,
 };
-use crate::impl_wasm_cbor_json_api_byron;
 use cml_chain_wasm::byron::{AddressId, StakeholderId};
-use cml_core_wasm::impl_wasm_conversions;
-use std::collections::BTreeMap;
+use cml_core_wasm::{
+    impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_list,
+    impl_wasm_map_btree,
+};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Ssc(cml_multi_era::byron::mpc::Ssc);
 
-impl_wasm_cbor_json_api_byron!(Ssc);
+impl_wasm_cbor_json_api_cbor_event_serialize!(Ssc);
 
 impl_wasm_conversions!(cml_multi_era::byron::mpc::Ssc, Ssc);
 
@@ -101,7 +102,7 @@ impl Ssc {
 #[wasm_bindgen]
 pub struct SscCert(cml_multi_era::byron::mpc::SscCert);
 
-impl_wasm_cbor_json_api_byron!(SscCert);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SscCert);
 
 impl_wasm_conversions!(cml_multi_era::byron::mpc::SscCert, SscCert);
 
@@ -142,7 +143,7 @@ impl SscCert {
 #[wasm_bindgen]
 pub struct SscCertificatesPayload(cml_multi_era::byron::mpc::SscCertificatesPayload);
 
-impl_wasm_cbor_json_api_byron!(SscCertificatesPayload);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SscCertificatesPayload);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::mpc::SscCertificatesPayload,
@@ -166,7 +167,7 @@ impl SscCertificatesPayload {
 #[wasm_bindgen]
 pub struct SscCertificatesProof(cml_multi_era::byron::mpc::SscCertificatesProof);
 
-impl_wasm_cbor_json_api_byron!(SscCertificatesProof);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SscCertificatesProof);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::mpc::SscCertificatesProof,
@@ -186,36 +187,13 @@ impl SscCertificatesProof {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct SscCerts(Vec<cml_multi_era::byron::mpc::SscCert>);
-
-impl_wasm_conversions!(Vec<cml_multi_era::byron::mpc::SscCert>, SscCerts);
-
-#[wasm_bindgen]
-impl SscCerts {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> SscCert {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &SscCert) {
-        self.0.push(elem.clone().into());
-    }
-}
+impl_wasm_list!(cml_multi_era::byron::mpc::SscCert, SscCert, SscCerts);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct SscCommitment(cml_multi_era::byron::mpc::SscCommitment);
 
-impl_wasm_cbor_json_api_byron!(SscCommitment);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SscCommitment);
 
 impl_wasm_conversions!(cml_multi_era::byron::mpc::SscCommitment, SscCommitment);
 
@@ -241,7 +219,7 @@ impl SscCommitment {
 #[wasm_bindgen]
 pub struct SscCommitmentsPayload(cml_multi_era::byron::mpc::SscCommitmentsPayload);
 
-impl_wasm_cbor_json_api_byron!(SscCommitmentsPayload);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SscCommitmentsPayload);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::mpc::SscCommitmentsPayload,
@@ -270,7 +248,7 @@ impl SscCommitmentsPayload {
 #[wasm_bindgen]
 pub struct SscCommitmentsProof(cml_multi_era::byron::mpc::SscCommitmentsProof);
 
-impl_wasm_cbor_json_api_byron!(SscCommitmentsProof);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SscCommitmentsProof);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::mpc::SscCommitmentsProof,
@@ -307,7 +285,7 @@ pub enum SscKind {
 #[wasm_bindgen]
 pub struct SscOpeningsPayload(cml_multi_era::byron::mpc::SscOpeningsPayload);
 
-impl_wasm_cbor_json_api_byron!(SscOpeningsPayload);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SscOpeningsPayload);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::mpc::SscOpeningsPayload,
@@ -336,7 +314,7 @@ impl SscOpeningsPayload {
 #[wasm_bindgen]
 pub struct SscOpeningsProof(cml_multi_era::byron::mpc::SscOpeningsProof);
 
-impl_wasm_cbor_json_api_byron!(SscOpeningsProof);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SscOpeningsProof);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::mpc::SscOpeningsProof,
@@ -361,40 +339,24 @@ impl SscOpeningsProof {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct SscOpens(cml_multi_era::byron::mpc::SscOpens);
-
-impl_wasm_conversions!(cml_multi_era::byron::mpc::SscOpens, SscOpens);
-
-#[wasm_bindgen]
-impl SscOpens {
-    pub fn new() -> Self {
-        Self(BTreeMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &StakeholderId, value: Vsssec) -> Option<Vsssec> {
-        self.0.insert(key.clone().into(), value)
-    }
-
-    pub fn get(&self, key: &StakeholderId) -> Option<Vsssec> {
-        self.0.get(key.as_ref()).map(|v| v.clone())
-    }
-
-    pub fn keys(&self) -> StakeholderIdList {
-        StakeholderIdList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
+impl_wasm_map_btree!(
+    cml_chain::byron::StakeholderId,
+    cml_multi_era::byron::mpc::Vsssec,
+    StakeholderId,
+    Vsssec,
+    StakeholderIdList,
+    SscOpens,
+    false,
+    true,
+    false,
+    false
+);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct SscProof(cml_multi_era::byron::mpc::SscProof);
 
-impl_wasm_cbor_json_api_byron!(SscProof);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SscProof);
 
 impl_wasm_conversions!(cml_multi_era::byron::mpc::SscProof, SscProof);
 
@@ -488,42 +450,20 @@ pub enum SscProofKind {
     SscCertificatesProof,
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct SscShares(cml_multi_era::byron::mpc::SscShares);
-
-impl_wasm_conversions!(cml_multi_era::byron::mpc::SscShares, SscShares);
-
-#[wasm_bindgen]
-impl SscShares {
-    pub fn new() -> Self {
-        Self(BTreeMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &AddressId, value: &SscSharesSubmap) -> Option<SscSharesSubmap> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
-    }
-
-    pub fn get(&self, key: &AddressId) -> Option<SscSharesSubmap> {
-        self.0.get(key.as_ref()).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> AddressIdList {
-        AddressIdList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
+impl_wasm_map_btree!(
+    cml_chain::byron::AddressId,
+    cml_multi_era::byron::mpc::SscSharesSubmap,
+    AddressId,
+    SscSharesSubmap,
+    AddressIdList,
+    SscShares
+);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct SscSharesPayload(cml_multi_era::byron::mpc::SscSharesPayload);
 
-impl_wasm_cbor_json_api_byron!(SscSharesPayload);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SscSharesPayload);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::mpc::SscSharesPayload,
@@ -552,7 +492,7 @@ impl SscSharesPayload {
 #[wasm_bindgen]
 pub struct SscSharesProof(cml_multi_era::byron::mpc::SscSharesProof);
 
-impl_wasm_cbor_json_api_byron!(SscSharesProof);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SscSharesProof);
 
 impl_wasm_conversions!(cml_multi_era::byron::mpc::SscSharesProof, SscSharesProof);
 
@@ -574,46 +514,20 @@ impl SscSharesProof {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct SscSharesSubmap(cml_multi_era::byron::mpc::SscSharesSubmap);
-
-impl_wasm_conversions!(cml_multi_era::byron::mpc::SscSharesSubmap, SscSharesSubmap);
-
-#[wasm_bindgen]
-impl SscSharesSubmap {
-    pub fn new() -> Self {
-        Self(BTreeMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(
-        &mut self,
-        key: &AddressId,
-        value: &VssDecryptedShareList,
-    ) -> Option<VssDecryptedShareList> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
-    }
-
-    pub fn get(&self, key: &AddressId) -> Option<VssDecryptedShareList> {
-        self.0.get(key.as_ref()).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> AddressIdList {
-        AddressIdList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
+impl_wasm_map_btree!(
+    cml_chain::byron::AddressId,
+    Vec<Vec<u8>>,
+    AddressId,
+    VssDecryptedShareList,
+    AddressIdList,
+    SscSharesSubmap
+);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct SscSignedCommitment(cml_multi_era::byron::mpc::SscSignedCommitment);
 
-impl_wasm_cbor_json_api_byron!(SscSignedCommitment);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SscSignedCommitment);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::mpc::SscSignedCommitment,
@@ -647,33 +561,11 @@ impl SscSignedCommitment {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct SscSignedCommitments(Vec<cml_multi_era::byron::mpc::SscSignedCommitment>);
-
-impl_wasm_conversions!(
-    Vec<cml_multi_era::byron::mpc::SscSignedCommitment>,
+impl_wasm_list!(
+    cml_multi_era::byron::mpc::SscSignedCommitment,
+    SscSignedCommitment,
     SscSignedCommitments
 );
-
-#[wasm_bindgen]
-impl SscSignedCommitments {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> SscSignedCommitment {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &SscSignedCommitment) {
-        self.0.push(elem.clone().into());
-    }
-}
 
 pub type VssDecryptedShare = Vec<u8>;
 
@@ -681,7 +573,7 @@ pub type VssDecryptedShare = Vec<u8>;
 #[wasm_bindgen]
 pub struct VssEncryptedShare(cml_multi_era::byron::mpc::VssEncryptedShare);
 
-impl_wasm_cbor_json_api_byron!(VssEncryptedShare);
+impl_wasm_cbor_json_api_cbor_event_serialize!(VssEncryptedShare);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::mpc::VssEncryptedShare,
@@ -703,7 +595,7 @@ impl VssEncryptedShare {
 #[wasm_bindgen]
 pub struct VssProof(cml_multi_era::byron::mpc::VssProof);
 
-impl_wasm_cbor_json_api_byron!(VssProof);
+impl_wasm_cbor_json_api_cbor_event_serialize!(VssProof);
 
 impl_wasm_conversions!(cml_multi_era::byron::mpc::VssProof, VssProof);
 
@@ -742,37 +634,17 @@ impl VssProof {
 
 pub type VssPubKey = Vec<u8>;
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct VssShares(cml_multi_era::byron::mpc::VssShares);
-
-impl_wasm_conversions!(cml_multi_era::byron::mpc::VssShares, VssShares);
-
-#[wasm_bindgen]
-impl VssShares {
-    pub fn new() -> Self {
-        Self(BTreeMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(
-        &mut self,
-        key: VssPubKey,
-        value: &VssEncryptedShare,
-    ) -> Option<VssEncryptedShare> {
-        self.0.insert(key, value.clone().into()).map(Into::into)
-    }
-
-    pub fn get(&self, key: VssPubKey) -> Option<VssEncryptedShare> {
-        self.0.get(&key).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> VssPubKeyList {
-        VssPubKeyList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
+impl_wasm_map_btree!(
+    cml_multi_era::byron::mpc::VssPubKey,
+    cml_multi_era::byron::mpc::VssEncryptedShare,
+    VssPubKey,
+    VssEncryptedShare,
+    VssPubKeyList,
+    VssShares,
+    true,
+    false,
+    false,
+    false
+);
 
 pub type Vsssec = Vec<u8>;

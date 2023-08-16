@@ -100,6 +100,8 @@ macro_rules! define_hash_object {
                 $constructor(bytes)
             }
         }
+        // allow since both act on the raw bytes
+        #[allow(clippy::derive_hash_xor_eq)]
         impl Hash for $hash_ty {
             fn hash<H: Hasher>(&self, state: &mut H) {
                 self.0.hash(state)

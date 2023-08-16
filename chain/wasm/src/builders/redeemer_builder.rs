@@ -76,7 +76,7 @@ impl RedeemerSetBuilder {
     /// note: will override existing value if called twice with the same key
     pub fn update_ex_units(&mut self, key: &RedeemerWitnessKey, ex_units: &ExUnits) {
         self.0
-            .update_ex_units(key.clone().into(), ex_units.clone().into());
+            .update_ex_units((*key).into(), ex_units.clone().into());
     }
 
     pub fn add_spend(&mut self, result: &InputBuilderResult) {

@@ -330,7 +330,7 @@ impl MoveInstantaneousReward {
 
     pub fn new(pot: MIRPot, action: &MIRAction) -> Self {
         Self(cml_chain::certs::MoveInstantaneousReward::new(
-            pot.into(),
+            pot,
             action.clone().into(),
         ))
     }

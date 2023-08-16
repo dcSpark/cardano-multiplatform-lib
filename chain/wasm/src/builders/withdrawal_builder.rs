@@ -53,7 +53,6 @@ impl SingleWithdrawalBuilder {
         witness_info: &NativeScriptWitnessInfo,
     ) -> Result<WithdrawalBuilderResult, JsError> {
         self.0
-            .clone()
             .native_script(native_script.as_ref(), witness_info.as_ref())
             .map(Into::into)
             .map_err(Into::into)
@@ -65,11 +64,7 @@ impl SingleWithdrawalBuilder {
         required_signers: RequiredSigners,
     ) -> Result<WithdrawalBuilderResult, JsError> {
         self.0
-            .clone()
-            .plutus_script(
-                partial_witness.clone().into(),
-                required_signers.clone().into(),
-            )
+            .plutus_script(partial_witness.into(), required_signers.into())
             .map(Into::into)
             .map_err(Into::into)
     }

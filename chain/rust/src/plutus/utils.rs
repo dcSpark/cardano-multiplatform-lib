@@ -269,7 +269,7 @@ impl Deserialize for ConstrPlutusData {
 }
 
 impl CostModels {
-    pub fn as_map<'a>(&'a self) -> BTreeMap<Language, &'a [Int]> {
+    pub fn as_map(&self) -> BTreeMap<Language, &[Int]> {
         let mut map = BTreeMap::new();
         if let Some(v1_costs) = &self.plutus_v1 {
             map.insert(Language::PlutusV1, &v1_costs[..]);
@@ -427,6 +427,10 @@ impl PlutusMap {
 
     pub fn len(&self) -> usize {
         self.entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
     }
 
     /// Replaces all datums of a given key, if any exist.

@@ -12,6 +12,7 @@ pub mod utils;
 pub use self::crc32::Crc32;
 pub use self::utils::{AddressId, ByronScript, ProtocolMagic, StakeholderId};
 pub use cml_chain::byron::ByronAddrType;
+use cml_core_wasm::{impl_wasm_cbor_event_serialize_api, impl_wasm_conversions};
 use cml_crypto_wasm::{Bip32PublicKey, PublicKey};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
@@ -19,34 +20,12 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 #[wasm_bindgen]
 pub struct AddrAttributes(cml_chain::byron::AddrAttributes);
 
+impl_wasm_conversions!(cml_chain::byron::AddrAttributes, AddrAttributes);
+
+impl_wasm_cbor_event_serialize_api!(AddrAttributes);
+
 #[wasm_bindgen]
 impl AddrAttributes {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AddrAttributes, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AddrAttributes, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn set_stake_distribution(&mut self, stake_distribution: &StakeDistribution) {
         self.0.stake_distribution = Some(stake_distribution.clone().into())
     }
@@ -67,11 +46,11 @@ impl AddrAttributes {
     }
 
     pub fn set_protocol_magic(&mut self, protocol_magic: &ProtocolMagic) {
-        self.0.protocol_magic = Some(protocol_magic.clone().into())
+        self.0.protocol_magic = Some((*protocol_magic).into())
     }
 
     pub fn protocol_magic(&self) -> Option<ProtocolMagic> {
-        self.0.protocol_magic.clone().map(std::convert::Into::into)
+        self.0.protocol_magic.map(std::convert::Into::into)
     }
 
     pub fn new() -> Self {
@@ -79,56 +58,16 @@ impl AddrAttributes {
     }
 }
 
-impl From<cml_chain::byron::AddrAttributes> for AddrAttributes {
-    fn from(native: cml_chain::byron::AddrAttributes) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AddrAttributes> for cml_chain::byron::AddrAttributes {
-    fn from(wasm: AddrAttributes) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::byron::AddrAttributes> for AddrAttributes {
-    fn as_ref(&self) -> &cml_chain::byron::AddrAttributes {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AddressContent(cml_chain::byron::AddressContent);
 
+impl_wasm_conversions!(cml_chain::byron::AddressContent, AddressContent);
+
+impl_wasm_cbor_event_serialize_api!(AddressContent);
+
 #[wasm_bindgen]
 impl AddressContent {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<AddressContent, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<AddressContent, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn address_id(&self) -> AddressId {
         self.0.address_id.clone().into()
     }
@@ -149,26 +88,8 @@ impl AddressContent {
         Self(cml_chain::byron::AddressContent::new(
             address_id.clone().into(),
             addr_attributes.clone().into(),
-            addr_type.into(),
+            addr_type,
         ))
-    }
-}
-
-impl From<cml_chain::byron::AddressContent> for AddressContent {
-    fn from(native: cml_chain::byron::AddressContent) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AddressContent> for cml_chain::byron::AddressContent {
-    fn from(wasm: AddressContent) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::byron::AddressContent> for AddressContent {
-    fn as_ref(&self) -> &cml_chain::byron::AddressContent {
-        &self.0
     }
 }
 
@@ -176,65 +97,25 @@ impl AsRef<cml_chain::byron::AddressContent> for AddressContent {
 #[wasm_bindgen]
 pub struct ByronAddress(cml_chain::byron::ByronAddress);
 
+impl_wasm_conversions!(cml_chain::byron::ByronAddress, ByronAddress);
+
+impl_wasm_cbor_event_serialize_api!(ByronAddress);
+
 #[wasm_bindgen]
 impl ByronAddress {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronAddress, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronAddress, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn content(&self) -> AddressContent {
         self.0.content.clone().into()
     }
 
     pub fn crc(&self) -> Crc32 {
-        self.0.crc.clone().into()
+        self.0.crc.into()
     }
 
     pub fn new(content: &AddressContent, crc: &Crc32) -> Self {
         Self(cml_chain::byron::ByronAddress::new(
             content.clone().into(),
-            crc.clone().into(),
+            (*crc).into(),
         ))
-    }
-}
-
-impl From<cml_chain::byron::ByronAddress> for ByronAddress {
-    fn from(native: cml_chain::byron::ByronAddress) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronAddress> for cml_chain::byron::ByronAddress {
-    fn from(wasm: ByronAddress) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::byron::ByronAddress> for ByronAddress {
-    fn as_ref(&self) -> &cml_chain::byron::ByronAddress {
-        &self.0
     }
 }
 
@@ -242,54 +123,14 @@ impl AsRef<cml_chain::byron::ByronAddress> for ByronAddress {
 #[wasm_bindgen]
 pub struct HDAddressPayload(cml_chain::byron::HDAddressPayload);
 
+impl_wasm_conversions!(cml_chain::byron::HDAddressPayload, HDAddressPayload);
+
+impl_wasm_cbor_event_serialize_api!(HDAddressPayload);
+
 #[wasm_bindgen]
 impl HDAddressPayload {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<HDAddressPayload, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<HDAddressPayload, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn get(&self) -> Vec<u8> {
         self.0.get().clone()
-    }
-}
-
-impl From<cml_chain::byron::HDAddressPayload> for HDAddressPayload {
-    fn from(native: cml_chain::byron::HDAddressPayload) -> Self {
-        Self(native)
-    }
-}
-
-impl From<HDAddressPayload> for cml_chain::byron::HDAddressPayload {
-    fn from(wasm: HDAddressPayload) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::byron::HDAddressPayload> for HDAddressPayload {
-    fn as_ref(&self) -> &cml_chain::byron::HDAddressPayload {
-        &self.0
     }
 }
 
@@ -297,34 +138,12 @@ impl AsRef<cml_chain::byron::HDAddressPayload> for HDAddressPayload {
 #[wasm_bindgen]
 pub struct SpendingData(cml_chain::byron::SpendingData);
 
+impl_wasm_conversions!(cml_chain::byron::SpendingData, SpendingData);
+
+impl_wasm_cbor_event_serialize_api!(SpendingData);
+
 #[wasm_bindgen]
 impl SpendingData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<SpendingData, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<SpendingData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_spending_data_pub_key(pubkey: &Bip32PublicKey) -> Self {
         Self(cml_chain::byron::SpendingData::new_spending_data_pub_key(
             (*pubkey).clone().into(),
@@ -385,24 +204,6 @@ impl SpendingData {
     }
 }
 
-impl From<cml_chain::byron::SpendingData> for SpendingData {
-    fn from(native: cml_chain::byron::SpendingData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<SpendingData> for cml_chain::byron::SpendingData {
-    fn from(wasm: SpendingData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::byron::SpendingData> for SpendingData {
-    fn as_ref(&self) -> &cml_chain::byron::SpendingData {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum SpendingDataKind {
     SpendingDataPubKey,
@@ -414,34 +215,12 @@ pub enum SpendingDataKind {
 #[wasm_bindgen]
 pub struct StakeDistribution(cml_chain::byron::StakeDistribution);
 
+impl_wasm_conversions!(cml_chain::byron::StakeDistribution, StakeDistribution);
+
+impl_wasm_cbor_event_serialize_api!(StakeDistribution);
+
 #[wasm_bindgen]
 impl StakeDistribution {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<StakeDistribution, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<StakeDistribution, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_single_key(stakeholder_id: &StakeholderId) -> Self {
         Self(cml_chain::byron::StakeDistribution::new_single_key(
             stakeholder_id.clone().into(),
@@ -471,24 +250,6 @@ impl StakeDistribution {
     }
 }
 
-impl From<cml_chain::byron::StakeDistribution> for StakeDistribution {
-    fn from(native: cml_chain::byron::StakeDistribution) -> Self {
-        Self(native)
-    }
-}
-
-impl From<StakeDistribution> for cml_chain::byron::StakeDistribution {
-    fn from(wasm: StakeDistribution) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::byron::StakeDistribution> for StakeDistribution {
-    fn as_ref(&self) -> &cml_chain::byron::StakeDistribution {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum StakeDistributionKind {
     SingleKey,
@@ -499,34 +260,12 @@ pub enum StakeDistributionKind {
 #[wasm_bindgen]
 pub struct ByronTxOut(cml_chain::byron::ByronTxOut);
 
+impl_wasm_conversions!(cml_chain::byron::ByronTxOut, ByronTxOut);
+
+impl_wasm_cbor_event_serialize_api!(ByronTxOut);
+
 #[wasm_bindgen]
 impl ByronTxOut {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ByronTxOut, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ByronTxOut, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn address(&self) -> ByronAddress {
         self.0.address.clone().into()
     }
@@ -540,23 +279,5 @@ impl ByronTxOut {
             address.clone().into(),
             amount,
         ))
-    }
-}
-
-impl From<cml_chain::byron::ByronTxOut> for ByronTxOut {
-    fn from(native: cml_chain::byron::ByronTxOut) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ByronTxOut> for cml_chain::byron::ByronTxOut {
-    fn from(wasm: ByronTxOut) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::byron::ByronTxOut> for ByronTxOut {
-    fn as_ref(&self) -> &cml_chain::byron::ByronTxOut {
-        &self.0
     }
 }

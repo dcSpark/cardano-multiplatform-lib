@@ -8,10 +8,10 @@ use crate::{address::RewardAddress, certs::StakeCredential, transaction::Require
 #[derive(Debug, thiserror::Error)]
 pub enum WithdrawalBuilderError {
     #[error("Missing the following witnesses for the withdrawal: {0:?}. ")]
-    MissingWitnesses(RequiredWitnessSet),
+    MissingWitnesses(Box<RequiredWitnessSet>),
     //#[error("Withdrawal required a script, not a payment key: {}", .to_address().to_bech32(None))]
     #[error("Withdrawal required a script, not a payment key")]
-    RequiredScript(RewardAddress),
+    RequiredScript(Box<RewardAddress>),
 }
 
 // comes from witsVKeyNeeded in the Ledger spec
@@ -54,7 +54,9 @@ impl SingleWithdrawalBuilder {
         withdrawal_required_wits(&self.address, &mut required_wits);
 
         if !required_wits.scripts.is_empty() {
-            return Err(WithdrawalBuilderError::RequiredScript(self.address.clone()));
+            return Err(WithdrawalBuilderError::RequiredScript(Box::new(
+                self.address.clone(),
+            )));
         }
 
         Ok(WithdrawalBuilderResult {
@@ -78,7 +80,9 @@ impl SingleWithdrawalBuilder {
         required_wits_left.scripts.remove(&native_script.hash());
 
         if !required_wits_left.scripts.is_empty() {
-            return Err(WithdrawalBuilderError::MissingWitnesses(required_wits_left));
+            return Err(WithdrawalBuilderError::MissingWitnesses(Box::new(
+                required_wits_left,
+            )));
         }
 
         Ok(WithdrawalBuilderResult {
@@ -113,7 +117,9 @@ impl SingleWithdrawalBuilder {
         required_wits_left.scripts.remove(&script_hash);
 
         if required_wits_left.len() > 0 {
-            return Err(WithdrawalBuilderError::MissingWitnesses(required_wits_left));
+            return Err(WithdrawalBuilderError::MissingWitnesses(Box::new(
+                required_wits_left,
+            )));
         }
 
         Ok(WithdrawalBuilderResult {

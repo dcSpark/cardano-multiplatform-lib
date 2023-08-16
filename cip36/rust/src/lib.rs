@@ -187,12 +187,10 @@ mod tests {
         //     .derive(0)
         //     .derive(0);
         // let catalyst_prv_key = hex::decode("4820f7ce221e177c8eae2b2ee5c1f1581a0d88ca5c14329d8f2389e77a465655c27662621bfb99cb9445bf8114cc2a630afd2dd53bc88c08c5f2aed8e9c7cb89").unwrap();
-        let stake_cred = StakeCredential::from(
-            PublicKey::from_raw_hex(
-                "86870efc99c453a873a16492ce87738ec79a0ebd064379a62e2c9cf4e119219e",
-            )
-            .unwrap(),
-        );
+        let stake_cred = PublicKey::from_raw_hex(
+            "86870efc99c453a873a16492ce87738ec79a0ebd064379a62e2c9cf4e119219e",
+        )
+        .unwrap();
         // let stake_cred = StakeCredential::from(staking_derived_prv.to_public().to_raw_key());
         let reward_address = RewardAddress::from_address(
             &Address::from_bech32(
@@ -243,7 +241,7 @@ mod tests {
             reward_address,
             nonce,
         );
-        let weighted_sign_data_hash = weighted_reg.hash_to_sign(false).unwrap();
+        let _weighted_sign_data_hash = weighted_reg.hash_to_sign(false).unwrap();
         // There are some issues with the CIP-36 test vector here. TODO: figure out whether it's the vector or the spec or us that's wrong.
         //assert_eq!("5bc0681f173efd76e1989037a3694b8a7abea22053f5940cbb5cfcdf721007d7", hex::encode(weighted_sign_data_hash));
 

@@ -7,16 +7,15 @@ use crate::byron::{
     MapSystemTagToByronUpdateData, SoftForkRuleList,
 };
 use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronUpdateId, EpochId};
-use crate::impl_wasm_cbor_json_api_byron;
 use cml_chain_wasm::utils::BigInt;
-use cml_core_wasm::impl_wasm_conversions;
+use cml_core_wasm::{impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Bvermod(cml_multi_era::byron::update::Bvermod);
 
-impl_wasm_cbor_json_api_byron!(Bvermod);
+impl_wasm_cbor_json_api_cbor_event_serialize!(Bvermod);
 
 impl_wasm_conversions!(cml_multi_era::byron::update::Bvermod, Bvermod);
 
@@ -117,7 +116,7 @@ impl Bvermod {
 #[wasm_bindgen]
 pub struct ByronBlockVersion(cml_multi_era::byron::update::ByronBlockVersion);
 
-impl_wasm_cbor_json_api_byron!(ByronBlockVersion);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronBlockVersion);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::update::ByronBlockVersion,
@@ -149,7 +148,7 @@ impl ByronBlockVersion {
 #[wasm_bindgen]
 pub struct ByronSoftwareVersion(cml_multi_era::byron::update::ByronSoftwareVersion);
 
-impl_wasm_cbor_json_api_byron!(ByronSoftwareVersion);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronSoftwareVersion);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::update::ByronSoftwareVersion,
@@ -178,7 +177,7 @@ impl ByronSoftwareVersion {
 #[wasm_bindgen]
 pub struct ByronTxFeePolicy(cml_multi_era::byron::update::ByronTxFeePolicy);
 
-impl_wasm_cbor_json_api_byron!(ByronTxFeePolicy);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronTxFeePolicy);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::update::ByronTxFeePolicy,
@@ -202,7 +201,7 @@ impl ByronTxFeePolicy {
 #[wasm_bindgen]
 pub struct ByronUpdate(cml_multi_era::byron::update::ByronUpdate);
 
-impl_wasm_cbor_json_api_byron!(ByronUpdate);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronUpdate);
 
 impl_wasm_conversions!(cml_multi_era::byron::update::ByronUpdate, ByronUpdate);
 
@@ -228,7 +227,7 @@ impl ByronUpdate {
 #[wasm_bindgen]
 pub struct ByronUpdateData(cml_multi_era::byron::update::ByronUpdateData);
 
-impl_wasm_cbor_json_api_byron!(ByronUpdateData);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronUpdateData);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::update::ByronUpdateData,
@@ -272,7 +271,7 @@ impl ByronUpdateData {
 #[wasm_bindgen]
 pub struct ByronUpdateProposal(cml_multi_era::byron::update::ByronUpdateProposal);
 
-impl_wasm_cbor_json_api_byron!(ByronUpdateProposal);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronUpdateProposal);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::update::ByronUpdateProposal,
@@ -334,7 +333,7 @@ impl ByronUpdateProposal {
 #[wasm_bindgen]
 pub struct ByronUpdateVote(cml_multi_era::byron::update::ByronUpdateVote);
 
-impl_wasm_cbor_json_api_byron!(ByronUpdateVote);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronUpdateVote);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::update::ByronUpdateVote,
@@ -380,7 +379,7 @@ pub type CoinPortion = u64;
 #[wasm_bindgen]
 pub struct SoftForkRule(cml_multi_era::byron::update::SoftForkRule);
 
-impl_wasm_cbor_json_api_byron!(SoftForkRule);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SoftForkRule);
 
 impl_wasm_conversions!(cml_multi_era::byron::update::SoftForkRule, SoftForkRule);
 
@@ -415,7 +414,7 @@ impl SoftForkRule {
 #[wasm_bindgen]
 pub struct StdFeePolicy(cml_multi_era::byron::update::StdFeePolicy);
 
-impl_wasm_cbor_json_api_byron!(StdFeePolicy);
+impl_wasm_cbor_json_api_cbor_event_serialize!(StdFeePolicy);
 
 impl_wasm_conversions!(cml_multi_era::byron::update::StdFeePolicy, StdFeePolicy);
 

@@ -25,7 +25,7 @@ impl Serialize for MultiEraBlock {
 impl Deserialize for MultiEraBlock {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let deser_variant: Result<_, DeserializeError> = ByronBlock::deserialize(raw);
             match deser_variant {
                 Ok(byron) => return Ok(Self::Byron(byron)),

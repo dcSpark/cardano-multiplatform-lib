@@ -318,15 +318,12 @@ impl Address {
                 data: &[u8],
                 addr_size: usize,
             ) -> Result<Option<Vec<u8>>, DeserializeFailure> {
-                if data.len() < addr_size {
-                    Err(DeserializeFailure::CBOR(cbor_event::Error::NotEnough(
-                        data.len(),
-                        addr_size,
-                    )))
-                } else if data.len() > addr_size {
-                    Ok(Some(data[addr_size..].to_vec()))
-                } else {
-                    Ok(None)
+                match data.len().cmp(&addr_size) {
+                    std::cmp::Ordering::Less => Err(DeserializeFailure::CBOR(
+                        cbor_event::Error::NotEnough(data.len(), addr_size),
+                    )),
+                    std::cmp::Ordering::Greater => Ok(Some(data[addr_size..].to_vec())),
+                    std::cmp::Ordering::Equal => Ok(None),
                 }
             }
             match (header & 0xF0) >> 4 {
@@ -1433,7 +1430,7 @@ mod tests {
             255, 255, 255, 255, 255, 255, 255, 255, 127, 129, 255, 255, 255, 255, 255, 255, 255,
             255, 127, 129, 255, 255, 255, 255, 255, 255, 255, 255, 127,
         ];
-        let addr = Address::from_raw_bytes(&addr_bytes.clone()).unwrap();
+        let addr = Address::from_raw_bytes(&addr_bytes).unwrap();
         assert_eq!(addr_bytes, addr.to_raw_bytes());
     }
 }

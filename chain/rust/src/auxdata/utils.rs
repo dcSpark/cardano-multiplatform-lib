@@ -193,3 +193,9 @@ impl AuxiliaryData {
         }
     }
 }
+
+impl Default for AuxiliaryData {
+    fn default() -> Self {
+        Self::new()
+    }
+}

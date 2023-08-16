@@ -30,534 +30,102 @@ use cml_chain_wasm::{
     block::Block, certs::StakeCredential, transaction::ShelleyTxOut, Coin, StakeCredentialList,
     TransactionIndex,
 };
-use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core_wasm::{
+    impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list, impl_wasm_map,
+};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct AllegraTransactionBodyList(Vec<cml_multi_era::allegra::AllegraTransactionBody>);
-
-#[wasm_bindgen]
-impl AllegraTransactionBodyList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> AllegraTransactionBody {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &AllegraTransactionBody) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_multi_era::allegra::AllegraTransactionBody>> for AllegraTransactionBodyList {
-    fn from(native: Vec<cml_multi_era::allegra::AllegraTransactionBody>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AllegraTransactionBodyList> for Vec<cml_multi_era::allegra::AllegraTransactionBody> {
-    fn from(wasm: AllegraTransactionBodyList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_multi_era::allegra::AllegraTransactionBody>> for AllegraTransactionBodyList {
-    fn as_ref(&self) -> &Vec<cml_multi_era::allegra::AllegraTransactionBody> {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct AllegraTransactionWitnessSetList(
-    Vec<cml_multi_era::allegra::AllegraTransactionWitnessSet>,
+impl_wasm_list!(
+    cml_multi_era::allegra::AllegraTransactionBody,
+    AllegraTransactionBody,
+    AllegraTransactionBodyList
 );
 
-#[wasm_bindgen]
-impl AllegraTransactionWitnessSetList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> AllegraTransactionWitnessSet {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &AllegraTransactionWitnessSet) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_multi_era::allegra::AllegraTransactionWitnessSet>>
-    for AllegraTransactionWitnessSetList
-{
-    fn from(native: Vec<cml_multi_era::allegra::AllegraTransactionWitnessSet>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AllegraTransactionWitnessSetList>
-    for Vec<cml_multi_era::allegra::AllegraTransactionWitnessSet>
-{
-    fn from(wasm: AllegraTransactionWitnessSetList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_multi_era::allegra::AllegraTransactionWitnessSet>>
-    for AllegraTransactionWitnessSetList
-{
-    fn as_ref(&self) -> &Vec<cml_multi_era::allegra::AllegraTransactionWitnessSet> {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct AlonzoTransactionBodyList(Vec<cml_multi_era::alonzo::AlonzoTransactionBody>);
-
-#[wasm_bindgen]
-impl AlonzoTransactionBodyList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> AlonzoTransactionBody {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &AlonzoTransactionBody) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_multi_era::alonzo::AlonzoTransactionBody>> for AlonzoTransactionBodyList {
-    fn from(native: Vec<cml_multi_era::alonzo::AlonzoTransactionBody>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoTransactionBodyList> for Vec<cml_multi_era::alonzo::AlonzoTransactionBody> {
-    fn from(wasm: AlonzoTransactionBodyList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_multi_era::alonzo::AlonzoTransactionBody>> for AlonzoTransactionBodyList {
-    fn as_ref(&self) -> &Vec<cml_multi_era::alonzo::AlonzoTransactionBody> {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct AlonzoTransactionWitnessSetList(Vec<cml_multi_era::alonzo::AlonzoTransactionWitnessSet>);
-
-#[wasm_bindgen]
-impl AlonzoTransactionWitnessSetList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> AlonzoTransactionWitnessSet {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &AlonzoTransactionWitnessSet) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_multi_era::alonzo::AlonzoTransactionWitnessSet>>
-    for AlonzoTransactionWitnessSetList
-{
-    fn from(native: Vec<cml_multi_era::alonzo::AlonzoTransactionWitnessSet>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoTransactionWitnessSetList>
-    for Vec<cml_multi_era::alonzo::AlonzoTransactionWitnessSet>
-{
-    fn from(wasm: AlonzoTransactionWitnessSetList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_multi_era::alonzo::AlonzoTransactionWitnessSet>>
-    for AlonzoTransactionWitnessSetList
-{
-    fn as_ref(&self) -> &Vec<cml_multi_era::alonzo::AlonzoTransactionWitnessSet> {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct AlonzoTransactionOutputList(Vec<cml_multi_era::alonzo::AlonzoTransactionOutput>);
-
-#[wasm_bindgen]
-impl AlonzoTransactionOutputList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> AlonzoTransactionOutput {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &AlonzoTransactionOutput) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_multi_era::alonzo::AlonzoTransactionOutput>> for AlonzoTransactionOutputList {
-    fn from(native: Vec<cml_multi_era::alonzo::AlonzoTransactionOutput>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<AlonzoTransactionOutputList> for Vec<cml_multi_era::alonzo::AlonzoTransactionOutput> {
-    fn from(wasm: AlonzoTransactionOutputList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_multi_era::alonzo::AlonzoTransactionOutput>> for AlonzoTransactionOutputList {
-    fn as_ref(&self) -> &Vec<cml_multi_era::alonzo::AlonzoTransactionOutput> {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapStakeCredentialToCoin(
-    OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>,
+impl_wasm_list!(
+    cml_multi_era::allegra::AllegraTransactionWitnessSet,
+    AllegraTransactionWitnessSet,
+    AllegraTransactionWitnessSetList
 );
 
-#[wasm_bindgen]
-impl MapStakeCredentialToCoin {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &StakeCredential, value: Coin) -> Option<Coin> {
-        self.0.insert(key.clone().into(), value)
-    }
-
-    pub fn get(&self, key: &StakeCredential) -> Option<Coin> {
-        self.0.get(key.as_ref()).copied()
-    }
-
-    pub fn keys(&self) -> StakeCredentialList {
-        self.0
-            .iter()
-            .map(|(k, _v)| k.clone())
-            .collect::<Vec<_>>()
-            .into()
-    }
-}
-
-impl From<OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>>
-    for MapStakeCredentialToCoin
-{
-    fn from(
-        native: OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>,
-    ) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MapStakeCredentialToCoin>
-    for OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>
-{
-    fn from(wasm: MapStakeCredentialToCoin) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>>
-    for MapStakeCredentialToCoin
-{
-    fn as_ref(
-        &self,
-    ) -> &OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin> {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapTransactionIndexToAllegraAuxiliaryData(
-    OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::allegra::AllegraAuxiliaryData>,
+impl_wasm_list!(
+    cml_multi_era::alonzo::AlonzoTransactionBody,
+    AlonzoTransactionBody,
+    AlonzoTransactionBodyList
 );
 
-#[wasm_bindgen]
-impl MapTransactionIndexToAllegraAuxiliaryData {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(
-        &mut self,
-        key: TransactionIndex,
-        value: &AllegraAuxiliaryData,
-    ) -> Option<AllegraAuxiliaryData> {
-        self.0.insert(key, value.clone().into()).map(Into::into)
-    }
-
-    pub fn get(&self, key: TransactionIndex) -> Option<AllegraAuxiliaryData> {
-        self.0.get(&key).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> Vec<TransactionIndex> {
-        self.0.keys().copied().collect::<Vec<_>>()
-    }
-}
-
-impl From<OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::allegra::AllegraAuxiliaryData>>
-    for MapTransactionIndexToAllegraAuxiliaryData
-{
-    fn from(
-        native: OrderedHashMap<
-            cml_chain::TransactionIndex,
-            cml_multi_era::allegra::AllegraAuxiliaryData,
-        >,
-    ) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MapTransactionIndexToAllegraAuxiliaryData>
-    for OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::allegra::AllegraAuxiliaryData>
-{
-    fn from(wasm: MapTransactionIndexToAllegraAuxiliaryData) -> Self {
-        wasm.0
-    }
-}
-
-impl
-    AsRef<OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::allegra::AllegraAuxiliaryData>>
-    for MapTransactionIndexToAllegraAuxiliaryData
-{
-    fn as_ref(
-        &self,
-    ) -> &OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::allegra::AllegraAuxiliaryData>
-    {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapTransactionIndexToAlonzoAuxiliaryData(
-    OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::alonzo::AlonzoAuxiliaryData>,
+impl_wasm_list!(
+    cml_multi_era::alonzo::AlonzoTransactionWitnessSet,
+    AlonzoTransactionWitnessSet,
+    AlonzoTransactionWitnessSetList
 );
 
-#[wasm_bindgen]
-impl MapTransactionIndexToAlonzoAuxiliaryData {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
+impl_wasm_list!(
+    cml_multi_era::alonzo::AlonzoTransactionOutput,
+    AlonzoTransactionOutput,
+    AlonzoTransactionOutputList
+);
 
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
+impl_wasm_map!(
+    cml_chain::certs::StakeCredential,
+    cml_chain::assets::Coin,
+    StakeCredential,
+    Coin,
+    StakeCredentialList,
+    MapStakeCredentialToCoin,
+    false,
+    true,
+    false,
+    true
+);
 
-    pub fn insert(
-        &mut self,
-        key: TransactionIndex,
-        value: &AlonzoAuxiliaryData,
-    ) -> Option<AlonzoAuxiliaryData> {
-        self.0.insert(key, value.clone().into()).map(Into::into)
-    }
+impl_wasm_map!(
+    cml_chain::TransactionIndex,
+    cml_multi_era::allegra::AllegraAuxiliaryData,
+    TransactionIndex,
+    AllegraAuxiliaryData,
+    Vec<TransactionIndex>,
+    MapTransactionIndexToAllegraAuxiliaryData,
+    true,
+    false,
+    true,
+    false
+);
 
-    pub fn get(&self, key: TransactionIndex) -> Option<AlonzoAuxiliaryData> {
-        self.0.get(&key).map(|v| v.clone().into())
-    }
+impl_wasm_map!(
+    cml_chain::TransactionIndex,
+    cml_multi_era::alonzo::AlonzoAuxiliaryData,
+    TransactionIndex,
+    AlonzoAuxiliaryData,
+    Vec<TransactionIndex>,
+    MapTransactionIndexToAlonzoAuxiliaryData,
+    true,
+    false,
+    true,
+    false
+);
 
-    pub fn keys(&self) -> Vec<TransactionIndex> {
-        self.0.keys().copied().collect::<Vec<_>>()
-    }
-}
+impl_wasm_list!(
+    cml_multi_era::mary::MaryTransactionBody,
+    MaryTransactionBody,
+    MaryTransactionBodyList
+);
 
-impl From<OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::alonzo::AlonzoAuxiliaryData>>
-    for MapTransactionIndexToAlonzoAuxiliaryData
-{
-    fn from(
-        native: OrderedHashMap<
-            cml_chain::TransactionIndex,
-            cml_multi_era::alonzo::AlonzoAuxiliaryData,
-        >,
-    ) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MapTransactionIndexToAlonzoAuxiliaryData>
-    for OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::alonzo::AlonzoAuxiliaryData>
-{
-    fn from(wasm: MapTransactionIndexToAlonzoAuxiliaryData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::alonzo::AlonzoAuxiliaryData>>
-    for MapTransactionIndexToAlonzoAuxiliaryData
-{
-    fn as_ref(
-        &self,
-    ) -> &OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::alonzo::AlonzoAuxiliaryData>
-    {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MaryTransactionBodyList(Vec<cml_multi_era::mary::MaryTransactionBody>);
-
-#[wasm_bindgen]
-impl MaryTransactionBodyList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> MaryTransactionBody {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &MaryTransactionBody) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_multi_era::mary::MaryTransactionBody>> for MaryTransactionBodyList {
-    fn from(native: Vec<cml_multi_era::mary::MaryTransactionBody>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MaryTransactionBodyList> for Vec<cml_multi_era::mary::MaryTransactionBody> {
-    fn from(wasm: MaryTransactionBodyList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_multi_era::mary::MaryTransactionBody>> for MaryTransactionBodyList {
-    fn as_ref(&self) -> &Vec<cml_multi_era::mary::MaryTransactionBody> {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MultisigScriptList(Vec<cml_multi_era::shelley::MultisigScript>);
-
-#[wasm_bindgen]
-impl MultisigScriptList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> MultisigScript {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &MultisigScript) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_multi_era::shelley::MultisigScript>> for MultisigScriptList {
-    fn from(native: Vec<cml_multi_era::shelley::MultisigScript>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MultisigScriptList> for Vec<cml_multi_era::shelley::MultisigScript> {
-    fn from(wasm: MultisigScriptList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_multi_era::shelley::MultisigScript>> for MultisigScriptList {
-    fn as_ref(&self) -> &Vec<cml_multi_era::shelley::MultisigScript> {
-        &self.0
-    }
-}
+impl_wasm_list!(
+    cml_multi_era::shelley::MultisigScript,
+    MultisigScript,
+    MultisigScriptList
+);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MultiEraBlock(cml_multi_era::MultiEraBlock);
 
+impl_wasm_cbor_json_api!(MultiEraBlock);
+
+impl_wasm_conversions!(cml_multi_era::MultiEraBlock, MultiEraBlock);
+
 #[wasm_bindgen]
 impl MultiEraBlock {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<MultiEraBlock, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<MultiEraBlock, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_byron(byron: &ByronBlock) -> Self {
         Self(cml_multi_era::MultiEraBlock::new_byron(
             byron.clone().into(),
@@ -646,24 +214,6 @@ impl MultiEraBlock {
     }
 }
 
-impl From<cml_multi_era::MultiEraBlock> for MultiEraBlock {
-    fn from(native: cml_multi_era::MultiEraBlock) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MultiEraBlock> for cml_multi_era::MultiEraBlock {
-    fn from(wasm: MultiEraBlock) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_multi_era::MultiEraBlock> for MultiEraBlock {
-    fn as_ref(&self) -> &cml_multi_era::MultiEraBlock {
-        &self.0
-    }
-}
-
 #[wasm_bindgen]
 pub enum MultiEraBlockKind {
     Byron,
@@ -674,174 +224,26 @@ pub enum MultiEraBlockKind {
     Babbage,
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct ShelleyTransactionBodyList(Vec<cml_multi_era::shelley::ShelleyTransactionBody>);
-
-#[wasm_bindgen]
-impl ShelleyTransactionBodyList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> ShelleyTransactionBody {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &ShelleyTransactionBody) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_multi_era::shelley::ShelleyTransactionBody>> for ShelleyTransactionBodyList {
-    fn from(native: Vec<cml_multi_era::shelley::ShelleyTransactionBody>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ShelleyTransactionBodyList> for Vec<cml_multi_era::shelley::ShelleyTransactionBody> {
-    fn from(wasm: ShelleyTransactionBodyList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_multi_era::shelley::ShelleyTransactionBody>> for ShelleyTransactionBodyList {
-    fn as_ref(&self) -> &Vec<cml_multi_era::shelley::ShelleyTransactionBody> {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct ShelleyTransactionOutputList(Vec<cml_multi_era::shelley::ShelleyTransactionOutput>);
-
-#[wasm_bindgen]
-impl ShelleyTransactionOutputList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> ShelleyTransactionOutput {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &ShelleyTransactionOutput) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_multi_era::shelley::ShelleyTransactionOutput>> for ShelleyTransactionOutputList {
-    fn from(native: Vec<cml_multi_era::shelley::ShelleyTransactionOutput>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ShelleyTransactionOutputList> for Vec<cml_multi_era::shelley::ShelleyTransactionOutput> {
-    fn from(wasm: ShelleyTransactionOutputList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_multi_era::shelley::ShelleyTransactionOutput>> for ShelleyTransactionOutputList {
-    fn as_ref(&self) -> &Vec<cml_multi_era::shelley::ShelleyTransactionOutput> {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct ShelleyTransactionWitnessSetList(
-    Vec<cml_multi_era::shelley::ShelleyTransactionWitnessSet>,
+impl_wasm_list!(
+    cml_multi_era::shelley::ShelleyTransactionBody,
+    ShelleyTransactionBody,
+    ShelleyTransactionBodyList
 );
 
-#[wasm_bindgen]
-impl ShelleyTransactionWitnessSetList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
+impl_wasm_list!(
+    cml_multi_era::shelley::ShelleyTransactionOutput,
+    ShelleyTransactionOutput,
+    ShelleyTransactionOutputList
+);
 
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
+impl_wasm_list!(
+    cml_multi_era::shelley::ShelleyTransactionWitnessSet,
+    ShelleyTransactionWitnessSet,
+    ShelleyTransactionWitnessSetList
+);
 
-    pub fn get(&self, index: usize) -> ShelleyTransactionWitnessSet {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &ShelleyTransactionWitnessSet) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_multi_era::shelley::ShelleyTransactionWitnessSet>>
-    for ShelleyTransactionWitnessSetList
-{
-    fn from(native: Vec<cml_multi_era::shelley::ShelleyTransactionWitnessSet>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ShelleyTransactionWitnessSetList>
-    for Vec<cml_multi_era::shelley::ShelleyTransactionWitnessSet>
-{
-    fn from(wasm: ShelleyTransactionWitnessSetList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_multi_era::shelley::ShelleyTransactionWitnessSet>>
-    for ShelleyTransactionWitnessSetList
-{
-    fn as_ref(&self) -> &Vec<cml_multi_era::shelley::ShelleyTransactionWitnessSet> {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct ShelleyTxOutList(Vec<cml_chain::transaction::ShelleyTxOut>);
-
-#[wasm_bindgen]
-impl ShelleyTxOutList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> ShelleyTxOut {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &ShelleyTxOut) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_chain::transaction::ShelleyTxOut>> for ShelleyTxOutList {
-    fn from(native: Vec<cml_chain::transaction::ShelleyTxOut>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ShelleyTxOutList> for Vec<cml_chain::transaction::ShelleyTxOut> {
-    fn from(wasm: ShelleyTxOutList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_chain::transaction::ShelleyTxOut>> for ShelleyTxOutList {
-    fn as_ref(&self) -> &Vec<cml_chain::transaction::ShelleyTxOut> {
-        &self.0
-    }
-}
+impl_wasm_list!(
+    cml_chain::transaction::ShelleyTxOut,
+    ShelleyTxOut,
+    ShelleyTxOutList
+);

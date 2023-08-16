@@ -70,15 +70,15 @@ impl From<PlutusScript> for Script {
 const BOUNDED_BYTES_CHUNK_SIZE: usize = 64;
 
 // to get around not having access from outside the library we just write the raw CBOR indefinite byte string code here
-fn write_cbor_indefinite_byte_tag<'se, W: Write>(
-    serializer: &'se mut Serializer<W>,
-) -> cbor_event::Result<&'se mut Serializer<W>> {
+fn write_cbor_indefinite_byte_tag<W: Write>(
+    serializer: &mut Serializer<W>,
+) -> cbor_event::Result<&mut Serializer<W>> {
     serializer.write_raw_bytes(&[0x5f])
 }
 
 use cml_core::serialization::StringEncoding;
 
-fn valid_indefinite_string_encoding(chunks: &Vec<(u64, cbor_event::Sz)>, total_len: usize) -> bool {
+fn valid_indefinite_string_encoding(chunks: &[(u64, cbor_event::Sz)], total_len: usize) -> bool {
     let mut len_counter = 0;
     let valid_sz = chunks.iter().all(|(len, sz)| {
         len_counter += len;

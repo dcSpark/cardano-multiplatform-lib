@@ -8,6 +8,8 @@
 
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_json_api};
+
 use cml_chain_wasm::address::RewardAddress;
 pub mod utils;
 
@@ -15,34 +17,12 @@ pub mod utils;
 #[wasm_bindgen]
 pub struct Delegation(cml_cip36::Delegation);
 
+impl_wasm_cbor_json_api!(Delegation);
+
+impl_wasm_conversions!(cml_cip36::Delegation, Delegation);
+
 #[wasm_bindgen]
 impl Delegation {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<Delegation, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<Delegation, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn voting_pub_key(&self) -> VotingPubKey {
         self.0.voting_pub_key.clone().into()
     }
@@ -59,56 +39,16 @@ impl Delegation {
     }
 }
 
-impl From<cml_cip36::Delegation> for Delegation {
-    fn from(native: cml_cip36::Delegation) -> Self {
-        Self(native)
-    }
-}
-
-impl From<Delegation> for cml_cip36::Delegation {
-    fn from(wasm: Delegation) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_cip36::Delegation> for Delegation {
-    fn as_ref(&self) -> &cml_cip36::Delegation {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct DelegationDistribution(cml_cip36::DelegationDistribution);
 
+impl_wasm_cbor_json_api!(DelegationDistribution);
+
+impl_wasm_conversions!(cml_cip36::DelegationDistribution, DelegationDistribution);
+
 #[wasm_bindgen]
 impl DelegationDistribution {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<DelegationDistribution, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<DelegationDistribution, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn new_weighted(delegations: &DelegationList) -> Self {
         Self(cml_cip36::DelegationDistribution::new_weighted(
             delegations.clone().into(),
@@ -144,24 +84,6 @@ impl DelegationDistribution {
             cml_cip36::DelegationDistribution::Legacy { legacy, .. } => Some(legacy.clone().into()),
             _ => None,
         }
-    }
-}
-
-impl From<cml_cip36::DelegationDistribution> for DelegationDistribution {
-    fn from(native: cml_cip36::DelegationDistribution) -> Self {
-        Self(native)
-    }
-}
-
-impl From<DelegationDistribution> for cml_cip36::DelegationDistribution {
-    fn from(wasm: DelegationDistribution) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_cip36::DelegationDistribution> for DelegationDistribution {
-    fn as_ref(&self) -> &cml_cip36::DelegationDistribution {
-        &self.0
     }
 }
 
@@ -216,24 +138,13 @@ impl AsRef<Vec<cml_cip36::Delegation>> for DelegationList {
 #[wasm_bindgen]
 pub struct DeregistrationCbor(cml_cip36::DeregistrationCbor);
 
+// DeregistrationCbor does not implement Serialize as it may be a subset of metadata
+impl_wasm_json_api!(DeregistrationCbor);
+
+impl_wasm_conversions!(cml_cip36::DeregistrationCbor, DeregistrationCbor);
+
 #[wasm_bindgen]
 impl DeregistrationCbor {
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<DeregistrationCbor, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn key_deregistration(&self) -> KeyDeregistration {
         self.0.key_deregistration.clone().into()
     }
@@ -253,56 +164,16 @@ impl DeregistrationCbor {
     }
 }
 
-impl From<cml_cip36::DeregistrationCbor> for DeregistrationCbor {
-    fn from(native: cml_cip36::DeregistrationCbor) -> Self {
-        Self(native)
-    }
-}
-
-impl From<DeregistrationCbor> for cml_cip36::DeregistrationCbor {
-    fn from(wasm: DeregistrationCbor) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_cip36::DeregistrationCbor> for DeregistrationCbor {
-    fn as_ref(&self) -> &cml_cip36::DeregistrationCbor {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct DeregistrationWitness(cml_cip36::DeregistrationWitness);
 
+impl_wasm_cbor_json_api!(DeregistrationWitness);
+
+impl_wasm_conversions!(cml_cip36::DeregistrationWitness, DeregistrationWitness);
+
 #[wasm_bindgen]
 impl DeregistrationWitness {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<DeregistrationWitness, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<DeregistrationWitness, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn stake_witness(&self) -> StakeWitness {
         self.0.stake_witness.clone().into()
     }
@@ -314,56 +185,16 @@ impl DeregistrationWitness {
     }
 }
 
-impl From<cml_cip36::DeregistrationWitness> for DeregistrationWitness {
-    fn from(native: cml_cip36::DeregistrationWitness) -> Self {
-        Self(native)
-    }
-}
-
-impl From<DeregistrationWitness> for cml_cip36::DeregistrationWitness {
-    fn from(wasm: DeregistrationWitness) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_cip36::DeregistrationWitness> for DeregistrationWitness {
-    fn as_ref(&self) -> &cml_cip36::DeregistrationWitness {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct KeyDeregistration(cml_cip36::KeyDeregistration);
 
+impl_wasm_cbor_json_api!(KeyDeregistration);
+
+impl_wasm_conversions!(cml_cip36::KeyDeregistration, KeyDeregistration);
+
 #[wasm_bindgen]
 impl KeyDeregistration {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<KeyDeregistration, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<KeyDeregistration, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn stake_credential(&self) -> StakeCredential {
         self.0.stake_credential.clone().into()
     }
@@ -388,56 +219,16 @@ impl KeyDeregistration {
     }
 }
 
-impl From<cml_cip36::KeyDeregistration> for KeyDeregistration {
-    fn from(native: cml_cip36::KeyDeregistration) -> Self {
-        Self(native)
-    }
-}
-
-impl From<KeyDeregistration> for cml_cip36::KeyDeregistration {
-    fn from(wasm: KeyDeregistration) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_cip36::KeyDeregistration> for KeyDeregistration {
-    fn as_ref(&self) -> &cml_cip36::KeyDeregistration {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct KeyRegistration(cml_cip36::KeyRegistration);
 
+impl_wasm_cbor_json_api!(KeyRegistration);
+
+impl_wasm_conversions!(cml_cip36::KeyRegistration, KeyRegistration);
+
 #[wasm_bindgen]
 impl KeyRegistration {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<KeyRegistration, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<KeyRegistration, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn delegation(&self) -> DelegationDistribution {
         self.0.delegation.clone().into()
     }
@@ -477,24 +268,6 @@ impl KeyRegistration {
     }
 }
 
-impl From<cml_cip36::KeyRegistration> for KeyRegistration {
-    fn from(native: cml_cip36::KeyRegistration) -> Self {
-        Self(native)
-    }
-}
-
-impl From<KeyRegistration> for cml_cip36::KeyRegistration {
-    fn from(wasm: KeyRegistration) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_cip36::KeyRegistration> for KeyRegistration {
-    fn as_ref(&self) -> &cml_cip36::KeyRegistration {
-        &self.0
-    }
-}
-
 pub type LegacyKeyRegistration = cml_crypto_wasm::PublicKey;
 
 pub type Nonce = u64;
@@ -503,24 +276,13 @@ pub type Nonce = u64;
 #[wasm_bindgen]
 pub struct RegistrationCbor(cml_cip36::RegistrationCbor);
 
+// not implemented since RegistrationCbor doesn't implement Serialize as it's a subset of metadata
+impl_wasm_json_api!(RegistrationCbor);
+
+impl_wasm_conversions!(cml_cip36::RegistrationCbor, RegistrationCbor);
+
 #[wasm_bindgen]
 impl RegistrationCbor {
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<RegistrationCbor, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn key_registration(&self) -> KeyRegistration {
         self.0.key_registration.clone().into()
     }
@@ -540,56 +302,16 @@ impl RegistrationCbor {
     }
 }
 
-impl From<cml_cip36::RegistrationCbor> for RegistrationCbor {
-    fn from(native: cml_cip36::RegistrationCbor) -> Self {
-        Self(native)
-    }
-}
-
-impl From<RegistrationCbor> for cml_cip36::RegistrationCbor {
-    fn from(wasm: RegistrationCbor) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_cip36::RegistrationCbor> for RegistrationCbor {
-    fn as_ref(&self) -> &cml_cip36::RegistrationCbor {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct RegistrationWitness(cml_cip36::RegistrationWitness);
 
+impl_wasm_cbor_json_api!(RegistrationWitness);
+
+impl_wasm_conversions!(cml_cip36::RegistrationWitness, RegistrationWitness);
+
 #[wasm_bindgen]
 impl RegistrationWitness {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<RegistrationWitness, JsValue> {
-        cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<RegistrationWitness, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn stake_witness(&self) -> StakeWitness {
         self.0.stake_witness.clone().into()
     }
@@ -598,24 +320,6 @@ impl RegistrationWitness {
         Self(cml_cip36::RegistrationWitness::new(
             stake_witness.clone().into(),
         ))
-    }
-}
-
-impl From<cml_cip36::RegistrationWitness> for RegistrationWitness {
-    fn from(native: cml_cip36::RegistrationWitness) -> Self {
-        Self(native)
-    }
-}
-
-impl From<RegistrationWitness> for cml_cip36::RegistrationWitness {
-    fn from(wasm: RegistrationWitness) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_cip36::RegistrationWitness> for RegistrationWitness {
-    fn as_ref(&self) -> &cml_cip36::RegistrationWitness {
-        &self.0
     }
 }
 

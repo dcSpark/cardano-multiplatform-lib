@@ -385,8 +385,9 @@ impl TransactionWitnessSetBuilder {
                     PlutusScriptWitness::Script(plutus_script) => {
                         self.add_script(plutus_script.clone().into());
                     }
-                    // We don't add the script references to the witness set
-                    _ => (),
+                    PlutusScriptWitness::Ref(_) => {
+                        // We don't add the script references to the witness set
+                    }
                 }
                 if let Some(data) = option {
                     self.add_plutus_datum(data.clone());
@@ -761,6 +762,6 @@ mod tests {
             TransactionWitnessSet::from_cbor_bytes(&hex::decode(data).unwrap()).unwrap();
         let round_trip = witness_set.to_cbor_bytes();
 
-        assert_eq!(data, hex::encode(&round_trip));
+        assert_eq!(data, hex::encode(round_trip));
     }
 }

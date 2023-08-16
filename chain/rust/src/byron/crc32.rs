@@ -354,6 +354,12 @@ impl std::fmt::Display for Crc32 {
     }
 }
 
+impl Default for Crc32 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// function is kept for compatibility. however prefer the
 /// `Crc32` structure.
 ///

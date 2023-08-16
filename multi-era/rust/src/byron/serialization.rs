@@ -28,10 +28,10 @@ impl Deserialize for ByronSlotId {
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
-            let epoch = Ok(raw.unsigned_integer()? as u64)
-                .map_err(|e: DeserializeError| e.annotate("epoch"))?;
-            let slot = Ok(raw.unsigned_integer()? as u64)
-                .map_err(|e: DeserializeError| e.annotate("slot"))?;
+            let epoch =
+                Ok(raw.unsigned_integer()?).map_err(|e: DeserializeError| e.annotate("epoch"))?;
+            let slot =
+                Ok(raw.unsigned_integer()?).map_err(|e: DeserializeError| e.annotate("slot"))?;
             match len {
                 cbor_event::Len::Len(_) => (),
                 cbor_event::Len::Indefinite => match raw.special()? {

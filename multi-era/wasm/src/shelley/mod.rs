@@ -563,7 +563,7 @@ impl ShelleyMoveInstantaneousReward {
 
     pub fn new(pot: MIRPot, to_stake_credentials: &MapStakeCredentialToCoin) -> Self {
         Self(cml_multi_era::shelley::ShelleyMoveInstantaneousReward::new(
-            pot.into(),
+            pot,
             to_stake_credentials.clone().into(),
         ))
     }

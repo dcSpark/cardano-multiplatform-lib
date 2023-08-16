@@ -36,7 +36,7 @@ impl TransactionOutput {
     }
 
     pub fn datum(&self) -> Option<DatumOption> {
-        self.0.datum().clone().map(Into::into)
+        self.0.datum().map(Into::into)
     }
 
     /// Get the datum hash from a tx output if present as a hash.

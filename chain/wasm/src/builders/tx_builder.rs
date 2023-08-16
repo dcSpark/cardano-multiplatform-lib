@@ -202,7 +202,7 @@ impl TransactionBuilder {
     }
 
     pub fn get_withdrawals(&self) -> Option<Withdrawals> {
-        self.0.get_withdrawals().map(|wd| wd.clone().into())
+        self.0.get_withdrawals().map(|wd| wd.into())
     }
 
     pub fn add_withdrawal(&mut self, result: &WithdrawalBuilderResult) {
@@ -210,7 +210,7 @@ impl TransactionBuilder {
     }
 
     pub fn get_auxiliary_data(&self) -> Option<AuxiliaryData> {
-        self.0.get_auxiliary_data().map(|aux| aux.clone().into())
+        self.0.get_auxiliary_data().map(|aux| aux.into())
     }
 
     pub fn set_auxiliary_data(&mut self, new_aux_data: &AuxiliaryData) {
@@ -227,7 +227,7 @@ impl TransactionBuilder {
 
     /// Returns a copy of the current mint state in the builder
     pub fn get_mint(&self) -> Option<Mint> {
-        self.0.get_mint().map(|m| m.clone().into())
+        self.0.get_mint().map(|m| m.into())
     }
 
     pub fn new(cfg: &TransactionBuilderConfig) -> Self {
@@ -341,7 +341,7 @@ impl TransactionBuilder {
     /// used to override the exunit values initially provided when adding inputs
     pub fn set_exunits(&mut self, redeemer: &RedeemerWitnessKey, ex_units: &ExUnits) {
         self.0
-            .set_exunits(redeemer.clone().into(), ex_units.clone().into())
+            .set_exunits((*redeemer).into(), ex_units.clone().into())
     }
 
     /// warning: sum of all parts of a transaction must equal 0. You cannot just set the fee to the min value and forget about it
@@ -390,7 +390,7 @@ impl TxRedeemerBuilder {
     /// used to override the exunit values initially provided when adding inputs
     pub fn set_exunits(&mut self, redeemer: &RedeemerWitnessKey, ex_units: &ExUnits) {
         self.0
-            .set_exunits(redeemer.clone().into(), ex_units.clone().into())
+            .set_exunits((*redeemer).into(), ex_units.clone().into())
     }
 
     /// Transaction body with a dummy values for redeemers & script_data_hash
@@ -493,6 +493,6 @@ impl SignedTxBuilder {
     }
 
     pub fn auxiliary_data(&self) -> Option<AuxiliaryData> {
-        self.0.auxiliary_data().map(|aux| aux.clone().into())
+        self.0.auxiliary_data().map(|aux| aux.into())
     }
 }

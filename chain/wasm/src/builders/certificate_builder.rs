@@ -68,7 +68,6 @@ impl SingleCertificateBuilder {
         required_signers: &RequiredSigners,
     ) -> Result<CertificateBuilderResult, JsError> {
         self.0
-            .clone()
             .plutus_script(
                 partial_witness.clone().into(),
                 required_signers.clone().into(),

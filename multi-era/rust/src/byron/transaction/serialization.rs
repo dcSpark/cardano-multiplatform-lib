@@ -540,7 +540,7 @@ impl cbor_event::se::Serialize for ByronTxIn {
 impl Deserialize for ByronTxIn {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> = ByronTxInRegular::deserialize(raw);
             match deser_variant {
@@ -686,7 +686,7 @@ impl cbor_event::se::Serialize for ByronTxOutPtr {
         serializer: &'se mut Serializer<W>,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(2))?;
-        serializer.write_bytes(&self.byron_tx_id.to_raw_bytes())?;
+        serializer.write_bytes(self.byron_tx_id.to_raw_bytes())?;
         serializer.write_unsigned_integer(self.u32 as u64)?;
         Ok(serializer)
     }
@@ -729,8 +729,8 @@ impl cbor_event::se::Serialize for ByronTxProof {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(3))?;
         serializer.write_unsigned_integer(self.u32 as u64)?;
-        serializer.write_bytes(&self.blake2b256.to_raw_bytes())?;
-        serializer.write_bytes(&self.blake2b2562.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b256.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b2562.to_raw_bytes())?;
         Ok(serializer)
     }
 }
@@ -801,7 +801,7 @@ impl Deserialize for ByronTxWitness {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array()?;
             let mut read_len = CBORReadLen::from(len);
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> =
                 ByronPkWitness::deserialize_as_embedded_group(

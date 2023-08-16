@@ -198,7 +198,7 @@ impl Deserialize for Bvermod {
                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                         break;
                     }
-                    mpc_thd_arr.push(raw.unsigned_integer()? as u64);
+                    mpc_thd_arr.push(raw.unsigned_integer()?);
                 }
                 Ok(mpc_thd_arr)
             })()
@@ -214,7 +214,7 @@ impl Deserialize for Bvermod {
                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                         break;
                     }
-                    heavy_del_thd_arr.push(raw.unsigned_integer()? as u64);
+                    heavy_del_thd_arr.push(raw.unsigned_integer()?);
                 }
                 Ok(heavy_del_thd_arr)
             })()
@@ -230,7 +230,7 @@ impl Deserialize for Bvermod {
                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                         break;
                     }
-                    update_vote_thd_arr.push(raw.unsigned_integer()? as u64);
+                    update_vote_thd_arr.push(raw.unsigned_integer()?);
                 }
                 Ok(update_vote_thd_arr)
             })()
@@ -246,7 +246,7 @@ impl Deserialize for Bvermod {
                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                         break;
                     }
-                    update_proposal_thd_arr.push(raw.unsigned_integer()? as u64);
+                    update_proposal_thd_arr.push(raw.unsigned_integer()?);
                 }
                 Ok(update_proposal_thd_arr)
             })()
@@ -262,7 +262,7 @@ impl Deserialize for Bvermod {
                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                         break;
                     }
-                    update_implicit_arr.push(raw.unsigned_integer()? as u64);
+                    update_implicit_arr.push(raw.unsigned_integer()?);
                 }
                 Ok(update_implicit_arr)
             })()
@@ -310,7 +310,7 @@ impl Deserialize for Bvermod {
                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                         break;
                     }
-                    unlock_stake_epoch_arr.push(raw.unsigned_integer()? as u64);
+                    unlock_stake_epoch_arr.push(raw.unsigned_integer()?);
                 }
                 Ok(unlock_stake_epoch_arr)
             })()
@@ -562,10 +562,10 @@ impl cbor_event::se::Serialize for ByronUpdateData {
         serializer: &'se mut Serializer<W>,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(4))?;
-        serializer.write_bytes(&self.blake2b256.to_raw_bytes())?;
-        serializer.write_bytes(&self.blake2b2562.to_raw_bytes())?;
-        serializer.write_bytes(&self.blake2b2563.to_raw_bytes())?;
-        serializer.write_bytes(&self.blake2b2564.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b256.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b2562.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b2563.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b2564.to_raw_bytes())?;
         Ok(serializer)
     }
 }
@@ -638,7 +638,7 @@ impl cbor_event::se::Serialize for ByronUpdateProposal {
         self.software_version.serialize(serializer)?;
         serializer.write_map(cbor_event::Len::Len(self.data.len() as u64))?;
         for (key, value) in self.data.iter() {
-            serializer.write_text(&key)?;
+            serializer.write_text(key)?;
             value.serialize(serializer)?;
         }
         serializer.write_map(cbor_event::Len::Len(self.byron_attributes.len() as u64))?;
@@ -746,7 +746,7 @@ impl cbor_event::se::Serialize for ByronUpdateVote {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(4))?;
         serializer.write_bytes(&self.voter)?;
-        serializer.write_bytes(&self.proposal_id.to_raw_bytes())?;
+        serializer.write_bytes(self.proposal_id.to_raw_bytes())?;
         serializer.write_special(cbor_event::Special::Bool(self.vote))?;
         serializer.write_bytes(&self.signature)?;
         Ok(serializer)
@@ -814,11 +814,11 @@ impl Deserialize for SoftForkRule {
         read_len.read_elems(3)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
-            let coin_portion = Ok(raw.unsigned_integer()? as u64)
+            let coin_portion = Ok(raw.unsigned_integer()?)
                 .map_err(|e: DeserializeError| e.annotate("coin_portion"))?;
-            let coin_portion2 = Ok(raw.unsigned_integer()? as u64)
+            let coin_portion2 = Ok(raw.unsigned_integer()?)
                 .map_err(|e: DeserializeError| e.annotate("coin_portion2"))?;
-            let coin_portion3 = Ok(raw.unsigned_integer()? as u64)
+            let coin_portion3 = Ok(raw.unsigned_integer()?)
                 .map_err(|e: DeserializeError| e.annotate("coin_portion3"))?;
             match len {
                 cbor_event::Len::Len(_) => (),

@@ -82,6 +82,7 @@ pub struct HeaderBody {
 }
 
 impl HeaderBody {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         block_number: u64,
         slot: u64,

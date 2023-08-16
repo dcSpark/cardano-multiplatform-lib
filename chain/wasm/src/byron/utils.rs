@@ -116,7 +116,7 @@ impl AddressContent {
     pub fn icarus_from_key(key: &Bip32PublicKey, protocol_magic: &ProtocolMagic) -> AddressContent {
         cml_chain::byron::AddressContent::icarus_from_key(
             key.clone().into(),
-            protocol_magic.clone().into(),
+            (*protocol_magic).into(),
         )
         .into()
     }
@@ -136,7 +136,7 @@ impl ByronAddress {
     pub fn from_base58(s: &str) -> Result<ByronAddress, JsError> {
         cml_chain::byron::ByronAddress::from_base58(s)
             .map(Self)
-            .map_err(|e| JsError::new(&format!("ByronAddress::from_base58: {:?}", e)))
+            .map_err(|e| JsError::new(&format!("ByronAddress::from_base58: {e:?}")))
     }
 
     pub fn is_valid(s: &str) -> bool {
@@ -152,10 +152,7 @@ impl ByronAddress {
     }
 
     pub fn from_address_content(address_content: &AddressContent) -> Self {
-        cml_chain::byron::ByronAddress::from(cml_chain::byron::AddressContent::from(
-            address_content.clone(),
-        ))
-        .into()
+        cml_chain::byron::ByronAddress::from(address_content.as_ref().clone()).into()
     }
 }
 
@@ -212,10 +209,6 @@ pub fn make_icarus_bootstrap_witness(
     addr: ByronAddress,
     key: &Bip32PrivateKey,
 ) -> BootstrapWitness {
-    cml_chain::byron::make_icarus_bootstrap_witness(
-        tx_body_hash.clone().into(),
-        addr.clone().into(),
-        key.as_ref(),
-    )
-    .into()
+    cml_chain::byron::make_icarus_bootstrap_witness(tx_body_hash.into(), addr.into(), key.as_ref())
+        .into()
 }

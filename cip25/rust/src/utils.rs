@@ -145,17 +145,16 @@ impl MiniMetadataDetails {
                     .or_else(|| map.get(&TransactionMetadatum::new_text("title".to_owned())))
                     // for some reason, 0.3% of NFTs use "id" instead of name
                     .or_else(|| map.get(&TransactionMetadatum::new_text("id".to_owned())))
-                    .map(|result| match result {
-                        TransactionMetadatum::Text { text, .. } => String64::new_str(&text).ok(),
+                    .and_then(|result| match result {
+                        TransactionMetadatum::Text { text, .. } => String64::new_str(text).ok(),
                         _ => None,
-                    })
-                    .flatten();
+                    });
 
                 let image_base = map.get(&TransactionMetadatum::new_text("image".to_owned()));
                 let image = match image_base {
                     None => None,
                     Some(base) => match base {
-                        TransactionMetadatum::Text { text, .. } => match String64::new_str(&text) {
+                        TransactionMetadatum::Text { text, .. } => match String64::new_str(text) {
                             Ok(str64) => Some(ChunkableString::Single(str64)),
                             Err(_) => None,
                         },
@@ -164,7 +163,7 @@ impl MiniMetadataDetails {
                             for i in 0..elements.len() {
                                 match elements.get(i) {
                                     Some(TransactionMetadatum::Text { text, .. }) => {
-                                        match String64::new_str(&text) {
+                                        match String64::new_str(text) {
                                             Ok(str64) => chunks.push(str64),
                                             Err(_) => return None,
                                         }
@@ -293,7 +292,7 @@ impl cbor_event::se::Serialize for LabelMetadata {
             }
             CIP25Version::V2 => {
                 serializer.write_map(cbor_event::Len::Len(2))?;
-                serializer.write_text(&"data")?;
+                serializer.write_text("data")?;
                 serializer.write_map(cbor_event::Len::Len(self.nfts.len() as u64))?;
                 for (policy_id, assets) in self.nfts.iter() {
                     // hand-edit: write bytes
@@ -307,7 +306,7 @@ impl cbor_event::se::Serialize for LabelMetadata {
                         details.serialize(serializer)?;
                     }
                 }
-                serializer.write_text(&"version")?;
+                serializer.write_text("version")?;
                 serializer.write_unsigned_integer(2u64)?;
             }
         }
@@ -320,7 +319,7 @@ impl Deserialize for LabelMetadata {
         (|| -> Result<_, DeserializeError> {
             // largely taken from result of generating the original CDDL then modifying to merge v1/v2
             // this has to be modified anyway to allow for permissive parsing in the first place.
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
 
             // Try parsing V1
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
@@ -618,7 +617,7 @@ impl Deserialize for LabelMetadata {
             // Neither worked
             Err(DeserializeError::new(
                 "LabelMetadata",
-                DeserializeFailure::NoVariantMatched.into(),
+                DeserializeFailure::NoVariantMatched,
             ))
         })()
         .map_err(|e| e.annotate("LabelMetadata"))
@@ -627,10 +626,6 @@ impl Deserialize for LabelMetadata {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
-    use cml_chain::OrderedHashMap;
-
     use crate::{FilesDetails, MetadataDetails};
 
     use super::*;
@@ -664,7 +659,8 @@ mod tests {
             PolicyId::from_raw_bytes(&policy_id_bytes).unwrap(),
             AssetName::new(vec![0xCA, 0xFE, 0xD0, 0x0D]).unwrap(),
             details,
-        );
+        )
+        .unwrap();
         let metadata = CIP25Metadata::new(v2);
         let metadata_bytes = metadata.to_bytes();
         let roundtrip = CIP25Metadata::from_cbor_bytes(&metadata_bytes).unwrap();

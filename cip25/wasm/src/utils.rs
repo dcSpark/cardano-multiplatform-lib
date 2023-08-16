@@ -4,7 +4,10 @@ use crate::*;
 
 use wasm_bindgen::prelude::JsError;
 
-use cml_core_wasm::metadata::{Metadata, TransactionMetadatum};
+use cml_core_wasm::{
+    impl_wasm_json_api,
+    metadata::{Metadata, TransactionMetadatum},
+};
 
 #[wasm_bindgen]
 impl CIP25Metadata {
@@ -51,6 +54,7 @@ impl ChunkableString {
         Self(core::ChunkableString::from(str))
     }
 
+    #[allow(clippy::inherent_to_string)]
     pub fn to_string(&self) -> String {
         String::from(&self.0)
     }
@@ -58,7 +62,11 @@ impl ChunkableString {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MiniMetadataDetails(pub(crate) core::utils::MiniMetadataDetails);
+pub struct MiniMetadataDetails(core::utils::MiniMetadataDetails);
+
+impl_wasm_conversions!(core::utils::MiniMetadataDetails, MiniMetadataDetails);
+
+impl_wasm_json_api!(MiniMetadataDetails);
 
 #[wasm_bindgen]
 impl MiniMetadataDetails {
@@ -67,22 +75,6 @@ impl MiniMetadataDetails {
             name: None,
             image: None,
         })
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<MiniMetadataDetails, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
     }
 
     pub fn set_name(&mut self, name: &String64) {
@@ -105,20 +97,8 @@ impl MiniMetadataDetails {
     /// `metadatum` should represent the data where the `MetadataDetails` is in the cip25 structure
     pub fn loose_parse(metadatum: &TransactionMetadatum) -> Result<MiniMetadataDetails, JsValue> {
         let parsed_data = core::utils::MiniMetadataDetails::loose_parse(&metadatum.clone().into())
-            .map_err(|e| JsValue::from_str(&format!("loose_parse: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("loose_parse: {e}")))?;
         Ok(MiniMetadataDetails(parsed_data))
-    }
-}
-
-impl From<core::utils::MiniMetadataDetails> for MiniMetadataDetails {
-    fn from(native: core::utils::MiniMetadataDetails) -> Self {
-        Self(native)
-    }
-}
-
-impl From<MiniMetadataDetails> for core::utils::MiniMetadataDetails {
-    fn from(wasm: MiniMetadataDetails) -> Self {
-        wasm.0
     }
 }
 
@@ -126,36 +106,12 @@ impl From<MiniMetadataDetails> for core::utils::MiniMetadataDetails {
 #[wasm_bindgen]
 pub struct LabelMetadata(core::LabelMetadata);
 
+impl_wasm_conversions!(core::LabelMetadata, LabelMetadata);
+
+impl_wasm_cbor_json_api_cbor_event_serialize!(LabelMetadata);
+
 #[wasm_bindgen]
 impl LabelMetadata {
-    pub fn to_bytes(&self) -> Vec<u8> {
-        use core::serialization::ToBytes;
-        ToBytes::to_bytes(&self.0)
-    }
-
-    pub fn from_bytes(data: Vec<u8>) -> Result<LabelMetadata, JsValue> {
-        use core::serialization::FromBytes;
-        FromBytes::from_bytes(data)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<LabelMetadata, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     /// Note that Version 1 can only support utf8 string asset names.
     /// Version 2 can support any asset name.
     pub fn new(version: CIP25Version) -> Self {
@@ -190,17 +146,5 @@ impl LabelMetadata {
 
     pub fn version(&self) -> CIP25Version {
         self.0.version()
-    }
-}
-
-impl From<core::LabelMetadata> for LabelMetadata {
-    fn from(native: core::LabelMetadata) -> Self {
-        Self(native)
-    }
-}
-
-impl From<LabelMetadata> for core::LabelMetadata {
-    fn from(wasm: LabelMetadata) -> Self {
-        wasm.0
     }
 }

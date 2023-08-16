@@ -129,7 +129,7 @@ impl RedeemerSetBuilder {
                 )));
             }
             RedeemerTag::Cert => {
-                let entry = self.cert.iter_mut().nth(key.index as usize).unwrap();
+                let entry = self.cert.get_mut(key.index as usize).unwrap();
                 *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
                     entry.as_ref().unwrap().data().clone(),
                     ex_units,
@@ -359,8 +359,8 @@ mod tests {
 
         let input_result = InputBuilderResult {
             input: TransactionInput::new(TransactionHash::from([0; 32]), 0),
-            utxo_info: ShelleyTxOut::new(address.clone(), Value::zero()).into(),
-            aggregate_witness: Some(data.clone()),
+            utxo_info: ShelleyTxOut::new(address, Value::zero()).into(),
+            aggregate_witness: Some(data),
             required_wits: RequiredWitnessSet::new(),
         };
 

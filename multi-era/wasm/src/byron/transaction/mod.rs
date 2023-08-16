@@ -5,50 +5,25 @@ use crate::byron::{
     Blake2b256, ByronAny, ByronAnyList, ByronPubKey, ByronSignature, ByronTxId, ByronTxInList,
     ByronTxOutList,
 };
-use crate::impl_wasm_cbor_json_api_byron;
-use cml_core_wasm::impl_wasm_conversions;
-use std::collections::BTreeMap;
+use cml_core_wasm::{
+    impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_map_btree,
+};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct ByronAttributes(cml_multi_era::byron::transaction::ByronAttributes);
-
-impl_wasm_conversions!(
-    cml_multi_era::byron::transaction::ByronAttributes,
+impl_wasm_map_btree!(
+    cml_multi_era::byron::ByronAny,
+    cml_multi_era::byron::ByronAny,
+    ByronAny,
+    ByronAny,
+    ByronAnyList,
     ByronAttributes
 );
-
-#[wasm_bindgen]
-impl ByronAttributes {
-    pub fn new() -> Self {
-        Self(BTreeMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &ByronAny, value: &ByronAny) -> Option<ByronAny> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
-    }
-
-    pub fn get(&self, key: &ByronAny) -> Option<ByronAny> {
-        self.0.get(key.as_ref()).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> ByronAnyList {
-        ByronAnyList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronPkWitness(cml_multi_era::byron::transaction::ByronPkWitness);
 
-impl_wasm_cbor_json_api_byron!(ByronPkWitness);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronPkWitness);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronPkWitness,
@@ -72,7 +47,7 @@ impl ByronPkWitness {
 #[wasm_bindgen]
 pub struct ByronPkWitnessEntry(cml_multi_era::byron::transaction::ByronPkWitnessEntry);
 
-impl_wasm_cbor_json_api_byron!(ByronPkWitnessEntry);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronPkWitnessEntry);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronPkWitnessEntry,
@@ -101,7 +76,7 @@ impl ByronPkWitnessEntry {
 #[wasm_bindgen]
 pub struct ByronRedeemWitness(cml_multi_era::byron::transaction::ByronRedeemWitness);
 
-impl_wasm_cbor_json_api_byron!(ByronRedeemWitness);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronRedeemWitness);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronRedeemWitness,
@@ -125,7 +100,7 @@ impl ByronRedeemWitness {
 #[wasm_bindgen]
 pub struct ByronRedeemerScript(cml_multi_era::byron::transaction::ByronRedeemerScript);
 
-impl_wasm_cbor_json_api_byron!(ByronRedeemerScript);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronRedeemerScript);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronRedeemerScript,
@@ -153,7 +128,7 @@ impl ByronRedeemerScript {
 #[wasm_bindgen]
 pub struct ByronRedeemerWitnessEntry(cml_multi_era::byron::transaction::ByronRedeemerWitnessEntry);
 
-impl_wasm_cbor_json_api_byron!(ByronRedeemerWitnessEntry);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronRedeemerWitnessEntry);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronRedeemerWitnessEntry,
@@ -184,7 +159,7 @@ impl ByronRedeemerWitnessEntry {
 #[wasm_bindgen]
 pub struct ByronScriptWitness(cml_multi_era::byron::transaction::ByronScriptWitness);
 
-impl_wasm_cbor_json_api_byron!(ByronScriptWitness);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronScriptWitness);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronScriptWitness,
@@ -208,7 +183,7 @@ impl ByronScriptWitness {
 #[wasm_bindgen]
 pub struct ByronScriptWitnessEntry(cml_multi_era::byron::transaction::ByronScriptWitnessEntry);
 
-impl_wasm_cbor_json_api_byron!(ByronScriptWitnessEntry);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronScriptWitnessEntry);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronScriptWitnessEntry,
@@ -242,7 +217,7 @@ impl ByronScriptWitnessEntry {
 #[wasm_bindgen]
 pub struct ByronTx(cml_multi_era::byron::transaction::ByronTx);
 
-impl_wasm_cbor_json_api_byron!(ByronTx);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronTx);
 
 impl_wasm_conversions!(cml_multi_era::byron::transaction::ByronTx, ByronTx);
 
@@ -273,7 +248,7 @@ impl ByronTx {
 #[wasm_bindgen]
 pub struct ByronTxIn(cml_multi_era::byron::transaction::ByronTxIn);
 
-impl_wasm_cbor_json_api_byron!(ByronTxIn);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronTxIn);
 
 impl_wasm_conversions!(cml_multi_era::byron::transaction::ByronTxIn, ByronTxIn);
 
@@ -329,7 +304,7 @@ impl ByronTxIn {
 #[wasm_bindgen]
 pub struct ByronTxInGenesis(cml_multi_era::byron::transaction::ByronTxInGenesis);
 
-impl_wasm_cbor_json_api_byron!(ByronTxInGenesis);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronTxInGenesis);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronTxInGenesis,
@@ -363,7 +338,7 @@ pub enum ByronTxInKind {
 #[wasm_bindgen]
 pub struct ByronTxInRegular(cml_multi_era::byron::transaction::ByronTxInRegular);
 
-impl_wasm_cbor_json_api_byron!(ByronTxInRegular);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronTxInRegular);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronTxInRegular,
@@ -387,7 +362,7 @@ impl ByronTxInRegular {
 #[wasm_bindgen]
 pub struct ByronTxOutPtr(cml_multi_era::byron::transaction::ByronTxOutPtr);
 
-impl_wasm_cbor_json_api_byron!(ByronTxOutPtr);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronTxOutPtr);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronTxOutPtr,
@@ -416,7 +391,7 @@ impl ByronTxOutPtr {
 #[wasm_bindgen]
 pub struct ByronTxProof(cml_multi_era::byron::transaction::ByronTxProof);
 
-impl_wasm_cbor_json_api_byron!(ByronTxProof);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronTxProof);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronTxProof,
@@ -450,7 +425,7 @@ impl ByronTxProof {
 #[wasm_bindgen]
 pub struct ByronTxWitness(cml_multi_era::byron::transaction::ByronTxWitness);
 
-impl_wasm_cbor_json_api_byron!(ByronTxWitness);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronTxWitness);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronTxWitness,
@@ -536,7 +511,7 @@ pub enum ByronTxWitnessKind {
 #[wasm_bindgen]
 pub struct ByronValidatorScript(cml_multi_era::byron::transaction::ByronValidatorScript);
 
-impl_wasm_cbor_json_api_byron!(ByronValidatorScript);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronValidatorScript);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::transaction::ByronValidatorScript,

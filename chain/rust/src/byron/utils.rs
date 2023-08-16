@@ -365,9 +365,7 @@ mod tests {
     fn assert_same_address(address: ByronAddress, xpub: chain_crypto::PublicKey<Ed25519Bip32>) {
         assert!(
             address.content.identical_with_pubkey(xpub.clone().into()),
-            "expected public key {} to match address {}",
-            xpub,
-            address,
+            "expected public key {xpub} to match address {address}",
         )
     }
 

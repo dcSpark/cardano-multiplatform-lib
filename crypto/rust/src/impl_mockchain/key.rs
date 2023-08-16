@@ -83,9 +83,7 @@ pub fn serialize_signature<A: VerificationAlgorithm, T, W: std::io::Write>(
     writer.write_all(signature.as_ref())
 }
 #[inline]
-pub fn deserialize_public_key<'a, A>(
-    buf: &mut ReadBuf<'a>,
-) -> Result<crypto::PublicKey<A>, ReadError>
+pub fn deserialize_public_key<A>(buf: &mut ReadBuf) -> Result<crypto::PublicKey<A>, ReadError>
 where
     A: AsymmetricPublicKey,
 {
@@ -94,9 +92,7 @@ where
     crypto::PublicKey::from_binary(&bytes).map_err(chain_crypto_pub_err)
 }
 #[inline]
-pub fn deserialize_signature<'a, A, T>(
-    buf: &mut ReadBuf<'a>,
-) -> Result<crypto::Signature<T, A>, ReadError>
+pub fn deserialize_signature<A, T>(buf: &mut ReadBuf) -> Result<crypto::Signature<T, A>, ReadError>
 where
     A: VerificationAlgorithm,
 {
@@ -165,7 +161,7 @@ where
 }
 
 impl<T: Readable, A: VerificationAlgorithm> Readable for Signed<T, A> {
-    fn read<'a>(buf: &mut ReadBuf<'a>) -> Result<Self, ReadError> {
+    fn read(buf: &mut ReadBuf) -> Result<Self, ReadError> {
         Ok(Signed {
             data: T::read(buf)?,
             sig: deserialize_signature(buf)?,

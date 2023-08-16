@@ -43,7 +43,6 @@ impl SingleMintBuilder {
         witness_info: &NativeScriptWitnessInfo,
     ) -> MintBuilderResult {
         self.0
-            .clone()
             .native_script(native_script.clone().into(), witness_info.clone().into())
             .into()
     }
@@ -54,7 +53,6 @@ impl SingleMintBuilder {
         required_signers: &RequiredSigners,
     ) -> MintBuilderResult {
         self.0
-            .clone()
             .plutus_script(
                 partial_witness.clone().into(),
                 required_signers.clone().into(),

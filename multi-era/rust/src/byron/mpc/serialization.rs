@@ -33,7 +33,7 @@ impl cbor_event::se::Serialize for Ssc {
 impl Deserialize for Ssc {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> =
                 SscCommitmentsPayload::deserialize(raw);
@@ -115,7 +115,7 @@ impl Deserialize for SscCert {
         (|| -> Result<_, DeserializeError> {
             let vss_pub_key = Ok(raw.bytes()? as Vec<u8>)
                 .map_err(|e: DeserializeError| e.annotate("vss_pub_key"))?;
-            let epoch_id = Ok(raw.unsigned_integer()? as u64)
+            let epoch_id = Ok(raw.unsigned_integer()?)
                 .map_err(|e: DeserializeError| e.annotate("epoch_id"))?;
             let byron_pub_key = Ok(raw.bytes()? as Vec<u8>)
                 .map_err(|e: DeserializeError| e.annotate("byron_pub_key"))?;
@@ -219,7 +219,7 @@ impl cbor_event::se::Serialize for SscCertificatesProof {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(2))?;
         serializer.write_unsigned_integer(3u64)?;
-        serializer.write_bytes(&self.blake2b256.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b256.to_raw_bytes())?;
         Ok(serializer)
     }
 }
@@ -272,7 +272,7 @@ impl cbor_event::se::Serialize for SscCommitment {
         serializer.write_array(cbor_event::Len::Len(2))?;
         serializer.write_map(cbor_event::Len::Len(self.vss_shares.len() as u64))?;
         for (key, value) in self.vss_shares.iter() {
-            serializer.write_bytes(&key)?;
+            serializer.write_bytes(key)?;
             value.serialize(serializer)?;
         }
         self.vss_proof.serialize(serializer)?;
@@ -448,8 +448,8 @@ impl cbor_event::se::Serialize for SscCommitmentsProof {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(3))?;
         serializer.write_unsigned_integer(0u64)?;
-        serializer.write_bytes(&self.blake2b256.to_raw_bytes())?;
-        serializer.write_bytes(&self.blake2b2562.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b256.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b2562.to_raw_bytes())?;
         Ok(serializer)
     }
 }
@@ -514,8 +514,8 @@ impl cbor_event::se::Serialize for SscOpeningsPayload {
         serializer.write_unsigned_integer(1u64)?;
         serializer.write_map(cbor_event::Len::Len(self.ssc_opens.len() as u64))?;
         for (key, value) in self.ssc_opens.iter() {
-            serializer.write_bytes(&key.to_raw_bytes())?;
-            serializer.write_bytes(&value)?;
+            serializer.write_bytes(key.to_raw_bytes())?;
+            serializer.write_bytes(value)?;
         }
         serializer.write_tag(258u64)?;
         serializer.write_array(cbor_event::Len::Len(self.ssc_certs.len() as u64))?;
@@ -626,8 +626,8 @@ impl cbor_event::se::Serialize for SscOpeningsProof {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(3))?;
         serializer.write_unsigned_integer(1u64)?;
-        serializer.write_bytes(&self.blake2b256.to_raw_bytes())?;
-        serializer.write_bytes(&self.blake2b2562.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b256.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b2562.to_raw_bytes())?;
         Ok(serializer)
     }
 }
@@ -706,7 +706,7 @@ impl cbor_event::se::Serialize for SscProof {
 impl Deserialize for SscProof {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> = SscCommitmentsProof::deserialize(raw);
             match deser_variant {
@@ -770,13 +770,13 @@ impl cbor_event::se::Serialize for SscSharesPayload {
         serializer.write_unsigned_integer(2u64)?;
         serializer.write_map(cbor_event::Len::Len(self.ssc_shares.len() as u64))?;
         for (key, value) in self.ssc_shares.iter() {
-            serializer.write_bytes(&key.to_raw_bytes())?;
+            serializer.write_bytes(key.to_raw_bytes())?;
             serializer.write_map(cbor_event::Len::Len(value.len() as u64))?;
             for (key, value) in value.iter() {
-                serializer.write_bytes(&key.to_raw_bytes())?;
+                serializer.write_bytes(key.to_raw_bytes())?;
                 serializer.write_array(cbor_event::Len::Indefinite)?;
                 for element in value.iter() {
-                    serializer.write_bytes(&element)?;
+                    serializer.write_bytes(element)?;
                 }
                 serializer.write_special(cbor_event::Special::Break)?;
             }
@@ -933,8 +933,8 @@ impl cbor_event::se::Serialize for SscSharesProof {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(3))?;
         serializer.write_unsigned_integer(2u64)?;
-        serializer.write_bytes(&self.blake2b256.to_raw_bytes())?;
-        serializer.write_bytes(&self.blake2b2562.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b256.to_raw_bytes())?;
+        serializer.write_bytes(self.blake2b2562.to_raw_bytes())?;
         Ok(serializer)
     }
 }
@@ -1080,7 +1080,7 @@ impl cbor_event::se::Serialize for VssProof {
         //serializer.write_array(cbor_event::Len::Len(self.bytess.len() as u64))?;
         serializer.write_array(cbor_event::Len::Indefinite)?;
         for element in self.bytess.iter() {
-            serializer.write_bytes(&element)?;
+            serializer.write_bytes(element)?;
         }
         serializer.write_special(cbor_event::Special::Break)?;
         Ok(serializer)

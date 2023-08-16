@@ -1,6 +1,6 @@
 use crate::{plutus::PlutusData, PlutusDataList, RedeemerList};
 use cml_chain::plutus::Language;
-use cml_core_wasm::impl_wasm_conversions;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::ScriptHash;
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
@@ -10,34 +10,12 @@ use super::{ExUnits, PlutusV1Script, PlutusV2Script};
 #[wasm_bindgen]
 pub struct ConstrPlutusData(cml_chain::plutus::ConstrPlutusData);
 
+impl_wasm_conversions!(cml_chain::plutus::ConstrPlutusData, ConstrPlutusData);
+
+impl_wasm_cbor_json_api!(ConstrPlutusData);
+
 #[wasm_bindgen]
 impl ConstrPlutusData {
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        cml_chain::serialization::Serialize::to_cbor_bytes(&self.0)
-    }
-
-    pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<ConstrPlutusData, JsValue> {
-        cml_chain::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
-    }
-
-    pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
-    }
-
-    pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
-    }
-
-    pub fn from_json(json: &str) -> Result<ConstrPlutusData, JsValue> {
-        serde_json::from_str(json)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
-    }
-
     pub fn alternative(&self) -> u64 {
         self.0.alternative
     }
@@ -54,29 +32,13 @@ impl ConstrPlutusData {
     }
 }
 
-impl From<cml_chain::plutus::ConstrPlutusData> for ConstrPlutusData {
-    fn from(native: cml_chain::plutus::ConstrPlutusData) -> Self {
-        Self(native)
-    }
-}
-
-impl From<ConstrPlutusData> for cml_chain::plutus::ConstrPlutusData {
-    fn from(wasm: ConstrPlutusData) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<cml_chain::plutus::ConstrPlutusData> for ConstrPlutusData {
-    fn as_ref(&self) -> &cml_chain::plutus::ConstrPlutusData {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PlutusMap(cml_chain::plutus::PlutusMap);
 
 impl_wasm_conversions!(cml_chain::plutus::PlutusMap, PlutusMap);
+
+impl_wasm_cbor_json_api!(PlutusMap);
 
 #[wasm_bindgen]
 impl PlutusMap {
@@ -86,6 +48,10 @@ impl PlutusMap {
 
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     /// Replaces all datums of a given key, if any exist.
@@ -102,13 +68,9 @@ impl PlutusMap {
 
     /// In the extremely unlikely situation there are duplicate keys, this gets all of a single key
     pub fn get_all(&self, key: &PlutusData) -> Option<PlutusDataList> {
-        self.0.get_all(key.as_ref()).map(|datums| {
-            datums
-                .into_iter()
-                .map(|d| d.clone().into())
-                .collect::<Vec<_>>()
-                .into()
-        })
+        self.0
+            .get_all(key.as_ref())
+            .map(|datums| datums.into_iter().cloned().collect::<Vec<_>>().into())
     }
 
     pub fn keys(&self) -> PlutusDataList {

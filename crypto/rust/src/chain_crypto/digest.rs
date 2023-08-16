@@ -164,6 +164,12 @@ impl<H: DigestAlg> Context<H> {
     }
 }
 
+impl<H: DigestAlg> Default for Context<H> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct Digest<H: DigestAlg>(H::DigestData);
 
 impl<H: DigestAlg> Clone for Digest<H> {
@@ -279,6 +285,7 @@ impl<H: DigestAlg> fmt::Debug for Digest<H> {
 
 impl<H: DigestAlg> Digest<H> {
     /// Get the digest of a slice of data
+    #[allow(clippy::self_named_constructors)]
     pub fn digest(slice: &[u8]) -> Self {
         let mut ctx = Context::new();
         ctx.append_data(slice);
@@ -386,7 +393,7 @@ impl<H: DigestAlg, T> DigestOf<H, T> {
         }
     }
 
-    pub fn digest_byteslice<'a>(byteslice: &ByteSlice<'a, T>) -> Self {
+    pub fn digest_byteslice(byteslice: &ByteSlice<T>) -> Self {
         let mut ctx = Context::new();
         ctx.append_data(byteslice.as_slice());
         DigestOf {

@@ -28,6 +28,10 @@ impl Metadata {
         self.entries.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
     /// Replaces all metadatums of a given label, if any exist.
     pub fn set(&mut self, label: TransactionMetadatumLabel, datum: TransactionMetadatum) {
         self.entries.retain(|(l, _)| *l != label);
@@ -166,6 +170,10 @@ impl MetadatumMap {
 
     pub fn len(&self) -> usize {
         self.entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
     }
 
     /// Replaces all metadatums of a given key, if any exist.

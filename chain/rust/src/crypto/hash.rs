@@ -29,58 +29,15 @@ pub fn hash_script_data(
     encoding: Option<&TransactionWitnessSetEncoding>,
 ) -> ScriptDataHash {
     let mut buf = cbor_event::se::Serializer::new_vec();
-    if redeemers.is_empty() && datums.is_some() {
-        /*
-        ; Finally, note that in the case that a transaction includes datums but does not
-        ; include any redeemers, the script data format becomes (in hex):
-        ; [ 80 | datums | A0 ]
-        ; corresponding to a CBOR empty list and an empty map (our apologies).
-        */
-        buf.write_raw_bytes(&[0x80]).unwrap();
-        buf.write_array_sz(
-            encoding
-                .as_ref()
-                .map(|encs| encs.plutus_datums_encoding)
-                .unwrap_or_default()
-                .to_len_sz(datums.unwrap().len() as u64, false),
-        )
-        .unwrap();
-        for datum in datums.unwrap() {
-            datum.serialize(&mut buf, false).unwrap();
-        }
-        encoding
-            .as_ref()
-            .map(|encs| encs.plutus_datums_encoding)
-            .unwrap_or_default()
-            .end(&mut buf, false)
-            .unwrap();
-        buf.write_raw_bytes(&[0xA0]).unwrap();
-    } else {
-        /*
-        ; script data format:
-        ; [ redeemers | datums | language views ]
-        ; The redeemers are exactly the data present in the transaction witness set.
-        ; Similarly for the datums, if present. If no datums are provided, the middle
-        ; field is an empty string.
-        */
-        buf.write_array_sz(
-            encoding
-                .as_ref()
-                .map(|encs| encs.redeemers_encoding)
-                .unwrap_or_default()
-                .to_len_sz(redeemers.len() as u64, false),
-        )
-        .unwrap();
-        for redeemer in redeemers {
-            redeemer.serialize(&mut buf, false).unwrap();
-        }
-        encoding
-            .as_ref()
-            .map(|encs| encs.redeemers_encoding)
-            .unwrap_or_default()
-            .end(&mut buf, false)
-            .unwrap();
-        if let Some(datums) = datums {
+    match datums {
+        Some(datums) if redeemers.is_empty() => {
+            /*
+            ; Finally, note that in the case that a transaction includes datums but does not
+            ; include any redeemers, the script data format becomes (in hex):
+            ; [ 80 | datums | A0 ]
+            ; corresponding to a CBOR empty list and an empty map (our apologies).
+            */
+            buf.write_raw_bytes(&[0x80]).unwrap();
             buf.write_array_sz(
                 encoding
                     .as_ref()
@@ -98,9 +55,55 @@ pub fn hash_script_data(
                 .unwrap_or_default()
                 .end(&mut buf, false)
                 .unwrap();
+            buf.write_raw_bytes(&[0xA0]).unwrap();
         }
-        buf.write_raw_bytes(&cost_models.language_views_encoding().unwrap())
+        _ => {
+            /*
+            ; script data format:
+            ; [ redeemers | datums | language views ]
+            ; The redeemers are exactly the data present in the transaction witness set.
+            ; Similarly for the datums, if present. If no datums are provided, the middle
+            ; field is an empty string.
+            */
+            buf.write_array_sz(
+                encoding
+                    .as_ref()
+                    .map(|encs| encs.redeemers_encoding)
+                    .unwrap_or_default()
+                    .to_len_sz(redeemers.len() as u64, false),
+            )
             .unwrap();
+            for redeemer in redeemers {
+                redeemer.serialize(&mut buf, false).unwrap();
+            }
+            encoding
+                .as_ref()
+                .map(|encs| encs.redeemers_encoding)
+                .unwrap_or_default()
+                .end(&mut buf, false)
+                .unwrap();
+            if let Some(datums) = datums {
+                buf.write_array_sz(
+                    encoding
+                        .as_ref()
+                        .map(|encs| encs.plutus_datums_encoding)
+                        .unwrap_or_default()
+                        .to_len_sz(datums.len() as u64, false),
+                )
+                .unwrap();
+                for datum in datums {
+                    datum.serialize(&mut buf, false).unwrap();
+                }
+                encoding
+                    .as_ref()
+                    .map(|encs| encs.plutus_datums_encoding)
+                    .unwrap_or_default()
+                    .end(&mut buf, false)
+                    .unwrap();
+            }
+            buf.write_raw_bytes(&cost_models.language_views_encoding().unwrap())
+                .unwrap();
+        }
     }
     ScriptDataHash::from(blake2b256(&buf.finalize()))
 }

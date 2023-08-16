@@ -482,6 +482,8 @@ macro_rules! impl_signature {
             }
         }
 
+        // allow since both act on the raw bytes
+        #[allow(clippy::derive_hash_xor_eq)]
         impl std::hash::Hash for $name {
             fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
                 self.0.as_ref().hash(state)

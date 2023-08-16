@@ -443,7 +443,7 @@ impl SerializeEmbeddedGroup for MultisigPubkey {
             ),
         )?;
         serializer.write_bytes_sz(
-            &self.ed25519_key_hash.to_raw_bytes(),
+            self.ed25519_key_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.ed25519_key_hash_encoding.clone())
@@ -549,7 +549,7 @@ impl Deserialize for MultisigScript {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> =
                 MultisigPubkey::deserialize_as_embedded_group(raw, &mut read_len, len);
@@ -777,7 +777,7 @@ impl Serialize for ShelleyCertificate {
 impl Deserialize for ShelleyCertificate {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> = StakeRegistration::deserialize(raw);
             match deser_variant {
@@ -956,7 +956,7 @@ impl Serialize for ShelleyHeaderBody {
         )?;
         match &self.prev_hash {
             Some(x) => serializer.write_bytes_sz(
-                &x.to_raw_bytes(),
+                x.to_raw_bytes(),
                 self.encodings
                     .as_ref()
                     .map(|encs| encs.prev_hash_encoding.clone())
@@ -966,7 +966,7 @@ impl Serialize for ShelleyHeaderBody {
             None => serializer.write_special(cbor_event::Special::Null),
         }?;
         serializer.write_bytes_sz(
-            &self.issuer_vkey.to_raw_bytes(),
+            self.issuer_vkey.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.issuer_vkey_encoding.clone())
@@ -977,7 +977,7 @@ impl Serialize for ShelleyHeaderBody {
                 ),
         )?;
         serializer.write_bytes_sz(
-            &self.v_r_f_vkey.to_raw_bytes(),
+            self.v_r_f_vkey.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.v_r_f_vkey_encoding.clone())
@@ -998,7 +998,7 @@ impl Serialize for ShelleyHeaderBody {
             ),
         )?;
         serializer.write_bytes_sz(
-            &self.block_body_hash.to_raw_bytes(),
+            self.block_body_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.block_body_hash_encoding.clone())
@@ -1234,7 +1234,7 @@ impl Deserialize for ShelleyMoveInstantaneousReward {
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (pot, pot_encoding) = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+                let initial_position = raw.as_mut_ref().stream_position().unwrap();
                 match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (reserve_value, reserve_encoding) = raw.unsigned_integer_sz()?;
                     if reserve_value != 0 {
@@ -2635,7 +2635,7 @@ impl Serialize for ShelleyTransactionBody {
                             ),
                         )?;
                         serializer.write_bytes_sz(
-                            &field.to_raw_bytes(),
+                            field.to_raw_bytes(),
                             self.encodings
                                 .as_ref()
                                 .map(|encs| encs.auxiliary_data_hash_encoding.clone())
@@ -3390,7 +3390,7 @@ impl Serialize for ShelleyUpdate {
                     .cloned()
                     .unwrap_or_default();
                 buf.write_bytes_sz(
-                    &k.to_raw_bytes(),
+                    k.to_raw_bytes(),
                     shelley_proposed_protocol_parameter_updates_key_encoding
                         .to_str_len_sz(k.to_raw_bytes().len() as u64, force_canonical),
                 )?;

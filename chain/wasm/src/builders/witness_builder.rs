@@ -118,7 +118,7 @@ impl RequiredWitnessSet {
     }
 
     pub fn add_redeemer_tag(&mut self, redeemer: &RedeemerWitnessKey) {
-        self.0.add_redeemer_tag(redeemer.clone().into());
+        self.0.add_redeemer_tag((*redeemer).into());
     }
 
     pub fn add_all(&mut self, requirements: &RequiredWitnessSet) {
@@ -178,7 +178,7 @@ impl TransactionWitnessSetBuilder {
     }
 
     pub fn add_plutus_datum(&mut self, plutus_datum: PlutusData) {
-        self.0.add_plutus_datum(plutus_datum.clone().into());
+        self.0.add_plutus_datum(plutus_datum.into());
     }
 
     pub fn get_plutus_datum(&self) -> PlutusDataList {

@@ -14,9 +14,9 @@ use crate::{
 #[derive(Debug, thiserror::Error)]
 pub enum InputBuilderError {
     #[error("UTXO address was not a payment key: {0:?}")]
-    UTXOAddressNotPayment(Address),
+    UTXOAddressNotPayment(Box<Address>),
     #[error("Missing the following witnesses for the input: {0:?}")]
-    MissingWitnesses(RequiredWitnessSet),
+    MissingWitnesses(Box<RequiredWitnessSet>),
 }
 
 pub fn input_required_wits(
@@ -71,9 +71,9 @@ impl SingleInputBuilder {
         let required_wits_left = required_wits.clone();
 
         if !required_wits_left.scripts.is_empty() {
-            return Err(InputBuilderError::UTXOAddressNotPayment(
+            return Err(InputBuilderError::UTXOAddressNotPayment(Box::new(
                 self.utxo_info.address().clone(),
-            ));
+            )));
         }
 
         Ok(InputBuilderResult {
@@ -99,7 +99,9 @@ impl SingleInputBuilder {
         required_wits_left.scripts.remove(script_hash);
 
         if !required_wits_left.scripts.is_empty() {
-            return Err(InputBuilderError::MissingWitnesses(required_wits_left));
+            return Err(InputBuilderError::MissingWitnesses(Box::new(
+                required_wits_left,
+            )));
         }
 
         Ok(InputBuilderResult {
@@ -138,7 +140,9 @@ impl SingleInputBuilder {
             .remove(&hash_plutus_data(&datum));
 
         if required_wits_left.len() > 0 {
-            return Err(InputBuilderError::MissingWitnesses(required_wits_left));
+            return Err(InputBuilderError::MissingWitnesses(Box::new(
+                required_wits_left,
+            )));
         }
 
         Ok(InputBuilderResult {

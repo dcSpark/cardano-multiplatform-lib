@@ -30,6 +30,12 @@ impl WriteBuf {
     }
 }
 
+impl Default for WriteBuf {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReadError {
     /// Return the number of bytes left and the number of bytes demanded
@@ -225,18 +231,18 @@ impl<'a> ReadBuf<'a> {
 }
 
 pub trait Readable: Sized {
-    fn read<'a>(buf: &mut ReadBuf<'a>) -> Result<Self, ReadError>;
+    fn read(buf: &mut ReadBuf) -> Result<Self, ReadError>;
 
-    fn read_validate<'a>(buf: &mut ReadBuf<'a>) -> Result<(), ReadError> {
+    fn read_validate(buf: &mut ReadBuf) -> Result<(), ReadError> {
         Self::read(buf).map(|_| ())
     }
 }
 
 impl Readable for () {
-    fn read<'a>(_: &mut ReadBuf<'a>) -> Result<(), ReadError> {
+    fn read(_: &mut ReadBuf) -> Result<(), ReadError> {
         Ok(())
     }
-    fn read_validate<'a>(buf: &mut ReadBuf<'a>) -> Result<(), ReadError> {
+    fn read_validate(buf: &mut ReadBuf) -> Result<(), ReadError> {
         Self::read(buf)
     }
 }
@@ -244,7 +250,7 @@ impl Readable for () {
 macro_rules! read_prim_impl {
     ($Ty: ty, $meth: ident) => {
         impl Readable for $Ty {
-            fn read<'a>(buf: &mut ReadBuf<'a>) -> Result<Self, ReadError> {
+            fn read(buf: &mut ReadBuf) -> Result<Self, ReadError> {
                 buf.$meth()
             }
         }
@@ -261,7 +267,7 @@ macro_rules! read_array_impls {
     ($($N: expr)+) => {
         $(
         impl Readable for [u8; $N] {
-            fn read<'a>(readbuf: &mut ReadBuf<'a>) -> Result<Self, ReadError> {
+            fn read(readbuf: &mut ReadBuf) -> Result<Self, ReadError> {
                 let mut buf = [0u8; $N];
                 buf.copy_from_slice(readbuf.get_slice($N)?);
                 Ok(buf)
@@ -276,7 +282,7 @@ read_array_impls! {
 }
 
 /// read N times for a T elements in sequences
-pub fn read_vec<'a, T: Readable>(readbuf: &mut ReadBuf<'a>, n: usize) -> Result<Vec<T>, ReadError> {
+pub fn read_vec<T: Readable>(readbuf: &mut ReadBuf, n: usize) -> Result<Vec<T>, ReadError> {
     let mut v = Vec::with_capacity(n);
     for _ in 0..n {
         let t = T::read(readbuf)?;
@@ -286,13 +292,10 @@ pub fn read_vec<'a, T: Readable>(readbuf: &mut ReadBuf<'a>, n: usize) -> Result<
 }
 
 /// Fill a mutable slice with as many T as filling requires
-pub fn read_mut_slice<'a, T: Readable>(
-    readbuf: &mut ReadBuf<'a>,
-    v: &mut [T],
-) -> Result<(), ReadError> {
-    for i in 0..v.len() {
+pub fn read_mut_slice<T: Readable>(readbuf: &mut ReadBuf, v: &mut [T]) -> Result<(), ReadError> {
+    for elem in v.iter_mut() {
         let t = T::read(readbuf)?;
-        v[i] = t
+        *elem = t
     }
     Ok(())
 }
@@ -301,19 +304,15 @@ pub fn read_mut_slice<'a, T: Readable>(
 pub fn read_from_raw<T: Readable>(raw: &[u8]) -> Result<T, std::io::Error> {
     let mut rbuf = ReadBuf::from(raw);
     match T::read(&mut rbuf) {
-        Err(e) => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                format!("invalid data {e:?} {raw:?}"),
-            ));
-        }
+        Err(e) => Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("invalid data {e:?} {raw:?}"),
+        )),
         Ok(h) => match rbuf.expect_end() {
-            Err(e) => {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    format!("end of data {e:?}"),
-                ));
-            }
+            Err(e) => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("end of data {e:?}"),
+            )),
             Ok(()) => Ok(h),
         },
     }

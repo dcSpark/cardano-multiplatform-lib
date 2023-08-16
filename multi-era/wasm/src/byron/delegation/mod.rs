@@ -2,15 +2,14 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use crate::byron::{ByronPubKey, ByronSignature, EpochId};
-use crate::impl_wasm_cbor_json_api_byron;
-use cml_core_wasm::impl_wasm_conversions;
+use cml_core_wasm::{impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ByronDelegation(cml_multi_era::byron::delegation::ByronDelegation);
 
-impl_wasm_cbor_json_api_byron!(ByronDelegation);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronDelegation);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::delegation::ByronDelegation,
@@ -54,7 +53,7 @@ impl ByronDelegation {
 #[wasm_bindgen]
 pub struct ByronDelegationSignature(cml_multi_era::byron::delegation::ByronDelegationSignature);
 
-impl_wasm_cbor_json_api_byron!(ByronDelegationSignature);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronDelegationSignature);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::delegation::ByronDelegationSignature,
@@ -85,7 +84,7 @@ impl ByronDelegationSignature {
 #[wasm_bindgen]
 pub struct EpochRange(cml_multi_era::byron::delegation::EpochRange);
 
-impl_wasm_cbor_json_api_byron!(EpochRange);
+impl_wasm_cbor_json_api_cbor_event_serialize!(EpochRange);
 
 impl_wasm_conversions!(cml_multi_era::byron::delegation::EpochRange, EpochRange);
 
@@ -112,7 +111,7 @@ pub struct LightWeightDelegationSignature(
     cml_multi_era::byron::delegation::LightWeightDelegationSignature,
 );
 
-impl_wasm_cbor_json_api_byron!(LightWeightDelegationSignature);
+impl_wasm_cbor_json_api_cbor_event_serialize!(LightWeightDelegationSignature);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::delegation::LightWeightDelegationSignature,
@@ -143,7 +142,7 @@ impl LightWeightDelegationSignature {
 #[wasm_bindgen]
 pub struct LightWeightDlg(cml_multi_era::byron::delegation::LightWeightDlg);
 
-impl_wasm_cbor_json_api_byron!(LightWeightDlg);
+impl_wasm_cbor_json_api_cbor_event_serialize!(LightWeightDlg);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::delegation::LightWeightDlg,

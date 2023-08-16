@@ -109,9 +109,9 @@ fn base_encode(alphabet_s: &str, input: &[u8]) -> Vec<u8> {
     let mut digits = vec![0_u8];
     for input in input.iter() {
         let mut carry = *input as u32;
-        for j in 0..digits.len() {
-            carry += (digits[j] as u32) << 8;
-            digits[j] = (carry % base) as u8;
+        for digit in digits.iter_mut() {
+            carry += (*digit as u32) << 8;
+            *digit = (carry % base) as u8;
             carry /= base;
         }
 
@@ -142,15 +142,16 @@ fn base_decode(alphabet_s: &str, input: &[u8]) -> Result<Vec<u8>> {
     let mut bytes: Vec<u8> = vec![0];
     let zcount = input.iter().take_while(|x| **x == alphabet[0]).count();
 
+    #[allow(clippy::needless_range_loop)]
     for i in zcount..input.len() {
         let value = match alphabet.iter().position(|&x| x == input[i]) {
             Some(idx) => idx,
             None => return Err(Error::UnknownSymbol(i)),
         };
         let mut carry = value as u32;
-        for j in 0..bytes.len() {
-            carry += bytes[j] as u32 * base;
-            bytes[j] = carry as u8;
+        for byte in bytes.iter_mut() {
+            carry += *byte as u32 * base;
+            *byte = carry as u8;
             carry >>= 8;
         }
 
@@ -162,13 +163,9 @@ fn base_decode(alphabet_s: &str, input: &[u8]) -> Result<Vec<u8>> {
     let leading_zeros = bytes.iter().rev().take_while(|x| **x == 0).count();
     if zcount > leading_zeros {
         if leading_zeros > 0 {
-            for _ in 0..(zcount - leading_zeros - 1) {
-                bytes.push(0);
-            }
+            bytes.resize(bytes.len() + zcount - leading_zeros - 1, 0);
         } else {
-            for _ in 0..zcount {
-                bytes.push(0);
-            }
+            bytes.resize(bytes.len() + zcount, 0);
         }
     }
     bytes.reverse();

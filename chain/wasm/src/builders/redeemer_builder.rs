@@ -1,16 +1,22 @@
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
-use cml_core_wasm::impl_wasm_conversions;
-use super::{input_builder::InputBuilderResult, mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult, certificate_builder::CertificateBuilderResult};
+use super::{
+    certificate_builder::CertificateBuilderResult, input_builder::InputBuilderResult,
+    mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
+};
 use crate::{
-    plutus::{Redeemer, RedeemerTag, PlutusData, ExUnits},
+    plutus::{ExUnits, PlutusData, Redeemer, RedeemerTag},
     RedeemerList,
 };
+use cml_core_wasm::impl_wasm_conversions;
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, PartialOrd, Ord, Debug, PartialEq, Eq, Hash)]
 pub struct RedeemerWitnessKey(cml_chain::builders::redeemer_builder::RedeemerWitnessKey);
 
-impl_wasm_conversions!(cml_chain::builders::redeemer_builder::RedeemerWitnessKey, RedeemerWitnessKey);
+impl_wasm_conversions!(
+    cml_chain::builders::redeemer_builder::RedeemerWitnessKey,
+    RedeemerWitnessKey
+);
 
 #[wasm_bindgen]
 impl RedeemerWitnessKey {
@@ -30,7 +36,10 @@ impl RedeemerWitnessKey {
 #[derive(Clone, Debug)]
 pub struct UntaggedRedeemer(cml_chain::builders::redeemer_builder::UntaggedRedeemer);
 
-impl_wasm_conversions!(cml_chain::builders::redeemer_builder::UntaggedRedeemer, UntaggedRedeemer);
+impl_wasm_conversions!(
+    cml_chain::builders::redeemer_builder::UntaggedRedeemer,
+    UntaggedRedeemer
+);
 
 #[wasm_bindgen]
 impl UntaggedRedeemer {
@@ -38,7 +47,8 @@ impl UntaggedRedeemer {
         cml_chain::builders::redeemer_builder::UntaggedRedeemer::new(
             data.clone().into(),
             ex_units.clone().into(),
-        ).into()
+        )
+        .into()
     }
 }
 
@@ -48,21 +58,25 @@ impl UntaggedRedeemer {
 #[derive(Clone, Default, Debug)]
 pub struct RedeemerSetBuilder(cml_chain::builders::redeemer_builder::RedeemerSetBuilder);
 
-impl_wasm_conversions!(cml_chain::builders::redeemer_builder::RedeemerSetBuilder, RedeemerSetBuilder);
+impl_wasm_conversions!(
+    cml_chain::builders::redeemer_builder::RedeemerSetBuilder,
+    RedeemerSetBuilder
+);
 
 #[wasm_bindgen]
 impl RedeemerSetBuilder {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
     /// note: will override existing value if called twice with the same key
     pub fn update_ex_units(&mut self, key: &RedeemerWitnessKey, ex_units: &ExUnits) {
-        self.0.update_ex_units(key.clone().into(), ex_units.clone().into());
+        self.0
+            .update_ex_units((*key).into(), ex_units.clone().into());
     }
 
     pub fn add_spend(&mut self, result: &InputBuilderResult) {
@@ -82,6 +96,9 @@ impl RedeemerSetBuilder {
     }
 
     pub fn build(&self, default_to_dummy_exunits: bool) -> Result<RedeemerList, JsError> {
-        self.0.build(default_to_dummy_exunits).map(Into::into).map_err(Into::into)
+        self.0
+            .build(default_to_dummy_exunits)
+            .map(Into::into)
+            .map_err(Into::into)
     }
 }

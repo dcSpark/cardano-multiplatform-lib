@@ -242,7 +242,7 @@ impl PrivateKey {
     }
 
     pub fn sign(&self, message: &[u8]) -> Ed25519Signature {
-        Ed25519Signature(self.0.sign(message).into())
+        Ed25519Signature(self.0.sign(message))
     }
 }
 
@@ -301,7 +301,7 @@ impl PublicKey {
     }
 
     pub fn hash(&self) -> Ed25519KeyHash {
-        Ed25519KeyHash(self.0.hash().into())
+        Ed25519KeyHash(self.0.hash())
     }
 }
 
@@ -400,7 +400,10 @@ macro_rules! impl_hash_type_ext {
                 self.0.to_raw_bytes().to_vec()
             }
 
-            pub fn to_bech32(&self, prefix: &str) -> Result<String, wasm_bindgen::prelude::JsError> {
+            pub fn to_bech32(
+                &self,
+                prefix: &str,
+            ) -> Result<String, wasm_bindgen::prelude::JsError> {
                 self.0.to_bech32(prefix).map_err(Into::into)
             }
 
@@ -409,7 +412,9 @@ macro_rules! impl_hash_type_ext {
                 self.0.to_raw_hex()
             }
 
-            pub fn from_bech32(bech32_str: &str) -> Result<$wasm_name, wasm_bindgen::prelude::JsError> {
+            pub fn from_bech32(
+                bech32_str: &str,
+            ) -> Result<$wasm_name, wasm_bindgen::prelude::JsError> {
                 <$rust_name>::from_bech32(bech32_str)
                     .map(Into::into)
                     .map(Self)
@@ -423,7 +428,9 @@ macro_rules! impl_hash_type_ext {
                     .map_err(Into::into)
             }
 
-            pub fn from_raw_bytes(bytes: &[u8]) -> Result<$wasm_name, wasm_bindgen::prelude::JsError> {
+            pub fn from_raw_bytes(
+                bytes: &[u8],
+            ) -> Result<$wasm_name, wasm_bindgen::prelude::JsError> {
                 use cml_crypto::RawBytesEncoding;
                 <$rust_name>::from_raw_bytes(bytes)
                     .map(Self)
@@ -454,7 +461,7 @@ macro_rules! impl_hash_type_ext {
 macro_rules! impl_hash_type {
     ($name:ident) => {
         impl_hash_type_ext!(cml_crypto::$name, $name);
-    }
+    };
 }
 
 impl_hash_type!(Ed25519KeyHash);

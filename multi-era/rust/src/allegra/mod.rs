@@ -4,18 +4,18 @@
 pub mod cbor_encodings;
 pub mod serialization;
 
-use cml_chain::TransactionIndex;
-use cml_chain::assets::Coin;
-use cml_chain::auxdata::{ShelleyAuxData, ShelleyMaAuxData};
-use cml_chain::certs::Certificate;
-use cml_chain::crypto::{AuxiliaryDataHash, BootstrapWitness, Vkeywitness};
-use cml_chain::transaction::{NativeScript, TransactionInput};
-use cml_chain::Withdrawals;
 use crate::shelley::{ShelleyHeader, ShelleyTransactionOutput, ShelleyUpdate};
 use cbor_encodings::{
     AllegraBlockEncoding, AllegraTransactionBodyEncoding, AllegraTransactionEncoding,
     AllegraTransactionWitnessSetEncoding,
 };
+use cml_chain::assets::Coin;
+use cml_chain::auxdata::{ShelleyAuxData, ShelleyMaAuxData};
+use cml_chain::certs::Certificate;
+use cml_chain::crypto::{AuxiliaryDataHash, BootstrapWitness, Vkeywitness};
+use cml_chain::transaction::{NativeScript, TransactionInput};
+use cml_chain::TransactionIndex;
+use cml_chain::Withdrawals;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use std::collections::BTreeMap;
 

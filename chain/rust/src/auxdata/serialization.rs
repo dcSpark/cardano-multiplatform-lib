@@ -396,7 +396,7 @@ impl Serialize for AuxiliaryData {
 impl Deserialize for AuxiliaryData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let deser_variant: Result<_, DeserializeError> = Metadata::deserialize(raw);
             match deser_variant {
                 Ok(shelley) => return Ok(Self::Shelley(shelley)),

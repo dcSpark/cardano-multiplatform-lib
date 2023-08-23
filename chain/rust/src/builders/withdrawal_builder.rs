@@ -1,26 +1,24 @@
-use crate::*;
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
+use crate::*;
 
-use super::witness_builder::{RequiredWitnessSet, NativeScriptWitnessInfo};
+use super::witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet};
 
-use crate::{
-    address::RewardAddress,
-    certs::StakeCredential,
-    transaction::RequiredSigners,
-};
+use crate::{address::RewardAddress, certs::StakeCredential, transaction::RequiredSigners};
 
 #[derive(Debug, thiserror::Error)]
 pub enum WithdrawalBuilderError {
     #[error("Missing the following witnesses for the withdrawal: {0:?}. ")]
-    MissingWitnesses(RequiredWitnessSet),
+    MissingWitnesses(Box<RequiredWitnessSet>),
     //#[error("Withdrawal required a script, not a payment key: {}", .to_address().to_bech32(None))]
     #[error("Withdrawal required a script, not a payment key")]
-    RequiredScript(RewardAddress),
+    RequiredScript(Box<RewardAddress>),
 }
 
-
 // comes from witsVKeyNeeded in the Ledger spec
-pub fn withdrawal_required_wits(address: &RewardAddress, required_witnesses: &mut RequiredWitnessSet) {
+pub fn withdrawal_required_wits(
+    address: &RewardAddress,
+    required_witnesses: &mut RequiredWitnessSet,
+) {
     match &address.payment {
         StakeCredential::PubKey { hash, .. } => {
             required_witnesses.add_vkey_key_hash(hash.clone());
@@ -28,7 +26,7 @@ pub fn withdrawal_required_wits(address: &RewardAddress, required_witnesses: &mu
         StakeCredential::Script { hash, .. } => {
             required_witnesses.add_script_hash(hash.clone());
             // recall: no datum hash for reward withdrawals
-        },
+        }
     }
 }
 
@@ -48,10 +46,7 @@ pub struct SingleWithdrawalBuilder {
 
 impl SingleWithdrawalBuilder {
     pub fn new(address: RewardAddress, amount: Coin) -> Self {
-        Self {
-            address,
-            amount,
-        }
+        Self { address, amount }
     }
 
     pub fn payment_key(self) -> Result<WithdrawalBuilderResult, WithdrawalBuilderError> {
@@ -59,7 +54,9 @@ impl SingleWithdrawalBuilder {
         withdrawal_required_wits(&self.address, &mut required_wits);
 
         if !required_wits.scripts.is_empty() {
-            return Err(WithdrawalBuilderError::RequiredScript(self.address.clone()));
+            return Err(WithdrawalBuilderError::RequiredScript(Box::new(
+                self.address.clone(),
+            )));
         }
 
         Ok(WithdrawalBuilderResult {
@@ -70,7 +67,11 @@ impl SingleWithdrawalBuilder {
         })
     }
 
-    pub fn native_script(self, native_script: &NativeScript, witness_info: &NativeScriptWitnessInfo) -> Result<WithdrawalBuilderResult, WithdrawalBuilderError> {
+    pub fn native_script(
+        self,
+        native_script: &NativeScript,
+        witness_info: &NativeScriptWitnessInfo,
+    ) -> Result<WithdrawalBuilderResult, WithdrawalBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
         withdrawal_required_wits(&self.address, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
@@ -79,20 +80,31 @@ impl SingleWithdrawalBuilder {
         required_wits_left.scripts.remove(&native_script.hash());
 
         if !required_wits_left.scripts.is_empty() {
-            return Err(WithdrawalBuilderError::MissingWitnesses(required_wits_left));
+            return Err(WithdrawalBuilderError::MissingWitnesses(Box::new(
+                required_wits_left,
+            )));
         }
 
         Ok(WithdrawalBuilderResult {
             address: self.address,
             amount: self.amount,
-            aggregate_witness: Some(InputAggregateWitnessData::NativeScript(native_script.clone(), witness_info.clone())),
+            aggregate_witness: Some(InputAggregateWitnessData::NativeScript(
+                native_script.clone(),
+                witness_info.clone(),
+            )),
             required_wits,
         })
     }
 
-    pub fn plutus_script(self, partial_witness: PartialPlutusWitness, required_signers: RequiredSigners) -> Result<WithdrawalBuilderResult, WithdrawalBuilderError> {
+    pub fn plutus_script(
+        self,
+        partial_witness: PartialPlutusWitness,
+        required_signers: RequiredSigners,
+    ) -> Result<WithdrawalBuilderResult, WithdrawalBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
-        required_signers.iter().for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer.clone()));
+        required_signers
+            .iter()
+            .for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer.clone()));
         withdrawal_required_wits(&self.address, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
 
@@ -105,13 +117,19 @@ impl SingleWithdrawalBuilder {
         required_wits_left.scripts.remove(&script_hash);
 
         if required_wits_left.len() > 0 {
-            return Err(WithdrawalBuilderError::MissingWitnesses(required_wits_left));
+            return Err(WithdrawalBuilderError::MissingWitnesses(Box::new(
+                required_wits_left,
+            )));
         }
 
         Ok(WithdrawalBuilderResult {
             address: self.address,
             amount: self.amount,
-            aggregate_witness:  Some(InputAggregateWitnessData::PlutusScript(partial_witness, required_signers, None)),
+            aggregate_witness: Some(InputAggregateWitnessData::PlutusScript(
+                partial_witness,
+                required_signers,
+                None,
+            )),
             required_wits,
         })
     }

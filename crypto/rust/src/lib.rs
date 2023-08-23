@@ -11,10 +11,10 @@ use rand::rngs::OsRng;
 use std::convert::From;
 
 // brought over from old IOHK code
-mod chain_core;
+pub mod chain_core;
 pub mod chain_crypto;
-mod impl_mockchain;
-mod typed_bytes;
+pub mod impl_mockchain;
+pub mod typed_bytes;
 
 // used in chain_core / chain_crypto
 #[macro_use]
@@ -133,8 +133,8 @@ impl Bip32PrivateKey {
         let cc = self.chaincode();
 
         let mut buf = [0; 128];
-        buf[0..64].clone_from_slice(&prv_key);
-        buf[64..96].clone_from_slice(&pub_key);
+        buf[0..64].clone_from_slice(prv_key);
+        buf[64..96].clone_from_slice(pub_key);
         buf[96..128].clone_from_slice(&cc);
         buf.to_vec()
     }
@@ -150,11 +150,11 @@ impl Bip32PrivateKey {
     }
 
     pub fn to_public(&self) -> Bip32PublicKey {
-        Bip32PublicKey(self.0.to_public().into())
+        Bip32PublicKey(self.0.to_public())
     }
 
     pub fn from_bech32(bech32_str: &str) -> Result<Bip32PrivateKey, CryptoError> {
-        chain_crypto::SecretKey::try_from_bech32_str(&bech32_str)
+        chain_crypto::SecretKey::try_from_bech32_str(bech32_str)
             .map(Bip32PrivateKey)
             .map_err(Into::into)
     }
@@ -164,9 +164,7 @@ impl Bip32PrivateKey {
     }
 
     pub fn from_bip39_entropy(entropy: &[u8], password: &[u8]) -> Bip32PrivateKey {
-        Bip32PrivateKey(chain_crypto::derive::from_bip39_entropy(
-            &entropy, &password,
-        ))
+        Bip32PrivateKey(chain_crypto::derive::from_bip39_entropy(entropy, password))
     }
 
     pub fn chaincode(&self) -> Vec<u8> {
@@ -227,7 +225,7 @@ impl Bip32PublicKey {
     }
 
     pub fn from_bech32(bech32_str: &str) -> Result<Bip32PublicKey, CryptoError> {
-        chain_crypto::PublicKey::try_from_bech32_str(&bech32_str)
+        chain_crypto::PublicKey::try_from_bech32_str(bech32_str)
             .map(Bip32PublicKey)
             .map_err(Into::into)
     }
@@ -295,10 +293,10 @@ impl PrivateKey {
     /// let key = PrivateKey::from_bech32("ed25519e_sk1gqwl4szuwwh6d0yk3nsqcc6xxc3fpvjlevgwvt60df59v8zd8f8prazt8ln3lmz096ux3xvhhvm3ca9wj2yctdh3pnw0szrma07rt5gl748fp").unwrap();
     /// ```
     pub fn from_bech32(bech32_str: &str) -> Result<PrivateKey, CryptoError> {
-        chain_crypto::SecretKey::try_from_bech32_str(&bech32_str)
+        chain_crypto::SecretKey::try_from_bech32_str(bech32_str)
             .map(key::EitherEd25519SecretKey::Extended)
             .or_else(|_| {
-                chain_crypto::SecretKey::try_from_bech32_str(&bech32_str)
+                chain_crypto::SecretKey::try_from_bech32_str(bech32_str)
                     .map(key::EitherEd25519SecretKey::Normal)
             })
             .map(PrivateKey)
@@ -364,7 +362,7 @@ impl PublicKey {
     /// let key = PublicKey::from_bech32("ed25519_pk1dgaagyh470y66p899txcl3r0jaeaxu6yd7z2dxyk55qcycdml8gszkxze2").unwrap();
     /// ```
     pub fn from_bech32(bech32_str: &str) -> Result<PublicKey, CryptoError> {
-        chain_crypto::PublicKey::try_from_bech32_str(&bech32_str)
+        chain_crypto::PublicKey::try_from_bech32_str(bech32_str)
             .map(PublicKey)
             .map_err(Into::into)
     }
@@ -378,7 +376,7 @@ impl PublicKey {
     }
 
     pub fn hash(&self) -> Ed25519KeyHash {
-        Ed25519KeyHash::from(blake2b224(self.to_raw_bytes().as_ref()))
+        Ed25519KeyHash::from(blake2b224(self.to_raw_bytes()))
     }
 }
 
@@ -484,6 +482,8 @@ macro_rules! impl_signature {
             }
         }
 
+        // allow since both act on the raw bytes
+        #[allow(clippy::derive_hash_xor_eq)]
         impl std::hash::Hash for $name {
             fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
                 self.0.as_ref().hash(state)

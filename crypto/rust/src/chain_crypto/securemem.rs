@@ -1,7 +1,7 @@
 /// zero the given slice.
 ///
 /// We assume the compiler won't optimise out the call to this function
-pub fn zero(to_zero: &mut [u8]) {
+pub fn _zero(to_zero: &mut [u8]) {
     // the unsafety of this call is bounded to the existence of the pointer
     // and the accuracy of the length of the array.
     //

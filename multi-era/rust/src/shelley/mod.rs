@@ -4,45 +4,33 @@
 pub mod cbor_encodings;
 pub mod serialization;
 
-use cml_chain::ProtocolVersionStruct;
+use cbor_encodings::{
+    MultisigAllEncoding, MultisigAnyEncoding, MultisigNOfKEncoding, MultisigPubkeyEncoding,
+    ShelleyBlockEncoding, ShelleyHeaderBodyEncoding, ShelleyHeaderEncoding,
+    ShelleyProtocolParamUpdateEncoding, ShelleyTransactionBodyEncoding, ShelleyTransactionEncoding,
+    ShelleyTransactionOutputEncoding, ShelleyTransactionWitnessSetEncoding, ShelleyUpdateEncoding,
+};
 use cml_chain::address::Address;
 use cml_chain::assets::Coin;
 use cml_chain::auxdata::Metadata;
 use cml_chain::block::{OperationalCert, ProtocolVersion};
-use cml_chain::certs::{Certificate, MIRPot, StakeCredential};
+use cml_chain::certs::{
+    GenesisKeyDelegation, MIRPot, PoolRegistration, PoolRetirement, StakeCredential,
+    StakeDelegation, StakeDeregistration, StakeRegistration,
+};
 use cml_chain::crypto::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, BootstrapWitness, Ed25519KeyHash,
     GenesisHash, KESSignature, Nonce, VRFCert, VRFVkey, Vkey, Vkeywitness,
 };
 use cml_chain::transaction::TransactionInput;
+use cml_chain::ProtocolVersionStruct;
 use cml_chain::{Epoch, Rational, UnitInterval, Withdrawals};
-use cbor_encodings::{
-    MoveInstantaneousRewardEncoding, MultisigAllEncoding, MultisigAnyEncoding,
-    MultisigNOfKEncoding, MultisigPubkeyEncoding, ShelleyBlockEncoding, ShelleyHeaderBodyEncoding,
-    ShelleyHeaderEncoding, ShelleyProtocolParamUpdateEncoding, ShelleyTransactionBodyEncoding,
-    ShelleyTransactionEncoding, ShelleyTransactionOutputEncoding,
-    ShelleyTransactionWitnessSetEncoding, ShelleyUpdateEncoding,
-};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use std::collections::BTreeMap;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct MoveInstantaneousReward {
-    pub pot: MIRPot,
-    pub to_stake_credentials: OrderedHashMap<StakeCredential, Coin>,
-    #[serde(skip)]
-    pub encodings: Option<MoveInstantaneousRewardEncoding>,
-}
-
-impl MoveInstantaneousReward {
-    pub fn new(pot: MIRPot, to_stake_credentials: OrderedHashMap<StakeCredential, Coin>) -> Self {
-        Self {
-            pot,
-            to_stake_credentials,
-            encodings: None,
-        }
-    }
-}
+use self::cbor_encodings::{
+    ShelleyMoveInstantaneousRewardEncoding, ShelleyMoveInstantaneousRewardsCertEncoding,
+};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct MultisigAll {
@@ -163,6 +151,50 @@ impl ShelleyBlock {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub enum ShelleyCertificate {
+    StakeRegistration(StakeRegistration),
+    StakeDeregistration(StakeDeregistration),
+    StakeDelegation(StakeDelegation),
+    PoolRegistration(PoolRegistration),
+    PoolRetirement(PoolRetirement),
+    GenesisKeyDelegation(GenesisKeyDelegation),
+    ShelleyMoveInstantaneousRewardsCert(ShelleyMoveInstantaneousRewardsCert),
+}
+
+impl ShelleyCertificate {
+    pub fn new_stake_registration(stake_registration: StakeRegistration) -> Self {
+        Self::StakeRegistration(stake_registration)
+    }
+
+    pub fn new_stake_deregistration(stake_deregistration: StakeDeregistration) -> Self {
+        Self::StakeDeregistration(stake_deregistration)
+    }
+
+    pub fn new_stake_delegation(stake_delegation: StakeDelegation) -> Self {
+        Self::StakeDelegation(stake_delegation)
+    }
+
+    pub fn new_pool_registration(pool_registration: PoolRegistration) -> Self {
+        Self::PoolRegistration(pool_registration)
+    }
+
+    pub fn new_pool_retirement(pool_retirement: PoolRetirement) -> Self {
+        Self::PoolRetirement(pool_retirement)
+    }
+
+    pub fn new_genesis_key_delegation(genesis_key_delegation: GenesisKeyDelegation) -> Self {
+        Self::GenesisKeyDelegation(genesis_key_delegation)
+    }
+
+    pub fn new_shelley_move_instantaneous_rewards_cert(
+        shelley_move_instantaneous_rewards_cert: ShelleyMoveInstantaneousRewardsCert,
+    ) -> Self {
+        Self::ShelleyMoveInstantaneousRewardsCert(shelley_move_instantaneous_rewards_cert)
+    }
+}
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ShelleyHeader {
     pub body: ShelleyHeaderBody,
@@ -224,6 +256,40 @@ impl ShelleyHeaderBody {
             block_body_hash,
             operational_cert,
             protocol_version,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct ShelleyMoveInstantaneousReward {
+    pub pot: MIRPot,
+    pub to_stake_credentials: OrderedHashMap<StakeCredential, Coin>,
+    #[serde(skip)]
+    pub encodings: Option<ShelleyMoveInstantaneousRewardEncoding>,
+}
+
+impl ShelleyMoveInstantaneousReward {
+    pub fn new(pot: MIRPot, to_stake_credentials: OrderedHashMap<StakeCredential, Coin>) -> Self {
+        Self {
+            pot,
+            to_stake_credentials,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct ShelleyMoveInstantaneousRewardsCert {
+    pub shelley_move_instantaneous_reward: ShelleyMoveInstantaneousReward,
+    #[serde(skip)]
+    pub encodings: Option<ShelleyMoveInstantaneousRewardsCertEncoding>,
+}
+
+impl ShelleyMoveInstantaneousRewardsCert {
+    pub fn new(shelley_move_instantaneous_reward: ShelleyMoveInstantaneousReward) -> Self {
+        Self {
+            shelley_move_instantaneous_reward,
             encodings: None,
         }
     }
@@ -314,7 +380,7 @@ pub struct ShelleyTransactionBody {
     pub outputs: Vec<ShelleyTransactionOutput>,
     pub fee: Coin,
     pub ttl: u64,
-    pub certs: Option<Vec<Certificate>>,
+    pub certs: Option<Vec<ShelleyCertificate>>,
     pub withdrawals: Option<Withdrawals>,
     pub update: Option<ShelleyUpdate>,
     pub auxiliary_data_hash: Option<AuxiliaryDataHash>,

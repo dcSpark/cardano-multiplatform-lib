@@ -6,9 +6,9 @@ use super::*;
 use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
+use cml_chain::address::RewardAccount;
 use cml_chain::AssetName;
 use cml_chain::PolicyId;
-use cml_chain::address::RewardAccount;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::Ed25519KeyHash;
@@ -34,7 +34,7 @@ impl Serialize for AlonzoAuxiliaryData {
 impl Deserialize for AlonzoAuxiliaryData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let deser_variant: Result<_, DeserializeError> = ShelleyAuxData::deserialize(raw);
             match deser_variant {
                 Ok(shelley) => return Ok(Self::Shelley(shelley)),
@@ -423,7 +423,6 @@ impl Deserialize for AlonzoCostmdls {
                 Some(x) => x,
                 None => return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(0)).into()),
             };
-            ();
             Ok(Self {
                 plutus_v1,
                 encodings: Some(AlonzoCostmdlsEncoding {
@@ -2384,7 +2383,7 @@ impl Serialize for AlonzoTransactionBody {
                             ),
                         )?;
                         serializer.write_bytes_sz(
-                            &field.to_raw_bytes(),
+                            field.to_raw_bytes(),
                             self.encodings
                                 .as_ref()
                                 .map(|encs| encs.auxiliary_data_hash_encoding.clone())
@@ -2450,7 +2449,7 @@ impl Serialize for AlonzoTransactionBody {
                                     .cloned()
                                     .unwrap_or_default();
                                 buf.write_bytes_sz(
-                                    &k.to_raw_bytes(),
+                                    k.to_raw_bytes(),
                                     mint_key_encoding.to_str_len_sz(
                                         k.to_raw_bytes().len() as u64,
                                         force_canonical,
@@ -2516,7 +2515,7 @@ impl Serialize for AlonzoTransactionBody {
                                     serializer.write_negative_integer_sz(
                                         *value as i128,
                                         fit_sz(
-                                            (*value + 1).abs() as u64,
+                                            (*value + 1).unsigned_abs(),
                                             mint_value_value_encoding,
                                             force_canonical,
                                         ),
@@ -2546,7 +2545,7 @@ impl Serialize for AlonzoTransactionBody {
                             ),
                         )?;
                         serializer.write_bytes_sz(
-                            &field.to_raw_bytes(),
+                            field.to_raw_bytes(),
                             self.encodings
                                 .as_ref()
                                 .map(|encs| encs.script_data_hash_encoding.clone())
@@ -2613,7 +2612,7 @@ impl Serialize for AlonzoTransactionBody {
                                 .cloned()
                                 .unwrap_or_default();
                             serializer.write_bytes_sz(
-                                &element.to_raw_bytes(),
+                                element.to_raw_bytes(),
                                 required_signers_elem_encoding.to_str_len_sz(
                                     element.to_raw_bytes().len() as u64,
                                     force_canonical,
@@ -3115,7 +3114,7 @@ impl Serialize for AlonzoTransactionOutput {
 impl Deserialize for AlonzoTransactionOutput {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let deser_variant: Result<_, DeserializeError> = ShelleyTxOut::deserialize(raw);
             match deser_variant {
                 Ok(shelley_tx_out) => return Ok(Self::ShelleyTxOut(shelley_tx_out)),
@@ -3702,7 +3701,7 @@ impl Serialize for AlonzoUpdate {
                     .cloned()
                     .unwrap_or_default();
                 buf.write_bytes_sz(
-                    &k.to_raw_bytes(),
+                    k.to_raw_bytes(),
                     proposed_protocol_parameter_updates_key_encoding
                         .to_str_len_sz(k.to_raw_bytes().len() as u64, force_canonical),
                 )?;

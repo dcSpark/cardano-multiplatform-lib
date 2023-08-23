@@ -5,32 +5,43 @@ use std::io::{BufRead, Write};
 
 use schemars::JsonSchema;
 
-use cml_crypto::{
-    Bip32PublicKey, PublicKey,
-    chain_crypto::{hash::Blake2b224},
-};
+use cml_crypto::{chain_crypto::hash::Blake2b224, Bip32PublicKey, PublicKey};
 
 use crate::Coin;
 
 // This library was code-generated using an experimental CDDL to rust tool:
 // https://github.com/Emurgo/cddl-codegen
 
-use cbor_event::{self, de::Deserializer, se::{Serializer}};
+use cbor_event::{self, de::Deserializer, se::Serializer};
 
 pub use self::crc32::Crc32;
-pub use utils::{AddressId, ByronAddressError, ByronScript, ProtocolMagic, StakeholderId, make_daedalus_bootstrap_witness, make_icarus_bootstrap_witness};
+pub use utils::{
+    make_daedalus_bootstrap_witness, make_icarus_bootstrap_witness, AddressId, ByronAddressError,
+    ByronScript, ProtocolMagic, StakeholderId,
+};
 
+mod base58;
+mod crc32;
 mod serialization;
 mod utils;
-mod crc32;
-mod base58;
 
 //#![allow(clippy::too_many_arguments)]
 
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+)]
 pub struct AddrAttributes {
     pub stake_distribution: Option<StakeDistribution>,
     pub derivation_path: Option<HDAddressPayload>,
@@ -73,7 +84,18 @@ pub enum ByronAddrType {
     Redeem = 2,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+)]
 pub struct AddressContent {
     pub address_id: AddressId,
     pub addr_attributes: AddrAttributes,
@@ -94,7 +116,18 @@ impl AddressContent {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+)]
 pub struct ByronAddress {
     pub content: AddressContent,
     pub crc: Crc32,
@@ -121,7 +154,18 @@ impl ByronTxOut {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+)]
 pub struct HDAddressPayload(pub Vec<u8>);
 
 impl HDAddressPayload {
@@ -167,7 +211,18 @@ impl SpendingData {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+)]
 pub enum StakeDistribution {
     SingleKey(StakeholderId),
     BootstrapEra,

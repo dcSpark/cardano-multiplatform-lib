@@ -240,7 +240,7 @@ impl Redeemer {
 
     pub fn new(tag: RedeemerTag, index: u64, data: &PlutusData, ex_units: &ExUnits) -> Self {
         Self(cml_chain::plutus::Redeemer::new(
-            tag.into(),
+            tag,
             index,
             data.clone().into(),
             ex_units.clone().into(),

@@ -4,9 +4,9 @@
     clippy::new_without_default
 )]
 
+use ::wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 use cml_core_wasm::metadata::TransactionMetadatumList;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use ::wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 pub use cml_core_wasm::Int;
 
@@ -14,8 +14,8 @@ pub mod address;
 pub mod assets;
 pub mod auxdata;
 pub mod block;
-pub mod byron;
 pub mod builders;
+pub mod byron;
 pub mod certs;
 pub mod crypto;
 pub mod fees;
@@ -24,10 +24,12 @@ pub mod transaction;
 pub mod utils;
 
 use address::RewardAccount;
-use assets::{AssetName};//, MutliAsset};
+use assets::AssetName; //, MutliAsset};
+pub use assets::Value;
 use auxdata::{AuxiliaryData, TransactionMetadatum};
 use block::ProtocolVersion;
 use certs::{Certificate, Relay, StakeCredential};
+pub use cml_chain::{Coin, Epoch, NetworkId};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_crypto_wasm::{Ed25519KeyHash, GenesisHash, ScriptHash};
 use crypto::{BootstrapWitness, Vkeywitness};
@@ -37,8 +39,6 @@ use plutus::{
 use transaction::{
     NativeScript, TransactionBody, TransactionInput, TransactionOutput, TransactionWitnessSet,
 };
-pub use cml_chain::{Epoch, NetworkId, Coin};
-pub use assets::Value;
 
 //extern crate serde_wasm_bindgen;
 // Code below here was code-generated using an experimental CDDL to rust tool:
@@ -149,7 +149,6 @@ impl Ed25519KeyHashList {
     }
 }
 
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct GenesisHashList(Vec<cml_chain::crypto::GenesisHash>);
@@ -174,8 +173,6 @@ impl GenesisHashList {
         self.0.push(elem.clone().into());
     }
 }
-
-
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -230,7 +227,6 @@ impl MapAssetNameToI64 {
         AssetNameList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
     }
 }
-
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -336,7 +332,11 @@ impl MapTransactionMetadatumToTransactionMetadatum {
     }
 
     pub fn keys(&self) -> TransactionMetadatumList {
-        self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>().into()
+        self.0
+            .iter()
+            .map(|(k, _v)| k.clone())
+            .collect::<Vec<_>>()
+            .into()
     }
 }
 
@@ -981,7 +981,6 @@ impl TransactionInputList {
         self.0.push(elem.clone().into());
     }
 }
-
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

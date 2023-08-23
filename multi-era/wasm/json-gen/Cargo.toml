@@ -7,4 +7,5 @@ edition = "2018"
 [dependencies]
 serde_json = "1.0.57"
 schemars = "0.8.8"
+cml-chain-json-schema-gen = { path = "../../../chain/wasm/json-gen" }
 cml-multi-era = { path = "../../rust" }

@@ -18,7 +18,7 @@ pub mod serialization;
 pub mod transaction;
 pub mod utils;
 
-use assets::{Mint};
+use assets::Mint;
 
 pub use assets::{Coin, Value};
 
@@ -42,11 +42,10 @@ extern crate derivative;
 use address::RewardAccount;
 use block::ProtocolVersion;
 use cbor_encodings::{
-    AssetNameEncoding, PositiveIntervalEncoding,
-    ProtocolParamUpdateEncoding, ProtocolVersionStructEncoding, RationalEncoding,
-    UnitIntervalEncoding, UpdateEncoding,
+    AssetNameEncoding, PositiveIntervalEncoding, ProtocolParamUpdateEncoding,
+    ProtocolVersionStructEncoding, RationalEncoding, UnitIntervalEncoding, UpdateEncoding,
 };
-use crypto::{GenesisHash};
+use crypto::GenesisHash;
 use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
 use transaction::NativeScript;
 
@@ -107,7 +106,7 @@ pub type DeltaCoin = Int;
 
 pub type GenesisHashList = Vec<GenesisHash>;
 
-pub type NetworkId = u32;// TODO: u8? or custom struct? (u8 can't be exposed to wasm)
+pub type NetworkId = u32; // TODO: u8? or custom struct? (u8 can't be exposed to wasm)
 
 pub type PolicyId = cml_crypto::ScriptHash;
 
@@ -235,52 +234,36 @@ impl Rational {
 
 pub type RewardAccountList = Vec<RewardAccount>;
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, PartialEq)]
 pub enum Script {
     Native {
         script: NativeScript,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         len_encoding: LenEncoding,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         tag_encoding: Option<cbor_event::Sz>,
     },
     PlutusV1 {
         script: PlutusV1Script,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         len_encoding: LenEncoding,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         tag_encoding: Option<cbor_event::Sz>,
     },
     PlutusV2 {
         script: PlutusV2Script,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         len_encoding: LenEncoding,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         tag_encoding: Option<cbor_event::Sz>,
     },
 }

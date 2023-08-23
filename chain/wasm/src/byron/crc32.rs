@@ -22,7 +22,7 @@ impl Crc32 {
 
     /// finalize the CRC32, recovering the computed value
     pub fn finalize(&self) -> u32 {
-        self.0.clone().finalize()
+        self.0.finalize()
     }
 }
 

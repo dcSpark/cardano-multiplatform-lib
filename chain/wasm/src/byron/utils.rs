@@ -1,9 +1,13 @@
-use cml_crypto_wasm::{impl_hash_type_ext, PublicKey, TransactionHash, LegacyDaedalusPrivateKey, Bip32PrivateKey, Bip32PublicKey};
+use cml_crypto_wasm::{
+    impl_hash_type_ext, Bip32PrivateKey, Bip32PublicKey, LegacyDaedalusPrivateKey, PublicKey,
+    TransactionHash,
+};
 use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 
 use crate::{
-    byron::{ByronAddress, AddrAttributes, HDAddressPayload, SpendingData},
-    crypto::BootstrapWitness, address::Address
+    address::Address,
+    byron::{AddrAttributes, ByronAddress, HDAddressPayload, SpendingData},
+    crypto::BootstrapWitness,
 };
 // this is alredy wasm-exposed since enum
 pub use cml_chain::byron::ByronAddrType;
@@ -24,11 +28,15 @@ impl StakeholderId {
 
 #[wasm_bindgen]
 impl AddrAttributes {
-    pub fn new_bootstrap_era(hdap: Option<HDAddressPayload>, protocol_magic: Option<ProtocolMagic>) -> Self {
+    pub fn new_bootstrap_era(
+        hdap: Option<HDAddressPayload>,
+        protocol_magic: Option<ProtocolMagic>,
+    ) -> Self {
         cml_chain::byron::AddrAttributes::new_bootstrap_era(
             hdap.map(Into::into),
             protocol_magic.map(Into::into),
-        ).into()
+        )
+        .into()
     }
 
     pub fn new_single_key(
@@ -40,37 +48,44 @@ impl AddrAttributes {
             pubk.as_ref(),
             hdap.map(Into::into),
             protocol_magic.into(),
-        ).into()
+        )
+        .into()
     }
 }
 
 #[wasm_bindgen]
 impl AddressId {
-    pub fn new(addr_type: ByronAddrType, spending_data: &SpendingData, attrs: &AddrAttributes) -> Self {
-        cml_chain::byron::AddressId::new(
-            addr_type,
-            spending_data.as_ref(),
-            attrs.as_ref(),
-        ).into()
+    pub fn new(
+        addr_type: ByronAddrType,
+        spending_data: &SpendingData,
+        attrs: &AddrAttributes,
+    ) -> Self {
+        cml_chain::byron::AddressId::new(addr_type, spending_data.as_ref(), attrs.as_ref()).into()
     }
 }
 
 #[wasm_bindgen]
 impl AddressContent {
-    pub fn hash_and_create(addr_type: ByronAddrType, spending_data: &SpendingData, attributes: &AddrAttributes) -> AddressContent {
+    pub fn hash_and_create(
+        addr_type: ByronAddrType,
+        spending_data: &SpendingData,
+        attributes: &AddrAttributes,
+    ) -> AddressContent {
         cml_chain::byron::AddressContent::hash_and_create(
             addr_type,
             spending_data.as_ref(),
             attributes.clone().into(),
-        ).into()
+        )
+        .into()
     }
 
     // bootstrap era + no hdpayload address
     pub fn new_redeem(pubkey: &PublicKey, protocol_magic: Option<ProtocolMagic>) -> Self {
         cml_chain::byron::AddressContent::new_redeem(
             pubkey.clone().into(),
-            protocol_magic.map(Into::into)
-        ).into()
+            protocol_magic.map(Into::into),
+        )
+        .into()
     }
 
     // bootstrap era + no hdpayload address
@@ -78,7 +93,8 @@ impl AddressContent {
         cml_chain::byron::AddressContent::new_simple(
             xpub.clone().into(),
             protocol_magic.map(Into::into),
-        ).into()
+        )
+        .into()
     }
 
     /// Do we want to remove this or keep it for people who were using old Byron code?
@@ -98,7 +114,11 @@ impl AddressContent {
 
     // icarus-style address (Ae2)
     pub fn icarus_from_key(key: &Bip32PublicKey, protocol_magic: &ProtocolMagic) -> AddressContent {
-        cml_chain::byron::AddressContent::icarus_from_key(key.clone().into(), protocol_magic.clone().into()).into()
+        cml_chain::byron::AddressContent::icarus_from_key(
+            key.clone().into(),
+            (*protocol_magic).into(),
+        )
+        .into()
     }
 
     /// Check if the Addr can be reconstructed with a specific xpub
@@ -116,14 +136,13 @@ impl ByronAddress {
     pub fn from_base58(s: &str) -> Result<ByronAddress, JsError> {
         cml_chain::byron::ByronAddress::from_base58(s)
             .map(Self)
-            .map_err(|e| JsError::new(&format!("ByronAddress::from_base58: {:?}", e)))
+            .map_err(|e| JsError::new(&format!("ByronAddress::from_base58: {e:?}")))
     }
 
     pub fn is_valid(s: &str) -> bool {
         cml_chain::byron::ByronAddress::is_valid(s)
     }
 
-            
     pub fn to_address(&self) -> Address {
         self.0.clone().to_address().into()
     }
@@ -133,9 +152,7 @@ impl ByronAddress {
     }
 
     pub fn from_address_content(address_content: &AddressContent) -> Self {
-        cml_chain::byron::ByronAddress::from(
-            cml_chain::byron::AddressContent::from(address_content.clone())
-        ).into()
+        cml_chain::byron::ByronAddress::from(address_content.as_ref().clone()).into()
     }
 }
 
@@ -181,8 +198,9 @@ pub fn make_daedalus_bootstrap_witness(
     cml_chain::byron::make_daedalus_bootstrap_witness(
         tx_body_hash.clone().into(),
         addr.clone().into(),
-        key.clone().into()
-    ).into()
+        key.clone().into(),
+    )
+    .into()
 }
 
 #[wasm_bindgen]
@@ -191,9 +209,6 @@ pub fn make_icarus_bootstrap_witness(
     addr: ByronAddress,
     key: &Bip32PrivateKey,
 ) -> BootstrapWitness {
-    cml_chain::byron::make_icarus_bootstrap_witness(
-        tx_body_hash.clone().into(),
-        addr.clone().into(),
-        key.as_ref(),
-    ).into()
+    cml_chain::byron::make_icarus_bootstrap_witness(tx_body_hash.into(), addr.into(), key.as_ref())
+        .into()
 }

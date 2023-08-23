@@ -3,13 +3,13 @@
 
 use super::cbor_encodings::*;
 use super::*;
+use crate::byron::AddrAttributes;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::RawBytesEncoding;
 use std::io::{BufRead, Seek, SeekFrom, Write};
-use crate::byron::AddrAttributes;
 
 impl Serialize for BootstrapWitness {
     fn serialize<'se, W: Write>(
@@ -25,7 +25,7 @@ impl Serialize for BootstrapWitness {
                 .to_len_sz(4, force_canonical),
         )?;
         serializer.write_bytes_sz(
-            &self.public_key.to_raw_bytes(),
+            self.public_key.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.public_key_encoding.clone())
@@ -33,7 +33,7 @@ impl Serialize for BootstrapWitness {
                 .to_str_len_sz(self.public_key.to_raw_bytes().len() as u64, force_canonical),
         )?;
         serializer.write_bytes_sz(
-            &self.signature.to_raw_bytes(),
+            self.signature.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.signature_encoding.clone())
@@ -202,7 +202,7 @@ impl Serialize for Nonce {
                     fit_sz(1u64, *tag_encoding, force_canonical),
                 )?;
                 serializer.write_bytes_sz(
-                    &hash.to_raw_bytes(),
+                    hash.to_raw_bytes(),
                     hash_encoding.to_str_len_sz(hash.to_raw_bytes().len() as u64, force_canonical),
                 )?;
                 len_encoding.end(serializer, force_canonical)?;
@@ -217,8 +217,8 @@ impl Deserialize for Nonce {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let mut read_len = CBORReadLen::new(len);
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let _read_len = CBORReadLen::new(len);
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let (identity_value, identity_encoding) = raw.unsigned_integer_sz()?;
                 if identity_value != 0 {
@@ -391,7 +391,7 @@ impl Serialize for Vkeywitness {
                 .to_len_sz(2, force_canonical),
         )?;
         serializer.write_bytes_sz(
-            &self.vkey.to_raw_bytes(),
+            self.vkey.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.vkey_encoding.clone())
@@ -399,7 +399,7 @@ impl Serialize for Vkeywitness {
                 .to_str_len_sz(self.vkey.to_raw_bytes().len() as u64, force_canonical),
         )?;
         serializer.write_bytes_sz(
-            &self.ed25519_signature.to_raw_bytes(),
+            self.ed25519_signature.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.ed25519_signature_encoding.clone())

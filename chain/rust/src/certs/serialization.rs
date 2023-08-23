@@ -48,7 +48,7 @@ impl Deserialize for Certificate {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let deser_variant: Result<_, DeserializeError> =
                 StakeRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
@@ -214,7 +214,7 @@ impl SerializeEmbeddedGroup for GenesisKeyDelegation {
             ),
         )?;
         serializer.write_bytes_sz(
-            &self.genesis_hash.to_raw_bytes(),
+            self.genesis_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.genesis_hash_encoding.clone())
@@ -225,7 +225,7 @@ impl SerializeEmbeddedGroup for GenesisKeyDelegation {
                 ),
         )?;
         serializer.write_bytes_sz(
-            &self.genesis_delegate_hash.to_raw_bytes(),
+            self.genesis_delegate_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.genesis_delegate_hash_encoding.clone())
@@ -236,7 +236,7 @@ impl SerializeEmbeddedGroup for GenesisKeyDelegation {
                 ),
         )?;
         serializer.write_bytes_sz(
-            &self.v_r_f_key_hash.to_raw_bytes(),
+            self.v_r_f_key_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.v_r_f_key_hash_encoding.clone())
@@ -465,7 +465,7 @@ impl Serialize for MIRAction {
 impl Deserialize for MIRAction {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut to_stake_credentials_table = OrderedHashMap::new();
                 let to_stake_credentials_len = raw.map_sz()?;
@@ -584,7 +584,7 @@ impl Deserialize for MoveInstantaneousReward {
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (pot, pot_encoding) = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+                let initial_position = raw.as_mut_ref().stream_position().unwrap();
                 match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (reserve_value, reserve_encoding) = raw.unsigned_integer_sz()?;
                     if reserve_value != 0 {
@@ -597,7 +597,7 @@ impl Deserialize for MoveInstantaneousReward {
                     Ok(Some(reserve_encoding))
                 })(raw)
                 {
-                    Ok((pot_encoding)) => return Ok((MIRPot::Reserve, pot_encoding)),
+                    Ok(pot_encoding) => return Ok((MIRPot::Reserve, pot_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
@@ -615,7 +615,7 @@ impl Deserialize for MoveInstantaneousReward {
                     Ok(Some(treasury_encoding))
                 })(raw)
                 {
-                    Ok((pot_encoding)) => return Ok((MIRPot::Treasury, pot_encoding)),
+                    Ok(pot_encoding) => return Ok((MIRPot::Treasury, pot_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
@@ -855,7 +855,7 @@ impl Serialize for PoolMetadata {
         )?;
         self.url.serialize(serializer, force_canonical)?;
         serializer.write_bytes_sz(
-            &self.pool_metadata_hash.to_raw_bytes(),
+            self.pool_metadata_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.pool_metadata_hash_encoding.clone())
@@ -935,7 +935,7 @@ impl SerializeEmbeddedGroup for PoolParams {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_bytes_sz(
-            &self.operator.to_raw_bytes(),
+            self.operator.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.operator_encoding.clone())
@@ -943,7 +943,7 @@ impl SerializeEmbeddedGroup for PoolParams {
                 .to_str_len_sz(self.operator.to_raw_bytes().len() as u64, force_canonical),
         )?;
         serializer.write_bytes_sz(
-            &self.vrf_keyhash.to_raw_bytes(),
+            self.vrf_keyhash.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.vrf_keyhash_encoding.clone())
@@ -992,7 +992,7 @@ impl SerializeEmbeddedGroup for PoolParams {
                 .cloned()
                 .unwrap_or_default();
             serializer.write_bytes_sz(
-                &element.to_raw_bytes(),
+                element.to_raw_bytes(),
                 pool_owners_elem_encoding
                     .to_str_len_sz(element.to_raw_bytes().len() as u64, force_canonical),
             )?;
@@ -1307,7 +1307,7 @@ impl SerializeEmbeddedGroup for PoolRetirement {
             ),
         )?;
         serializer.write_bytes_sz(
-            &self.ed25519_key_hash.to_raw_bytes(),
+            self.ed25519_key_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.ed25519_key_hash_encoding.clone())
@@ -1428,7 +1428,7 @@ impl Deserialize for Relay {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let deser_variant: Result<_, DeserializeError> =
                 SingleHostAddr::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
@@ -1775,7 +1775,7 @@ impl Serialize for StakeCredential {
                     fit_sz(0u64, *tag_encoding, force_canonical),
                 )?;
                 serializer.write_bytes_sz(
-                    &hash.to_raw_bytes(),
+                    hash.to_raw_bytes(),
                     hash_encoding.to_str_len_sz(hash.to_raw_bytes().len() as u64, force_canonical),
                 )?;
                 len_encoding.end(serializer, force_canonical)?;
@@ -1793,7 +1793,7 @@ impl Serialize for StakeCredential {
                     fit_sz(1u64, *tag_encoding, force_canonical),
                 )?;
                 serializer.write_bytes_sz(
-                    &hash.to_raw_bytes(),
+                    hash.to_raw_bytes(),
                     hash_encoding.to_str_len_sz(hash.to_raw_bytes().len() as u64, force_canonical),
                 )?;
                 len_encoding.end(serializer, force_canonical)?;
@@ -1808,8 +1808,8 @@ impl Deserialize for StakeCredential {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let mut read_len = CBORReadLen::new(len);
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let _read_len = CBORReadLen::new(len);
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
@@ -1949,7 +1949,7 @@ impl SerializeEmbeddedGroup for StakeDelegation {
         self.stake_credential
             .serialize(serializer, force_canonical)?;
         serializer.write_bytes_sz(
-            &self.ed25519_key_hash.to_raw_bytes(),
+            self.ed25519_key_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.ed25519_key_hash_encoding.clone())

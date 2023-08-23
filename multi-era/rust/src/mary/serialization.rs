@@ -6,9 +6,9 @@ use super::*;
 use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
+use cml_chain::address::RewardAccount;
 use cml_chain::AssetName;
 use cml_chain::PolicyId;
-use cml_chain::address::RewardAccount;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::RawBytesEncoding;
@@ -550,7 +550,7 @@ impl Serialize for MaryTransactionBody {
                             ),
                         )?;
                         serializer.write_bytes_sz(
-                            &field.to_raw_bytes(),
+                            field.to_raw_bytes(),
                             self.encodings
                                 .as_ref()
                                 .map(|encs| encs.auxiliary_data_hash_encoding.clone())
@@ -616,7 +616,7 @@ impl Serialize for MaryTransactionBody {
                                     .cloned()
                                     .unwrap_or_default();
                                 buf.write_bytes_sz(
-                                    &k.to_raw_bytes(),
+                                    k.to_raw_bytes(),
                                     mint_key_encoding.to_str_len_sz(
                                         k.to_raw_bytes().len() as u64,
                                         force_canonical,
@@ -682,7 +682,7 @@ impl Serialize for MaryTransactionBody {
                                     serializer.write_negative_integer_sz(
                                         *value as i128,
                                         fit_sz(
-                                            (*value + 1).abs() as u64,
+                                            (*value + 1).unsigned_abs(),
                                             mint_value_value_encoding,
                                             force_canonical,
                                         ),

@@ -4,10 +4,10 @@
 use super::*;
 use cbor_event;
 use cbor_event::de::Deserializer;
-use cbor_event::se::{Serialize, Serializer};
+use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
+use std::io::{BufRead, Seek, Write};
 
 impl cbor_event::se::Serialize for ByronDelegation {
     fn serialize<'se, W: Write>(
@@ -30,8 +30,8 @@ impl Deserialize for ByronDelegation {
         read_len.read_elems(4)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
-            let epoch = Ok(raw.unsigned_integer()? as u64)
-                .map_err(|e: DeserializeError| e.annotate("epoch"))?;
+            let epoch =
+                Ok(raw.unsigned_integer()?).map_err(|e: DeserializeError| e.annotate("epoch"))?;
             let issuer =
                 Ok(raw.bytes()? as Vec<u8>).map_err(|e: DeserializeError| e.annotate("issuer"))?;
             let delegate = Ok(raw.bytes()? as Vec<u8>)
@@ -114,9 +114,9 @@ impl Deserialize for EpochRange {
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
-            let epoch_id = Ok(raw.unsigned_integer()? as u64)
+            let epoch_id = Ok(raw.unsigned_integer()?)
                 .map_err(|e: DeserializeError| e.annotate("epoch_id"))?;
-            let epoch_id2 = Ok(raw.unsigned_integer()? as u64)
+            let epoch_id2 = Ok(raw.unsigned_integer()?)
                 .map_err(|e: DeserializeError| e.annotate("epoch_id2"))?;
             match len {
                 cbor_event::Len::Len(_) => (),

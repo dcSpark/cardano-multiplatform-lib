@@ -6,11 +6,11 @@ use crate::byron::ByronAny;
 use super::*;
 use cbor_event;
 use cbor_event::de::Deserializer;
-use cbor_event::se::{Serialize, Serializer};
+use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 use cml_crypto::RawBytesEncoding;
+use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl cbor_event::se::Serialize for BlockHeaderExtraData {
     fn serialize<'se, W: Write>(
@@ -25,7 +25,7 @@ impl cbor_event::se::Serialize for BlockHeaderExtraData {
             key.serialize(serializer)?;
             value.serialize(serializer)?;
         }
-        serializer.write_bytes(&self.extra_proof.to_raw_bytes())?;
+        serializer.write_bytes(self.extra_proof.to_raw_bytes())?;
         Ok(serializer)
     }
 }
@@ -108,7 +108,7 @@ impl cbor_event::se::Serialize for ByronBlock {
 impl Deserialize for ByronBlock {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> = ByronEbBlock::deserialize(raw);
             match deser_variant {
@@ -278,7 +278,7 @@ impl cbor_event::se::Serialize for ByronBlockHeader {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(5))?;
         serializer.write_unsigned_integer(self.protocol_magic as u64)?;
-        serializer.write_bytes(&self.prev_block.to_raw_bytes())?;
+        serializer.write_bytes(self.prev_block.to_raw_bytes())?;
         self.body_proof.serialize(serializer)?;
         self.consensus_data.serialize(serializer)?;
         self.extra_data.serialize(serializer)?;
@@ -344,7 +344,7 @@ impl cbor_event::se::Serialize for ByronBlockSignature {
 impl Deserialize for ByronBlockSignature {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> =
                 ByronBlockSignatureNormal::deserialize(raw);
@@ -534,8 +534,8 @@ impl cbor_event::se::Serialize for ByronBodyProof {
         serializer.write_array(cbor_event::Len::Len(4))?;
         self.tx_proof.serialize(serializer)?;
         self.ssc_proof.serialize(serializer)?;
-        serializer.write_bytes(&self.dlg_proof.to_raw_bytes())?;
-        serializer.write_bytes(&self.upd_proof.to_raw_bytes())?;
+        serializer.write_bytes(self.dlg_proof.to_raw_bytes())?;
+        serializer.write_bytes(self.upd_proof.to_raw_bytes())?;
         Ok(serializer)
     }
 }
@@ -603,8 +603,8 @@ impl Deserialize for ByronDifficulty {
         read_len.read_elems(1)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
-            let u64 = Ok(raw.unsigned_integer()? as u64)
-                .map_err(|e: DeserializeError| e.annotate("u64"))?;
+            let u64 =
+                Ok(raw.unsigned_integer()?).map_err(|e: DeserializeError| e.annotate("u64"))?;
             match len {
                 cbor_event::Len::Len(_) => (),
                 cbor_event::Len::Indefinite => match raw.special()? {
@@ -628,7 +628,7 @@ impl cbor_event::se::Serialize for ByronEbBlock {
         //serializer.write_array(cbor_event::Len::Len(self.body.len() as u64))?;
         serializer.write_array(cbor_event::Len::Indefinite)?;
         for element in self.body.iter() {
-            serializer.write_bytes(&element.to_raw_bytes())?;
+            serializer.write_bytes(element.to_raw_bytes())?;
         }
         serializer.write_special(cbor_event::Special::Break)?;
         serializer.write_array(cbor_event::Len::Len(self.extra.len() as u64))?;
@@ -836,7 +836,7 @@ impl Deserialize for EbbConsensusData {
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
-            let epoch_id = Ok(raw.unsigned_integer()? as u64)
+            let epoch_id = Ok(raw.unsigned_integer()?)
                 .map_err(|e: DeserializeError| e.annotate("epoch_id"))?;
             let byron_difficulty = ByronDifficulty::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("byron_difficulty"))?;
@@ -863,8 +863,8 @@ impl cbor_event::se::Serialize for EbbHead {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(5))?;
         serializer.write_unsigned_integer(self.protocol_magic as u64)?;
-        serializer.write_bytes(&self.prev_block.to_raw_bytes())?;
-        serializer.write_bytes(&self.body_proof.to_raw_bytes())?;
+        serializer.write_bytes(self.prev_block.to_raw_bytes())?;
+        serializer.write_bytes(self.body_proof.to_raw_bytes())?;
         self.consensus_data.serialize(serializer)?;
         serializer.write_array(cbor_event::Len::Len(self.extra_data.len() as u64))?;
         for element in self.extra_data.iter() {

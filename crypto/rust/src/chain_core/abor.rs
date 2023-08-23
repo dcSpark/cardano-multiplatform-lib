@@ -104,7 +104,7 @@ impl Encoder {
         assert!(bs.len() < 256);
         self.push_tag(Tag::Bytes)
             .push_byte(bs.len() as u8)
-            .push_slice(&bs)
+            .push_slice(bs)
             .incr()
     }
 
@@ -148,6 +148,12 @@ impl Encoder {
     }
 }
 
+impl Default for Encoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Create a decoder on some data
 pub struct Decoder<'a> {
     slice: &'a [u8],
@@ -170,9 +176,8 @@ impl<'a> Decoder<'a> {
         Decoder { slice: data }
     }
 
-    #[must_use]
     fn pop(&mut self) -> Result<u8, DecodeError> {
-        if self.slice.len() > 0 {
+        if !self.slice.is_empty() {
             let v = self.slice[0];
             self.slice = &self.slice[1..];
             Ok(v)
@@ -181,7 +186,6 @@ impl<'a> Decoder<'a> {
         }
     }
 
-    #[must_use]
     fn expect_tag(&mut self, tag: Tag) -> Result<(), DecodeError> {
         let t = self.pop()?;
         match Tag::from_u8(t) {
@@ -191,7 +195,6 @@ impl<'a> Decoder<'a> {
         }
     }
 
-    #[must_use]
     fn expect_size(&self, nb_bytes: usize) -> Result<(), DecodeError> {
         if nb_bytes <= self.slice.len() {
             Ok(())
@@ -203,27 +206,23 @@ impl<'a> Decoder<'a> {
         }
     }
 
-    #[must_use]
     fn expect_tag_size(&mut self, tag: Tag, nb_bytes: usize) -> Result<(), DecodeError> {
         self.expect_tag(tag)?;
         self.expect_size(nb_bytes)
     }
 
-    #[must_use]
     pub fn array(&mut self) -> Result<usize, DecodeError> {
         self.expect_tag_size(Tag::Array, 1)?;
         let len = self.pop()?;
         Ok(len as usize)
     }
 
-    #[must_use]
     pub fn u8(&mut self) -> Result<u8, DecodeError> {
         self.expect_tag_size(Tag::U8, 1)?;
         let len = self.pop()?;
         Ok(len)
     }
 
-    #[must_use]
     pub fn u16(&mut self) -> Result<u16, DecodeError> {
         self.expect_tag_size(Tag::U16, 2)?;
         let v = {
@@ -235,7 +234,6 @@ impl<'a> Decoder<'a> {
         Ok(v)
     }
 
-    #[must_use]
     pub fn u32(&mut self) -> Result<u32, DecodeError> {
         self.expect_tag_size(Tag::U32, 2)?;
         let v = {
@@ -247,7 +245,6 @@ impl<'a> Decoder<'a> {
         Ok(v)
     }
 
-    #[must_use]
     pub fn u64(&mut self) -> Result<u64, DecodeError> {
         self.expect_tag_size(Tag::U64, 8)?;
         let v = {
@@ -259,7 +256,6 @@ impl<'a> Decoder<'a> {
         Ok(v)
     }
 
-    #[must_use]
     pub fn u128(&mut self) -> Result<u128, DecodeError> {
         self.expect_tag_size(Tag::U128, 16)?;
         let v = {
@@ -271,7 +267,6 @@ impl<'a> Decoder<'a> {
         Ok(v)
     }
 
-    #[must_use]
     pub fn bytes(&mut self) -> Result<Box<[u8]>, DecodeError> {
         self.expect_tag_size(Tag::Bytes, 1)?;
         let len = self.pop()? as usize;
@@ -282,9 +277,8 @@ impl<'a> Decoder<'a> {
         Ok(v.into())
     }
 
-    #[must_use]
     pub fn end(self) -> Result<(), DecodeError> {
-        if self.slice.len() == 0 {
+        if self.slice.is_empty() {
             Ok(())
         } else {
             Err(DecodeError::StreamPending {
@@ -300,11 +294,11 @@ mod tests {
 
     #[test]
     pub fn serialize_unit1() {
-        let v = 0xf1235_fc;
+        let v = 0xf12_35fc;
         let e = Encoder::new().u32(v).finalize();
         let mut d = Decoder::new(&e);
         let ev = d.u32().unwrap();
-        assert_eq!(d.end().is_ok(), true);
+        assert!(d.end().is_ok());
         assert_eq!(v, ev)
     }
 
@@ -334,11 +328,6 @@ mod tests {
         assert_eq!(v3, ev3);
         assert_eq!(v4, ev4);
         assert_eq!(&bs1[..], &ebs1[..]);
-        assert_eq!(
-            is_end.is_ok(),
-            true,
-            "not reached end {:?}",
-            is_end.unwrap_err()
-        );
+        assert!(is_end.is_ok(), "not reached end {:?}", is_end.unwrap_err());
     }
 }

@@ -1,11 +1,11 @@
-use crate::error::{DeserializeError, DeserializeFailure, Key};
-use crate::ordered_hash_map::OrderedHashMap;
-use crate::serialization::{Deserialize, LenEncoding, Serialize, StringEncoding, fit_sz};
+use crate::error::{DeserializeError, DeserializeFailure};
+
+use crate::serialization::{fit_sz, Deserialize, LenEncoding, Serialize, StringEncoding};
 use crate::Int;
 use cbor_event::{de::Deserializer, se::Serializer};
 use derivative::Derivative;
 
-use std::io::{BufRead, Seek, SeekFrom, Write};
+use std::io::{BufRead, Seek, Write};
 
 pub type TransactionMetadatumLabel = u64;
 
@@ -28,6 +28,10 @@ impl Metadata {
         self.entries.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
     /// Replaces all metadatums of a given label, if any exist.
     pub fn set(&mut self, label: TransactionMetadatumLabel, datum: TransactionMetadatum) {
         self.entries.retain(|(l, _)| *l != label);
@@ -38,7 +42,10 @@ impl Metadata {
     /// Note: In the case of duplicate labels this only returns the first metadatum.
     /// This is an extremely rare occurence on-chain but can happen.
     pub fn get(&self, label: TransactionMetadatumLabel) -> Option<&TransactionMetadatum> {
-        self.entries.iter().find(|(l, _)| *l == label).map(|(_, md)| md)
+        self.entries
+            .iter()
+            .find(|(l, _)| *l == label)
+            .map(|(_, md)| md)
     }
 
     /// In the extremely unlikely situation there are duplicate labels, this gets all of a single label
@@ -90,15 +97,12 @@ impl Serialize for Metadata {
             key_order.push((buf.finalize(), label, datum));
         }
         if force_canonical {
-            key_order.sort_by(
-                |(lhs_bytes, _, _), (rhs_bytes, _, _)| match lhs_bytes
-                    .len()
-                    .cmp(&rhs_bytes.len())
-                {
+            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
+                match lhs_bytes.len().cmp(&rhs_bytes.len()) {
                     std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
                     diff_ord => diff_ord,
-                },
-            );
+                }
+            });
         }
         for (key_bytes, _key, value) in key_order {
             serializer.write_raw_bytes(&key_bytes)?;
@@ -126,8 +130,7 @@ impl Deserialize for Metadata {
                 assert_eq!(raw.special()?, cbor_event::Special::Break);
                 break;
             }
-            let (metadatum_label, label_encoding) =
-                raw.unsigned_integer_sz()?;
+            let (metadatum_label, label_encoding) = raw.unsigned_integer_sz()?;
             let metadatum = TransactionMetadatum::deserialize(raw)?;
             entries.push((metadatum_label, metadatum));
             label_encodings.push(label_encoding);
@@ -137,22 +140,17 @@ impl Deserialize for Metadata {
             encodings: Some(MetadataEncoding {
                 len_encoding,
                 label_encodings,
-            })
+            }),
         })
     }
 }
 
-
 /// Handles the extremely rare (2 total instances on mainnet) edge-case of in
 /// previous generations allowing duplicate metadatum keys.
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
-#[derivative(
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-    Hash
+#[derive(
+    Clone, Debug, Default, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative,
 )]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct MetadatumMap {
     pub entries: Vec<(TransactionMetadatum, TransactionMetadatum)>,
     #[serde(skip)]
@@ -174,6 +172,10 @@ impl MetadatumMap {
         self.entries.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
     /// Replaces all metadatums of a given key, if any exist.
     pub fn set(&mut self, key: TransactionMetadatum, datum: TransactionMetadatum) {
         self.entries.retain(|(k, _)| *k != key);
@@ -184,7 +186,10 @@ impl MetadatumMap {
     /// Note: In the case of duplicate keys this only returns the first metadatum.
     /// This is an extremely rare occurence (2 total on mainnet) on-chain but can happen.
     pub fn get(&self, key: &TransactionMetadatum) -> Option<&TransactionMetadatum> {
-        self.entries.iter().find(|(k, _)| *k == *key).map(|(_, md)| md)
+        self.entries
+            .iter()
+            .find(|(k, _)| *k == *key)
+            .map(|(_, md)| md)
     }
 
     /// In the extremely unlikely situation there are duplicate keys, this gets all of a single key
@@ -209,7 +214,8 @@ impl Serialize for MetadatumMap {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_map_sz(
-            self.entries_encoding.to_len_sz(self.entries.len() as u64, force_canonical),
+            self.entries_encoding
+                .to_len_sz(self.entries.len() as u64, force_canonical),
         )?;
         let mut key_order = self
             .entries
@@ -362,14 +368,14 @@ impl Serialize for TransactionMetadatum {
                 bytes,
                 bytes_encoding,
             } => serializer.write_bytes_sz(
-                &bytes,
+                bytes,
                 bytes_encoding.to_str_len_sz(bytes.len() as u64, force_canonical),
             ),
             TransactionMetadatum::Text {
                 text,
                 text_encoding,
             } => serializer.write_text_sz(
-                &text,
+                text,
                 text_encoding.to_str_len_sz(text.len() as u64, force_canonical),
             ),
         }
@@ -399,27 +405,24 @@ impl Deserialize for TransactionMetadatum {
                         elements: elements_arr,
                         elements_encoding,
                     })
-                },
-                cbor_event::Type::UnsignedInteger |
-                cbor_event::Type::NegativeInteger => Int::deserialize(raw).map(Self::Int),
-                cbor_event::Type::Bytes => {
-                    raw
-                        .bytes_sz()
-                        .map(|(bytes, enc)| Self::Bytes {
-                            bytes,
-                            bytes_encoding: StringEncoding::from(enc),
-                        })
-                        .map_err(Into::<DeserializeError>::into)
-                },
-                cbor_event::Type::Text => {
-                    raw
-                        .text_sz()
-                        .map(|(text, enc)| Self::Text {
-                            text,
-                            text_encoding: StringEncoding::from(enc),
-                        })
-                        .map_err(Into::<DeserializeError>::into)
-                },
+                }
+                cbor_event::Type::UnsignedInteger | cbor_event::Type::NegativeInteger => {
+                    Int::deserialize(raw).map(Self::Int)
+                }
+                cbor_event::Type::Bytes => raw
+                    .bytes_sz()
+                    .map(|(bytes, enc)| Self::Bytes {
+                        bytes,
+                        bytes_encoding: StringEncoding::from(enc),
+                    })
+                    .map_err(Into::<DeserializeError>::into),
+                cbor_event::Type::Text => raw
+                    .text_sz()
+                    .map(|(text, enc)| Self::Text {
+                        text,
+                        text_encoding: StringEncoding::from(enc),
+                    })
+                    .map_err(Into::<DeserializeError>::into),
                 _ => Err(DeserializeFailure::NoVariantMatched.into()),
             }
         })()

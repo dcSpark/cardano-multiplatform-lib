@@ -6,7 +6,12 @@ pub mod serialization;
 
 use cml_core::Int;
 
-use cml_chain::{ProtocolVersionStruct, TransactionIndex};
+use crate::shelley::ShelleyHeader;
+use cbor_encodings::{
+    AlonzoBlockEncoding, AlonzoCostmdlsEncoding, AlonzoOnlyAuxDataEncoding,
+    AlonzoProtocolParamUpdateEncoding, AlonzoTransactionBodyEncoding, AlonzoTransactionEncoding,
+    AlonzoTransactionWitnessSetEncoding, AlonzoUpdateEncoding,
+};
 use cml_chain::assets::{Coin, Mint};
 use cml_chain::auxdata::{Metadata, ShelleyAuxData, ShelleyMaAuxData};
 use cml_chain::certs::Certificate;
@@ -15,15 +20,10 @@ use cml_chain::crypto::{
 };
 use cml_chain::plutus::{ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, Redeemer};
 use cml_chain::transaction::{
-    AlonzoTxOut, NativeScript, RequiredSigners, TransactionInput, ShelleyTxOut,
+    AlonzoTxOut, NativeScript, RequiredSigners, ShelleyTxOut, TransactionInput,
 };
 use cml_chain::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
-use crate::shelley::ShelleyHeader;
-use cbor_encodings::{
-    AlonzoBlockEncoding, AlonzoCostmdlsEncoding, AlonzoOnlyAuxDataEncoding,
-    AlonzoProtocolParamUpdateEncoding, AlonzoTransactionBodyEncoding, AlonzoTransactionEncoding,
-    AlonzoTransactionWitnessSetEncoding, AlonzoUpdateEncoding,
-};
+use cml_chain::{ProtocolVersionStruct, TransactionIndex};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use std::collections::BTreeMap;
 

@@ -2,11 +2,11 @@ use cml_core::ArithmeticError;
 
 use crate::{
     address::Address,
-    transaction::{DatumOption, ScriptRef, TransactionOutput},
-    plutus::PlutusData,
-    assets::{MultiAsset, Value, Coin},
+    assets::{Coin, MultiAsset, Value},
     crypto::hash::hash_plutus_data,
-    min_ada::{min_ada_required},
+    min_ada::min_ada_required,
+    plutus::PlutusData,
+    transaction::{DatumOption, ScriptRef, TransactionOutput},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -88,7 +88,11 @@ impl TransactionOutputAmountBuilder {
         self
     }
 
-    pub fn with_asset_and_min_required_coin(self, multiasset: MultiAsset, coins_per_utxo_byte: Coin) -> Result<Self, OutputBuilderError> {
+    pub fn with_asset_and_min_required_coin(
+        self,
+        multiasset: MultiAsset,
+        coins_per_utxo_byte: Coin,
+    ) -> Result<Self, OutputBuilderError> {
         let mut min_output = TransactionOutput::new(
             self.address.clone(),
             self.amount.clone().unwrap_or_else(|| Value::from(0)),
@@ -114,7 +118,7 @@ impl TransactionOutputAmountBuilder {
         );
         Ok(SingleOutputBuilderResult {
             output,
-            communication_datum: self.communication_datum
+            communication_datum: self.communication_datum,
         })
     }
 }

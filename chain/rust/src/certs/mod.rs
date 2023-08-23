@@ -8,8 +8,7 @@ pub mod utils;
 use super::{Coin, DeltaCoin, Epoch, Port, UnitInterval};
 use crate::address::RewardAccount;
 use crate::crypto::{
-    Ed25519KeyHash, GenesisDelegateHash, GenesisHash, PoolMetadataHash,
-    ScriptHash, VRFKeyHash,
+    Ed25519KeyHash, GenesisDelegateHash, GenesisHash, PoolMetadataHash, ScriptHash, VRFKeyHash,
 };
 use cbor_encodings::{
     DnsNameEncoding, GenesisKeyDelegationEncoding, Ipv4Encoding, Ipv6Encoding,
@@ -23,6 +22,7 @@ use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::convert::TryFrom;
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum Certificate {
     StakeRegistration(StakeRegistration),
@@ -363,6 +363,7 @@ pub struct PoolParams {
 }
 
 impl PoolParams {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         operator: Ed25519KeyHash,
         vrf_keyhash: VRFKeyHash,

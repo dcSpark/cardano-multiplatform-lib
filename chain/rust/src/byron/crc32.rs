@@ -1,9 +1,6 @@
 use super::*;
 
-use cml_core::{
-    error::DeserializeError,
-    serialization::Deserialize,
-};
+use cml_core::{error::DeserializeError, serialization::Deserialize};
 
 const CRC_TABLE: [u32; 256] = [
     0x00000000u32,
@@ -268,12 +265,24 @@ const CRC_TABLE: [u32; 256] = [
 ///
 /// This structure allows implements the `Write` trait making it easier
 /// to compute the crc32 of a stream.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Copy)]
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+    Copy,
+)]
 pub struct Crc32(u32);
 
-impl Into<u32> for Crc32 {
-    fn into(self) -> u32 {
-        self.0
+impl From<Crc32> for u32 {
+    fn from(val: Crc32) -> Self {
+        val.0
     }
 }
 
@@ -342,6 +351,12 @@ impl Deserialize for Crc32 {
 impl std::fmt::Display for Crc32 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:#04x}", self.0)
+    }
+}
+
+impl Default for Crc32 {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

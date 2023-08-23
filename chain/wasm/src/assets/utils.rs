@@ -1,17 +1,23 @@
 use std::ops::Deref;
 
+use crate::{assets::AssetName, AssetNameList, MapAssetNameToI64, PolicyId, PolicyIdList};
 use wasm_bindgen::{prelude::wasm_bindgen, JsError};
-use crate::{PolicyId, MapAssetNameToI64, PolicyIdList, assets::AssetName, AssetNameList};
 
-use cml_core_wasm::{impl_wasm_map, impl_wasm_conversions};
+use cml_core_wasm::{impl_wasm_conversions, impl_wasm_map};
 
 use super::Coin;
 
 impl_wasm_map!(
-    cml_chain::AssetName, Coin,
-    AssetName, Coin,
+    cml_chain::AssetName,
+    Coin,
+    AssetName,
+    Coin,
     AssetNameList,
-    MapAssetNameToCoin
+    MapAssetNameToCoin,
+    false,
+    true,
+    false,
+    true
 );
 
 #[derive(Clone, Debug)]
@@ -41,7 +47,7 @@ impl MultiAsset {
     pub fn get_assets(&self, key: &PolicyId) -> Option<MapAssetNameToCoin> {
         self.0.deref().get(key.as_ref()).map(|v| v.clone().into())
     }
-    
+
     /// Get the value of policy_id:asset_name if it exists.
     pub fn get(&self, policy_id: &PolicyId, asset: &AssetName) -> Option<Coin> {
         self.0.get(policy_id.as_ref(), asset.as_ref())
@@ -50,7 +56,8 @@ impl MultiAsset {
     /// Set the value of policy_id:asset_name to value.
     /// Returns the previous value, or None if it didn't exist
     pub fn set(&mut self, policy_id: &PolicyId, asset: &AssetName, value: Coin) -> Option<Coin> {
-        self.0.set(policy_id.clone().into(), asset.clone().into(), value)
+        self.0
+            .set(policy_id.clone().into(), asset.clone().into(), value)
     }
 
     pub fn keys(&self) -> PolicyIdList {
@@ -60,7 +67,8 @@ impl MultiAsset {
     /// Adds to multiassets together, checking value bounds.
     /// Does not modify self, and instead returns the result.
     pub fn checked_add(&self, rhs: &MultiAsset) -> Result<MultiAsset, JsError> {
-        self.0.checked_add(rhs.as_ref())
+        self.0
+            .checked_add(rhs.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }
@@ -72,7 +80,8 @@ impl MultiAsset {
     /// Use clamped_sub if you need to only try to remove assets when they exist
     /// and ignore them when they don't.
     pub fn checked_sub(&self, rhs: &MultiAsset) -> Result<MultiAsset, JsError> {
-        self.0.checked_sub(rhs.as_ref())
+        self.0
+            .checked_sub(rhs.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }
@@ -115,7 +124,7 @@ impl Mint {
     pub fn get_assets(&self, key: &PolicyId) -> Option<MapAssetNameToI64> {
         self.0.deref().get(key.as_ref()).map(|v| v.clone().into())
     }
-    
+
     /// Get the value of policy_id:asset_name if it exists.
     pub fn get(&self, policy_id: &PolicyId, asset: &AssetName) -> Option<i64> {
         self.0.get(policy_id.as_ref(), asset.as_ref())
@@ -124,7 +133,8 @@ impl Mint {
     /// Set the value of policy_id:asset_name to value.
     /// Returns the previous value, or None if it didn't exist
     pub fn set(&mut self, policy_id: &PolicyId, asset: &AssetName, value: i64) -> Option<i64> {
-        self.0.set(policy_id.clone().into(), asset.clone().into(), value)
+        self.0
+            .set(policy_id.clone().into(), asset.clone().into(), value)
     }
 
     pub fn keys(&self) -> PolicyIdList {
@@ -134,7 +144,8 @@ impl Mint {
     /// Adds two mints together, checking value bounds.
     /// Does not modify self, and instead returns the result.
     pub fn checked_add(&self, rhs: &Mint) -> Result<Mint, JsError> {
-        self.0.checked_add(rhs.as_ref())
+        self.0
+            .checked_add(rhs.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }
@@ -142,7 +153,8 @@ impl Mint {
     /// Subtracts rhs from this mint.
     /// This does not modify self, and instead returns the result.
     pub fn checked_sub(&self, rhs: &Mint) -> Result<Mint, JsError> {
-        self.0.checked_sub(rhs.as_ref())
+        self.0
+            .checked_sub(rhs.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }
@@ -171,7 +183,7 @@ impl Value {
     pub fn multi_asset(&self) -> MultiAsset {
         self.0.multiasset.clone().into()
     }
-    
+
     pub fn zero() -> Value {
         cml_chain::assets::Value::zero().into()
     }
@@ -185,7 +197,8 @@ impl Value {
     }
 
     pub fn checked_add(&self, rhs: &Value) -> Result<Value, JsError> {
-        self.0.checked_add(rhs.as_ref())
+        self.0
+            .checked_add(rhs.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }
@@ -195,7 +208,8 @@ impl Value {
     /// Does not modify this object, instead the result is returned
     /// None is returned if there would be integer underflow
     pub fn checked_sub(&self, rhs: &Value) -> Result<Value, JsError> {
-        self.0.checked_sub(rhs.as_ref())
+        self.0
+            .checked_sub(rhs.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }

@@ -1,8 +1,11 @@
 use cml_core::metadata::Metadata;
 
-use crate::{transaction::NativeScript, plutus::{PlutusV1Script, PlutusV2Script}};
+use crate::{
+    plutus::{PlutusV1Script, PlutusV2Script},
+    transaction::NativeScript,
+};
 
-use super::{AuxiliaryData, AlonzoAuxData, ShelleyMaAuxData};
+use super::{AlonzoAuxData, AuxiliaryData, ShelleyMaAuxData};
 
 impl AuxiliaryData {
     pub fn new() -> Self {
@@ -28,7 +31,7 @@ impl AuxiliaryData {
                     alonzo.metadata = Some(Metadata::new());
                 }
                 alonzo.metadata.as_mut().unwrap()
-            },
+            }
         }
     }
 
@@ -37,7 +40,8 @@ impl AuxiliaryData {
             Self::Shelley { .. } => None,
             Self::ShelleyMA(shelley_ma) => Some(&shelley_ma.auxiliary_scripts),
             Self::Alonzo(alonzo) => alonzo.native_scripts.as_ref(),
-        }.filter(|scripts| !scripts.is_empty())
+        }
+        .filter(|scripts| !scripts.is_empty())
     }
 
     pub fn plutus_v1_scripts(&self) -> Option<&Vec<PlutusV1Script>> {
@@ -45,7 +49,8 @@ impl AuxiliaryData {
             Self::Shelley { .. } => None,
             Self::ShelleyMA(_shelley_ma) => None,
             Self::Alonzo(alonzo) => alonzo.plutus_v1_scripts.as_ref(),
-        }.filter(|scripts| !scripts.is_empty())
+        }
+        .filter(|scripts| !scripts.is_empty())
     }
 
     pub fn plutus_v2_scripts(&self) -> Option<&Vec<PlutusV2Script>> {
@@ -53,7 +58,8 @@ impl AuxiliaryData {
             Self::Shelley { .. } => None,
             Self::ShelleyMA(_shelley_ma) => None,
             Self::Alonzo(alonzo) => alonzo.plutus_v2_scripts.as_ref(),
-        }.filter(|scripts| !scripts.is_empty())
+        }
+        .filter(|scripts| !scripts.is_empty())
     }
 
     /// Warning: overwrites any conflicting metadatum labels present
@@ -66,7 +72,7 @@ impl AuxiliaryData {
                     alonzo.metadata = Some(Metadata::new());
                 }
                 alonzo.metadata.as_mut().unwrap()
-            },
+            }
         };
         metadata.entries.extend(other.entries.into_iter());
     }
@@ -76,17 +82,17 @@ impl AuxiliaryData {
         match self {
             Self::Shelley(shelley) => {
                 *self = Self::ShelleyMA(ShelleyMaAuxData::new(shelley.clone(), scripts));
-            },
+            }
             Self::ShelleyMA(shelley_ma) => {
                 shelley_ma.auxiliary_scripts.extend(scripts);
-            },
+            }
             Self::Alonzo(alonzo) => {
                 if let Some(old_scripts) = &mut alonzo.native_scripts {
                     old_scripts.extend(scripts);
                 } else {
                     alonzo.native_scripts = Some(scripts);
                 }
-            },
+            }
         }
     }
 
@@ -111,14 +117,14 @@ impl AuxiliaryData {
                 }
                 alonzo.plutus_v1_scripts = Some(scripts);
                 *self = Self::Alonzo(alonzo);
-            },
+            }
             Self::Alonzo(alonzo) => {
                 if let Some(old_scripts) = &mut alonzo.plutus_v1_scripts {
                     old_scripts.extend(scripts);
                 } else {
                     alonzo.plutus_v1_scripts = Some(scripts);
                 }
-            },
+            }
         }
     }
 
@@ -143,14 +149,14 @@ impl AuxiliaryData {
                 }
                 alonzo.plutus_v2_scripts = Some(scripts);
                 *self = Self::Alonzo(alonzo);
-            },
+            }
             Self::Alonzo(alonzo) => {
                 if let Some(old_scripts) = &mut alonzo.plutus_v2_scripts {
                     old_scripts.extend(scripts);
                 } else {
                     alonzo.plutus_v2_scripts = Some(scripts);
                 }
-            },
+            }
         }
     }
 
@@ -165,11 +171,11 @@ impl AuxiliaryData {
         match other {
             Self::Shelley(shelley) => {
                 self.add_metadata(shelley);
-            },
+            }
             Self::ShelleyMA(shelley_ma) => {
                 self.add_native_scripts(shelley_ma.auxiliary_scripts);
                 self.add_metadata(shelley_ma.transaction_metadata);
-            },
+            }
             Self::Alonzo(alonzo) => {
                 if let Some(scripts) = alonzo.plutus_v2_scripts {
                     self.add_plutus_v2_scripts(scripts);
@@ -183,7 +189,13 @@ impl AuxiliaryData {
                 if let Some(metadata) = alonzo.metadata {
                     self.add_metadata(metadata);
                 }
-            },
+            }
         }
+    }
+}
+
+impl Default for AuxiliaryData {
+    fn default() -> Self {
+        Self::new()
     }
 }

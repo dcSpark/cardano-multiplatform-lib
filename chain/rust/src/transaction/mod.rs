@@ -5,39 +5,36 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use super::{
-    Coin, Mint, NetworkId, Slot, Update, Value, Withdrawals,
-};
+use super::{Coin, Mint, NetworkId, Slot, Update, Value, Withdrawals};
 use crate::address::Address;
 use crate::auxdata::AuxiliaryData;
 use crate::certs::Certificate;
 use crate::crypto::{
-    AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
-    BootstrapWitness, Vkeywitness
+    AuxiliaryDataHash, BootstrapWitness, DatumHash, Ed25519KeyHash, ScriptDataHash,
+    TransactionHash, Vkeywitness,
 };
 use crate::plutus::{PlutusData, PlutusV1Script, PlutusV2Script, Redeemer};
 use crate::Script;
 use cbor_encodings::{
-    AlonzoTxOutEncoding, BabbageTxOutEncoding, ScriptAllEncoding,
-    ScriptAnyEncoding, ScriptInvalidBeforeEncoding, ScriptInvalidHereafterEncoding,
-    ScriptNOfKEncoding, ScriptPubkeyEncoding, ShelleyTxOutEncoding, TransactionBodyEncoding,
-    TransactionEncoding, TransactionInputEncoding, TransactionWitnessSetEncoding,
+    AlonzoTxOutEncoding, BabbageTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
+    ScriptInvalidBeforeEncoding, ScriptInvalidHereafterEncoding, ScriptNOfKEncoding,
+    ScriptPubkeyEncoding, ShelleyTxOutEncoding, TransactionBodyEncoding, TransactionEncoding,
+    TransactionInputEncoding, TransactionWitnessSetEncoding,
 };
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, Eq, PartialEq)]
 pub struct AlonzoTxOut {
     pub address: Address,
     pub amount: Value,
     pub datum_hash: DatumHash,
     #[serde(skip)]
-    #[derivative(
-        PartialEq = "ignore",
-        Hash = "ignore",
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<AlonzoTxOutEncoding>,
 }
 
@@ -52,7 +49,9 @@ impl AlonzoTxOut {
     }
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, Eq, PartialEq)]
 pub struct BabbageTxOut {
     pub address: Address,
@@ -60,10 +59,7 @@ pub struct BabbageTxOut {
     pub datum_option: Option<DatumOption>,
     pub script_reference: Option<ScriptRef>,
     #[serde(skip)]
-    #[derivative(
-        PartialEq = "ignore",
-        Hash = "ignore",
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<BabbageTxOutEncoding>,
 }
 
@@ -79,55 +75,36 @@ impl BabbageTxOut {
     }
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Eq, PartialEq, Hash)]
 pub enum DatumOption {
     Hash {
         datum_hash: DatumHash,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         len_encoding: LenEncoding,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         tag_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         datum_hash_encoding: StringEncoding,
     },
     Datum {
         datum: PlutusData,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         len_encoding: LenEncoding,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         tag_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         datum_tag_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
-        #[derivative(
-            PartialEq = "ignore",
-            Hash = "ignore",
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         datum_bytes_encoding: StringEncoding,
     },
 }
@@ -153,7 +130,9 @@ impl DatumOption {
     }
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, Hash, PartialEq, Eq, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 pub enum NativeScript {
     ScriptPubkey(ScriptPubkey),
     ScriptAll(ScriptAll),
@@ -191,15 +170,14 @@ impl NativeScript {
 
 pub type RequiredSigners = Vec<Ed25519KeyHash>;
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, PartialEq, Eq)]
 pub struct ScriptAll {
     pub native_scripts: Vec<NativeScript>,
     #[serde(skip)]
-    #[derivative(
-        PartialEq = "ignore",
-        Hash = "ignore",
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<ScriptAllEncoding>,
 }
 
@@ -212,15 +190,14 @@ impl ScriptAll {
     }
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, PartialEq, Eq)]
 pub struct ScriptAny {
     pub native_scripts: Vec<NativeScript>,
     #[serde(skip)]
-    #[derivative(
-        PartialEq = "ignore",
-        Hash = "ignore",
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<ScriptAnyEncoding>,
 }
 
@@ -233,15 +210,14 @@ impl ScriptAny {
     }
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, PartialEq, Eq)]
 pub struct ScriptInvalidBefore {
     pub before: Slot,
     #[serde(skip)]
-    #[derivative(
-        PartialEq = "ignore",
-        Hash = "ignore",
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<ScriptInvalidBeforeEncoding>,
 }
 
@@ -254,15 +230,14 @@ impl ScriptInvalidBefore {
     }
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, PartialEq, Eq)]
 pub struct ScriptInvalidHereafter {
     pub after: Slot,
     #[serde(skip)]
-    #[derivative(
-        PartialEq = "ignore",
-        Hash = "ignore",
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<ScriptInvalidHereafterEncoding>,
 }
 
@@ -275,16 +250,15 @@ impl ScriptInvalidHereafter {
     }
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, PartialEq, Eq)]
 pub struct ScriptNOfK {
     pub n: u64,
     pub native_scripts: Vec<NativeScript>,
     #[serde(skip)]
-    #[derivative(
-        PartialEq = "ignore",
-        Hash = "ignore",
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<ScriptNOfKEncoding>,
 }
 
@@ -298,15 +272,14 @@ impl ScriptNOfK {
     }
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, PartialEq, Eq)]
 pub struct ScriptPubkey {
     pub ed25519_key_hash: Ed25519KeyHash,
     #[serde(skip)]
-    #[derivative(
-        PartialEq = "ignore",
-        Hash = "ignore",
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<ScriptPubkeyEncoding>,
 }
 
@@ -321,16 +294,15 @@ impl ScriptPubkey {
 
 pub type ScriptRef = Script;
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Hash, Eq, PartialEq)]
 pub struct ShelleyTxOut {
     pub address: Address,
     pub amount: Value,
     #[serde(skip)]
-    #[derivative(
-        PartialEq = "ignore",
-        Hash = "ignore",
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<ShelleyTxOutEncoding>,
 }
 
@@ -419,7 +391,9 @@ impl TransactionBody {
     }
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 #[derivative(Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct TransactionInput {
     pub transaction_id: TransactionHash,
@@ -444,7 +418,9 @@ impl TransactionInput {
     }
 }
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, Hash, Eq, PartialEq, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
 pub enum TransactionOutput {
     ShelleyTxOut(ShelleyTxOut),
     AlonzoTxOut(AlonzoTxOut),

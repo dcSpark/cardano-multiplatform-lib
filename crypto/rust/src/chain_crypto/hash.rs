@@ -24,8 +24,7 @@ impl fmt::Display for Error {
         match self {
             Error::InvalidHashSize(sz, expected) => write!(
                 f,
-                "invalid hash size, expected {} but received {} bytes.",
-                expected, sz
+                "invalid hash size, expected {expected} but received {sz} bytes."
             ),
             Error::InvalidHexEncoding(_) => write!(f, "invalid hex encoding for hash value"),
         }
@@ -101,6 +100,8 @@ macro_rules! define_hash_object {
                 $constructor(bytes)
             }
         }
+        // allow since both act on the raw bytes
+        #[allow(clippy::derive_hash_xor_eq)]
         impl Hash for $hash_ty {
             fn hash<H: Hasher>(&self, state: &mut H) {
                 self.0.hash(state)

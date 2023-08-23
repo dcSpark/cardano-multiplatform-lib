@@ -64,11 +64,11 @@ impl TransactionMetadatumLabels {
     }
 
     pub fn get(&self, index: usize) -> TransactionMetadatumLabel {
-        self.0[index].clone().into()
+        self.0[index]
     }
 
     pub fn add(&mut self, elem: TransactionMetadatumLabel) {
-        self.0.push(elem.clone().into());
+        self.0.push(elem);
     }
 }
 
@@ -99,13 +99,8 @@ impl MetadatumMap {
     }
 
     /// Replaces all metadatums of a given key, if any exist.
-    pub fn set(
-        &mut self,
-        key: &TransactionMetadatum,
-        value: &TransactionMetadatum,
-    ) {
-        self.0
-            .set(key.clone().into(), value.clone().into())
+    pub fn set(&mut self, key: &TransactionMetadatum, value: &TransactionMetadatum) {
+        self.0.set(key.clone().into(), value.clone().into())
     }
 
     /// Gets the Metadatum corresponding to a given key, if it exists.
@@ -117,22 +112,27 @@ impl MetadatumMap {
 
     /// In the extremely unlikely situation there are duplicate keys, this gets all of a single key
     pub fn get_all(&self, key: &TransactionMetadatum) -> Option<TransactionMetadatumList> {
-        self
-            .0
+        self.0
             .get_all(key.as_ref())
-            .map(|datums| datums
-                .into_iter()
-                .map(|d| d.clone().into())
-                .collect::<Vec<_>>()
-                .into())
+            .map(|datums| datums.into_iter().cloned().collect::<Vec<_>>().into())
     }
 
     pub fn keys(&self) -> MetadatumList {
-        MetadatumList(self.0.entries.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+        MetadatumList(
+            self.0
+                .entries
+                .iter()
+                .map(|(k, _v)| k.clone())
+                .collect::<Vec<_>>(),
+        )
     }
 }
 
-impl_wasm_list!(core::TransactionMetadatum, TransactionMetadatum, TransactionMetadatumList);
+impl_wasm_list!(
+    core::TransactionMetadatum,
+    TransactionMetadatum,
+    TransactionMetadatumList
+);
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
@@ -152,11 +152,7 @@ impl Metadata {
     }
 
     /// Replaces all metadatums of a given label, if any exist.
-    pub fn set(
-        &mut self,
-        key: TransactionMetadatumLabel,
-        value: &TransactionMetadatum,
-    ) {
+    pub fn set(&mut self, key: TransactionMetadatumLabel, value: &TransactionMetadatum) {
         self.0.set(key, value.clone().into())
     }
 
@@ -169,11 +165,13 @@ impl Metadata {
 
     /// In the extremely unlikely situation there are duplicate labels, this gets all of a single label
     pub fn get_all(&self, label: TransactionMetadatumLabel) -> Option<TransactionMetadatumList> {
-        self.0.get_all(label).map(|mds| mds.into_iter().map(|md| md.clone().into()).collect::<Vec<_>>().into())
+        self.0
+            .get_all(label)
+            .map(|mds| mds.into_iter().cloned().collect::<Vec<_>>().into())
     }
 
     pub fn labels(&self) -> TransactionMetadatumLabels {
-        TransactionMetadatumLabels(self.0.entries.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+        TransactionMetadatumLabels(self.0.entries.iter().map(|(k, _v)| *k).collect::<Vec<_>>())
     }
 }
 
@@ -205,23 +203,23 @@ impl TransactionMetadatum {
     pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<TransactionMetadatum, JsValue> {
         Deserialize::from_cbor_bytes(cbor_bytes)
             .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_bytes: {}", e)))
+            .map_err(|e| JsValue::from_str(&format!("from_bytes: {e}")))
     }
 
     pub fn to_json(&self) -> Result<String, JsValue> {
         serde_json::to_string_pretty(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_json: {}", e)))
+            .map_err(|e| JsValue::from_str(&format!("to_json: {e}")))
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
         serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsValue::from_str(&format!("to_js_value: {}", e)))
+            .map_err(|e| JsValue::from_str(&format!("to_js_value: {e}")))
     }
 
     pub fn from_json(json: &str) -> Result<TransactionMetadatum, JsValue> {
         serde_json::from_str(json)
             .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_json: {}", e)))
+            .map_err(|e| JsValue::from_str(&format!("from_json: {e}")))
     }
 
     pub fn new_map(map: &MetadatumMap) -> Self {

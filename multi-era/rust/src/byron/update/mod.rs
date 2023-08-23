@@ -6,9 +6,7 @@ pub mod serialization;
 use crate::byron::transaction::ByronAttributes;
 use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronUpdateId, EpochId};
 use cml_chain::utils::BigInt;
-use cml_core::error::*;
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct Bvermod {

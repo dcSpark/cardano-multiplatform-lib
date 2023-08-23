@@ -4,9 +4,9 @@ use cml_core_wasm::impl_wasm_conversions;
 
 use crate::{
     address::Address,
-    transaction::{DatumOption, ScriptRef, TransactionOutput},
+    assets::{Coin, MultiAsset, Value},
     plutus::PlutusData,
-    assets::{MultiAsset, Value, Coin},
+    transaction::{DatumOption, ScriptRef, TransactionOutput},
 };
 
 /// We introduce a builder-pattern format for creating transaction outputs
@@ -31,14 +31,20 @@ impl TransactionOutputBuilder {
     /// A communication datum is one where the data hash is used in the tx output
     /// Yet the full datum is included in the witness of the same transaction
     pub fn with_communication_data(&self, datum: &PlutusData) -> Self {
-        self.0.clone().with_communication_data(datum.clone().into()).into()
+        self.0
+            .clone()
+            .with_communication_data(datum.clone().into())
+            .into()
     }
     pub fn with_data(&self, datum: &DatumOption) -> Self {
         self.0.clone().with_data(datum.clone().into()).into()
     }
 
     pub fn with_reference_script(&self, script_ref: &ScriptRef) -> Self {
-        self.0.clone().with_reference_script(script_ref.clone().into()).into()
+        self.0
+            .clone()
+            .with_reference_script(script_ref.clone().into())
+            .into()
     }
 
     pub fn next(&self) -> Result<TransactionOutputAmountBuilder, JsError> {
@@ -46,20 +52,34 @@ impl TransactionOutputBuilder {
     }
 }
 
-impl_wasm_conversions!(cml_chain::builders::output_builder::TransactionOutputBuilder, TransactionOutputBuilder);
+impl_wasm_conversions!(
+    cml_chain::builders::output_builder::TransactionOutputBuilder,
+    TransactionOutputBuilder
+);
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct TransactionOutputAmountBuilder(cml_chain::builders::output_builder::TransactionOutputAmountBuilder);
+pub struct TransactionOutputAmountBuilder(
+    cml_chain::builders::output_builder::TransactionOutputAmountBuilder,
+);
 
 #[wasm_bindgen]
 impl TransactionOutputAmountBuilder {
     pub fn with_value(&self, amount: &Value) -> Self {
-        self.0.clone().with_value::<cml_chain::Value>(amount.clone().into()).into()
+        self.0
+            .clone()
+            .with_value::<cml_chain::Value>(amount.clone().into())
+            .into()
     }
 
-    pub fn with_asset_and_min_required_coin(&self, multiasset: &MultiAsset, coins_per_utxo_byte: Coin) -> Result<TransactionOutputAmountBuilder, JsError> {
-        self.0.clone().with_asset_and_min_required_coin(multiasset.clone().into(), coins_per_utxo_byte)
+    pub fn with_asset_and_min_required_coin(
+        &self,
+        multiasset: &MultiAsset,
+        coins_per_utxo_byte: Coin,
+    ) -> Result<TransactionOutputAmountBuilder, JsError> {
+        self.0
+            .clone()
+            .with_asset_and_min_required_coin(multiasset.clone().into(), coins_per_utxo_byte)
             .map(Into::into)
             .map_err(Into::into)
     }
@@ -69,16 +89,22 @@ impl TransactionOutputAmountBuilder {
     }
 }
 
-impl_wasm_conversions!(cml_chain::builders::output_builder::TransactionOutputAmountBuilder, TransactionOutputAmountBuilder);
+impl_wasm_conversions!(
+    cml_chain::builders::output_builder::TransactionOutputAmountBuilder,
+    TransactionOutputAmountBuilder
+);
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct SingleOutputBuilderResult(cml_chain::builders::output_builder::SingleOutputBuilderResult);
+pub struct SingleOutputBuilderResult(
+    cml_chain::builders::output_builder::SingleOutputBuilderResult,
+);
 
 #[wasm_bindgen]
 impl SingleOutputBuilderResult {
     pub fn new(output: &TransactionOutput) -> SingleOutputBuilderResult {
-        cml_chain::builders::output_builder::SingleOutputBuilderResult::new(output.clone().into()).into()
+        cml_chain::builders::output_builder::SingleOutputBuilderResult::new(output.clone().into())
+            .into()
     }
 
     pub fn output(&self) -> TransactionOutput {
@@ -90,4 +116,7 @@ impl SingleOutputBuilderResult {
     }
 }
 
-impl_wasm_conversions!(cml_chain::builders::output_builder::SingleOutputBuilderResult, SingleOutputBuilderResult);
+impl_wasm_conversions!(
+    cml_chain::builders::output_builder::SingleOutputBuilderResult,
+    SingleOutputBuilderResult
+);

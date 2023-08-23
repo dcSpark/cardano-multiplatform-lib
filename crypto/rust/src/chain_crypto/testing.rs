@@ -24,7 +24,7 @@ impl Arbitrary for TestCryptoGen {
 impl TestCryptoGen {
     /// get the nth deterministic RNG
     pub fn get_rng(&self, idx: u32) -> ChaChaRng {
-        ChaChaRng::seed_from_u64(idx as u64 * 2 ^ 12 + self.0)
+        ChaChaRng::seed_from_u64((idx as u64 * 2) ^ (12 + self.0))
     }
 
     /// Get the nth deterministic secret key

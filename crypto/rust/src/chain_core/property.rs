@@ -226,10 +226,10 @@ pub trait Ledger<T: Transaction>: Sized {
     /// Ledger's errors
     type Error: std::error::Error;
 
-    fn input<'a, I>(
-        &'a self,
+    fn input<I>(
+        &self,
         input: <T as Transaction>::Input,
-    ) -> Result<&'a <T as Transaction>::Output, Self::Error>;
+    ) -> Result<&<T as Transaction>::Output, Self::Error>;
 }
 
 /// Trait identifying the leader identifier type.

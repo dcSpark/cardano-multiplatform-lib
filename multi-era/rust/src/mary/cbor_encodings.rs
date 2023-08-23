@@ -1,13 +1,9 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+use cml_chain::{address::RewardAccount, AssetName, PolicyId};
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-use cml_chain::{
-    AssetName,
-    PolicyId,
-    address::RewardAccount,
-};
 
 #[derive(Clone, Debug, Default)]
 pub struct MaryBlockEncoding {

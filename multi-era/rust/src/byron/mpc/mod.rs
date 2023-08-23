@@ -5,9 +5,7 @@ pub mod serialization;
 
 use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, EpochId};
 use cml_chain::byron::{AddressId, StakeholderId};
-use cml_core::error::*;
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum Ssc {

@@ -29,7 +29,7 @@ impl Serialize for Delegation {
                 .to_len_sz(2, force_canonical),
         )?;
         serializer.write_bytes_sz(
-            &self.voting_pub_key.to_raw_bytes(),
+            self.voting_pub_key.to_raw_bytes(),
             self.encodings
                 .as_ref()
                 .map(|encs| encs.voting_pub_key_encoding.clone())
@@ -123,7 +123,7 @@ impl Serialize for DelegationDistribution {
                 legacy,
                 legacy_encoding,
             } => serializer.write_bytes_sz(
-                &legacy.to_raw_bytes(),
+                legacy.to_raw_bytes(),
                 legacy_encoding.to_str_len_sz(legacy.to_raw_bytes().len() as u64, force_canonical),
             ),
         }
@@ -133,7 +133,7 @@ impl Serialize for DelegationDistribution {
 impl Deserialize for DelegationDistribution {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut weighted_arr = Vec::new();
                 let len = raw.array_sz()?;
@@ -225,7 +225,7 @@ impl Serialize for DeregistrationWitness {
                         ),
                     )?;
                     serializer.write_bytes_sz(
-                        &self.stake_witness.to_raw_bytes(),
+                        self.stake_witness.to_raw_bytes(),
                         self.encodings
                             .as_ref()
                             .map(|encs| encs.stake_witness_encoding.clone())
@@ -313,7 +313,6 @@ impl Deserialize for DeregistrationWitness {
                 Some(x) => x,
                 None => return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(1)).into()),
             };
-            ();
             Ok(Self {
                 stake_witness,
                 encodings: Some(DeregistrationWitnessEncoding {
@@ -389,7 +388,7 @@ impl Serialize for KeyDeregistration {
                         ),
                     )?;
                     serializer.write_bytes_sz(
-                        &self.stake_credential.to_raw_bytes(),
+                        self.stake_credential.to_raw_bytes(),
                         self.encodings
                             .as_ref()
                             .map(|encs| encs.stake_credential_encoding.clone())
@@ -676,7 +675,7 @@ impl Serialize for KeyRegistration {
                         ),
                     )?;
                     serializer.write_bytes_sz(
-                        &self.stake_credential.to_raw_bytes(),
+                        self.stake_credential.to_raw_bytes(),
                         self.encodings
                             .as_ref()
                             .map(|encs| encs.stake_credential_encoding.clone())
@@ -966,7 +965,7 @@ impl Serialize for RegistrationWitness {
                         ),
                     )?;
                     serializer.write_bytes_sz(
-                        &self.stake_witness.to_raw_bytes(),
+                        self.stake_witness.to_raw_bytes(),
                         self.encodings
                             .as_ref()
                             .map(|encs| encs.stake_witness_encoding.clone())
@@ -1054,7 +1053,6 @@ impl Deserialize for RegistrationWitness {
                 Some(x) => x,
                 None => return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(1)).into()),
             };
-            ();
             Ok(Self {
                 stake_witness,
                 encodings: Some(RegistrationWitnessEncoding {

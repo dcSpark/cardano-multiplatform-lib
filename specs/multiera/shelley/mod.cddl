@@ -44,12 +44,22 @@ shelley_operational_cert =
   , sigma           : $signature
   )
 
+shelley_certificate = stake_registration
+  / stake_deregistration
+  / stake_delegation
+  / pool_registration
+  / pool_retirement
+  / genesis_key_delegation
+  / shelley_move_instantaneous_rewards_cert
+
+shelley_move_instantaneous_rewards_cert = [tag: 6, shelley_move_instantaneous_reward]
+
 shelley_transaction_body = {
     0 : [* transaction_input],           ; @name inputs
     1 : [* shelley_transaction_output],  ; @name outputs
     2 : coin,                            ; @name fee
     3 : uint,                            ; @name ttl
-  ? 4 : [* certificate],                 ; @name certs
+  ? 4 : [* shelley_certificate],         ; @name certs
   ? 5 : withdrawals,                     ; @name withdrawals
   ? 6 : shelley_update,                  ; @name update
   ? 7 : auxiliary_data_hash,             ; @name auxiliary_data_hash
@@ -57,7 +67,7 @@ shelley_transaction_body = {
 
 shelley_transaction_output = [address, amount : coin]
 
-move_instantaneous_reward = [
+shelley_move_instantaneous_reward = [
   pot: MIR_pot,
   to_stake_credentials: { * stake_credential => coin }
 ]

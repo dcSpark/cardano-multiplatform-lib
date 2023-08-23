@@ -7,8 +7,8 @@ pub enum Key {
 impl std::fmt::Display for Key {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Key::Str(x) => write!(f, "\"{}\"", x),
-            Key::Uint(x) => write!(f, "{}", x),
+            Key::Str(x) => write!(f, "\"{x}\""),
+            Key::Uint(x) => write!(f, "{x}"),
         }
     }
 }
@@ -31,10 +31,10 @@ pub enum DeserializeFailure {
     MandatoryFieldMissing(Key),
     NoVariantMatched,
     NoVariantMatchedWithCauses(Vec<DeserializeError>),
-    OutOfRange{
+    OutOfRange {
         min: usize,
         max: usize,
-        found: usize
+        found: usize,
     },
     RangeCheck {
         found: usize,
@@ -78,12 +78,12 @@ impl DeserializeError {
             write!(f, "\t")?;
         }
         match &self.location {
-            Some(loc) => write!(f, "Deserialization failed in {} because: ", loc),
+            Some(loc) => write!(f, "Deserialization failed in {loc} because: "),
             None => write!(f, "Deserialization: "),
         }?;
         match &self.failure {
             DeserializeFailure::BadAddressType(header) => {
-                write!(f, "Encountered unknown address header {:#08b}", header)
+                write!(f, "Encountered unknown address header {header:#08b}")
             }
             DeserializeFailure::BreakInDefiniteLen => write!(
                 f,
@@ -91,46 +91,48 @@ impl DeserializeError {
             ),
             DeserializeFailure::CBOR(e) => e.fmt(f),
             DeserializeFailure::DefiniteLenMismatch(found, expected) => {
-                write!(f, "Definite length mismatch: found {}", found)?;
+                write!(f, "Definite length mismatch: found {found}")?;
                 if let Some(expected_elems) = expected {
-                    write!(f, ", expected: {}", expected_elems)?;
+                    write!(f, ", expected: {expected_elems}")?;
                 }
                 Ok(())
             }
-            DeserializeFailure::DuplicateKey(key) => write!(f, "Duplicate key: {}", key),
+            DeserializeFailure::DuplicateKey(key) => write!(f, "Duplicate key: {key}"),
             DeserializeFailure::EndingBreakMissing => write!(f, "Missing ending CBOR Break"),
             DeserializeFailure::ExpectedNull => write!(f, "Expected null, found other type"),
             DeserializeFailure::FixedValueMismatch { found, expected } => {
-                write!(f, "Expected fixed value {} found {}", expected, found)
+                write!(f, "Expected fixed value {expected} found {found}")
             }
             DeserializeFailure::InvalidStructure(e) => {
-                write!(f, "Invalid internal structure: {}", e)
+                write!(f, "Invalid internal structure: {e}")
             }
             DeserializeFailure::MandatoryFieldMissing(key) => {
-                write!(f, "Mandatory field {} not found", key)
+                write!(f, "Mandatory field {key} not found")
             }
             DeserializeFailure::NoVariantMatched => write!(f, "No variant matched"),
             DeserializeFailure::NoVariantMatchedWithCauses(errs) => {
-                write!(f, "No variant matched. Failures:\n")?;
+                writeln!(f, "No variant matched. Failures:")?;
                 for e in errs {
                     e.fmt_indent(f, indent + 1)?;
-                    write!(f, "\n")?;
+                    writeln!(f)?;
                 }
                 Ok(())
-            },
-            DeserializeFailure::OutOfRange{ min, max, found } => write!(f, "Out of range: {} - must be in range {} - {}", found, min, max),
+            }
+            DeserializeFailure::OutOfRange { min, max, found } => {
+                write!(f, "Out of range: {found} - must be in range {min} - {max}")
+            }
             DeserializeFailure::RangeCheck { found, min, max } => match (min, max) {
-                (Some(min), Some(max)) => write!(f, "{} not in range {} - {}", found, min, max),
-                (Some(min), None) => write!(f, "{} not at least {}", found, min),
-                (None, Some(max)) => write!(f, "{} not at most {}", found, max),
+                (Some(min), Some(max)) => write!(f, "{found} not in range {min} - {max}"),
+                (Some(min), None) => write!(f, "{found} not at least {min}"),
+                (None, Some(max)) => write!(f, "{found} not at most {max}"),
                 (None, None) => write!(f, "invalid range (no min nor max specified)"),
             },
             DeserializeFailure::TagMismatch { found, expected } => {
-                write!(f, "Expected tag {}, found {}", expected, found)
+                write!(f, "Expected tag {expected}, found {found}")
             }
-            DeserializeFailure::UnknownKey(key) => write!(f, "Found unexpected key {}", key),
+            DeserializeFailure::UnknownKey(key) => write!(f, "Found unexpected key {key}"),
             DeserializeFailure::UnexpectedKeyType(ty) => {
-                write!(f, "Found unexpected key of CBOR type {:?}", ty)
+                write!(f, "Found unexpected key of CBOR type {ty:?}")
             }
             DeserializeFailure::VariableLenNatDecodeFailed => {
                 write!(f, "Variable length natural number decode failed")
@@ -172,4 +174,3 @@ pub enum ArithmeticError {
     #[error("Integer underflow")]
     IntegerUnderflow,
 }
-

@@ -9,9 +9,9 @@ use derivative::Derivative;
 use std::io::{BufRead, Seek, Write};
 
 use crate::{
-    NativeScript, Script,
     crypto::hash::{hash_script, ScriptHashNamespace},
-    plutus::{PlutusV1Script, PlutusV2Script, PlutusScript, Language},
+    plutus::{Language, PlutusScript, PlutusV1Script, PlutusV2Script},
+    NativeScript, Script,
 };
 
 impl Script {
@@ -31,7 +31,7 @@ impl Script {
             Self::PlutusV1 { .. } => Some(Language::PlutusV1),
             Self::PlutusV2 { .. } => Some(Language::PlutusV2),
         }
-    } 
+    }
 }
 
 impl NativeScript {
@@ -67,19 +67,18 @@ impl From<PlutusScript> for Script {
     }
 }
 
-
 const BOUNDED_BYTES_CHUNK_SIZE: usize = 64;
 
 // to get around not having access from outside the library we just write the raw CBOR indefinite byte string code here
-fn write_cbor_indefinite_byte_tag<'se, W: Write>(
-    serializer: &'se mut Serializer<W>,
-) -> cbor_event::Result<&'se mut Serializer<W>> {
+fn write_cbor_indefinite_byte_tag<W: Write>(
+    serializer: &mut Serializer<W>,
+) -> cbor_event::Result<&mut Serializer<W>> {
     serializer.write_raw_bytes(&[0x5f])
 }
 
 use cml_core::serialization::StringEncoding;
 
-fn valid_indefinite_string_encoding(chunks: &Vec<(u64, cbor_event::Sz)>, total_len: usize) -> bool {
+fn valid_indefinite_string_encoding(chunks: &[(u64, cbor_event::Sz)], total_len: usize) -> bool {
     let mut len_counter = 0;
     let valid_sz = chunks.iter().all(|(len, sz)| {
         len_counter += len;
@@ -126,10 +125,8 @@ pub fn write_bounded_bytes<'se, W: Write>(
             }
         }
         _ =>
-        /* handled below */
-        {
-            ()
-        }
+            /* handled below */
+            {}
     };
     // This is a fallback for when either it's canonical or the passed in encoding isn't
     // compatible with the passed in bytes (e.g. someone deserialized then modified the bytes)
@@ -293,14 +290,20 @@ impl BigInt {
         // negative values evaluate to -u64_value - 1
         let u64_value = match u64_digits.len() {
             0 => 0u64,
-            1 => if sign == num_bigint::Sign::Minus {
-                (*u64_digits.first().unwrap()).checked_sub(1).expect("negative (non-zero) so can't underflow")
-            } else {
-                *u64_digits.first().unwrap()
-            },
+            1 => {
+                if sign == num_bigint::Sign::Minus {
+                    (*u64_digits.first().unwrap())
+                        .checked_sub(1)
+                        .expect("negative (non-zero) so can't underflow")
+                } else {
+                    *u64_digits.first().unwrap()
+                }
+            }
             // this could actually be -u64::MAX which in CBOR can be a single u64 as the sign
             // is encoded separately so values here start from -1 instead of 0.
-            2 if sign == num_bigint::Sign::Minus && u64_digits[0] == 0 && u64_digits[1] == 1 => u64::MAX,
+            2 if sign == num_bigint::Sign::Minus && u64_digits[0] == 0 && u64_digits[1] == 1 => {
+                u64::MAX
+            }
             _ => return None,
         };
         let encoding = match &self.encoding {
@@ -367,18 +370,16 @@ impl Serialize for BigInt {
                     StringEncoding::Canonical => false,
                     StringEncoding::Definite(sz) => bytes.len() <= sz_max(*sz) as usize,
                     StringEncoding::Indefinite(chunks) => {
-                        valid_indefinite_string_encoding(&chunks, bytes.len())
+                        valid_indefinite_string_encoding(chunks, bytes.len())
                     }
                 };
                 if valid_non_canonical {
-                    return write_self_as_bytes(serializer, &str_enc);
+                    return write_self_as_bytes(serializer, str_enc);
                 }
             }
             _ =>
-            /* always fallback to default */
-            {
-                ()
-            }
+                /* always fallback to default */
+                {}
         }
         // fallback for:
         // 1) canonical bytes needed
@@ -481,7 +482,6 @@ where
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -508,7 +508,9 @@ mod tests {
 
     #[test]
     fn bigint_above_uint_min() {
-        let bytes = [0xC2, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let bytes = [
+            0xC2, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
         let x = BigInt::from_cbor_bytes(&bytes).unwrap();
         assert_eq!(bytes, x.to_cbor_bytes().as_slice());
         assert_eq!(x.as_int(), None);
@@ -520,7 +522,10 @@ mod tests {
         let bytes = [0x3B, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
         let x = BigInt::from_cbor_bytes(&bytes).unwrap();
         assert_eq!(bytes, x.to_cbor_bytes().as_slice());
-        assert_eq!(Into::<i128>::into(&x.as_int().unwrap()), -((u64::MAX as i128) + 1));
+        assert_eq!(
+            Into::<i128>::into(&x.as_int().unwrap()),
+            -((u64::MAX as i128) + 1)
+        );
         assert_eq!(x.as_int().unwrap().to_string(), x.to_string());
         assert_eq!(x.to_string(), "-18446744073709551616");
     }
@@ -537,7 +542,9 @@ mod tests {
 
     #[test]
     fn bigint_below_nint_min() {
-        let bytes = [0xC3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let bytes = [
+            0xC3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
         let x = BigInt::from_cbor_bytes(&bytes).unwrap();
         assert_eq!(bytes, x.to_cbor_bytes().as_slice());
         assert_eq!(x.as_int(), None);

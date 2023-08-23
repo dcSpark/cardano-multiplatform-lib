@@ -1,28 +1,27 @@
-use crate::builders::witness_builder::{
-    PartialPlutusWitness, NativeScriptWitnessInfo
-};
+use crate::builders::witness_builder::{NativeScriptWitnessInfo, PartialPlutusWitness};
 
-use wasm_bindgen::prelude::{wasm_bindgen};
 use cml_core_wasm::impl_wasm_conversions;
+use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::{
-    AssetName,
-    MapAssetNameToI64,
-    NativeScript,
-    transaction::RequiredSigners,
-};
+use crate::{transaction::RequiredSigners, AssetName, MapAssetNameToI64, NativeScript};
 
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct MintBuilderResult(cml_chain::builders::mint_builder::MintBuilderResult);
 
-impl_wasm_conversions!(cml_chain::builders::mint_builder::MintBuilderResult, MintBuilderResult);
+impl_wasm_conversions!(
+    cml_chain::builders::mint_builder::MintBuilderResult,
+    MintBuilderResult
+);
 
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct SingleMintBuilder(cml_chain::builders::mint_builder::SingleMintBuilder);
 
-impl_wasm_conversions!(cml_chain::builders::mint_builder::SingleMintBuilder, SingleMintBuilder);
+impl_wasm_conversions!(
+    cml_chain::builders::mint_builder::SingleMintBuilder,
+    SingleMintBuilder
+);
 
 #[wasm_bindgen]
 impl SingleMintBuilder {
@@ -31,20 +30,33 @@ impl SingleMintBuilder {
     }
 
     pub fn new_single_asset(asset: &AssetName, amount: i64) -> Self {
-        cml_chain::builders::mint_builder::SingleMintBuilder::new_single_asset(asset.clone().into(), amount).into()
+        cml_chain::builders::mint_builder::SingleMintBuilder::new_single_asset(
+            asset.clone().into(),
+            amount,
+        )
+        .into()
     }
 
-    pub fn native_script(self, native_script: &NativeScript, witness_info: &NativeScriptWitnessInfo) -> MintBuilderResult {
-        self.0.clone().native_script(
-            native_script.clone().into(),
-            witness_info.clone().into(),
-        ).into()
+    pub fn native_script(
+        self,
+        native_script: &NativeScript,
+        witness_info: &NativeScriptWitnessInfo,
+    ) -> MintBuilderResult {
+        self.0
+            .native_script(native_script.clone().into(), witness_info.clone().into())
+            .into()
     }
 
-    pub fn plutus_script(self, partial_witness: &PartialPlutusWitness, required_signers: &RequiredSigners) -> MintBuilderResult {
-        self.0.clone().plutus_script(
-            partial_witness.clone().into(),
-            required_signers.clone().into(),
-        ).into()
+    pub fn plutus_script(
+        self,
+        partial_witness: &PartialPlutusWitness,
+        required_signers: &RequiredSigners,
+    ) -> MintBuilderResult {
+        self.0
+            .plutus_script(
+                partial_witness.clone().into(),
+                required_signers.clone().into(),
+            )
+            .into()
     }
 }

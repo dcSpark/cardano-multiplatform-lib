@@ -1,9 +1,7 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use super::{
-    NativeScriptList, PlutusV1ScriptList, PlutusV2ScriptList,
-};
+use super::{NativeScriptList, PlutusV1ScriptList, PlutusV2ScriptList};
 pub use cml_core_wasm::metadata::{Metadata, TransactionMetadatum, TransactionMetadatumLabel};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
@@ -99,9 +97,7 @@ impl AuxiliaryData {
 
     pub fn as_shelley(&self) -> Option<ShelleyAuxData> {
         match &self.0 {
-            cml_chain::auxdata::AuxiliaryData::Shelley(shelley) => {
-                Some(shelley.clone().into())
-            }
+            cml_chain::auxdata::AuxiliaryData::Shelley(shelley) => Some(shelley.clone().into()),
             _ => None,
         }
     }
@@ -157,4 +153,3 @@ impl ShelleyMaAuxData {
         ))
     }
 }
-

@@ -2,7 +2,7 @@ use crate::utils::LabelMetadata;
 
 use super::*;
 pub use cml_core::{error::*, serialization::*};
-use std::io::{Seek, SeekFrom};
+use std::io::Seek;
 
 impl cbor_event::se::Serialize for FilesDetails {
     fn serialize<'se, W: Write>(
@@ -10,11 +10,11 @@ impl cbor_event::se::Serialize for FilesDetails {
         serializer: &'se mut Serializer<W>,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_map(cbor_event::Len::Len(3))?;
-        serializer.write_text(&"src")?;
+        serializer.write_text("src")?;
         self.src.serialize(serializer)?;
-        serializer.write_text(&"name")?;
+        serializer.write_text("name")?;
         self.name.serialize(serializer)?;
-        serializer.write_text(&"mediaType")?;
+        serializer.write_text("mediaType")?;
         self.media_type.serialize(serializer)?;
         Ok(serializer)
     }
@@ -47,10 +47,8 @@ impl Deserialize for FilesDetails {
                                 .into());
                             }
                             src = Some(
-                                (|| -> Result<_, DeserializeError> {
-                                    Ok(ChunkableString::deserialize(raw)?)
-                                })()
-                                .map_err(|e| e.annotate("src"))?,
+                                { ChunkableString::deserialize(raw) }
+                                    .map_err(|e| e.annotate("src"))?,
                             );
                         }
                         "name" => {
@@ -61,10 +59,7 @@ impl Deserialize for FilesDetails {
                                 .into());
                             }
                             name = Some(
-                                (|| -> Result<_, DeserializeError> {
-                                    Ok(String64::deserialize(raw)?)
-                                })()
-                                .map_err(|e| e.annotate("name"))?,
+                                { String64::deserialize(raw) }.map_err(|e| e.annotate("name"))?,
                             );
                         }
                         "mediaType" => {
@@ -75,10 +70,8 @@ impl Deserialize for FilesDetails {
                                 .into());
                             }
                             media_type = Some(
-                                (|| -> Result<_, DeserializeError> {
-                                    Ok(String64::deserialize(raw)?)
-                                })()
-                                .map_err(|e| e.annotate("media_type"))?,
+                                { String64::deserialize(raw) }
+                                    .map_err(|e| e.annotate("media_type"))?,
                             );
                         }
                         _unknown_key => {
@@ -138,7 +131,6 @@ impl Deserialize for FilesDetails {
                     )
                 }
             };
-            ();
             Ok(Self {
                 name,
                 media_type,
@@ -183,10 +175,8 @@ impl Deserialize for CIP25Metadata {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(721)).into());
                             }
                             key_721 = Some(
-                                (|| -> Result<_, DeserializeError> {
-                                    Ok(LabelMetadata::deserialize(raw)?)
-                                })()
-                                .map_err(|e| e.annotate("key_721"))?,
+                                { LabelMetadata::deserialize(raw) }
+                                    .map_err(|e| e.annotate("key_721"))?,
                             );
                         }
                         _unknown_key => {
@@ -218,7 +208,6 @@ impl Deserialize for CIP25Metadata {
                     return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(721)).into())
                 }
             };
-            ();
             Ok(Self { key_721 })
         })()
         .map_err(|e| e.annotate("CIP25Metadata"))
@@ -242,23 +231,23 @@ impl cbor_event::se::Serialize for MetadataDetails {
                 None => 0,
             },
         ))?;
-        serializer.write_text(&"name")?;
+        serializer.write_text("name")?;
         self.name.serialize(serializer)?;
         if let Some(field) = &self.files {
-            serializer.write_text(&"files")?;
+            serializer.write_text("files")?;
             serializer.write_array(cbor_event::Len::Len(field.len() as u64))?;
             for element in field.iter() {
                 element.serialize(serializer)?;
             }
         }
-        serializer.write_text(&"image")?;
+        serializer.write_text("image")?;
         self.image.serialize(serializer)?;
         if let Some(field) = &self.media_type {
-            serializer.write_text(&"mediaType")?;
+            serializer.write_text("mediaType")?;
             field.serialize(serializer)?;
         }
         if let Some(field) = &self.description {
-            serializer.write_text(&"description")?;
+            serializer.write_text("description")?;
             field.serialize(serializer)?;
         }
         Ok(serializer)
@@ -294,10 +283,7 @@ impl Deserialize for MetadataDetails {
                                 .into());
                             }
                             name = Some(
-                                (|| -> Result<_, DeserializeError> {
-                                    Ok(String64::deserialize(raw)?)
-                                })()
-                                .map_err(|e| e.annotate("name"))?,
+                                { String64::deserialize(raw) }.map_err(|e| e.annotate("name"))?,
                             );
                         }
                         "files" => {
@@ -335,10 +321,8 @@ impl Deserialize for MetadataDetails {
                                 .into());
                             }
                             image = Some(
-                                (|| -> Result<_, DeserializeError> {
-                                    Ok(ChunkableString::deserialize(raw)?)
-                                })()
-                                .map_err(|e| e.annotate("image"))?,
+                                { ChunkableString::deserialize(raw) }
+                                    .map_err(|e| e.annotate("image"))?,
                             );
                         }
                         "mediaType" => {
@@ -351,7 +335,7 @@ impl Deserialize for MetadataDetails {
                             media_type = Some(
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
-                                    Ok(String64::deserialize(raw)?)
+                                    String64::deserialize(raw)
                                 })()
                                 .map_err(|e| e.annotate("media_type"))?,
                             );
@@ -366,7 +350,7 @@ impl Deserialize for MetadataDetails {
                             description = Some(
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
-                                    Ok(ChunkableString::deserialize(raw)?)
+                                    ChunkableString::deserialize(raw)
                                 })()
                                 .map_err(|e| e.annotate("description"))?,
                             );
@@ -478,43 +462,28 @@ impl cbor_event::se::Serialize for ChunkableString {
 impl Deserialize for ChunkableString {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                Ok(String64::deserialize(raw)?)
-            })(raw)
-            {
-                Ok(string64) => return Ok(Self::Single(string64)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let mut arr_string64_arr = Vec::new();
-                let len = raw.array()?;
-                while match len {
-                    cbor_event::Len::Len(n) => arr_string64_arr.len() < n as usize,
-                    cbor_event::Len::Indefinite => true,
-                } {
-                    if raw.cbor_type()? == CBORType::Special {
-                        assert_eq!(raw.special()?, CBORSpecial::Break);
-                        break;
+            match raw.cbor_type()? {
+                cbor_event::Type::Text => String64::deserialize(raw).map(Self::Single),
+                cbor_event::Type::Array => {
+                    let mut arr_string64_arr = Vec::new();
+                    let len = raw.array()?;
+                    while match len {
+                        cbor_event::Len::Len(n) => arr_string64_arr.len() < n as usize,
+                        cbor_event::Len::Indefinite => true,
+                    } {
+                        if raw.cbor_type()? == CBORType::Special {
+                            assert_eq!(raw.special()?, CBORSpecial::Break);
+                            break;
+                        }
+                        arr_string64_arr.push(String64::deserialize(raw)?);
                     }
-                    arr_string64_arr.push(String64::deserialize(raw)?);
+                    Ok(Self::Chunked(arr_string64_arr))
                 }
-                Ok(arr_string64_arr)
-            })(raw)
-            {
-                Ok(arr_string64) => return Ok(Self::Chunked(arr_string64)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            Err(DeserializeError::new(
-                "ChunkableString",
-                DeserializeFailure::NoVariantMatched.into(),
-            ))
+                _ => Err(DeserializeError::new(
+                    "ChunkableString",
+                    DeserializeFailure::NoVariantMatched,
+                )),
+            }
         })()
         .map_err(|e| e.annotate("ChunkableString"))
     }

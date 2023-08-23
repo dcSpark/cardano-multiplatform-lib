@@ -1,21 +1,9 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+use cml_chain::{address::RewardAccount, certs::StakeCredential, crypto::GenesisHash};
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-use cml_chain::{
-    address::RewardAccount,
-    certs::StakeCredential,
-    crypto::GenesisHash,
-};
-
-#[derive(Clone, Debug, Default)]
-pub struct MoveInstantaneousRewardEncoding {
-    pub len_encoding: LenEncoding,
-    pub pot_encoding: Option<cbor_event::Sz>,
-    pub to_stake_credentials_encoding: LenEncoding,
-    pub to_stake_credentials_value_encodings: BTreeMap<StakeCredential, Option<cbor_event::Sz>>,
-}
 
 #[derive(Clone, Debug, Default)]
 pub struct MultisigAllEncoding {
@@ -68,6 +56,20 @@ pub struct ShelleyHeaderBodyEncoding {
 #[derive(Clone, Debug, Default)]
 pub struct ShelleyHeaderEncoding {
     pub len_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ShelleyMoveInstantaneousRewardEncoding {
+    pub len_encoding: LenEncoding,
+    pub pot_encoding: Option<cbor_event::Sz>,
+    pub to_stake_credentials_encoding: LenEncoding,
+    pub to_stake_credentials_value_encodings: BTreeMap<StakeCredential, Option<cbor_event::Sz>>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ShelleyMoveInstantaneousRewardsCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]

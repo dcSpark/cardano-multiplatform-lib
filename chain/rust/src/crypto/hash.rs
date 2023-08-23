@@ -1,14 +1,17 @@
 use cml_core::serialization::Serialize;
-use cml_crypto::{blake2b224, blake2b256, AuxiliaryDataHash, DatumHash, TransactionHash, ScriptDataHash, ScriptHash};
+use cml_crypto::{
+    blake2b224, blake2b256, AuxiliaryDataHash, DatumHash, ScriptDataHash, ScriptHash,
+    TransactionHash,
+};
 
 use crate::{
-    transaction::{TransactionBody, cbor_encodings::TransactionWitnessSetEncoding},
-    plutus::{PlutusData, Redeemer, CostModels, Language},
     auxdata::AuxiliaryData,
+    plutus::{CostModels, Language, PlutusData, Redeemer},
+    transaction::{cbor_encodings::TransactionWitnessSetEncoding, TransactionBody},
 };
 
 pub fn hash_auxiliary_data(auxiliary_data: &AuxiliaryData) -> AuxiliaryDataHash {
-  AuxiliaryDataHash::from(blake2b256(&auxiliary_data.to_cbor_bytes()))
+    AuxiliaryDataHash::from(blake2b256(&auxiliary_data.to_cbor_bytes()))
 }
 
 pub fn hash_transaction(tx_body: &TransactionBody) -> TransactionHash {
@@ -19,63 +22,30 @@ pub fn hash_plutus_data(plutus_data: &PlutusData) -> DatumHash {
     DatumHash::from(blake2b256(&plutus_data.to_cbor_bytes()))
 }
 
-pub fn hash_script_data(redeemers: &[Redeemer], cost_models: &CostModels, datums: Option<&[PlutusData]>, encoding: Option<&TransactionWitnessSetEncoding>) -> ScriptDataHash {
+pub fn hash_script_data(
+    redeemers: &[Redeemer],
+    cost_models: &CostModels,
+    datums: Option<&[PlutusData]>,
+    encoding: Option<&TransactionWitnessSetEncoding>,
+) -> ScriptDataHash {
     let mut buf = cbor_event::se::Serializer::new_vec();
-    if redeemers.len() == 0 && datums.is_some() {
-        /*
-        ; Finally, note that in the case that a transaction includes datums but does not
-        ; include any redeemers, the script data format becomes (in hex):
-        ; [ 80 | datums | A0 ]
-        ; corresponding to a CBOR empty list and an empty map (our apologies).
-        */
-        buf.write_raw_bytes(&[0x80]).unwrap();
-        buf.write_array_sz(
-            encoding
-                .as_ref()
-                .map(|encs| encs.plutus_datums_encoding)
-                .unwrap_or_default()
-                .to_len_sz(datums.unwrap().len() as u64, false),
-        ).unwrap();
-        for datum in datums.unwrap() {
-            datum.serialize(&mut buf, false).unwrap();
-        }
-        encoding
-            .as_ref()
-            .map(|encs| encs.plutus_datums_encoding)
-            .unwrap_or_default()
-            .end(&mut buf, false).unwrap();
-        buf.write_raw_bytes(&[0xA0]).unwrap();
-    } else {
-        /*
-        ; script data format:
-        ; [ redeemers | datums | language views ]
-        ; The redeemers are exactly the data present in the transaction witness set.
-        ; Similarly for the datums, if present. If no datums are provided, the middle
-        ; field is an empty string.
-        */
-        buf.write_array_sz(
-            encoding
-                .as_ref()
-                .map(|encs| encs.redeemers_encoding)
-                .unwrap_or_default()
-                .to_len_sz(redeemers.len() as u64, false),
-        ).unwrap();
-        for redeemer in redeemers {
-            redeemer.serialize(&mut buf, false).unwrap();
-        }
-        encoding
-            .as_ref()
-            .map(|encs| encs.redeemers_encoding)
-            .unwrap_or_default()
-            .end(&mut buf, false).unwrap();
-        if let Some(datums) = datums {
+    match datums {
+        Some(datums) if redeemers.is_empty() => {
+            /*
+            ; Finally, note that in the case that a transaction includes datums but does not
+            ; include any redeemers, the script data format becomes (in hex):
+            ; [ 80 | datums | A0 ]
+            ; corresponding to a CBOR empty list and an empty map (our apologies).
+            */
+            buf.write_raw_bytes(&[0x80]).unwrap();
             buf.write_array_sz(
                 encoding
                     .as_ref()
                     .map(|encs| encs.plutus_datums_encoding)
                     .unwrap_or_default()
                     .to_len_sz(datums.len() as u64, false),
-            ).unwrap();
+            )
+            .unwrap();
             for datum in datums {
                 datum.serialize(&mut buf, false).unwrap();
             }
@@ -83,9 +53,57 @@ pub fn hash_script_data(redeemers: &[Redeemer], cost_models: &CostModels, datums
                 .as_ref()
                 .map(|encs| encs.plutus_datums_encoding)
                 .unwrap_or_default()
-                .end(&mut buf, false).unwrap();
+                .end(&mut buf, false)
+                .unwrap();
+            buf.write_raw_bytes(&[0xA0]).unwrap();
         }
-        buf.write_raw_bytes(&cost_models.language_views_encoding().unwrap()).unwrap();
+        _ => {
+            /*
+            ; script data format:
+            ; [ redeemers | datums | language views ]
+            ; The redeemers are exactly the data present in the transaction witness set.
+            ; Similarly for the datums, if present. If no datums are provided, the middle
+            ; field is an empty string.
+            */
+            buf.write_array_sz(
+                encoding
+                    .as_ref()
+                    .map(|encs| encs.redeemers_encoding)
+                    .unwrap_or_default()
+                    .to_len_sz(redeemers.len() as u64, false),
+            )
+            .unwrap();
+            for redeemer in redeemers {
+                redeemer.serialize(&mut buf, false).unwrap();
+            }
+            encoding
+                .as_ref()
+                .map(|encs| encs.redeemers_encoding)
+                .unwrap_or_default()
+                .end(&mut buf, false)
+                .unwrap();
+            if let Some(datums) = datums {
+                buf.write_array_sz(
+                    encoding
+                        .as_ref()
+                        .map(|encs| encs.plutus_datums_encoding)
+                        .unwrap_or_default()
+                        .to_len_sz(datums.len() as u64, false),
+                )
+                .unwrap();
+                for datum in datums {
+                    datum.serialize(&mut buf, false).unwrap();
+                }
+                encoding
+                    .as_ref()
+                    .map(|encs| encs.plutus_datums_encoding)
+                    .unwrap_or_default()
+                    .end(&mut buf, false)
+                    .unwrap();
+            }
+            buf.write_raw_bytes(&cost_models.language_views_encoding().unwrap())
+                .unwrap();
+        }
     }
     ScriptDataHash::from(blake2b256(&buf.finalize()))
 }
@@ -96,24 +114,46 @@ pub enum ScriptDataHashError {
     MissingCostModel(Language),
 }
 
-pub fn calc_script_data_hash(redeemers: &[Redeemer], datums: &[PlutusData], cost_models: &CostModels, used_langs: &[Language], encoding: Option<&TransactionWitnessSetEncoding>) -> Result<Option<ScriptDataHash>, ScriptDataHashError> {
-    if redeemers.len() > 0 || datums.len() > 0 {
+pub fn calc_script_data_hash(
+    redeemers: &[Redeemer],
+    datums: &[PlutusData],
+    cost_models: &CostModels,
+    used_langs: &[Language],
+    encoding: Option<&TransactionWitnessSetEncoding>,
+) -> Result<Option<ScriptDataHash>, ScriptDataHashError> {
+    if !redeemers.is_empty() || !datums.is_empty() {
         let mut required_costmdls = CostModels::new();
         for lang in used_langs {
             match lang {
                 Language::PlutusV1 => {
-                    required_costmdls.plutus_v1 = Some(cost_models.plutus_v1.as_ref().ok_or_else(|| ScriptDataHashError::MissingCostModel(*lang))?.clone());
-                },
+                    required_costmdls.plutus_v1 = Some(
+                        cost_models
+                            .plutus_v1
+                            .as_ref()
+                            .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
+                            .clone(),
+                    );
+                }
                 Language::PlutusV2 => {
-                    required_costmdls.plutus_v2 = Some(cost_models.plutus_v2.as_ref().ok_or_else(|| ScriptDataHashError::MissingCostModel(*lang))?.clone());
-                },
+                    required_costmdls.plutus_v2 = Some(
+                        cost_models
+                            .plutus_v2
+                            .as_ref()
+                            .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
+                            .clone(),
+                    );
+                }
             }
         }
 
         Ok(Some(hash_script_data(
             redeemers,
             &required_costmdls,
-            if datums.is_empty() { None } else { Some(datums) },
+            if datums.is_empty() {
+                None
+            } else {
+                Some(datums)
+            },
             encoding,
         )))
     } else {
@@ -127,16 +167,16 @@ pub fn calc_script_data_hash(redeemers: &[Redeemer], datums: &[PlutusData], cost
 /// Note that the enum value here is different than the enum value for deciding the cost model of a script
 /// https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub (crate) enum ScriptHashNamespace {
+pub(crate) enum ScriptHashNamespace {
     NativeScript,
     PlutusV1,
-    PlutusV2
+    PlutusV2,
 }
 
-pub (crate) fn hash_script(namespace: ScriptHashNamespace, script: &[u8]) -> ScriptHash {
+pub(crate) fn hash_script(namespace: ScriptHashNamespace, script: &[u8]) -> ScriptHash {
     let mut bytes = Vec::with_capacity(script.len() + 1);
     bytes.extend_from_slice(&[namespace as u8]);
-    bytes.extend_from_slice(&script);
+    bytes.extend_from_slice(script);
     ScriptHash::from(blake2b224(bytes.as_ref()))
 }
 
@@ -145,8 +185,8 @@ mod tests {
     use cml_crypto::Deserialize;
 
     use super::*;
-    use crate::transaction::Transaction;
     use crate::genesis::network_info::plutus_alonzo_cost_models;
+    use crate::transaction::Transaction;
 
     #[test]
     fn test_script_data_hash() {
@@ -162,7 +202,8 @@ mod tests {
             &plutus_alonzo_cost_models(),
             &[Language::PlutusV1],
             None,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(script_data_hash, tx.body.script_data_hash);
     }

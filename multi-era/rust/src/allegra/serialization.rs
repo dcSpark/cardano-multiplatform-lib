@@ -32,7 +32,7 @@ impl Serialize for AllegraAuxiliaryData {
 impl Deserialize for AllegraAuxiliaryData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let deser_variant: Result<_, DeserializeError> = ShelleyAuxData::deserialize(raw);
             match deser_variant {
                 Ok(shelley_aux_data) => return Ok(Self::ShelleyAuxData(shelley_aux_data)),
@@ -590,7 +590,7 @@ impl Serialize for AllegraTransactionBody {
                             ),
                         )?;
                         serializer.write_bytes_sz(
-                            &field.to_raw_bytes(),
+                            field.to_raw_bytes(),
                             self.encodings
                                 .as_ref()
                                 .map(|encs| encs.auxiliary_data_hash_encoding.clone())

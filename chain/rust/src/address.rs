@@ -1,11 +1,11 @@
+use crate::byron::{ByronAddress, ByronAddressError};
+use crate::genesis::network_info::NetworkInfo;
 use bech32::ToBase32;
 use cbor_event::{de::Deserializer, se::Serializer};
-use schemars::JsonSchema;
-use std::io::{BufRead, Write};
-use crate::byron::{ByronAddress, ByronAddressError};
 use derivative::Derivative;
-use crate::genesis::network_info::NetworkInfo;
-use std::convert::{TryInto, TryFrom};
+use schemars::JsonSchema;
+use std::convert::{TryFrom, TryInto};
+use std::io::{BufRead, Write};
 
 // for enums
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -16,9 +16,7 @@ use crate::certs::StakeCredential;
 
 use cml_core::{
     error::{DeserializeError, DeserializeFailure},
-    serialization::{
-        Deserialize, LenEncoding, Serialize, StringEncoding,
-    },
+    serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
     CertificateIndex, Slot, TransactionIndex,
 };
 
@@ -93,7 +91,7 @@ impl serde::Serialize for Address {
     {
         let bech32 = self
             .to_bech32(None)
-            .map_err(|e| serde::ser::Error::custom(format!("to_bech32: {:?}", e)))?;
+            .map_err(|e| serde::ser::Error::custom(format!("to_bech32: {e:?}")))?;
         serializer.serialize_str(&bech32)
     }
 }
@@ -233,7 +231,7 @@ impl Address {
             Self::Byron(byron) => {
                 use cml_core::serialization::ToBytes;
                 buf.extend(byron.to_bytes())
-            },
+            }
         }
         if let Some(Some(trailing_bytes)) = self.encoding().map(|enc| &enc.trailing) {
             buf.extend(trailing_bytes.iter());
@@ -251,29 +249,31 @@ impl Address {
     ) -> Result<Address, DeserializeError> {
         const TRAILING_WHITELIST: [&[u8]; 8] = [
             &[
-                203, 87, 175, 176, 179, 95, 200, 156, 99, 6, 28, 153, 20, 224, 85, 0, 26, 81, 140, 117, 22
+                203, 87, 175, 176, 179, 95, 200, 156, 99, 6, 28, 153, 20, 224, 85, 0, 26, 81, 140,
+                117, 22,
             ],
             &[
-                19, 213, 244, 163, 254, 4, 120, 178, 36, 30, 1, 104, 227, 203, 165, 0, 26, 34, 193, 90, 17
+                19, 213, 244, 163, 254, 4, 120, 178, 36, 30, 1, 104, 227, 203, 165, 0, 26, 34, 193,
+                90, 17,
+            ],
+            &[0],
+            &[
+                106, 51, 48, 102, 53, 97, 109, 107, 119, 104, 119, 113, 97, 52, 119, 118, 102, 121,
+                106, 100, 101, 122, 121, 97, 101, 108, 109, 110, 110, 103, 100, 54, 100, 52, 101,
             ],
             &[
-                0
+                53, 97, 99, 121, 50, 114, 48, 101, 107, 114, 112, 113, 122, 113, 106, 108, 113,
+                100, 107, 56, 108, 122, 113, 110, 53, 114, 52, 53, 110,
             ],
             &[
-                106, 51, 48, 102, 53, 97, 109, 107, 119, 104, 119, 113, 97, 52, 119, 118, 102, 121, 106, 100, 101, 122, 121, 97, 101, 108, 109, 110, 110, 103, 100, 54, 100, 52, 101
+                6, 29, 7, 12, 13, 4, 27, 7, 2, 15, 11, 13, 11, 15, 2, 9, 18, 5, 29, 28, 16, 9, 17,
+                4, 14, 31, 7, 19, 17, 3, 1, 0, 11, 16, 22, 0,
             ],
             &[
-                53, 97, 99, 121, 50, 114, 48, 101, 107, 114, 112, 113, 122, 113, 106, 108, 113, 100, 107, 56, 108, 122, 113, 110, 53, 114, 52, 53, 110
+                18, 110, 119, 53, 51, 53, 103, 54, 118, 115, 112, 55, 120, 55, 102, 104, 120, 112,
+                113, 50, 112, 116, 115, 104, 57, 103, 107, 114,
             ],
-            &[
-                6, 29, 7, 12, 13, 4, 27, 7, 2, 15, 11, 13, 11, 15, 2, 9, 18, 5, 29, 28, 16, 9, 17, 4, 14, 31, 7, 19, 17, 3, 1, 0, 11, 16, 22, 0
-            ],
-            &[
-                18, 110, 119, 53, 51, 53, 103, 54, 118, 115, 112, 55, 120, 55, 102, 104, 120, 112, 113, 50, 112, 116, 115, 104, 57, 103, 107, 114
-            ],
-            &[
-                44
-            ]
+            &[44],
         ];
         (|| -> Result<Self, DeserializeError> {
             let header = data[0];
@@ -318,15 +318,12 @@ impl Address {
                 data: &[u8],
                 addr_size: usize,
             ) -> Result<Option<Vec<u8>>, DeserializeFailure> {
-                if data.len() < addr_size {
-                    Err(DeserializeFailure::CBOR(cbor_event::Error::NotEnough(
-                        data.len(),
-                        addr_size,
-                    )))
-                } else if data.len() > addr_size {
-                    Ok(Some(data[addr_size..].to_vec()))
-                } else {
-                    Ok(None)
+                match data.len().cmp(&addr_size) {
+                    std::cmp::Ordering::Less => Err(DeserializeFailure::CBOR(
+                        cbor_event::Error::NotEnough(data.len(), addr_size),
+                    )),
+                    std::cmp::Ordering::Greater => Ok(Some(data[addr_size..].to_vec())),
+                    std::cmp::Ordering::Equal => Ok(None),
                 }
             }
             match (header & 0xF0) >> 4 {
@@ -441,7 +438,7 @@ impl Address {
                     id if id == NetworkInfo::testnet().network_id() => "_test",
                     _ => "",
                 };
-                format!("{}{}", prefix_header, prefix_tail)
+                format!("{prefix_header}{prefix_tail}")
             }
         };
         bech32::encode(&final_prefix, self.to_raw_bytes().to_base32()).map_err(|e| e.into())
@@ -464,7 +461,7 @@ impl Address {
     }
 
     pub fn is_valid_byron(base58: &str) -> bool {
-       ByronAddress::is_valid(base58)
+        ByronAddress::is_valid(base58)
     }
 
     pub fn is_valid(bech_str: &str) -> bool {
@@ -550,7 +547,7 @@ impl BaseAddress {
             encoding: None,
         }
     }
-        
+
     pub fn to_address(self) -> Address {
         self.into()
     }
@@ -623,7 +620,7 @@ impl TryFrom<Address> for EnterpriseAddress {
             Address::Enterprise(enterprise) => Ok(enterprise),
             _ => Err(AddressError::WrongKind(addr.kind())),
         }
-    } 
+    }
 }
 
 impl From<EnterpriseAddress> for Address {
@@ -656,7 +653,7 @@ impl RewardAddress {
             encoding: None,
         }
     }
-    
+
     pub fn to_address(self) -> Address {
         self.into()
     }
@@ -677,7 +674,7 @@ impl TryFrom<Address> for RewardAddress {
             Address::Reward(reward) => Ok(reward),
             _ => Err(AddressError::WrongKind(addr.kind())),
         }
-    } 
+    }
 }
 
 impl From<RewardAddress> for Address {
@@ -695,7 +692,7 @@ impl serde::Serialize for RewardAddress {
             .clone()
             .to_address()
             .to_bech32(None)
-            .map_err(|e| serde::ser::Error::custom(format!("to_bech32: {:?}", e)))?;
+            .map_err(|e| serde::ser::Error::custom(format!("to_bech32: {e:?}")))?;
         serializer.serialize_str(&bech32)
     }
 }
@@ -787,7 +784,7 @@ impl PointerAddress {
             encoding: None,
         }
     }
-        
+
     pub fn to_address(self) -> Address {
         self.into()
     }
@@ -808,7 +805,7 @@ impl TryFrom<Address> for PointerAddress {
             Address::Ptr(pointer) => Ok(pointer),
             _ => Err(AddressError::WrongKind(addr.kind())),
         }
-    } 
+    }
 }
 
 impl From<PointerAddress> for Address {
@@ -861,8 +858,7 @@ impl Serialize for RewardAccount {
         serializer: &'se mut Serializer<W>,
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        Address::from(self.clone())
-            .serialize(serializer, force_canonical)
+        Address::from(self.clone()).serialize(serializer, force_canonical)
     }
 }
 
@@ -1361,10 +1357,10 @@ mod tests {
 
         let spending_hash = spend.to_raw_key().hash();
         pubkey_native_scripts.push(NativeScript::new_script_pubkey(spending_hash));
-        let oneof_native_script =
-            NativeScript::new_script_n_of_k(1, pubkey_native_scripts);
+        let oneof_native_script = NativeScript::new_script_n_of_k(1, pubkey_native_scripts);
 
-        let script_hash = ScriptHash::from_raw_bytes(oneof_native_script.hash().to_raw_bytes()).unwrap();
+        let script_hash =
+            ScriptHash::from_raw_bytes(oneof_native_script.hash().to_raw_bytes()).unwrap();
 
         let spend_cred = StakeCredential::new_script(script_hash.clone());
         let stake_cred = StakeCredential::new_script(script_hash);
@@ -1403,7 +1399,10 @@ mod tests {
                 140, 117, 22
             ])
         );
-        assert_eq!(long_trimmed.encoding().and_then(|enc| enc.trailing.clone()), None);
+        assert_eq!(
+            long_trimmed.encoding().and_then(|enc| enc.trailing.clone()),
+            None
+        );
         assert_eq!(
             hex::encode(long.to_raw_bytes()),
             "015bad085057ac10ecc7060f7ac41edd6f63068d8963ef7d86ca58669e5ecf2d283418a60be5a848a2380eb721000da1e0bbf39733134beca4cb57afb0b35fc89c63061c9914e055001a518c7516"
@@ -1431,7 +1430,7 @@ mod tests {
             255, 255, 255, 255, 255, 255, 255, 255, 127, 129, 255, 255, 255, 255, 255, 255, 255,
             255, 127, 129, 255, 255, 255, 255, 255, 255, 255, 255, 127,
         ];
-        let addr = Address::from_raw_bytes(&addr_bytes.clone()).unwrap();
+        let addr = Address::from_raw_bytes(&addr_bytes).unwrap();
         assert_eq!(addr_bytes, addr.to_raw_bytes());
     }
 }

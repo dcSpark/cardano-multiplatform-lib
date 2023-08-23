@@ -93,6 +93,7 @@ impl<T> ByteBuilder<T> {
         l.fold(bb, f)
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn sub<F, U>(self, f: F) -> Self
     where
         F: Fn(ByteBuilder<U>) -> ByteBuilder<U>,
@@ -150,5 +151,11 @@ impl<T> ByteBuilder<T> {
     /// Finalize the buffer and return a fixed ByteArray of T
     pub fn finalize_as_vec(self) -> Vec<u8> {
         self.buffer
+    }
+}
+
+impl<T> Default for ByteBuilder<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }

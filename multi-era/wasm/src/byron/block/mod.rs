@@ -5,17 +5,20 @@ use crate::byron::delegation::{ByronDelegationSignature, LightWeightDelegationSi
 use crate::byron::mpc::{Ssc, SscProof};
 use crate::byron::transaction::{ByronAttributes, ByronTx, ByronTxProof};
 use crate::byron::update::{ByronBlockVersion, ByronSoftwareVersion, ByronUpdate};
-use crate::impl_wasm_cbor_json_api_byron;
 use crate::byron::{Blake2b256, ByronBlockId, ByronPubKey, ByronSignature, ByronSlotId, EpochId};
-use crate::byron::{ByronAttributesList, ByronDelegationList, ByronTxWitnessList, StakeholderIdList};
-use cml_core_wasm::impl_wasm_conversions;
+use crate::byron::{
+    ByronAttributesList, ByronDelegationList, ByronTxWitnessList, StakeholderIdList,
+};
+use cml_core_wasm::{
+    impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_list,
+};
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct BlockHeaderExtraData(cml_multi_era::byron::block::BlockHeaderExtraData);
 
-impl_wasm_cbor_json_api_byron!(BlockHeaderExtraData);
+impl_wasm_cbor_json_api_cbor_event_serialize!(BlockHeaderExtraData);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::block::BlockHeaderExtraData,
@@ -59,7 +62,7 @@ impl BlockHeaderExtraData {
 #[wasm_bindgen]
 pub struct ByronBlock(cml_multi_era::byron::block::ByronBlock);
 
-impl_wasm_cbor_json_api_byron!(ByronBlock);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronBlock);
 
 impl_wasm_conversions!(cml_multi_era::byron::block::ByronBlock, ByronBlock);
 
@@ -107,7 +110,7 @@ impl ByronBlock {
 #[wasm_bindgen]
 pub struct ByronBlockBody(cml_multi_era::byron::block::ByronBlockBody);
 
-impl_wasm_cbor_json_api_byron!(ByronBlockBody);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronBlockBody);
 
 impl_wasm_conversions!(cml_multi_era::byron::block::ByronBlockBody, ByronBlockBody);
 
@@ -148,7 +151,7 @@ impl ByronBlockBody {
 #[wasm_bindgen]
 pub struct ByronBlockConsensusData(cml_multi_era::byron::block::ByronBlockConsensusData);
 
-impl_wasm_cbor_json_api_byron!(ByronBlockConsensusData);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronBlockConsensusData);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::block::ByronBlockConsensusData,
@@ -192,7 +195,7 @@ impl ByronBlockConsensusData {
 #[wasm_bindgen]
 pub struct ByronBlockHeader(cml_multi_era::byron::block::ByronBlockHeader);
 
-impl_wasm_cbor_json_api_byron!(ByronBlockHeader);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronBlockHeader);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::block::ByronBlockHeader,
@@ -248,7 +251,7 @@ pub enum ByronBlockKind {
 #[wasm_bindgen]
 pub struct ByronBlockSignature(cml_multi_era::byron::block::ByronBlockSignature);
 
-impl_wasm_cbor_json_api_byron!(ByronBlockSignature);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronBlockSignature);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::block::ByronBlockSignature,
@@ -334,7 +337,7 @@ pub enum ByronBlockSignatureKind {
 #[wasm_bindgen]
 pub struct ByronBlockSignatureNormal(cml_multi_era::byron::block::ByronBlockSignatureNormal);
 
-impl_wasm_cbor_json_api_byron!(ByronBlockSignatureNormal);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronBlockSignatureNormal);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::block::ByronBlockSignatureNormal,
@@ -360,7 +363,7 @@ pub struct ByronBlockSignatureProxyHeavy(
     cml_multi_era::byron::block::ByronBlockSignatureProxyHeavy,
 );
 
-impl_wasm_cbor_json_api_byron!(ByronBlockSignatureProxyHeavy);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronBlockSignatureProxyHeavy);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::block::ByronBlockSignatureProxyHeavy,
@@ -388,7 +391,7 @@ pub struct ByronBlockSignatureProxyLight(
     cml_multi_era::byron::block::ByronBlockSignatureProxyLight,
 );
 
-impl_wasm_cbor_json_api_byron!(ByronBlockSignatureProxyLight);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronBlockSignatureProxyLight);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::block::ByronBlockSignatureProxyLight,
@@ -414,7 +417,7 @@ impl ByronBlockSignatureProxyLight {
 #[wasm_bindgen]
 pub struct ByronBodyProof(cml_multi_era::byron::block::ByronBodyProof);
 
-impl_wasm_cbor_json_api_byron!(ByronBodyProof);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronBodyProof);
 
 impl_wasm_conversions!(cml_multi_era::byron::block::ByronBodyProof, ByronBodyProof);
 
@@ -455,7 +458,7 @@ impl ByronBodyProof {
 #[wasm_bindgen]
 pub struct ByronDifficulty(cml_multi_era::byron::block::ByronDifficulty);
 
-impl_wasm_cbor_json_api_byron!(ByronDifficulty);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronDifficulty);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::block::ByronDifficulty,
@@ -477,7 +480,7 @@ impl ByronDifficulty {
 #[wasm_bindgen]
 pub struct ByronEbBlock(cml_multi_era::byron::block::ByronEbBlock);
 
-impl_wasm_cbor_json_api_byron!(ByronEbBlock);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronEbBlock);
 
 impl_wasm_conversions!(cml_multi_era::byron::block::ByronEbBlock, ByronEbBlock);
 
@@ -508,7 +511,7 @@ impl ByronEbBlock {
 #[wasm_bindgen]
 pub struct ByronMainBlock(cml_multi_era::byron::block::ByronMainBlock);
 
-impl_wasm_cbor_json_api_byron!(ByronMainBlock);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronMainBlock);
 
 impl_wasm_conversions!(cml_multi_era::byron::block::ByronMainBlock, ByronMainBlock);
 
@@ -543,7 +546,7 @@ impl ByronMainBlock {
 #[wasm_bindgen]
 pub struct EbbConsensusData(cml_multi_era::byron::block::EbbConsensusData);
 
-impl_wasm_cbor_json_api_byron!(EbbConsensusData);
+impl_wasm_cbor_json_api_cbor_event_serialize!(EbbConsensusData);
 
 impl_wasm_conversions!(
     cml_multi_era::byron::block::EbbConsensusData,
@@ -572,7 +575,7 @@ impl EbbConsensusData {
 #[wasm_bindgen]
 pub struct EbbHead(cml_multi_era::byron::block::EbbHead);
 
-impl_wasm_cbor_json_api_byron!(EbbHead);
+impl_wasm_cbor_json_api_cbor_event_serialize!(EbbHead);
 
 impl_wasm_conversions!(cml_multi_era::byron::block::EbbHead, EbbHead);
 
@@ -619,7 +622,7 @@ impl EbbHead {
 #[wasm_bindgen]
 pub struct TxAux(cml_multi_era::byron::block::TxAux);
 
-impl_wasm_cbor_json_api_byron!(TxAux);
+impl_wasm_cbor_json_api_cbor_event_serialize!(TxAux);
 
 impl_wasm_conversions!(cml_multi_era::byron::block::TxAux, TxAux);
 
@@ -641,27 +644,4 @@ impl TxAux {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct TxPayload(Vec<cml_multi_era::byron::block::TxAux>);
-
-impl_wasm_conversions!(Vec<cml_multi_era::byron::block::TxAux>, TxPayload);
-
-#[wasm_bindgen]
-impl TxPayload {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> TxAux {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &TxAux) {
-        self.0.push(elem.clone().into());
-    }
-}
+impl_wasm_list!(cml_multi_era::byron::block::TxAux, TxAux, TxPayload);

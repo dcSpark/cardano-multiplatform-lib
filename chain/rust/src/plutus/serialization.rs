@@ -406,7 +406,7 @@ impl Serialize for PlutusData {
             PlutusData::Bytes {
                 bytes,
                 bytes_encoding,
-            } => write_bounded_bytes(serializer, &bytes, bytes_encoding, force_canonical),
+            } => write_bounded_bytes(serializer, bytes, bytes_encoding, force_canonical),
         }
     }
 }
@@ -415,15 +415,14 @@ impl Deserialize for PlutusData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             // hand-coded based on generated code
-            // 1) we use bounded bytes not 
+            // 1) we use bounded bytes not
             // 2) to give better errors / direct branch on cbor_type()?
             match raw.cbor_type()? {
                 cbor_event::Type::Tag => {
                     // could be large BigInt or ConstrPlutusData so check tag to see which it is
-                    let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+                    let initial_position = raw.as_mut_ref().stream_position().unwrap();
                     let tag = raw.tag()?;
-                    raw
-                        .as_mut_ref()
+                    raw.as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap();
                     if tag == 2 || tag == 3 {
@@ -435,30 +434,37 @@ impl Deserialize for PlutusData {
                             .map(Self::ConstrPlutusData)
                             .map_err(|e| e.annotate("ConstrPlutusData"))
                     }
-                },
+                }
                 cbor_event::Type::Map => PlutusMap::deserialize(raw)
                     .map(Self::Map)
                     .map_err(|e| e.annotate("Map")),
-                cbor_event::Type::Array => (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                    let mut list_arr = Vec::new();
-                    let len = raw.array_sz()?;
-                    let list_encoding = len.into();
-                    while match len {
-                        cbor_event::LenSz::Len(n, _) => (list_arr.len() as u64) < n,
-                        cbor_event::LenSz::Indefinite => true,
-                    } {
-                        if raw.cbor_type()? == cbor_event::Type::Special {
-                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                            break;
+                cbor_event::Type::Array => {
+                    (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                        let mut list_arr = Vec::new();
+                        let len = raw.array_sz()?;
+                        let list_encoding = len.into();
+                        while match len {
+                            cbor_event::LenSz::Len(n, _) => (list_arr.len() as u64) < n,
+                            cbor_event::LenSz::Indefinite => true,
+                        } {
+                            if raw.cbor_type()? == cbor_event::Type::Special {
+                                assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                break;
+                            }
+                            list_arr.push(PlutusData::deserialize(raw)?);
                         }
-                        list_arr.push(PlutusData::deserialize(raw)?);
-                    }
-                    Ok(Self::List { list: list_arr, list_encoding })
-                })(raw).map_err(|e| e.annotate("List")),
-                cbor_event::Type::UnsignedInteger |
-                cbor_event::Type::NegativeInteger => BigInt::deserialize(raw)
-                    .map(Self::BigInt)
-                    .map_err(|e| e.annotate("BigInt")),
+                        Ok(Self::List {
+                            list: list_arr,
+                            list_encoding,
+                        })
+                    })(raw)
+                    .map_err(|e| e.annotate("List"))
+                }
+                cbor_event::Type::UnsignedInteger | cbor_event::Type::NegativeInteger => {
+                    BigInt::deserialize(raw)
+                        .map(Self::BigInt)
+                        .map_err(|e| e.annotate("BigInt"))
+                }
                 // hand-written 100% since the format is not just arbitrary CBOR bytes
                 cbor_event::Type::Bytes => read_bounded_bytes(raw)
                     .map(|(bytes, bytes_encoding)| Self::Bytes {
@@ -620,7 +626,7 @@ impl Deserialize for Redeemer {
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (tag, tag_encoding) = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().seek(SeekFrom::Current(0)).unwrap();
+                let initial_position = raw.as_mut_ref().stream_position().unwrap();
                 match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (spend_value, spend_encoding) = raw.unsigned_integer_sz()?;
                     if spend_value != 0 {
@@ -633,7 +639,7 @@ impl Deserialize for Redeemer {
                     Ok(Some(spend_encoding))
                 })(raw)
                 {
-                    Ok((tag_encoding)) => return Ok((RedeemerTag::Spend, tag_encoding)),
+                    Ok(tag_encoding) => return Ok((RedeemerTag::Spend, tag_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
@@ -651,7 +657,7 @@ impl Deserialize for Redeemer {
                     Ok(Some(mint_encoding))
                 })(raw)
                 {
-                    Ok((tag_encoding)) => return Ok((RedeemerTag::Mint, tag_encoding)),
+                    Ok(tag_encoding) => return Ok((RedeemerTag::Mint, tag_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
@@ -669,7 +675,7 @@ impl Deserialize for Redeemer {
                     Ok(Some(cert_encoding))
                 })(raw)
                 {
-                    Ok((tag_encoding)) => return Ok((RedeemerTag::Cert, tag_encoding)),
+                    Ok(tag_encoding) => return Ok((RedeemerTag::Cert, tag_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
@@ -687,7 +693,7 @@ impl Deserialize for Redeemer {
                     Ok(Some(reward_encoding))
                 })(raw)
                 {
-                    Ok((tag_encoding)) => return Ok((RedeemerTag::Reward, tag_encoding)),
+                    Ok(tag_encoding) => return Ok((RedeemerTag::Reward, tag_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))

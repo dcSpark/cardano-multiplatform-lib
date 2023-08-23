@@ -1,6 +1,6 @@
 use super::*;
 
-pub use cml_chain::address::{AddressKind, AddressHeaderKind};
+pub use cml_chain::address::{AddressHeaderKind, AddressKind};
 
 use cml_core_wasm::impl_wasm_conversions;
 
@@ -108,7 +108,8 @@ impl Address {
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsError> {
-        JsValue::from_serde(&self.0).map_err(Into::into)
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsError::new(&format!("Address::to_js_value: {e}")))
     }
 
     pub fn from_json(json: &str) -> Result<Address, JsError> {
@@ -149,11 +150,11 @@ impl RewardAddress {
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsError> {
-        JsValue::from_serde(&self.0).map_err(Into::into)
+        serde_wasm_bindgen::to_value(&self.0)
+            .map_err(|e| JsError::new(&format!("RewardAddress::to_js_value: {e}")))
     }
 
     pub fn from_json(json: &str) -> Result<RewardAddress, JsError> {
         serde_json::from_str(json).map(Self).map_err(Into::into)
     }
 }
-

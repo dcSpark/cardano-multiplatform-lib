@@ -81,11 +81,9 @@ impl<T, A: VerificationAlgorithm> FromStr for Signature<T, A> {
 impl fmt::Display for SignatureError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            SignatureError::SizeInvalid { expected, got } => write!(
-                f,
-                "Invalid Signature size expecting {} got {}",
-                expected, got
-            ),
+            SignatureError::SizeInvalid { expected, got } => {
+                write!(f, "Invalid Signature size expecting {expected} got {got}")
+            }
             SignatureError::StructureInvalid => write!(f, "Invalid Signature structure"),
         }
     }
@@ -266,7 +264,7 @@ impl<U, A: VerificationAlgorithm> cbor_event::se::Serialize for Signature<U, A> 
 impl<U, A: VerificationAlgorithm> cbor_event::de::Deserialize for Signature<U, A> {
     fn deserialize<R: std::io::BufRead>(raw: &mut Deserializer<R>) -> cbor_event::Result<Self> {
         let result = Signature::<U, A>::from_binary(raw.bytes()?.as_ref())
-            .map_err(|err| cbor_event::Error::CustomError(format!("{}", err)))?;
+            .map_err(|err| cbor_event::Error::CustomError(format!("{err}")))?;
         Ok(result)
     }
 }
@@ -276,7 +274,7 @@ impl<U, A: VerificationAlgorithm> serde::Serialize for Signature<U, A> {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&hex::encode(&self.as_ref()))
+        serializer.serialize_str(&hex::encode(self.as_ref()))
     }
 }
 

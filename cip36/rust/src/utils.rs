@@ -9,7 +9,7 @@ pub use cml_core::{
     serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
 };
 
-pub use cml_chain::{address::RewardAddress, NetworkId};
+pub use cml_chain::{address::Address, NetworkId};
 
 use std::convert::From;
 
@@ -68,7 +68,6 @@ impl DeregistrationCbor {
     /// Create a CIP36 view from the bytes of a Metadata.
     /// The resulting DeregistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
     pub fn from_metadata_bytes(
-        &self,
         metadata_cbor_bytes: &[u8],
     ) -> Result<Self, DeserializeError> {
         let mut raw = Deserializer::from(std::io::Cursor::new(metadata_cbor_bytes));
@@ -252,18 +251,18 @@ impl KeyRegistration {
     ///
     /// * `delegation` - Delegation
     /// * `stake_credential` - stake address for the network that this transaction is submitted to (to point to the Ada that is being delegated).
-    /// * `reward_address` - Shelley address discriminated for the same network this transaction is submitted to for receiving awairds.
+    /// * `payment_address` - Shelley payment address discriminated for the same network this transaction is submitted to for receiving awairds.
     /// * `nonce` - Monotonically rising across all transactions with the same staking key. Recommended to just use the slot of this tx.
     pub fn new(
         delegation: DelegationDistribution,
         stake_credential: StakeCredential,
-        reward_address: RewardAddress,
+        payment_address: Address,
         nonce: Nonce,
     ) -> Self {
         Self {
             delegation,
             stake_credential,
-            reward_address,
+            payment_address,
             nonce,
             voting_purpose: 0,
             encodings: None,
@@ -341,7 +340,6 @@ impl RegistrationCbor {
     /// Create a CIP36 view from the bytes of a Metadata.
     /// The resulting RegistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
     pub fn from_metadata_bytes(
-        &self,
         metadata_cbor_bytes: &[u8],
     ) -> Result<Self, DeserializeError> {
         let mut raw = Deserializer::from(std::io::Cursor::new(metadata_cbor_bytes));

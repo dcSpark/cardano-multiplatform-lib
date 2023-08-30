@@ -12,8 +12,8 @@ use wasm_bindgen::JsError;
 use std::convert::{TryFrom, TryInto};
 
 use super::{
-    DelegationDistribution, DeregistrationCbor, KeyDeregistration,
-    KeyRegistration, Nonce, RegistrationCbor, StakeCredential,
+    DelegationDistribution, DeregistrationCbor, KeyDeregistration, KeyRegistration, Nonce,
+    RegistrationCbor, StakeCredential,
 };
 
 impl DeregistrationCbor {

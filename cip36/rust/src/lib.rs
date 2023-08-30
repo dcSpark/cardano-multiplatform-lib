@@ -190,9 +190,10 @@ mod tests {
         // test case says: 0036ef3e1f0d3f5989e2d155ea54bdb2a72c4c456ccb959af4c94868f473f5a0
         // but the CBOR differs, so we use the ones in the CBOR for the test case.
         // Is this being derived or why does it not match?
-        let stake_cred = PublicKey::from_raw_bytes(
-            &[227, 205, 36, 4, 200, 77, 230, 95, 150, 145, 143, 24, 213, 180, 69, 188, 185, 51, 167, 205, 161, 142, 237, 237, 121, 69, 221, 25, 30, 67, 35, 105]
-        )
+        let stake_cred = PublicKey::from_raw_bytes(&[
+            227, 205, 36, 4, 200, 77, 230, 95, 150, 145, 143, 24, 213, 180, 69, 188, 185, 51, 167,
+            205, 161, 142, 237, 237, 121, 69, 221, 25, 30, 67, 35, 105,
+        ])
         .unwrap();
         // let stake_cred = StakeCredential::from(staking_derived_prv.to_public().to_raw_key());
         let nonce = 1234;
@@ -201,14 +202,17 @@ mod tests {
         // test case says: addr_test1qprhw4s70k0vzyhvxp6h97hvrtlkrlcvlmtgmaxdtjz87xrjkctk27ypuv9dzlzxusqse89naweygpjn5dxnygvus05sdq9h07
         // but the CBOR differs, so we use the ones in the CBOR for the test case.
         // Is this being derived or why does it not match?
-        let legacy_address = Address::from_raw_bytes(
-            &[224, 114, 182, 23, 101, 120, 129, 227, 10, 209, 124, 70, 228, 1, 12, 156, 179, 235, 178, 68, 6, 83, 163, 77, 50, 33, 156, 131, 233]
-        ).unwrap();
+        let legacy_address = Address::from_raw_bytes(&[
+            224, 114, 182, 23, 101, 120, 129, 227, 10, 209, 124, 70, 228, 1, 12, 156, 179, 235,
+            178, 68, 6, 83, 163, 77, 50, 33, 156, 131, 233,
+        ])
+        .unwrap();
         let legacy_reg = KeyRegistration::new(
             DelegationDistribution::new_legacy(
-                LegacyKeyRegistration::from_raw_bytes(
-                    &[0, 54, 239, 62, 31, 13, 63, 89, 137, 226, 209, 85, 234, 84, 189, 178, 167, 44, 76, 69, 108, 203, 149, 154, 244, 201, 72, 104, 244, 115, 245, 160],
-                )
+                LegacyKeyRegistration::from_raw_bytes(&[
+                    0, 54, 239, 62, 31, 13, 63, 89, 137, 226, 209, 85, 234, 84, 189, 178, 167, 44,
+                    76, 69, 108, 203, 149, 154, 244, 201, 72, 104, 244, 115, 245, 160,
+                ])
                 .unwrap(),
             ),
             stake_cred.clone(),
@@ -225,19 +229,22 @@ mod tests {
         // test case says: addr_test1qprhw4s70k0vzyhvxp6h97hvrtlkrlcvlmtgmaxdtjz87xrjkctk27ypuv9dzlzxusqse89naweygpjn5dxnygvus05sdq9h07
         // but the CBOR differs, so we use the ones in the CBOR for the test case.
         // Is this being derived or why does it not match? It doesn't match the legacy one either
-        let new_address = Address::from_raw_bytes(
-            &[0, 71, 119, 86, 30, 125, 158, 193, 18, 236, 48, 117, 114, 250, 236, 26, 255, 97, 255, 12, 254, 214, 141, 244, 205, 92, 132, 127, 24, 114, 182, 23, 101, 120, 129, 227, 10, 209, 124, 70, 228, 1, 12, 156, 179, 235, 178, 68, 6, 83, 163, 77, 50, 33, 156, 131, 233]
-        ).unwrap();
+        let new_address = Address::from_raw_bytes(&[
+            0, 71, 119, 86, 30, 125, 158, 193, 18, 236, 48, 117, 114, 250, 236, 26, 255, 97, 255,
+            12, 254, 214, 141, 244, 205, 92, 132, 127, 24, 114, 182, 23, 101, 120, 129, 227, 10,
+            209, 124, 70, 228, 1, 12, 156, 179, 235, 178, 68, 6, 83, 163, 77, 50, 33, 156, 131,
+            233,
+        ])
+        .unwrap();
         let weighted_reg = KeyRegistration::new(
-            DelegationDistribution::new_weighted(vec![
-                Delegation::new(
-                    VotingPubKey::from_raw_bytes(
-                        &[0, 54, 239, 62, 31, 13, 63, 89, 137, 226, 209, 85, 234, 84, 189, 178, 167, 44, 76, 69, 108, 203, 149, 154, 244, 201, 72, 104, 244, 115, 245, 160]
-                    )
-                    .unwrap(),
-                    1,
-                ),
-            ]),
+            DelegationDistribution::new_weighted(vec![Delegation::new(
+                VotingPubKey::from_raw_bytes(&[
+                    0, 54, 239, 62, 31, 13, 63, 89, 137, 226, 209, 85, 234, 84, 189, 178, 167, 44,
+                    76, 69, 108, 203, 149, 154, 244, 201, 72, 104, 244, 115, 245, 160,
+                ])
+                .unwrap(),
+                1,
+            )]),
             stake_cred,
             new_address,
             nonce,

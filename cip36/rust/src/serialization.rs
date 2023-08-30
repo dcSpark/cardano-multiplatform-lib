@@ -619,11 +619,7 @@ impl Serialize for KeyRegistration {
                 .map(|encs| encs.len_encoding)
                 .unwrap_or_default()
                 .to_len_sz(
-                    4 + if should_include_voting_purpose {
-                        1
-                    } else {
-                        0
-                    },
+                    4 + if should_include_voting_purpose { 1 } else { 0 },
                     force_canonical,
                 ),
         )?;
@@ -637,10 +633,10 @@ impl Serialize for KeyRegistration {
             })
             .map(|encs| encs.orig_deser_order.clone())
             .unwrap_or_else(|| {
-                if legacy_format {
-                    vec![0, 1, 2, 3]
-                } else {
+                if should_include_voting_purpose {
                     vec![0, 1, 2, 3, 4]
+                } else {
+                    vec![0, 1, 2, 3]
                 }
             });
         for field_index in deser_order {
@@ -695,7 +691,8 @@ impl Serialize for KeyRegistration {
                             force_canonical,
                         ),
                     )?;
-                    self.payment_address.serialize(serializer, force_canonical)?;
+                    self.payment_address
+                        .serialize(serializer, force_canonical)?;
                 }
                 3 => {
                     serializer.write_unsigned_integer_sz(

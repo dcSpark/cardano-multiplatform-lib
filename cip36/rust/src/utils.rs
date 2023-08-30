@@ -67,9 +67,7 @@ impl DeregistrationCbor {
 
     /// Create a CIP36 view from the bytes of a Metadata.
     /// The resulting DeregistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
-    pub fn from_metadata_bytes(
-        metadata_cbor_bytes: &[u8],
-    ) -> Result<Self, DeserializeError> {
+    pub fn from_metadata_bytes(metadata_cbor_bytes: &[u8]) -> Result<Self, DeserializeError> {
         let mut raw = Deserializer::from(std::io::Cursor::new(metadata_cbor_bytes));
         Self::deserialize(&mut raw)
     }
@@ -339,9 +337,7 @@ impl RegistrationCbor {
 
     /// Create a CIP36 view from the bytes of a Metadata.
     /// The resulting RegistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
-    pub fn from_metadata_bytes(
-        metadata_cbor_bytes: &[u8],
-    ) -> Result<Self, DeserializeError> {
+    pub fn from_metadata_bytes(metadata_cbor_bytes: &[u8]) -> Result<Self, DeserializeError> {
         let mut raw = Deserializer::from(std::io::Cursor::new(metadata_cbor_bytes));
         Self::deserialize(&mut raw)
     }

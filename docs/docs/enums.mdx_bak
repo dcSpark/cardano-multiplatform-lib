@@ -1,0 +1,135 @@
+# Enums
+
+## Certificate
+
+### CertificateEnum
+
+```rust
+pub enum CertificateEnum {
+    StakeRegistration(StakeRegistration),
+    StakeDeregistration(StakeDeregistration),
+    StakeDelegation(StakeDelegation),
+    PoolRegistration(PoolRegistration),
+    PoolRetirement(PoolRetirement),
+    GenesisKeyDelegation(GenesisKeyDelegation),
+    MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCert),
+}
+```
+
+### CertificateKind
+
+```rust
+pub enum CertificateKind {
+    StakeRegistration,
+    StakeDeregistration,
+    StakeDelegation,
+    PoolRegistration,
+    PoolRetirement,
+    GenesisKeyDelegation,
+    MoveInstantaneousRewardsCert,
+}
+```
+
+## Datum 
+
+### DatumKind
+
+```rust
+pub enum DatumKind {
+    Hash,
+    Inline,
+}
+```
+
+## MIR
+
+### MIREnum
+
+```rust
+pub enum MIREnum {
+    ToOtherPot(Coin),
+    ToStakeCredentials(MIRToStakeCredentials),
+}
+```
+
+### MIRKind
+
+```rust
+pub enum MIRKind {
+    ToOtherPot,
+    ToStakeCredentials,
+}
+```
+
+
+### MIRPot
+
+```rust
+pub enum MIRPot {
+    Reserves,
+    Treasury,
+}
+```
+
+## NativeScript
+
+### NativeScriptEnum
+
+```rust
+pub enum NativeScriptEnum {
+    ScriptPubkey(ScriptPubkey),
+    ScriptAll(ScriptAll),
+    ScriptAny(ScriptAny),
+    ScriptNOfK(ScriptNOfK),
+    TimelockStart(TimelockStart),
+    TimelockExpiry(TimelockExpiry),
+}
+```
+
+
+### NativeScriptKind
+
+```rust
+pub enum NativeScriptKind {
+    ScriptPubkey,
+    ScriptAll,
+    ScriptAny,
+    ScriptNOfK,
+    TimelockStart,
+    TimelockExpiry,
+}
+```
+
+## NetworkId
+
+### NetworkIdKind
+
+```rust
+pub enum NetworkIdKind {
+    Testnet,
+    Mainnet,
+}
+```
+
+## Relay
+
+### RelayEnum
+
+```rust
+pub enum RelayEnum {
+    SingleHostAddr(SingleHostAddr),
+    SingleHostName(SingleHostName),
+    MultiHostName(MultiHostName),
+}
+```
+
+
+### RelayKind
+
+```rust
+pub enum RelayKind {
+    SingleHostAddr,
+    SingleHostName,
+    MultiHostName,
+}
+```

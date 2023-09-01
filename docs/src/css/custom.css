@@ -1,0 +1,78 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Manrope';
+  src: url('../fonts/Manrope-Regular.ttf');
+}
+
+:root {
+  --ifm-color-primary: #356ddb;
+  --ifm-color-primary-dark: #356ddb;
+  --ifm-color-primary-darker: #356ddb;
+  --ifm-color-primary-darkest: #356ddb;
+  --ifm-color-primary-light: #356ddb;
+  --ifm-color-primary-lighter: #356ddb;
+  --ifm-color-primary-lightest: #356ddb;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --ifm-spacing-horizontal: 40px;
+  --ifm-font-color-base: #3b454e;
+  --ifm-blockquote-border-left-width: 4px;
+  --ifm-blockquote-color: #5c6975;
+  --ifm-blockquote-padding-horizontal: 20px;
+  --ifm-alert-padding-horizontal: 20px;
+  --ifm-navbar-padding-horizontal: 16px;
+  --tabs-bg-active: white;
+  --tabs-text-inactive: rgb(156 163 175);
+  --ifm-font-family-base: 'Manrope';  
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme="dark"] {
+  --ifm-color-primary: #ff9828;
+  --ifm-color-primary-dark: #ff9828;
+  --ifm-color-primary-darker: #ff9828;
+  --ifm-color-primary-darkest: #ff9828;
+  --ifm-color-primary-light: #ff9828;
+  --ifm-color-primary-lighter: #ff9828;
+  --ifm-color-primary-lightest: #ff9828;
+  --ifm-font-color-base: #fff;
+  --ifm-blockquote-color: #c8c8c8;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --tabs-bg-active: #1c1c1d;
+  --tabs-text-inactive: #bab0b0;
+}
+
+img {
+  @apply max-w-[300px] mb-3;
+}
+
+.img-full {
+  @apply w-full max-w-full;
+}
+
+.img-card {
+  @apply max-w-[300px] mb-4;
+}
+.img-icon {
+  @apply w-5 mb-0;
+}
+
+.tabs-container [role="tab"] {
+  @apply rounded-t-md rounded-b-none border-[1px] border-solid border-gray-300 py-2 bg-[color:var(--tabs-bg-active)] border-b-0;
+}
+.tabs-container [role="tab"][aria-selected="false"] {
+  @apply bg-[color:var(--tabs-bg)] text-gray-400;
+}
+.tabs-container [role="tabpanel"] {
+  @apply border-[1px] border-solid border-gray-300 p-5 -mt-[17px];
+}

@@ -1,0 +1,25 @@
+# Type Definitions
+
+## PolicyID
+
+```rust
+pub type PolicyID = ScriptHash;
+```
+
+## PolicyIDs
+
+```rust
+pub type PolicyIDs = ScriptHashes;
+```
+
+## Requires Signers
+
+```rust
+pub type RequiredSigners = Ed25519KeyHashes;
+```
+
+## RequiredSignersSet
+
+```rust
+pub type RequiredSignersSet = BTreeSet<Ed25519KeyHash>;
+```

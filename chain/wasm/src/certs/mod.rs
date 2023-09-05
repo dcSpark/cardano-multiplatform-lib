@@ -4,13 +4,44 @@
 use super::{
     Coin, Ed25519KeyHashList, Epoch, MapStakeCredentialToDeltaCoin, Port, RelayList, UnitInterval,
 };
+use crate::governance::Anchor;
 use crate::address::RewardAccount;
 pub use cml_chain::certs::MIRPot;
+use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{
     Ed25519KeyHash, GenesisDelegateHash, GenesisHash, PoolMetadataHash, ScriptHash, VRFKeyHash,
 };
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct AuthCommitteeHotCert(cml_chain::certs::AuthCommitteeHotCert);
+
+impl_wasm_cbor_json_api!(AuthCommitteeHotCert);
+
+impl_wasm_conversions!(cml_chain::certs::AuthCommitteeHotCert, AuthCommitteeHotCert);
+
+#[wasm_bindgen]
+impl AuthCommitteeHotCert {
+    pub fn committee_cold_credential(&self) -> CommitteeColdCredential {
+        self.0.committee_cold_credential.clone().into()
+    }
+
+    pub fn committee_hot_credential(&self) -> CommitteeHotCredential {
+        self.0.committee_hot_credential.clone().into()
+    }
+
+    pub fn new(
+        committee_cold_credential: &CommitteeColdCredential,
+        committee_hot_credential: &CommitteeHotCredential,
+    ) -> Self {
+        Self(cml_chain::certs::AuthCommitteeHotCert::new(
+            committee_cold_credential.clone().into(),
+            committee_hot_credential.clone().into(),
+        ))
+    }
+}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -57,26 +88,123 @@ impl Certificate {
         ))
     }
 
-    pub fn new_genesis_key_delegation(
-        genesis_hash: &GenesisHash,
-        genesis_delegate_hash: &GenesisDelegateHash,
-        v_r_f_key_hash: &VRFKeyHash,
-    ) -> Self {
-        Self(cml_chain::certs::Certificate::new_genesis_key_delegation(
-            genesis_hash.clone().into(),
-            genesis_delegate_hash.clone().into(),
-            v_r_f_key_hash.clone().into(),
+    pub fn new_reg_cert(stake_credential: &StakeCredential, coin: Coin) -> Self {
+        Self(cml_chain::certs::Certificate::new_reg_cert(
+            stake_credential.clone().into(),
+            coin,
         ))
     }
 
-    pub fn new_move_instantaneous_rewards_cert(
-        move_instantaneous_reward: &MoveInstantaneousReward,
+    pub fn new_unreg_cert(stake_credential: &StakeCredential, coin: Coin) -> Self {
+        Self(cml_chain::certs::Certificate::new_unreg_cert(
+            stake_credential.clone().into(),
+            coin,
+        ))
+    }
+
+    pub fn new_vote_deleg_cert(stake_credential: &StakeCredential, d_rep: &DRep) -> Self {
+        Self(cml_chain::certs::Certificate::new_vote_deleg_cert(
+            stake_credential.clone().into(),
+            d_rep.clone().into(),
+        ))
+    }
+
+    pub fn new_stake_vote_deleg_cert(
+        stake_credential: &StakeCredential,
+        ed25519_key_hash: &Ed25519KeyHash,
+        d_rep: &DRep,
+    ) -> Self {
+        Self(cml_chain::certs::Certificate::new_stake_vote_deleg_cert(
+            stake_credential.clone().into(),
+            ed25519_key_hash.clone().into(),
+            d_rep.clone().into(),
+        ))
+    }
+
+    pub fn new_stake_reg_deleg_cert(
+        stake_credential: &StakeCredential,
+        ed25519_key_hash: &Ed25519KeyHash,
+        coin: Coin,
+    ) -> Self {
+        Self(cml_chain::certs::Certificate::new_stake_reg_deleg_cert(
+            stake_credential.clone().into(),
+            ed25519_key_hash.clone().into(),
+            coin,
+        ))
+    }
+
+    pub fn new_vote_reg_deleg_cert(
+        stake_credential: &StakeCredential,
+        d_rep: &DRep,
+        coin: Coin,
+    ) -> Self {
+        Self(cml_chain::certs::Certificate::new_vote_reg_deleg_cert(
+            stake_credential.clone().into(),
+            d_rep.clone().into(),
+            coin,
+        ))
+    }
+
+    pub fn new_stake_vote_reg_deleg_cert(
+        stake_credential: &StakeCredential,
+        ed25519_key_hash: &Ed25519KeyHash,
+        d_rep: &DRep,
+        coin: Coin,
     ) -> Self {
         Self(
-            cml_chain::certs::Certificate::new_move_instantaneous_rewards_cert(
-                move_instantaneous_reward.clone().into(),
+            cml_chain::certs::Certificate::new_stake_vote_reg_deleg_cert(
+                stake_credential.clone().into(),
+                ed25519_key_hash.clone().into(),
+                d_rep.clone().into(),
+                coin,
             ),
         )
+    }
+
+    pub fn new_auth_committee_hot_cert(
+        committee_cold_credential: &CommitteeColdCredential,
+        committee_hot_credential: &CommitteeHotCredential,
+    ) -> Self {
+        Self(cml_chain::certs::Certificate::new_auth_committee_hot_cert(
+            committee_cold_credential.clone().into(),
+            committee_hot_credential.clone().into(),
+        ))
+    }
+
+    pub fn new_resign_committee_cold_cert(
+        committee_cold_credential: &CommitteeColdCredential,
+    ) -> Self {
+        Self(
+            cml_chain::certs::Certificate::new_resign_committee_cold_cert(
+                committee_cold_credential.clone().into(),
+            ),
+        )
+    }
+
+    pub fn new_reg_drep_cert(
+        drep_credential: &DrepCredential,
+        coin: Coin,
+        anchor: Option<Anchor>,
+    ) -> Self {
+        Self(cml_chain::certs::Certificate::new_reg_drep_cert(
+            drep_credential.clone().into(),
+            coin,
+            anchor.map(Into::into),
+        ))
+    }
+
+    pub fn new_unreg_drep_cert(drep_credential: &DrepCredential, coin: Coin) -> Self {
+        Self(cml_chain::certs::Certificate::new_unreg_drep_cert(
+            drep_credential.clone().into(),
+            coin,
+        ))
+    }
+
+    pub fn new_update_drep_cert(drep_credential: &DrepCredential, anchor: Option<Anchor>) -> Self {
+        Self(cml_chain::certs::Certificate::new_update_drep_cert(
+            drep_credential.clone().into(),
+            anchor.map(Into::into),
+        ))
     }
 
     pub fn kind(&self) -> CertificateKind {
@@ -90,12 +218,28 @@ impl Certificate {
             cml_chain::certs::Certificate::StakeDelegation(_) => CertificateKind::StakeDelegation,
             cml_chain::certs::Certificate::PoolRegistration(_) => CertificateKind::PoolRegistration,
             cml_chain::certs::Certificate::PoolRetirement(_) => CertificateKind::PoolRetirement,
-            cml_chain::certs::Certificate::GenesisKeyDelegation(_) => {
-                CertificateKind::GenesisKeyDelegation
+            cml_chain::certs::Certificate::RegCert(_) => CertificateKind::RegCert,
+            cml_chain::certs::Certificate::UnregCert(_) => CertificateKind::UnregCert,
+            cml_chain::certs::Certificate::VoteDelegCert(_) => CertificateKind::VoteDelegCert,
+            cml_chain::certs::Certificate::StakeVoteDelegCert(_) => {
+                CertificateKind::StakeVoteDelegCert
             }
-            cml_chain::certs::Certificate::MoveInstantaneousRewardsCert(_) => {
-                CertificateKind::MoveInstantaneousRewardsCert
+            cml_chain::certs::Certificate::StakeRegDelegCert(_) => {
+                CertificateKind::StakeRegDelegCert
             }
+            cml_chain::certs::Certificate::VoteRegDelegCert(_) => CertificateKind::VoteRegDelegCert,
+            cml_chain::certs::Certificate::StakeVoteRegDelegCert(_) => {
+                CertificateKind::StakeVoteRegDelegCert
+            }
+            cml_chain::certs::Certificate::AuthCommitteeHotCert(_) => {
+                CertificateKind::AuthCommitteeHotCert
+            }
+            cml_chain::certs::Certificate::ResignCommitteeColdCert(_) => {
+                CertificateKind::ResignCommitteeColdCert
+            }
+            cml_chain::certs::Certificate::RegDrepCert(_) => CertificateKind::RegDrepCert,
+            cml_chain::certs::Certificate::UnregDrepCert(_) => CertificateKind::UnregDrepCert,
+            cml_chain::certs::Certificate::UpdateDrepCert(_) => CertificateKind::UpdateDrepCert,
         }
     }
 
@@ -144,20 +288,106 @@ impl Certificate {
         }
     }
 
-    pub fn as_genesis_key_delegation(&self) -> Option<GenesisKeyDelegation> {
+    pub fn as_reg_cert(&self) -> Option<RegCert> {
         match &self.0 {
-            cml_chain::certs::Certificate::GenesisKeyDelegation(genesis_key_delegation) => {
-                Some(genesis_key_delegation.clone().into())
+            cml_chain::certs::Certificate::RegCert(reg_cert) => Some(reg_cert.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_unreg_cert(&self) -> Option<UnregCert> {
+        match &self.0 {
+            cml_chain::certs::Certificate::UnregCert(unreg_cert) => Some(unreg_cert.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_vote_deleg_cert(&self) -> Option<VoteDelegCert> {
+        match &self.0 {
+            cml_chain::certs::Certificate::VoteDelegCert(vote_deleg_cert) => {
+                Some(vote_deleg_cert.clone().into())
             }
             _ => None,
         }
     }
 
-    pub fn as_move_instantaneous_rewards_cert(&self) -> Option<MoveInstantaneousRewardsCert> {
+    pub fn as_stake_vote_deleg_cert(&self) -> Option<StakeVoteDelegCert> {
         match &self.0 {
-            cml_chain::certs::Certificate::MoveInstantaneousRewardsCert(
-                move_instantaneous_rewards_cert,
-            ) => Some(move_instantaneous_rewards_cert.clone().into()),
+            cml_chain::certs::Certificate::StakeVoteDelegCert(stake_vote_deleg_cert) => {
+                Some(stake_vote_deleg_cert.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_stake_reg_deleg_cert(&self) -> Option<StakeRegDelegCert> {
+        match &self.0 {
+            cml_chain::certs::Certificate::StakeRegDelegCert(stake_reg_deleg_cert) => {
+                Some(stake_reg_deleg_cert.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_vote_reg_deleg_cert(&self) -> Option<VoteRegDelegCert> {
+        match &self.0 {
+            cml_chain::certs::Certificate::VoteRegDelegCert(vote_reg_deleg_cert) => {
+                Some(vote_reg_deleg_cert.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_stake_vote_reg_deleg_cert(&self) -> Option<StakeVoteRegDelegCert> {
+        match &self.0 {
+            cml_chain::certs::Certificate::StakeVoteRegDelegCert(stake_vote_reg_deleg_cert) => {
+                Some(stake_vote_reg_deleg_cert.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_auth_committee_hot_cert(&self) -> Option<AuthCommitteeHotCert> {
+        match &self.0 {
+            cml_chain::certs::Certificate::AuthCommitteeHotCert(auth_committee_hot_cert) => {
+                Some(auth_committee_hot_cert.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_resign_committee_cold_cert(&self) -> Option<ResignCommitteeColdCert> {
+        match &self.0 {
+            cml_chain::certs::Certificate::ResignCommitteeColdCert(resign_committee_cold_cert) => {
+                Some(resign_committee_cold_cert.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_reg_drep_cert(&self) -> Option<RegDrepCert> {
+        match &self.0 {
+            cml_chain::certs::Certificate::RegDrepCert(reg_drep_cert) => {
+                Some(reg_drep_cert.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_unreg_drep_cert(&self) -> Option<UnregDrepCert> {
+        match &self.0 {
+            cml_chain::certs::Certificate::UnregDrepCert(unreg_drep_cert) => {
+                Some(unreg_drep_cert.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_update_drep_cert(&self) -> Option<UpdateDrepCert> {
+        match &self.0 {
+            cml_chain::certs::Certificate::UpdateDrepCert(update_drep_cert) => {
+                Some(update_drep_cert.clone().into())
+            }
             _ => None,
         }
     }
@@ -170,8 +400,136 @@ pub enum CertificateKind {
     StakeDelegation,
     PoolRegistration,
     PoolRetirement,
-    GenesisKeyDelegation,
-    MoveInstantaneousRewardsCert,
+    RegCert,
+    UnregCert,
+    VoteDelegCert,
+    StakeVoteDelegCert,
+    StakeRegDelegCert,
+    VoteRegDelegCert,
+    StakeVoteRegDelegCert,
+    AuthCommitteeHotCert,
+    ResignCommitteeColdCert,
+    RegDrepCert,
+    UnregDrepCert,
+    UpdateDrepCert,
+}
+
+pub type CommitteeColdCredential = Credential;
+
+pub type CommitteeHotCredential = Credential;
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct Credential(cml_chain::certs::Credential);
+
+impl_wasm_cbor_json_api!(Credential);
+
+impl_wasm_conversions!(cml_chain::certs::Credential, Credential);
+
+#[wasm_bindgen]
+impl Credential {
+    pub fn new_pub_key(hash: &Ed25519KeyHash) -> Self {
+        Self(cml_chain::certs::Credential::new_pub_key(
+            hash.clone().into(),
+        ))
+    }
+
+    pub fn new_script(hash: &ScriptHash) -> Self {
+        Self(cml_chain::certs::Credential::new_script(
+            hash.clone().into(),
+        ))
+    }
+
+    pub fn kind(&self) -> CredentialKind {
+        match &self.0 {
+            cml_chain::certs::Credential::PubKey { .. } => CredentialKind::PubKey,
+            cml_chain::certs::Credential::Script { .. } => CredentialKind::Script,
+        }
+    }
+
+    pub fn as_pub_key(&self) -> Option<Ed25519KeyHash> {
+        match &self.0 {
+            cml_chain::certs::Credential::PubKey { hash, .. } => Some(hash.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_script(&self) -> Option<ScriptHash> {
+        match &self.0 {
+            cml_chain::certs::Credential::Script { hash, .. } => Some(hash.clone().into()),
+            _ => None,
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub enum CredentialKind {
+    PubKey,
+    Script,
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct DRep(cml_chain::certs::DRep);
+
+impl_wasm_cbor_json_api!(DRep);
+
+impl_wasm_conversions!(cml_chain::certs::DRep, DRep);
+
+#[wasm_bindgen]
+impl DRep {
+    pub fn new_key(ed25519_key_hash: &Ed25519KeyHash) -> Self {
+        Self(cml_chain::certs::DRep::new_key(
+            ed25519_key_hash.clone().into(),
+        ))
+    }
+
+    pub fn new_script(script_hash: &ScriptHash) -> Self {
+        Self(cml_chain::certs::DRep::new_script(
+            script_hash.clone().into(),
+        ))
+    }
+
+    pub fn new_always_abstain() -> Self {
+        Self(cml_chain::certs::DRep::new_always_abstain())
+    }
+
+    pub fn new_always_no_confidence() -> Self {
+        Self(cml_chain::certs::DRep::new_always_no_confidence())
+    }
+
+    pub fn kind(&self) -> DRepKind {
+        match &self.0 {
+            cml_chain::certs::DRep::Key { .. } => DRepKind::Key,
+            cml_chain::certs::DRep::Script { .. } => DRepKind::Script,
+            cml_chain::certs::DRep::AlwaysAbstain { .. } => DRepKind::AlwaysAbstain,
+            cml_chain::certs::DRep::AlwaysNoConfidence { .. } => DRepKind::AlwaysNoConfidence,
+        }
+    }
+
+    pub fn as_key(&self) -> Option<Ed25519KeyHash> {
+        match &self.0 {
+            cml_chain::certs::DRep::Key {
+                ed25519_key_hash, ..
+            } => Some(ed25519_key_hash.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_script(&self) -> Option<ScriptHash> {
+        match &self.0 {
+            cml_chain::certs::DRep::Script { script_hash, .. } => Some(script_hash.clone().into()),
+            _ => None,
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub enum DRepKind {
+    Key,
+    Script,
+    AlwaysAbstain,
+    AlwaysNoConfidence,
 }
 
 #[derive(Clone, Debug)]
@@ -189,40 +547,7 @@ impl DnsName {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct GenesisKeyDelegation(cml_chain::certs::GenesisKeyDelegation);
-
-impl_wasm_cbor_json_api!(GenesisKeyDelegation);
-
-impl_wasm_conversions!(cml_chain::certs::GenesisKeyDelegation, GenesisKeyDelegation);
-
-#[wasm_bindgen]
-impl GenesisKeyDelegation {
-    pub fn genesis_hash(&self) -> GenesisHash {
-        self.0.genesis_hash.clone().into()
-    }
-
-    pub fn genesis_delegate_hash(&self) -> GenesisDelegateHash {
-        self.0.genesis_delegate_hash.clone().into()
-    }
-
-    pub fn v_r_f_key_hash(&self) -> VRFKeyHash {
-        self.0.v_r_f_key_hash.clone().into()
-    }
-
-    pub fn new(
-        genesis_hash: &GenesisHash,
-        genesis_delegate_hash: &GenesisDelegateHash,
-        v_r_f_key_hash: &VRFKeyHash,
-    ) -> Self {
-        Self(cml_chain::certs::GenesisKeyDelegation::new(
-            genesis_hash.clone().into(),
-            genesis_delegate_hash.clone().into(),
-            v_r_f_key_hash.clone().into(),
-        ))
-    }
-}
+pub type DrepCredential = Credential;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -330,32 +655,8 @@ impl MoveInstantaneousReward {
 
     pub fn new(pot: MIRPot, action: &MIRAction) -> Self {
         Self(cml_chain::certs::MoveInstantaneousReward::new(
-            pot,
+            pot.into(),
             action.clone().into(),
-        ))
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MoveInstantaneousRewardsCert(cml_chain::certs::MoveInstantaneousRewardsCert);
-
-impl_wasm_cbor_json_api!(MoveInstantaneousRewardsCert);
-
-impl_wasm_conversions!(
-    cml_chain::certs::MoveInstantaneousRewardsCert,
-    MoveInstantaneousRewardsCert
-);
-
-#[wasm_bindgen]
-impl MoveInstantaneousRewardsCert {
-    pub fn move_instantaneous_reward(&self) -> MoveInstantaneousReward {
-        self.0.move_instantaneous_reward.clone().into()
-    }
-
-    pub fn new(move_instantaneous_reward: &MoveInstantaneousReward) -> Self {
-        Self(cml_chain::certs::MoveInstantaneousRewardsCert::new(
-            move_instantaneous_reward.clone().into(),
         ))
     }
 }
@@ -527,6 +828,63 @@ impl PoolRetirement {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+pub struct RegCert(cml_chain::certs::RegCert);
+
+impl_wasm_cbor_json_api!(RegCert);
+
+impl_wasm_conversions!(cml_chain::certs::RegCert, RegCert);
+
+#[wasm_bindgen]
+impl RegCert {
+    pub fn stake_credential(&self) -> StakeCredential {
+        self.0.stake_credential.clone().into()
+    }
+
+    pub fn coin(&self) -> Coin {
+        self.0.coin
+    }
+
+    pub fn new(stake_credential: &StakeCredential, coin: Coin) -> Self {
+        Self(cml_chain::certs::RegCert::new(
+            stake_credential.clone().into(),
+            coin,
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct RegDrepCert(cml_chain::certs::RegDrepCert);
+
+impl_wasm_cbor_json_api!(RegDrepCert);
+
+impl_wasm_conversions!(cml_chain::certs::RegDrepCert, RegDrepCert);
+
+#[wasm_bindgen]
+impl RegDrepCert {
+    pub fn drep_credential(&self) -> DrepCredential {
+        self.0.drep_credential.clone().into()
+    }
+
+    pub fn coin(&self) -> Coin {
+        self.0.coin
+    }
+
+    pub fn anchor(&self) -> Option<Anchor> {
+        self.0.anchor.clone().map(std::convert::Into::into)
+    }
+
+    pub fn new(drep_credential: &DrepCredential, coin: Coin, anchor: Option<Anchor>) -> Self {
+        Self(cml_chain::certs::RegDrepCert::new(
+            drep_credential.clone().into(),
+            coin,
+            anchor.map(Into::into),
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
 pub struct Relay(cml_chain::certs::Relay);
 
 impl_wasm_cbor_json_api!(Relay);
@@ -605,6 +963,30 @@ pub enum RelayKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+pub struct ResignCommitteeColdCert(cml_chain::certs::ResignCommitteeColdCert);
+
+impl_wasm_cbor_json_api!(ResignCommitteeColdCert);
+
+impl_wasm_conversions!(
+    cml_chain::certs::ResignCommitteeColdCert,
+    ResignCommitteeColdCert
+);
+
+#[wasm_bindgen]
+impl ResignCommitteeColdCert {
+    pub fn committee_cold_credential(&self) -> CommitteeColdCredential {
+        self.0.committee_cold_credential.clone().into()
+    }
+
+    pub fn new(committee_cold_credential: &CommitteeColdCredential) -> Self {
+        Self(cml_chain::certs::ResignCommitteeColdCert::new(
+            committee_cold_credential.clone().into(),
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
 pub struct SingleHostAddr(cml_chain::certs::SingleHostAddr);
 
 impl_wasm_cbor_json_api!(SingleHostAddr);
@@ -660,55 +1042,7 @@ impl SingleHostName {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct StakeCredential(cml_chain::certs::StakeCredential);
-
-impl_wasm_cbor_json_api!(StakeCredential);
-
-impl_wasm_conversions!(cml_chain::certs::StakeCredential, StakeCredential);
-
-#[wasm_bindgen]
-impl StakeCredential {
-    pub fn new_pub_key(hash: &Ed25519KeyHash) -> Self {
-        Self(cml_chain::certs::StakeCredential::new_pub_key(
-            hash.clone().into(),
-        ))
-    }
-
-    pub fn new_script(hash: &ScriptHash) -> Self {
-        Self(cml_chain::certs::StakeCredential::new_script(
-            hash.clone().into(),
-        ))
-    }
-
-    pub fn kind(&self) -> StakeCredentialKind {
-        match &self.0 {
-            cml_chain::certs::StakeCredential::PubKey { .. } => StakeCredentialKind::PubKey,
-            cml_chain::certs::StakeCredential::Script { .. } => StakeCredentialKind::Script,
-        }
-    }
-
-    pub fn as_pub_key(&self) -> Option<Ed25519KeyHash> {
-        match &self.0 {
-            cml_chain::certs::StakeCredential::PubKey { hash, .. } => Some(hash.clone().into()),
-            _ => None,
-        }
-    }
-
-    pub fn as_script(&self) -> Option<ScriptHash> {
-        match &self.0 {
-            cml_chain::certs::StakeCredential::Script { hash, .. } => Some(hash.clone().into()),
-            _ => None,
-        }
-    }
-}
-
-#[wasm_bindgen]
-pub enum StakeCredentialKind {
-    PubKey,
-    Script,
-}
+pub type StakeCredential = Credential;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -759,6 +1093,41 @@ impl StakeDeregistration {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+pub struct StakeRegDelegCert(cml_chain::certs::StakeRegDelegCert);
+
+impl_wasm_cbor_json_api!(StakeRegDelegCert);
+
+impl_wasm_conversions!(cml_chain::certs::StakeRegDelegCert, StakeRegDelegCert);
+
+#[wasm_bindgen]
+impl StakeRegDelegCert {
+    pub fn stake_credential(&self) -> StakeCredential {
+        self.0.stake_credential.clone().into()
+    }
+
+    pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
+        self.0.ed25519_key_hash.clone().into()
+    }
+
+    pub fn coin(&self) -> Coin {
+        self.0.coin
+    }
+
+    pub fn new(
+        stake_credential: &StakeCredential,
+        ed25519_key_hash: &Ed25519KeyHash,
+        coin: Coin,
+    ) -> Self {
+        Self(cml_chain::certs::StakeRegDelegCert::new(
+            stake_credential.clone().into(),
+            ed25519_key_hash.clone().into(),
+            coin,
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
 pub struct StakeRegistration(cml_chain::certs::StakeRegistration);
 
 impl_wasm_cbor_json_api!(StakeRegistration);
@@ -780,6 +1149,163 @@ impl StakeRegistration {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+pub struct StakeVoteDelegCert(cml_chain::certs::StakeVoteDelegCert);
+
+impl_wasm_cbor_json_api!(StakeVoteDelegCert);
+
+impl_wasm_conversions!(cml_chain::certs::StakeVoteDelegCert, StakeVoteDelegCert);
+
+#[wasm_bindgen]
+impl StakeVoteDelegCert {
+    pub fn stake_credential(&self) -> StakeCredential {
+        self.0.stake_credential.clone().into()
+    }
+
+    pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
+        self.0.ed25519_key_hash.clone().into()
+    }
+
+    pub fn d_rep(&self) -> DRep {
+        self.0.d_rep.clone().into()
+    }
+
+    pub fn new(
+        stake_credential: &StakeCredential,
+        ed25519_key_hash: &Ed25519KeyHash,
+        d_rep: &DRep,
+    ) -> Self {
+        Self(cml_chain::certs::StakeVoteDelegCert::new(
+            stake_credential.clone().into(),
+            ed25519_key_hash.clone().into(),
+            d_rep.clone().into(),
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct StakeVoteRegDelegCert(cml_chain::certs::StakeVoteRegDelegCert);
+
+impl_wasm_cbor_json_api!(StakeVoteRegDelegCert);
+
+impl_wasm_conversions!(
+    cml_chain::certs::StakeVoteRegDelegCert,
+    StakeVoteRegDelegCert
+);
+
+#[wasm_bindgen]
+impl StakeVoteRegDelegCert {
+    pub fn stake_credential(&self) -> StakeCredential {
+        self.0.stake_credential.clone().into()
+    }
+
+    pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
+        self.0.ed25519_key_hash.clone().into()
+    }
+
+    pub fn d_rep(&self) -> DRep {
+        self.0.d_rep.clone().into()
+    }
+
+    pub fn coin(&self) -> Coin {
+        self.0.coin
+    }
+
+    pub fn new(
+        stake_credential: &StakeCredential,
+        ed25519_key_hash: &Ed25519KeyHash,
+        d_rep: &DRep,
+        coin: Coin,
+    ) -> Self {
+        Self(cml_chain::certs::StakeVoteRegDelegCert::new(
+            stake_credential.clone().into(),
+            ed25519_key_hash.clone().into(),
+            d_rep.clone().into(),
+            coin,
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct UnregCert(cml_chain::certs::UnregCert);
+
+impl_wasm_cbor_json_api!(UnregCert);
+
+impl_wasm_conversions!(cml_chain::certs::UnregCert, UnregCert);
+
+#[wasm_bindgen]
+impl UnregCert {
+    pub fn stake_credential(&self) -> StakeCredential {
+        self.0.stake_credential.clone().into()
+    }
+
+    pub fn coin(&self) -> Coin {
+        self.0.coin
+    }
+
+    pub fn new(stake_credential: &StakeCredential, coin: Coin) -> Self {
+        Self(cml_chain::certs::UnregCert::new(
+            stake_credential.clone().into(),
+            coin,
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct UnregDrepCert(cml_chain::certs::UnregDrepCert);
+
+impl_wasm_cbor_json_api!(UnregDrepCert);
+
+impl_wasm_conversions!(cml_chain::certs::UnregDrepCert, UnregDrepCert);
+
+#[wasm_bindgen]
+impl UnregDrepCert {
+    pub fn drep_credential(&self) -> DrepCredential {
+        self.0.drep_credential.clone().into()
+    }
+
+    pub fn coin(&self) -> Coin {
+        self.0.coin
+    }
+
+    pub fn new(drep_credential: &DrepCredential, coin: Coin) -> Self {
+        Self(cml_chain::certs::UnregDrepCert::new(
+            drep_credential.clone().into(),
+            coin,
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct UpdateDrepCert(cml_chain::certs::UpdateDrepCert);
+
+impl_wasm_cbor_json_api!(UpdateDrepCert);
+
+impl_wasm_conversions!(cml_chain::certs::UpdateDrepCert, UpdateDrepCert);
+
+#[wasm_bindgen]
+impl UpdateDrepCert {
+    pub fn drep_credential(&self) -> DrepCredential {
+        self.0.drep_credential.clone().into()
+    }
+
+    pub fn anchor(&self) -> Option<Anchor> {
+        self.0.anchor.clone().map(std::convert::Into::into)
+    }
+
+    pub fn new(drep_credential: &DrepCredential, anchor: Option<Anchor>) -> Self {
+        Self(cml_chain::certs::UpdateDrepCert::new(
+            drep_credential.clone().into(),
+            anchor.map(Into::into),
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
 pub struct Url(cml_chain::certs::Url);
 
 impl_wasm_cbor_json_api!(Url);
@@ -790,5 +1316,62 @@ impl_wasm_conversions!(cml_chain::certs::Url, Url);
 impl Url {
     pub fn get(&self) -> String {
         self.0.get().clone()
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct VoteDelegCert(cml_chain::certs::VoteDelegCert);
+
+impl_wasm_cbor_json_api!(VoteDelegCert);
+
+impl_wasm_conversions!(cml_chain::certs::VoteDelegCert, VoteDelegCert);
+
+#[wasm_bindgen]
+impl VoteDelegCert {
+    pub fn stake_credential(&self) -> StakeCredential {
+        self.0.stake_credential.clone().into()
+    }
+
+    pub fn d_rep(&self) -> DRep {
+        self.0.d_rep.clone().into()
+    }
+
+    pub fn new(stake_credential: &StakeCredential, d_rep: &DRep) -> Self {
+        Self(cml_chain::certs::VoteDelegCert::new(
+            stake_credential.clone().into(),
+            d_rep.clone().into(),
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct VoteRegDelegCert(cml_chain::certs::VoteRegDelegCert);
+
+impl_wasm_cbor_json_api!(VoteRegDelegCert);
+
+impl_wasm_conversions!(cml_chain::certs::VoteRegDelegCert, VoteRegDelegCert);
+
+#[wasm_bindgen]
+impl VoteRegDelegCert {
+    pub fn stake_credential(&self) -> StakeCredential {
+        self.0.stake_credential.clone().into()
+    }
+
+    pub fn d_rep(&self) -> DRep {
+        self.0.d_rep.clone().into()
+    }
+
+    pub fn coin(&self) -> Coin {
+        self.0.coin
+    }
+
+    pub fn new(stake_credential: &StakeCredential, d_rep: &DRep, coin: Coin) -> Self {
+        Self(cml_chain::certs::VoteRegDelegCert::new(
+            stake_credential.clone().into(),
+            d_rep.clone().into(),
+            coin,
+        ))
     }
 }

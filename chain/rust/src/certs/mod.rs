@@ -10,19 +10,45 @@ use crate::address::RewardAccount;
 use crate::crypto::{
     Ed25519KeyHash, GenesisDelegateHash, GenesisHash, PoolMetadataHash, ScriptHash, VRFKeyHash,
 };
+use crate::governance::Anchor;
 use cbor_encodings::{
-    DnsNameEncoding, GenesisKeyDelegationEncoding, Ipv4Encoding, Ipv6Encoding,
-    MoveInstantaneousRewardEncoding, MoveInstantaneousRewardsCertEncoding, MultiHostNameEncoding,
-    PoolMetadataEncoding, PoolParamsEncoding, PoolRegistrationEncoding, PoolRetirementEncoding,
-    SingleHostAddrEncoding, SingleHostNameEncoding, StakeDelegationEncoding,
-    StakeDeregistrationEncoding, StakeRegistrationEncoding, UrlEncoding,
+    AuthCommitteeHotCertEncoding, DnsNameEncoding, Ipv4Encoding, Ipv6Encoding,
+    MoveInstantaneousRewardEncoding, MultiHostNameEncoding, PoolMetadataEncoding,
+    PoolParamsEncoding, PoolRegistrationEncoding, PoolRetirementEncoding, RegCertEncoding,
+    RegDrepCertEncoding, ResignCommitteeColdCertEncoding, SingleHostAddrEncoding,
+    SingleHostNameEncoding, StakeDelegationEncoding, StakeDeregistrationEncoding,
+    StakeRegDelegCertEncoding, StakeRegistrationEncoding, StakeVoteDelegCertEncoding,
+    StakeVoteRegDelegCertEncoding, UnregCertEncoding, UnregDrepCertEncoding,
+    UpdateDrepCertEncoding, UrlEncoding, VoteDelegCertEncoding, VoteRegDelegCertEncoding,
 };
 use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 #[allow(clippy::large_enum_variant)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct AuthCommitteeHotCert {
+    pub committee_cold_credential: CommitteeColdCredential,
+    pub committee_hot_credential: CommitteeHotCredential,
+    #[serde(skip)]
+    pub encodings: Option<AuthCommitteeHotCertEncoding>,
+}
+
+impl AuthCommitteeHotCert {
+    pub fn new(
+        committee_cold_credential: CommitteeColdCredential,
+        committee_hot_credential: CommitteeHotCredential,
+    ) -> Self {
+        Self {
+            committee_cold_credential,
+            committee_hot_credential,
+            encodings: None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum Certificate {
     StakeRegistration(StakeRegistration),
@@ -30,8 +56,18 @@ pub enum Certificate {
     StakeDelegation(StakeDelegation),
     PoolRegistration(PoolRegistration),
     PoolRetirement(PoolRetirement),
-    GenesisKeyDelegation(GenesisKeyDelegation),
-    MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCert),
+    RegCert(RegCert),
+    UnregCert(UnregCert),
+    VoteDelegCert(VoteDelegCert),
+    StakeVoteDelegCert(StakeVoteDelegCert),
+    StakeRegDelegCert(StakeRegDelegCert),
+    VoteRegDelegCert(VoteRegDelegCert),
+    StakeVoteRegDelegCert(StakeVoteRegDelegCert),
+    AuthCommitteeHotCert(AuthCommitteeHotCert),
+    ResignCommitteeColdCert(ResignCommitteeColdCert),
+    RegDrepCert(RegDrepCert),
+    UnregDrepCert(UnregDrepCert),
+    UpdateDrepCert(UpdateDrepCert),
 }
 
 impl Certificate {
@@ -58,24 +94,253 @@ impl Certificate {
         Self::PoolRetirement(PoolRetirement::new(ed25519_key_hash, epoch))
     }
 
-    pub fn new_genesis_key_delegation(
-        genesis_hash: GenesisHash,
-        genesis_delegate_hash: GenesisDelegateHash,
-        v_r_f_key_hash: VRFKeyHash,
+    pub fn new_reg_cert(stake_credential: StakeCredential, coin: Coin) -> Self {
+        Self::RegCert(RegCert::new(stake_credential, coin))
+    }
+
+    pub fn new_unreg_cert(stake_credential: StakeCredential, coin: Coin) -> Self {
+        Self::UnregCert(UnregCert::new(stake_credential, coin))
+    }
+
+    pub fn new_vote_deleg_cert(stake_credential: StakeCredential, d_rep: DRep) -> Self {
+        Self::VoteDelegCert(VoteDelegCert::new(stake_credential, d_rep))
+    }
+
+    pub fn new_stake_vote_deleg_cert(
+        stake_credential: StakeCredential,
+        ed25519_key_hash: Ed25519KeyHash,
+        d_rep: DRep,
     ) -> Self {
-        Self::GenesisKeyDelegation(GenesisKeyDelegation::new(
-            genesis_hash,
-            genesis_delegate_hash,
-            v_r_f_key_hash,
+        Self::StakeVoteDelegCert(StakeVoteDelegCert::new(
+            stake_credential,
+            ed25519_key_hash,
+            d_rep,
         ))
     }
 
-    pub fn new_move_instantaneous_rewards_cert(
-        move_instantaneous_reward: MoveInstantaneousReward,
+    pub fn new_stake_reg_deleg_cert(
+        stake_credential: StakeCredential,
+        ed25519_key_hash: Ed25519KeyHash,
+        coin: Coin,
     ) -> Self {
-        Self::MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCert::new(
-            move_instantaneous_reward,
+        Self::StakeRegDelegCert(StakeRegDelegCert::new(
+            stake_credential,
+            ed25519_key_hash,
+            coin,
         ))
+    }
+
+    pub fn new_vote_reg_deleg_cert(
+        stake_credential: StakeCredential,
+        d_rep: DRep,
+        coin: Coin,
+    ) -> Self {
+        Self::VoteRegDelegCert(VoteRegDelegCert::new(stake_credential, d_rep, coin))
+    }
+
+    pub fn new_stake_vote_reg_deleg_cert(
+        stake_credential: StakeCredential,
+        ed25519_key_hash: Ed25519KeyHash,
+        d_rep: DRep,
+        coin: Coin,
+    ) -> Self {
+        Self::StakeVoteRegDelegCert(StakeVoteRegDelegCert::new(
+            stake_credential,
+            ed25519_key_hash,
+            d_rep,
+            coin,
+        ))
+    }
+
+    pub fn new_auth_committee_hot_cert(
+        committee_cold_credential: CommitteeColdCredential,
+        committee_hot_credential: CommitteeHotCredential,
+    ) -> Self {
+        Self::AuthCommitteeHotCert(AuthCommitteeHotCert::new(
+            committee_cold_credential,
+            committee_hot_credential,
+        ))
+    }
+
+    pub fn new_resign_committee_cold_cert(
+        committee_cold_credential: CommitteeColdCredential,
+    ) -> Self {
+        Self::ResignCommitteeColdCert(ResignCommitteeColdCert::new(committee_cold_credential))
+    }
+
+    pub fn new_reg_drep_cert(
+        drep_credential: DrepCredential,
+        coin: Coin,
+        anchor: Option<Anchor>,
+    ) -> Self {
+        Self::RegDrepCert(RegDrepCert::new(drep_credential, coin, anchor))
+    }
+
+    pub fn new_unreg_drep_cert(drep_credential: DrepCredential, coin: Coin) -> Self {
+        Self::UnregDrepCert(UnregDrepCert::new(drep_credential, coin))
+    }
+
+    pub fn new_update_drep_cert(drep_credential: DrepCredential, anchor: Option<Anchor>) -> Self {
+        Self::UpdateDrepCert(UpdateDrepCert::new(drep_credential, anchor))
+    }
+}
+
+pub type CommitteeColdCredential = Credential;
+
+pub type CommitteeHotCredential = Credential;
+
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(
+    Eq,
+    PartialEq,
+    Ord = "feature_allow_slow_enum",
+    PartialOrd = "feature_allow_slow_enum",
+    Hash
+)]
+pub enum Credential {
+    PubKey {
+        hash: Ed25519KeyHash,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        tag_encoding: Option<cbor_event::Sz>,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        hash_encoding: StringEncoding,
+    },
+    Script {
+        hash: ScriptHash,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        tag_encoding: Option<cbor_event::Sz>,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        hash_encoding: StringEncoding,
+    },
+}
+
+impl Credential {
+    pub fn new_pub_key(hash: Ed25519KeyHash) -> Self {
+        Self::PubKey {
+            hash,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+            hash_encoding: StringEncoding::default(),
+        }
+    }
+
+    pub fn new_script(hash: ScriptHash) -> Self {
+        Self::Script {
+            hash,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+            hash_encoding: StringEncoding::default(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub enum DRep {
+    Key {
+        ed25519_key_hash: Ed25519KeyHash,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[serde(skip)]
+        index_0_encoding: Option<cbor_event::Sz>,
+        #[serde(skip)]
+        ed25519_key_hash_encoding: StringEncoding,
+    },
+    Script {
+        script_hash: ScriptHash,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[serde(skip)]
+        index_0_encoding: Option<cbor_event::Sz>,
+        #[serde(skip)]
+        script_hash_encoding: StringEncoding,
+    },
+    AlwaysAbstain {
+        #[serde(skip)]
+        i2_encoding: Option<cbor_event::Sz>,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+    },
+    AlwaysNoConfidence {
+        #[serde(skip)]
+        i3_encoding: Option<cbor_event::Sz>,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+    },
+}
+
+impl DRep {
+    pub fn new_key(ed25519_key_hash: Ed25519KeyHash) -> Self {
+        Self::Key {
+            ed25519_key_hash,
+            len_encoding: LenEncoding::default(),
+            index_0_encoding: None,
+            ed25519_key_hash_encoding: StringEncoding::default(),
+        }
+    }
+
+    pub fn new_script(script_hash: ScriptHash) -> Self {
+        Self::Script {
+            script_hash,
+            len_encoding: LenEncoding::default(),
+            index_0_encoding: None,
+            script_hash_encoding: StringEncoding::default(),
+        }
+    }
+
+    pub fn new_always_abstain() -> Self {
+        Self::AlwaysAbstain {
+            i2_encoding: None,
+            len_encoding: LenEncoding::default(),
+        }
+    }
+
+    pub fn new_always_no_confidence() -> Self {
+        Self::AlwaysNoConfidence {
+            i3_encoding: None,
+            len_encoding: LenEncoding::default(),
+        }
     }
 }
 
@@ -117,29 +382,7 @@ impl TryFrom<String> for DnsName {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct GenesisKeyDelegation {
-    pub genesis_hash: GenesisHash,
-    pub genesis_delegate_hash: GenesisDelegateHash,
-    pub v_r_f_key_hash: VRFKeyHash,
-    #[serde(skip)]
-    pub encodings: Option<GenesisKeyDelegationEncoding>,
-}
-
-impl GenesisKeyDelegation {
-    pub fn new(
-        genesis_hash: GenesisHash,
-        genesis_delegate_hash: GenesisDelegateHash,
-        v_r_f_key_hash: VRFKeyHash,
-    ) -> Self {
-        Self {
-            genesis_hash,
-            genesis_delegate_hash,
-            v_r_f_key_hash,
-            encodings: None,
-        }
-    }
-}
+pub type DrepCredential = Credential;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct Ipv4 {
@@ -298,22 +541,6 @@ impl MoveInstantaneousReward {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct MoveInstantaneousRewardsCert {
-    pub move_instantaneous_reward: MoveInstantaneousReward,
-    #[serde(skip)]
-    pub encodings: Option<MoveInstantaneousRewardsCertEncoding>,
-}
-
-impl MoveInstantaneousRewardsCert {
-    pub fn new(move_instantaneous_reward: MoveInstantaneousReward) -> Self {
-        Self {
-            move_instantaneous_reward,
-            encodings: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct MultiHostName {
     pub dns_name: DnsName,
     #[serde(skip)]
@@ -363,7 +590,6 @@ pub struct PoolParams {
 }
 
 impl PoolParams {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         operator: Ed25519KeyHash,
         vrf_keyhash: VRFKeyHash,
@@ -425,6 +651,44 @@ impl PoolRetirement {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct RegCert {
+    pub stake_credential: StakeCredential,
+    pub coin: Coin,
+    #[serde(skip)]
+    pub encodings: Option<RegCertEncoding>,
+}
+
+impl RegCert {
+    pub fn new(stake_credential: StakeCredential, coin: Coin) -> Self {
+        Self {
+            stake_credential,
+            coin,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct RegDrepCert {
+    pub drep_credential: DrepCredential,
+    pub coin: Coin,
+    pub anchor: Option<Anchor>,
+    #[serde(skip)]
+    pub encodings: Option<RegDrepCertEncoding>,
+}
+
+impl RegDrepCert {
+    pub fn new(drep_credential: DrepCredential, coin: Coin, anchor: Option<Anchor>) -> Self {
+        Self {
+            drep_credential,
+            coin,
+            anchor,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum Relay {
     SingleHostAddr(SingleHostAddr),
     SingleHostName(SingleHostName),
@@ -446,6 +710,22 @@ impl Relay {
 
     pub fn new_multi_host_name(dns_name: DnsName) -> Self {
         Self::MultiHostName(MultiHostName::new(dns_name))
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct ResignCommitteeColdCert {
+    pub committee_cold_credential: CommitteeColdCredential,
+    #[serde(skip)]
+    pub encodings: Option<ResignCommitteeColdCertEncoding>,
+}
+
+impl ResignCommitteeColdCert {
+    pub fn new(committee_cold_credential: CommitteeColdCredential) -> Self {
+        Self {
+            committee_cold_credential,
+            encodings: None,
+        }
     }
 }
 
@@ -487,92 +767,7 @@ impl SingleHostName {
     }
 }
 
-#[derive(
-    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
-)]
-#[derivative(
-    Eq,
-    PartialEq,
-    Ord = "feature_allow_slow_enum",
-    PartialOrd = "feature_allow_slow_enum",
-    Hash
-)]
-pub enum StakeCredential {
-    PubKey {
-        hash: Ed25519KeyHash,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        len_encoding: LenEncoding,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        tag_encoding: Option<cbor_event::Sz>,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        hash_encoding: StringEncoding,
-    },
-    Script {
-        hash: ScriptHash,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        len_encoding: LenEncoding,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        tag_encoding: Option<cbor_event::Sz>,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        hash_encoding: StringEncoding,
-    },
-}
-
-impl StakeCredential {
-    pub fn new_pub_key(hash: Ed25519KeyHash) -> Self {
-        Self::PubKey {
-            hash,
-            len_encoding: LenEncoding::default(),
-            tag_encoding: None,
-            hash_encoding: StringEncoding::default(),
-        }
-    }
-
-    pub fn new_script(hash: ScriptHash) -> Self {
-        Self::Script {
-            hash,
-            len_encoding: LenEncoding::default(),
-            tag_encoding: None,
-            hash_encoding: StringEncoding::default(),
-        }
-    }
-}
+pub type StakeCredential = Credential;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct StakeDelegation {
@@ -609,6 +804,30 @@ impl StakeDeregistration {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct StakeRegDelegCert {
+    pub stake_credential: StakeCredential,
+    pub ed25519_key_hash: Ed25519KeyHash,
+    pub coin: Coin,
+    #[serde(skip)]
+    pub encodings: Option<StakeRegDelegCertEncoding>,
+}
+
+impl StakeRegDelegCert {
+    pub fn new(
+        stake_credential: StakeCredential,
+        ed25519_key_hash: Ed25519KeyHash,
+        coin: Coin,
+    ) -> Self {
+        Self {
+            stake_credential,
+            ed25519_key_hash,
+            coin,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct StakeRegistration {
     pub stake_credential: StakeCredential,
     #[serde(skip)]
@@ -624,6 +843,57 @@ impl StakeRegistration {
     }
 }
 
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct StakeVoteDelegCert {
+    pub stake_credential: StakeCredential,
+    pub ed25519_key_hash: Ed25519KeyHash,
+    pub d_rep: DRep,
+    #[serde(skip)]
+    pub encodings: Option<StakeVoteDelegCertEncoding>,
+}
+
+impl StakeVoteDelegCert {
+    pub fn new(
+        stake_credential: StakeCredential,
+        ed25519_key_hash: Ed25519KeyHash,
+        d_rep: DRep,
+    ) -> Self {
+        Self {
+            stake_credential,
+            ed25519_key_hash,
+            d_rep,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct StakeVoteRegDelegCert {
+    pub stake_credential: StakeCredential,
+    pub ed25519_key_hash: Ed25519KeyHash,
+    pub d_rep: DRep,
+    pub coin: Coin,
+    #[serde(skip)]
+    pub encodings: Option<StakeVoteRegDelegCertEncoding>,
+}
+
+impl StakeVoteRegDelegCert {
+    pub fn new(
+        stake_credential: StakeCredential,
+        ed25519_key_hash: Ed25519KeyHash,
+        d_rep: DRep,
+        coin: Coin,
+    ) -> Self {
+        Self {
+            stake_credential,
+            ed25519_key_hash,
+            d_rep,
+            coin,
+            encodings: None,
+        }
+    }
+}
+
 impl From<DnsName> for String {
     fn from(wrapper: DnsName) -> Self {
         wrapper.inner
@@ -633,6 +903,60 @@ impl From<DnsName> for String {
 impl From<Url> for String {
     fn from(wrapper: Url) -> Self {
         wrapper.inner
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct UnregCert {
+    pub stake_credential: StakeCredential,
+    pub coin: Coin,
+    #[serde(skip)]
+    pub encodings: Option<UnregCertEncoding>,
+}
+
+impl UnregCert {
+    pub fn new(stake_credential: StakeCredential, coin: Coin) -> Self {
+        Self {
+            stake_credential,
+            coin,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct UnregDrepCert {
+    pub drep_credential: DrepCredential,
+    pub coin: Coin,
+    #[serde(skip)]
+    pub encodings: Option<UnregDrepCertEncoding>,
+}
+
+impl UnregDrepCert {
+    pub fn new(drep_credential: DrepCredential, coin: Coin) -> Self {
+        Self {
+            drep_credential,
+            coin,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct UpdateDrepCert {
+    pub drep_credential: DrepCredential,
+    pub anchor: Option<Anchor>,
+    #[serde(skip)]
+    pub encodings: Option<UpdateDrepCertEncoding>,
+}
+
+impl UpdateDrepCert {
+    pub fn new(drep_credential: DrepCredential, anchor: Option<Anchor>) -> Self {
+        Self {
+            drep_credential,
+            anchor,
+            encodings: None,
+        }
     }
 }
 
@@ -671,5 +995,43 @@ impl TryFrom<String> for Url {
 
     fn try_from(inner: String) -> Result<Self, Self::Error> {
         Url::new(inner)
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct VoteDelegCert {
+    pub stake_credential: StakeCredential,
+    pub d_rep: DRep,
+    #[serde(skip)]
+    pub encodings: Option<VoteDelegCertEncoding>,
+}
+
+impl VoteDelegCert {
+    pub fn new(stake_credential: StakeCredential, d_rep: DRep) -> Self {
+        Self {
+            stake_credential,
+            d_rep,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct VoteRegDelegCert {
+    pub stake_credential: StakeCredential,
+    pub d_rep: DRep,
+    pub coin: Coin,
+    #[serde(skip)]
+    pub encodings: Option<VoteRegDelegCertEncoding>,
+}
+
+impl VoteRegDelegCert {
+    pub fn new(stake_credential: StakeCredential, d_rep: DRep, coin: Coin) -> Self {
+        Self {
+            stake_credential,
+            d_rep,
+            coin,
+            encodings: None,
+        }
     }
 }

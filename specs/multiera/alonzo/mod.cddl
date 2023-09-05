@@ -1,3 +1,10 @@
+alonzo_aux_data = #6.259({
+	? 0 => metadata,               ; @name metadata        
+  ? 1 => [ * native_script ],    ; @name native_scripts
+  ? 2 => [ * plutus_v1_script ], ; @name plutus_v1_scripts
+  ? 3 => [ * plutus_v2_script ], ; @name plutus_v2_scripts
+})
+
 alonzo_block =
   [ header: shelley_header
   , transaction_bodies         : [* alonzo_transaction_body]
@@ -24,7 +31,7 @@ alonzo_transaction_body = {
     1 : [* alonzo_transaction_output], ; @name outputs
     2 : coin,                    ; @name fee
   ? 3 : uint,                    ; @name ttl
-  ? 4 : [* certificate],         ; @name certs
+  ? 4 : [* allegra_certificate], ; @name certs
   ? 5 : withdrawals,             ; @name withdrawals
   ? 6 : alonzo_update,           ; @name update
   ? 7 : auxiliary_data_hash,     ; @name auxiliary_data_hash

@@ -5,7 +5,7 @@ use crate::{
     transaction::NativeScript,
 };
 
-use super::{AlonzoAuxData, AuxiliaryData, ShelleyMaAuxData};
+use super::{ConwayAuxData, AuxiliaryData, ShelleyMaAuxData};
 
 impl AuxiliaryData {
     pub fn new() -> Self {
@@ -16,21 +16,21 @@ impl AuxiliaryData {
         match self {
             Self::Shelley(shelley) => Some(shelley),
             Self::ShelleyMA(shelley_ma) => Some(&shelley_ma.transaction_metadata),
-            Self::Alonzo(alonzo) => alonzo.metadata.as_ref(),
+            Self::Conway(conway) => conway.metadata.as_ref(),
         }
     }
 
     /// Mut ref to the general tx metadata.
-    /// Will be created if it didn't exist (i.e. Alonzo format)
+    /// Will be created if it didn't exist (i.e. Conway format)
     pub fn metadata_mut(&mut self) -> &mut Metadata {
         match self {
             Self::Shelley(shelley) => shelley,
             Self::ShelleyMA(shelley_ma) => &mut shelley_ma.transaction_metadata,
-            Self::Alonzo(alonzo) => {
-                if alonzo.metadata.is_none() {
-                    alonzo.metadata = Some(Metadata::new());
+            Self::Conway(conway) => {
+                if conway.metadata.is_none() {
+                    conway.metadata = Some(Metadata::new());
                 }
-                alonzo.metadata.as_mut().unwrap()
+                conway.metadata.as_mut().unwrap()
             }
         }
     }
@@ -39,7 +39,7 @@ impl AuxiliaryData {
         match self {
             Self::Shelley { .. } => None,
             Self::ShelleyMA(shelley_ma) => Some(&shelley_ma.auxiliary_scripts),
-            Self::Alonzo(alonzo) => alonzo.native_scripts.as_ref(),
+            Self::Conway(conway) => conway.native_scripts.as_ref(),
         }
         .filter(|scripts| !scripts.is_empty())
     }
@@ -48,7 +48,7 @@ impl AuxiliaryData {
         match self {
             Self::Shelley { .. } => None,
             Self::ShelleyMA(_shelley_ma) => None,
-            Self::Alonzo(alonzo) => alonzo.plutus_v1_scripts.as_ref(),
+            Self::Conway(conway) => conway.plutus_v1_scripts.as_ref(),
         }
         .filter(|scripts| !scripts.is_empty())
     }
@@ -57,7 +57,7 @@ impl AuxiliaryData {
         match self {
             Self::Shelley { .. } => None,
             Self::ShelleyMA(_shelley_ma) => None,
-            Self::Alonzo(alonzo) => alonzo.plutus_v2_scripts.as_ref(),
+            Self::Conway(conway) => conway.plutus_v2_scripts.as_ref(),
         }
         .filter(|scripts| !scripts.is_empty())
     }
@@ -67,11 +67,11 @@ impl AuxiliaryData {
         let metadata = match self {
             Self::Shelley(shelley) => shelley,
             Self::ShelleyMA(shelley_ma) => &mut shelley_ma.transaction_metadata,
-            Self::Alonzo(alonzo) => {
-                if alonzo.metadata.is_none() {
-                    alonzo.metadata = Some(Metadata::new());
+            Self::Conway(conway) => {
+                if conway.metadata.is_none() {
+                    conway.metadata = Some(Metadata::new());
                 }
-                alonzo.metadata.as_mut().unwrap()
+                conway.metadata.as_mut().unwrap()
             }
         };
         metadata.entries.extend(other.entries.into_iter());
@@ -86,11 +86,11 @@ impl AuxiliaryData {
             Self::ShelleyMA(shelley_ma) => {
                 shelley_ma.auxiliary_scripts.extend(scripts);
             }
-            Self::Alonzo(alonzo) => {
-                if let Some(old_scripts) = &mut alonzo.native_scripts {
+            Self::Conway(conway) => {
+                if let Some(old_scripts) = &mut conway.native_scripts {
                     old_scripts.extend(scripts);
                 } else {
-                    alonzo.native_scripts = Some(scripts);
+                    conway.native_scripts = Some(scripts);
                 }
             }
         }
@@ -100,29 +100,29 @@ impl AuxiliaryData {
     pub fn add_plutus_v1_scripts(&mut self, scripts: Vec<PlutusV1Script>) {
         match self {
             Self::Shelley(shelley) => {
-                let mut alonzo = AlonzoAuxData::new();
+                let mut conway = ConwayAuxData::new();
                 if !shelley.entries.is_empty() {
-                    alonzo.metadata = Some(shelley.clone());
+                    conway.metadata = Some(shelley.clone());
                 }
-                alonzo.plutus_v1_scripts = Some(scripts);
-                *self = Self::Alonzo(alonzo);
+                conway.plutus_v1_scripts = Some(scripts);
+                *self = Self::Conway(conway);
             }
             Self::ShelleyMA(shelley_ma) => {
-                let mut alonzo = AlonzoAuxData::new();
+                let mut conway = ConwayAuxData::new();
                 if !shelley_ma.transaction_metadata.entries.is_empty() {
-                    alonzo.metadata = Some(shelley_ma.transaction_metadata.clone());
+                    conway.metadata = Some(shelley_ma.transaction_metadata.clone());
                 }
                 if !shelley_ma.auxiliary_scripts.is_empty() {
-                    alonzo.native_scripts = Some(shelley_ma.auxiliary_scripts.clone());
+                    conway.native_scripts = Some(shelley_ma.auxiliary_scripts.clone());
                 }
-                alonzo.plutus_v1_scripts = Some(scripts);
-                *self = Self::Alonzo(alonzo);
+                conway.plutus_v1_scripts = Some(scripts);
+                *self = Self::Conway(conway);
             }
-            Self::Alonzo(alonzo) => {
-                if let Some(old_scripts) = &mut alonzo.plutus_v1_scripts {
+            Self::Conway(conway) => {
+                if let Some(old_scripts) = &mut conway.plutus_v1_scripts {
                     old_scripts.extend(scripts);
                 } else {
-                    alonzo.plutus_v1_scripts = Some(scripts);
+                    conway.plutus_v1_scripts = Some(scripts);
                 }
             }
         }
@@ -132,29 +132,29 @@ impl AuxiliaryData {
     pub fn add_plutus_v2_scripts(&mut self, scripts: Vec<PlutusV2Script>) {
         match self {
             Self::Shelley(shelley) => {
-                let mut alonzo = AlonzoAuxData::new();
+                let mut conway = ConwayAuxData::new();
                 if !shelley.entries.is_empty() {
-                    alonzo.metadata = Some(shelley.clone());
+                    conway.metadata = Some(shelley.clone());
                 }
-                alonzo.plutus_v2_scripts = Some(scripts);
-                *self = Self::Alonzo(alonzo);
+                conway.plutus_v2_scripts = Some(scripts);
+                *self = Self::Conway(conway);
             }
             Self::ShelleyMA(shelley_ma) => {
-                let mut alonzo = AlonzoAuxData::new();
+                let mut conway = ConwayAuxData::new();
                 if !shelley_ma.transaction_metadata.entries.is_empty() {
-                    alonzo.metadata = Some(shelley_ma.transaction_metadata.clone());
+                    conway.metadata = Some(shelley_ma.transaction_metadata.clone());
                 }
                 if !shelley_ma.auxiliary_scripts.is_empty() {
-                    alonzo.native_scripts = Some(shelley_ma.auxiliary_scripts.clone());
+                    conway.native_scripts = Some(shelley_ma.auxiliary_scripts.clone());
                 }
-                alonzo.plutus_v2_scripts = Some(scripts);
-                *self = Self::Alonzo(alonzo);
+                conway.plutus_v2_scripts = Some(scripts);
+                *self = Self::Conway(conway);
             }
-            Self::Alonzo(alonzo) => {
-                if let Some(old_scripts) = &mut alonzo.plutus_v2_scripts {
+            Self::Conway(conway) => {
+                if let Some(old_scripts) = &mut conway.plutus_v2_scripts {
                     old_scripts.extend(scripts);
                 } else {
-                    alonzo.plutus_v2_scripts = Some(scripts);
+                    conway.plutus_v2_scripts = Some(scripts);
                 }
             }
         }
@@ -176,17 +176,17 @@ impl AuxiliaryData {
                 self.add_native_scripts(shelley_ma.auxiliary_scripts);
                 self.add_metadata(shelley_ma.transaction_metadata);
             }
-            Self::Alonzo(alonzo) => {
-                if let Some(scripts) = alonzo.plutus_v2_scripts {
+            Self::Conway(conway) => {
+                if let Some(scripts) = conway.plutus_v2_scripts {
                     self.add_plutus_v2_scripts(scripts);
                 }
-                if let Some(scripts) = alonzo.plutus_v1_scripts {
+                if let Some(scripts) = conway.plutus_v1_scripts {
                     self.add_plutus_v1_scripts(scripts);
                 }
-                if let Some(scripts) = alonzo.native_scripts {
+                if let Some(scripts) = conway.native_scripts {
                     self.add_native_scripts(scripts);
                 }
-                if let Some(metadata) = alonzo.metadata {
+                if let Some(metadata) = conway.metadata {
                     self.add_metadata(metadata);
                 }
             }

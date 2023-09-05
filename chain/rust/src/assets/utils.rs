@@ -12,9 +12,19 @@ use std::io::{BufRead, Seek, Write};
 
 use std::collections::BTreeMap;
 
-pub use super::AssetName;
+use super::AssetName;
 
 pub type Coin = u64;
+
+/// This should technically now allow 0 but this would make the API harder to use.
+/// At least for now we'll keep it as Coin (aka u64) as an alias with this comment here.
+/// Later on it could potentially be redone to its own struct.
+pub type NonZeroInt64 = i64;
+
+/// This should technically now allow 0 but this would make the API harder to use.
+/// At least for now we'll keep it as Coin (aka u64) as an alias with this comment here.
+/// Later on it could potentially be redone to its own struct.
+pub type PositiveCoin = Coin;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AssetArithmeticError {
@@ -267,9 +277,9 @@ where
     }
 }
 
-pub type Mint = AssetBundle<i64>;
+pub type Mint = AssetBundle<NonZeroInt64>;
 
-pub type MultiAsset = AssetBundle<u64>;
+pub type MultiAsset = AssetBundle<PositiveCoin>;
 
 impl Mint {
     fn as_multiasset(&self, is_positive: bool) -> MultiAsset {
@@ -311,7 +321,7 @@ impl Mint {
 )]
 #[derivative(Hash, Eq, PartialEq, PartialOrd)]
 pub struct Value {
-    pub coin: Coin,
+    pub coin: PositiveCoin,
     pub multiasset: MultiAsset,
     #[serde(skip)]
     #[derivative(Hash = "ignore", PartialEq = "ignore", PartialOrd = "ignore")]
@@ -319,7 +329,7 @@ pub struct Value {
 }
 
 impl Value {
-    pub fn new(coin: Coin, multiasset: MultiAsset) -> Self {
+    pub fn new(coin: PositiveCoin, multiasset: MultiAsset) -> Self {
         Self {
             coin,
             multiasset,
@@ -427,8 +437,8 @@ where
     }
 }
 
-impl From<Coin> for Value {
-    fn from(coin: Coin) -> Self {
+impl From<PositiveCoin> for Value {
+    fn from(coin: PositiveCoin) -> Self {
         Self {
             coin,
             multiasset: AssetBundle::default(),

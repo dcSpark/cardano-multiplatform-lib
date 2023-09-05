@@ -3,8 +3,6 @@ protocol_version = (
     minor: uint,
 )
 
-protocol_version_struct = [protocol_version]
-
 operational_cert =
   ( hot_vkey        : $KES_vkey
   , sequence_number : uint

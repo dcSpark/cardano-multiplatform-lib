@@ -4,7 +4,7 @@
 use cml_core::serialization::LenEncoding;
 
 #[derive(Clone, Debug, Default)]
-pub struct AlonzoAuxDataEncoding {
+pub struct ConwayAuxDataEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
     pub orig_deser_order: Vec<usize>,
@@ -15,6 +15,8 @@ pub struct AlonzoAuxDataEncoding {
     pub plutus_v1_scripts_key_encoding: Option<cbor_event::Sz>,
     pub plutus_v2_scripts_encoding: LenEncoding,
     pub plutus_v2_scripts_key_encoding: Option<cbor_event::Sz>,
+    pub plutus_v3_scripts_encoding: LenEncoding,
+    pub plutus_v3_scripts_key_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]

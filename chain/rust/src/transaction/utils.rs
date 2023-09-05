@@ -7,7 +7,7 @@ use crate::{
 };
 use cml_crypto::{DatumHash, Ed25519KeyHash};
 
-use super::{AlonzoTxOut, BabbageTxOut, NativeScript, ShelleyTxOut};
+use super::{AlonzoFormatTxOut, BabbageFormatTxOut, NativeScript};
 
 impl TransactionOutput {
     pub fn new(
@@ -17,48 +17,49 @@ impl TransactionOutput {
         script_reference: Option<ScriptRef>,
     ) -> Self {
         match (datum_option, script_reference) {
-            (None, None) => Self::ShelleyTxOut(ShelleyTxOut::new(address, amount)),
+            (None, None) => Self::AlonzoFormatTxOut(AlonzoFormatTxOut::new(address, amount)),
             (Some(DatumOption::Hash { datum_hash, .. }), None) => {
-                Self::AlonzoTxOut(AlonzoTxOut::new(address, amount, datum_hash))
+                let mut tx_out = AlonzoFormatTxOut::new(address, amount);
+                tx_out.datum_hash = Some(datum_hash);
+                Self::AlonzoFormatTxOut(tx_out)
             }
             (datum, script_ref) => {
-                let mut tx_out = BabbageTxOut::new(address, amount);
+                let mut tx_out = BabbageFormatTxOut::new(address, amount);
                 tx_out.datum_option = datum;
                 tx_out.script_reference = script_ref;
-                Self::BabbageTxOut(tx_out)
+                Self::BabbageFormatTxOut(tx_out)
             }
         }
     }
 
     pub fn address(&self) -> &Address {
         match self {
-            Self::ShelleyTxOut(tx_out) => &tx_out.address,
-            Self::AlonzoTxOut(tx_out) => &tx_out.address,
-            Self::BabbageTxOut(tx_out) => &tx_out.address,
+            Self::AlonzoFormatTxOut(tx_out) => &tx_out.address,
+            Self::BabbageFormatTxOut(tx_out) => &tx_out.address,
         }
     }
 
     pub fn amount(&self) -> &Value {
         match self {
-            Self::ShelleyTxOut(tx_out) => &tx_out.amount,
-            Self::AlonzoTxOut(tx_out) => &tx_out.amount,
-            Self::BabbageTxOut(tx_out) => &tx_out.amount,
+            Self::AlonzoFormatTxOut(tx_out) => &tx_out.amount,
+            Self::BabbageFormatTxOut(tx_out) => &tx_out.amount,
         }
     }
 
     pub fn set_amount(&mut self, amount: Value) {
         match self {
-            Self::ShelleyTxOut(tx_out) => tx_out.amount = amount,
-            Self::AlonzoTxOut(tx_out) => tx_out.amount = amount,
-            Self::BabbageTxOut(tx_out) => tx_out.amount = amount,
+            Self::AlonzoFormatTxOut(tx_out) => tx_out.amount = amount,
+            Self::BabbageFormatTxOut(tx_out) => tx_out.amount = amount,
         }
     }
 
     pub fn datum(&self) -> Option<DatumOption> {
         match self {
-            Self::ShelleyTxOut(_) => None,
-            Self::AlonzoTxOut(tx_out) => Some(DatumOption::new_hash(tx_out.datum_hash.clone())),
-            Self::BabbageTxOut(tx_out) => tx_out.datum_option.clone(),
+            Self::AlonzoFormatTxOut(tx_out) => tx_out
+                .datum_hash
+                .as_ref()
+                .map(|hash| DatumOption::new_hash(hash.clone())),
+            Self::BabbageFormatTxOut(tx_out) => tx_out.datum_option.clone(),
         }
     }
 
@@ -67,9 +68,8 @@ impl TransactionOutput {
     /// Use TransactionOutput::datum() for inlined datums.
     pub fn datum_hash(&self) -> Option<&DatumHash> {
         match self {
-            Self::ShelleyTxOut(_) => None,
-            Self::AlonzoTxOut(tx_out) => Some(&tx_out.datum_hash),
-            Self::BabbageTxOut(tx_out) => match &tx_out.datum_option {
+            Self::AlonzoFormatTxOut(tx_out) => tx_out.datum_hash.as_ref(),
+            Self::BabbageFormatTxOut(tx_out) => match &tx_out.datum_option {
                 Some(DatumOption::Hash { datum_hash, .. }) => Some(datum_hash),
                 _ => None,
             },
@@ -78,27 +78,21 @@ impl TransactionOutput {
 
     pub fn script_ref(&self) -> Option<&ScriptRef> {
         match self {
-            Self::ShelleyTxOut(_) | Self::AlonzoTxOut(_) => None,
-            Self::BabbageTxOut(tx_out) => tx_out.script_reference.as_ref(),
+            Self::AlonzoFormatTxOut(_) => None,
+            Self::BabbageFormatTxOut(tx_out) => tx_out.script_reference.as_ref(),
         }
     }
 }
 
-impl From<ShelleyTxOut> for TransactionOutput {
-    fn from(tx_out: ShelleyTxOut) -> Self {
-        Self::ShelleyTxOut(tx_out)
+impl From<AlonzoFormatTxOut> for TransactionOutput {
+    fn from(tx_out: AlonzoFormatTxOut) -> Self {
+        Self::AlonzoFormatTxOut(tx_out)
     }
 }
 
-impl From<AlonzoTxOut> for TransactionOutput {
-    fn from(tx_out: AlonzoTxOut) -> Self {
-        Self::AlonzoTxOut(tx_out)
-    }
-}
-
-impl From<BabbageTxOut> for TransactionOutput {
-    fn from(tx_out: BabbageTxOut) -> Self {
-        Self::BabbageTxOut(tx_out)
+impl From<BabbageFormatTxOut> for TransactionOutput {
+    fn from(tx_out: BabbageFormatTxOut) -> Self {
+        Self::BabbageFormatTxOut(tx_out)
     }
 }
 

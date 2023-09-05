@@ -626,6 +626,8 @@ impl_hash_type!(KESVkey, 32);
 // same for this signature (but lots of traits aren't implemented for [u8; 448] so we can't)
 //impl_hash_type!(KESSignature, 448);
 impl_hash_type!(NonceHash, 32);
+// not sure if this is an existing hash or not. made it a new one but maybe it's datum hash or something?
+impl_hash_type!(AnchorDataHash, 32);
 
 #[derive(Clone)]
 pub struct LegacyDaedalusPrivateKey(chain_crypto::SecretKey<chain_crypto::LegacyDaedalus>);

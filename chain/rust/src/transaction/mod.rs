@@ -5,20 +5,22 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use super::{Coin, Mint, NetworkId, Slot, Update, Value, Withdrawals};
+use super::{NetworkId, Slot, Value, Withdrawals};
 use crate::address::Address;
+use crate::assets::{PositiveCoin, Coin, Mint};
 use crate::auxdata::AuxiliaryData;
 use crate::certs::Certificate;
 use crate::crypto::{
     AuxiliaryDataHash, BootstrapWitness, DatumHash, Ed25519KeyHash, ScriptDataHash,
     TransactionHash, Vkeywitness,
 };
-use crate::plutus::{PlutusData, PlutusV1Script, PlutusV2Script, Redeemer};
+use crate::governance::{ProposalProcedure, VotingProcedures};
+use crate::plutus::{PlutusData, PlutusV1Script, PlutusV2Script, Redeemer, PlutusV3Script};
 use crate::Script;
 use cbor_encodings::{
-    AlonzoTxOutEncoding, BabbageTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
+    AlonzoFormatTxOutEncoding, BabbageFormatTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
     ScriptInvalidBeforeEncoding, ScriptInvalidHereafterEncoding, ScriptNOfKEncoding,
-    ScriptPubkeyEncoding, ShelleyTxOutEncoding, TransactionBodyEncoding, TransactionEncoding,
+    ScriptPubkeyEncoding, TransactionBodyEncoding, TransactionEncoding,
     TransactionInputEncoding, TransactionWitnessSetEncoding,
 };
 use cml_core::ordered_hash_map::OrderedHashMap;
@@ -29,21 +31,21 @@ use std::collections::BTreeMap;
     Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
 )]
 #[derivative(Hash, Eq, PartialEq)]
-pub struct AlonzoTxOut {
+pub struct AlonzoFormatTxOut {
     pub address: Address,
     pub amount: Value,
-    pub datum_hash: DatumHash,
+    pub datum_hash: Option<DatumHash>,
     #[serde(skip)]
     #[derivative(PartialEq = "ignore", Hash = "ignore")]
-    pub encodings: Option<AlonzoTxOutEncoding>,
+    pub encodings: Option<AlonzoFormatTxOutEncoding>,
 }
 
-impl AlonzoTxOut {
-    pub fn new(address: Address, amount: Value, datum_hash: DatumHash) -> Self {
+impl AlonzoFormatTxOut {
+    pub fn new(address: Address, amount: Value) -> Self {
         Self {
             address,
             amount,
-            datum_hash,
+            datum_hash: None,
             encodings: None,
         }
     }
@@ -53,17 +55,17 @@ impl AlonzoTxOut {
     Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
 )]
 #[derivative(Hash, Eq, PartialEq)]
-pub struct BabbageTxOut {
+pub struct BabbageFormatTxOut {
     pub address: Address,
     pub amount: Value,
     pub datum_option: Option<DatumOption>,
     pub script_reference: Option<ScriptRef>,
     #[serde(skip)]
     #[derivative(PartialEq = "ignore", Hash = "ignore")]
-    pub encodings: Option<BabbageTxOutEncoding>,
+    pub encodings: Option<BabbageFormatTxOutEncoding>,
 }
 
-impl BabbageTxOut {
+impl BabbageFormatTxOut {
     pub fn new(address: Address, amount: Value) -> Self {
         Self {
             address,
@@ -294,28 +296,6 @@ impl ScriptPubkey {
 
 pub type ScriptRef = Script;
 
-#[derive(
-    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
-)]
-#[derivative(Hash, Eq, PartialEq)]
-pub struct ShelleyTxOut {
-    pub address: Address,
-    pub amount: Value,
-    #[serde(skip)]
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
-    pub encodings: Option<ShelleyTxOutEncoding>,
-}
-
-impl ShelleyTxOut {
-    pub fn new(address: Address, amount: Value) -> Self {
-        Self {
-            address,
-            amount,
-            encodings: None,
-        }
-    }
-}
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct Transaction {
     pub body: TransactionBody,
@@ -351,7 +331,6 @@ pub struct TransactionBody {
     pub ttl: Option<u64>,
     pub certs: Option<Vec<Certificate>>,
     pub withdrawals: Option<Withdrawals>,
-    pub update: Option<Update>,
     pub auxiliary_data_hash: Option<AuxiliaryDataHash>,
     pub validity_interval_start: Option<u64>,
     pub mint: Option<Mint>,
@@ -362,6 +341,10 @@ pub struct TransactionBody {
     pub collateral_return: Option<TransactionOutput>,
     pub total_collateral: Option<Coin>,
     pub reference_inputs: Option<Vec<TransactionInput>>,
+    pub voting_procedures: Option<VotingProcedures>,
+    pub proposal_procedures: Option<Vec<ProposalProcedure>>,
+    pub current_treasury_value: Option<Coin>,
+    pub donation: Option<PositiveCoin>,
     #[serde(skip)]
     pub encodings: Option<TransactionBodyEncoding>,
 }
@@ -375,7 +358,6 @@ impl TransactionBody {
             ttl: None,
             certs: None,
             withdrawals: None,
-            update: None,
             auxiliary_data_hash: None,
             validity_interval_start: None,
             mint: None,
@@ -386,6 +368,10 @@ impl TransactionBody {
             collateral_return: None,
             total_collateral: None,
             reference_inputs: None,
+            voting_procedures: None,
+            proposal_procedures: None,
+            current_treasury_value: None,
+            donation: None,
             encodings: None,
         }
     }
@@ -422,22 +408,17 @@ impl TransactionInput {
     Clone, Debug, Hash, Eq, PartialEq, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
 )]
 pub enum TransactionOutput {
-    ShelleyTxOut(ShelleyTxOut),
-    AlonzoTxOut(AlonzoTxOut),
-    BabbageTxOut(BabbageTxOut),
+    AlonzoFormatTxOut(AlonzoFormatTxOut),
+    BabbageFormatTxOut(BabbageFormatTxOut),
 }
 
 impl TransactionOutput {
-    pub fn new_shelley_tx_out(shelley_tx_out: ShelleyTxOut) -> Self {
-        Self::ShelleyTxOut(shelley_tx_out)
+    pub fn new_alonzo_format_tx_out(alonzo_format_tx_out: AlonzoFormatTxOut) -> Self {
+        Self::AlonzoFormatTxOut(alonzo_format_tx_out)
     }
 
-    pub fn new_alonzo_tx_out(alonzo_tx_out: AlonzoTxOut) -> Self {
-        Self::AlonzoTxOut(alonzo_tx_out)
-    }
-
-    pub fn new_babbage_tx_out(babbage_tx_out: BabbageTxOut) -> Self {
-        Self::BabbageTxOut(babbage_tx_out)
+    pub fn new_babbage_format_tx_out(babbage_format_tx_out: BabbageFormatTxOut) -> Self {
+        Self::BabbageFormatTxOut(babbage_format_tx_out)
     }
 }
 
@@ -450,6 +431,7 @@ pub struct TransactionWitnessSet {
     pub plutus_datums: Option<Vec<PlutusData>>,
     pub redeemers: Option<Vec<Redeemer>>,
     pub plutus_v2_scripts: Option<Vec<PlutusV2Script>>,
+    pub plutus_v3_scripts: Option<Vec<PlutusV3Script>>,
     #[serde(skip)]
     pub encodings: Option<TransactionWitnessSetEncoding>,
 }
@@ -464,6 +446,7 @@ impl TransactionWitnessSet {
             plutus_datums: None,
             redeemers: None,
             plutus_v2_scripts: None,
+            plutus_v3_scripts: None,
             encodings: None,
         }
     }

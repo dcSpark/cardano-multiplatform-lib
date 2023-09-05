@@ -5,45 +5,17 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use crate::plutus::{PlutusV1Script, PlutusV2Script};
+use crate::plutus::{PlutusV1Script, PlutusV2Script, PlutusV3Script};
 use crate::transaction::NativeScript;
-use cbor_encodings::{AlonzoAuxDataEncoding, ShelleyMaAuxDataEncoding};
+use cbor_encodings::{ConwayAuxDataEncoding, ShelleyMaAuxDataEncoding};
 
 pub use cml_core::metadata::*;
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct AlonzoAuxData {
-    pub metadata: Option<Metadata>,
-    pub native_scripts: Option<Vec<NativeScript>>,
-    pub plutus_v1_scripts: Option<Vec<PlutusV1Script>>,
-    pub plutus_v2_scripts: Option<Vec<PlutusV2Script>>,
-    #[serde(skip)]
-    pub encodings: Option<AlonzoAuxDataEncoding>,
-}
-
-impl AlonzoAuxData {
-    pub fn new() -> Self {
-        Self {
-            metadata: None,
-            native_scripts: None,
-            plutus_v1_scripts: None,
-            plutus_v2_scripts: None,
-            encodings: None,
-        }
-    }
-}
-
-impl Default for AlonzoAuxData {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AuxiliaryData {
     Shelley(ShelleyAuxData),
     ShelleyMA(ShelleyMaAuxData),
-    Alonzo(AlonzoAuxData),
+    Conway(ConwayAuxData),
 }
 
 impl AuxiliaryData {
@@ -55,8 +27,38 @@ impl AuxiliaryData {
         Self::ShelleyMA(shelley_m_a)
     }
 
-    pub fn new_alonzo(alonzo: AlonzoAuxData) -> Self {
-        Self::Alonzo(alonzo)
+    pub fn new_conway(conway: ConwayAuxData) -> Self {
+        Self::Conway(conway)
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct ConwayAuxData {
+    pub metadata: Option<Metadata>,
+    pub native_scripts: Option<Vec<NativeScript>>,
+    pub plutus_v1_scripts: Option<Vec<PlutusV1Script>>,
+    pub plutus_v2_scripts: Option<Vec<PlutusV2Script>>,
+    pub plutus_v3_scripts: Option<Vec<PlutusV3Script>>,
+    #[serde(skip)]
+    pub encodings: Option<ConwayAuxDataEncoding>,
+}
+
+impl ConwayAuxData {
+    pub fn new() -> Self {
+        Self {
+            metadata: None,
+            native_scripts: None,
+            plutus_v1_scripts: None,
+            plutus_v2_scripts: None,
+            plutus_v3_scripts: None,
+            encodings: None,
+        }
+    }
+}
+
+impl Default for ConwayAuxData {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

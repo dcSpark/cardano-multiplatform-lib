@@ -11,6 +11,8 @@ pub struct CostModelsEncoding {
     pub plutus_v1_key_encoding: Option<cbor_event::Sz>,
     pub plutus_v2_encoding: LenEncoding,
     pub plutus_v2_key_encoding: Option<cbor_event::Sz>,
+    pub plutus_v3_encoding: LenEncoding,
+    pub plutus_v3_key_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -32,6 +34,11 @@ pub struct PlutusV1ScriptEncoding {
 
 #[derive(Clone, Debug, Default)]
 pub struct PlutusV2ScriptEncoding {
+    pub inner_encoding: StringEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct PlutusV3ScriptEncoding {
     pub inner_encoding: StringEncoding,
 }
 

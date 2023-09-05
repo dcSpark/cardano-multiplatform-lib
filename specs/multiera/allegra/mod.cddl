@@ -10,6 +10,16 @@ allegra_block = [
    ; 2) every transaction_index must be strictly smaller than the
    ;    length of transaction_bodies
 
+allegra_certificate =
+  [ stake_registration
+  // stake_deregistration
+  // stake_delegation
+  // pool_registration
+  // pool_retirement
+  // genesis_key_delegation
+  // move_instantaneous_rewards_cert
+  ]
+
 allegra_transaction = [
   body: allegra_transaction_body,
   witness_set: allegra_transaction_witness_set,
@@ -35,7 +45,7 @@ allegra_transaction_body = {
   1 : [* shelley_transaction_output],  ; @name outputs
   2 : coin,                            ; @name fee
   ? 3 : uint,                          ; @name ttl
-  ? 4 : [* certificate],               ; @name certs
+  ? 4 : [* allegra_certificate],               ; @name certs
   ? 5 : withdrawals,                   ; @name withdrawals
   ? 6 : shelley_update,                ; @name update
   ? 7 : auxiliary_data_hash,           ; @name auxiliary_data_hash

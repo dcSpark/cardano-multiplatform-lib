@@ -14,31 +14,38 @@ pub mod address;
 pub mod assets;
 pub mod auxdata;
 pub mod block;
-pub mod builders;
+//pub mod builders;
 pub mod byron;
 pub mod certs;
 pub mod crypto;
 pub mod fees;
+pub mod governance;
 pub mod plutus;
 pub mod transaction;
 pub mod utils;
 
 use address::RewardAccount;
-use assets::AssetName; //, MutliAsset};
+use assets::{AssetName, MultiAsset};
 pub use assets::Value;
 use auxdata::{AuxiliaryData, TransactionMetadatum};
 use block::ProtocolVersion;
 use certs::{Certificate, Relay, StakeCredential};
-pub use cml_chain::{Coin, Epoch, NetworkId};
+pub use cml_chain::{assets::Coin, Epoch};
+use cml_chain::assets::{PositiveCoin, NonZeroInt64};
+pub use utils::NetworkId;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_crypto_wasm::{Ed25519KeyHash, GenesisHash, ScriptHash};
 use crypto::{BootstrapWitness, Vkeywitness};
 use plutus::{
-    CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, Redeemer,
+    CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script, Redeemer,
 };
 use transaction::{
     NativeScript, TransactionBody, TransactionInput, TransactionOutput, TransactionWitnessSet,
 };
+use governance::{Voter, GovActionId};
+
+use crate::certs::CommitteeColdCredential;
+use crate::governance::{ProposalProcedure, VotingProcedure};
 
 //extern crate serde_wasm_bindgen;
 // Code below here was code-generated using an experimental CDDL to rust tool:
@@ -122,6 +129,111 @@ impl CertificateList {
     }
 }
 
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct CommitteeColdCredentialList(Vec<cml_chain::certs::CommitteeColdCredential>);
+
+impl_wasm_conversions!(
+    Vec<cml_chain::certs::CommitteeColdCredential>,
+    CommitteeColdCredentialList
+);
+
+#[wasm_bindgen]
+impl CommitteeColdCredentialList {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> CommitteeColdCredential {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &CommitteeColdCredential) {
+        self.0.push(elem.clone().into());
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct DRepVotingThresholds(cml_chain::DRepVotingThresholds);
+
+impl_wasm_cbor_json_api!(DRepVotingThresholds);
+
+impl_wasm_conversions!(cml_chain::DRepVotingThresholds, DRepVotingThresholds);
+
+#[wasm_bindgen]
+impl DRepVotingThresholds {
+    pub fn motion_no_confidence(&self) -> UnitInterval {
+        self.0.motion_no_confidence.clone().into()
+    }
+
+    pub fn committee_normal(&self) -> UnitInterval {
+        self.0.committee_normal.clone().into()
+    }
+
+    pub fn committee_no_confidence(&self) -> UnitInterval {
+        self.0.committee_no_confidence.clone().into()
+    }
+
+    pub fn update_constitution(&self) -> UnitInterval {
+        self.0.update_constitution.clone().into()
+    }
+
+    pub fn hard_fork_initiation(&self) -> UnitInterval {
+        self.0.hard_fork_initiation.clone().into()
+    }
+
+    pub fn pp_network_group(&self) -> UnitInterval {
+        self.0.pp_network_group.clone().into()
+    }
+
+    pub fn pp_economic_group(&self) -> UnitInterval {
+        self.0.pp_economic_group.clone().into()
+    }
+
+    pub fn pp_technical_group(&self) -> UnitInterval {
+        self.0.pp_technical_group.clone().into()
+    }
+
+    pub fn pp_governance_group(&self) -> UnitInterval {
+        self.0.pp_governance_group.clone().into()
+    }
+
+    pub fn treasury_withdrawal(&self) -> UnitInterval {
+        self.0.treasury_withdrawal.clone().into()
+    }
+
+    pub fn new(
+        motion_no_confidence: &UnitInterval,
+        committee_normal: &UnitInterval,
+        committee_no_confidence: &UnitInterval,
+        update_constitution: &UnitInterval,
+        hard_fork_initiation: &UnitInterval,
+        pp_network_group: &UnitInterval,
+        pp_economic_group: &UnitInterval,
+        pp_technical_group: &UnitInterval,
+        pp_governance_group: &UnitInterval,
+        treasury_withdrawal: &UnitInterval,
+    ) -> Self {
+        Self(cml_chain::DRepVotingThresholds::new(
+            motion_no_confidence.clone().into(),
+            committee_normal.clone().into(),
+            committee_no_confidence.clone().into(),
+            update_constitution.clone().into(),
+            hard_fork_initiation.clone().into(),
+            pp_network_group.clone().into(),
+            pp_economic_group.clone().into(),
+            pp_technical_group.clone().into(),
+            pp_governance_group.clone().into(),
+            treasury_withdrawal.clone().into(),
+        ))
+    }
+}
+
 pub type DeltaCoin = Int;
 
 #[derive(Clone, Debug)]
@@ -151,12 +263,12 @@ impl Ed25519KeyHashList {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct GenesisHashList(Vec<cml_chain::crypto::GenesisHash>);
+pub struct GovActionIdList(Vec<cml_chain::governance::GovActionId>);
 
-impl_wasm_conversions!(Vec<cml_chain::crypto::GenesisHash>, GenesisHashList);
+impl_wasm_conversions!(Vec<cml_chain::governance::GovActionId>, GovActionIdList);
 
 #[wasm_bindgen]
-impl GenesisHashList {
+impl GovActionIdList {
     pub fn new() -> Self {
         Self(Vec::new())
     }
@@ -165,11 +277,11 @@ impl GenesisHashList {
         self.0.len()
     }
 
-    pub fn get(&self, index: usize) -> GenesisHash {
+    pub fn get(&self, index: usize) -> GovActionId {
         self.0[index].clone().into()
     }
 
-    pub fn add(&mut self, elem: &GenesisHash) {
+    pub fn add(&mut self, elem: &GovActionId) {
         self.0.push(elem.clone().into());
     }
 }
@@ -201,12 +313,14 @@ impl IntList {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MapAssetNameToI64(OrderedHashMap<cml_chain::assets::AssetName, i64>);
+pub struct MapAssetNameToNonZeroInt64(
+    OrderedHashMap<cml_chain::assets::AssetName, cml_chain::assets::NonZeroInt64>,
+);
 
-impl_wasm_conversions!(OrderedHashMap<cml_chain::assets::AssetName, i64>, MapAssetNameToI64);
+impl_wasm_conversions!(OrderedHashMap<cml_chain::assets::AssetName, cml_chain::assets::NonZeroInt64>, MapAssetNameToNonZeroInt64);
 
 #[wasm_bindgen]
-impl MapAssetNameToI64 {
+impl MapAssetNameToNonZeroInt64 {
     pub fn new() -> Self {
         Self(OrderedHashMap::new())
     }
@@ -215,16 +329,177 @@ impl MapAssetNameToI64 {
         self.0.len()
     }
 
-    pub fn insert(&mut self, key: &AssetName, value: i64) -> Option<i64> {
+    pub fn insert(&mut self, key: &AssetName, value: NonZeroInt64) -> Option<NonZeroInt64> {
         self.0.insert(key.clone().into(), value)
     }
 
-    pub fn get(&self, key: &AssetName) -> Option<i64> {
+    pub fn get(&self, key: &AssetName) -> Option<NonZeroInt64> {
         self.0.get(key.as_ref()).copied()
     }
 
     pub fn keys(&self) -> AssetNameList {
         AssetNameList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MapAssetNameToU64(OrderedHashMap<cml_chain::assets::AssetName, u64>);
+
+impl_wasm_conversions!(OrderedHashMap<cml_chain::assets::AssetName, u64>, MapAssetNameToU64);
+
+#[wasm_bindgen]
+impl MapAssetNameToU64 {
+    pub fn new() -> Self {
+        Self(OrderedHashMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn insert(&mut self, key: &AssetName, value: u64) -> Option<u64> {
+        self.0.insert(key.clone().into(), value)
+    }
+
+    pub fn get(&self, key: &AssetName) -> Option<u64> {
+        self.0.get(key.as_ref()).copied()
+    }
+
+    pub fn keys(&self) -> AssetNameList {
+        AssetNameList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MapCommitteeColdCredentialToEpoch(
+    OrderedHashMap<cml_chain::certs::CommitteeColdCredential, cml_chain::Epoch>,
+);
+
+impl_wasm_conversions!(OrderedHashMap<cml_chain::certs::CommitteeColdCredential, cml_chain::Epoch>, MapCommitteeColdCredentialToEpoch);
+
+#[wasm_bindgen]
+impl MapCommitteeColdCredentialToEpoch {
+    pub fn new() -> Self {
+        Self(OrderedHashMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn insert(&mut self, key: &CommitteeColdCredential, value: Epoch) -> Option<Epoch> {
+        self.0.insert(key.clone().into(), value)
+    }
+
+    pub fn get(&self, key: &CommitteeColdCredential) -> Option<Epoch> {
+        self.0.get(key.as_ref()).copied()
+    }
+
+    pub fn keys(&self) -> CommitteeColdCredentialList {
+        CommitteeColdCredentialList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MapGovActionIdToVotingProcedure(
+    OrderedHashMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>,
+);
+
+impl_wasm_conversions!(OrderedHashMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>, MapGovActionIdToVotingProcedure);
+
+#[wasm_bindgen]
+impl MapGovActionIdToVotingProcedure {
+    pub fn new() -> Self {
+        Self(OrderedHashMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn insert(
+        &mut self,
+        key: &GovActionId,
+        value: &VotingProcedure,
+    ) -> Option<VotingProcedure> {
+        self.0
+            .insert(key.clone().into(), value.clone().into())
+            .map(Into::into)
+    }
+
+    pub fn get(&self, key: &GovActionId) -> Option<VotingProcedure> {
+        self.0.get(key.as_ref()).map(|v| v.clone().into())
+    }
+
+    pub fn keys(&self) -> GovActionIdList {
+        GovActionIdList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MapPlutusDataToPlutusData(
+    OrderedHashMap<cml_chain::plutus::PlutusData, cml_chain::plutus::PlutusData>,
+);
+
+impl_wasm_conversions!(OrderedHashMap<cml_chain::plutus::PlutusData, cml_chain::plutus::PlutusData>, MapPlutusDataToPlutusData);
+
+#[wasm_bindgen]
+impl MapPlutusDataToPlutusData {
+    pub fn new() -> Self {
+        Self(OrderedHashMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn insert(&mut self, key: &PlutusData, value: &PlutusData) -> Option<PlutusData> {
+        self.0
+            .insert(key.clone().into(), value.clone().into())
+            .map(Into::into)
+    }
+
+    pub fn get(&self, key: &PlutusData) -> Option<PlutusData> {
+        self.0.get(key.as_ref()).map(|v| v.clone().into())
+    }
+
+    pub fn keys(&self) -> PlutusDataList {
+        PlutusDataList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MapRewardAccountToCoin(
+    OrderedHashMap<cml_chain::address::RewardAccount, cml_chain::assets::Coin>,
+);
+
+impl_wasm_conversions!(OrderedHashMap<cml_chain::address::RewardAccount, cml_chain::assets::Coin>, MapRewardAccountToCoin);
+
+#[wasm_bindgen]
+impl MapRewardAccountToCoin {
+    pub fn new() -> Self {
+        Self(OrderedHashMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn insert(&mut self, key: &RewardAccount, value: Coin) -> Option<Coin> {
+        self.0.insert(key.clone().into(), value)
+    }
+
+    pub fn get(&self, key: &RewardAccount) -> Option<Coin> {
+        self.0.get(key.as_ref()).copied()
+    }
+
+    pub fn keys(&self) -> RewardAccountList {
+        RewardAccountList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
     }
 }
 
@@ -332,11 +607,7 @@ impl MapTransactionMetadatumToTransactionMetadatum {
     }
 
     pub fn keys(&self) -> TransactionMetadatumList {
-        self.0
-            .iter()
-            .map(|(k, _v)| k.clone())
-            .collect::<Vec<_>>()
-            .into()
+        self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>().into()
     }
 }
 
@@ -440,6 +711,31 @@ impl PlutusV2ScriptList {
     }
 }
 
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct PlutusV3ScriptList(Vec<cml_chain::plutus::PlutusV3Script>);
+
+impl_wasm_conversions!(Vec<cml_chain::plutus::PlutusV3Script>, PlutusV3ScriptList);
+
+#[wasm_bindgen]
+impl PlutusV3ScriptList {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> PlutusV3Script {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &PlutusV3Script) {
+        self.0.push(elem.clone().into());
+    }
+}
+
 pub type PolicyId = ScriptHash;
 
 #[derive(Clone, Debug)]
@@ -467,43 +763,74 @@ impl PolicyIdList {
     }
 }
 
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct PoolVotingThresholds(cml_chain::PoolVotingThresholds);
+
+impl_wasm_cbor_json_api!(PoolVotingThresholds);
+
+impl_wasm_conversions!(cml_chain::PoolVotingThresholds, PoolVotingThresholds);
+
+#[wasm_bindgen]
+impl PoolVotingThresholds {
+    pub fn motion_no_confidence(&self) -> UnitInterval {
+        self.0.motion_no_confidence.clone().into()
+    }
+
+    pub fn committee_normal(&self) -> UnitInterval {
+        self.0.committee_normal.clone().into()
+    }
+
+    pub fn committee_no_confidence(&self) -> UnitInterval {
+        self.0.committee_no_confidence.clone().into()
+    }
+
+    pub fn hard_fork_initiation(&self) -> UnitInterval {
+        self.0.hard_fork_initiation.clone().into()
+    }
+
+    pub fn new(
+        motion_no_confidence: &UnitInterval,
+        committee_normal: &UnitInterval,
+        committee_no_confidence: &UnitInterval,
+        hard_fork_initiation: &UnitInterval,
+    ) -> Self {
+        Self(cml_chain::PoolVotingThresholds::new(
+            motion_no_confidence.clone().into(),
+            committee_normal.clone().into(),
+            committee_no_confidence.clone().into(),
+            hard_fork_initiation.clone().into(),
+        ))
+    }
+}
+
 pub type Port = u16;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ProposedProtocolParameterUpdates(cml_chain::ProposedProtocolParameterUpdates);
+pub struct ProposalProcedureList(Vec<cml_chain::governance::ProposalProcedure>);
 
 impl_wasm_conversions!(
-    cml_chain::ProposedProtocolParameterUpdates,
-    ProposedProtocolParameterUpdates
+    Vec<cml_chain::governance::ProposalProcedure>,
+    ProposalProcedureList
 );
 
 #[wasm_bindgen]
-impl ProposedProtocolParameterUpdates {
+impl ProposalProcedureList {
     pub fn new() -> Self {
-        Self(OrderedHashMap::new())
+        Self(Vec::new())
     }
 
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
-    pub fn insert(
-        &mut self,
-        key: &GenesisHash,
-        value: &ProtocolParamUpdate,
-    ) -> Option<ProtocolParamUpdate> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
+    pub fn get(&self, index: usize) -> ProposalProcedure {
+        self.0[index].clone().into()
     }
 
-    pub fn get(&self, key: &GenesisHash) -> Option<ProtocolParamUpdate> {
-        self.0.get(key.as_ref()).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> GenesisHashList {
-        GenesisHashList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    pub fn add(&mut self, elem: &ProposalProcedure) {
+        self.0.push(elem.clone().into());
     }
 }
 
@@ -619,17 +946,6 @@ impl ProtocolParamUpdate {
             .map(std::convert::Into::into)
     }
 
-    pub fn set_protocol_version(&mut self, protocol_version: &ProtocolVersionStruct) {
-        self.0.protocol_version = Some(protocol_version.clone().into())
-    }
-
-    pub fn protocol_version(&self) -> Option<ProtocolVersionStruct> {
-        self.0
-            .protocol_version
-            .clone()
-            .map(std::convert::Into::into)
-    }
-
     pub fn set_min_pool_cost(&mut self, min_pool_cost: Coin) {
         self.0.min_pool_cost = Some(min_pool_cost)
     }
@@ -712,29 +1028,81 @@ impl ProtocolParamUpdate {
         self.0.max_collateral_inputs
     }
 
+    pub fn set_pool_voting_thresholds(&mut self, pool_voting_thresholds: &PoolVotingThresholds) {
+        self.0.pool_voting_thresholds = Some(pool_voting_thresholds.clone().into())
+    }
+
+    pub fn pool_voting_thresholds(&self) -> Option<PoolVotingThresholds> {
+        self.0
+            .pool_voting_thresholds
+            .clone()
+            .map(std::convert::Into::into)
+    }
+
+    pub fn set_d_rep_voting_thresholds(&mut self, d_rep_voting_thresholds: &DRepVotingThresholds) {
+        self.0.d_rep_voting_thresholds = Some(d_rep_voting_thresholds.clone().into())
+    }
+
+    pub fn d_rep_voting_thresholds(&self) -> Option<DRepVotingThresholds> {
+        self.0
+            .d_rep_voting_thresholds
+            .clone()
+            .map(std::convert::Into::into)
+    }
+
+    pub fn set_min_committee_size(&mut self, min_committee_size: u64) {
+        self.0.min_committee_size = Some(min_committee_size)
+    }
+
+    pub fn min_committee_size(&self) -> Option<u64> {
+        self.0.min_committee_size
+    }
+
+    pub fn set_committee_term_limit(&mut self, committee_term_limit: u64) {
+        self.0.committee_term_limit = Some(committee_term_limit)
+    }
+
+    pub fn committee_term_limit(&self) -> Option<u64> {
+        self.0.committee_term_limit
+    }
+
+    pub fn set_governance_action_validity_period(
+        &mut self,
+        governance_action_validity_period: Epoch,
+    ) {
+        self.0.governance_action_validity_period = Some(governance_action_validity_period)
+    }
+
+    pub fn governance_action_validity_period(&self) -> Option<Epoch> {
+        self.0.governance_action_validity_period
+    }
+
+    pub fn set_governance_action_deposit(&mut self, governance_action_deposit: Coin) {
+        self.0.governance_action_deposit = Some(governance_action_deposit)
+    }
+
+    pub fn governance_action_deposit(&self) -> Option<Coin> {
+        self.0.governance_action_deposit
+    }
+
+    pub fn set_d_rep_deposit(&mut self, d_rep_deposit: Coin) {
+        self.0.d_rep_deposit = Some(d_rep_deposit)
+    }
+
+    pub fn d_rep_deposit(&self) -> Option<Coin> {
+        self.0.d_rep_deposit
+    }
+
+    pub fn set_d_rep_inactivity_period(&mut self, d_rep_inactivity_period: Epoch) {
+        self.0.d_rep_inactivity_period = Some(d_rep_inactivity_period)
+    }
+
+    pub fn d_rep_inactivity_period(&self) -> Option<Epoch> {
+        self.0.d_rep_inactivity_period
+    }
+
     pub fn new() -> Self {
         Self(cml_chain::ProtocolParamUpdate::new())
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct ProtocolVersionStruct(cml_chain::ProtocolVersionStruct);
-
-impl_wasm_cbor_json_api!(ProtocolVersionStruct);
-
-impl_wasm_conversions!(cml_chain::ProtocolVersionStruct, ProtocolVersionStruct);
-
-#[wasm_bindgen]
-impl ProtocolVersionStruct {
-    pub fn protocol_version(&self) -> ProtocolVersion {
-        self.0.protocol_version.clone().into()
-    }
-
-    pub fn new(protocol_version: &ProtocolVersion) -> Self {
-        Self(cml_chain::ProtocolVersionStruct::new(
-            protocol_version.clone().into(),
-        ))
     }
 }
 
@@ -858,11 +1226,16 @@ impl Script {
         Self(cml_chain::Script::new_plutus_v2(script.clone().into()))
     }
 
+    pub fn new_plutus_v3(script: &PlutusV3Script) -> Self {
+        Self(cml_chain::Script::new_plutus_v3(script.clone().into()))
+    }
+
     pub fn kind(&self) -> ScriptKind {
         match &self.0 {
             cml_chain::Script::Native { .. } => ScriptKind::Native,
             cml_chain::Script::PlutusV1 { .. } => ScriptKind::PlutusV1,
             cml_chain::Script::PlutusV2 { .. } => ScriptKind::PlutusV2,
+            cml_chain::Script::PlutusV3 { .. } => ScriptKind::PlutusV3,
         }
     }
 
@@ -886,6 +1259,13 @@ impl Script {
             _ => None,
         }
     }
+
+    pub fn as_plutus_v3(&self) -> Option<PlutusV3Script> {
+        match &self.0 {
+            cml_chain::Script::PlutusV3 { script, .. } => Some(script.clone().into()),
+            _ => None,
+        }
+    }
 }
 
 #[wasm_bindgen]
@@ -893,6 +1273,7 @@ pub enum ScriptKind {
     Native,
     PlutusV1,
     PlutusV2,
+    PlutusV3,
 }
 
 pub type Slot = u64;
@@ -1063,35 +1444,6 @@ impl UnitInterval {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Update(cml_chain::Update);
-
-impl_wasm_cbor_json_api!(Update);
-
-impl_wasm_conversions!(cml_chain::Update, Update);
-
-#[wasm_bindgen]
-impl Update {
-    pub fn proposed_protocol_parameter_updates(&self) -> ProposedProtocolParameterUpdates {
-        self.0.proposed_protocol_parameter_updates.clone().into()
-    }
-
-    pub fn epoch(&self) -> Epoch {
-        self.0.epoch
-    }
-
-    pub fn new(
-        proposed_protocol_parameter_updates: &ProposedProtocolParameterUpdates,
-        epoch: Epoch,
-    ) -> Self {
-        Self(cml_chain::Update::new(
-            proposed_protocol_parameter_updates.clone().into(),
-            epoch,
-        ))
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
 pub struct VkeywitnessList(Vec<cml_chain::crypto::Vkeywitness>);
 
 impl_wasm_conversions!(Vec<cml_chain::crypto::Vkeywitness>, VkeywitnessList);
@@ -1117,29 +1469,27 @@ impl VkeywitnessList {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Withdrawals(cml_chain::Withdrawals);
+pub struct VoterList(Vec<cml_chain::governance::Voter>);
 
-impl_wasm_conversions!(cml_chain::Withdrawals, Withdrawals);
+impl_wasm_conversions!(Vec<cml_chain::governance::Voter>, VoterList);
 
 #[wasm_bindgen]
-impl Withdrawals {
+impl VoterList {
     pub fn new() -> Self {
-        Self(OrderedHashMap::new())
+        Self(Vec::new())
     }
 
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
-    pub fn insert(&mut self, key: &RewardAccount, value: Coin) -> Option<Coin> {
-        self.0.insert(key.clone().into(), value)
+    pub fn get(&self, index: usize) -> Voter {
+        self.0[index].clone().into()
     }
 
-    pub fn get(&self, key: &RewardAccount) -> Option<Coin> {
-        self.0.get(key.as_ref()).copied()
-    }
-
-    pub fn keys(&self) -> RewardAccountList {
-        RewardAccountList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    pub fn add(&mut self, elem: &Voter) {
+        self.0.push(elem.clone().into());
     }
 }
+
+type Withdrawals = MapRewardAccountToCoin;

@@ -1,19 +1,19 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::{address::RewardAccount, AssetName};
+use crate::{address::RewardAccount, assets::AssetName, Voter};
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use cml_crypto::ScriptHash;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
-pub struct AlonzoTxOutEncoding {
+pub struct AlonzoFormatTxOutEncoding {
     pub len_encoding: LenEncoding,
     pub datum_hash_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct BabbageTxOutEncoding {
+pub struct BabbageFormatTxOutEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
     pub address_key_encoding: Option<cbor_event::Sz>,
@@ -68,11 +68,6 @@ pub struct ScriptPubkeyEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ShelleyTxOutEncoding {
-    pub len_encoding: LenEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
 pub struct TransactionBodyEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
@@ -89,7 +84,6 @@ pub struct TransactionBodyEncoding {
     pub withdrawals_encoding: LenEncoding,
     pub withdrawals_value_encodings: BTreeMap<RewardAccount, Option<cbor_event::Sz>>,
     pub withdrawals_key_encoding: Option<cbor_event::Sz>,
-    pub update_key_encoding: Option<cbor_event::Sz>,
     pub auxiliary_data_hash_encoding: StringEncoding,
     pub auxiliary_data_hash_key_encoding: Option<cbor_event::Sz>,
     pub validity_interval_start_encoding: Option<cbor_event::Sz>,
@@ -106,13 +100,21 @@ pub struct TransactionBodyEncoding {
     pub required_signers_encoding: LenEncoding,
     pub required_signers_elem_encodings: Vec<StringEncoding>,
     pub required_signers_key_encoding: Option<cbor_event::Sz>,
-    pub network_id_encoding: Option<cbor_event::Sz>,
     pub network_id_key_encoding: Option<cbor_event::Sz>,
     pub collateral_return_key_encoding: Option<cbor_event::Sz>,
     pub total_collateral_encoding: Option<cbor_event::Sz>,
     pub total_collateral_key_encoding: Option<cbor_event::Sz>,
     pub reference_inputs_encoding: LenEncoding,
     pub reference_inputs_key_encoding: Option<cbor_event::Sz>,
+    pub voting_procedures_encoding: LenEncoding,
+    pub voting_procedures_value_encodings: BTreeMap<Voter, LenEncoding>,
+    pub voting_procedures_key_encoding: Option<cbor_event::Sz>,
+    pub proposal_procedures_encoding: LenEncoding,
+    pub proposal_procedures_key_encoding: Option<cbor_event::Sz>,
+    pub current_treasury_value_encoding: Option<cbor_event::Sz>,
+    pub current_treasury_value_key_encoding: Option<cbor_event::Sz>,
+    pub donation_encoding: Option<cbor_event::Sz>,
+    pub donation_key_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -145,4 +147,6 @@ pub struct TransactionWitnessSetEncoding {
     pub redeemers_key_encoding: Option<cbor_event::Sz>,
     pub plutus_v2_scripts_encoding: LenEncoding,
     pub plutus_v2_scripts_key_encoding: Option<cbor_event::Sz>,
+    pub plutus_v3_scripts_encoding: LenEncoding,
+    pub plutus_v3_scripts_key_encoding: Option<cbor_event::Sz>,
 }

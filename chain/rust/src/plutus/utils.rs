@@ -1,5 +1,5 @@
 use super::{CostModels, Language, Redeemer};
-use super::{ExUnits, PlutusData, PlutusV1Script, PlutusV2Script};
+use super::{ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script};
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::serialization::*;
@@ -329,6 +329,16 @@ impl CostModels {
                 cost.serialize(&mut serializer, true)?;
             }
         }
+        if let Some(v3_costs) = &self.plutus_v3 {
+            // For PlutusV3 (language id 2), the language view is the following:
+            //   * the value of costmdls map at key 2 is encoded as a definite length list.
+            let v3_key = 2;
+            serializer.write_unsigned_integer(v3_key)?;
+            serializer.write_array(cbor_event::Len::Len(v3_costs.len() as u64))?;
+            for cost in v3_costs {
+                cost.serialize(&mut serializer, true)?;
+            }
+        }
         Ok(serializer.finalize())
     }
 }
@@ -367,6 +377,12 @@ impl PlutusV1Script {
 impl PlutusV2Script {
     pub fn hash(&self) -> ScriptHash {
         hash_script(ScriptHashNamespace::PlutusV2, self.get())
+    }
+}
+
+impl PlutusV3Script {
+    pub fn hash(&self) -> ScriptHash {
+        hash_script(ScriptHashNamespace::PlutusV3, self.get())
     }
 }
 

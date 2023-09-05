@@ -37,6 +37,14 @@ impl CostModels {
         self.0.plutus_v2.clone().map(std::convert::Into::into)
     }
 
+    pub fn set_plutus_v3(&mut self, plutus_v3: &IntList) {
+        self.0.plutus_v3 = Some(plutus_v3.clone().into())
+    }
+
+    pub fn plutus_v3(&self) -> Option<IntList> {
+        self.0.plutus_v3.clone().map(std::convert::Into::into)
+    }
+
     pub fn new() -> Self {
         Self(cml_chain::plutus::CostModels::new())
     }
@@ -207,6 +215,21 @@ impl_wasm_conversions!(cml_chain::plutus::PlutusV2Script, PlutusV2Script);
 
 #[wasm_bindgen]
 impl PlutusV2Script {
+    pub fn get(&self) -> Vec<u8> {
+        self.0.get().clone()
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct PlutusV3Script(cml_chain::plutus::PlutusV3Script);
+
+impl_wasm_cbor_json_api!(PlutusV3Script);
+
+impl_wasm_conversions!(cml_chain::plutus::PlutusV3Script, PlutusV3Script);
+
+#[wasm_bindgen]
+impl PlutusV3Script {
     pub fn get(&self) -> Vec<u8> {
         self.0.get().clone()
     }

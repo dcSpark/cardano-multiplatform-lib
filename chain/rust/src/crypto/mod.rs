@@ -1,6 +1,6 @@
 use crate::byron::AddrAttributes;
 pub use cml_crypto::{
-    AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash, Ed25519Signature,
+    AnchorDataHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash, Ed25519Signature,
     GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash, ScriptDataHash,
     ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
 };

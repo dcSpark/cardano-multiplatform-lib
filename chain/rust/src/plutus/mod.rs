@@ -5,6 +5,8 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
+use self::cbor_encodings::PlutusV3ScriptEncoding;
+
 use super::{Rational, SubCoin};
 use crate::utils::BigInt;
 use cbor_encodings::{
@@ -21,6 +23,7 @@ pub use utils::{ConstrPlutusData, PlutusMap, PlutusScript};
 pub struct CostModels {
     pub plutus_v1: Option<Vec<Int>>,
     pub plutus_v2: Option<Vec<Int>>,
+    pub plutus_v3: Option<Vec<Int>>,
     #[serde(skip)]
     pub encodings: Option<CostModelsEncoding>,
 }
@@ -30,6 +33,7 @@ impl CostModels {
         Self {
             plutus_v1: None,
             plutus_v2: None,
+            plutus_v3: None,
             encodings: None,
         }
     }
@@ -97,6 +101,7 @@ impl ExUnits {
 pub enum Language {
     PlutusV1,
     PlutusV2,
+    PlutusV3,
 }
 
 #[derive(
@@ -233,6 +238,41 @@ impl From<Vec<u8>> for PlutusV2Script {
 
 impl From<PlutusV2Script> for Vec<u8> {
     fn from(wrapper: PlutusV2Script) -> Self {
+        wrapper.inner
+    }
+}
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+)]
+#[derivative(Hash, PartialEq, Eq)]
+pub struct PlutusV3Script {
+    pub inner: Vec<u8>,
+    #[serde(skip)]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
+    pub encodings: Option<PlutusV3ScriptEncoding>,
+}
+
+impl PlutusV3Script {
+    pub fn get(&self) -> &Vec<u8> {
+        &self.inner
+    }
+
+    pub fn new(inner: Vec<u8>) -> Self {
+        Self {
+            inner,
+            encodings: None,
+        }
+    }
+}
+
+impl From<Vec<u8>> for PlutusV3Script {
+    fn from(inner: Vec<u8>) -> Self {
+        PlutusV3Script::new(inner)
+    }
+}
+
+impl From<PlutusV3Script> for Vec<u8> {
+    fn from(wrapper: PlutusV3Script) -> Self {
         wrapper.inner
     }
 }

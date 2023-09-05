@@ -30,6 +30,9 @@ impl Serialize for CostModels {
                     } + match &self.plutus_v2 {
                         Some(_) => 1,
                         None => 0,
+                    } + match &self.plutus_v3 {
+                        Some(_) => 1,
+                        None => 0,
                     },
                     force_canonical,
                 ),
@@ -46,10 +49,13 @@ impl Serialize for CostModels {
                         } + match &self.plutus_v2 {
                             Some(_) => 1,
                             None => 0,
+                        } + match &self.plutus_v3 {
+                            Some(_) => 1,
+                            None => 0,
                         }
             })
             .map(|encs| encs.orig_deser_order.clone())
-            .unwrap_or_else(|| vec![0, 1]);
+            .unwrap_or_else(|| vec![0, 1, 2]);
         for field_index in deser_order {
             match field_index {
                 0 => {
@@ -112,6 +118,36 @@ impl Serialize for CostModels {
                             .end(serializer, force_canonical)?;
                     }
                 }
+                2 => {
+                    if let Some(field) = &self.plutus_v3 {
+                        serializer.write_unsigned_integer_sz(
+                            2u64,
+                            fit_sz(
+                                2u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.plutus_v3_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.plutus_v3_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.plutus_v3_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
+                    }
+                }
                 _ => unreachable!(),
             };
         }
@@ -136,6 +172,9 @@ impl Deserialize for CostModels {
             let mut plutus_v2_encoding = LenEncoding::default();
             let mut plutus_v2_key_encoding = None;
             let mut plutus_v2 = None;
+            let mut plutus_v3_encoding = LenEncoding::default();
+            let mut plutus_v3_key_encoding = None;
+            let mut plutus_v3 = None;
             let mut read = 0;
             while match len {
                 cbor_event::LenSz::Len(n, _) => read < n,
@@ -203,6 +242,36 @@ impl Deserialize for CostModels {
                             plutus_v2_key_encoding = Some(key_enc);
                             orig_deser_order.push(1);
                         }
+                        (2, key_enc) => {
+                            if plutus_v3.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
+                            }
+                            let (tmp_plutus_v3, tmp_plutus_v3_encoding) =
+                                (|| -> Result<_, DeserializeError> {
+                                    read_len.read_elems(1)?;
+                                    let mut plutus_v3_arr = Vec::new();
+                                    let len = raw.array_sz()?;
+                                    let plutus_v3_encoding = len.into();
+                                    while match len {
+                                        cbor_event::LenSz::Len(n, _) => {
+                                            (plutus_v3_arr.len() as u64) < n
+                                        }
+                                        cbor_event::LenSz::Indefinite => true,
+                                    } {
+                                        if raw.cbor_type()? == cbor_event::Type::Special {
+                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                            break;
+                                        }
+                                        plutus_v3_arr.push(Int::deserialize(raw)?);
+                                    }
+                                    Ok((plutus_v3_arr, plutus_v3_encoding))
+                                })()
+                                .map_err(|e| e.annotate("plutus_v3"))?;
+                            plutus_v3 = Some(tmp_plutus_v3);
+                            plutus_v3_encoding = tmp_plutus_v3_encoding;
+                            plutus_v3_key_encoding = Some(key_enc);
+                            orig_deser_order.push(2);
+                        }
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
@@ -231,6 +300,7 @@ impl Deserialize for CostModels {
             Ok(Self {
                 plutus_v1,
                 plutus_v2,
+                plutus_v3,
                 encodings: Some(CostModelsEncoding {
                     len_encoding,
                     orig_deser_order,
@@ -238,6 +308,8 @@ impl Deserialize for CostModels {
                     plutus_v1_encoding,
                     plutus_v2_key_encoding,
                     plutus_v2_encoding,
+                    plutus_v3_key_encoding,
+                    plutus_v3_encoding,
                 }),
             })
         })()
@@ -533,6 +605,35 @@ impl Deserialize for PlutusV2Script {
         Ok(Self {
             inner,
             encodings: Some(PlutusV2ScriptEncoding { inner_encoding }),
+        })
+    }
+}
+
+impl Serialize for PlutusV3Script {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_bytes_sz(
+            &self.inner,
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding.clone())
+                .unwrap_or_default()
+                .to_str_len_sz(self.inner.len() as u64, force_canonical),
+        )
+    }
+}
+
+impl Deserialize for PlutusV3Script {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let (inner, inner_encoding) = raw
+            .bytes_sz()
+            .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
+        Ok(Self {
+            inner,
+            encodings: Some(PlutusV3ScriptEncoding { inner_encoding }),
         })
     }
 }

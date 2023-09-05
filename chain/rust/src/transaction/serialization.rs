@@ -4,7 +4,8 @@
 use super::cbor_encodings::*;
 use super::*;
 use crate::address::RewardAccount;
-use crate::{AssetName, Script};
+use crate::governance::{GovActionId, VotingProcedure, Voter};
+use crate::{assets::AssetName, Script};
 use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
@@ -14,7 +15,7 @@ use cml_crypto::RawBytesEncoding;
 use cml_crypto::ScriptHash;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
-impl Serialize for AlonzoTxOut {
+impl Serialize for AlonzoFormatTxOut {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -25,18 +26,26 @@ impl Serialize for AlonzoTxOut {
                 .as_ref()
                 .map(|encs| encs.len_encoding)
                 .unwrap_or_default()
-                .to_len_sz(3, force_canonical),
+                .to_len_sz(
+                    2 + match &self.datum_hash {
+                        Some(x) => 1,
+                        None => 0,
+                    },
+                    force_canonical,
+                ),
         )?;
         self.address.serialize(serializer, force_canonical)?;
         self.amount.serialize(serializer, force_canonical)?;
-        serializer.write_bytes_sz(
-            self.datum_hash.to_raw_bytes(),
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.datum_hash_encoding.clone())
-                .unwrap_or_default()
-                .to_str_len_sz(self.datum_hash.to_raw_bytes().len() as u64, force_canonical),
-        )?;
+        if let Some(field) = &self.datum_hash {
+            serializer.write_bytes_sz(
+                field.to_raw_bytes(),
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.datum_hash_encoding.clone())
+                    .unwrap_or_default()
+                    .to_str_len_sz(field.to_raw_bytes().len() as u64, force_canonical),
+            )?;
+        }
         self.encodings
             .as_ref()
             .map(|encs| encs.len_encoding)
@@ -45,49 +54,61 @@ impl Serialize for AlonzoTxOut {
     }
 }
 
-impl Deserialize for AlonzoTxOut {
+impl Deserialize for AlonzoFormatTxOut {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array_sz()?;
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(3)?;
-        read_len.finish()?;
+        read_len.read_elems(2)?;
         (|| -> Result<_, DeserializeError> {
             let address =
                 Address::deserialize(raw).map_err(|e: DeserializeError| e.annotate("address"))?;
             let amount =
                 Value::deserialize(raw).map_err(|e: DeserializeError| e.annotate("amount"))?;
-            let (datum_hash, datum_hash_encoding) = raw
-                .bytes_sz()
-                .map_err(Into::<DeserializeError>::into)
-                .and_then(|(bytes, enc)| {
-                    DatumHash::from_raw_bytes(&bytes)
-                        .map(|bytes| (bytes, StringEncoding::from(enc)))
-                        .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
-                })
-                .map_err(|e: DeserializeError| e.annotate("datum_hash"))?;
+            let (datum_hash, datum_hash_encoding) = if raw
+                .cbor_type()
+                .map(|ty| ty == cbor_event::Type::Bytes)
+                .unwrap_or(false)
+            {
+                (|| -> Result<_, DeserializeError> {
+                    read_len.read_elems(1)?;
+                    raw.bytes_sz()
+                        .map_err(Into::<DeserializeError>::into)
+                        .and_then(|(bytes, enc)| {
+                            DatumHash::from_raw_bytes(&bytes)
+                                .map(|bytes| (bytes, StringEncoding::from(enc)))
+                                .map_err(|e| {
+                                    DeserializeFailure::InvalidStructure(Box::new(e)).into()
+                                })
+                        })
+                })()
+                .map_err(|e| e.annotate("datum_hash"))
+                .map(|(datum_hash, datum_hash_encoding)| (Some(datum_hash), datum_hash_encoding))
+            } else {
+                Ok((None, StringEncoding::default()))
+            }?;
             match len {
-                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Len(_, _) => read_len.finish()?,
                 cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
+                    cbor_event::Special::Break => read_len.finish()?,
                     _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                 },
             }
-            Ok(AlonzoTxOut {
+            Ok(AlonzoFormatTxOut {
                 address,
                 amount,
                 datum_hash,
-                encodings: Some(AlonzoTxOutEncoding {
+                encodings: Some(AlonzoFormatTxOutEncoding {
                     len_encoding,
                     datum_hash_encoding,
                 }),
             })
         })()
-        .map_err(|e| e.annotate("AlonzoTxOut"))
+        .map_err(|e| e.annotate("AlonzoFormatTxOut"))
     }
 }
 
-impl Serialize for BabbageTxOut {
+impl Serialize for BabbageFormatTxOut {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -222,7 +243,7 @@ impl Serialize for BabbageTxOut {
     }
 }
 
-impl Deserialize for BabbageTxOut {
+impl Deserialize for BabbageFormatTxOut {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.map_sz()?;
         let len_encoding: LenEncoding = len.into();
@@ -357,7 +378,7 @@ impl Deserialize for BabbageTxOut {
                 amount,
                 datum_option,
                 script_reference,
-                encodings: Some(BabbageTxOutEncoding {
+                encodings: Some(BabbageFormatTxOutEncoding {
                     len_encoding,
                     orig_deser_order,
                     address_key_encoding,
@@ -369,7 +390,7 @@ impl Deserialize for BabbageTxOut {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("BabbageTxOut"))
+        .map_err(|e| e.annotate("BabbageFormatTxOut"))
     }
 }
 
@@ -432,8 +453,9 @@ impl Deserialize for DatumOption {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let _read_len = CBORReadLen::new(len);
+            let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let mut errs = Vec::new();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
@@ -472,10 +494,12 @@ impl Deserialize for DatumOption {
             })(raw)
             {
                 Ok(variant) => return Ok(variant),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("Hash"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
@@ -528,10 +552,12 @@ impl Deserialize for DatumOption {
             })(raw)
             {
                 Ok(variant) => return Ok(variant),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("Datum"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
@@ -542,7 +568,7 @@ impl Deserialize for DatumOption {
             }
             Err(DeserializeError::new(
                 "DatumOption",
-                DeserializeFailure::NoVariantMatched,
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
             ))
         })()
         .map_err(|e| e.annotate("DatumOption"))
@@ -584,41 +610,50 @@ impl Deserialize for NativeScript {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> =
                 ScriptPubkey::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(script_pubkey) => return Ok(Self::ScriptPubkey(script_pubkey)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("ScriptPubkey"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             let deser_variant: Result<_, DeserializeError> =
                 ScriptAll::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(script_all) => return Ok(Self::ScriptAll(script_all)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("ScriptAll"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             let deser_variant: Result<_, DeserializeError> =
                 ScriptAny::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(script_any) => return Ok(Self::ScriptAny(script_any)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("ScriptAny"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             let deser_variant: Result<_, DeserializeError> =
                 ScriptNOfK::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(script_n_of_k) => return Ok(Self::ScriptNOfK(script_n_of_k)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("ScriptNOfK"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             let deser_variant: Result<_, DeserializeError> =
                 ScriptInvalidBefore::deserialize_as_embedded_group(raw, &mut read_len, len);
@@ -626,10 +661,12 @@ impl Deserialize for NativeScript {
                 Ok(script_invalid_before) => {
                     return Ok(Self::ScriptInvalidBefore(script_invalid_before))
                 }
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("ScriptInvalidBefore"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             let deser_variant: Result<_, DeserializeError> =
                 ScriptInvalidHereafter::deserialize_as_embedded_group(raw, &mut read_len, len);
@@ -637,10 +674,12 @@ impl Deserialize for NativeScript {
                 Ok(script_invalid_hereafter) => {
                     return Ok(Self::ScriptInvalidHereafter(script_invalid_hereafter))
                 }
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("ScriptInvalidHereafter"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
@@ -651,7 +690,7 @@ impl Deserialize for NativeScript {
             }
             Err(DeserializeError::new(
                 "NativeScript",
-                DeserializeFailure::NoVariantMatched,
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
             ))
         })()
         .map_err(|e| e.annotate("NativeScript"))
@@ -1382,58 +1421,6 @@ impl DeserializeEmbeddedGroup for ScriptPubkey {
     }
 }
 
-impl Serialize for ShelleyTxOut {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.len_encoding)
-                .unwrap_or_default()
-                .to_len_sz(2, force_canonical),
-        )?;
-        self.address.serialize(serializer, force_canonical)?;
-        self.amount.serialize(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
-    }
-}
-
-impl Deserialize for ShelleyTxOut {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
-        (|| -> Result<_, DeserializeError> {
-            let address =
-                Address::deserialize(raw).map_err(|e: DeserializeError| e.annotate("address"))?;
-            let amount =
-                Value::deserialize(raw).map_err(|e: DeserializeError| e.annotate("amount"))?;
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
-            Ok(ShelleyTxOut {
-                address,
-                amount,
-                encodings: Some(ShelleyTxOutEncoding { len_encoding }),
-            })
-        })()
-        .map_err(|e| e.annotate("ShelleyTxOut"))
-    }
-}
-
 impl Serialize for Transaction {
     fn serialize<'se, W: Write>(
         &self,
@@ -1530,9 +1517,6 @@ impl Serialize for TransactionBody {
                     } + match &self.withdrawals {
                         Some(_) => 1,
                         None => 0,
-                    } + match &self.update {
-                        Some(_) => 1,
-                        None => 0,
                     } + match &self.auxiliary_data_hash {
                         Some(_) => 1,
                         None => 0,
@@ -1563,6 +1547,18 @@ impl Serialize for TransactionBody {
                     } + match &self.reference_inputs {
                         Some(_) => 1,
                         None => 0,
+                    } + match &self.voting_procedures {
+                        Some(_) => 1,
+                        None => 0,
+                    } + match &self.proposal_procedures {
+                        Some(_) => 1,
+                        None => 0,
+                    } + match &self.current_treasury_value {
+                        Some(_) => 1,
+                        None => 0,
+                    } + match &self.donation {
+                        Some(_) => 1,
+                        None => 0,
                     },
                     force_canonical,
                 ),
@@ -1580,9 +1576,6 @@ impl Serialize for TransactionBody {
                             Some(_) => 1,
                             None => 0,
                         } + match &self.withdrawals {
-                            Some(_) => 1,
-                            None => 0,
-                        } + match &self.update {
                             Some(_) => 1,
                             None => 0,
                         } + match &self.auxiliary_data_hash {
@@ -1615,10 +1608,26 @@ impl Serialize for TransactionBody {
                         } + match &self.reference_inputs {
                             Some(_) => 1,
                             None => 0,
+                        } + match &self.voting_procedures {
+                            Some(_) => 1,
+                            None => 0,
+                        } + match &self.proposal_procedures {
+                            Some(_) => 1,
+                            None => 0,
+                        } + match &self.current_treasury_value {
+                            Some(_) => 1,
+                            None => 0,
+                        } + match &self.donation {
+                            Some(_) => 1,
+                            None => 0,
                         }
             })
             .map(|encs| encs.orig_deser_order.clone())
-            .unwrap_or_else(|| vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+            .unwrap_or_else(|| {
+                vec![
+                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+                ]
+            });
         for field_index in deser_order {
             match field_index {
                 0 => {
@@ -1817,22 +1826,6 @@ impl Serialize for TransactionBody {
                     }
                 }
                 6 => {
-                    if let Some(field) = &self.update {
-                        serializer.write_unsigned_integer_sz(
-                            6u64,
-                            fit_sz(
-                                6u64,
-                                self.encodings
-                                    .as_ref()
-                                    .map(|encs| encs.update_key_encoding)
-                                    .unwrap_or_default(),
-                                force_canonical,
-                            ),
-                        )?;
-                        field.serialize(serializer, force_canonical)?;
-                    }
-                }
-                7 => {
                     if let Some(field) = &self.auxiliary_data_hash {
                         serializer.write_unsigned_integer_sz(
                             7u64,
@@ -1855,7 +1848,7 @@ impl Serialize for TransactionBody {
                         )?;
                     }
                 }
-                8 => {
+                7 => {
                     if let Some(field) = &self.validity_interval_start {
                         serializer.write_unsigned_integer_sz(
                             8u64,
@@ -1881,7 +1874,7 @@ impl Serialize for TransactionBody {
                         )?;
                     }
                 }
-                9 => {
+                8 => {
                     if let Some(field) = &self.mint {
                         serializer.write_unsigned_integer_sz(
                             9u64,
@@ -1978,7 +1971,7 @@ impl Serialize for TransactionBody {
                                     serializer.write_negative_integer_sz(
                                         *value as i128,
                                         fit_sz(
-                                            (*value + 1).unsigned_abs(),
+                                            (*value + 1).abs() as u64,
                                             mint_value_value_encoding,
                                             force_canonical,
                                         ),
@@ -1994,7 +1987,7 @@ impl Serialize for TransactionBody {
                             .end(serializer, force_canonical)?;
                     }
                 }
-                10 => {
+                9 => {
                     if let Some(field) = &self.script_data_hash {
                         serializer.write_unsigned_integer_sz(
                             11u64,
@@ -2017,7 +2010,7 @@ impl Serialize for TransactionBody {
                         )?;
                     }
                 }
-                11 => {
+                10 => {
                     if let Some(field) = &self.collateral_inputs {
                         serializer.write_unsigned_integer_sz(
                             13u64,
@@ -2047,7 +2040,7 @@ impl Serialize for TransactionBody {
                             .end(serializer, force_canonical)?;
                     }
                 }
-                12 => {
+                11 => {
                     if let Some(field) = &self.required_signers {
                         serializer.write_unsigned_integer_sz(
                             14u64,
@@ -2089,7 +2082,7 @@ impl Serialize for TransactionBody {
                             .end(serializer, force_canonical)?;
                     }
                 }
-                13 => {
+                12 => {
                     if let Some(field) = &self.network_id {
                         serializer.write_unsigned_integer_sz(
                             15u64,
@@ -2102,20 +2095,10 @@ impl Serialize for TransactionBody {
                                 force_canonical,
                             ),
                         )?;
-                        serializer.write_unsigned_integer_sz(
-                            *field as u64,
-                            fit_sz(
-                                *field as u64,
-                                self.encodings
-                                    .as_ref()
-                                    .map(|encs| encs.network_id_encoding)
-                                    .unwrap_or_default(),
-                                force_canonical,
-                            ),
-                        )?;
+                        field.serialize(serializer, force_canonical)?;
                     }
                 }
-                14 => {
+                13 => {
                     if let Some(field) = &self.collateral_return {
                         serializer.write_unsigned_integer_sz(
                             16u64,
@@ -2131,7 +2114,7 @@ impl Serialize for TransactionBody {
                         field.serialize(serializer, force_canonical)?;
                     }
                 }
-                15 => {
+                14 => {
                     if let Some(field) = &self.total_collateral {
                         serializer.write_unsigned_integer_sz(
                             17u64,
@@ -2157,7 +2140,7 @@ impl Serialize for TransactionBody {
                         )?;
                     }
                 }
-                16 => {
+                15 => {
                     if let Some(field) = &self.reference_inputs {
                         serializer.write_unsigned_integer_sz(
                             18u64,
@@ -2185,6 +2168,168 @@ impl Serialize for TransactionBody {
                             .map(|encs| encs.reference_inputs_encoding)
                             .unwrap_or_default()
                             .end(serializer, force_canonical)?;
+                    }
+                }
+                16 => {
+                    if let Some(field) = &self.voting_procedures {
+                        serializer.write_unsigned_integer_sz(
+                            19u64,
+                            fit_sz(
+                                19u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.voting_procedures_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_map_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.voting_procedures_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        let mut key_order = field
+                            .iter()
+                            .map(|(k, v)| {
+                                let mut buf = cbor_event::se::Serializer::new_vec();
+                                k.serialize(&mut buf, force_canonical)?;
+                                Ok((buf.finalize(), k, v))
+                            })
+                            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
+                        if force_canonical {
+                            key_order.sort_by(
+                                |(lhs_bytes, _, _), (rhs_bytes, _, _)| match lhs_bytes
+                                    .len()
+                                    .cmp(&rhs_bytes.len())
+                                {
+                                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                                    diff_ord => diff_ord,
+                                },
+                            );
+                        }
+                        for (key_bytes, key, value) in key_order {
+                            serializer.write_raw_bytes(&key_bytes)?;
+                            let voting_procedures_value_encoding = self
+                                .encodings
+                                .as_ref()
+                                .and_then(|encs| encs.voting_procedures_value_encodings.get(key))
+                                .cloned()
+                                .unwrap_or_default();
+                            serializer.write_map_sz(
+                                voting_procedures_value_encoding
+                                    .to_len_sz(value.len() as u64, force_canonical),
+                            )?;
+                            let mut key_order = value
+                                .iter()
+                                .map(|(k, v)| {
+                                    let mut buf = cbor_event::se::Serializer::new_vec();
+                                    k.serialize(&mut buf, force_canonical)?;
+                                    Ok((buf.finalize(), k, v))
+                                })
+                                .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
+                            if force_canonical {
+                                key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
+                                    match lhs_bytes.len().cmp(&rhs_bytes.len()) {
+                                        std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                                        diff_ord => diff_ord,
+                                    }
+                                });
+                            }
+                            for (key_bytes, _key, value) in key_order {
+                                serializer.write_raw_bytes(&key_bytes)?;
+                                value.serialize(serializer, force_canonical)?;
+                            }
+                            voting_procedures_value_encoding.end(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.voting_procedures_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
+                    }
+                }
+                17 => {
+                    if let Some(field) = &self.proposal_procedures {
+                        serializer.write_unsigned_integer_sz(
+                            20u64,
+                            fit_sz(
+                                20u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.proposal_procedures_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.proposal_procedures_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.proposal_procedures_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
+                    }
+                }
+                18 => {
+                    if let Some(field) = &self.current_treasury_value {
+                        serializer.write_unsigned_integer_sz(
+                            21u64,
+                            fit_sz(
+                                21u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.current_treasury_value_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_unsigned_integer_sz(
+                            *field,
+                            fit_sz(
+                                *field,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.current_treasury_value_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                    }
+                }
+                19 => {
+                    if let Some(field) = &self.donation {
+                        serializer.write_unsigned_integer_sz(
+                            22u64,
+                            fit_sz(
+                                22u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.donation_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_unsigned_integer_sz(
+                            *field,
+                            fit_sz(
+                                *field,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.donation_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
                     }
                 }
                 _ => unreachable!(),
@@ -2225,8 +2370,6 @@ impl Deserialize for TransactionBody {
             let mut withdrawals_value_encodings = BTreeMap::new();
             let mut withdrawals_key_encoding = None;
             let mut withdrawals = None;
-            let mut update_key_encoding = None;
-            let mut update = None;
             let mut auxiliary_data_hash_encoding = StringEncoding::default();
             let mut auxiliary_data_hash_key_encoding = None;
             let mut auxiliary_data_hash = None;
@@ -2248,7 +2391,6 @@ impl Deserialize for TransactionBody {
             let mut required_signers_elem_encodings = Vec::new();
             let mut required_signers_key_encoding = None;
             let mut required_signers = None;
-            let mut network_id_encoding = None;
             let mut network_id_key_encoding = None;
             let mut network_id = None;
             let mut collateral_return_key_encoding = None;
@@ -2259,6 +2401,19 @@ impl Deserialize for TransactionBody {
             let mut reference_inputs_encoding = LenEncoding::default();
             let mut reference_inputs_key_encoding = None;
             let mut reference_inputs = None;
+            let mut voting_procedures_encoding = LenEncoding::default();
+            let mut voting_procedures_value_encodings = BTreeMap::new();
+            let mut voting_procedures_key_encoding = None;
+            let mut voting_procedures = None;
+            let mut proposal_procedures_encoding = LenEncoding::default();
+            let mut proposal_procedures_key_encoding = None;
+            let mut proposal_procedures = None;
+            let mut current_treasury_value_encoding = None;
+            let mut current_treasury_value_key_encoding = None;
+            let mut current_treasury_value = None;
+            let mut donation_encoding = None;
+            let mut donation_key_encoding = None;
+            let mut donation = None;
             let mut read = 0;
             while match len { cbor_event::LenSz::Len(n, _) => read < n, cbor_event::LenSz::Indefinite => true, } {
                 match raw.cbor_type()? {
@@ -2383,18 +2538,6 @@ impl Deserialize for TransactionBody {
                             withdrawals_key_encoding = Some(key_enc);
                             orig_deser_order.push(5);
                         },
-                        (6, key_enc) =>  {
-                            if update.is_some() {
-                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(6)).into());
-                            }
-                            let tmp_update = (|| -> Result<_, DeserializeError> {
-                                read_len.read_elems(1)?;
-                                Update::deserialize(raw)
-                            })().map_err(|e| e.annotate("update"))?;
-                            update = Some(tmp_update);
-                            update_key_encoding = Some(key_enc);
-                            orig_deser_order.push(6);
-                        },
                         (7, key_enc) =>  {
                             if auxiliary_data_hash.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(7)).into());
@@ -2406,7 +2549,7 @@ impl Deserialize for TransactionBody {
                             auxiliary_data_hash = Some(tmp_auxiliary_data_hash);
                             auxiliary_data_hash_encoding = tmp_auxiliary_data_hash_encoding;
                             auxiliary_data_hash_key_encoding = Some(key_enc);
-                            orig_deser_order.push(7);
+                            orig_deser_order.push(6);
                         },
                         (8, key_enc) =>  {
                             if validity_interval_start.is_some() {
@@ -2419,7 +2562,7 @@ impl Deserialize for TransactionBody {
                             validity_interval_start = Some(tmp_validity_interval_start);
                             validity_interval_start_encoding = tmp_validity_interval_start_encoding;
                             validity_interval_start_key_encoding = Some(key_enc);
-                            orig_deser_order.push(8);
+                            orig_deser_order.push(7);
                         },
                         (9, key_enc) =>  {
                             if mint.is_some() {
@@ -2477,7 +2620,7 @@ impl Deserialize for TransactionBody {
                             mint_key_encodings = tmp_mint_key_encodings;
                             mint_value_encodings = tmp_mint_value_encodings;
                             mint_key_encoding = Some(key_enc);
-                            orig_deser_order.push(9);
+                            orig_deser_order.push(8);
                         },
                         (11, key_enc) =>  {
                             if script_data_hash.is_some() {
@@ -2490,7 +2633,7 @@ impl Deserialize for TransactionBody {
                             script_data_hash = Some(tmp_script_data_hash);
                             script_data_hash_encoding = tmp_script_data_hash_encoding;
                             script_data_hash_key_encoding = Some(key_enc);
-                            orig_deser_order.push(10);
+                            orig_deser_order.push(9);
                         },
                         (13, key_enc) =>  {
                             if collateral_inputs.is_some() {
@@ -2513,7 +2656,7 @@ impl Deserialize for TransactionBody {
                             collateral_inputs = Some(tmp_collateral_inputs);
                             collateral_inputs_encoding = tmp_collateral_inputs_encoding;
                             collateral_inputs_key_encoding = Some(key_enc);
-                            orig_deser_order.push(11);
+                            orig_deser_order.push(10);
                         },
                         (14, key_enc) =>  {
                             if required_signers.is_some() {
@@ -2540,20 +2683,19 @@ impl Deserialize for TransactionBody {
                             required_signers_encoding = tmp_required_signers_encoding;
                             required_signers_elem_encodings = tmp_required_signers_elem_encodings;
                             required_signers_key_encoding = Some(key_enc);
-                            orig_deser_order.push(12);
+                            orig_deser_order.push(11);
                         },
                         (15, key_enc) =>  {
                             if network_id.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(15)).into());
                             }
-                            let (tmp_network_id, tmp_network_id_encoding) = (|| -> Result<_, DeserializeError> {
+                            let tmp_network_id = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x as u32, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                NetworkId::deserialize(raw)
                             })().map_err(|e| e.annotate("network_id"))?;
                             network_id = Some(tmp_network_id);
-                            network_id_encoding = tmp_network_id_encoding;
                             network_id_key_encoding = Some(key_enc);
-                            orig_deser_order.push(13);
+                            orig_deser_order.push(12);
                         },
                         (16, key_enc) =>  {
                             if collateral_return.is_some() {
@@ -2565,7 +2707,7 @@ impl Deserialize for TransactionBody {
                             })().map_err(|e| e.annotate("collateral_return"))?;
                             collateral_return = Some(tmp_collateral_return);
                             collateral_return_key_encoding = Some(key_enc);
-                            orig_deser_order.push(14);
+                            orig_deser_order.push(13);
                         },
                         (17, key_enc) =>  {
                             if total_collateral.is_some() {
@@ -2578,7 +2720,7 @@ impl Deserialize for TransactionBody {
                             total_collateral = Some(tmp_total_collateral);
                             total_collateral_encoding = tmp_total_collateral_encoding;
                             total_collateral_key_encoding = Some(key_enc);
-                            orig_deser_order.push(15);
+                            orig_deser_order.push(14);
                         },
                         (18, key_enc) =>  {
                             if reference_inputs.is_some() {
@@ -2601,7 +2743,100 @@ impl Deserialize for TransactionBody {
                             reference_inputs = Some(tmp_reference_inputs);
                             reference_inputs_encoding = tmp_reference_inputs_encoding;
                             reference_inputs_key_encoding = Some(key_enc);
+                            orig_deser_order.push(15);
+                        },
+                        (19, key_enc) =>  {
+                            if voting_procedures.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(19)).into());
+                            }
+                            let (tmp_voting_procedures, tmp_voting_procedures_encoding, tmp_voting_procedures_value_encodings) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                let mut voting_procedures_table = OrderedHashMap::new();
+                                let voting_procedures_len = raw.map_sz()?;
+                                let voting_procedures_encoding = voting_procedures_len.into();
+                                let mut voting_procedures_value_encodings = BTreeMap::new();
+                                while match voting_procedures_len { cbor_event::LenSz::Len(n, _) => (voting_procedures_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
+                                    if raw.cbor_type()? == cbor_event::Type::Special {
+                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                        break;
+                                    }
+                                    let voting_procedures_key = Voter::deserialize(raw)?;
+                                    let mut voting_procedures_value_table = OrderedHashMap::new();
+                                    let voting_procedures_value_len = raw.map_sz()?;
+                                    let voting_procedures_value_encoding = voting_procedures_value_len.into();
+                                    while match voting_procedures_value_len { cbor_event::LenSz::Len(n, _) => (voting_procedures_value_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
+                                        if raw.cbor_type()? == cbor_event::Type::Special {
+                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                            break;
+                                        }
+                                        let voting_procedures_value_key = GovActionId::deserialize(raw)?;
+                                        let voting_procedures_value_value = VotingProcedure::deserialize(raw)?;
+                                        if voting_procedures_value_table.insert(voting_procedures_value_key.clone(), voting_procedures_value_value).is_some() {
+                                            return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
+                                        }
+                                    }
+                                    let (voting_procedures_value, voting_procedures_value_encoding) = (voting_procedures_value_table, voting_procedures_value_encoding);
+                                    if voting_procedures_table.insert(voting_procedures_key.clone(), voting_procedures_value).is_some() {
+                                        return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
+                                    }
+                                    voting_procedures_value_encodings.insert(voting_procedures_key, voting_procedures_value_encoding);
+                                }
+                                Ok((voting_procedures_table, voting_procedures_encoding, voting_procedures_value_encodings))
+                            })().map_err(|e| e.annotate("voting_procedures"))?;
+                            voting_procedures = Some(tmp_voting_procedures);
+                            voting_procedures_encoding = tmp_voting_procedures_encoding;
+                            voting_procedures_value_encodings = tmp_voting_procedures_value_encodings;
+                            voting_procedures_key_encoding = Some(key_enc);
                             orig_deser_order.push(16);
+                        },
+                        (20, key_enc) =>  {
+                            if proposal_procedures.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(20)).into());
+                            }
+                            let (tmp_proposal_procedures, tmp_proposal_procedures_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                let mut proposal_procedures_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let proposal_procedures_encoding = len.into();
+                                while match len { cbor_event::LenSz::Len(n, _) => (proposal_procedures_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
+                                    if raw.cbor_type()? == cbor_event::Type::Special {
+                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                        break;
+                                    }
+                                    proposal_procedures_arr.push(ProposalProcedure::deserialize(raw)?);
+                                }
+                                Ok((proposal_procedures_arr, proposal_procedures_encoding))
+                            })().map_err(|e| e.annotate("proposal_procedures"))?;
+                            proposal_procedures = Some(tmp_proposal_procedures);
+                            proposal_procedures_encoding = tmp_proposal_procedures_encoding;
+                            proposal_procedures_key_encoding = Some(key_enc);
+                            orig_deser_order.push(17);
+                        },
+                        (21, key_enc) =>  {
+                            if current_treasury_value.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(21)).into());
+                            }
+                            let (tmp_current_treasury_value, tmp_current_treasury_value_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("current_treasury_value"))?;
+                            current_treasury_value = Some(tmp_current_treasury_value);
+                            current_treasury_value_encoding = tmp_current_treasury_value_encoding;
+                            current_treasury_value_key_encoding = Some(key_enc);
+                            orig_deser_order.push(18);
+                        },
+                        (22, key_enc) =>  {
+                            if donation.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(22)).into());
+                            }
+                            let (tmp_donation, tmp_donation_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("donation"))?;
+                            donation = Some(tmp_donation);
+                            donation_encoding = tmp_donation_encoding;
+                            donation_key_encoding = Some(key_enc);
+                            orig_deser_order.push(19);
                         },
                         (unknown_key, _enc) => return Err(DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()),
                     },
@@ -2637,9 +2872,9 @@ impl Deserialize for TransactionBody {
                 ttl,
                 certs,
                 withdrawals,
-                update,
                 auxiliary_data_hash,
                 validity_interval_start,
+                // Manual edit: convert since wrapped in AssetBundle API
                 mint: mint.map(Into::into),
                 script_data_hash,
                 collateral_inputs,
@@ -2648,6 +2883,10 @@ impl Deserialize for TransactionBody {
                 collateral_return,
                 total_collateral,
                 reference_inputs,
+                voting_procedures,
+                proposal_procedures,
+                current_treasury_value,
+                donation,
                 encodings: Some(TransactionBodyEncoding {
                     len_encoding,
                     orig_deser_order,
@@ -2664,7 +2903,6 @@ impl Deserialize for TransactionBody {
                     withdrawals_key_encoding,
                     withdrawals_encoding,
                     withdrawals_value_encodings,
-                    update_key_encoding,
                     auxiliary_data_hash_key_encoding,
                     auxiliary_data_hash_encoding,
                     validity_interval_start_key_encoding,
@@ -2681,12 +2919,20 @@ impl Deserialize for TransactionBody {
                     required_signers_encoding,
                     required_signers_elem_encodings,
                     network_id_key_encoding,
-                    network_id_encoding,
                     collateral_return_key_encoding,
                     total_collateral_key_encoding,
                     total_collateral_encoding,
                     reference_inputs_key_encoding,
                     reference_inputs_encoding,
+                    voting_procedures_key_encoding,
+                    voting_procedures_encoding,
+                    voting_procedures_value_encodings,
+                    proposal_procedures_key_encoding,
+                    proposal_procedures_encoding,
+                    current_treasury_value_key_encoding,
+                    current_treasury_value_encoding,
+                    donation_key_encoding,
+                    donation_encoding,
                 }),
             })
         })().map_err(|e| e.annotate("TransactionBody"))
@@ -2786,14 +3032,11 @@ impl Serialize for TransactionOutput {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
-            TransactionOutput::ShelleyTxOut(shelley_tx_out) => {
-                shelley_tx_out.serialize(serializer, force_canonical)
+            TransactionOutput::AlonzoFormatTxOut(alonzo_format_tx_out) => {
+                alonzo_format_tx_out.serialize(serializer, force_canonical)
             }
-            TransactionOutput::AlonzoTxOut(alonzo_tx_out) => {
-                alonzo_tx_out.serialize(serializer, force_canonical)
-            }
-            TransactionOutput::BabbageTxOut(babbage_tx_out) => {
-                babbage_tx_out.serialize(serializer, force_canonical)
+            TransactionOutput::BabbageFormatTxOut(babbage_format_tx_out) => {
+                babbage_format_tx_out.serialize(serializer, force_canonical)
             }
         }
     }
@@ -2802,35 +3045,18 @@ impl Serialize for TransactionOutput {
 impl Deserialize for TransactionOutput {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
-            let deser_variant: Result<_, DeserializeError> = ShelleyTxOut::deserialize(raw);
-            match deser_variant {
-                Ok(shelley_tx_out) => return Ok(Self::ShelleyTxOut(shelley_tx_out)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            let deser_variant: Result<_, DeserializeError> = AlonzoTxOut::deserialize(raw);
-            match deser_variant {
-                Ok(alonzo_tx_out) => return Ok(Self::AlonzoTxOut(alonzo_tx_out)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            let deser_variant: Result<_, DeserializeError> = BabbageTxOut::deserialize(raw);
-            match deser_variant {
-                Ok(babbage_tx_out) => return Ok(Self::BabbageTxOut(babbage_tx_out)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            Err(DeserializeError::new(
-                "TransactionOutput",
-                DeserializeFailure::NoVariantMatched,
-            ))
+            match raw.cbor_type()? {
+                cbor_event::Type::Array => Ok(TransactionOutput::AlonzoFormatTxOut(
+                    AlonzoFormatTxOut::deserialize(raw)?,
+                )),
+                cbor_event::Type::Map => Ok(TransactionOutput::BabbageFormatTxOut(
+                    BabbageFormatTxOut::deserialize(raw)?,
+                )),
+                _ => Err(DeserializeError::new(
+                    "TransactionOutput",
+                    DeserializeFailure::NoVariantMatched,
+                )),
+            }
         })()
         .map_err(|e| e.annotate("TransactionOutput"))
     }
@@ -2869,6 +3095,9 @@ impl Serialize for TransactionWitnessSet {
                     } + match &self.plutus_v2_scripts {
                         Some(_) => 1,
                         None => 0,
+                    } + match &self.plutus_v3_scripts {
+                        Some(_) => 1,
+                        None => 0,
                     },
                     force_canonical,
                 ),
@@ -2900,10 +3129,13 @@ impl Serialize for TransactionWitnessSet {
                         } + match &self.plutus_v2_scripts {
                             Some(_) => 1,
                             None => 0,
+                        } + match &self.plutus_v3_scripts {
+                            Some(_) => 1,
+                            None => 0,
                         }
             })
             .map(|encs| encs.orig_deser_order.clone())
-            .unwrap_or_else(|| vec![0, 1, 2, 3, 4, 5, 6]);
+            .unwrap_or_else(|| vec![0, 1, 2, 3, 4, 5, 6, 7]);
         for field_index in deser_order {
             match field_index {
                 0 => {
@@ -3116,6 +3348,36 @@ impl Serialize for TransactionWitnessSet {
                             .end(serializer, force_canonical)?;
                     }
                 }
+                7 => {
+                    if let Some(field) = &self.plutus_v3_scripts {
+                        serializer.write_unsigned_integer_sz(
+                            7u64,
+                            fit_sz(
+                                7u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.plutus_v3_scripts_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.plutus_v3_scripts_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.plutus_v3_scripts_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
+                    }
+                }
                 _ => unreachable!(),
             };
         }
@@ -3155,6 +3417,9 @@ impl Deserialize for TransactionWitnessSet {
             let mut plutus_v2_scripts_encoding = LenEncoding::default();
             let mut plutus_v2_scripts_key_encoding = None;
             let mut plutus_v2_scripts = None;
+            let mut plutus_v3_scripts_encoding = LenEncoding::default();
+            let mut plutus_v3_scripts_key_encoding = None;
+            let mut plutus_v3_scripts = None;
             let mut read = 0;
             while match len {
                 cbor_event::LenSz::Len(n, _) => read < n,
@@ -3375,6 +3640,37 @@ impl Deserialize for TransactionWitnessSet {
                             plutus_v2_scripts_key_encoding = Some(key_enc);
                             orig_deser_order.push(6);
                         }
+                        (7, key_enc) => {
+                            if plutus_v3_scripts.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(7)).into());
+                            }
+                            let (tmp_plutus_v3_scripts, tmp_plutus_v3_scripts_encoding) =
+                                (|| -> Result<_, DeserializeError> {
+                                    read_len.read_elems(1)?;
+                                    let mut plutus_v3_scripts_arr = Vec::new();
+                                    let len = raw.array_sz()?;
+                                    let plutus_v3_scripts_encoding = len.into();
+                                    while match len {
+                                        cbor_event::LenSz::Len(n, _) => {
+                                            (plutus_v3_scripts_arr.len() as u64) < n
+                                        }
+                                        cbor_event::LenSz::Indefinite => true,
+                                    } {
+                                        if raw.cbor_type()? == cbor_event::Type::Special {
+                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                            break;
+                                        }
+                                        plutus_v3_scripts_arr
+                                            .push(PlutusV3Script::deserialize(raw)?);
+                                    }
+                                    Ok((plutus_v3_scripts_arr, plutus_v3_scripts_encoding))
+                                })()
+                                .map_err(|e| e.annotate("plutus_v3_scripts"))?;
+                            plutus_v3_scripts = Some(tmp_plutus_v3_scripts);
+                            plutus_v3_scripts_encoding = tmp_plutus_v3_scripts_encoding;
+                            plutus_v3_scripts_key_encoding = Some(key_enc);
+                            orig_deser_order.push(7);
+                        }
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
@@ -3408,6 +3704,7 @@ impl Deserialize for TransactionWitnessSet {
                 plutus_datums,
                 redeemers,
                 plutus_v2_scripts,
+                plutus_v3_scripts,
                 encodings: Some(TransactionWitnessSetEncoding {
                     len_encoding,
                     orig_deser_order,
@@ -3425,6 +3722,8 @@ impl Deserialize for TransactionWitnessSet {
                     redeemers_encoding,
                     plutus_v2_scripts_key_encoding,
                     plutus_v2_scripts_encoding,
+                    plutus_v3_scripts_key_encoding,
+                    plutus_v3_scripts_encoding,
                 }),
             })
         })()

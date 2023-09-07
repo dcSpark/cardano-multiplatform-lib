@@ -18,4 +18,4 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.57"
 thiserror = "1.0.37"
 # for enums
-wasm-bindgen = { version = "=0.2.83", features = ["serde-serialize"] }
+wasm-bindgen = { version = "=0.2.82", features = ["serde-serialize"] }

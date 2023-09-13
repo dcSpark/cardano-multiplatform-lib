@@ -306,7 +306,7 @@ mod tests {
             RequiredWitnessSet,
         },
         plutus::{PlutusScript, PlutusV1Script},
-        transaction::ShelleyTxOut,
+        transaction::AlonzoFormatTxOut,
         Value,
     };
     use cml_crypto::{PublicKey, RawBytesEncoding, TransactionHash};
@@ -341,7 +341,7 @@ mod tests {
 
         let input_result = InputBuilderResult {
             input: TransactionInput::new(TransactionHash::from([1; 32]), 1),
-            utxo_info: ShelleyTxOut::new(address.clone(), Value::zero()).into(),
+            utxo_info: AlonzoFormatTxOut::new(address.clone(), Value::zero()).into(),
             aggregate_witness: None,
             required_wits: RequiredWitnessSet::new(),
         };
@@ -350,7 +350,7 @@ mod tests {
 
         let input_result = InputBuilderResult {
             input: TransactionInput::new(TransactionHash::from([1; 32]), 0),
-            utxo_info: ShelleyTxOut::new(address.clone(), Value::zero()).into(),
+            utxo_info: AlonzoFormatTxOut::new(address.clone(), Value::zero()).into(),
             aggregate_witness: None,
             required_wits: RequiredWitnessSet::new(),
         };
@@ -359,7 +359,7 @@ mod tests {
 
         let input_result = InputBuilderResult {
             input: TransactionInput::new(TransactionHash::from([0; 32]), 0),
-            utxo_info: ShelleyTxOut::new(address, Value::zero()).into(),
+            utxo_info: AlonzoFormatTxOut::new(address, Value::zero()).into(),
             aggregate_witness: Some(data),
             required_wits: RequiredWitnessSet::new(),
         };

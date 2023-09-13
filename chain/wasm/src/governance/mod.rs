@@ -8,7 +8,8 @@ use crate::certs::Url;
 use crate::crypto::{AnchorDataHash, Ed25519KeyHash, ScriptHash, TransactionHash};
 use crate::{
     CommitteeColdCredentialList, MapCommitteeColdCredentialToEpoch,
-    MapGovActionIdToVotingProcedure, MapRewardAccountToCoin, ProtocolParamUpdate, UnitInterval, VoterList,
+    MapGovActionIdToVotingProcedure, MapRewardAccountToCoin, ProtocolParamUpdate, UnitInterval,
+    VoterList,
 };
 pub use cml_chain::governance::Vote;
 use cml_core::ordered_hash_map::OrderedHashMap;
@@ -662,6 +663,10 @@ impl VotingProcedures {
     }
 
     pub fn keys(&self) -> VoterList {
-        self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>().into()
+        self.0
+            .iter()
+            .map(|(k, _v)| k.clone())
+            .collect::<Vec<_>>()
+            .into()
     }
 }

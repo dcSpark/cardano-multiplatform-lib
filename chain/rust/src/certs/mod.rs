@@ -7,24 +7,22 @@ pub mod utils;
 
 use super::{Coin, DeltaCoin, Epoch, Port, UnitInterval};
 use crate::address::RewardAccount;
-use crate::crypto::{
-    Ed25519KeyHash, GenesisDelegateHash, GenesisHash, PoolMetadataHash, ScriptHash, VRFKeyHash,
-};
+use crate::crypto::{Ed25519KeyHash, PoolMetadataHash, ScriptHash, VRFKeyHash};
 use crate::governance::Anchor;
 use cbor_encodings::{
     AuthCommitteeHotCertEncoding, DnsNameEncoding, Ipv4Encoding, Ipv6Encoding,
-    MoveInstantaneousRewardEncoding, MultiHostNameEncoding, PoolMetadataEncoding,
-    PoolParamsEncoding, PoolRegistrationEncoding, PoolRetirementEncoding, RegCertEncoding,
-    RegDrepCertEncoding, ResignCommitteeColdCertEncoding, SingleHostAddrEncoding,
-    SingleHostNameEncoding, StakeDelegationEncoding, StakeDeregistrationEncoding,
-    StakeRegDelegCertEncoding, StakeRegistrationEncoding, StakeVoteDelegCertEncoding,
-    StakeVoteRegDelegCertEncoding, UnregCertEncoding, UnregDrepCertEncoding,
-    UpdateDrepCertEncoding, UrlEncoding, VoteDelegCertEncoding, VoteRegDelegCertEncoding,
+    MultiHostNameEncoding, PoolMetadataEncoding, PoolParamsEncoding, PoolRegistrationEncoding,
+    PoolRetirementEncoding, RegCertEncoding, RegDrepCertEncoding, ResignCommitteeColdCertEncoding,
+    SingleHostAddrEncoding, SingleHostNameEncoding, StakeDelegationEncoding,
+    StakeDeregistrationEncoding, StakeRegDelegCertEncoding, StakeRegistrationEncoding,
+    StakeVoteDelegCertEncoding, StakeVoteRegDelegCertEncoding, UnregCertEncoding,
+    UnregDrepCertEncoding, UpdateDrepCertEncoding, UrlEncoding, VoteDelegCertEncoding,
+    VoteRegDelegCertEncoding,
 };
 use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
+
 use std::convert::TryFrom;
 
 #[allow(clippy::large_enum_variant)]
@@ -469,74 +467,6 @@ impl TryFrom<Vec<u8>> for Ipv6 {
 impl From<Ipv6> for Vec<u8> {
     fn from(wrapper: Ipv6) -> Self {
         wrapper.inner
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub enum MIRAction {
-    ToStakeCredentials {
-        to_stake_credentials: OrderedHashMap<StakeCredential, DeltaCoin>,
-        #[serde(skip)]
-        to_stake_credentials_encoding: LenEncoding,
-    },
-    ToOtherPot {
-        to_other_pot: Coin,
-        #[serde(skip)]
-        to_other_pot_encoding: Option<cbor_event::Sz>,
-    },
-}
-
-impl MIRAction {
-    pub fn new_to_stake_credentials(
-        to_stake_credentials: OrderedHashMap<StakeCredential, DeltaCoin>,
-    ) -> Self {
-        Self::ToStakeCredentials {
-            to_stake_credentials,
-            to_stake_credentials_encoding: LenEncoding::default(),
-        }
-    }
-
-    pub fn new_to_other_pot(to_other_pot: Coin) -> Self {
-        Self::ToOtherPot {
-            to_other_pot,
-            to_other_pot_encoding: None,
-        }
-    }
-}
-
-#[derive(
-    Copy,
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-    Clone,
-    Debug,
-    serde::Deserialize,
-    serde::Serialize,
-    schemars::JsonSchema,
-)]
-#[wasm_bindgen::prelude::wasm_bindgen]
-pub enum MIRPot {
-    Reserve,
-    Treasury,
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct MoveInstantaneousReward {
-    pub pot: MIRPot,
-    pub action: MIRAction,
-    #[serde(skip)]
-    pub encodings: Option<MoveInstantaneousRewardEncoding>,
-}
-
-impl MoveInstantaneousReward {
-    pub fn new(pot: MIRPot, action: MIRAction) -> Self {
-        Self {
-            pot,
-            action,
-            encodings: None,
-        }
     }
 }
 

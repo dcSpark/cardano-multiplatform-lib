@@ -37,13 +37,6 @@ shelley_header_body = [
   protocol_version,
 ]
 
-shelley_operational_cert =
-  ( hot_vkey        : $kes_vkey
-  , sequence_number : uint
-  , kes_period      : uint
-  , sigma           : $signature
-  )
-
 shelley_certificate = stake_registration
   / stake_deregistration
   / stake_delegation
@@ -52,6 +45,7 @@ shelley_certificate = stake_registration
   / genesis_key_delegation
   / shelley_move_instantaneous_rewards_cert
 
+genesis_key_delegation = (tag: 5, genesis_hash, genesis_delegate_hash, VRF_key_hash)
 shelley_move_instantaneous_rewards_cert = [tag: 6, shelley_move_instantaneous_reward]
 
 shelley_transaction_body = {
@@ -80,6 +74,9 @@ shelley_update = [ shelley_proposed_protocol_parameter_updates
 
 shelley_proposed_protocol_parameter_updates =
   { * genesis_hash => shelley_protocol_param_update }
+
+; TODO: fix cddl-codegen to avoid this. it doesn't like when you do foo: [basic_group] in a map struct
+protocol_version_struct = [protocol_version]
 
 shelley_protocol_param_update = {
   ? 0:  uint,               ; @name minfee_a

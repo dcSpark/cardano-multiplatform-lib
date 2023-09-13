@@ -9,3 +9,5 @@ operational_cert =
   , kes_period      : uint
   , sigma           : ed25519_signature
   )
+
+header = _CDDL_CODEGEN_EXTERN_TYPE_

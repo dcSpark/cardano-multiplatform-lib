@@ -7,7 +7,7 @@ use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_chain::address::RewardAccount;
-use cml_chain::AssetName;
+use cml_chain::assets::AssetName;
 use cml_chain::PolicyId;
 use cml_core::error::*;
 use cml_core::serialization::*;
@@ -35,33 +35,41 @@ impl Deserialize for AlonzoAuxiliaryData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
-            let deser_variant: Result<_, DeserializeError> = ShelleyAuxData::deserialize(raw);
+            let mut errs = Vec::new();
+            let deser_variant: Result<_, DeserializeError> = ShelleyFormatAuxData::deserialize(raw);
             match deser_variant {
                 Ok(shelley) => return Ok(Self::Shelley(shelley)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("Shelley"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
-            let deser_variant: Result<_, DeserializeError> = ShelleyMaAuxData::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                ShelleyMaFormatAuxData::deserialize(raw);
             match deser_variant {
                 Ok(shelley_m_a) => return Ok(Self::ShelleyMA(shelley_m_a)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("ShelleyMA"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
-            let deser_variant: Result<_, DeserializeError> = AlonzoOnlyAuxData::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> = AlonzoFormatAuxData::deserialize(raw);
             match deser_variant {
                 Ok(alonzo) => return Ok(Self::Alonzo(alonzo)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("Alonzo"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             Err(DeserializeError::new(
                 "AlonzoAuxiliaryData",
-                DeserializeFailure::NoVariantMatched,
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
             ))
         })()
         .map_err(|e| e.annotate("AlonzoAuxiliaryData"))
@@ -437,7 +445,7 @@ impl Deserialize for AlonzoCostmdls {
     }
 }
 
-impl Serialize for AlonzoOnlyAuxData {
+impl Serialize for AlonzoFormatAuxData {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -581,12 +589,12 @@ impl Serialize for AlonzoOnlyAuxData {
     }
 }
 
-impl Deserialize for AlonzoOnlyAuxData {
+impl Deserialize for AlonzoFormatAuxData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let (tag, tag_encoding) = raw.tag_sz()?;
         if tag != 259 {
             return Err(DeserializeError::new(
-                "AlonzoOnlyAuxData",
+                "AlonzoFormatAuxData",
                 DeserializeFailure::TagMismatch {
                     found: tag,
                     expected: 259,
@@ -716,7 +724,7 @@ impl Deserialize for AlonzoOnlyAuxData {
                 metadata,
                 native_scripts,
                 plutus_v1_scripts,
-                encodings: Some(AlonzoOnlyAuxDataEncoding {
+                encodings: Some(AlonzoFormatAuxDataEncoding {
                     tag_encoding: Some(tag_encoding),
                     len_encoding,
                     orig_deser_order,
@@ -728,7 +736,7 @@ impl Deserialize for AlonzoOnlyAuxData {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("AlonzoOnlyAuxData"))
+        .map_err(|e| e.annotate("AlonzoFormatAuxData"))
     }
 }
 
@@ -2639,17 +2647,7 @@ impl Serialize for AlonzoTransactionBody {
                                 force_canonical,
                             ),
                         )?;
-                        serializer.write_unsigned_integer_sz(
-                            *field as u64,
-                            fit_sz(
-                                *field as u64,
-                                self.encodings
-                                    .as_ref()
-                                    .map(|encs| encs.network_id_encoding)
-                                    .unwrap_or_default(),
-                                force_canonical,
-                            ),
-                        )?;
+                        field.serialize(serializer, force_canonical)?;
                     }
                 }
                 _ => unreachable!(),
@@ -2713,7 +2711,6 @@ impl Deserialize for AlonzoTransactionBody {
             let mut required_signers_elem_encodings = Vec::new();
             let mut required_signers_key_encoding = None;
             let mut required_signers = None;
-            let mut network_id_encoding = None;
             let mut network_id_key_encoding = None;
             let mut network_id = None;
             let mut read = 0;
@@ -2755,7 +2752,7 @@ impl Deserialize for AlonzoTransactionBody {
                                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                                         break;
                                     }
-                                    outputs_arr.push(AlonzoTransactionOutput::deserialize(raw)?);
+                                    outputs_arr.push(AlonzoFormatTxOut::deserialize(raw)?);
                                 }
                                 Ok((outputs_arr, outputs_encoding))
                             })().map_err(|e| e.annotate("outputs"))?;
@@ -2801,7 +2798,7 @@ impl Deserialize for AlonzoTransactionBody {
                                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                                         break;
                                     }
-                                    certs_arr.push(Certificate::deserialize(raw)?);
+                                    certs_arr.push(AllegraCertificate::deserialize(raw)?);
                                 }
                                 Ok((certs_arr, certs_encoding))
                             })().map_err(|e| e.annotate("certs"))?;
@@ -3003,12 +3000,11 @@ impl Deserialize for AlonzoTransactionBody {
                             if network_id.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(15)).into());
                             }
-                            let (tmp_network_id, tmp_network_id_encoding) = (|| -> Result<_, DeserializeError> {
+                            let tmp_network_id = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x as u32, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                NetworkId::deserialize(raw)
                             })().map_err(|e| e.annotate("network_id"))?;
                             network_id = Some(tmp_network_id);
-                            network_id_encoding = tmp_network_id_encoding;
                             network_id_key_encoding = Some(key_enc);
                             orig_deser_order.push(13);
                         },
@@ -3087,56 +3083,9 @@ impl Deserialize for AlonzoTransactionBody {
                     required_signers_encoding,
                     required_signers_elem_encodings,
                     network_id_key_encoding,
-                    network_id_encoding,
                 }),
             })
         })().map_err(|e| e.annotate("AlonzoTransactionBody"))
-    }
-}
-
-impl Serialize for AlonzoTransactionOutput {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        match self {
-            AlonzoTransactionOutput::ShelleyTxOut(shelley_tx_out) => {
-                shelley_tx_out.serialize(serializer, force_canonical)
-            }
-            AlonzoTransactionOutput::AlonzoTxOut(alonzo_tx_out) => {
-                alonzo_tx_out.serialize(serializer, force_canonical)
-            }
-        }
-    }
-}
-
-impl Deserialize for AlonzoTransactionOutput {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
-            let deser_variant: Result<_, DeserializeError> = ShelleyTxOut::deserialize(raw);
-            match deser_variant {
-                Ok(shelley_tx_out) => return Ok(Self::ShelleyTxOut(shelley_tx_out)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            let deser_variant: Result<_, DeserializeError> = AlonzoTxOut::deserialize(raw);
-            match deser_variant {
-                Ok(alonzo_tx_out) => return Ok(Self::AlonzoTxOut(alonzo_tx_out)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            Err(DeserializeError::new(
-                "AlonzoTransactionOutput",
-                DeserializeFailure::NoVariantMatched,
-            ))
-        })()
-        .map_err(|e| e.annotate("AlonzoTransactionOutput"))
     }
 }
 

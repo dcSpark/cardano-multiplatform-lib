@@ -25,24 +25,25 @@ pub mod transaction;
 pub mod utils;
 
 use address::RewardAccount;
-use assets::{AssetName, MultiAsset};
 pub use assets::Value;
+use assets::{AssetName, MultiAsset};
 use auxdata::{AuxiliaryData, TransactionMetadatum};
 use block::ProtocolVersion;
 use certs::{Certificate, Relay, StakeCredential};
+use cml_chain::assets::{NonZeroInt64, PositiveCoin};
 pub use cml_chain::{assets::Coin, Epoch};
-use cml_chain::assets::{PositiveCoin, NonZeroInt64};
-pub use utils::NetworkId;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_crypto_wasm::{Ed25519KeyHash, GenesisHash, ScriptHash};
+use cml_crypto_wasm::{Ed25519KeyHash, ScriptHash};
 use crypto::{BootstrapWitness, Vkeywitness};
+use governance::{GovActionId, Voter};
 use plutus::{
-    CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script, Redeemer,
+    CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script,
+    Redeemer,
 };
 use transaction::{
     NativeScript, TransactionBody, TransactionInput, TransactionOutput, TransactionWitnessSet,
 };
-use governance::{Voter, GovActionId};
+pub use utils::NetworkId;
 
 use crate::certs::CommitteeColdCredential;
 use crate::governance::{ProposalProcedure, VotingProcedure};
@@ -607,7 +608,11 @@ impl MapTransactionMetadatumToTransactionMetadatum {
     }
 
     pub fn keys(&self) -> TransactionMetadatumList {
-        self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>().into()
+        self.0
+            .iter()
+            .map(|(k, _v)| k.clone())
+            .collect::<Vec<_>>()
+            .into()
     }
 }
 
@@ -1492,4 +1497,4 @@ impl VoterList {
     }
 }
 
-type Withdrawals = MapRewardAccountToCoin;
+pub type Withdrawals = MapRewardAccountToCoin;

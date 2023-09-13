@@ -54,3 +54,15 @@ pub struct AllegraTransactionWitnessSetEncoding {
     pub bootstrap_witnesses_encoding: LenEncoding,
     pub bootstrap_witnesses_key_encoding: Option<cbor_event::Sz>,
 }
+
+#[derive(Clone, Debug, Default)]
+pub struct MoveInstantaneousRewardEncoding {
+    pub len_encoding: LenEncoding,
+    pub pot_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct MoveInstantaneousRewardsCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+}

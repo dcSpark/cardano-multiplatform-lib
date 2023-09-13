@@ -9,7 +9,7 @@ use crate::{
     transaction::RequiredSigners,
 };
 
-use cml_crypto::{Ed25519KeyHash, RawBytesEncoding, ScriptHash};
+use cml_crypto::{Ed25519KeyHash, ScriptHash};
 
 #[derive(Debug, thiserror::Error)]
 pub enum CertBuilderError {
@@ -51,13 +51,18 @@ pub fn cert_required_wits(cert: &Certificate, required_witnesses: &mut RequiredW
         Certificate::PoolRetirement(cert) => {
             required_witnesses.add_vkey_key_hash(cert.ed25519_key_hash.clone());
         }
-        Certificate::GenesisKeyDelegation(cert) => {
-            required_witnesses.add_vkey_key_hash(
-                Ed25519KeyHash::from_raw_bytes(cert.genesis_delegate_hash.to_raw_bytes()).unwrap(),
-            );
-        }
-        // no witness as there is no single core node or genesis key that posts the certificate
-        Certificate::MoveInstantaneousRewardsCert(_cert) => {}
+        Certificate::RegCert(_cert) => todo!(),
+        Certificate::UnregCert(_cert) => todo!(),
+        Certificate::VoteDelegCert(_cert) => todo!(),
+        Certificate::StakeVoteDelegCert(_cert) => todo!(),
+        Certificate::StakeRegDelegCert(_cert) => todo!(),
+        Certificate::VoteRegDelegCert(_cert) => todo!(),
+        Certificate::StakeVoteRegDelegCert(_cert) => todo!(),
+        Certificate::AuthCommitteeHotCert(_cert) => todo!(),
+        Certificate::ResignCommitteeColdCert(_cert) => todo!(),
+        Certificate::RegDrepCert(_cert) => todo!(),
+        Certificate::UnregDrepCert(_cert) => todo!(),
+        Certificate::UpdateDrepCert(_cert) => todo!(),
     };
 }
 
@@ -94,13 +99,18 @@ pub fn add_cert_vkeys(
         Certificate::PoolRetirement(cert) => {
             vkeys.insert(cert.ed25519_key_hash.clone());
         }
-        Certificate::GenesisKeyDelegation(cert) => {
-            vkeys.insert(
-                Ed25519KeyHash::from_raw_bytes(cert.genesis_delegate_hash.to_raw_bytes()).unwrap(),
-            );
-        }
-        // no witness as there is no single core node or genesis key that posts the certificate
-        Certificate::MoveInstantaneousRewardsCert(_cert) => {}
+        Certificate::RegCert(_cert) => todo!(),
+        Certificate::UnregCert(_cert) => todo!(),
+        Certificate::VoteDelegCert(_cert) => todo!(),
+        Certificate::StakeVoteDelegCert(_cert) => todo!(),
+        Certificate::StakeRegDelegCert(_cert) => todo!(),
+        Certificate::VoteRegDelegCert(_cert) => todo!(),
+        Certificate::StakeVoteRegDelegCert(_cert) => todo!(),
+        Certificate::AuthCommitteeHotCert(_cert) => todo!(),
+        Certificate::ResignCommitteeColdCert(_cert) => todo!(),
+        Certificate::RegDrepCert(_cert) => todo!(),
+        Certificate::UnregDrepCert(_cert) => todo!(),
+        Certificate::UpdateDrepCert(_cert) => todo!(),
     };
     Ok(())
 }

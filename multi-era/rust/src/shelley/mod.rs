@@ -15,22 +15,48 @@ use cml_chain::assets::Coin;
 use cml_chain::auxdata::Metadata;
 use cml_chain::block::{OperationalCert, ProtocolVersion};
 use cml_chain::certs::{
-    GenesisKeyDelegation, MIRPot, PoolRegistration, PoolRetirement, StakeCredential,
-    StakeDelegation, StakeDeregistration, StakeRegistration,
+    PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration,
+    StakeRegistration,
 };
 use cml_chain::crypto::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, BootstrapWitness, Ed25519KeyHash,
     GenesisHash, KESSignature, Nonce, VRFCert, VRFVkey, Vkey, Vkeywitness,
 };
 use cml_chain::transaction::TransactionInput;
-use cml_chain::ProtocolVersionStruct;
 use cml_chain::{Epoch, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_crypto::{GenesisDelegateHash, VRFKeyHash};
 use std::collections::BTreeMap;
 
+use crate::allegra::MIRPot;
+
 use self::cbor_encodings::{
+    GenesisKeyDelegationEncoding, ProtocolVersionStructEncoding,
     ShelleyMoveInstantaneousRewardEncoding, ShelleyMoveInstantaneousRewardsCertEncoding,
 };
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct GenesisKeyDelegation {
+    pub genesis_hash: GenesisHash,
+    pub genesis_delegate_hash: GenesisDelegateHash,
+    pub v_r_f_key_hash: VRFKeyHash,
+    #[serde(skip)]
+    pub encodings: Option<GenesisKeyDelegationEncoding>,
+}
+
+impl GenesisKeyDelegation {
+    pub fn new(
+        genesis_hash: GenesisHash,
+        genesis_delegate_hash: GenesisDelegateHash,
+        v_r_f_key_hash: VRFKeyHash,
+    ) -> Self {
+        Self {
+            genesis_hash,
+            genesis_delegate_hash,
+            v_r_f_key_hash,
+            encodings: None,
+        }
+    }
+}
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct MultisigAll {
@@ -121,6 +147,22 @@ impl MultisigScript {
 
     pub fn new_multisig_n_of_k(n: u64, multisig_scripts: Vec<MultisigScript>) -> Self {
         Self::MultisigNOfK(MultisigNOfK::new(n, multisig_scripts))
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct ProtocolVersionStruct {
+    pub protocol_version: ProtocolVersion,
+    #[serde(skip)]
+    pub encodings: Option<ProtocolVersionStructEncoding>,
+}
+
+impl ProtocolVersionStruct {
+    pub fn new(protocol_version: ProtocolVersion) -> Self {
+        Self {
+            protocol_version,
+            encodings: None,
+        }
     }
 }
 

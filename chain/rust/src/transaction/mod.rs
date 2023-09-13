@@ -7,7 +7,7 @@ pub mod utils;
 
 use super::{NetworkId, Slot, Value, Withdrawals};
 use crate::address::Address;
-use crate::assets::{PositiveCoin, Coin, Mint};
+use crate::assets::{Coin, Mint, PositiveCoin};
 use crate::auxdata::AuxiliaryData;
 use crate::certs::Certificate;
 use crate::crypto::{
@@ -15,13 +15,13 @@ use crate::crypto::{
     TransactionHash, Vkeywitness,
 };
 use crate::governance::{ProposalProcedure, VotingProcedures};
-use crate::plutus::{PlutusData, PlutusV1Script, PlutusV2Script, Redeemer, PlutusV3Script};
+use crate::plutus::{PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script, Redeemer};
 use crate::Script;
 use cbor_encodings::{
     AlonzoFormatTxOutEncoding, BabbageFormatTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
     ScriptInvalidBeforeEncoding, ScriptInvalidHereafterEncoding, ScriptNOfKEncoding,
-    ScriptPubkeyEncoding, TransactionBodyEncoding, TransactionEncoding,
-    TransactionInputEncoding, TransactionWitnessSetEncoding,
+    ScriptPubkeyEncoding, TransactionBodyEncoding, TransactionEncoding, TransactionInputEncoding,
+    TransactionWitnessSetEncoding,
 };
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};

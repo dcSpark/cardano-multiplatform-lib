@@ -2,9 +2,9 @@
 // https://github.com/dcSpark/cddl-codegen
 
 pub use cml_crypto_wasm::{
-    AnchorDataHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash, Ed25519Signature,
-    GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash, ScriptDataHash,
-    ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
+    AnchorDataHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash,
+    Ed25519Signature, GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash,
+    ScriptDataHash, ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
 };
 
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};

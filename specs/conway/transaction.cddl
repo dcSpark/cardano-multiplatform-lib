@@ -1,0 +1,154 @@
+
+
+transaction =
+  [ body: transaction_body
+  , witness_set: transaction_witness_set
+  , is_valid: bool
+  , auxiliary_data / null
+  ]
+
+transaction_body = {
+     0 : [* transaction_input],  ; @name inputs
+     1 : [* transaction_output], ; @name outputs
+     2 : coin,                   ; @name fee
+   ? 3 : uint,                   ; @name ttl
+   ? 4 : [* certificate],        ; @name certs
+   ? 5 : withdrawals,            ; @name withdrawals
+   ? 7 : auxiliary_data_hash,    ; @name auxiliary_data_hash
+   ? 8 : uint,                   ; @name validity_interval_start
+   ? 9 : mint,                   ; @name mint
+  ? 11 : script_data_hash,       ; @name script_data_hash
+  ? 13 : [* transaction_input],  ; @name collateral_inputs
+  ? 14 : required_signers,       ; @name required_signers
+  ? 15 : network_id,             ; @name network_id
+  ? 16 : transaction_output,     ; @name collateral_return
+  ? 17 : coin,                   ; @name total_collateral
+  ? 18 : [* transaction_input],  ; @name reference_inputs
+  ? 19 : voting_procedures,      ; @name voting_procedures
+  ? 20 : [* proposal_procedure], ; @name proposal_procedures
+  ? 21 : coin,                   ; @name current_treasury_value
+  ? 22 : positive_coin,          ; @name donation
+}
+
+required_signers = [* ed25519_key_hash]
+
+transaction_input = [ transaction_id : transaction_hash
+                    , index : uint
+                    ]
+
+alonzo_format_tx_out = [
+  address,
+  amount : value,
+  ? datum_hash
+]
+babbage_format_tx_out = {
+    0 : address,      ; @name address
+    1 : value,        ; @name amount
+  ? 2 : datum_option, ; @name datum_option
+  ? 3 : script_ref,   ; @name script_reference
+}
+
+transaction_output = alonzo_format_tx_out / babbage_format_tx_out
+
+
+; This is a hash of data which may affect evaluation of a script.
+; This data consists of:
+;   - The redeemers from the transaction_witness_set (the value of field 5).
+;   - The datums from the transaction_witness_set (the value of field 4).
+;   - The value in the costmdls map corresponding to the script's language
+;     (in field 18 of protocol_param_update.)
+; (In the future it may contain additional protocol parameters.)
+;
+; Since this data does not exist in contiguous form inside a transaction, it needs
+; to be independently constructed by each recipient.
+;
+; script data format:
+; [ redeemers | datums | language views ]
+; The redeemers are exactly the data present in the transaction witness set.
+; Similarly for the datums, if present. If no datums are provided, the middle
+; field is an empty string.
+;
+; language views CDDL:
+; { * language => script_integrity_data }
+;
+; This must be encoded canonically, using the same scheme as in
+; RFC7049 section 3.9:
+;  - Maps, strings, and bytestrings must use a definite-length encoding
+;  - Integers must be as small as possible.
+;  - The expressions for map length, string length, and bytestring length
+;    must be as short as possible.
+;  - The keys in the map must be sorted as follows:
+;     -  If two keys have different lengths, the shorter one sorts earlier.
+;     -  If two keys have the same length, the one with the lower value
+;        in (byte-wise) lexical order sorts earlier.
+;
+; For PlutusV1 (language id 0), the language view is the following:
+;   - the value of costmdls map at key 0 is encoded as an indefinite length
+;     list and the result is encoded as a bytestring. (our apologies)
+;   - the language ID tag is also encoded twice. first as a uint then as
+;     a bytestring. (our apologies)
+; For PlutusV2 (language id 1), the language view is the following:
+;   - the value of costmdls map at key 1 is encoded as an definite length list.
+;
+; Note that each Plutus language represented inside a transaction must have
+; a cost model in the costmdls protocol parameter in order to execute,
+; regardless of what the script integrity data is.
+;
+; Finally, note that in the case that a transaction includes datums but does not
+; include any redeemers, the script data format becomes (in hex):
+; [ 80 | datums | A0 ]
+; corresponding to a CBOR empty list and an empty map.
+
+; data = #6.24(bytes .cbor plutus_data)
+
+datum_option = [
+  ; @name hash
+  tag: 0, datum_hash //
+  ; @name datum
+  tag: 1, datum: #6.24(bytes .cbor plutus_data)
+]
+
+script_ref = #6.24(bytes .cbor script)
+
+script = [
+  ; @name native
+  tag: 0, script: native_script //
+  ; @name plutus_v1
+  tag: 1, script: plutus_v1_script //
+  ; @name plutus_v2
+  tag: 2, script: plutus_v2_script //
+  ; @name plutus_v3
+  tag: 3, script: plutus_v3_script
+]
+
+
+transaction_witness_set = {
+  ? 0: [* vkeywitness ],       ; @name vkeywitnesses
+  ? 1: [* native_script ],     ; @name native_scripts
+  ? 2: [* bootstrap_witness ], ; @name bootstrap_witnesses
+  ? 3: [* plutus_v1_script ],  ; @name plutus_v1_scripts
+  ? 4: [* plutus_data ],       ; @name plutus_datums
+  ? 5: [* redeemer ],          ; @name redeemers
+  ? 6: [* plutus_v2_script ],  ; @name plutus_v2_scripts
+  ? 7: [* plutus_v3_script ],  ; @name plutus_v3_scripts
+}
+
+native_script =
+  [ script_pubkey
+  // script_all
+  // script_any
+  // script_n_of_k
+  // script_invalid_before
+     ; Timelock validity intervals are half-open intervals [a, b).
+     ; This field specifies the left (included) endpoint a.
+  // script_invalid_hereafter
+     ; Timelock validity intervals are half-open intervals [a, b).
+     ; This field specifies the right (excluded) endpoint b.
+  ]
+
+script_pubkey = (tag: 0, ed25519_key_hash)
+script_all = (tag: 1, [ * native_script ])
+script_any = (tag: 2, [ * native_script ])
+script_n_of_k = (tag: 3, n: uint, [ * native_script ])
+script_invalid_before = (tag: 4, before: slot)
+script_invalid_hereafter = (tag: 5, after: slot)

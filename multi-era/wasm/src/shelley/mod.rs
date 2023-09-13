@@ -2,33 +2,65 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use crate::{
-    MapStakeCredentialToCoin, MultisigScriptList, ShelleyTransactionBodyList,
-    ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
+    GenesisHashList, MapStakeCredentialToCoin, MultisigScriptList, ShelleyCertificateList,
+    ShelleyTransactionBodyList, ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
 };
 use cml_chain_wasm::address::Address;
 use cml_chain_wasm::assets::Coin;
 use cml_chain_wasm::auxdata::Metadata;
 use cml_chain_wasm::block::{OperationalCert, ProtocolVersion};
 use cml_chain_wasm::certs::{
-    GenesisKeyDelegation, MIRPot, PoolRegistration, PoolRetirement, StakeDelegation,
-    StakeDeregistration, StakeRegistration,
+    PoolRegistration, PoolRetirement, StakeDelegation, StakeDeregistration, StakeRegistration,
 };
 use cml_chain_wasm::crypto::{KESSignature, Nonce, VRFCert, Vkey};
 use cml_chain_wasm::{BootstrapWitnessList, TransactionInputList, VkeywitnessList};
 use cml_chain_wasm::{Epoch, Rational, UnitInterval, Withdrawals};
-use cml_chain_wasm::{GenesisHashList, ProtocolVersionStruct};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list};
 use cml_crypto_wasm::{
-    AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, Ed25519KeyHash, GenesisHash, VRFVkey,
+    AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, Ed25519KeyHash, GenesisDelegateHash,
+    GenesisHash, VRFKeyHash, VRFVkey,
 };
+use cml_multi_era::allegra::MIRPot;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
-impl_wasm_list!(
-    cml_multi_era::shelley::ShelleyCertificate,
-    ShelleyCertificate,
-    ShelleyCertificateList
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct GenesisKeyDelegation(cml_multi_era::shelley::GenesisKeyDelegation);
+
+impl_wasm_cbor_json_api!(GenesisKeyDelegation);
+
+impl_wasm_conversions!(
+    cml_multi_era::shelley::GenesisKeyDelegation,
+    GenesisKeyDelegation
 );
+
+#[wasm_bindgen]
+impl GenesisKeyDelegation {
+    pub fn genesis_hash(&self) -> GenesisHash {
+        self.0.genesis_hash.clone().into()
+    }
+
+    pub fn genesis_delegate_hash(&self) -> GenesisDelegateHash {
+        self.0.genesis_delegate_hash.clone().into()
+    }
+
+    pub fn v_r_f_key_hash(&self) -> VRFKeyHash {
+        self.0.v_r_f_key_hash.clone().into()
+    }
+
+    pub fn new(
+        genesis_hash: &GenesisHash,
+        genesis_delegate_hash: &GenesisDelegateHash,
+        v_r_f_key_hash: &VRFKeyHash,
+    ) -> Self {
+        Self(cml_multi_era::shelley::GenesisKeyDelegation::new(
+            genesis_hash.clone().into(),
+            genesis_delegate_hash.clone().into(),
+            v_r_f_key_hash.clone().into(),
+        ))
+    }
+}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -214,6 +246,30 @@ pub enum MultisigScriptKind {
     MultisigAll,
     MultisigAny,
     MultisigNOfK,
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct ProtocolVersionStruct(cml_multi_era::shelley::ProtocolVersionStruct);
+
+impl_wasm_cbor_json_api!(ProtocolVersionStruct);
+
+impl_wasm_conversions!(
+    cml_multi_era::shelley::ProtocolVersionStruct,
+    ProtocolVersionStruct
+);
+
+#[wasm_bindgen]
+impl ProtocolVersionStruct {
+    pub fn protocol_version(&self) -> ProtocolVersion {
+        self.0.protocol_version.clone().into()
+    }
+
+    pub fn new(protocol_version: &ProtocolVersion) -> Self {
+        Self(cml_multi_era::shelley::ProtocolVersionStruct::new(
+            protocol_version.clone().into(),
+        ))
+    }
 }
 
 #[derive(Clone, Debug)]

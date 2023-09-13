@@ -10,6 +10,18 @@ allegra_block = [
    ; 2) every transaction_index must be strictly smaller than the
    ;    length of transaction_bodies
 
+MIR_pot = 0 ; @name reserve
+        / 1 ; @name treasury
+
+MIR_action = { * stake_credential => delta_coin } ; @name to_stake_credentials
+           / coin                                 ; @name to_other_pot
+
+move_instantaneous_reward = [
+  pot: MIR_pot,
+  action: MIR_action,
+]
+move_instantaneous_rewards_cert = (tag: 6, move_instantaneous_reward)
+
 allegra_certificate =
   [ stake_registration
   // stake_deregistration
@@ -37,7 +49,9 @@ allegra_transaction_witness_set = {
 
 
 
-allegra_auxiliary_data = shelley_aux_data / shelley_ma_aux_data
+allegra_auxiliary_data =
+    shelley_format_aux_data ; @name shelley
+  / shelley_ma_format_aux_data ; @name shelley_m_a
 
 ; allegra differences
 allegra_transaction_body = {

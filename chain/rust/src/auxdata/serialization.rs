@@ -42,7 +42,8 @@ impl Deserialize for AuxiliaryData {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = ShelleyMaAuxData::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                ShelleyMaFormatAuxData::deserialize(raw);
             match deser_variant {
                 Ok(shelley_m_a) => return Ok(Self::ShelleyMA(shelley_m_a)),
                 Err(e) => {
@@ -52,7 +53,7 @@ impl Deserialize for AuxiliaryData {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = ConwayAuxData::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> = ConwayFormatAuxData::deserialize(raw);
             match deser_variant {
                 Ok(conway) => return Ok(Self::Conway(conway)),
                 Err(e) => {
@@ -71,7 +72,7 @@ impl Deserialize for AuxiliaryData {
     }
 }
 
-impl Serialize for ConwayAuxData {
+impl Serialize for ConwayFormatAuxData {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -287,12 +288,12 @@ impl Serialize for ConwayAuxData {
     }
 }
 
-impl Deserialize for ConwayAuxData {
+impl Deserialize for ConwayFormatAuxData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let (tag, tag_encoding) = raw.tag_sz()?;
         if tag != 259 {
             return Err(DeserializeError::new(
-                "ConwayAuxData",
+                "ConwayFormatAuxData",
                 DeserializeFailure::TagMismatch {
                     found: tag,
                     expected: 259,
@@ -492,7 +493,7 @@ impl Deserialize for ConwayAuxData {
                 plutus_v1_scripts,
                 plutus_v2_scripts,
                 plutus_v3_scripts,
-                encodings: Some(ConwayAuxDataEncoding {
+                encodings: Some(ConwayFormatAuxDataEncoding {
                     tag_encoding: Some(tag_encoding),
                     len_encoding,
                     orig_deser_order,
@@ -508,11 +509,11 @@ impl Deserialize for ConwayAuxData {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("ConwayAuxData"))
+        .map_err(|e| e.annotate("ConwayFormatAuxData"))
     }
 }
 
-impl Serialize for ShelleyMaAuxData {
+impl Serialize for ShelleyMaFormatAuxData {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -550,7 +551,7 @@ impl Serialize for ShelleyMaAuxData {
     }
 }
 
-impl Deserialize for ShelleyMaAuxData {
+impl Deserialize for ShelleyMaFormatAuxData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array_sz()?;
         let len_encoding: LenEncoding = len.into();
@@ -585,15 +586,15 @@ impl Deserialize for ShelleyMaAuxData {
                     _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                 },
             }
-            Ok(ShelleyMaAuxData {
+            Ok(ShelleyMaFormatAuxData {
                 transaction_metadata,
                 auxiliary_scripts,
-                encodings: Some(ShelleyMaAuxDataEncoding {
+                encodings: Some(ShelleyMaFormatAuxDataEncoding {
                     len_encoding,
                     auxiliary_scripts_encoding,
                 }),
             })
         })()
-        .map_err(|e| e.annotate("ShelleyMaAuxData"))
+        .map_err(|e| e.annotate("ShelleyMaFormatAuxData"))
     }
 }

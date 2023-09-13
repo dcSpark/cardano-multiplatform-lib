@@ -534,11 +534,7 @@ impl Serialize for NetworkId {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_unsigned_integer_sz(
             self.network,
-            fit_sz(
-                self.network,
-                self.encoding,
-                force_canonical,
-            ),
+            fit_sz(self.network, self.encoding, force_canonical),
         )
     }
 }
@@ -546,10 +542,7 @@ impl Serialize for NetworkId {
 impl Deserialize for NetworkId {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let (network, encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
-        Ok(Self {
-            network,
-            encoding,
-        })
+        Ok(Self { network, encoding })
     }
 }
 

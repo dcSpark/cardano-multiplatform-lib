@@ -7,7 +7,7 @@ use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_chain::address::RewardAccount;
-use cml_chain::AssetName;
+use cml_chain::assets::AssetName;
 use cml_chain::PolicyId;
 use cml_core::error::*;
 use cml_core::serialization::*;
@@ -788,7 +788,7 @@ impl Deserialize for MaryTransactionBody {
                                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                                         break;
                                     }
-                                    outputs_arr.push(ShelleyTxOut::deserialize(raw)?);
+                                    outputs_arr.push(MaryTransactionOutput::deserialize(raw)?);
                                 }
                                 Ok((outputs_arr, outputs_encoding))
                             })().map_err(|e| e.annotate("outputs"))?;
@@ -834,7 +834,7 @@ impl Deserialize for MaryTransactionBody {
                                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                                         break;
                                     }
-                                    certs_arr.push(Certificate::deserialize(raw)?);
+                                    certs_arr.push(AllegraCertificate::deserialize(raw)?);
                                 }
                                 Ok((certs_arr, certs_encoding))
                             })().map_err(|e| e.annotate("certs"))?;
@@ -1035,5 +1035,57 @@ impl Deserialize for MaryTransactionBody {
                 }),
             })
         })().map_err(|e| e.annotate("MaryTransactionBody"))
+    }
+}
+
+impl Serialize for MaryTransactionOutput {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(2, force_canonical),
+        )?;
+        self.address.serialize(serializer, force_canonical)?;
+        self.amount.serialize(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for MaryTransactionOutput {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let len_encoding: LenEncoding = len.into();
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(2)?;
+        read_len.finish()?;
+        (|| -> Result<_, DeserializeError> {
+            let address =
+                Address::deserialize(raw).map_err(|e: DeserializeError| e.annotate("address"))?;
+            let amount =
+                Value::deserialize(raw).map_err(|e: DeserializeError| e.annotate("amount"))?;
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            Ok(MaryTransactionOutput {
+                address,
+                amount,
+                encodings: Some(MaryTransactionOutputEncoding { len_encoding }),
+            })
+        })()
+        .map_err(|e| e.annotate("MaryTransactionOutput"))
     }
 }

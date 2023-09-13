@@ -6,44 +6,42 @@ pub mod serialization;
 
 use cml_core::Int;
 
-use crate::shelley::ShelleyHeader;
+use crate::allegra::AllegraCertificate;
+use crate::shelley::{ProtocolVersionStruct, ShelleyHeader};
 use cbor_encodings::{
-    AlonzoBlockEncoding, AlonzoCostmdlsEncoding, AlonzoOnlyAuxDataEncoding,
+    AlonzoBlockEncoding, AlonzoCostmdlsEncoding, AlonzoFormatAuxDataEncoding,
     AlonzoProtocolParamUpdateEncoding, AlonzoTransactionBodyEncoding, AlonzoTransactionEncoding,
     AlonzoTransactionWitnessSetEncoding, AlonzoUpdateEncoding,
 };
 use cml_chain::assets::{Coin, Mint};
-use cml_chain::auxdata::{Metadata, ShelleyAuxData, ShelleyMaAuxData};
-use cml_chain::certs::Certificate;
+use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMaFormatAuxData};
 use cml_chain::crypto::{
     AuxiliaryDataHash, BootstrapWitness, GenesisHash, Nonce, ScriptDataHash, Vkeywitness,
 };
 use cml_chain::plutus::{ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, Redeemer};
-use cml_chain::transaction::{
-    AlonzoTxOut, NativeScript, RequiredSigners, ShelleyTxOut, TransactionInput,
-};
+use cml_chain::transaction::{AlonzoFormatTxOut, NativeScript, RequiredSigners, TransactionInput};
+use cml_chain::TransactionIndex;
 use cml_chain::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
-use cml_chain::{ProtocolVersionStruct, TransactionIndex};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AlonzoAuxiliaryData {
-    Shelley(ShelleyAuxData),
-    ShelleyMA(ShelleyMaAuxData),
-    Alonzo(AlonzoOnlyAuxData),
+    Shelley(ShelleyFormatAuxData),
+    ShelleyMA(ShelleyMaFormatAuxData),
+    Alonzo(AlonzoFormatAuxData),
 }
 
 impl AlonzoAuxiliaryData {
-    pub fn new_shelley(shelley: ShelleyAuxData) -> Self {
+    pub fn new_shelley(shelley: ShelleyFormatAuxData) -> Self {
         Self::Shelley(shelley)
     }
 
-    pub fn new_shelley_m_a(shelley_m_a: ShelleyMaAuxData) -> Self {
+    pub fn new_shelley_m_a(shelley_m_a: ShelleyMaFormatAuxData) -> Self {
         Self::ShelleyMA(shelley_m_a)
     }
 
-    pub fn new_alonzo(alonzo: AlonzoOnlyAuxData) -> Self {
+    pub fn new_alonzo(alonzo: AlonzoFormatAuxData) -> Self {
         Self::Alonzo(alonzo)
     }
 }
@@ -95,15 +93,15 @@ impl AlonzoCostmdls {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct AlonzoOnlyAuxData {
+pub struct AlonzoFormatAuxData {
     pub metadata: Option<Metadata>,
     pub native_scripts: Option<Vec<NativeScript>>,
     pub plutus_v1_scripts: Option<Vec<PlutusV1Script>>,
     #[serde(skip)]
-    pub encodings: Option<AlonzoOnlyAuxDataEncoding>,
+    pub encodings: Option<AlonzoFormatAuxDataEncoding>,
 }
 
-impl AlonzoOnlyAuxData {
+impl AlonzoFormatAuxData {
     pub fn new() -> Self {
         Self {
             metadata: None,
@@ -114,7 +112,7 @@ impl AlonzoOnlyAuxData {
     }
 }
 
-impl Default for AlonzoOnlyAuxData {
+impl Default for AlonzoFormatAuxData {
     fn default() -> Self {
         Self::new()
     }
@@ -221,10 +219,10 @@ impl AlonzoTransaction {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AlonzoTransactionBody {
     pub inputs: Vec<TransactionInput>,
-    pub outputs: Vec<AlonzoTransactionOutput>,
+    pub outputs: Vec<AlonzoFormatTxOut>,
     pub fee: Coin,
     pub ttl: Option<u64>,
-    pub certs: Option<Vec<Certificate>>,
+    pub certs: Option<Vec<AllegraCertificate>>,
     pub withdrawals: Option<Withdrawals>,
     pub update: Option<AlonzoUpdate>,
     pub auxiliary_data_hash: Option<AuxiliaryDataHash>,
@@ -239,11 +237,7 @@ pub struct AlonzoTransactionBody {
 }
 
 impl AlonzoTransactionBody {
-    pub fn new(
-        inputs: Vec<TransactionInput>,
-        outputs: Vec<AlonzoTransactionOutput>,
-        fee: Coin,
-    ) -> Self {
+    pub fn new(inputs: Vec<TransactionInput>, outputs: Vec<AlonzoFormatTxOut>, fee: Coin) -> Self {
         Self {
             inputs,
             outputs,
@@ -261,22 +255,6 @@ impl AlonzoTransactionBody {
             network_id: None,
             encodings: None,
         }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub enum AlonzoTransactionOutput {
-    ShelleyTxOut(ShelleyTxOut),
-    AlonzoTxOut(AlonzoTxOut),
-}
-
-impl AlonzoTransactionOutput {
-    pub fn new_shelley_tx_out(shelley_tx_out: ShelleyTxOut) -> Self {
-        Self::ShelleyTxOut(shelley_tx_out)
-    }
-
-    pub fn new_alonzo_tx_out(alonzo_tx_out: AlonzoTxOut) -> Self {
-        Self::AlonzoTxOut(alonzo_tx_out)
     }
 }
 

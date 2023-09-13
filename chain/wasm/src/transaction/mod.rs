@@ -1,21 +1,21 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::{
-    BootstrapWitnessList, CertificateList, NativeScriptList, NetworkId, PlutusDataList,
-    PlutusV1ScriptList, PlutusV2ScriptList, RedeemerList, Slot, TransactionInputList,
-    TransactionOutputList, VkeywitnessList, Withdrawals, PlutusV3ScriptList, ProposalProcedureList,
-};
 use crate::address::Address;
 use crate::assets::{Coin, Mint, PositiveCoin, Value};
 use crate::auxdata::AuxiliaryData;
+use crate::governance::VotingProcedures;
 use crate::plutus::PlutusData;
 use crate::Script;
+use crate::{
+    BootstrapWitnessList, CertificateList, NativeScriptList, NetworkId, PlutusDataList,
+    PlutusV1ScriptList, PlutusV2ScriptList, PlutusV3ScriptList, ProposalProcedureList,
+    RedeemerList, Slot, TransactionInputList, TransactionOutputList, VkeywitnessList, Withdrawals,
+};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
 };
-use crate::governance::VotingProcedures;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 pub mod utils;

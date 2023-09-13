@@ -5,6 +5,7 @@
 )]
 pub mod allegra;
 pub mod alonzo;
+pub mod babbage;
 pub mod byron;
 pub mod mary;
 pub mod shelley;
@@ -13,27 +14,38 @@ pub mod shelley;
 
 use crate::{
     allegra::{
-        AllegraAuxiliaryData, AllegraBlock, AllegraTransactionBody, AllegraTransactionWitnessSet,
+        AllegraAuxiliaryData, AllegraBlock, AllegraCertificate, AllegraTransactionBody,
+        AllegraTransactionWitnessSet,
     },
     alonzo::{
-        AlonzoAuxiliaryData, AlonzoBlock, AlonzoTransactionBody, AlonzoTransactionOutput,
-        AlonzoTransactionWitnessSet,
+        AlonzoAuxiliaryData, AlonzoBlock, AlonzoTransactionBody, AlonzoTransactionWitnessSet,
+    },
+    babbage::{
+        BabbageAuxiliaryData, BabbageBlock, BabbageTransactionBody, BabbageTransactionOutput,
+        BabbageTransactionWitnessSet,
     },
     byron::block::ByronBlock,
-    mary::{MaryBlock, MaryTransactionBody},
+    mary::{MaryBlock, MaryTransactionBody, MaryTransactionOutput},
     shelley::{
-        MultisigScript, ShelleyBlock, ShelleyTransactionBody, ShelleyTransactionOutput,
-        ShelleyTransactionWitnessSet,
+        MultisigScript, ShelleyBlock, ShelleyCertificate, ShelleyTransactionBody,
+        ShelleyTransactionOutput, ShelleyTransactionWitnessSet,
     },
 };
 use cml_chain_wasm::{
-    block::Block, certs::StakeCredential, transaction::ShelleyTxOut, Coin, StakeCredentialList,
-    TransactionIndex,
+    block::Block, certs::StakeCredential, transaction::AlonzoFormatTxOut, Coin,
+    StakeCredentialList, TransactionIndex,
 };
 use cml_core_wasm::{
     impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list, impl_wasm_map,
 };
+use cml_crypto_wasm::GenesisHash;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+
+impl_wasm_list!(
+    cml_multi_era::allegra::AllegraCertificate,
+    AllegraCertificate,
+    AllegraCertificateList
+);
 
 impl_wasm_list!(
     cml_multi_era::allegra::AllegraTransactionBody,
@@ -60,10 +72,30 @@ impl_wasm_list!(
 );
 
 impl_wasm_list!(
-    cml_multi_era::alonzo::AlonzoTransactionOutput,
-    AlonzoTransactionOutput,
-    AlonzoTransactionOutputList
+    cml_chain::transaction::AlonzoFormatTxOut,
+    AlonzoFormatTxOut,
+    AlonzoFormatTxOutList
 );
+
+impl_wasm_list!(
+    cml_multi_era::babbage::BabbageTransactionBody,
+    BabbageTransactionBody,
+    BabbageTransactionBodyList
+);
+
+impl_wasm_list!(
+    cml_multi_era::babbage::BabbageTransactionOutput,
+    BabbageTransactionOutput,
+    BabbageTransactionOutputList
+);
+
+impl_wasm_list!(
+    cml_multi_era::babbage::BabbageTransactionWitnessSet,
+    BabbageTransactionWitnessSet,
+    BabbageTransactionWitnessSetList
+);
+
+impl_wasm_list!(cml_crypto::GenesisHash, GenesisHash, GenesisHashList);
 
 impl_wasm_map!(
     cml_chain::certs::StakeCredential,
@@ -102,6 +134,25 @@ impl_wasm_map!(
     false,
     true,
     false
+);
+
+impl_wasm_map!(
+    cml_chain::TransactionIndex,
+    cml_multi_era::babbage::BabbageAuxiliaryData,
+    TransactionIndex,
+    BabbageAuxiliaryData,
+    Vec<TransactionIndex>,
+    MapTransactionIndexToBabbageAuxiliaryData,
+    true,
+    false,
+    true,
+    false
+);
+
+impl_wasm_list!(
+    cml_multi_era::mary::MaryTransactionOutput,
+    MaryTransactionOutput,
+    MaryTransactionOutputList
 );
 
 impl_wasm_list!(
@@ -154,9 +205,15 @@ impl MultiEraBlock {
         ))
     }
 
-    pub fn new_babbage(babbage: &Block) -> Self {
+    pub fn new_babbage(babbage: &BabbageBlock) -> Self {
         Self(cml_multi_era::MultiEraBlock::new_babbage(
             babbage.clone().into(),
+        ))
+    }
+
+    pub fn new_conway(conway: &Block) -> Self {
+        Self(cml_multi_era::MultiEraBlock::new_conway(
+            conway.clone().into(),
         ))
     }
 
@@ -168,6 +225,7 @@ impl MultiEraBlock {
             cml_multi_era::MultiEraBlock::Mary(_) => MultiEraBlockKind::Mary,
             cml_multi_era::MultiEraBlock::Alonzo(_) => MultiEraBlockKind::Alonzo,
             cml_multi_era::MultiEraBlock::Babbage(_) => MultiEraBlockKind::Babbage,
+            cml_multi_era::MultiEraBlock::Conway(_) => MultiEraBlockKind::Conway,
         }
     }
 
@@ -206,9 +264,16 @@ impl MultiEraBlock {
         }
     }
 
-    pub fn as_babbage(&self) -> Option<Block> {
+    pub fn as_babbage(&self) -> Option<BabbageBlock> {
         match &self.0 {
             cml_multi_era::MultiEraBlock::Babbage(babbage) => Some(babbage.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_conway(&self) -> Option<Block> {
+        match &self.0 {
+            cml_multi_era::MultiEraBlock::Conway(conway) => Some(conway.clone().into()),
             _ => None,
         }
     }
@@ -222,7 +287,14 @@ pub enum MultiEraBlockKind {
     Mary,
     Alonzo,
     Babbage,
+    Conway,
 }
+
+impl_wasm_list!(
+    cml_multi_era::shelley::ShelleyCertificate,
+    ShelleyCertificate,
+    ShelleyCertificateList
+);
 
 impl_wasm_list!(
     cml_multi_era::shelley::ShelleyTransactionBody,
@@ -240,10 +312,4 @@ impl_wasm_list!(
     cml_multi_era::shelley::ShelleyTransactionWitnessSet,
     ShelleyTransactionWitnessSet,
     ShelleyTransactionWitnessSetList
-);
-
-impl_wasm_list!(
-    cml_chain::transaction::ShelleyTxOut,
-    ShelleyTxOut,
-    ShelleyTxOutList
 );

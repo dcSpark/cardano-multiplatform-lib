@@ -1,0 +1,112 @@
+certificate =
+  [ stake_registration
+  // stake_deregistration
+  // stake_delegation
+  // pool_registration
+  // pool_retirement
+  // reg_cert
+  // unreg_cert
+  // vote_deleg_cert
+  // stake_vote_deleg_cert
+  // stake_reg_deleg_cert
+  // vote_reg_deleg_cert
+  // stake_vote_reg_deleg_cert
+  // auth_committee_hot_cert
+  // resign_committee_cold_cert
+  // reg_drep_cert
+  // unreg_drep_cert
+  // update_drep_cert
+  ]
+
+stake_registration = (tag: 0, stake_credential)
+stake_deregistration = (tag: 1, stake_credential)
+stake_delegation = (tag: 2, stake_credential, ed25519_key_hash)
+
+; POOL
+pool_registration = (tag: 3, pool_params)
+pool_retirement = (tag: 4, ed25519_key_hash, epoch)
+
+; these two are now deprecated in Conway:
+; genesis_key_delegation = (tag: 5, genesis_hash, genesis_delegate_hash, VRF_key_hash)
+; move_instantaneous_rewards_cert = (tag: 6, move_instantaneous_reward)
+
+; DELEG
+reg_cert = (tag: 7, stake_credential, coin)
+unreg_cert = (tag: 8, stake_credential, coin)
+vote_deleg_cert = (tag: 9, stake_credential, d_rep)
+stake_vote_deleg_cert = (tag: 10, stake_credential, ed25519_key_hash, d_rep)
+stake_reg_deleg_cert = (tag: 11, stake_credential, ed25519_key_hash, coin)
+vote_reg_deleg_cert = (tag: 12, stake_credential, d_rep, coin)
+stake_vote_reg_deleg_cert = (tag: 13, stake_credential, ed25519_key_hash, d_rep, coin)
+
+; GOVCERT
+auth_committee_hot_cert = (14, committee_cold_credential, committee_hot_credential)
+resign_committee_cold_cert = (15, committee_cold_credential)
+reg_drep_cert = (16, drep_credential, coin, anchor / null)
+unreg_drep_cert = (17, drep_credential, coin)
+update_drep_cert = (18, drep_credential, anchor / null)
+
+d_rep = [
+  ; @name key
+  0, ed25519_key_hash //
+  ; @name script
+  1, script_hash //
+  ; @name always_abstain
+  2 //
+  ; @name always_no_confidence
+  3
+]
+
+stake_credential = credential
+drep_credential = credential
+committee_cold_credential = credential
+committee_hot_credential = credential
+
+; The first field determines where the funds are drawn from.
+; 0 denotes the reserves, 1 denotes the treasury.
+; If the second field is a map, funds are moved to stake credentials,
+; otherwise the funds are given to the other accounting pot.
+
+pool_params = ( operator:       ed25519_key_hash
+              , vrf_keyhash:    VRF_key_hash
+              , pledge:         coin
+              , cost:           coin
+              , margin:         unit_interval
+              , reward_account: reward_account
+              , pool_owners:    [* ed25519_key_hash]
+              , relays:         [* relay]
+              , pool_metadata:  pool_metadata / null
+              )
+
+ipv4 = bytes .size 4
+ipv6 = bytes .size 16
+dns_name = tstr .size (0..64)
+
+single_host_addr = ( tag: 0
+                   , port / null
+                   , ipv4 / null
+                   , ipv6 / null
+                   )
+single_host_name = ( tag: 1
+                   , port / null
+                   , dns_name ; An A or AAAA DNS record
+                   )
+multi_host_name = ( tag: 2
+                   , dns_name ; A SRV DNS record
+                   )
+relay =
+  [  single_host_addr
+  // single_host_name
+  // multi_host_name
+  ]
+
+pool_metadata = [url, pool_metadata_hash]
+url = tstr .size (0..64)
+
+
+credential = [
+  ; @name PubKey
+  tag: 0, hash: ed25519_key_hash //
+  ; @name Script
+  tag: 1, hash: script_hash
+  ]

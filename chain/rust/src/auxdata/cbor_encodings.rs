@@ -4,7 +4,7 @@
 use cml_core::serialization::LenEncoding;
 
 #[derive(Clone, Debug, Default)]
-pub struct ConwayAuxDataEncoding {
+pub struct ConwayFormatAuxDataEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
     pub orig_deser_order: Vec<usize>,
@@ -20,7 +20,7 @@ pub struct ConwayAuxDataEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ShelleyMaAuxDataEncoding {
+pub struct ShelleyMaFormatAuxDataEncoding {
     pub len_encoding: LenEncoding,
     pub auxiliary_scripts_encoding: LenEncoding,
 }

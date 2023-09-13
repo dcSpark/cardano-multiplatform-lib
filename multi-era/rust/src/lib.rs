@@ -3,6 +3,7 @@
 extern crate derivative;
 pub mod allegra;
 pub mod alonzo;
+pub mod babbage;
 pub mod byron;
 pub mod mary;
 pub mod serialization;
@@ -11,8 +12,8 @@ pub mod shelley;
 // https://github.com/dcSpark/cddl-codegen
 
 use crate::{
-    allegra::AllegraBlock, alonzo::AlonzoBlock, byron::block::ByronBlock, mary::MaryBlock,
-    shelley::ShelleyBlock,
+    allegra::AllegraBlock, alonzo::AlonzoBlock, babbage::BabbageBlock, byron::block::ByronBlock,
+    mary::MaryBlock, shelley::ShelleyBlock,
 };
 use cml_chain::address::RewardAccount;
 use cml_chain::block::Block;
@@ -29,7 +30,8 @@ pub enum MultiEraBlock {
     Allegra(AllegraBlock),
     Mary(MaryBlock),
     Alonzo(AlonzoBlock),
-    Babbage(Block),
+    Babbage(BabbageBlock),
+    Conway(Block),
 }
 
 impl MultiEraBlock {
@@ -53,7 +55,11 @@ impl MultiEraBlock {
         Self::Alonzo(alonzo)
     }
 
-    pub fn new_babbage(babbage: Block) -> Self {
+    pub fn new_babbage(babbage: BabbageBlock) -> Self {
         Self::Babbage(babbage)
+    }
+
+    pub fn new_conway(conway: Block) -> Self {
+        Self::Conway(conway)
     }
 }

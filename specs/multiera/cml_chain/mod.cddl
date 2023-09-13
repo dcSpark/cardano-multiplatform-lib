@@ -15,7 +15,7 @@ rational = _CDDL_CODEGEN_EXTERN_TYPE_
 
 delta_coin = _CDDL_CODEGEN_EXTERN_TYPE_
 
-network_id = uint .size 4
+network_id = _CDDL_CODEGEN_EXTERN_TYPE_
 
 epoch = uint
 withdrawals = { * reward_account => coin }

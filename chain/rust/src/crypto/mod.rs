@@ -1,8 +1,8 @@
 use crate::byron::AddrAttributes;
 pub use cml_crypto::{
-    AnchorDataHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash, Ed25519Signature,
-    GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash, ScriptDataHash,
-    ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
+    AnchorDataHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash,
+    Ed25519Signature, GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash,
+    ScriptDataHash, ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
 };
 
 pub type Vkey = cml_crypto::PublicKey;

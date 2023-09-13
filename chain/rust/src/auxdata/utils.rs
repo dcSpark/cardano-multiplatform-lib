@@ -5,7 +5,7 @@ use crate::{
     transaction::NativeScript,
 };
 
-use super::{ConwayAuxData, AuxiliaryData, ShelleyMaAuxData};
+use super::{AuxiliaryData, ConwayFormatAuxData, ShelleyMaFormatAuxData};
 
 impl AuxiliaryData {
     pub fn new() -> Self {
@@ -81,7 +81,7 @@ impl AuxiliaryData {
     pub fn add_native_scripts(&mut self, scripts: Vec<NativeScript>) {
         match self {
             Self::Shelley(shelley) => {
-                *self = Self::ShelleyMA(ShelleyMaAuxData::new(shelley.clone(), scripts));
+                *self = Self::ShelleyMA(ShelleyMaFormatAuxData::new(shelley.clone(), scripts));
             }
             Self::ShelleyMA(shelley_ma) => {
                 shelley_ma.auxiliary_scripts.extend(scripts);
@@ -100,7 +100,7 @@ impl AuxiliaryData {
     pub fn add_plutus_v1_scripts(&mut self, scripts: Vec<PlutusV1Script>) {
         match self {
             Self::Shelley(shelley) => {
-                let mut conway = ConwayAuxData::new();
+                let mut conway = ConwayFormatAuxData::new();
                 if !shelley.entries.is_empty() {
                     conway.metadata = Some(shelley.clone());
                 }
@@ -108,7 +108,7 @@ impl AuxiliaryData {
                 *self = Self::Conway(conway);
             }
             Self::ShelleyMA(shelley_ma) => {
-                let mut conway = ConwayAuxData::new();
+                let mut conway = ConwayFormatAuxData::new();
                 if !shelley_ma.transaction_metadata.entries.is_empty() {
                     conway.metadata = Some(shelley_ma.transaction_metadata.clone());
                 }
@@ -132,7 +132,7 @@ impl AuxiliaryData {
     pub fn add_plutus_v2_scripts(&mut self, scripts: Vec<PlutusV2Script>) {
         match self {
             Self::Shelley(shelley) => {
-                let mut conway = ConwayAuxData::new();
+                let mut conway = ConwayFormatAuxData::new();
                 if !shelley.entries.is_empty() {
                     conway.metadata = Some(shelley.clone());
                 }
@@ -140,7 +140,7 @@ impl AuxiliaryData {
                 *self = Self::Conway(conway);
             }
             Self::ShelleyMA(shelley_ma) => {
-                let mut conway = ConwayAuxData::new();
+                let mut conway = ConwayFormatAuxData::new();
                 if !shelley_ma.transaction_metadata.entries.is_empty() {
                     conway.metadata = Some(shelley_ma.transaction_metadata.clone());
                 }

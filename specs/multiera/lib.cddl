@@ -9,4 +9,5 @@ multi_era_block =
   / allegra_block ; @name Allegra
   / mary_block    ; @name Mary
   / alonzo_block  ; @name Alonzo
-  / block         ; @name Babbage
+  / babbage_block ; @name Babbage
+  / block         ; @name Conway

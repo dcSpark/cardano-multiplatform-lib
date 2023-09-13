@@ -1,7 +1,7 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_chain::{address::RewardAccount, crypto::GenesisHash, AssetName, PolicyId};
+use cml_chain::{address::RewardAccount, assets::AssetName, crypto::GenesisHash, PolicyId};
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 
@@ -25,7 +25,7 @@ pub struct AlonzoCostmdlsEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct AlonzoOnlyAuxDataEncoding {
+pub struct AlonzoFormatAuxDataEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
     pub orig_deser_order: Vec<usize>,
@@ -114,7 +114,6 @@ pub struct AlonzoTransactionBodyEncoding {
     pub required_signers_encoding: LenEncoding,
     pub required_signers_elem_encodings: Vec<StringEncoding>,
     pub required_signers_key_encoding: Option<cbor_event::Sz>,
-    pub network_id_encoding: Option<cbor_event::Sz>,
     pub network_id_key_encoding: Option<cbor_event::Sz>,
 }
 

@@ -22,9 +22,7 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::assets::AssetName);
     gen_json_schema!(cml_chain::assets::Value);
     // auxdata
-    gen_json_schema!(cml_chain::auxdata::AlonzoAuxData);
     gen_json_schema!(cml_chain::auxdata::AuxiliaryData);
-    gen_json_schema!(cml_chain::auxdata::ShelleyMaAuxData);
     gen_json_schema!(cml_chain::auxdata::TransactionMetadatum);
     gen_json_schema!(cml_chain::auxdata::Metadata);
     gen_json_schema!(cml_chain::auxdata::MetadatumMap);
@@ -50,13 +48,8 @@ pub fn export_schemas() {
     // certs
     gen_json_schema!(cml_chain::certs::Certificate);
     gen_json_schema!(cml_chain::certs::DnsName);
-    gen_json_schema!(cml_chain::certs::GenesisKeyDelegation);
     gen_json_schema!(cml_chain::certs::Ipv4);
     gen_json_schema!(cml_chain::certs::Ipv6);
-    gen_json_schema!(cml_chain::certs::MIRAction);
-    gen_json_schema!(cml_chain::certs::MIRPot);
-    gen_json_schema!(cml_chain::certs::MoveInstantaneousReward);
-    gen_json_schema!(cml_chain::certs::MoveInstantaneousRewardsCert);
     gen_json_schema!(cml_chain::certs::MultiHostName);
     gen_json_schema!(cml_chain::certs::PoolMetadata);
     gen_json_schema!(cml_chain::certs::PoolParams);
@@ -91,16 +84,12 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::crypto::VRFVkey);
     gen_json_schema!(cml_chain::crypto::Vkey);
     // lib
-    gen_json_schema!(cml_chain::AssetName);
     gen_json_schema!(cml_chain::crypto::BootstrapWitness);
     gen_json_schema!(cml_chain::Int);
-    gen_json_schema!(cml_chain::PositiveInterval);
     gen_json_schema!(cml_chain::ProtocolParamUpdate);
-    gen_json_schema!(cml_chain::ProtocolVersionStruct);
     gen_json_schema!(cml_chain::Rational);
     gen_json_schema!(cml_chain::Script);
     gen_json_schema!(cml_chain::UnitInterval);
-    gen_json_schema!(cml_chain::Update);
     gen_json_schema!(cml_chain::Value);
     gen_json_schema!(cml_chain::crypto::Vkeywitness);
     // plutus
@@ -115,8 +104,6 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::plutus::Redeemer);
     gen_json_schema!(cml_chain::plutus::RedeemerTag);
     // transaction
-    gen_json_schema!(cml_chain::transaction::AlonzoTxOut);
-    gen_json_schema!(cml_chain::transaction::BabbageTxOut);
     gen_json_schema!(cml_chain::transaction::DatumOption);
     gen_json_schema!(cml_chain::transaction::NativeScript);
     gen_json_schema!(cml_chain::transaction::RequiredSigners);
@@ -126,7 +113,6 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::transaction::ScriptInvalidHereafter);
     gen_json_schema!(cml_chain::transaction::ScriptNOfK);
     gen_json_schema!(cml_chain::transaction::ScriptPubkey);
-    gen_json_schema!(cml_chain::transaction::ShelleyTxOut);
     gen_json_schema!(cml_chain::transaction::Transaction);
     gen_json_schema!(cml_chain::transaction::TransactionBody);
     gen_json_schema!(cml_chain::transaction::TransactionInput);

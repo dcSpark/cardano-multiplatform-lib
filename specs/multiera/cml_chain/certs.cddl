@@ -1,4 +1,3 @@
-certificate = _CDDL_CODEGEN_EXTERN_TYPE_
 stake_credential = _CDDL_CODEGEN_EXTERN_TYPE_
 pool_params = _CDDL_CODEGEN_EXTERN_TYPE_
 ; also port, ipv4, single_host_addr, etc but these are only used by relay
@@ -10,8 +9,4 @@ stake_deregistration = _CDDL_CODEGEN_EXTERN_TYPE_
 stake_delegation = _CDDL_CODEGEN_EXTERN_TYPE_
 pool_registration = _CDDL_CODEGEN_EXTERN_TYPE_
 pool_retirement = _CDDL_CODEGEN_EXTERN_TYPE_
-genesis_key_delegation = _CDDL_CODEGEN_EXTERN_TYPE_
 
-; to be deleted - to make sure it stores the encoding vars
-MIR_pot = 0 ; @name reserve
-        / 1 ; @name treasury

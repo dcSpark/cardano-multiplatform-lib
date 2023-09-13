@@ -4,34 +4,42 @@
 pub mod cbor_encodings;
 pub mod serialization;
 
-use crate::shelley::{ShelleyHeader, ShelleyTransactionOutput, ShelleyUpdate};
+use crate::shelley::{
+    GenesisKeyDelegation, ShelleyHeader, ShelleyTransactionOutput, ShelleyUpdate,
+};
 use cbor_encodings::{
     AllegraBlockEncoding, AllegraTransactionBodyEncoding, AllegraTransactionEncoding,
     AllegraTransactionWitnessSetEncoding,
 };
 use cml_chain::assets::Coin;
-use cml_chain::auxdata::{ShelleyAuxData, ShelleyMaAuxData};
-use cml_chain::certs::Certificate;
+use cml_chain::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
+use cml_chain::certs::{
+    PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration,
+    StakeRegistration,
+};
 use cml_chain::crypto::{AuxiliaryDataHash, BootstrapWitness, Vkeywitness};
 use cml_chain::transaction::{NativeScript, TransactionInput};
-use cml_chain::TransactionIndex;
 use cml_chain::Withdrawals;
+use cml_chain::{DeltaCoin, LenEncoding, TransactionIndex};
 use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_crypto::{GenesisDelegateHash, GenesisHash, VRFKeyHash};
 use std::collections::BTreeMap;
+
+use self::cbor_encodings::{MoveInstantaneousRewardEncoding, MoveInstantaneousRewardsCertEncoding};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AllegraAuxiliaryData {
-    ShelleyAuxData(ShelleyAuxData),
-    ShelleyMaAuxData(ShelleyMaAuxData),
+    Shelley(ShelleyFormatAuxData),
+    ShelleyMA(ShelleyMaFormatAuxData),
 }
 
 impl AllegraAuxiliaryData {
-    pub fn new_shelley_aux_data(shelley_aux_data: ShelleyAuxData) -> Self {
-        Self::ShelleyAuxData(shelley_aux_data)
+    pub fn new_shelley(shelley: ShelleyFormatAuxData) -> Self {
+        Self::Shelley(shelley)
     }
 
-    pub fn new_shelley_ma_aux_data(shelley_ma_aux_data: ShelleyMaAuxData) -> Self {
-        Self::ShelleyMaAuxData(shelley_ma_aux_data)
+    pub fn new_shelley_m_a(shelley_m_a: ShelleyMaFormatAuxData) -> Self {
+        Self::ShelleyMA(shelley_m_a)
     }
 }
 
@@ -59,6 +67,94 @@ impl AllegraBlock {
             auxiliary_data_set,
             encodings: None,
         }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub enum AllegraCertificate {
+    StakeRegistration {
+        stake_registration: StakeRegistration,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+    },
+    StakeDeregistration {
+        stake_deregistration: StakeDeregistration,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+    },
+    StakeDelegation {
+        stake_delegation: StakeDelegation,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+    },
+    PoolRegistration {
+        pool_registration: PoolRegistration,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+    },
+    PoolRetirement {
+        pool_retirement: PoolRetirement,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+    },
+    GenesisKeyDelegation(GenesisKeyDelegation),
+    MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCert),
+}
+
+impl AllegraCertificate {
+    pub fn new_stake_registration(stake_registration: StakeRegistration) -> Self {
+        Self::StakeRegistration {
+            stake_registration,
+            len_encoding: LenEncoding::default(),
+        }
+    }
+
+    pub fn new_stake_deregistration(stake_deregistration: StakeDeregistration) -> Self {
+        Self::StakeDeregistration {
+            stake_deregistration,
+            len_encoding: LenEncoding::default(),
+        }
+    }
+
+    pub fn new_stake_delegation(stake_delegation: StakeDelegation) -> Self {
+        Self::StakeDelegation {
+            stake_delegation,
+            len_encoding: LenEncoding::default(),
+        }
+    }
+
+    pub fn new_pool_registration(pool_registration: PoolRegistration) -> Self {
+        Self::PoolRegistration {
+            pool_registration,
+            len_encoding: LenEncoding::default(),
+        }
+    }
+
+    pub fn new_pool_retirement(pool_retirement: PoolRetirement) -> Self {
+        Self::PoolRetirement {
+            pool_retirement,
+            len_encoding: LenEncoding::default(),
+        }
+    }
+
+    pub fn new_genesis_key_delegation(
+        genesis_hash: GenesisHash,
+        genesis_delegate_hash: GenesisDelegateHash,
+        v_r_f_key_hash: VRFKeyHash,
+    ) -> Self {
+        Self::GenesisKeyDelegation(GenesisKeyDelegation::new(
+            genesis_hash,
+            genesis_delegate_hash,
+            v_r_f_key_hash,
+        ))
+    }
+
+    pub fn new_move_instantaneous_rewards_cert(
+        move_instantaneous_reward: MoveInstantaneousReward,
+    ) -> Self {
+        Self::MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCert::new(
+            move_instantaneous_reward,
+        ))
     }
 }
 
@@ -92,7 +188,7 @@ pub struct AllegraTransactionBody {
     pub outputs: Vec<ShelleyTransactionOutput>,
     pub fee: Coin,
     pub ttl: Option<u64>,
-    pub certs: Option<Vec<Certificate>>,
+    pub certs: Option<Vec<AllegraCertificate>>,
     pub withdrawals: Option<Withdrawals>,
     pub update: Option<ShelleyUpdate>,
     pub auxiliary_data_hash: Option<AuxiliaryDataHash>,
@@ -145,5 +241,89 @@ impl AllegraTransactionWitnessSet {
 impl Default for AllegraTransactionWitnessSet {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub enum MIRAction {
+    ToStakeCredentials {
+        to_stake_credentials: OrderedHashMap<StakeCredential, DeltaCoin>,
+        #[serde(skip)]
+        to_stake_credentials_encoding: LenEncoding,
+    },
+    ToOtherPot {
+        to_other_pot: Coin,
+        #[serde(skip)]
+        to_other_pot_encoding: Option<cbor_event::Sz>,
+    },
+}
+
+impl MIRAction {
+    pub fn new_to_stake_credentials(
+        to_stake_credentials: OrderedHashMap<StakeCredential, DeltaCoin>,
+    ) -> Self {
+        Self::ToStakeCredentials {
+            to_stake_credentials,
+            to_stake_credentials_encoding: LenEncoding::default(),
+        }
+    }
+
+    pub fn new_to_other_pot(to_other_pot: Coin) -> Self {
+        Self::ToOtherPot {
+            to_other_pot,
+            to_other_pot_encoding: None,
+        }
+    }
+}
+
+#[derive(
+    Copy,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Clone,
+    Debug,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+)]
+#[wasm_bindgen::prelude::wasm_bindgen]
+pub enum MIRPot {
+    Reserve,
+    Treasury,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct MoveInstantaneousReward {
+    pub pot: MIRPot,
+    pub action: MIRAction,
+    #[serde(skip)]
+    pub encodings: Option<MoveInstantaneousRewardEncoding>,
+}
+
+impl MoveInstantaneousReward {
+    pub fn new(pot: MIRPot, action: MIRAction) -> Self {
+        Self {
+            pot,
+            action,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct MoveInstantaneousRewardsCert {
+    pub move_instantaneous_reward: MoveInstantaneousReward,
+    #[serde(skip)]
+    pub encodings: Option<MoveInstantaneousRewardsCertEncoding>,
+}
+
+impl MoveInstantaneousRewardsCert {
+    pub fn new(move_instantaneous_reward: MoveInstantaneousReward) -> Self {
+        Self {
+            move_instantaneous_reward,
+            encodings: None,
+        }
     }
 }

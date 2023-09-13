@@ -2,7 +2,6 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct AuthCommitteeHotCertEncoding {
@@ -23,12 +22,6 @@ pub struct Ipv4Encoding {
 #[derive(Clone, Debug, Default)]
 pub struct Ipv6Encoding {
     pub inner_encoding: StringEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct MoveInstantaneousRewardEncoding {
-    pub len_encoding: LenEncoding,
-    pub pot_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]

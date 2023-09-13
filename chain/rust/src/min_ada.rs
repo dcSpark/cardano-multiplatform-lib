@@ -65,11 +65,12 @@ pub fn min_ada_required(
 mod tests {
     use crate::{
         address::BaseAddress,
+        assets::AssetName,
         assets::{MultiAsset, Value},
         certs::StakeCredential,
         genesis::network_info::NetworkInfo,
-        transaction::ShelleyTxOut,
-        AssetName, PolicyId,
+        transaction::AlonzoFormatTxOut,
+        PolicyId,
     };
 
     use cml_core::ordered_hash_map::OrderedHashMap;
@@ -111,7 +112,7 @@ mod tests {
         let stake_cred = StakeCredential::new_pub_key(stake.to_raw_key().hash());
         let address = BaseAddress::new(NetworkInfo::testnet().network_id(), spend_cred, stake_cred)
             .to_address();
-        ShelleyTxOut::new(address, Value::from(0)).into()
+        AlonzoFormatTxOut::new(address, Value::from(0)).into()
     }
 
     // taken from https://github.com/input-output-hk/cardano-ledger-specs/blob/master/doc/explanations/min-utxo-alonzo.rst

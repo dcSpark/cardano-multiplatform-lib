@@ -1504,7 +1504,7 @@ impl Deserialize for Voter {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let mut read_len = CBORReadLen::new(len);
+            let _read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
@@ -1830,7 +1830,7 @@ impl Deserialize for VotingProcedure {
                     Ok(Some(no_encoding))
                 })(raw)
                 {
-                    Ok((vote_encoding)) => return Ok((Vote::No, vote_encoding)),
+                    Ok(vote_encoding) => return Ok((Vote::No, vote_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
@@ -1848,7 +1848,7 @@ impl Deserialize for VotingProcedure {
                     Ok(Some(yes_encoding))
                 })(raw)
                 {
-                    Ok((vote_encoding)) => return Ok((Vote::Yes, vote_encoding)),
+                    Ok(vote_encoding) => return Ok((Vote::Yes, vote_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
@@ -1866,7 +1866,7 @@ impl Deserialize for VotingProcedure {
                     Ok(Some(abstain_encoding))
                 })(raw)
                 {
-                    Ok((vote_encoding)) => return Ok((Vote::Abstain, vote_encoding)),
+                    Ok(vote_encoding) => return Ok((Vote::Abstain, vote_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))

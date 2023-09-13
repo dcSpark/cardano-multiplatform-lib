@@ -16,40 +16,40 @@ impl_wasm_conversions!(cml_chain::auxdata::AuxiliaryData, AuxiliaryData);
 
 #[wasm_bindgen]
 impl AuxiliaryData {
-    pub fn new_shelley(shelley: &ShelleyAuxData) -> Self {
+    pub fn new_shelley(shelley: &ShelleyFormatAuxData) -> Self {
         Self(cml_chain::auxdata::AuxiliaryData::new_shelley(
             shelley.clone().into(),
         ))
     }
 
-    pub fn new_shelley_m_a(shelley_m_a: &ShelleyMaAuxData) -> Self {
+    pub fn new_shelley_m_a(shelley_m_a: &ShelleyMaFormatAuxData) -> Self {
         Self(cml_chain::auxdata::AuxiliaryData::new_shelley_m_a(
             shelley_m_a.clone().into(),
         ))
     }
 
-    pub fn new_conway(alonzo: &ConwayAuxData) -> Self {
+    pub fn new_conway(conway: &ConwayFormatAuxData) -> Self {
         Self(cml_chain::auxdata::AuxiliaryData::new_conway(
-            alonzo.clone().into(),
+            conway.clone().into(),
         ))
     }
 
     pub fn kind(&self) -> AuxiliaryDataKind {
         match &self.0 {
-            cml_chain::auxdata::AuxiliaryData::Shelley { .. } => AuxiliaryDataKind::Shelley,
+            cml_chain::auxdata::AuxiliaryData::Shelley(_) => AuxiliaryDataKind::Shelley,
             cml_chain::auxdata::AuxiliaryData::ShelleyMA(_) => AuxiliaryDataKind::ShelleyMA,
             cml_chain::auxdata::AuxiliaryData::Conway(_) => AuxiliaryDataKind::Conway,
         }
     }
 
-    pub fn as_shelley(&self) -> Option<ShelleyAuxData> {
+    pub fn as_shelley(&self) -> Option<ShelleyFormatAuxData> {
         match &self.0 {
             cml_chain::auxdata::AuxiliaryData::Shelley(shelley) => Some(shelley.clone().into()),
             _ => None,
         }
     }
 
-    pub fn as_shelley_m_a(&self) -> Option<ShelleyMaAuxData> {
+    pub fn as_shelley_m_a(&self) -> Option<ShelleyMaFormatAuxData> {
         match &self.0 {
             cml_chain::auxdata::AuxiliaryData::ShelleyMA(shelley_m_a) => {
                 Some(shelley_m_a.clone().into())
@@ -58,9 +58,9 @@ impl AuxiliaryData {
         }
     }
 
-    pub fn as_alonzo(&self) -> Option<ConwayAuxData> {
+    pub fn as_conway(&self) -> Option<ConwayFormatAuxData> {
         match &self.0 {
-            cml_chain::auxdata::AuxiliaryData::Conway(alonzo) => Some(alonzo.clone().into()),
+            cml_chain::auxdata::AuxiliaryData::Conway(conway) => Some(conway.clone().into()),
             _ => None,
         }
     }
@@ -73,44 +73,16 @@ pub enum AuxiliaryDataKind {
     Conway,
 }
 
-pub type ShelleyAuxData = Metadata;
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyMaAuxData(cml_chain::auxdata::ShelleyMaAuxData);
+pub struct ConwayFormatAuxData(cml_chain::auxdata::ConwayFormatAuxData);
 
-impl_wasm_cbor_json_api!(ShelleyMaAuxData);
+impl_wasm_cbor_json_api!(ConwayFormatAuxData);
 
-impl_wasm_conversions!(cml_chain::auxdata::ShelleyMaAuxData, ShelleyMaAuxData);
-
-#[wasm_bindgen]
-impl ShelleyMaAuxData {
-    pub fn transaction_metadata(&self) -> Metadata {
-        self.0.transaction_metadata.clone().into()
-    }
-
-    pub fn auxiliary_scripts(&self) -> NativeScriptList {
-        self.0.auxiliary_scripts.clone().into()
-    }
-
-    pub fn new(transaction_metadata: &Metadata, auxiliary_scripts: &NativeScriptList) -> Self {
-        Self(cml_chain::auxdata::ShelleyMaAuxData::new(
-            transaction_metadata.clone().into(),
-            auxiliary_scripts.clone().into(),
-        ))
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct ConwayAuxData(cml_chain::auxdata::ConwayAuxData);
-
-impl_wasm_cbor_json_api!(ConwayAuxData);
-
-impl_wasm_conversions!(cml_chain::auxdata::ConwayAuxData, ConwayAuxData);
+impl_wasm_conversions!(cml_chain::auxdata::ConwayFormatAuxData, ConwayFormatAuxData);
 
 #[wasm_bindgen]
-impl ConwayAuxData {
+impl ConwayFormatAuxData {
     pub fn set_metadata(&mut self, metadata: &Metadata) {
         self.0.metadata = Some(metadata.clone().into())
     }
@@ -149,7 +121,7 @@ impl ConwayAuxData {
             .map(std::convert::Into::into)
     }
 
-        pub fn set_plutus_v3_scripts(&mut self, plutus_v3_scripts: &PlutusV3ScriptList) {
+    pub fn set_plutus_v3_scripts(&mut self, plutus_v3_scripts: &PlutusV3ScriptList) {
         self.0.plutus_v3_scripts = Some(plutus_v3_scripts.clone().into())
     }
 
@@ -161,6 +133,37 @@ impl ConwayAuxData {
     }
 
     pub fn new() -> Self {
-        Self(cml_chain::auxdata::ConwayAuxData::new())
+        Self(cml_chain::auxdata::ConwayFormatAuxData::new())
+    }
+}
+
+pub type ShelleyFormatAuxData = Metadata;
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct ShelleyMaFormatAuxData(cml_chain::auxdata::ShelleyMaFormatAuxData);
+
+impl_wasm_cbor_json_api!(ShelleyMaFormatAuxData);
+
+impl_wasm_conversions!(
+    cml_chain::auxdata::ShelleyMaFormatAuxData,
+    ShelleyMaFormatAuxData
+);
+
+#[wasm_bindgen]
+impl ShelleyMaFormatAuxData {
+    pub fn transaction_metadata(&self) -> Metadata {
+        self.0.transaction_metadata.clone().into()
+    }
+
+    pub fn auxiliary_scripts(&self) -> NativeScriptList {
+        self.0.auxiliary_scripts.clone().into()
+    }
+
+    pub fn new(transaction_metadata: &Metadata, auxiliary_scripts: &NativeScriptList) -> Self {
+        Self(cml_chain::auxdata::ShelleyMaFormatAuxData::new(
+            transaction_metadata.clone().into(),
+            auxiliary_scripts.clone().into(),
+        ))
     }
 }

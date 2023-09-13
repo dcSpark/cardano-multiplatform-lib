@@ -4,17 +4,20 @@
 pub mod cbor_encodings;
 pub mod serialization;
 
-use crate::allegra::{AllegraAuxiliaryData, AllegraTransactionWitnessSet};
+use crate::allegra::{AllegraAuxiliaryData, AllegraCertificate, AllegraTransactionWitnessSet};
 use crate::shelley::{ShelleyHeader, ShelleyUpdate};
 use cbor_encodings::{MaryBlockEncoding, MaryTransactionBodyEncoding, MaryTransactionEncoding};
-use cml_chain::assets::{Coin, Mint};
+use cml_chain::address::Address;
+use cml_chain::assets::{Coin, Mint, Value};
 use cml_chain::certs::Certificate;
 use cml_chain::crypto::AuxiliaryDataHash;
-use cml_chain::transaction::{ShelleyTxOut, TransactionInput};
+use cml_chain::transaction::TransactionInput;
 use cml_chain::TransactionIndex;
 use cml_chain::Withdrawals;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use std::collections::BTreeMap;
+
+use self::cbor_encodings::MaryTransactionOutputEncoding;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct MaryBlock {
@@ -70,10 +73,10 @@ impl MaryTransaction {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct MaryTransactionBody {
     pub inputs: Vec<TransactionInput>,
-    pub outputs: Vec<ShelleyTxOut>,
+    pub outputs: Vec<MaryTransactionOutput>,
     pub fee: Coin,
     pub ttl: Option<u64>,
-    pub certs: Option<Vec<Certificate>>,
+    pub certs: Option<Vec<AllegraCertificate>>,
     pub withdrawals: Option<Withdrawals>,
     pub update: Option<ShelleyUpdate>,
     pub auxiliary_data_hash: Option<AuxiliaryDataHash>,
@@ -84,7 +87,11 @@ pub struct MaryTransactionBody {
 }
 
 impl MaryTransactionBody {
-    pub fn new(inputs: Vec<TransactionInput>, outputs: Vec<ShelleyTxOut>, fee: Coin) -> Self {
+    pub fn new(
+        inputs: Vec<TransactionInput>,
+        outputs: Vec<MaryTransactionOutput>,
+        fee: Coin,
+    ) -> Self {
         Self {
             inputs,
             outputs,
@@ -96,6 +103,24 @@ impl MaryTransactionBody {
             auxiliary_data_hash: None,
             validity_interval_start: None,
             mint: None,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct MaryTransactionOutput {
+    pub address: Address,
+    pub amount: Value,
+    #[serde(skip)]
+    pub encodings: Option<MaryTransactionOutputEncoding>,
+}
+
+impl MaryTransactionOutput {
+    pub fn new(address: Address, amount: Value) -> Self {
+        Self {
+            address,
+            amount,
             encodings: None,
         }
     }

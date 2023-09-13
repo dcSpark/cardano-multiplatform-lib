@@ -15,7 +15,7 @@ use super::cbor_encodings::*;
 use super::*;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
-use cml_crypto::RawBytesEncoding;
+
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for DRepVotingThresholds {
@@ -1794,7 +1794,7 @@ impl Deserialize for Script {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let mut read_len = CBORReadLen::new(len);
+            let _read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {

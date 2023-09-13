@@ -28,7 +28,7 @@ use crate::transaction::{
     DatumOption, ScriptRef, Transaction, TransactionBody, TransactionInput, TransactionOutput,
     TransactionWitnessSet,
 };
-use crate::{AssetName, Coin, ExUnitPrices, NetworkId, PolicyId, Value, Withdrawals};
+use crate::{assets::AssetName, Coin, ExUnitPrices, NetworkId, PolicyId, Value, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::{ArithmeticError, Slot};
 use cml_crypto::{Ed25519KeyHash, ScriptDataHash, ScriptHash, Serialize};
@@ -1192,7 +1192,6 @@ impl TransactionBuilder {
             ttl: self.ttl,
             certs: self.certs.clone(),
             withdrawals: self.withdrawals.clone(),
-            update: None,
             auxiliary_data_hash: self.auxiliary_data.as_ref().map(hash_auxiliary_data),
             validity_interval_start: self.validity_start_interval,
             mint: self.mint.clone(),
@@ -1212,6 +1211,10 @@ impl TransactionBuilder {
                 .reference_inputs
                 .as_ref()
                 .map(|inputs| inputs.iter().map(|utxo| utxo.input.clone()).collect()),
+            voting_procedures: None,
+            proposal_procedures: None,
+            current_treasury_value: None,
+            donation: None,
             encodings: None,
         };
 

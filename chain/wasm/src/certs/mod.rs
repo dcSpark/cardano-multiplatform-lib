@@ -4,9 +4,8 @@
 use super::{
     Coin, Ed25519KeyHashList, Epoch, MapStakeCredentialToDeltaCoin, Port, RelayList, UnitInterval,
 };
-use crate::governance::Anchor;
 use crate::address::RewardAccount;
-pub use cml_chain::certs::MIRPot;
+use crate::governance::Anchor;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{
@@ -576,88 +575,6 @@ impl_wasm_conversions!(cml_chain::certs::Ipv6, Ipv6);
 impl Ipv6 {
     pub fn get(&self) -> Vec<u8> {
         self.0.get().clone()
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MIRAction(cml_chain::certs::MIRAction);
-
-impl_wasm_cbor_json_api!(MIRAction);
-
-impl_wasm_conversions!(cml_chain::certs::MIRAction, MIRAction);
-
-#[wasm_bindgen]
-impl MIRAction {
-    pub fn new_to_stake_credentials(to_stake_credentials: &MapStakeCredentialToDeltaCoin) -> Self {
-        Self(cml_chain::certs::MIRAction::new_to_stake_credentials(
-            to_stake_credentials.clone().into(),
-        ))
-    }
-
-    pub fn new_to_other_pot(to_other_pot: Coin) -> Self {
-        Self(cml_chain::certs::MIRAction::new_to_other_pot(to_other_pot))
-    }
-
-    pub fn kind(&self) -> MIRActionKind {
-        match &self.0 {
-            cml_chain::certs::MIRAction::ToStakeCredentials { .. } => {
-                MIRActionKind::ToStakeCredentials
-            }
-            cml_chain::certs::MIRAction::ToOtherPot { .. } => MIRActionKind::ToOtherPot,
-        }
-    }
-
-    pub fn as_to_stake_credentials(&self) -> Option<MapStakeCredentialToDeltaCoin> {
-        match &self.0 {
-            cml_chain::certs::MIRAction::ToStakeCredentials {
-                to_stake_credentials,
-                ..
-            } => Some(to_stake_credentials.clone().into()),
-            _ => None,
-        }
-    }
-
-    pub fn as_to_other_pot(&self) -> Option<Coin> {
-        match &self.0 {
-            cml_chain::certs::MIRAction::ToOtherPot { to_other_pot, .. } => Some(*to_other_pot),
-            _ => None,
-        }
-    }
-}
-
-#[wasm_bindgen]
-pub enum MIRActionKind {
-    ToStakeCredentials,
-    ToOtherPot,
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MoveInstantaneousReward(cml_chain::certs::MoveInstantaneousReward);
-
-impl_wasm_cbor_json_api!(MoveInstantaneousReward);
-
-impl_wasm_conversions!(
-    cml_chain::certs::MoveInstantaneousReward,
-    MoveInstantaneousReward
-);
-
-#[wasm_bindgen]
-impl MoveInstantaneousReward {
-    pub fn pot(&self) -> MIRPot {
-        self.0.pot
-    }
-
-    pub fn action(&self) -> MIRAction {
-        self.0.action.clone().into()
-    }
-
-    pub fn new(pot: MIRPot, action: &MIRAction) -> Self {
-        Self(cml_chain::certs::MoveInstantaneousReward::new(
-            pot.into(),
-            action.clone().into(),
-        ))
     }
 }
 

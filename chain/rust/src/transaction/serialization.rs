@@ -4,7 +4,7 @@
 use super::cbor_encodings::*;
 use super::*;
 use crate::address::RewardAccount;
-use crate::governance::{GovActionId, VotingProcedure, Voter};
+use crate::governance::{GovActionId, Voter, VotingProcedure};
 use crate::{assets::AssetName, Script};
 use cbor_event;
 use cbor_event::de::Deserializer;
@@ -28,7 +28,7 @@ impl Serialize for AlonzoFormatTxOut {
                 .unwrap_or_default()
                 .to_len_sz(
                     2 + match &self.datum_hash {
-                        Some(x) => 1,
+                        Some(_x) => 1,
                         None => 0,
                     },
                     force_canonical,
@@ -453,7 +453,7 @@ impl Deserialize for DatumOption {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let mut read_len = CBORReadLen::new(len);
+            let _read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
@@ -1971,7 +1971,7 @@ impl Serialize for TransactionBody {
                                     serializer.write_negative_integer_sz(
                                         *value as i128,
                                         fit_sz(
-                                            (*value + 1).abs() as u64,
+                                            (*value + 1).unsigned_abs(),
                                             mint_value_value_encoding,
                                             force_canonical,
                                         ),

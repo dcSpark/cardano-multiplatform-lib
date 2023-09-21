@@ -62,6 +62,7 @@ pub struct DRepVotingThresholds {
 }
 
 impl DRepVotingThresholds {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         motion_no_confidence: UnitInterval,
         committee_normal: UnitInterval,

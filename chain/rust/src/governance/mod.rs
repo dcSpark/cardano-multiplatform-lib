@@ -78,6 +78,7 @@ impl Constitution {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum GovAction {
     ParameterChangeAction(ParameterChangeAction),
@@ -86,7 +87,7 @@ pub enum GovAction {
     NoConfidence(NoConfidence),
     NewCommittee(NewCommittee),
     NewConstitution(NewConstitution),
-    I6 {
+    InfoAction {
         #[serde(skip)]
         i6_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
@@ -137,8 +138,8 @@ impl GovAction {
         Self::NewConstitution(NewConstitution::new(action_id, constitution))
     }
 
-    pub fn new_i6() -> Self {
-        Self::I6 {
+    pub fn new_info_action() -> Self {
+        Self::InfoAction {
             i6_encoding: None,
             len_encoding: LenEncoding::default(),
         }

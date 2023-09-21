@@ -7,7 +7,7 @@ use crate::{
 };
 use cml_crypto::{DatumHash, Ed25519KeyHash};
 
-use super::{AlonzoFormatTxOut, BabbageFormatTxOut, NativeScript};
+use super::{AlonzoFormatTxOut, ConwayFormatTxOut, NativeScript};
 
 impl TransactionOutput {
     pub fn new(
@@ -24,10 +24,10 @@ impl TransactionOutput {
                 Self::AlonzoFormatTxOut(tx_out)
             }
             (datum, script_ref) => {
-                let mut tx_out = BabbageFormatTxOut::new(address, amount);
+                let mut tx_out = ConwayFormatTxOut::new(address, amount);
                 tx_out.datum_option = datum;
                 tx_out.script_reference = script_ref;
-                Self::BabbageFormatTxOut(tx_out)
+                Self::ConwayFormatTxOut(tx_out)
             }
         }
     }
@@ -35,21 +35,21 @@ impl TransactionOutput {
     pub fn address(&self) -> &Address {
         match self {
             Self::AlonzoFormatTxOut(tx_out) => &tx_out.address,
-            Self::BabbageFormatTxOut(tx_out) => &tx_out.address,
+            Self::ConwayFormatTxOut(tx_out) => &tx_out.address,
         }
     }
 
     pub fn amount(&self) -> &Value {
         match self {
             Self::AlonzoFormatTxOut(tx_out) => &tx_out.amount,
-            Self::BabbageFormatTxOut(tx_out) => &tx_out.amount,
+            Self::ConwayFormatTxOut(tx_out) => &tx_out.amount,
         }
     }
 
     pub fn set_amount(&mut self, amount: Value) {
         match self {
             Self::AlonzoFormatTxOut(tx_out) => tx_out.amount = amount,
-            Self::BabbageFormatTxOut(tx_out) => tx_out.amount = amount,
+            Self::ConwayFormatTxOut(tx_out) => tx_out.amount = amount,
         }
     }
 
@@ -59,7 +59,7 @@ impl TransactionOutput {
                 .datum_hash
                 .as_ref()
                 .map(|hash| DatumOption::new_hash(hash.clone())),
-            Self::BabbageFormatTxOut(tx_out) => tx_out.datum_option.clone(),
+            Self::ConwayFormatTxOut(tx_out) => tx_out.datum_option.clone(),
         }
     }
 
@@ -69,7 +69,7 @@ impl TransactionOutput {
     pub fn datum_hash(&self) -> Option<&DatumHash> {
         match self {
             Self::AlonzoFormatTxOut(tx_out) => tx_out.datum_hash.as_ref(),
-            Self::BabbageFormatTxOut(tx_out) => match &tx_out.datum_option {
+            Self::ConwayFormatTxOut(tx_out) => match &tx_out.datum_option {
                 Some(DatumOption::Hash { datum_hash, .. }) => Some(datum_hash),
                 _ => None,
             },
@@ -79,7 +79,7 @@ impl TransactionOutput {
     pub fn script_ref(&self) -> Option<&ScriptRef> {
         match self {
             Self::AlonzoFormatTxOut(_) => None,
-            Self::BabbageFormatTxOut(tx_out) => tx_out.script_reference.as_ref(),
+            Self::ConwayFormatTxOut(tx_out) => tx_out.script_reference.as_ref(),
         }
     }
 }
@@ -90,9 +90,9 @@ impl From<AlonzoFormatTxOut> for TransactionOutput {
     }
 }
 
-impl From<BabbageFormatTxOut> for TransactionOutput {
-    fn from(tx_out: BabbageFormatTxOut) -> Self {
-        Self::BabbageFormatTxOut(tx_out)
+impl From<ConwayFormatTxOut> for TransactionOutput {
+    fn from(tx_out: ConwayFormatTxOut) -> Self {
+        Self::ConwayFormatTxOut(tx_out)
     }
 }
 

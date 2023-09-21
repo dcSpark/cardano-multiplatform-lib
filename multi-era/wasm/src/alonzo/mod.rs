@@ -654,7 +654,7 @@ impl AlonzoTransactionBody {
     }
 
     pub fn network_id(&self) -> Option<NetworkId> {
-        self.0.network_id.clone().map(std::convert::Into::into)
+        self.0.network_id.map(std::convert::Into::into)
     }
 
     pub fn new(inputs: &TransactionInputList, outputs: &AlonzoFormatTxOutList, fee: Coin) -> Self {

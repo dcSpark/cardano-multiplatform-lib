@@ -9,7 +9,7 @@ use crate::shelley::{ShelleyHeader, ShelleyUpdate};
 use cbor_encodings::{MaryBlockEncoding, MaryTransactionBodyEncoding, MaryTransactionEncoding};
 use cml_chain::address::Address;
 use cml_chain::assets::{Coin, Mint, Value};
-use cml_chain::certs::Certificate;
+
 use cml_chain::crypto::AuxiliaryDataHash;
 use cml_chain::transaction::TransactionInput;
 use cml_chain::TransactionIndex;

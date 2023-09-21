@@ -11,6 +11,7 @@ use crate::{
 
 use cml_crypto::{Ed25519KeyHash, ScriptHash};
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, thiserror::Error)]
 pub enum CertBuilderError {
     #[error("Deregistration certificate contains script. Expected public key hash.\n{0:?}")]
@@ -67,6 +68,7 @@ pub fn cert_required_wits(cert: &Certificate, required_witnesses: &mut RequiredW
 }
 
 // comes from witsVKeyNeeded in the Ledger spec
+#[allow(clippy::result_large_err)]
 pub fn add_cert_vkeys(
     cert: &Certificate,
     vkeys: &mut HashSet<Ed25519KeyHash>,
@@ -144,6 +146,7 @@ impl SingleCertificateBuilder {
         }
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn payment_key(self) -> Result<CertificateBuilderResult, CertBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
         cert_required_wits(&self.cert, &mut required_wits);
@@ -160,6 +163,7 @@ impl SingleCertificateBuilder {
     }
 
     /** Signer keys don't have to be set. You can leave it empty and then add the required witnesses later */
+    #[allow(clippy::result_large_err)]
     pub fn native_script(
         self,
         native_script: NativeScript,
@@ -196,6 +200,7 @@ impl SingleCertificateBuilder {
         })
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn plutus_script(
         self,
         partial_witness: PartialPlutusWitness,

@@ -10,7 +10,8 @@ use cml_chain_wasm::assets::Coin;
 use cml_chain_wasm::auxdata::Metadata;
 use cml_chain_wasm::block::{OperationalCert, ProtocolVersion};
 use cml_chain_wasm::certs::{
-    PoolRegistration, PoolRetirement, StakeDelegation, StakeDeregistration, StakeRegistration,
+    PoolParams, PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation,
+    StakeDeregistration, StakeRegistration,
 };
 use cml_chain_wasm::crypto::{KESSignature, Nonce, VRFCert, Vkey};
 use cml_chain_wasm::{BootstrapWitnessList, TransactionInputList, VkeywitnessList};

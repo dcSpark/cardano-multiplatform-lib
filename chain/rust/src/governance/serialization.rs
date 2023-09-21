@@ -326,7 +326,7 @@ impl Serialize for GovAction {
             GovAction::NewConstitution(new_constitution) => {
                 new_constitution.serialize(serializer, force_canonical)
             }
-            GovAction::I6 {
+            GovAction::InfoAction {
                 i6_encoding,
                 len_encoding,
             } => {
@@ -433,13 +433,13 @@ impl Deserialize for GovAction {
             })(raw)
             {
                 Ok(i6_encoding) => {
-                    return Ok(Self::I6 {
+                    return Ok(Self::InfoAction {
                         i6_encoding,
                         len_encoding,
                     })
                 }
                 Err(e) => {
-                    errs.push(e.annotate("I6"));
+                    errs.push(e.annotate("InfoAction"));
                     raw.as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap();

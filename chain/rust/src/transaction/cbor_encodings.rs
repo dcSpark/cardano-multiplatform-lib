@@ -13,7 +13,7 @@ pub struct AlonzoFormatTxOutEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct BabbageFormatTxOutEncoding {
+pub struct ConwayFormatTxOutEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
     pub address_key_encoding: Option<cbor_event::Sz>,

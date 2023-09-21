@@ -167,8 +167,8 @@ impl GovAction {
         ))
     }
 
-    pub fn new_i6() -> Self {
-        Self(cml_chain::governance::GovAction::new_i6())
+    pub fn new_info_action() -> Self {
+        Self(cml_chain::governance::GovAction::new_info_action())
     }
 
     pub fn kind(&self) -> GovActionKind {
@@ -185,7 +185,7 @@ impl GovAction {
             cml_chain::governance::GovAction::NoConfidence(_) => GovActionKind::NoConfidence,
             cml_chain::governance::GovAction::NewCommittee(_) => GovActionKind::NewCommittee,
             cml_chain::governance::GovAction::NewConstitution(_) => GovActionKind::NewConstitution,
-            cml_chain::governance::GovAction::I6 { .. } => GovActionKind::I6,
+            cml_chain::governance::GovAction::InfoAction { .. } => GovActionKind::InfoAction,
         }
     }
 
@@ -278,7 +278,7 @@ pub enum GovActionKind {
     NoConfidence,
     NewCommittee,
     NewConstitution,
-    I6,
+    InfoAction,
 }
 
 #[derive(Clone, Debug)]
@@ -626,7 +626,7 @@ impl VotingProcedure {
 
     pub fn new(vote: Vote, anchor: Option<Anchor>) -> Self {
         Self(cml_chain::governance::VotingProcedure::new(
-            vote.into(),
+            vote,
             anchor.map(Into::into),
         ))
     }

@@ -56,17 +56,14 @@ impl AlonzoFormatTxOut {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageFormatTxOut(cml_chain::transaction::BabbageFormatTxOut);
+pub struct ConwayFormatTxOut(cml_chain::transaction::ConwayFormatTxOut);
 
-impl_wasm_cbor_json_api!(BabbageFormatTxOut);
+impl_wasm_cbor_json_api!(ConwayFormatTxOut);
 
-impl_wasm_conversions!(
-    cml_chain::transaction::BabbageFormatTxOut,
-    BabbageFormatTxOut
-);
+impl_wasm_conversions!(cml_chain::transaction::ConwayFormatTxOut, ConwayFormatTxOut);
 
 #[wasm_bindgen]
-impl BabbageFormatTxOut {
+impl ConwayFormatTxOut {
     pub fn address(&self) -> Address {
         self.0.address.clone().into()
     }
@@ -95,7 +92,7 @@ impl BabbageFormatTxOut {
     }
 
     pub fn new(address: &Address, amount: &Value) -> Self {
-        Self(cml_chain::transaction::BabbageFormatTxOut::new(
+        Self(cml_chain::transaction::ConwayFormatTxOut::new(
             address.clone().into(),
             amount.clone().into(),
         ))
@@ -589,7 +586,7 @@ impl TransactionBody {
     }
 
     pub fn network_id(&self) -> Option<NetworkId> {
-        self.0.network_id.clone().map(std::convert::Into::into)
+        self.0.network_id.map(std::convert::Into::into)
     }
 
     pub fn set_collateral_return(&mut self, collateral_return: &TransactionOutput) {
@@ -713,10 +710,10 @@ impl TransactionOutput {
         )
     }
 
-    pub fn new_babbage_format_tx_out(babbage_format_tx_out: &BabbageFormatTxOut) -> Self {
+    pub fn new_conway_format_tx_out(conway_format_tx_out: &ConwayFormatTxOut) -> Self {
         Self(
-            cml_chain::transaction::TransactionOutput::new_babbage_format_tx_out(
-                babbage_format_tx_out.clone().into(),
+            cml_chain::transaction::TransactionOutput::new_conway_format_tx_out(
+                conway_format_tx_out.clone().into(),
             ),
         )
     }
@@ -726,8 +723,8 @@ impl TransactionOutput {
             cml_chain::transaction::TransactionOutput::AlonzoFormatTxOut(_) => {
                 TransactionOutputKind::AlonzoFormatTxOut
             }
-            cml_chain::transaction::TransactionOutput::BabbageFormatTxOut(_) => {
-                TransactionOutputKind::BabbageFormatTxOut
+            cml_chain::transaction::TransactionOutput::ConwayFormatTxOut(_) => {
+                TransactionOutputKind::ConwayFormatTxOut
             }
         }
     }
@@ -741,11 +738,11 @@ impl TransactionOutput {
         }
     }
 
-    pub fn as_babbage_format_tx_out(&self) -> Option<BabbageFormatTxOut> {
+    pub fn as_conway_format_tx_out(&self) -> Option<ConwayFormatTxOut> {
         match &self.0 {
-            cml_chain::transaction::TransactionOutput::BabbageFormatTxOut(
-                babbage_format_tx_out,
-            ) => Some(babbage_format_tx_out.clone().into()),
+            cml_chain::transaction::TransactionOutput::ConwayFormatTxOut(conway_format_tx_out) => {
+                Some(conway_format_tx_out.clone().into())
+            }
             _ => None,
         }
     }
@@ -754,7 +751,7 @@ impl TransactionOutput {
 #[wasm_bindgen]
 pub enum TransactionOutputKind {
     AlonzoFormatTxOut,
-    BabbageFormatTxOut,
+    ConwayFormatTxOut,
 }
 
 #[derive(Clone, Debug)]

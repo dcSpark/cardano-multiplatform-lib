@@ -783,7 +783,7 @@ impl BabbageTransactionBody {
     }
 
     pub fn network_id(&self) -> Option<NetworkId> {
-        self.0.network_id.clone().map(std::convert::Into::into)
+        self.0.network_id.map(std::convert::Into::into)
     }
 
     pub fn set_collateral_return(&mut self, collateral_return: &BabbageTransactionOutput) {

@@ -8,14 +8,17 @@ use crate::{
 };
 use cml_chain_wasm::assets::Coin;
 use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
+use cml_chain_wasm::certs::{PoolParams, StakeCredential};
 use cml_chain_wasm::certs::{
     PoolRegistration, PoolRetirement, StakeDelegation, StakeDeregistration, StakeRegistration,
 };
+use cml_chain_wasm::Epoch;
 use cml_chain_wasm::{
     BootstrapWitnessList, NativeScriptList, TransactionInputList, VkeywitnessList,
 };
 use cml_chain_wasm::{MapStakeCredentialToDeltaCoin, Withdrawals};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
+use cml_crypto_wasm::Ed25519KeyHash;
 use cml_crypto_wasm::{AuxiliaryDataHash, GenesisDelegateHash, GenesisHash, VRFKeyHash};
 use cml_multi_era::allegra::MIRPot;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};

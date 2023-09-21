@@ -5,7 +5,7 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use super::{Coin, DeltaCoin, Epoch, Port, UnitInterval};
+use super::{Coin, Epoch, Port, UnitInterval};
 use crate::address::RewardAccount;
 use crate::crypto::{Ed25519KeyHash, PoolMetadataHash, ScriptHash, VRFKeyHash};
 use crate::governance::Anchor;
@@ -20,7 +20,7 @@ use cbor_encodings::{
     VoteRegDelegCertEncoding,
 };
 use cml_core::error::*;
-use cml_core::ordered_hash_map::OrderedHashMap;
+
 use cml_core::serialization::{LenEncoding, StringEncoding};
 
 use std::convert::TryFrom;
@@ -47,6 +47,7 @@ impl AuthCommitteeHotCert {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum Certificate {
     StakeRegistration(StakeRegistration),
@@ -520,6 +521,7 @@ pub struct PoolParams {
 }
 
 impl PoolParams {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         operator: Ed25519KeyHash,
         vrf_keyhash: VRFKeyHash,

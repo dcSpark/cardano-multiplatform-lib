@@ -14,7 +14,7 @@ use cbor_encodings::{
 use cml_chain::address::Address;
 use cml_chain::assets::{Coin, Mint, Value};
 use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMaFormatAuxData};
-use cml_chain::block::Header;
+use cml_chain::block::{Header};
 use cml_chain::crypto::{
     AuxiliaryDataHash, BootstrapWitness, GenesisHash, ScriptDataHash, Vkeywitness,
 };
@@ -25,12 +25,12 @@ use cml_chain::transaction::{
     AlonzoFormatTxOut, DatumOption, NativeScript, RequiredSigners, TransactionInput,
 };
 use cml_chain::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
-use cml_core::error::*;
+
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_core::serialization::{LenEncoding};
 use cml_core::{Int, TransactionIndex};
+
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum BabbageAuxiliaryData {

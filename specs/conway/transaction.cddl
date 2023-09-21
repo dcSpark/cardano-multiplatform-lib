@@ -41,14 +41,14 @@ alonzo_format_tx_out = [
   amount : value,
   ? datum_hash
 ]
-babbage_format_tx_out = {
+conway_format_tx_out = {
     0 : address,      ; @name address
     1 : value,        ; @name amount
   ? 2 : datum_option, ; @name datum_option
   ? 3 : script_ref,   ; @name script_reference
 }
 
-transaction_output = alonzo_format_tx_out / babbage_format_tx_out
+transaction_output = alonzo_format_tx_out / conway_format_tx_out
 
 
 ; This is a hash of data which may affect evaluation of a script.

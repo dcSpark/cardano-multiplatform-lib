@@ -18,7 +18,7 @@ use crate::governance::{ProposalProcedure, VotingProcedures};
 use crate::plutus::{PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script, Redeemer};
 use crate::Script;
 use cbor_encodings::{
-    AlonzoFormatTxOutEncoding, BabbageFormatTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
+    AlonzoFormatTxOutEncoding, ConwayFormatTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
     ScriptInvalidBeforeEncoding, ScriptInvalidHereafterEncoding, ScriptNOfKEncoding,
     ScriptPubkeyEncoding, TransactionBodyEncoding, TransactionEncoding, TransactionInputEncoding,
     TransactionWitnessSetEncoding,
@@ -55,17 +55,17 @@ impl AlonzoFormatTxOut {
     Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
 )]
 #[derivative(Hash, Eq, PartialEq)]
-pub struct BabbageFormatTxOut {
+pub struct ConwayFormatTxOut {
     pub address: Address,
     pub amount: Value,
     pub datum_option: Option<DatumOption>,
     pub script_reference: Option<ScriptRef>,
     #[serde(skip)]
     #[derivative(PartialEq = "ignore", Hash = "ignore")]
-    pub encodings: Option<BabbageFormatTxOutEncoding>,
+    pub encodings: Option<ConwayFormatTxOutEncoding>,
 }
 
-impl BabbageFormatTxOut {
+impl ConwayFormatTxOut {
     pub fn new(address: Address, amount: Value) -> Self {
         Self {
             address,
@@ -409,7 +409,7 @@ impl TransactionInput {
 )]
 pub enum TransactionOutput {
     AlonzoFormatTxOut(AlonzoFormatTxOut),
-    BabbageFormatTxOut(BabbageFormatTxOut),
+    ConwayFormatTxOut(ConwayFormatTxOut),
 }
 
 impl TransactionOutput {
@@ -417,8 +417,8 @@ impl TransactionOutput {
         Self::AlonzoFormatTxOut(alonzo_format_tx_out)
     }
 
-    pub fn new_babbage_format_tx_out(babbage_format_tx_out: BabbageFormatTxOut) -> Self {
-        Self::BabbageFormatTxOut(babbage_format_tx_out)
+    pub fn new_conway_format_tx_out(conway_format_tx_out: ConwayFormatTxOut) -> Self {
+        Self::ConwayFormatTxOut(conway_format_tx_out)
     }
 }
 

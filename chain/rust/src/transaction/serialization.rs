@@ -108,7 +108,7 @@ impl Deserialize for AlonzoFormatTxOut {
     }
 }
 
-impl Serialize for BabbageFormatTxOut {
+impl Serialize for ConwayFormatTxOut {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -243,7 +243,7 @@ impl Serialize for BabbageFormatTxOut {
     }
 }
 
-impl Deserialize for BabbageFormatTxOut {
+impl Deserialize for ConwayFormatTxOut {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.map_sz()?;
         let len_encoding: LenEncoding = len.into();
@@ -378,7 +378,7 @@ impl Deserialize for BabbageFormatTxOut {
                 amount,
                 datum_option,
                 script_reference,
-                encodings: Some(BabbageFormatTxOutEncoding {
+                encodings: Some(ConwayFormatTxOutEncoding {
                     len_encoding,
                     orig_deser_order,
                     address_key_encoding,
@@ -390,7 +390,7 @@ impl Deserialize for BabbageFormatTxOut {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("BabbageFormatTxOut"))
+        .map_err(|e| e.annotate("ConwayFormatTxOut"))
     }
 }
 
@@ -3035,8 +3035,8 @@ impl Serialize for TransactionOutput {
             TransactionOutput::AlonzoFormatTxOut(alonzo_format_tx_out) => {
                 alonzo_format_tx_out.serialize(serializer, force_canonical)
             }
-            TransactionOutput::BabbageFormatTxOut(babbage_format_tx_out) => {
-                babbage_format_tx_out.serialize(serializer, force_canonical)
+            TransactionOutput::ConwayFormatTxOut(conway_format_tx_out) => {
+                conway_format_tx_out.serialize(serializer, force_canonical)
             }
         }
     }
@@ -3049,8 +3049,8 @@ impl Deserialize for TransactionOutput {
                 cbor_event::Type::Array => Ok(TransactionOutput::AlonzoFormatTxOut(
                     AlonzoFormatTxOut::deserialize(raw)?,
                 )),
-                cbor_event::Type::Map => Ok(TransactionOutput::BabbageFormatTxOut(
-                    BabbageFormatTxOut::deserialize(raw)?,
+                cbor_event::Type::Map => Ok(TransactionOutput::ConwayFormatTxOut(
+                    ConwayFormatTxOut::deserialize(raw)?,
                 )),
                 _ => Err(DeserializeError::new(
                     "TransactionOutput",

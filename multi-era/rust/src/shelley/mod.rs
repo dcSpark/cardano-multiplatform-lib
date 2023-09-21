@@ -16,14 +16,14 @@ use cml_chain::auxdata::Metadata;
 use cml_chain::block::{OperationalCert, ProtocolVersion};
 use cml_chain::certs::{
     PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration,
-    StakeRegistration,
+    StakeRegistration, PoolParams,
 };
 use cml_chain::crypto::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, BootstrapWitness, Ed25519KeyHash,
     GenesisHash, KESSignature, Nonce, VRFCert, VRFVkey, Vkey, Vkeywitness,
 };
 use cml_chain::transaction::TransactionInput;
-use cml_chain::{Epoch, Rational, UnitInterval, Withdrawals};
+use cml_chain::{Epoch, Rational, UnitInterval, Withdrawals, LenEncoding};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_crypto::{GenesisDelegateHash, VRFKeyHash};
 use std::collections::BTreeMap;
@@ -202,38 +202,58 @@ pub enum ShelleyCertificate {
     PoolRegistration(PoolRegistration),
     PoolRetirement(PoolRetirement),
     GenesisKeyDelegation(GenesisKeyDelegation),
-    ShelleyMoveInstantaneousRewardsCert(ShelleyMoveInstantaneousRewardsCert),
+    ShelleyMoveInstantaneousRewardsCert {
+        shelley_move_instantaneous_rewards_cert: ShelleyMoveInstantaneousRewardsCert,
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+    },
 }
 
 impl ShelleyCertificate {
-    pub fn new_stake_registration(stake_registration: StakeRegistration) -> Self {
-        Self::StakeRegistration(stake_registration)
+    pub fn new_stake_registration(stake_credential: StakeCredential) -> Self {
+        Self::StakeRegistration(StakeRegistration::new(stake_credential))
     }
 
-    pub fn new_stake_deregistration(stake_deregistration: StakeDeregistration) -> Self {
-        Self::StakeDeregistration(stake_deregistration)
+    pub fn new_stake_deregistration(stake_credential: StakeCredential) -> Self {
+        Self::StakeDeregistration(StakeDeregistration::new(stake_credential))
     }
 
-    pub fn new_stake_delegation(stake_delegation: StakeDelegation) -> Self {
-        Self::StakeDelegation(stake_delegation)
+    pub fn new_stake_delegation(
+        stake_credential: StakeCredential,
+        ed25519_key_hash: Ed25519KeyHash,
+    ) -> Self {
+        Self::StakeDelegation(StakeDelegation::new(stake_credential, ed25519_key_hash))
     }
 
-    pub fn new_pool_registration(pool_registration: PoolRegistration) -> Self {
-        Self::PoolRegistration(pool_registration)
+    pub fn new_pool_registration(pool_params: PoolParams) -> Self {
+        Self::PoolRegistration(PoolRegistration::new(pool_params))
     }
 
-    pub fn new_pool_retirement(pool_retirement: PoolRetirement) -> Self {
-        Self::PoolRetirement(pool_retirement)
+    pub fn new_pool_retirement(ed25519_key_hash: Ed25519KeyHash, epoch: Epoch) -> Self {
+        Self::PoolRetirement(PoolRetirement::new(ed25519_key_hash, epoch))
     }
 
-    pub fn new_genesis_key_delegation(genesis_key_delegation: GenesisKeyDelegation) -> Self {
-        Self::GenesisKeyDelegation(genesis_key_delegation)
+    pub fn new_genesis_key_delegation(
+        genesis_hash: GenesisHash,
+        genesis_delegate_hash: GenesisDelegateHash,
+        v_r_f_key_hash: VRFKeyHash,
+    ) -> Self {
+        Self::GenesisKeyDelegation(GenesisKeyDelegation::new(
+            genesis_hash,
+            genesis_delegate_hash,
+            v_r_f_key_hash,
+        ))
     }
 
     pub fn new_shelley_move_instantaneous_rewards_cert(
-        shelley_move_instantaneous_rewards_cert: ShelleyMoveInstantaneousRewardsCert,
+        shelley_move_instantaneous_reward: ShelleyMoveInstantaneousReward,
     ) -> Self {
-        Self::ShelleyMoveInstantaneousRewardsCert(shelley_move_instantaneous_rewards_cert)
+        Self::ShelleyMoveInstantaneousRewardsCert {
+            shelley_move_instantaneous_rewards_cert: ShelleyMoveInstantaneousRewardsCert::new(
+                shelley_move_instantaneous_reward,
+            ),
+            len_encoding: LenEncoding::default(),
+        }
     }
 }
 

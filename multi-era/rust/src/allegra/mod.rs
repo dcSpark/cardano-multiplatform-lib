@@ -15,14 +15,15 @@ use cml_chain::assets::Coin;
 use cml_chain::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
 use cml_chain::certs::{
     PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration,
-    StakeRegistration,
+    StakeRegistration, PoolParams,
 };
 use cml_chain::crypto::{AuxiliaryDataHash, BootstrapWitness, Vkeywitness};
 use cml_chain::transaction::{NativeScript, TransactionInput};
 use cml_chain::Withdrawals;
 use cml_chain::{DeltaCoin, LenEncoding, TransactionIndex};
+use cml_core::Epoch;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_crypto::{GenesisDelegateHash, GenesisHash, VRFKeyHash};
+use cml_crypto::{GenesisDelegateHash, GenesisHash, VRFKeyHash, Ed25519KeyHash};
 use std::collections::BTreeMap;
 
 use self::cbor_encodings::{MoveInstantaneousRewardEncoding, MoveInstantaneousRewardsCertEncoding};
@@ -72,69 +73,37 @@ impl AllegraBlock {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AllegraCertificate {
-    StakeRegistration {
-        stake_registration: StakeRegistration,
-        #[serde(skip)]
-        len_encoding: LenEncoding,
-    },
-    StakeDeregistration {
-        stake_deregistration: StakeDeregistration,
-        #[serde(skip)]
-        len_encoding: LenEncoding,
-    },
-    StakeDelegation {
-        stake_delegation: StakeDelegation,
-        #[serde(skip)]
-        len_encoding: LenEncoding,
-    },
-    PoolRegistration {
-        pool_registration: PoolRegistration,
-        #[serde(skip)]
-        len_encoding: LenEncoding,
-    },
-    PoolRetirement {
-        pool_retirement: PoolRetirement,
-        #[serde(skip)]
-        len_encoding: LenEncoding,
-    },
+    StakeRegistration(StakeRegistration),
+    StakeDeregistration(StakeDeregistration),
+    StakeDelegation(StakeDelegation),
+    PoolRegistration(PoolRegistration),
+    PoolRetirement(PoolRetirement),
     GenesisKeyDelegation(GenesisKeyDelegation),
     MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCert),
 }
 
 impl AllegraCertificate {
-    pub fn new_stake_registration(stake_registration: StakeRegistration) -> Self {
-        Self::StakeRegistration {
-            stake_registration,
-            len_encoding: LenEncoding::default(),
-        }
+    pub fn new_stake_registration(stake_credential: StakeCredential) -> Self {
+        Self::StakeRegistration(StakeRegistration::new(stake_credential))
     }
 
-    pub fn new_stake_deregistration(stake_deregistration: StakeDeregistration) -> Self {
-        Self::StakeDeregistration {
-            stake_deregistration,
-            len_encoding: LenEncoding::default(),
-        }
+    pub fn new_stake_deregistration(stake_credential: StakeCredential) -> Self {
+        Self::StakeDeregistration(StakeDeregistration::new(stake_credential))
     }
 
-    pub fn new_stake_delegation(stake_delegation: StakeDelegation) -> Self {
-        Self::StakeDelegation {
-            stake_delegation,
-            len_encoding: LenEncoding::default(),
-        }
+    pub fn new_stake_delegation(
+        stake_credential: StakeCredential,
+        ed25519_key_hash: Ed25519KeyHash,
+    ) -> Self {
+        Self::StakeDelegation(StakeDelegation::new(stake_credential, ed25519_key_hash))
     }
 
-    pub fn new_pool_registration(pool_registration: PoolRegistration) -> Self {
-        Self::PoolRegistration {
-            pool_registration,
-            len_encoding: LenEncoding::default(),
-        }
+    pub fn new_pool_registration(pool_params: PoolParams) -> Self {
+        Self::PoolRegistration(PoolRegistration::new(pool_params))
     }
 
-    pub fn new_pool_retirement(pool_retirement: PoolRetirement) -> Self {
-        Self::PoolRetirement {
-            pool_retirement,
-            len_encoding: LenEncoding::default(),
-        }
+    pub fn new_pool_retirement(ed25519_key_hash: Ed25519KeyHash, epoch: Epoch) -> Self {
+        Self::PoolRetirement(PoolRetirement::new(ed25519_key_hash, epoch))
     }
 
     pub fn new_genesis_key_delegation(

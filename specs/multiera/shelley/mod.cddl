@@ -37,13 +37,15 @@ shelley_header_body = [
   protocol_version,
 ]
 
-shelley_certificate = stake_registration
-  / stake_deregistration
-  / stake_delegation
-  / pool_registration
-  / pool_retirement
-  / genesis_key_delegation
-  / shelley_move_instantaneous_rewards_cert
+shelley_certificate = [
+     stake_registration
+  // stake_deregistration
+  // stake_delegation
+  // pool_registration
+  // pool_retirement
+  // genesis_key_delegation
+  // shelley_move_instantaneous_rewards_cert
+]
 
 genesis_key_delegation = (tag: 5, genesis_hash, genesis_delegate_hash, VRF_key_hash)
 shelley_move_instantaneous_rewards_cert = [tag: 6, shelley_move_instantaneous_reward]

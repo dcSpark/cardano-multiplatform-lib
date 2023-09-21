@@ -976,9 +976,15 @@ impl Serialize for ShelleyCertificate {
             ShelleyCertificate::GenesisKeyDelegation(genesis_key_delegation) => {
                 genesis_key_delegation.serialize(serializer, force_canonical)
             }
-            ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert(
+            ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert {
                 shelley_move_instantaneous_rewards_cert,
-            ) => shelley_move_instantaneous_rewards_cert.serialize(serializer, force_canonical),
+                len_encoding,
+            } => {
+                serializer.write_array_sz(len_encoding.to_len_sz(1, force_canonical))?;
+                shelley_move_instantaneous_rewards_cert.serialize(serializer, force_canonical)?;
+                len_encoding.end(serializer, force_canonical)?;
+                Ok(serializer)
+            }
         }
     }
 }
@@ -986,9 +992,13 @@ impl Serialize for ShelleyCertificate {
 impl Deserialize for ShelleyCertificate {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            let deser_variant: Result<_, DeserializeError> = StakeRegistration::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                StakeRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(stake_registration) => return Ok(Self::StakeRegistration(stake_registration)),
                 Err(e) => {
@@ -998,7 +1008,8 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = StakeDeregistration::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                StakeDeregistration::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(stake_deregistration) => {
                     return Ok(Self::StakeDeregistration(stake_deregistration))
@@ -1010,7 +1021,8 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = StakeDelegation::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                StakeDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(stake_delegation) => return Ok(Self::StakeDelegation(stake_delegation)),
                 Err(e) => {
@@ -1020,7 +1032,8 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = PoolRegistration::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                PoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(pool_registration) => return Ok(Self::PoolRegistration(pool_registration)),
                 Err(e) => {
@@ -1030,7 +1043,8 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = PoolRetirement::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                PoolRetirement::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(pool_retirement) => return Ok(Self::PoolRetirement(pool_retirement)),
                 Err(e) => {
@@ -1040,7 +1054,8 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = GenesisKeyDelegation::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                GenesisKeyDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(genesis_key_delegation) => {
                     return Ok(Self::GenesisKeyDelegation(genesis_key_delegation))
@@ -1056,9 +1071,10 @@ impl Deserialize for ShelleyCertificate {
                 ShelleyMoveInstantaneousRewardsCert::deserialize(raw);
             match deser_variant {
                 Ok(shelley_move_instantaneous_rewards_cert) => {
-                    return Ok(Self::ShelleyMoveInstantaneousRewardsCert(
+                    return Ok(Self::ShelleyMoveInstantaneousRewardsCert {
                         shelley_move_instantaneous_rewards_cert,
-                    ))
+                        len_encoding,
+                    })
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMoveInstantaneousRewardsCert"));
@@ -1067,6 +1083,13 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
             Err(DeserializeError::new(
                 "ShelleyCertificate",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),

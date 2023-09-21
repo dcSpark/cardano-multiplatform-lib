@@ -245,50 +245,20 @@ impl Serialize for AllegraCertificate {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
-            AllegraCertificate::StakeRegistration {
-                stake_registration,
-                len_encoding,
-            } => {
-                serializer.write_array_sz(len_encoding.to_len_sz(1, force_canonical))?;
-                stake_registration.serialize(serializer, force_canonical)?;
-                len_encoding.end(serializer, force_canonical)?;
-                Ok(serializer)
+            AllegraCertificate::StakeRegistration(stake_registration) => {
+                stake_registration.serialize(serializer, force_canonical)
             }
-            AllegraCertificate::StakeDeregistration {
-                stake_deregistration,
-                len_encoding,
-            } => {
-                serializer.write_array_sz(len_encoding.to_len_sz(1, force_canonical))?;
-                stake_deregistration.serialize(serializer, force_canonical)?;
-                len_encoding.end(serializer, force_canonical)?;
-                Ok(serializer)
+            AllegraCertificate::StakeDeregistration(stake_deregistration) => {
+                stake_deregistration.serialize(serializer, force_canonical)
             }
-            AllegraCertificate::StakeDelegation {
-                stake_delegation,
-                len_encoding,
-            } => {
-                serializer.write_array_sz(len_encoding.to_len_sz(1, force_canonical))?;
-                stake_delegation.serialize(serializer, force_canonical)?;
-                len_encoding.end(serializer, force_canonical)?;
-                Ok(serializer)
+            AllegraCertificate::StakeDelegation(stake_delegation) => {
+                stake_delegation.serialize(serializer, force_canonical)
             }
-            AllegraCertificate::PoolRegistration {
-                pool_registration,
-                len_encoding,
-            } => {
-                serializer.write_array_sz(len_encoding.to_len_sz(1, force_canonical))?;
-                pool_registration.serialize(serializer, force_canonical)?;
-                len_encoding.end(serializer, force_canonical)?;
-                Ok(serializer)
+            AllegraCertificate::PoolRegistration(pool_registration) => {
+                pool_registration.serialize(serializer, force_canonical)
             }
-            AllegraCertificate::PoolRetirement {
-                pool_retirement,
-                len_encoding,
-            } => {
-                serializer.write_array_sz(len_encoding.to_len_sz(1, force_canonical))?;
-                pool_retirement.serialize(serializer, force_canonical)?;
-                len_encoding.end(serializer, force_canonical)?;
-                Ok(serializer)
+            AllegraCertificate::PoolRetirement(pool_retirement) => {
+                pool_retirement.serialize(serializer, force_canonical)
             }
             AllegraCertificate::GenesisKeyDelegation(genesis_key_delegation) => {
                 genesis_key_delegation.serialize(serializer, force_canonical)
@@ -304,18 +274,13 @@ impl Deserialize for AllegraCertificate {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
-            let len_encoding: LenEncoding = len.into();
             let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            let deser_variant: Result<_, DeserializeError> = StakeRegistration::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                StakeRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
-                Ok(stake_registration) => {
-                    return Ok(Self::StakeRegistration {
-                        stake_registration,
-                        len_encoding,
-                    })
-                }
+                Ok(stake_registration) => return Ok(Self::StakeRegistration(stake_registration)),
                 Err(e) => {
                     errs.push(e.annotate("StakeRegistration"));
                     raw.as_mut_ref()
@@ -323,13 +288,11 @@ impl Deserialize for AllegraCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = StakeDeregistration::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                StakeDeregistration::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(stake_deregistration) => {
-                    return Ok(Self::StakeDeregistration {
-                        stake_deregistration,
-                        len_encoding,
-                    })
+                    return Ok(Self::StakeDeregistration(stake_deregistration))
                 }
                 Err(e) => {
                     errs.push(e.annotate("StakeDeregistration"));
@@ -338,14 +301,10 @@ impl Deserialize for AllegraCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = StakeDelegation::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                StakeDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
-                Ok(stake_delegation) => {
-                    return Ok(Self::StakeDelegation {
-                        stake_delegation,
-                        len_encoding,
-                    })
-                }
+                Ok(stake_delegation) => return Ok(Self::StakeDelegation(stake_delegation)),
                 Err(e) => {
                     errs.push(e.annotate("StakeDelegation"));
                     raw.as_mut_ref()
@@ -353,14 +312,10 @@ impl Deserialize for AllegraCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = PoolRegistration::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                PoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
-                Ok(pool_registration) => {
-                    return Ok(Self::PoolRegistration {
-                        pool_registration,
-                        len_encoding,
-                    })
-                }
+                Ok(pool_registration) => return Ok(Self::PoolRegistration(pool_registration)),
                 Err(e) => {
                     errs.push(e.annotate("PoolRegistration"));
                     raw.as_mut_ref()
@@ -368,14 +323,10 @@ impl Deserialize for AllegraCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = PoolRetirement::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                PoolRetirement::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
-                Ok(pool_retirement) => {
-                    return Ok(Self::PoolRetirement {
-                        pool_retirement,
-                        len_encoding,
-                    })
-                }
+                Ok(pool_retirement) => return Ok(Self::PoolRetirement(pool_retirement)),
                 Err(e) => {
                     errs.push(e.annotate("PoolRetirement"));
                     raw.as_mut_ref()
@@ -1573,7 +1524,7 @@ impl Deserialize for MoveInstantaneousReward {
                     Ok(Some(reserve_encoding))
                 })(raw)
                 {
-                    Ok((pot_encoding)) => return Ok((MIRPot::Reserve, pot_encoding)),
+                    Ok(pot_encoding) => return Ok((MIRPot::Reserve, pot_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
@@ -1591,7 +1542,7 @@ impl Deserialize for MoveInstantaneousReward {
                     Ok(Some(treasury_encoding))
                 })(raw)
                 {
-                    Ok((pot_encoding)) => return Ok((MIRPot::Treasury, pot_encoding)),
+                    Ok(pot_encoding) => return Ok((MIRPot::Treasury, pot_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))

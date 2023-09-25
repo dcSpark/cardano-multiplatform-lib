@@ -5,7 +5,7 @@ use crate::address::RewardAccount;
 use crate::assets::Coin;
 use crate::block::ProtocolVersion;
 use crate::certs::Url;
-use crate::crypto::{AnchorDataHash, Ed25519KeyHash, ScriptHash, TransactionHash};
+use crate::crypto::{AnchorDocHash, Ed25519KeyHash, ScriptHash, TransactionHash};
 use crate::{
     CommitteeColdCredentialList, MapCommitteeColdCredentialToEpoch,
     MapGovActionIdToVotingProcedure, MapRewardAccountToCoin, ProtocolParamUpdate, UnitInterval,
@@ -30,14 +30,14 @@ impl Anchor {
         self.0.anchor_url.clone().into()
     }
 
-    pub fn anchor_data_hash(&self) -> AnchorDataHash {
-        self.0.anchor_data_hash.clone().into()
+    pub fn anchor_doc_hash(&self) -> AnchorDocHash {
+        self.0.anchor_doc_hash.clone().into()
     }
 
-    pub fn new(anchor_url: &Url, anchor_data_hash: &AnchorDataHash) -> Self {
+    pub fn new(anchor_url: &Url, anchor_doc_hash: &AnchorDocHash) -> Self {
         Self(cml_chain::governance::Anchor::new(
             anchor_url.clone().into(),
-            anchor_data_hash.clone().into(),
+            anchor_doc_hash.clone().into(),
         ))
     }
 }

@@ -79,7 +79,7 @@ voter = [
 
 anchor = [
   anchor_url       : url,
-  anchor_data_hash,
+  anchor_doc_hash,
 ]
 
 vote = 0 ; @name no

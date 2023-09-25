@@ -8,7 +8,7 @@ use crate::address::RewardAccount;
 use crate::assets::Coin;
 use crate::block::ProtocolVersion;
 use crate::certs::{CommitteeColdCredential, Url};
-use crate::crypto::{AnchorDataHash, Ed25519KeyHash, ScriptHash, TransactionHash};
+use crate::crypto::{AnchorDocHash, Ed25519KeyHash, ScriptHash, TransactionHash};
 use crate::{Epoch, ProtocolParamUpdate, UnitInterval};
 use cbor_encodings::{
     AnchorEncoding, CommitteeEncoding, ConstitutionEncoding, GovActionIdEncoding,
@@ -24,16 +24,16 @@ use std::collections::BTreeMap;
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct Anchor {
     pub anchor_url: Url,
-    pub anchor_data_hash: AnchorDataHash,
+    pub anchor_doc_hash: AnchorDocHash,
     #[serde(skip)]
     pub encodings: Option<AnchorEncoding>,
 }
 
 impl Anchor {
-    pub fn new(anchor_url: Url, anchor_data_hash: AnchorDataHash) -> Self {
+    pub fn new(anchor_url: Url, anchor_doc_hash: AnchorDocHash) -> Self {
         Self {
             anchor_url,
-            anchor_data_hash,
+            anchor_doc_hash,
             encodings: None,
         }
     }

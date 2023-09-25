@@ -9,6 +9,7 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
+use cml_crypto::AnchorDocHash;
 use cml_crypto::RawBytesEncoding;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
@@ -27,13 +28,13 @@ impl Serialize for Anchor {
         )?;
         self.anchor_url.serialize(serializer, force_canonical)?;
         serializer.write_bytes_sz(
-            self.anchor_data_hash.to_raw_bytes(),
+            self.anchor_doc_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
-                .map(|encs| encs.anchor_data_hash_encoding.clone())
+                .map(|encs| encs.anchor_doc_hash_encoding.clone())
                 .unwrap_or_default()
                 .to_str_len_sz(
-                    self.anchor_data_hash.to_raw_bytes().len() as u64,
+                    self.anchor_doc_hash.to_raw_bytes().len() as u64,
                     force_canonical,
                 ),
         )?;
@@ -55,15 +56,15 @@ impl Deserialize for Anchor {
         (|| -> Result<_, DeserializeError> {
             let anchor_url =
                 Url::deserialize(raw).map_err(|e: DeserializeError| e.annotate("anchor_url"))?;
-            let (anchor_data_hash, anchor_data_hash_encoding) = raw
+            let (anchor_doc_hash, anchor_doc_hash_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|(bytes, enc)| {
-                    AnchorDataHash::from_raw_bytes(&bytes)
+                    AnchorDocHash::from_raw_bytes(&bytes)
                         .map(|bytes| (bytes, StringEncoding::from(enc)))
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
-                .map_err(|e: DeserializeError| e.annotate("anchor_data_hash"))?;
+                .map_err(|e: DeserializeError| e.annotate("anchor_doc_hash"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
                 cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -73,10 +74,10 @@ impl Deserialize for Anchor {
             }
             Ok(Anchor {
                 anchor_url,
-                anchor_data_hash,
+                anchor_doc_hash,
                 encodings: Some(AnchorEncoding {
                     len_encoding,
-                    anchor_data_hash_encoding,
+                    anchor_doc_hash_encoding,
                 }),
             })
         })()

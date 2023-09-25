@@ -481,8 +481,7 @@ impl_hash_type!(ScriptDataHash);
 impl_hash_type!(VRFVkey);
 impl_hash_type!(KESVkey);
 impl_hash_type!(NonceHash);
-// not sure if this is an existing hash or not. made it a new one but maybe it's datum hash or something?
-impl_hash_type!(AnchorDataHash);
+impl_hash_type!(AnchorDocHash);
 
 #[wasm_bindgen]
 #[derive(Clone)]

@@ -15,15 +15,15 @@ use cml_chain::assets::Coin;
 use cml_chain::auxdata::Metadata;
 use cml_chain::block::{OperationalCert, ProtocolVersion};
 use cml_chain::certs::{
-    PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration,
-    StakeRegistration, PoolParams,
+    PoolParams, PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation,
+    StakeDeregistration, StakeRegistration,
 };
 use cml_chain::crypto::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, BootstrapWitness, Ed25519KeyHash,
     GenesisHash, KESSignature, Nonce, VRFCert, VRFVkey, Vkey, Vkeywitness,
 };
 use cml_chain::transaction::TransactionInput;
-use cml_chain::{Epoch, Rational, UnitInterval, Withdrawals, LenEncoding};
+use cml_chain::{Epoch, LenEncoding, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_crypto::{GenesisDelegateHash, VRFKeyHash};
 use std::collections::BTreeMap;

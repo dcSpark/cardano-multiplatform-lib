@@ -14,16 +14,16 @@ use cbor_encodings::{
 use cml_chain::assets::Coin;
 use cml_chain::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
 use cml_chain::certs::{
-    PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration,
-    StakeRegistration, PoolParams,
+    PoolParams, PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation,
+    StakeDeregistration, StakeRegistration,
 };
 use cml_chain::crypto::{AuxiliaryDataHash, BootstrapWitness, Vkeywitness};
 use cml_chain::transaction::{NativeScript, TransactionInput};
 use cml_chain::Withdrawals;
 use cml_chain::{DeltaCoin, LenEncoding, TransactionIndex};
-use cml_core::Epoch;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_crypto::{GenesisDelegateHash, GenesisHash, VRFKeyHash, Ed25519KeyHash};
+use cml_core::Epoch;
+use cml_crypto::{Ed25519KeyHash, GenesisDelegateHash, GenesisHash, VRFKeyHash};
 use std::collections::BTreeMap;
 
 use self::cbor_encodings::{MoveInstantaneousRewardEncoding, MoveInstantaneousRewardsCertEncoding};

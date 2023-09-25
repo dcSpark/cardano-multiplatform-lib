@@ -1105,14 +1105,10 @@ impl TransactionBuilder {
             None => Ok(None),
             Some(coll_ret) => {
                 let input_sum = match self.collateral.as_ref() {
-                    Some(collateral) => {
-                        collateral
-                            .iter()
-                            .fold(Result::Ok(Coin::zero()), |acc, next| {
-                                acc?.checked_add(next.output.amount().coin)
-                                    .ok_or(ArithmeticError::IntegerOverflow)
-                            })
-                    }
+                    Some(collateral) => collateral.iter().try_fold(Coin::zero(), |acc, next| {
+                        acc.checked_add(next.output.amount().coin)
+                            .ok_or(ArithmeticError::IntegerOverflow)
+                    }),
                     None => return Err(TxBuilderError::CollateralReturnRequiresCollateralInput),
                 }?;
 

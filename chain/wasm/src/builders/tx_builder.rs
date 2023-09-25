@@ -244,12 +244,12 @@ impl TransactionBuilder {
         self.0.add_required_signer(hash.clone().into())
     }
 
-    pub fn set_network_id(&mut self, network_id: NetworkId) {
-        self.0.set_network_id(network_id)
+    pub fn set_network_id(&mut self, network_id: &NetworkId) {
+        self.0.set_network_id(network_id.clone().into())
     }
 
     pub fn network_id(&self) -> Option<NetworkId> {
-        self.0.network_id()
+        self.0.network_id().map(Into::into)
     }
 
     /// does not include refunds or withdrawals

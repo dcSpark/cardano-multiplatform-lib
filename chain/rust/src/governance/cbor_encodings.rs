@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 #[derive(Clone, Debug, Default)]
 pub struct AnchorEncoding {
     pub len_encoding: LenEncoding,
-    pub anchor_data_hash_encoding: StringEncoding,
+    pub anchor_doc_hash_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]

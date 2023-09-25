@@ -74,7 +74,7 @@ impl AuxiliaryData {
                 conway.metadata.as_mut().unwrap()
             }
         };
-        metadata.entries.extend(other.entries.into_iter());
+        metadata.entries.extend(other.entries);
     }
 
     /// Warning: does not check for duplicates and may migrate eras

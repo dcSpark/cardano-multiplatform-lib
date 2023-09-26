@@ -1,0 +1,291 @@
+---
+sidebar_position: 5
+---
+
+# CIP25
+
+
+## Context 
+[CIP25](https://cips.cardano.org/cips/cip25/) defines an NFT Metadata Standard for Native Tokens.
+
+Since tokens on Cardano are a part of the UTxO ledger, the metadata isn't directly attached to a token, but instead stored in the transaction data.
+
+When data is transmitted or stored in Cardano, it is often encoded as CBOR bytes to optimize space and facilitate fast processing. CBOR provides a standardized way to encode complex data structures, making it easier for different components of the Cardano ecosystem to interact and interpret the data.
+
+
+
+
+Below is the entire metadata schema for CIP-25, which can be parsed by passing in the CBOR bytes of the entire transaction metadata
+or by passing in an existing Metadata struct.
+
+Parsing from CBOR bytes should be marginally faster.
+
+```
+{
+      "721": {
+        "<policy_id>": {
+          "<asset_name>": {
+            "name": <string>,
+    
+            "image": <uri | array>,
+            "mediaType": image/<mime_sub_type>,
+    
+            "description": <string | array>,
+    
+            "files": [{
+              "name": <string>,
+              "mediaType": <mime_type>,
+              "src": <uri | array>,
+              <other_properties>
+            }],
+    
+            <other properties>
+          }
+        },
+        "version": <version_id>
+      }
+    }
+```
+
+
+## Code Definitions
+
+- `CIP25Metadata` struct is the top-level struct for CIP-25 metadata, and contains a `key_721` field of type `LabelMetadata`. The key_721 field will contain either a LabelMetadataV1 or LabelMetadataV2 instance.
+
+- `LabelMetadata` defines an enum type that can contain either a `LabelMetadataV1` or `LabelMetadataV2` instance. It also provides functions for creating instances of each type.
+
+- `MetadataDetails` defines a struct that represents metadata details for a specific asset. It contains fields for the asset name, an image associated with the asset, a media type, a description, and details about any associated files. The `new()` method creates a new instance with the specified name and image, and sets the other fields to None.
+
+
+
+## Examples
+
+
+### Create
+
+The following example shows how to create and populate the CIP25 metadata schema with the available structs.
+
+```rust
+    let mut details = MetadataDetails::new(
+        String64::try_from("Metadata Name").unwrap(),
+        ChunkableString::from("htts://some.website.com/image.png"),
+    );    
+    details.description = Some(ChunkableString::from("description of this NFT"));
+    details.media_type = Some(String64::try_from("image/*").unwrap());
+    details.files = Some(vec![
+        FilesDetails::new(
+            String64::new_str("filename1").unwrap(),
+            String64::new_str("filetype1").unwrap(),
+            ChunkableString::from("src1"),
+        ),
+        FilesDetails::new(
+            String64::new_str("filename2").unwrap(),
+            String64::new_str("filetype2").unwrap(),
+            ChunkableString::from("src2"),
+        ),
+    ]);
+    let mut v2 = Data::new();
+    let mut v2_inner = BTreeMap::new();
+    v2_inner.insert(AssetNameV2::from(vec![0xCA, 0xFE, 0xD0, 0x0D]), details);
+    v2.insert(PolicyIdV2::from(vec![0xBA, 0xAD, 0xF0, 0x0D]), v2_inner);
+
+    let metadata = CIP25Metadata::new(LabelMetadata::new_label_metadata_v2(
+        LabelMetadataV2::new(v2),
+
+    ));
+    println!("{metadata:?}");
+
+```
+
+**output:**
+
+```
+CIP25Metadata {
+    key_721: LabelMetadataV2(LabelMetadataV2 { 
+        data: {
+            PolicyIdV2([186, 173, 240, 13]): {
+                AssetNameV2([202, 254, 208, 13]): MetadataDetails { 
+                    name: String64("Metadata Name"), 
+                    image: Single(String64("htts://some.website.com/image.png")), 
+                    media_type: Some(String64("image/*")), 
+                    description: Some(Single(String64("description of this NFT"))), 
+                    files: Some([
+                        FilesDetails { 
+                            name: String64("filename1"), 
+                            media_type: String64("filetype1"), 
+                            src: Single(String64("src1")) 
+                            }, 
+                        FilesDetails { 
+                            name: String64("filename2"), 
+                            media_type: String64("filetype2"), 
+                            src: Single(String64("src2")) 
+                            }
+                    ]) 
+                }
+            }
+        } 
+    }) 
+}
+```
+
+### Parse CIP25Metadata
+
+```rust
+let bytes = "bf1902d1a36464617461a244baadf00da344cafed00da6646e616d656d4d65746164617461204e616d656566696c657382a4637372636473726331646e616d656966696c656e616d6531696d65646961547970656966696c657479706531816864736b6a66616b7381a1403864a3637372636473726332646e616d656966696c656e616d6532696d65646961547970656966696c65747970653265696d6167657821687474733a2f2f736f6d652e776562736974652e636f6d2f696d6167652e706e67696d656469615479706567696d6167652f2a6b6465736372697074696f6e776465736372697074696f6e206f662074686973204e4654a14038641832a1403864a140386481a1403864816864736b6a66616b73a1403864a14038646776657273696f6e02a1403864a14038641905398144baadf00dff";
+let data = CIP25Metadata::from_bytes(hex::decode(bytes).unwrap()).unwrap();
+println!("{data:?}");
+```
+
+**output:**
+
+```json
+CIP25Metadata { 
+    key_721: LabelMetadataV2(
+        LabelMetadataV2 { 
+            data: {
+                PolicyIdV2([186, 173, 240, 13]): {
+                    AssetNameV2([202, 254, 208, 13]): MetadataDetails { 
+                        name: String64("Metadata Name"), 
+                        image: Single(String64("htts://some.website.com/image.png")), 
+                        media_type: Some(String64("image/*")), 
+                        description: Some(Single(String64("description of this NFT"))), 
+                        files: Some([
+                            FilesDetails { 
+                                name: String64("filename1"), 
+                                media_type: String64("filetype1"), 
+                                src: Single(String64("src1")) 
+                                }, 
+                            FilesDetails { 
+                                name: String64("filename2"), 
+                                media_type: String64("filetype2"), 
+                                src: Single(String64("src2")) 
+                                }
+                        ]) 
+                    }
+                }
+            } 
+        }) 
+    }
+
+```
+
+### Parse Metadata Details
+
+Fields can be extracted from the `MetadataDetails` struct.
+
+
+```rust
+// {
+//  "arweaveId": "6srpXZOTfK_62KUrJKh4VdCFG0YS271pq20OMRpE5Ts",
+//  "image": "ipfs://QmUWP6xGHucgBUv514gwgbt4yijg36aUQunEP61z5D8RKS",
+//  "name": "SpaceBud #1507",
+//  "traits": ["Star Suit", "Chestplate", "Belt", "Flag", "Pistol"],
+//  "type": "Alien",
+// }
+
+let bytes = "a569617277656176654964782b36737270585a4f54664b5f36324b55724a4b68345664434647305953323731707132304f4d52704535547365696d6167657835697066733a2f2f516d5557503678474875636742557635313467776762743479696a673336615551756e455036317a354438524b53646e616d656e53706163654275642023313530376674726169747385695374617220537569746a4368657374706c6174656442656c7464466c616766506973746f6c647479706565416c69656e";
+
+let output = MetadataDetails::from_bytes(hex::decode(bytes).unwrap()).unwrap();
+println!("{output:?}")    
+```
+
+**output:**
+
+```json
+MetadataDetails { 
+    name: String64("SpaceBud #1507"), 
+    image: Single(String64("ipfs://QmUWP6xGHucgBUv514gwgbt4yijg36aUQunEP61z5D8RKS")), 
+    media_type: None, 
+    description: None, 
+    files: None
+}
+```
+
+
+
+### Loose Parse Metadata details
+
+The `loose_parse()` function allows parsing of certain data that is technically non-compliant with CIP25 due to minor mistakes by their creators. 
+
+
+:::note
+This function should only to be used to parse non conformant metadata, since it will return a different struct (MiniMetadataDetails) which will just (possibly)return the name/image. 
+
+It's best to only use it as a fallback when the regular parsing fails.
+:::
+
+#### Just name
+
+```rust
+// {"name":"Metaverse"}
+let details = MiniMetadataDetails::loose_parse(&TransactionMetadatum::from_bytes(hex::decode("a1646e616d65694d6574617665727365").unwrap()).unwrap()).unwrap();
+println!("{details:?}")
+```
+
+ouput:
+```
+MiniMetadataDetails { 
+    name: Some(String64("Metaverse")), 
+    image: None 
+}
+```
+
+
+
+#### Upercase name
+
+```rust
+// {
+//    "Date":"9 May 2021",
+//    "Description":"Happy Mother's Day to all the Cardano Moms!",
+//    "Image":"ipfs.io/ipfs/Qmah6QPKUKvp6K9XQB2SA42Q3yrffCbYBbk8EoRrB7FN2g",
+//    "Name":"Mother's Day 2021",
+//    "Ticker":"MOM21",
+//    "URL":"ipfs.io/ipfs/Qmah6QPKUKvp6K9XQB2SA42Q3yrffCbYBbk8EoRrB7FN2g"
+// }
+let details = MiniMetadataDetails::loose_parse(&TransactionMetadatum::from_bytes(hex::decode("a664446174656a39204d617920323032316b4465736372697074696f6e782b4861707079204d6f7468657227732044617920746f20616c6c207468652043617264616e6f204d6f6d732165496d616765783b697066732e696f2f697066732f516d61683651504b554b7670364b39585142325341343251337972666643625942626b38456f52724237464e3267644e616d65714d6f746865722773204461792032303231665469636b6572654d4f4d32316355524c783b697066732e696f2f697066732f516d61683651504b554b7670364b39585142325341343251337972666643625942626b38456f52724237464e3267").unwrap()).unwrap()).unwrap();
+let name = details.name.unwrap().0;
+println!("{name:?}")
+```
+
+output:
+
+```
+"Mother's Day 2021"
+```
+
+#### id no name
+
+```rust
+// {
+//   "id":"00",
+//   "image":"ipfs://QmSfYTF8B4ua6hFdr6URdRDZBZ9FjCQNUdDcLr2f7P8xn3"
+// }
+let details = MiniMetadataDetails::loose_parse(&TransactionMetadatum::from_bytes(hex::decode("a262696462303065696d6167657835697066733a2f2f516d5366595446384234756136684664723655526452445a425a39466a43514e556444634c723266375038786e33").unwrap()).unwrap()).unwrap();
+let name = details.name.unwrap().0;
+println!("{name:?}")
+```
+
+output:
+
+```
+"00"
+```
+
+#### Image
+
+
+```rust
+// {
+//    "image":"ipfs://QmSfYTF8B4ua6hFdr6URdRDZBZ9FjCQNUdDcLr2f7P8xn3"
+// }
+let details = MiniMetadataDetails::loose_parse(&TransactionMetadatum::from_bytes(hex::decode("a165696d6167657835697066733a2f2f516d5366595446384234756136684664723655526452445a425a39466a43514e556444634c723266375038786e33").unwrap()).unwrap()).unwrap();
+let image = String::from(&details.image.unwrap());
+println!("{image:?}");
+```
+
+output:
+
+```
+"ipfs://QmSfYTF8B4ua6hFdr6URdRDZBZ9FjCQNUdDcLr2f7P8xn3"
+```

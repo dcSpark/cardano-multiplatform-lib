@@ -46,3 +46,8 @@ crypto/wasm/Cargo.lock
 crypto/wasm/pkg/**
 
 tools/metadata-cddl-checker/Cargo.lock
+
+
+# Docs
+docs/node_modules/
+docs/.docusaurus/

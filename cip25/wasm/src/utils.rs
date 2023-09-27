@@ -19,7 +19,7 @@ impl CIP25Metadata {
     /// Read the CIP25 schema from a Metadata. Ignores all other data besides CIP25
     /// Can fail if the Metadata does not conform to CIP25
     pub fn from_metadata(metadata: &Metadata) -> Result<CIP25Metadata, JsError> {
-        core::CIP25Metadata::from_metadata(metadata.as_ref())
+        cml_cip25::CIP25Metadata::from_metadata(metadata.as_ref())
             .map(Self)
             .map_err(Into::into)
     }
@@ -35,7 +35,9 @@ impl CIP25Metadata {
 #[wasm_bindgen]
 impl String64 {
     pub fn new(s: &str) -> Result<String64, JsError> {
-        core::String64::new_str(s).map(Self).map_err(Into::into)
+        cml_cip25::String64::new_str(s)
+            .map(Self)
+            .map_err(Into::into)
     }
 
     pub fn to_str(&self) -> String {
@@ -51,7 +53,7 @@ impl String64 {
 
 impl ChunkableString {
     pub fn from_string(str: &str) -> Self {
-        Self(core::ChunkableString::from(str))
+        Self(cml_cip25::ChunkableString::from(str))
     }
 
     #[allow(clippy::inherent_to_string)]
@@ -62,16 +64,16 @@ impl ChunkableString {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MiniMetadataDetails(core::utils::MiniMetadataDetails);
+pub struct MiniMetadataDetails(cml_cip25::utils::MiniMetadataDetails);
 
-impl_wasm_conversions!(core::utils::MiniMetadataDetails, MiniMetadataDetails);
+impl_wasm_conversions!(cml_cip25::utils::MiniMetadataDetails, MiniMetadataDetails);
 
 impl_wasm_json_api!(MiniMetadataDetails);
 
 #[wasm_bindgen]
 impl MiniMetadataDetails {
     pub fn new() -> Self {
-        MiniMetadataDetails(core::utils::MiniMetadataDetails {
+        MiniMetadataDetails(cml_cip25::utils::MiniMetadataDetails {
             name: None,
             image: None,
         })
@@ -96,17 +98,18 @@ impl MiniMetadataDetails {
     /// loose parsing of CIP25 metadata to allow for common exceptions to the format
     /// `metadatum` should represent the data where the `MetadataDetails` is in the cip25 structure
     pub fn loose_parse(metadatum: &TransactionMetadatum) -> Result<MiniMetadataDetails, JsValue> {
-        let parsed_data = core::utils::MiniMetadataDetails::loose_parse(&metadatum.clone().into())
-            .map_err(|e| JsValue::from_str(&format!("loose_parse: {e}")))?;
+        let parsed_data =
+            cml_cip25::utils::MiniMetadataDetails::loose_parse(&metadatum.clone().into())
+                .map_err(|e| JsValue::from_str(&format!("loose_parse: {e}")))?;
         Ok(MiniMetadataDetails(parsed_data))
     }
 }
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct LabelMetadata(core::LabelMetadata);
+pub struct LabelMetadata(cml_cip25::LabelMetadata);
 
-impl_wasm_conversions!(core::LabelMetadata, LabelMetadata);
+impl_wasm_conversions!(cml_cip25::LabelMetadata, LabelMetadata);
 
 impl_wasm_cbor_json_api_cbor_event_serialize!(LabelMetadata);
 
@@ -115,7 +118,7 @@ impl LabelMetadata {
     /// Note that Version 1 can only support utf8 string asset names.
     /// Version 2 can support any asset name.
     pub fn new(version: CIP25Version) -> Self {
-        Self(core::LabelMetadata::new(version))
+        Self(cml_cip25::LabelMetadata::new(version))
     }
 
     /// If this is version 1 and the asset name is not a utf8 asset name

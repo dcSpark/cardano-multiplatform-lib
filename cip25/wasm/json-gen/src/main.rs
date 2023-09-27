@@ -1,4 +1,4 @@
-use core::*;
+use cml_cip25::*;
 
 fn main() {
     macro_rules! gen_json_schema {

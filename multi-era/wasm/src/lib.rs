@@ -9,6 +9,7 @@ pub mod babbage;
 pub mod byron;
 pub mod mary;
 pub mod shelley;
+pub mod utils;
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 

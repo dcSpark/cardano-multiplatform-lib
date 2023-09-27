@@ -598,27 +598,10 @@ impl Serialize for KeyRegistration {
         serializer: &'se mut Serializer<W>,
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_map_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.len_encoding)
-                .unwrap_or_default()
-                .to_len_sz(
-                    4 + if self.voting_purpose != 0
-                        || self
-                            .encodings
-                            .as_ref()
-                            .map(|encs| encs.voting_purpose_default_present)
-                            .unwrap_or(false)
-                    {
-                        1
-                    } else {
-                        0
-                    },
-                    force_canonical,
-                ),
-        )?;
-        let (legacy_format, should_include_voting_purpose) = match self.delegation {
+        // code hand-edited to deal with including voting purpose or not depending on format
+        // defaulting to weighted including it is based on the test vectors as it is not well specified
+        // this seems to have changed as previously it was not included in old test vectors
+        let (_legacy_format, should_include_voting_purpose) = match self.delegation {
             DelegationDistribution::Legacy { .. } => (true, false),
             DelegationDistribution::Weighted { .. } => (
                 false,
@@ -627,9 +610,19 @@ impl Serialize for KeyRegistration {
                         .encodings
                         .as_ref()
                         .map(|encs| encs.voting_purpose_default_present)
-                        .unwrap_or(false),
+                        .unwrap_or(true),
             ),
         };
+        serializer.write_map_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(
+                    4 + if should_include_voting_purpose { 1 } else { 0 },
+                    force_canonical,
+                ),
+        )?;
         let deser_order = self
             .encodings
             .as_ref()
@@ -640,7 +633,7 @@ impl Serialize for KeyRegistration {
             })
             .map(|encs| encs.orig_deser_order.clone())
             .unwrap_or_else(|| {
-                if legacy_format {
+                if should_include_voting_purpose {
                     vec![0, 1, 2, 3, 4]
                 } else {
                     vec![0, 1, 2, 3]
@@ -693,12 +686,13 @@ impl Serialize for KeyRegistration {
                             3u64,
                             self.encodings
                                 .as_ref()
-                                .map(|encs| encs.reward_address_key_encoding)
+                                .map(|encs| encs.address_key_encoding)
                                 .unwrap_or_default(),
                             force_canonical,
                         ),
                     )?;
-                    self.reward_address.serialize(serializer, force_canonical)?;
+                    self.payment_address
+                        .serialize(serializer, force_canonical)?;
                 }
                 3 => {
                     serializer.write_unsigned_integer_sz(
@@ -774,8 +768,8 @@ impl Deserialize for KeyRegistration {
             let mut stake_credential_encoding = StringEncoding::default();
             let mut stake_credential_key_encoding = None;
             let mut stake_credential = None;
-            let mut reward_address_key_encoding = None;
-            let mut reward_address = None;
+            let mut address_key_encoding = None;
+            let mut payment_address = None;
             let mut nonce_encoding = None;
             let mut nonce_key_encoding = None;
             let mut nonce = None;
@@ -821,13 +815,13 @@ impl Deserialize for KeyRegistration {
                             orig_deser_order.push(1);
                         }
                         (3, key_enc) => {
-                            if reward_address.is_some() {
+                            if payment_address.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(3)).into());
                             }
-                            let tmp_reward_address = RewardAddress::deserialize(raw)
-                                .map_err(|e: DeserializeError| e.annotate("reward_address"))?;
-                            reward_address = Some(tmp_reward_address);
-                            reward_address_key_encoding = Some(key_enc);
+                            let tmp_payment_address = Address::deserialize(raw)
+                                .map_err(|e: DeserializeError| e.annotate("payment_address"))?;
+                            payment_address = Some(tmp_payment_address);
+                            address_key_encoding = Some(key_enc);
                             orig_deser_order.push(2);
                         }
                         (4, key_enc) => {
@@ -893,7 +887,7 @@ impl Deserialize for KeyRegistration {
                 Some(x) => x,
                 None => return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(2)).into()),
             };
-            let reward_address = match reward_address {
+            let payment_address = match payment_address {
                 Some(x) => x,
                 None => return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(3)).into()),
             };
@@ -909,7 +903,7 @@ impl Deserialize for KeyRegistration {
             Ok(Self {
                 delegation,
                 stake_credential,
-                reward_address,
+                payment_address,
                 nonce,
                 voting_purpose,
                 encodings: Some(KeyRegistrationEncoding {
@@ -918,7 +912,7 @@ impl Deserialize for KeyRegistration {
                     delegation_key_encoding,
                     stake_credential_key_encoding,
                     stake_credential_encoding,
-                    reward_address_key_encoding,
+                    address_key_encoding,
                     nonce_key_encoding,
                     nonce_encoding,
                     voting_purpose_key_encoding,

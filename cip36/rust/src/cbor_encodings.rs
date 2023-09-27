@@ -46,7 +46,7 @@ pub struct KeyRegistrationEncoding {
     pub delegation_key_encoding: Option<cbor_event::Sz>,
     pub stake_credential_encoding: StringEncoding,
     pub stake_credential_key_encoding: Option<cbor_event::Sz>,
-    pub reward_address_key_encoding: Option<cbor_event::Sz>,
+    pub address_key_encoding: Option<cbor_event::Sz>,
     pub nonce_encoding: Option<cbor_event::Sz>,
     pub nonce_key_encoding: Option<cbor_event::Sz>,
     pub voting_purpose_encoding: Option<cbor_event::Sz>,

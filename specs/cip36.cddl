@@ -6,7 +6,7 @@ registration_cbor = {
 public_key = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 
 voting_pub_key = public_key
-reward_address = _CDDL_CODEGEN_EXTERN_TYPE_
+payment_address = _CDDL_CODEGEN_EXTERN_TYPE_
 nonce = uint
 weight = uint .size 4
 voting_purpose = uint
@@ -32,7 +32,7 @@ delegation_distribution =
 key_registration = {
   1 : delegation_distribution, ; @name delegation
   2 : stake_credential, ; @name stake_credential
-  3 : reward_address, ; @name reward_address
+  3 : payment_address, ; @name payment_address
   4 : nonce, ; @name nonce
   ? 5 : voting_purpose .default 0, ; @name voting_purpose
 }

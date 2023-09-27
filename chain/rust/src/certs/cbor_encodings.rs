@@ -4,17 +4,14 @@
 use cml_core::serialization::{LenEncoding, StringEncoding};
 
 #[derive(Clone, Debug, Default)]
-pub struct DnsNameEncoding {
-    pub inner_encoding: StringEncoding,
+pub struct AuthCommitteeHotCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub index_0_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct GenesisKeyDelegationEncoding {
-    pub len_encoding: LenEncoding,
-    pub tag_encoding: Option<cbor_event::Sz>,
-    pub genesis_hash_encoding: StringEncoding,
-    pub genesis_delegate_hash_encoding: StringEncoding,
-    pub v_r_f_key_hash_encoding: StringEncoding,
+pub struct DnsNameEncoding {
+    pub inner_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -25,18 +22,6 @@ pub struct Ipv4Encoding {
 #[derive(Clone, Debug, Default)]
 pub struct Ipv6Encoding {
     pub inner_encoding: StringEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct MoveInstantaneousRewardEncoding {
-    pub len_encoding: LenEncoding,
-    pub pot_encoding: Option<cbor_event::Sz>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct MoveInstantaneousRewardsCertEncoding {
-    pub len_encoding: LenEncoding,
-    pub tag_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -78,6 +63,26 @@ pub struct PoolRetirementEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
+pub struct RegCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+    pub coin_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct RegDrepCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub index_0_encoding: Option<cbor_event::Sz>,
+    pub coin_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ResignCommitteeColdCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub index_0_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct SingleHostAddrEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
@@ -105,12 +110,68 @@ pub struct StakeDeregistrationEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
+pub struct StakeRegDelegCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+    pub ed25519_key_hash_encoding: StringEncoding,
+    pub coin_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct StakeRegistrationEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
+pub struct StakeVoteDelegCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+    pub ed25519_key_hash_encoding: StringEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct StakeVoteRegDelegCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+    pub ed25519_key_hash_encoding: StringEncoding,
+    pub coin_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct UnregCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+    pub coin_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct UnregDrepCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub index_0_encoding: Option<cbor_event::Sz>,
+    pub coin_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct UpdateDrepCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub index_0_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct UrlEncoding {
     pub inner_encoding: StringEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct VoteDelegCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct VoteRegDelegCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+    pub coin_encoding: Option<cbor_event::Sz>,
 }

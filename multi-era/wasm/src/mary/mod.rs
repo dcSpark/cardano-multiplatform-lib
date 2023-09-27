@@ -4,12 +4,12 @@
 use crate::allegra::{AllegraAuxiliaryData, AllegraTransactionWitnessSet};
 use crate::shelley::{ShelleyHeader, ShelleyUpdate};
 use crate::{
-    AllegraTransactionWitnessSetList, MapTransactionIndexToAllegraAuxiliaryData,
-    MaryTransactionBodyList, ShelleyTxOutList,
+    AllegraCertificateList, AllegraTransactionWitnessSetList,
+    MapTransactionIndexToAllegraAuxiliaryData, MaryTransactionBodyList, MaryTransactionOutputList,
 };
 use cml_chain_wasm::assets::{Coin, Mint};
-use cml_chain_wasm::Withdrawals;
-use cml_chain_wasm::{CertificateList, TransactionInputList};
+use cml_chain_wasm::TransactionInputList;
+use cml_chain_wasm::{address::Address, Value, Withdrawals};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::AuxiliaryDataHash;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
@@ -107,7 +107,7 @@ impl MaryTransactionBody {
         self.0.inputs.clone().into()
     }
 
-    pub fn outputs(&self) -> ShelleyTxOutList {
+    pub fn outputs(&self) -> MaryTransactionOutputList {
         self.0.outputs.clone().into()
     }
 
@@ -123,11 +123,11 @@ impl MaryTransactionBody {
         self.0.ttl
     }
 
-    pub fn set_certs(&mut self, certs: &CertificateList) {
+    pub fn set_certs(&mut self, certs: &AllegraCertificateList) {
         self.0.certs = Some(certs.clone().into())
     }
 
-    pub fn certs(&self) -> Option<CertificateList> {
+    pub fn certs(&self) -> Option<AllegraCertificateList> {
         self.0.certs.clone().map(std::convert::Into::into)
     }
 
@@ -174,11 +174,44 @@ impl MaryTransactionBody {
         self.0.mint.clone().map(std::convert::Into::into)
     }
 
-    pub fn new(inputs: &TransactionInputList, outputs: &ShelleyTxOutList, fee: Coin) -> Self {
+    pub fn new(
+        inputs: &TransactionInputList,
+        outputs: &MaryTransactionOutputList,
+        fee: Coin,
+    ) -> Self {
         Self(cml_multi_era::mary::MaryTransactionBody::new(
             inputs.clone().into(),
             outputs.clone().into(),
             fee,
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MaryTransactionOutput(cml_multi_era::mary::MaryTransactionOutput);
+
+impl_wasm_cbor_json_api!(MaryTransactionOutput);
+
+impl_wasm_conversions!(
+    cml_multi_era::mary::MaryTransactionOutput,
+    MaryTransactionOutput
+);
+
+#[wasm_bindgen]
+impl MaryTransactionOutput {
+    pub fn address(&self) -> Address {
+        self.0.address.clone().into()
+    }
+
+    pub fn amount(&self) -> Value {
+        self.0.amount.clone().into()
+    }
+
+    pub fn new(address: &Address, amount: &Value) -> Self {
+        Self(cml_multi_era::mary::MaryTransactionOutput::new(
+            address.clone().into(),
+            amount.clone().into(),
         ))
     }
 }

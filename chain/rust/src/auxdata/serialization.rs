@@ -1,6 +1,8 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+use crate::plutus::PlutusV3Script;
+
 use super::cbor_encodings::*;
 use super::*;
 use cbor_event::de::Deserializer;
@@ -9,7 +11,68 @@ use cml_core::error::*;
 use cml_core::serialization::*;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
-impl Serialize for AlonzoAuxData {
+impl Serialize for AuxiliaryData {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        match self {
+            AuxiliaryData::Shelley(shelley) => shelley.serialize(serializer, force_canonical),
+            AuxiliaryData::ShelleyMA(shelley_m_a) => {
+                shelley_m_a.serialize(serializer, force_canonical)
+            }
+            AuxiliaryData::Conway(conway) => conway.serialize(serializer, force_canonical),
+        }
+    }
+}
+
+impl Deserialize for AuxiliaryData {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let mut errs = Vec::new();
+            let deser_variant: Result<_, DeserializeError> = Metadata::deserialize(raw);
+            match deser_variant {
+                Ok(shelley) => return Ok(Self::Shelley(shelley)),
+                Err(e) => {
+                    errs.push(e.annotate("Shelley"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> =
+                ShelleyMaFormatAuxData::deserialize(raw);
+            match deser_variant {
+                Ok(shelley_m_a) => return Ok(Self::ShelleyMA(shelley_m_a)),
+                Err(e) => {
+                    errs.push(e.annotate("ShelleyMA"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> = ConwayFormatAuxData::deserialize(raw);
+            match deser_variant {
+                Ok(conway) => return Ok(Self::Conway(conway)),
+                Err(e) => {
+                    errs.push(e.annotate("Conway"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            Err(DeserializeError::new(
+                "AuxiliaryData",
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
+            ))
+        })()
+        .map_err(|e| e.annotate("AuxiliaryData"))
+    }
+}
+
+impl Serialize for ConwayFormatAuxData {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -44,6 +107,9 @@ impl Serialize for AlonzoAuxData {
                     } + match &self.plutus_v2_scripts {
                         Some(_) => 1,
                         None => 0,
+                    } + match &self.plutus_v3_scripts {
+                        Some(_) => 1,
+                        None => 0,
                     },
                     force_canonical,
                 ),
@@ -66,10 +132,13 @@ impl Serialize for AlonzoAuxData {
                         } + match &self.plutus_v2_scripts {
                             Some(_) => 1,
                             None => 0,
+                        } + match &self.plutus_v3_scripts {
+                            Some(_) => 1,
+                            None => 0,
                         }
             })
             .map(|encs| encs.orig_deser_order.clone())
-            .unwrap_or_else(|| vec![0, 1, 2, 3]);
+            .unwrap_or_else(|| vec![0, 1, 2, 3, 4]);
         for field_index in deser_order {
             match field_index {
                 0 => {
@@ -178,6 +247,36 @@ impl Serialize for AlonzoAuxData {
                             .end(serializer, force_canonical)?;
                     }
                 }
+                4 => {
+                    if let Some(field) = &self.plutus_v3_scripts {
+                        serializer.write_unsigned_integer_sz(
+                            4u64,
+                            fit_sz(
+                                4u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.plutus_v3_scripts_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.plutus_v3_scripts_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.plutus_v3_scripts_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
+                    }
+                }
                 _ => unreachable!(),
             };
         }
@@ -189,12 +288,12 @@ impl Serialize for AlonzoAuxData {
     }
 }
 
-impl Deserialize for AlonzoAuxData {
+impl Deserialize for ConwayFormatAuxData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let (tag, tag_encoding) = raw.tag_sz()?;
         if tag != 259 {
             return Err(DeserializeError::new(
-                "AlonzoAuxData",
+                "ConwayFormatAuxData",
                 DeserializeFailure::TagMismatch {
                     found: tag,
                     expected: 259,
@@ -217,6 +316,9 @@ impl Deserialize for AlonzoAuxData {
             let mut plutus_v2_scripts_encoding = LenEncoding::default();
             let mut plutus_v2_scripts_key_encoding = None;
             let mut plutus_v2_scripts = None;
+            let mut plutus_v3_scripts_encoding = LenEncoding::default();
+            let mut plutus_v3_scripts_key_encoding = None;
+            let mut plutus_v3_scripts = None;
             let mut read = 0;
             while match len {
                 cbor_event::LenSz::Len(n, _) => read < n,
@@ -329,6 +431,37 @@ impl Deserialize for AlonzoAuxData {
                             plutus_v2_scripts_key_encoding = Some(key_enc);
                             orig_deser_order.push(3);
                         }
+                        (4, key_enc) => {
+                            if plutus_v3_scripts.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(4)).into());
+                            }
+                            let (tmp_plutus_v3_scripts, tmp_plutus_v3_scripts_encoding) =
+                                (|| -> Result<_, DeserializeError> {
+                                    read_len.read_elems(1)?;
+                                    let mut plutus_v3_scripts_arr = Vec::new();
+                                    let len = raw.array_sz()?;
+                                    let plutus_v3_scripts_encoding = len.into();
+                                    while match len {
+                                        cbor_event::LenSz::Len(n, _) => {
+                                            (plutus_v3_scripts_arr.len() as u64) < n
+                                        }
+                                        cbor_event::LenSz::Indefinite => true,
+                                    } {
+                                        if raw.cbor_type()? == cbor_event::Type::Special {
+                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                            break;
+                                        }
+                                        plutus_v3_scripts_arr
+                                            .push(PlutusV3Script::deserialize(raw)?);
+                                    }
+                                    Ok((plutus_v3_scripts_arr, plutus_v3_scripts_encoding))
+                                })()
+                                .map_err(|e| e.annotate("plutus_v3_scripts"))?;
+                            plutus_v3_scripts = Some(tmp_plutus_v3_scripts);
+                            plutus_v3_scripts_encoding = tmp_plutus_v3_scripts_encoding;
+                            plutus_v3_scripts_key_encoding = Some(key_enc);
+                            orig_deser_order.push(4);
+                        }
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
@@ -359,7 +492,8 @@ impl Deserialize for AlonzoAuxData {
                 native_scripts,
                 plutus_v1_scripts,
                 plutus_v2_scripts,
-                encodings: Some(AlonzoAuxDataEncoding {
+                plutus_v3_scripts,
+                encodings: Some(ConwayFormatAuxDataEncoding {
                     tag_encoding: Some(tag_encoding),
                     len_encoding,
                     orig_deser_order,
@@ -370,67 +504,16 @@ impl Deserialize for AlonzoAuxData {
                     plutus_v1_scripts_encoding,
                     plutus_v2_scripts_key_encoding,
                     plutus_v2_scripts_encoding,
+                    plutus_v3_scripts_key_encoding,
+                    plutus_v3_scripts_encoding,
                 }),
             })
         })()
-        .map_err(|e| e.annotate("AlonzoAuxData"))
+        .map_err(|e| e.annotate("ConwayFormatAuxData"))
     }
 }
 
-impl Serialize for AuxiliaryData {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        match self {
-            AuxiliaryData::Shelley(shelley) => shelley.serialize(serializer, force_canonical),
-            AuxiliaryData::ShelleyMA(shelley_m_a) => {
-                shelley_m_a.serialize(serializer, force_canonical)
-            }
-            AuxiliaryData::Alonzo(alonzo) => alonzo.serialize(serializer, force_canonical),
-        }
-    }
-}
-
-impl Deserialize for AuxiliaryData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
-            let deser_variant: Result<_, DeserializeError> = Metadata::deserialize(raw);
-            match deser_variant {
-                Ok(shelley) => return Ok(Self::Shelley(shelley)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            let deser_variant: Result<_, DeserializeError> = ShelleyMaAuxData::deserialize(raw);
-            match deser_variant {
-                Ok(shelley_m_a) => return Ok(Self::ShelleyMA(shelley_m_a)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            let deser_variant: Result<_, DeserializeError> = AlonzoAuxData::deserialize(raw);
-            match deser_variant {
-                Ok(alonzo) => return Ok(Self::Alonzo(alonzo)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            Err(DeserializeError::new(
-                "AuxiliaryData",
-                DeserializeFailure::NoVariantMatched,
-            ))
-        })()
-        .map_err(|e| e.annotate("AuxiliaryData"))
-    }
-}
-
-impl Serialize for ShelleyMaAuxData {
+impl Serialize for ShelleyMaFormatAuxData {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -468,7 +551,7 @@ impl Serialize for ShelleyMaAuxData {
     }
 }
 
-impl Deserialize for ShelleyMaAuxData {
+impl Deserialize for ShelleyMaFormatAuxData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array_sz()?;
         let len_encoding: LenEncoding = len.into();
@@ -503,15 +586,15 @@ impl Deserialize for ShelleyMaAuxData {
                     _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                 },
             }
-            Ok(ShelleyMaAuxData {
+            Ok(ShelleyMaFormatAuxData {
                 transaction_metadata,
                 auxiliary_scripts,
-                encodings: Some(ShelleyMaAuxDataEncoding {
+                encodings: Some(ShelleyMaFormatAuxDataEncoding {
                     len_encoding,
                     auxiliary_scripts_encoding,
                 }),
             })
         })()
-        .map_err(|e| e.annotate("ShelleyMaAuxData"))
+        .map_err(|e| e.annotate("ShelleyMaFormatAuxData"))
     }
 }

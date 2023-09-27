@@ -17,23 +17,21 @@ alonzo_transaction = [
   auxiliary_data: alonzo_auxiliary_data / null,
 ]
 
-alonzo_transaction_output = shelley_tx_out / alonzo_tx_out
-
 alonzo_transaction_body = {
-    0 : [* transaction_input],   ; @name inputs
-    1 : [* alonzo_transaction_output], ; @name outputs
-    2 : coin,                    ; @name fee
-  ? 3 : uint,                    ; @name ttl
-  ? 4 : [* certificate],         ; @name certs
-  ? 5 : withdrawals,             ; @name withdrawals
-  ? 6 : alonzo_update,           ; @name update
-  ? 7 : auxiliary_data_hash,     ; @name auxiliary_data_hash
-  ? 8 : uint,                    ; @name validity_interval_start
-  ? 9 : mint,                    ; @name mint
-  ? 11 : script_data_hash,       ; @name script_data_hash
-  ? 13 : [* transaction_input],  ; @name collateral_inputs
-  ? 14 : required_signers,       ; @name required_signers
-  ? 15 : network_id,             ; @name network_id
+    0 : [* transaction_input],    ; @name inputs
+    1 : [* alonzo_format_tx_out], ; @name outputs
+    2 : coin,                     ; @name fee
+  ? 3 : uint,                     ; @name ttl
+  ? 4 : [* allegra_certificate],  ; @name certs
+  ? 5 : withdrawals,              ; @name withdrawals
+  ? 6 : alonzo_update,            ; @name update
+  ? 7 : auxiliary_data_hash,      ; @name auxiliary_data_hash
+  ? 8 : uint,                     ; @name validity_interval_start
+  ? 9 : mint,                     ; @name mint
+  ? 11 : script_data_hash,        ; @name script_data_hash
+  ? 13 : [* transaction_input],   ; @name collateral_inputs
+  ? 14 : required_signers,        ; @name required_signers
+  ? 15 : network_id,              ; @name network_id
  }
 
 alonzo_update = [
@@ -88,14 +86,13 @@ alonzo_costmdls = {
   0 : [ 166*166 int ], ; @name plutus_v1
 }
 
-; TODO: rename babbage structs and define them here
-alonzo_only_aux_data = #6.259({
-	? 0 => metadata,               ; @name metadata        
+alonzo_format_aux_data = #6.259({
+  ? 0 => metadata,               ; @name metadata        
   ? 1 => [ * native_script ],    ; @name native_scripts
   ? 2 => [ * plutus_v1_script ], ; @name plutus_v1_scripts
 })
 
 alonzo_auxiliary_data =
-    shelley_aux_data     ; @name shelley
-  / shelley_ma_aux_data  ; @name shelley_m_a
-  / alonzo_only_aux_data ; @name alonzo 
+    shelley_format_aux_data     ; @name shelley
+  / shelley_ma_format_aux_data  ; @name shelley_m_a
+  / alonzo_format_aux_data ; @name alonzo 

@@ -1,6 +1,3 @@
-use std::collections::BTreeMap;
-use std::convert::{From, TryFrom};
-
 pub mod address;
 pub mod assets;
 pub mod auxdata;
@@ -12,15 +9,15 @@ pub mod crypto;
 pub mod deposit;
 pub mod fees;
 pub mod genesis;
+pub mod governance;
 pub mod min_ada;
 pub mod plutus;
 pub mod serialization;
 pub mod transaction;
 pub mod utils;
 
-use assets::Mint;
-
 pub use assets::{Coin, Value};
+pub use utils::NetworkId;
 
 //pub mod legacy_address;
 
@@ -40,99 +37,94 @@ extern crate derivative;
 // https://github.com/dcSpark/cddl-codegen
 
 use address::RewardAccount;
-use block::ProtocolVersion;
 use cbor_encodings::{
-    AssetNameEncoding, PositiveIntervalEncoding, ProtocolParamUpdateEncoding,
-    ProtocolVersionStructEncoding, RationalEncoding, UnitIntervalEncoding, UpdateEncoding,
+    DRepVotingThresholdsEncoding, PoolVotingThresholdsEncoding, ProtocolParamUpdateEncoding,
+    RationalEncoding, UnitIntervalEncoding,
 };
-use crypto::GenesisHash;
-use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
+use governance::Voter;
+use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script, PlutusV3Script};
 use transaction::NativeScript;
 
-#[derive(
-    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
-)]
-#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct AssetName {
-    pub inner: Vec<u8>,
-    #[derivative(
-        PartialEq = "ignore",
-        Ord = "ignore",
-        PartialOrd = "ignore",
-        Hash = "ignore"
-    )]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct DRepVotingThresholds {
+    pub motion_no_confidence: UnitInterval,
+    pub committee_normal: UnitInterval,
+    pub committee_no_confidence: UnitInterval,
+    pub update_constitution: UnitInterval,
+    pub hard_fork_initiation: UnitInterval,
+    pub pp_network_group: UnitInterval,
+    pub pp_economic_group: UnitInterval,
+    pub pp_technical_group: UnitInterval,
+    pub pp_governance_group: UnitInterval,
+    pub treasury_withdrawal: UnitInterval,
     #[serde(skip)]
-    pub encodings: Option<AssetNameEncoding>,
+    pub encodings: Option<DRepVotingThresholdsEncoding>,
 }
 
-impl AssetName {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
-    pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
-        if inner.len() > 32 {
-            return Err(DeserializeError::new(
-                "AssetName",
-                DeserializeFailure::RangeCheck {
-                    found: inner.len(),
-                    min: Some(0),
-                    max: Some(32),
-                },
-            ));
-        }
-        Ok(Self {
-            inner,
+impl DRepVotingThresholds {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        motion_no_confidence: UnitInterval,
+        committee_normal: UnitInterval,
+        committee_no_confidence: UnitInterval,
+        update_constitution: UnitInterval,
+        hard_fork_initiation: UnitInterval,
+        pp_network_group: UnitInterval,
+        pp_economic_group: UnitInterval,
+        pp_technical_group: UnitInterval,
+        pp_governance_group: UnitInterval,
+        treasury_withdrawal: UnitInterval,
+    ) -> Self {
+        Self {
+            motion_no_confidence,
+            committee_normal,
+            committee_no_confidence,
+            update_constitution,
+            hard_fork_initiation,
+            pp_network_group,
+            pp_economic_group,
+            pp_technical_group,
+            pp_governance_group,
+            treasury_withdrawal,
             encodings: None,
-        })
-    }
-}
-
-impl TryFrom<Vec<u8>> for AssetName {
-    type Error = DeserializeError;
-
-    fn try_from(inner: Vec<u8>) -> Result<Self, Self::Error> {
-        AssetName::new(inner)
-    }
-}
-
-impl From<AssetName> for Vec<u8> {
-    fn from(wrapper: AssetName) -> Self {
-        wrapper.inner
+        }
     }
 }
 
 pub type DeltaCoin = Int;
 
-pub type GenesisHashList = Vec<GenesisHash>;
-
-pub type NetworkId = u32; // TODO: u8? or custom struct? (u8 can't be exposed to wasm)
-
 pub type PolicyId = cml_crypto::ScriptHash;
 
 pub type PolicyIdList = Vec<PolicyId>;
 
-pub type Port = u16;
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct PositiveInterval {
-    pub strart: u64,
-    pub end: u64,
+pub struct PoolVotingThresholds {
+    pub motion_no_confidence: UnitInterval,
+    pub committee_normal: UnitInterval,
+    pub committee_no_confidence: UnitInterval,
+    pub hard_fork_initiation: UnitInterval,
     #[serde(skip)]
-    pub encodings: Option<PositiveIntervalEncoding>,
+    pub encodings: Option<PoolVotingThresholdsEncoding>,
 }
 
-impl PositiveInterval {
-    pub fn new(strart: u64, end: u64) -> Self {
+impl PoolVotingThresholds {
+    pub fn new(
+        motion_no_confidence: UnitInterval,
+        committee_normal: UnitInterval,
+        committee_no_confidence: UnitInterval,
+        hard_fork_initiation: UnitInterval,
+    ) -> Self {
         Self {
-            strart,
-            end,
+            motion_no_confidence,
+            committee_normal,
+            committee_no_confidence,
+            hard_fork_initiation,
             encodings: None,
         }
     }
 }
 
-pub type ProposedProtocolParameterUpdates = OrderedHashMap<GenesisHash, ProtocolParamUpdate>;
+pub type Port = u16;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ProtocolParamUpdate {
@@ -148,7 +140,6 @@ pub struct ProtocolParamUpdate {
     pub pool_pledge_influence: Option<Rational>,
     pub expansion_rate: Option<UnitInterval>,
     pub treasury_growth_rate: Option<UnitInterval>,
-    pub protocol_version: Option<ProtocolVersionStruct>,
     pub min_pool_cost: Option<Coin>,
     pub ada_per_utxo_byte: Option<Coin>,
     pub cost_models_for_script_languages: Option<CostModels>,
@@ -158,6 +149,14 @@ pub struct ProtocolParamUpdate {
     pub max_value_size: Option<u64>,
     pub collateral_percentage: Option<u64>,
     pub max_collateral_inputs: Option<u64>,
+    pub pool_voting_thresholds: Option<PoolVotingThresholds>,
+    pub d_rep_voting_thresholds: Option<DRepVotingThresholds>,
+    pub min_committee_size: Option<u64>,
+    pub committee_term_limit: Option<u64>,
+    pub governance_action_validity_period: Option<Epoch>,
+    pub governance_action_deposit: Option<Coin>,
+    pub d_rep_deposit: Option<Coin>,
+    pub d_rep_inactivity_period: Option<Epoch>,
     #[serde(skip)]
     pub encodings: Option<ProtocolParamUpdateEncoding>,
 }
@@ -177,7 +176,6 @@ impl ProtocolParamUpdate {
             pool_pledge_influence: None,
             expansion_rate: None,
             treasury_growth_rate: None,
-            protocol_version: None,
             min_pool_cost: None,
             ada_per_utxo_byte: None,
             cost_models_for_script_languages: None,
@@ -187,6 +185,14 @@ impl ProtocolParamUpdate {
             max_value_size: None,
             collateral_percentage: None,
             max_collateral_inputs: None,
+            pool_voting_thresholds: None,
+            d_rep_voting_thresholds: None,
+            min_committee_size: None,
+            committee_term_limit: None,
+            governance_action_validity_period: None,
+            governance_action_deposit: None,
+            d_rep_deposit: None,
+            d_rep_inactivity_period: None,
             encodings: None,
         }
     }
@@ -195,22 +201,6 @@ impl ProtocolParamUpdate {
 impl Default for ProtocolParamUpdate {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct ProtocolVersionStruct {
-    pub protocol_version: ProtocolVersion,
-    #[serde(skip)]
-    pub encodings: Option<ProtocolVersionStructEncoding>,
-}
-
-impl ProtocolVersionStruct {
-    pub fn new(protocol_version: ProtocolVersion) -> Self {
-        Self {
-            protocol_version,
-            encodings: None,
-        }
     }
 }
 
@@ -266,6 +256,15 @@ pub enum Script {
         #[derivative(PartialEq = "ignore", Hash = "ignore")]
         tag_encoding: Option<cbor_event::Sz>,
     },
+    PlutusV3 {
+        script: PlutusV3Script,
+        #[serde(skip)]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
+        len_encoding: LenEncoding,
+        #[serde(skip)]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
+        tag_encoding: Option<cbor_event::Sz>,
+    },
 }
 
 impl Script {
@@ -287,6 +286,14 @@ impl Script {
 
     pub fn new_plutus_v2(script: PlutusV2Script) -> Self {
         Self::PlutusV2 {
+            script,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+        }
+    }
+
+    pub fn new_plutus_v3(script: PlutusV3Script) -> Self {
+        Self::PlutusV3 {
             script,
             len_encoding: LenEncoding::default(),
             tag_encoding: None,
@@ -314,25 +321,6 @@ impl UnitInterval {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Update {
-    pub proposed_protocol_parameter_updates: ProposedProtocolParameterUpdates,
-    pub epoch: Epoch,
-    #[serde(skip)]
-    pub encodings: Option<UpdateEncoding>,
-}
-
-impl Update {
-    pub fn new(
-        proposed_protocol_parameter_updates: ProposedProtocolParameterUpdates,
-        epoch: Epoch,
-    ) -> Self {
-        Self {
-            proposed_protocol_parameter_updates,
-            epoch,
-            encodings: None,
-        }
-    }
-}
+pub type VoterList = Vec<Voter>;
 
 pub type Withdrawals = OrderedHashMap<RewardAccount, Coin>;

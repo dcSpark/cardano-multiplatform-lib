@@ -5,72 +5,74 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use crate::plutus::{PlutusV1Script, PlutusV2Script};
+use crate::plutus::{PlutusV1Script, PlutusV2Script, PlutusV3Script};
 use crate::transaction::NativeScript;
-use cbor_encodings::{AlonzoAuxDataEncoding, ShelleyMaAuxDataEncoding};
+use cbor_encodings::{ConwayFormatAuxDataEncoding, ShelleyMaFormatAuxDataEncoding};
 
 pub use cml_core::metadata::*;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct AlonzoAuxData {
+pub enum AuxiliaryData {
+    Shelley(ShelleyFormatAuxData),
+    ShelleyMA(ShelleyMaFormatAuxData),
+    Conway(ConwayFormatAuxData),
+}
+
+impl AuxiliaryData {
+    pub fn new_shelley(shelley: ShelleyFormatAuxData) -> Self {
+        Self::Shelley(shelley)
+    }
+
+    pub fn new_shelley_m_a(shelley_m_a: ShelleyMaFormatAuxData) -> Self {
+        Self::ShelleyMA(shelley_m_a)
+    }
+
+    pub fn new_conway(conway: ConwayFormatAuxData) -> Self {
+        Self::Conway(conway)
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct ConwayFormatAuxData {
     pub metadata: Option<Metadata>,
     pub native_scripts: Option<Vec<NativeScript>>,
     pub plutus_v1_scripts: Option<Vec<PlutusV1Script>>,
     pub plutus_v2_scripts: Option<Vec<PlutusV2Script>>,
+    pub plutus_v3_scripts: Option<Vec<PlutusV3Script>>,
     #[serde(skip)]
-    pub encodings: Option<AlonzoAuxDataEncoding>,
+    pub encodings: Option<ConwayFormatAuxDataEncoding>,
 }
 
-impl AlonzoAuxData {
+impl ConwayFormatAuxData {
     pub fn new() -> Self {
         Self {
             metadata: None,
             native_scripts: None,
             plutus_v1_scripts: None,
             plutus_v2_scripts: None,
+            plutus_v3_scripts: None,
             encodings: None,
         }
     }
 }
 
-impl Default for AlonzoAuxData {
+impl Default for ConwayFormatAuxData {
     fn default() -> Self {
         Self::new()
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub enum AuxiliaryData {
-    Shelley(ShelleyAuxData),
-    ShelleyMA(ShelleyMaAuxData),
-    Alonzo(AlonzoAuxData),
-}
-
-impl AuxiliaryData {
-    pub fn new_shelley(shelley: ShelleyAuxData) -> Self {
-        Self::Shelley(shelley)
-    }
-
-    pub fn new_shelley_m_a(shelley_m_a: ShelleyMaAuxData) -> Self {
-        Self::ShelleyMA(shelley_m_a)
-    }
-
-    pub fn new_alonzo(alonzo: AlonzoAuxData) -> Self {
-        Self::Alonzo(alonzo)
-    }
-}
-
-pub type ShelleyAuxData = Metadata;
+pub type ShelleyFormatAuxData = Metadata;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct ShelleyMaAuxData {
+pub struct ShelleyMaFormatAuxData {
     pub transaction_metadata: Metadata,
     pub auxiliary_scripts: Vec<NativeScript>,
     #[serde(skip)]
-    pub encodings: Option<ShelleyMaAuxDataEncoding>,
+    pub encodings: Option<ShelleyMaFormatAuxDataEncoding>,
 }
 
-impl ShelleyMaAuxData {
+impl ShelleyMaFormatAuxData {
     pub fn new(transaction_metadata: Metadata, auxiliary_scripts: Vec<NativeScript>) -> Self {
         Self {
             transaction_metadata,

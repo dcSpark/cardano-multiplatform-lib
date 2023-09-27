@@ -3,11 +3,11 @@ protocol_version = (
     minor: uint,
 )
 
-protocol_version_struct = [protocol_version]
-
 operational_cert =
   ( hot_vkey        : $KES_vkey
   , sequence_number : uint
   , kes_period      : uint
   , sigma           : ed25519_signature
   )
+
+header = _CDDL_CODEGEN_EXTERN_TYPE_

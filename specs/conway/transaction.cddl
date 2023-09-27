@@ -14,7 +14,6 @@ transaction_body = {
    ? 3 : uint,                   ; @name ttl
    ? 4 : [* certificate],        ; @name certs
    ? 5 : withdrawals,            ; @name withdrawals
-   ? 6 : update,                 ; @name update
    ? 7 : auxiliary_data_hash,    ; @name auxiliary_data_hash
    ? 8 : uint,                   ; @name validity_interval_start
    ? 9 : mint,                   ; @name mint
@@ -25,6 +24,10 @@ transaction_body = {
   ? 16 : transaction_output,     ; @name collateral_return
   ? 17 : coin,                   ; @name total_collateral
   ? 18 : [* transaction_input],  ; @name reference_inputs
+  ? 19 : voting_procedures,      ; @name voting_procedures
+  ? 20 : [* proposal_procedure], ; @name proposal_procedures
+  ? 21 : coin,                   ; @name current_treasury_value
+  ? 22 : positive_coin,          ; @name donation
 }
 
 required_signers = [* ed25519_key_hash]
@@ -33,20 +36,19 @@ transaction_input = [ transaction_id : transaction_hash
                     , index : uint
                     ]
 
-shelley_tx_out = [address, amount: value]
-alonzo_tx_out = [
+alonzo_format_tx_out = [
   address,
   amount : value,
-  datum_hash
+  ? datum_hash
 ]
-babbage_tx_out = {
+conway_format_tx_out = {
     0 : address,      ; @name address
     1 : value,        ; @name amount
   ? 2 : datum_option, ; @name datum_option
   ? 3 : script_ref,   ; @name script_reference
 }
 
-transaction_output = shelley_tx_out / alonzo_tx_out / babbage_tx_out
+transaction_output = alonzo_format_tx_out / conway_format_tx_out
 
 
 ; This is a hash of data which may affect evaluation of a script.
@@ -114,7 +116,9 @@ script = [
   ; @name plutus_v1
   tag: 1, script: plutus_v1_script //
   ; @name plutus_v2
-  tag: 2, script: plutus_v2_script
+  tag: 2, script: plutus_v2_script //
+  ; @name plutus_v3
+  tag: 3, script: plutus_v3_script
 ]
 
 
@@ -126,6 +130,7 @@ transaction_witness_set = {
   ? 4: [* plutus_data ],       ; @name plutus_datums
   ? 5: [* redeemer ],          ; @name redeemers
   ? 6: [* plutus_v2_script ],  ; @name plutus_v2_scripts
+  ? 7: [* plutus_v3_script ],  ; @name plutus_v3_scripts
 }
 
 native_script =

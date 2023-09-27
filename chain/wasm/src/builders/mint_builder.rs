@@ -3,7 +3,7 @@ use crate::builders::witness_builder::{NativeScriptWitnessInfo, PartialPlutusWit
 use cml_core_wasm::impl_wasm_conversions;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::{transaction::RequiredSigners, AssetName, MapAssetNameToI64, NativeScript};
+use crate::{transaction::RequiredSigners, AssetName, MapAssetNameToNonZeroInt64, NativeScript};
 
 #[wasm_bindgen]
 #[derive(Clone)]
@@ -25,7 +25,7 @@ impl_wasm_conversions!(
 
 #[wasm_bindgen]
 impl SingleMintBuilder {
-    pub fn new(assets: &MapAssetNameToI64) -> Self {
+    pub fn new(assets: &MapAssetNameToNonZeroInt64) -> Self {
         cml_chain::builders::mint_builder::SingleMintBuilder::new(assets.clone().into()).into()
     }
 

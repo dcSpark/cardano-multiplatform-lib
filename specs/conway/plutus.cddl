@@ -12,6 +12,7 @@ bounded_bytes = bytes ; @no_alias
 
 plutus_v1_script = bytes ; @newtype
 plutus_v2_script = bytes ; @newtype
+plutus_v3_script = bytes ; @newtype
 
 plutus_data =
     constr_plutus_data
@@ -48,8 +49,10 @@ ex_unit_prices =
 
 language = 0 ; @name plutus_v1
          / 1 ; @name plutus_v2
+         / 2 ; @name plutus_v3
 
 cost_models = {
   ? 0 : [ 166*166 int ], ; @name plutus_v1
   ? 1 : [ 175*175 int ], ; @name plutus_v2
+  ? 2 : [ 179*179 int ], ; @name plutus_v3
 }

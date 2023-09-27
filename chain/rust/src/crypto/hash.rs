@@ -143,6 +143,15 @@ pub fn calc_script_data_hash(
                             .clone(),
                     );
                 }
+                Language::PlutusV3 => {
+                    required_costmdls.plutus_v3 = Some(
+                        cost_models
+                            .plutus_v3
+                            .as_ref()
+                            .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
+                            .clone(),
+                    );
+                }
             }
         }
 
@@ -168,9 +177,10 @@ pub fn calc_script_data_hash(
 /// https://github.com/input-output-hk/cardano-ledger/blob/9c3b4737b13b30f71529e76c5330f403165e28a6/eras/alonzo/impl/src/Cardano/Ledger/Alonzo.hs#L127
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) enum ScriptHashNamespace {
-    NativeScript,
-    PlutusV1,
-    PlutusV2,
+    NativeScript = 0x00,
+    PlutusV1 = 0x01,
+    PlutusV2 = 0x02,
+    PlutusV3 = 0x03,
 }
 
 pub(crate) fn hash_script(namespace: ScriptHashNamespace, script: &[u8]) -> ScriptHash {

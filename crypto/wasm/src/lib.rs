@@ -481,6 +481,7 @@ impl_hash_type!(ScriptDataHash);
 impl_hash_type!(VRFVkey);
 impl_hash_type!(KESVkey);
 impl_hash_type!(NonceHash);
+impl_hash_type!(AnchorDocHash);
 
 #[wasm_bindgen]
 #[derive(Clone)]

@@ -1,7 +1,7 @@
 use core::hash::{Hash, Hasher};
 
 // allowing this since PartialEq equality here still implies hash equality
-#[allow(clippy::derive_hash_xor_eq)]
+#[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Clone, Debug, Ord, Eq, PartialEq, PartialOrd)]
 pub struct OrderedHashMap<K, V>(linked_hash_map::LinkedHashMap<K, V>)
 where
@@ -49,7 +49,7 @@ where
     }
 }
 
-#[allow(clippy::derive_hash_xor_eq)]
+#[allow(clippy::derived_hash_with_manual_eq)]
 impl<K, V> Hash for OrderedHashMap<K, V>
 where
     K: Hash + Eq + Ord,

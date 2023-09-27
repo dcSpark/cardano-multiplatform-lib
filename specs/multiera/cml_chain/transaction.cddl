@@ -4,5 +4,5 @@ transaction_metadatum_label = uint
 transaction_metadatum = _CDDL_CODEGEN_EXTERN_TYPE_
 required_signers = [* ed25519_key_hash]
 native_script = _CDDL_CODEGEN_EXTERN_TYPE_
-shelley_tx_out = _CDDL_CODEGEN_EXTERN_TYPE_
-alonzo_tx_out = _CDDL_CODEGEN_EXTERN_TYPE_
+alonzo_format_tx_out = _CDDL_CODEGEN_EXTERN_TYPE_
+datum_option = _CDDL_CODEGEN_EXTERN_TYPE_

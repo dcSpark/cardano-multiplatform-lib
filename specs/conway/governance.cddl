@@ -1,0 +1,92 @@
+
+voting_procedures = { + voter => { + gov_action_id => voting_procedure } }
+
+voting_procedure =
+  [ vote
+  , anchor / null
+  ]
+
+proposal_procedure =
+  [ deposit : coin
+  , reward_account
+  , gov_action
+  , anchor
+  ]
+
+gov_action =
+  [ parameter_change_action
+  // hard_fork_initiation_action
+  // treasury_withdrawals_action
+  // no_confidence
+  // new_committee
+  // new_constitution
+  // 6 ; @name info_action
+  ]
+
+parameter_change_action = (tag: 0, gov_action_id / null, protocol_param_update)
+
+hard_fork_initiation_action = (
+  tag: 1
+  action_id: gov_action_id / null,
+  version: [protocol_version]
+)
+
+treasury_withdrawals_action = (
+  tag: 2,
+  withdrawal: { $reward_account => coin }
+)
+
+no_confidence = (
+  tag: 3,
+  action_id: gov_action_id / null
+)
+
+new_committee = (
+  tag: 4,
+  action_id: gov_action_id / null,
+  cold_credentials: [* committee_cold_credential],
+  committee
+)
+
+new_constitution = (
+  tag: 5,
+  action_id: gov_action_id / null,
+  constitution
+)
+
+committee = [
+  credentials: { $committee_cold_credential => epoch },
+  unit_interval
+]
+
+constitution = [
+  anchor,
+  script_hash / null,
+]
+
+voter = [
+  ; @name constitutional_committee_hot_key_hash
+  0, ed25519_key_hash //
+  ; @name constitutional_committee_hot_script_hash
+  1, script_hash //
+  ; @name d_rep_key_hash
+  2, ed25519_key_hash //
+  ; @name d_rep_script_hash
+  3, script_hash //
+  ; @name staking_pool_key_hash
+  4, ed25519_key_hash
+  ]
+
+anchor = [
+  anchor_url       : url,
+  anchor_doc_hash,
+]
+
+vote = 0 ; @name no
+     / 1 ; @name yes
+     / 2 ; @name abstain
+
+gov_action_id =
+  [ transaction_id   : transaction_hash
+  , gov_action_index : uint
+  ]

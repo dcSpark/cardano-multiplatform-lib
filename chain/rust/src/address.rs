@@ -328,6 +328,7 @@ impl Address {
             }
             match (header & 0xF0) >> 4 {
                 // base
+                #[allow(clippy::manual_range_patterns)]
                 0b0000 | 0b0001 | 0b0010 | 0b0011 => {
                     const BASE_ADDR_SIZE: usize = 1 + HASH_LEN * 2;
                     let trailing = len_check_trailing(data, BASE_ADDR_SIZE)?;

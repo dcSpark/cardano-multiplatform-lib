@@ -9,8 +9,9 @@ use crate::{
     transaction::RequiredSigners,
 };
 
-use cml_crypto::{Ed25519KeyHash, RawBytesEncoding, ScriptHash};
+use cml_crypto::{Ed25519KeyHash, ScriptHash};
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, thiserror::Error)]
 pub enum CertBuilderError {
     #[error("Deregistration certificate contains script. Expected public key hash.\n{0:?}")]
@@ -51,17 +52,23 @@ pub fn cert_required_wits(cert: &Certificate, required_witnesses: &mut RequiredW
         Certificate::PoolRetirement(cert) => {
             required_witnesses.add_vkey_key_hash(cert.ed25519_key_hash.clone());
         }
-        Certificate::GenesisKeyDelegation(cert) => {
-            required_witnesses.add_vkey_key_hash(
-                Ed25519KeyHash::from_raw_bytes(cert.genesis_delegate_hash.to_raw_bytes()).unwrap(),
-            );
-        }
-        // no witness as there is no single core node or genesis key that posts the certificate
-        Certificate::MoveInstantaneousRewardsCert(_cert) => {}
+        Certificate::RegCert(_cert) => todo!(),
+        Certificate::UnregCert(_cert) => todo!(),
+        Certificate::VoteDelegCert(_cert) => todo!(),
+        Certificate::StakeVoteDelegCert(_cert) => todo!(),
+        Certificate::StakeRegDelegCert(_cert) => todo!(),
+        Certificate::VoteRegDelegCert(_cert) => todo!(),
+        Certificate::StakeVoteRegDelegCert(_cert) => todo!(),
+        Certificate::AuthCommitteeHotCert(_cert) => todo!(),
+        Certificate::ResignCommitteeColdCert(_cert) => todo!(),
+        Certificate::RegDrepCert(_cert) => todo!(),
+        Certificate::UnregDrepCert(_cert) => todo!(),
+        Certificate::UpdateDrepCert(_cert) => todo!(),
     };
 }
 
 // comes from witsVKeyNeeded in the Ledger spec
+#[allow(clippy::result_large_err)]
 pub fn add_cert_vkeys(
     cert: &Certificate,
     vkeys: &mut HashSet<Ed25519KeyHash>,
@@ -94,13 +101,18 @@ pub fn add_cert_vkeys(
         Certificate::PoolRetirement(cert) => {
             vkeys.insert(cert.ed25519_key_hash.clone());
         }
-        Certificate::GenesisKeyDelegation(cert) => {
-            vkeys.insert(
-                Ed25519KeyHash::from_raw_bytes(cert.genesis_delegate_hash.to_raw_bytes()).unwrap(),
-            );
-        }
-        // no witness as there is no single core node or genesis key that posts the certificate
-        Certificate::MoveInstantaneousRewardsCert(_cert) => {}
+        Certificate::RegCert(_cert) => todo!(),
+        Certificate::UnregCert(_cert) => todo!(),
+        Certificate::VoteDelegCert(_cert) => todo!(),
+        Certificate::StakeVoteDelegCert(_cert) => todo!(),
+        Certificate::StakeRegDelegCert(_cert) => todo!(),
+        Certificate::VoteRegDelegCert(_cert) => todo!(),
+        Certificate::StakeVoteRegDelegCert(_cert) => todo!(),
+        Certificate::AuthCommitteeHotCert(_cert) => todo!(),
+        Certificate::ResignCommitteeColdCert(_cert) => todo!(),
+        Certificate::RegDrepCert(_cert) => todo!(),
+        Certificate::UnregDrepCert(_cert) => todo!(),
+        Certificate::UpdateDrepCert(_cert) => todo!(),
     };
     Ok(())
 }
@@ -134,6 +146,7 @@ impl SingleCertificateBuilder {
         }
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn payment_key(self) -> Result<CertificateBuilderResult, CertBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
         cert_required_wits(&self.cert, &mut required_wits);
@@ -150,6 +163,7 @@ impl SingleCertificateBuilder {
     }
 
     /** Signer keys don't have to be set. You can leave it empty and then add the required witnesses later */
+    #[allow(clippy::result_large_err)]
     pub fn native_script(
         self,
         native_script: NativeScript,
@@ -186,6 +200,7 @@ impl SingleCertificateBuilder {
         })
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn plutus_script(
         self,
         partial_witness: PartialPlutusWitness,

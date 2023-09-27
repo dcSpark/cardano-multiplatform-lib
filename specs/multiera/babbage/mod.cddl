@@ -1,0 +1,118 @@
+babbage_block =
+  [ header
+  , transaction_bodies         : [* babbage_transaction_body]
+  , transaction_witness_sets   : [* babbage_transaction_witness_set]
+  , auxiliary_data_set         : {* transaction_index => babbage_auxiliary_data }
+  , invalid_transactions       : [* transaction_index ]
+  ]; Valid blocks must also satisfy the following two constraints:
+   ; 1) the length of transaction_bodies and transaction_witness_sets
+   ;    must be the same
+   ; 2) every transaction_index must be strictly smaller than the
+   ;    length of transaction_bodies
+
+babbage_transaction_witness_set = {
+  ? 0: [* vkeywitness ],       ; @name vkeywitnesses
+  ? 1: [* native_script ],     ; @name native_scripts
+  ? 2: [* bootstrap_witness ], ; @name bootstrap_witnesses
+  ? 3: [* plutus_v1_script ],  ; @name plutus_v1_scripts
+  ? 4: [* plutus_data ],       ; @name plutus_datums
+  ? 5: [* redeemer ],          ; @name redeemers
+  ? 6: [* plutus_v2_script ],  ; @name plutus_v2_scripts
+}
+
+babbage_transaction = [
+  body: babbage_transaction_body,
+  witness_set: babbage_transaction_witness_set,
+  is_valid: bool,
+  auxiliary_data: babbage_auxiliary_data / null,
+]
+
+babbage_script_ref = #6.24(bytes .cbor babbage_script)
+
+babbage_script = [
+  ; @name native
+  tag: 0, script: native_script //
+  ; @name plutus_v1
+  tag: 1, script: plutus_v1_script //
+  ; @name plutus_v2
+  tag: 2, script: plutus_v2_script
+]
+
+babbage_format_tx_out = {
+    0 : address,            ; @name address
+    1 : value,              ; @name amount
+  ? 2 : datum_option,       ; @name datum_option
+  ? 3 : babbage_script_ref, ; @name script_reference
+}
+
+babbage_transaction_output = alonzo_format_tx_out / babbage_format_tx_out
+
+babbage_transaction_body = {
+     0 : [* transaction_input],           ; @name inputs
+     1 : [* babbage_transaction_output],  ; @name outputs
+     2 : coin,                            ; @name fee
+   ? 3 : uint,                            ; @name ttl
+   ? 4 : [* allegra_certificate],         ; @name certs
+   ? 5 : withdrawals,                     ; @name withdrawals
+   ? 6 : babbage_update,                  ; @name update
+   ? 7 : auxiliary_data_hash,             ; @name auxiliary_data_hash
+   ? 8 : uint,                            ; @name validity_interval_start
+   ? 9 : mint,                            ; @name mint
+  ? 11 : script_data_hash,                ; @name script_data_hash
+  ? 13 : [* transaction_input],           ; @name collateral_inputs
+  ? 14 : required_signers,                ; @name required_signers
+  ? 15 : network_id,                      ; @name network_id
+  ? 16 : babbage_transaction_output,      ; @name collateral_return
+  ? 17 : coin,                            ; @name total_collateral
+  ? 18 : [* transaction_input],           ; @name reference_inputs
+}
+
+babbage_update = [
+  updates: babbage_proposed_protocol_parameter_updates,
+  epoch
+]
+
+babbage_proposed_protocol_parameter_updates =
+  { * genesis_hash => babbage_protocol_param_update }
+
+babbage_cost_models = {
+  ? 0 : [ 166*166 int ], ; @name plutus_v1
+  ? 1 : [ 175*175 int ], ; @name plutus_v2
+}
+
+babbage_protocol_param_update = {
+  ? 0:  uint,                ; @name minfee_a
+  ? 1:  uint,                ; @name minfee_b
+  ? 2:  uint,                ; @name max_block_body_size
+  ? 3:  uint,                ; @name max_transaction_size
+  ? 4:  uint,                ; @name max_block_header_size
+  ? 5:  coin,                ; @name key_deposit
+  ? 6:  coin,                ; @name pool_deposit
+  ? 7: epoch,                ; @name maximum_epoch
+  ? 8: uint,                 ; @name n_opt desired number of stake pools
+  ? 9: rational,             ; @name pool_pledge_influence
+  ? 10: unit_interval,       ; @name expansion_rate
+  ? 11: unit_interval,       ; @name treasury_growth_rate
+  ? 14: protocol_version_struct,  ; @name protocol_version
+  ? 16: coin,                ; @name min_pool_cost
+  ? 17: coin,                ; @name ada_per_utxo_byte
+  ? 18: babbage_cost_models, ; @name cost_models_for_script_languages
+  ? 19: ex_unit_prices,      ; @name execution_costs
+  ? 20: ex_units,            ; @name max_tx_ex_units
+  ? 21: ex_units,            ; @name max_block_ex_units
+  ? 22: uint,                ; @name max_value_size
+  ? 23: uint,                ; @name collateral_percentage
+  ? 24: uint,                ; @name max_collateral_inputs
+}
+
+babbage_format_aux_data = #6.259({
+  ? 0 => metadata,               ; @name metadata        
+  ? 1 => [ * native_script ],    ; @name native_scripts
+  ? 2 => [ * plutus_v1_script ], ; @name plutus_v1_scripts
+  ? 3 => [ * plutus_v2_script ], ; @name plutus_v2_scripts
+})
+
+babbage_auxiliary_data =
+    shelley_format_aux_data     ; @name shelley
+  / shelley_ma_format_aux_data  ; @name shelley_m_a
+  / babbage_format_aux_data     ; @name babbage 

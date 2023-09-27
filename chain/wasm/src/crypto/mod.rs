@@ -1,9 +1,13 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+pub use cml_crypto_wasm::{
+    AnchorDocHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash,
+    Ed25519Signature, GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash,
+    ScriptDataHash, ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
+};
 
-use cml_crypto_wasm::{Ed25519Signature, NonceHash};
+use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 

@@ -80,3 +80,4 @@ block_body_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 block_header_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 transaction_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 script_data_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+anchor_doc_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_

@@ -2,33 +2,66 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use crate::{
-    MapStakeCredentialToCoin, MultisigScriptList, ShelleyTransactionBodyList,
-    ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
+    GenesisHashList, MapStakeCredentialToCoin, MultisigScriptList, ShelleyCertificateList,
+    ShelleyTransactionBodyList, ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
 };
 use cml_chain_wasm::address::Address;
 use cml_chain_wasm::assets::Coin;
 use cml_chain_wasm::auxdata::Metadata;
 use cml_chain_wasm::block::{OperationalCert, ProtocolVersion};
 use cml_chain_wasm::certs::{
-    GenesisKeyDelegation, MIRPot, PoolRegistration, PoolRetirement, StakeDelegation,
+    PoolParams, PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation,
     StakeDeregistration, StakeRegistration,
 };
 use cml_chain_wasm::crypto::{KESSignature, Nonce, VRFCert, Vkey};
 use cml_chain_wasm::{BootstrapWitnessList, TransactionInputList, VkeywitnessList};
 use cml_chain_wasm::{Epoch, Rational, UnitInterval, Withdrawals};
-use cml_chain_wasm::{GenesisHashList, ProtocolVersionStruct};
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{
-    AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, Ed25519KeyHash, GenesisHash, VRFVkey,
+    AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, Ed25519KeyHash, GenesisDelegateHash,
+    GenesisHash, VRFKeyHash, VRFVkey,
 };
+use cml_multi_era::allegra::MIRPot;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
-impl_wasm_list!(
-    cml_multi_era::shelley::ShelleyCertificate,
-    ShelleyCertificate,
-    ShelleyCertificateList
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct GenesisKeyDelegation(cml_multi_era::shelley::GenesisKeyDelegation);
+
+impl_wasm_cbor_json_api!(GenesisKeyDelegation);
+
+impl_wasm_conversions!(
+    cml_multi_era::shelley::GenesisKeyDelegation,
+    GenesisKeyDelegation
 );
+
+#[wasm_bindgen]
+impl GenesisKeyDelegation {
+    pub fn genesis_hash(&self) -> GenesisHash {
+        self.0.genesis_hash.clone().into()
+    }
+
+    pub fn genesis_delegate_hash(&self) -> GenesisDelegateHash {
+        self.0.genesis_delegate_hash.clone().into()
+    }
+
+    pub fn v_r_f_key_hash(&self) -> VRFKeyHash {
+        self.0.v_r_f_key_hash.clone().into()
+    }
+
+    pub fn new(
+        genesis_hash: &GenesisHash,
+        genesis_delegate_hash: &GenesisDelegateHash,
+        v_r_f_key_hash: &VRFKeyHash,
+    ) -> Self {
+        Self(cml_multi_era::shelley::GenesisKeyDelegation::new(
+            genesis_hash.clone().into(),
+            genesis_delegate_hash.clone().into(),
+            v_r_f_key_hash.clone().into(),
+        ))
+    }
+}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -218,6 +251,30 @@ pub enum MultisigScriptKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+pub struct ProtocolVersionStruct(cml_multi_era::shelley::ProtocolVersionStruct);
+
+impl_wasm_cbor_json_api!(ProtocolVersionStruct);
+
+impl_wasm_conversions!(
+    cml_multi_era::shelley::ProtocolVersionStruct,
+    ProtocolVersionStruct
+);
+
+#[wasm_bindgen]
+impl ProtocolVersionStruct {
+    pub fn protocol_version(&self) -> ProtocolVersion {
+        self.0.protocol_version.clone().into()
+    }
+
+    pub fn new(protocol_version: &ProtocolVersion) -> Self {
+        Self(cml_multi_era::shelley::ProtocolVersionStruct::new(
+            protocol_version.clone().into(),
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
 pub struct ShelleyBlock(cml_multi_era::shelley::ShelleyBlock);
 
 impl_wasm_cbor_json_api!(ShelleyBlock);
@@ -270,60 +327,71 @@ impl_wasm_conversions!(
 
 #[wasm_bindgen]
 impl ShelleyCertificate {
-    pub fn new_stake_registration(stake_registration: &StakeRegistration) -> Self {
+    pub fn new_stake_registration(stake_credential: &StakeCredential) -> Self {
         Self(
             cml_multi_era::shelley::ShelleyCertificate::new_stake_registration(
-                stake_registration.clone().into(),
+                stake_credential.clone().into(),
             ),
         )
     }
 
-    pub fn new_stake_deregistration(stake_deregistration: &StakeDeregistration) -> Self {
+    pub fn new_stake_deregistration(stake_credential: &StakeCredential) -> Self {
         Self(
             cml_multi_era::shelley::ShelleyCertificate::new_stake_deregistration(
-                stake_deregistration.clone().into(),
+                stake_credential.clone().into(),
             ),
         )
     }
 
-    pub fn new_stake_delegation(stake_delegation: &StakeDelegation) -> Self {
+    pub fn new_stake_delegation(
+        stake_credential: &StakeCredential,
+        ed25519_key_hash: &Ed25519KeyHash,
+    ) -> Self {
         Self(
             cml_multi_era::shelley::ShelleyCertificate::new_stake_delegation(
-                stake_delegation.clone().into(),
+                stake_credential.clone().into(),
+                ed25519_key_hash.clone().into(),
             ),
         )
     }
 
-    pub fn new_pool_registration(pool_registration: &PoolRegistration) -> Self {
+    pub fn new_pool_registration(pool_params: &PoolParams) -> Self {
         Self(
             cml_multi_era::shelley::ShelleyCertificate::new_pool_registration(
-                pool_registration.clone().into(),
+                pool_params.clone().into(),
             ),
         )
     }
 
-    pub fn new_pool_retirement(pool_retirement: &PoolRetirement) -> Self {
+    pub fn new_pool_retirement(ed25519_key_hash: &Ed25519KeyHash, epoch: Epoch) -> Self {
         Self(
             cml_multi_era::shelley::ShelleyCertificate::new_pool_retirement(
-                pool_retirement.clone().into(),
+                ed25519_key_hash.clone().into(),
+                epoch,
             ),
         )
     }
 
-    pub fn new_genesis_key_delegation(genesis_key_delegation: &GenesisKeyDelegation) -> Self {
+    pub fn new_genesis_key_delegation(
+        genesis_hash: &GenesisHash,
+        genesis_delegate_hash: &GenesisDelegateHash,
+        v_r_f_key_hash: &VRFKeyHash,
+    ) -> Self {
         Self(
             cml_multi_era::shelley::ShelleyCertificate::new_genesis_key_delegation(
-                genesis_key_delegation.clone().into(),
+                genesis_hash.clone().into(),
+                genesis_delegate_hash.clone().into(),
+                v_r_f_key_hash.clone().into(),
             ),
         )
     }
 
     pub fn new_shelley_move_instantaneous_rewards_cert(
-        shelley_move_instantaneous_rewards_cert: &ShelleyMoveInstantaneousRewardsCert,
+        shelley_move_instantaneous_reward: &ShelleyMoveInstantaneousReward,
     ) -> Self {
         Self(
             cml_multi_era::shelley::ShelleyCertificate::new_shelley_move_instantaneous_rewards_cert(
-                shelley_move_instantaneous_rewards_cert.clone().into(),
+                shelley_move_instantaneous_reward.clone().into(),
             ),
         )
     }
@@ -348,9 +416,9 @@ impl ShelleyCertificate {
             cml_multi_era::shelley::ShelleyCertificate::GenesisKeyDelegation(_) => {
                 ShelleyCertificateKind::GenesisKeyDelegation
             }
-            cml_multi_era::shelley::ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert(_) => {
-                ShelleyCertificateKind::ShelleyMoveInstantaneousRewardsCert
-            }
+            cml_multi_era::shelley::ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert {
+                ..
+            } => ShelleyCertificateKind::ShelleyMoveInstantaneousRewardsCert,
         }
     }
 
@@ -412,9 +480,10 @@ impl ShelleyCertificate {
         &self,
     ) -> Option<ShelleyMoveInstantaneousRewardsCert> {
         match &self.0 {
-            cml_multi_era::shelley::ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert(
+            cml_multi_era::shelley::ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert {
                 shelley_move_instantaneous_rewards_cert,
-            ) => Some(shelley_move_instantaneous_rewards_cert.clone().into()),
+                ..
+            } => Some(shelley_move_instantaneous_rewards_cert.clone().into()),
             _ => None,
         }
     }

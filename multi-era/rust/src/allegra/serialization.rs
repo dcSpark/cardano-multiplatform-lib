@@ -7,6 +7,8 @@ use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_chain::address::RewardAccount;
+use cml_chain::auxdata::ShelleyFormatAuxData;
+use cml_chain::auxdata::ShelleyMaFormatAuxData;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::RawBytesEncoding;
@@ -19,11 +21,11 @@ impl Serialize for AllegraAuxiliaryData {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
-            AllegraAuxiliaryData::ShelleyAuxData(shelley_aux_data) => {
-                shelley_aux_data.serialize(serializer, force_canonical)
+            AllegraAuxiliaryData::Shelley(shelley) => {
+                shelley.serialize(serializer, force_canonical)
             }
-            AllegraAuxiliaryData::ShelleyMaAuxData(shelley_ma_aux_data) => {
-                shelley_ma_aux_data.serialize(serializer, force_canonical)
+            AllegraAuxiliaryData::ShelleyMA(shelley_m_a) => {
+                shelley_m_a.serialize(serializer, force_canonical)
             }
         }
     }
@@ -33,28 +35,32 @@ impl Deserialize for AllegraAuxiliaryData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
-            let deser_variant: Result<_, DeserializeError> = ShelleyAuxData::deserialize(raw);
+            let mut errs = Vec::new();
+            let deser_variant: Result<_, DeserializeError> = ShelleyFormatAuxData::deserialize(raw);
             match deser_variant {
-                Ok(shelley_aux_data) => return Ok(Self::ShelleyAuxData(shelley_aux_data)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Ok(shelley) => return Ok(Self::Shelley(shelley)),
+                Err(e) => {
+                    errs.push(e.annotate("Shelley"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
-            let deser_variant: Result<_, DeserializeError> = ShelleyMaAuxData::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                ShelleyMaFormatAuxData::deserialize(raw);
             match deser_variant {
-                Ok(shelley_ma_aux_data) => return Ok(Self::ShelleyMaAuxData(shelley_ma_aux_data)),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Ok(shelley_m_a) => return Ok(Self::ShelleyMA(shelley_m_a)),
+                Err(e) => {
+                    errs.push(e.annotate("ShelleyMA"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
-            println!("trailing: {:?}", raw.as_mut_ref().fill_buf().unwrap());
-            // Err(DeserializeError::new(
-            //     "AllegraAuxiliaryData",
-            //     DeserializeFailure::NoVariantMatched,
-            // ))
-            ShelleyMaAuxData::deserialize(raw).map(Self::ShelleyMaAuxData)
+            Err(DeserializeError::new(
+                "AllegraAuxiliaryData",
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
+            ))
         })()
         .map_err(|e| e.annotate("AllegraAuxiliaryData"))
     }
@@ -229,6 +235,150 @@ impl Deserialize for AllegraBlock {
                 }),
             })
         })().map_err(|e| e.annotate("AllegraBlock"))
+    }
+}
+
+impl Serialize for AllegraCertificate {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        match self {
+            AllegraCertificate::StakeRegistration(stake_registration) => {
+                stake_registration.serialize(serializer, force_canonical)
+            }
+            AllegraCertificate::StakeDeregistration(stake_deregistration) => {
+                stake_deregistration.serialize(serializer, force_canonical)
+            }
+            AllegraCertificate::StakeDelegation(stake_delegation) => {
+                stake_delegation.serialize(serializer, force_canonical)
+            }
+            AllegraCertificate::PoolRegistration(pool_registration) => {
+                pool_registration.serialize(serializer, force_canonical)
+            }
+            AllegraCertificate::PoolRetirement(pool_retirement) => {
+                pool_retirement.serialize(serializer, force_canonical)
+            }
+            AllegraCertificate::GenesisKeyDelegation(genesis_key_delegation) => {
+                genesis_key_delegation.serialize(serializer, force_canonical)
+            }
+            AllegraCertificate::MoveInstantaneousRewardsCert(move_instantaneous_rewards_cert) => {
+                move_instantaneous_rewards_cert.serialize(serializer, force_canonical)
+            }
+        }
+    }
+}
+
+impl Deserialize for AllegraCertificate {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let mut read_len = CBORReadLen::new(len);
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let mut errs = Vec::new();
+            let deser_variant: Result<_, DeserializeError> =
+                StakeRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+            match deser_variant {
+                Ok(stake_registration) => return Ok(Self::StakeRegistration(stake_registration)),
+                Err(e) => {
+                    errs.push(e.annotate("StakeRegistration"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> =
+                StakeDeregistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+            match deser_variant {
+                Ok(stake_deregistration) => {
+                    return Ok(Self::StakeDeregistration(stake_deregistration))
+                }
+                Err(e) => {
+                    errs.push(e.annotate("StakeDeregistration"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> =
+                StakeDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
+            match deser_variant {
+                Ok(stake_delegation) => return Ok(Self::StakeDelegation(stake_delegation)),
+                Err(e) => {
+                    errs.push(e.annotate("StakeDelegation"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> =
+                PoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+            match deser_variant {
+                Ok(pool_registration) => return Ok(Self::PoolRegistration(pool_registration)),
+                Err(e) => {
+                    errs.push(e.annotate("PoolRegistration"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> =
+                PoolRetirement::deserialize_as_embedded_group(raw, &mut read_len, len);
+            match deser_variant {
+                Ok(pool_retirement) => return Ok(Self::PoolRetirement(pool_retirement)),
+                Err(e) => {
+                    errs.push(e.annotate("PoolRetirement"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> =
+                GenesisKeyDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
+            match deser_variant {
+                Ok(genesis_key_delegation) => {
+                    return Ok(Self::GenesisKeyDelegation(genesis_key_delegation))
+                }
+                Err(e) => {
+                    errs.push(e.annotate("GenesisKeyDelegation"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> =
+                MoveInstantaneousRewardsCert::deserialize_as_embedded_group(
+                    raw,
+                    &mut read_len,
+                    len,
+                );
+            match deser_variant {
+                Ok(move_instantaneous_rewards_cert) => {
+                    return Ok(Self::MoveInstantaneousRewardsCert(
+                        move_instantaneous_rewards_cert,
+                    ))
+                }
+                Err(e) => {
+                    errs.push(e.annotate("MoveInstantaneousRewardsCert"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            Err(DeserializeError::new(
+                "AllegraCertificate",
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
+            ))
+        })()
+        .map_err(|e| e.annotate("AllegraCertificate"))
     }
 }
 
@@ -756,7 +906,7 @@ impl Deserialize for AllegraTransactionBody {
                                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                                         break;
                                     }
-                                    certs_arr.push(Certificate::deserialize(raw)?);
+                                    certs_arr.push(AllegraCertificate::deserialize(raw)?);
                                 }
                                 Ok((certs_arr, certs_encoding))
                             })().map_err(|e| e.annotate("certs"))?;
@@ -1200,5 +1350,324 @@ impl Deserialize for AllegraTransactionWitnessSet {
             })
         })()
         .map_err(|e| e.annotate("AllegraTransactionWitnessSet"))
+    }
+}
+
+impl Serialize for MIRAction {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        match self {
+            MIRAction::ToStakeCredentials {
+                to_stake_credentials,
+                to_stake_credentials_encoding,
+            } => {
+                serializer.write_map_sz(
+                    to_stake_credentials_encoding
+                        .to_len_sz(to_stake_credentials.len() as u64, force_canonical),
+                )?;
+                let mut key_order = to_stake_credentials
+                    .iter()
+                    .map(|(k, v)| {
+                        let mut buf = cbor_event::se::Serializer::new_vec();
+                        k.serialize(&mut buf, force_canonical)?;
+                        Ok((buf.finalize(), k, v))
+                    })
+                    .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
+                if force_canonical {
+                    key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
+                        match lhs_bytes.len().cmp(&rhs_bytes.len()) {
+                            std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                            diff_ord => diff_ord,
+                        }
+                    });
+                }
+                for (key_bytes, _key, value) in key_order {
+                    serializer.write_raw_bytes(&key_bytes)?;
+                    value.serialize(serializer, force_canonical)?;
+                }
+                to_stake_credentials_encoding.end(serializer, force_canonical)
+            }
+            MIRAction::ToOtherPot {
+                to_other_pot,
+                to_other_pot_encoding,
+            } => serializer.write_unsigned_integer_sz(
+                *to_other_pot,
+                fit_sz(*to_other_pot, *to_other_pot_encoding, force_canonical),
+            ),
+        }
+    }
+}
+
+impl Deserialize for MIRAction {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            match raw.cbor_type()? {
+                cbor_event::Type::Map => {
+                    let mut to_stake_credentials_table = OrderedHashMap::new();
+                    let to_stake_credentials_len = raw.map_sz()?;
+                    let to_stake_credentials_encoding = to_stake_credentials_len.into();
+                    while match to_stake_credentials_len {
+                        cbor_event::LenSz::Len(n, _) => {
+                            (to_stake_credentials_table.len() as u64) < n
+                        }
+                        cbor_event::LenSz::Indefinite => true,
+                    } {
+                        if raw.cbor_type()? == cbor_event::Type::Special {
+                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                            break;
+                        }
+                        let to_stake_credentials_key = StakeCredential::deserialize(raw)?;
+                        let to_stake_credentials_value = DeltaCoin::deserialize(raw)?;
+                        if to_stake_credentials_table
+                            .insert(to_stake_credentials_key.clone(), to_stake_credentials_value)
+                            .is_some()
+                        {
+                            return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
+                                "some complicated/unsupported type",
+                            )))
+                            .into());
+                        }
+                    }
+                    let (to_stake_credentials, to_stake_credentials_encoding) =
+                        (to_stake_credentials_table, to_stake_credentials_encoding);
+                    Ok(Self::ToStakeCredentials {
+                        to_stake_credentials,
+                        to_stake_credentials_encoding,
+                    })
+                }
+                cbor_event::Type::UnsignedInteger => {
+                    let (to_other_pot, to_other_pot_encoding) =
+                        raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
+                    Ok(Self::ToOtherPot {
+                        to_other_pot,
+                        to_other_pot_encoding,
+                    })
+                }
+                _ => Err(DeserializeError::new(
+                    "MIRAction",
+                    DeserializeFailure::NoVariantMatched,
+                )),
+            }
+        })()
+        .map_err(|e| e.annotate("MIRAction"))
+    }
+}
+
+impl Serialize for MoveInstantaneousReward {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(2, force_canonical),
+        )?;
+        match &self.pot {
+            MIRPot::Reserve => serializer.write_unsigned_integer_sz(
+                0u64,
+                fit_sz(
+                    0u64,
+                    self.encodings
+                        .as_ref()
+                        .map(|encs| encs.pot_encoding)
+                        .unwrap_or_default(),
+                    force_canonical,
+                ),
+            ),
+            MIRPot::Treasury => serializer.write_unsigned_integer_sz(
+                1u64,
+                fit_sz(
+                    1u64,
+                    self.encodings
+                        .as_ref()
+                        .map(|encs| encs.pot_encoding)
+                        .unwrap_or_default(),
+                    force_canonical,
+                ),
+            ),
+        }?;
+        self.action.serialize(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for MoveInstantaneousReward {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let len_encoding: LenEncoding = len.into();
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(2)?;
+        read_len.finish()?;
+        (|| -> Result<_, DeserializeError> {
+            let (pot, pot_encoding) = (|| -> Result<_, DeserializeError> {
+                let initial_position = raw.as_mut_ref().stream_position().unwrap();
+                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                    let (reserve_value, reserve_encoding) = raw.unsigned_integer_sz()?;
+                    if reserve_value != 0 {
+                        return Err(DeserializeFailure::FixedValueMismatch {
+                            found: Key::Uint(reserve_value),
+                            expected: Key::Uint(0),
+                        }
+                        .into());
+                    }
+                    Ok(Some(reserve_encoding))
+                })(raw)
+                {
+                    Ok(pot_encoding) => return Ok((MIRPot::Reserve, pot_encoding)),
+                    Err(_) => raw
+                        .as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap(),
+                };
+                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                    let (treasury_value, treasury_encoding) = raw.unsigned_integer_sz()?;
+                    if treasury_value != 1 {
+                        return Err(DeserializeFailure::FixedValueMismatch {
+                            found: Key::Uint(treasury_value),
+                            expected: Key::Uint(1),
+                        }
+                        .into());
+                    }
+                    Ok(Some(treasury_encoding))
+                })(raw)
+                {
+                    Ok(pot_encoding) => return Ok((MIRPot::Treasury, pot_encoding)),
+                    Err(_) => raw
+                        .as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap(),
+                };
+                Err(DeserializeError::new(
+                    "MIRPot",
+                    DeserializeFailure::NoVariantMatched,
+                ))
+            })()
+            .map_err(|e| e.annotate("pot"))?;
+            let action =
+                MIRAction::deserialize(raw).map_err(|e: DeserializeError| e.annotate("action"))?;
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            Ok(MoveInstantaneousReward {
+                pot,
+                action,
+                encodings: Some(MoveInstantaneousRewardEncoding {
+                    len_encoding,
+                    pot_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("MoveInstantaneousReward"))
+    }
+}
+
+impl Serialize for MoveInstantaneousRewardsCert {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(2, force_canonical),
+        )?;
+        self.serialize_as_embedded_group(serializer, force_canonical)
+    }
+}
+
+impl SerializeEmbeddedGroup for MoveInstantaneousRewardsCert {
+    fn serialize_as_embedded_group<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer_sz(
+            6u64,
+            fit_sz(
+                6u64,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.tag_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )?;
+        self.move_instantaneous_reward
+            .serialize(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for MoveInstantaneousRewardsCert {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(2)?;
+        read_len.finish()?;
+        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+        match len {
+            cbor_event::LenSz::Len(_, _) => (),
+            cbor_event::LenSz::Indefinite => match raw.special()? {
+                cbor_event::Special::Break => (),
+                _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+            },
+        }
+        ret
+    }
+}
+
+impl DeserializeEmbeddedGroup for MoveInstantaneousRewardsCert {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(
+        raw: &mut Deserializer<R>,
+        _read_len: &mut CBORReadLen,
+        len: cbor_event::LenSz,
+    ) -> Result<Self, DeserializeError> {
+        let len_encoding = len.into();
+        (|| -> Result<_, DeserializeError> {
+            let tag_encoding = (|| -> Result<_, DeserializeError> {
+                let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
+                if tag_value != 6 {
+                    return Err(DeserializeFailure::FixedValueMismatch {
+                        found: Key::Uint(tag_value),
+                        expected: Key::Uint(6),
+                    }
+                    .into());
+                }
+                Ok(Some(tag_encoding))
+            })()
+            .map_err(|e| e.annotate("tag"))?;
+            let move_instantaneous_reward = MoveInstantaneousReward::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("move_instantaneous_reward"))?;
+            Ok(MoveInstantaneousRewardsCert {
+                move_instantaneous_reward,
+                encodings: Some(MoveInstantaneousRewardsCertEncoding {
+                    len_encoding,
+                    tag_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("MoveInstantaneousRewardsCert"))
     }
 }

@@ -15,18 +15,18 @@ header =
   , body_signature : KES_signature
   ]
 
-header_body =
-  [ block_number     : uint
-  , slot             : uint
-  , prev_hash        : block_header_hash / null
-  , issuer_vkey      : $vkey
-  , vrf_vkey         : $VRF_vkey
-  , vrf_result       : $VRF_cert ; New, replaces nonce_vrf and leader_vrf
-  , block_body_size  : uint
-  , block_body_hash  : block_body_hash ; merkle triple root
-  , operational_cert: operational_cert_struct
-  , protocol_version: protocol_version_struct
-  ]
+header_body = [
+  block_number     : uint,
+  slot             : uint,
+  prev_hash        : block_header_hash / null,
+  issuer_vkey      : $vkey,
+  vrf_vkey         : $VRF_vkey,
+  vrf_result       : $VRF_cert, ; New, replaces nonce_vrf and leader_vrf
+  block_body_size  : uint,
+  block_body_hash  : block_body_hash, ; merkle triple root
+  operational_cert: [operational_cert],
+  protocol_version: [protocol_version],
+]
 
 operational_cert =
   ( hot_vkey        : $KES_vkey
@@ -36,5 +36,3 @@ operational_cert =
   )
 
 protocol_version = (major: uint, minor: uint)
-
-operational_cert_struct = [operational_cert]

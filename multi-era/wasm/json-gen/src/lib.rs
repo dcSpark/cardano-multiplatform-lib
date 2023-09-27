@@ -24,10 +24,9 @@ pub fn export_schemas() {
     gen_json_schema!(cml_multi_era::alonzo::AlonzoAuxiliaryData);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoBlock);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoCostmdls);
-    gen_json_schema!(cml_multi_era::alonzo::AlonzoOnlyAuxData);
+    gen_json_schema!(cml_multi_era::alonzo::AlonzoFormatAuxData);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoProtocolParamUpdate);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoTransactionBody);
-    gen_json_schema!(cml_multi_era::alonzo::AlonzoTransactionOutput);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoTransactionWitnessSet);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoUpdate);
     // byron

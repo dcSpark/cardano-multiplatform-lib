@@ -1,30 +1,16 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::crypto::GenesisHash;
-use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
+use cml_core::serialization::LenEncoding;
 
 #[derive(Clone, Debug, Default)]
-pub struct AssetNameEncoding {
-    pub inner_encoding: StringEncoding,
+pub struct DRepVotingThresholdsEncoding {
+    pub len_encoding: LenEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct BootstrapWitnessEncoding {
+pub struct PoolVotingThresholdsEncoding {
     pub len_encoding: LenEncoding,
-    pub public_key_encoding: StringEncoding,
-    pub signature_encoding: StringEncoding,
-    pub chain_code_encoding: StringEncoding,
-    pub attributes_encoding: StringEncoding,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct PositiveIntervalEncoding {
-    pub len_encoding: LenEncoding,
-    pub tag_encoding: Option<cbor_event::Sz>,
-    pub strart_encoding: Option<cbor_event::Sz>,
-    pub end_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -52,7 +38,6 @@ pub struct ProtocolParamUpdateEncoding {
     pub pool_pledge_influence_key_encoding: Option<cbor_event::Sz>,
     pub expansion_rate_key_encoding: Option<cbor_event::Sz>,
     pub treasury_growth_rate_key_encoding: Option<cbor_event::Sz>,
-    pub protocol_version_key_encoding: Option<cbor_event::Sz>,
     pub min_pool_cost_encoding: Option<cbor_event::Sz>,
     pub min_pool_cost_key_encoding: Option<cbor_event::Sz>,
     pub ada_per_utxo_byte_encoding: Option<cbor_event::Sz>,
@@ -67,11 +52,20 @@ pub struct ProtocolParamUpdateEncoding {
     pub collateral_percentage_key_encoding: Option<cbor_event::Sz>,
     pub max_collateral_inputs_encoding: Option<cbor_event::Sz>,
     pub max_collateral_inputs_key_encoding: Option<cbor_event::Sz>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ProtocolVersionStructEncoding {
-    pub len_encoding: LenEncoding,
+    pub pool_voting_thresholds_key_encoding: Option<cbor_event::Sz>,
+    pub d_rep_voting_thresholds_key_encoding: Option<cbor_event::Sz>,
+    pub min_committee_size_encoding: Option<cbor_event::Sz>,
+    pub min_committee_size_key_encoding: Option<cbor_event::Sz>,
+    pub committee_term_limit_encoding: Option<cbor_event::Sz>,
+    pub committee_term_limit_key_encoding: Option<cbor_event::Sz>,
+    pub governance_action_validity_period_encoding: Option<cbor_event::Sz>,
+    pub governance_action_validity_period_key_encoding: Option<cbor_event::Sz>,
+    pub governance_action_deposit_encoding: Option<cbor_event::Sz>,
+    pub governance_action_deposit_key_encoding: Option<cbor_event::Sz>,
+    pub d_rep_deposit_encoding: Option<cbor_event::Sz>,
+    pub d_rep_deposit_key_encoding: Option<cbor_event::Sz>,
+    pub d_rep_inactivity_period_encoding: Option<cbor_event::Sz>,
+    pub d_rep_inactivity_period_key_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -88,19 +82,4 @@ pub struct UnitIntervalEncoding {
     pub tag_encoding: Option<cbor_event::Sz>,
     pub start_encoding: Option<cbor_event::Sz>,
     pub end_encoding: Option<cbor_event::Sz>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct UpdateEncoding {
-    pub len_encoding: LenEncoding,
-    pub proposed_protocol_parameter_updates_encoding: LenEncoding,
-    pub proposed_protocol_parameter_updates_key_encodings: BTreeMap<GenesisHash, StringEncoding>,
-    pub epoch_encoding: Option<cbor_event::Sz>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct VkeywitnessEncoding {
-    pub len_encoding: LenEncoding,
-    pub vkey_encoding: StringEncoding,
-    pub ed25519_signature_encoding: StringEncoding,
 }

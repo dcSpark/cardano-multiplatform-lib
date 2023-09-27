@@ -15,94 +15,42 @@ use super::cbor_encodings::*;
 use super::*;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
-use cml_crypto::RawBytesEncoding;
+
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
-impl Serialize for AssetName {
+impl Serialize for DRepVotingThresholds {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_bytes_sz(
-            &self.inner,
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.inner_encoding.clone())
-                .unwrap_or_default()
-                .to_str_len_sz(self.inner.len() as u64, force_canonical),
-        )
-    }
-}
-
-impl Deserialize for AssetName {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw
-            .bytes_sz()
-            .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() > 32 {
-            return Err(DeserializeError::new(
-                "AssetName",
-                DeserializeFailure::RangeCheck {
-                    found: inner.len(),
-                    min: Some(0),
-                    max: Some(32),
-                },
-            ));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(AssetNameEncoding { inner_encoding }),
-        })
-    }
-}
-
-impl Serialize for PositiveInterval {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_tag_sz(
-            30u64,
-            fit_sz(
-                30u64,
-                self.encodings
-                    .as_ref()
-                    .map(|encs| encs.tag_encoding)
-                    .unwrap_or_default(),
-                force_canonical,
-            ),
-        )?;
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
                 .map(|encs| encs.len_encoding)
                 .unwrap_or_default()
-                .to_len_sz(2, force_canonical),
+                .to_len_sz(10, force_canonical),
         )?;
-        serializer.write_unsigned_integer_sz(
-            self.strart,
-            fit_sz(
-                self.strart,
-                self.encodings
-                    .as_ref()
-                    .map(|encs| encs.strart_encoding)
-                    .unwrap_or_default(),
-                force_canonical,
-            ),
-        )?;
-        serializer.write_unsigned_integer_sz(
-            self.end,
-            fit_sz(
-                self.end,
-                self.encodings
-                    .as_ref()
-                    .map(|encs| encs.end_encoding)
-                    .unwrap_or_default(),
-                force_canonical,
-            ),
-        )?;
+        self.motion_no_confidence
+            .serialize(serializer, force_canonical)?;
+        self.committee_normal
+            .serialize(serializer, force_canonical)?;
+        self.committee_no_confidence
+            .serialize(serializer, force_canonical)?;
+        self.update_constitution
+            .serialize(serializer, force_canonical)?;
+        self.hard_fork_initiation
+            .serialize(serializer, force_canonical)?;
+        self.pp_network_group
+            .serialize(serializer, force_canonical)?;
+        self.pp_economic_group
+            .serialize(serializer, force_canonical)?;
+        self.pp_technical_group
+            .serialize(serializer, force_canonical)?;
+        self.pp_governance_group
+            .serialize(serializer, force_canonical)?;
+        self.treasury_withdrawal
+            .serialize(serializer, force_canonical)?;
         self.encodings
             .as_ref()
             .map(|encs| encs.len_encoding)
@@ -111,34 +59,34 @@ impl Serialize for PositiveInterval {
     }
 }
 
-impl Deserialize for PositiveInterval {
+impl Deserialize for DRepVotingThresholds {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (tag, tag_encoding) = raw.tag_sz()?;
-        if tag != 30 {
-            return Err(DeserializeError::new(
-                "PositiveInterval",
-                DeserializeFailure::TagMismatch {
-                    found: tag,
-                    expected: 30,
-                },
-            ));
-        }
         let len = raw.array_sz()?;
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
+        read_len.read_elems(10)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
-            let (strart, strart_encoding) = raw
-                .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
-                .map_err(Into::<DeserializeError>::into)
-                .map_err(|e: DeserializeError| e.annotate("strart"))?;
-            let (end, end_encoding) = raw
-                .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
-                .map_err(Into::<DeserializeError>::into)
-                .map_err(|e: DeserializeError| e.annotate("end"))?;
+            let motion_no_confidence = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("motion_no_confidence"))?;
+            let committee_normal = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("committee_normal"))?;
+            let committee_no_confidence = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("committee_no_confidence"))?;
+            let update_constitution = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("update_constitution"))?;
+            let hard_fork_initiation = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("hard_fork_initiation"))?;
+            let pp_network_group = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("pp_network_group"))?;
+            let pp_economic_group = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("pp_economic_group"))?;
+            let pp_technical_group = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("pp_technical_group"))?;
+            let pp_governance_group = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("pp_governance_group"))?;
+            let treasury_withdrawal = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("treasury_withdrawal"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
                 cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -146,18 +94,85 @@ impl Deserialize for PositiveInterval {
                     _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                 },
             }
-            Ok(PositiveInterval {
-                strart,
-                end,
-                encodings: Some(PositiveIntervalEncoding {
-                    len_encoding,
-                    tag_encoding: Some(tag_encoding),
-                    strart_encoding,
-                    end_encoding,
-                }),
+            Ok(DRepVotingThresholds {
+                motion_no_confidence,
+                committee_normal,
+                committee_no_confidence,
+                update_constitution,
+                hard_fork_initiation,
+                pp_network_group,
+                pp_economic_group,
+                pp_technical_group,
+                pp_governance_group,
+                treasury_withdrawal,
+                encodings: Some(DRepVotingThresholdsEncoding { len_encoding }),
             })
         })()
-        .map_err(|e| e.annotate("PositiveInterval"))
+        .map_err(|e| e.annotate("DRepVotingThresholds"))
+    }
+}
+
+impl Serialize for PoolVotingThresholds {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(4, force_canonical),
+        )?;
+        self.motion_no_confidence
+            .serialize(serializer, force_canonical)?;
+        self.committee_normal
+            .serialize(serializer, force_canonical)?;
+        self.committee_no_confidence
+            .serialize(serializer, force_canonical)?;
+        self.hard_fork_initiation
+            .serialize(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for PoolVotingThresholds {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let len_encoding: LenEncoding = len.into();
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(4)?;
+        read_len.finish()?;
+        (|| -> Result<_, DeserializeError> {
+            let motion_no_confidence = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("motion_no_confidence"))?;
+            let committee_normal = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("committee_normal"))?;
+            let committee_no_confidence = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("committee_no_confidence"))?;
+            let hard_fork_initiation = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("hard_fork_initiation"))?;
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            Ok(PoolVotingThresholds {
+                motion_no_confidence,
+                committee_normal,
+                committee_no_confidence,
+                hard_fork_initiation,
+                encodings: Some(PoolVotingThresholdsEncoding { len_encoding }),
+            })
+        })()
+        .map_err(|e| e.annotate("PoolVotingThresholds"))
     }
 }
 
@@ -209,9 +224,6 @@ impl Serialize for ProtocolParamUpdate {
                     } + match &self.treasury_growth_rate {
                         Some(_) => 1,
                         None => 0,
-                    } + match &self.protocol_version {
-                        Some(_) => 1,
-                        None => 0,
                     } + match &self.min_pool_cost {
                         Some(_) => 1,
                         None => 0,
@@ -237,6 +249,30 @@ impl Serialize for ProtocolParamUpdate {
                         Some(_) => 1,
                         None => 0,
                     } + match &self.max_collateral_inputs {
+                        Some(_) => 1,
+                        None => 0,
+                    } + match &self.pool_voting_thresholds {
+                        Some(_) => 1,
+                        None => 0,
+                    } + match &self.d_rep_voting_thresholds {
+                        Some(_) => 1,
+                        None => 0,
+                    } + match &self.min_committee_size {
+                        Some(_) => 1,
+                        None => 0,
+                    } + match &self.committee_term_limit {
+                        Some(_) => 1,
+                        None => 0,
+                    } + match &self.governance_action_validity_period {
+                        Some(_) => 1,
+                        None => 0,
+                    } + match &self.governance_action_deposit {
+                        Some(_) => 1,
+                        None => 0,
+                    } + match &self.d_rep_deposit {
+                        Some(_) => 1,
+                        None => 0,
+                    } + match &self.d_rep_inactivity_period {
                         Some(_) => 1,
                         None => 0,
                     },
@@ -285,9 +321,6 @@ impl Serialize for ProtocolParamUpdate {
                         } + match &self.treasury_growth_rate {
                             Some(_) => 1,
                             None => 0,
-                        } + match &self.protocol_version {
-                            Some(_) => 1,
-                            None => 0,
                         } + match &self.min_pool_cost {
                             Some(_) => 1,
                             None => 0,
@@ -315,12 +348,37 @@ impl Serialize for ProtocolParamUpdate {
                         } + match &self.max_collateral_inputs {
                             Some(_) => 1,
                             None => 0,
+                        } + match &self.pool_voting_thresholds {
+                            Some(_) => 1,
+                            None => 0,
+                        } + match &self.d_rep_voting_thresholds {
+                            Some(_) => 1,
+                            None => 0,
+                        } + match &self.min_committee_size {
+                            Some(_) => 1,
+                            None => 0,
+                        } + match &self.committee_term_limit {
+                            Some(_) => 1,
+                            None => 0,
+                        } + match &self.governance_action_validity_period {
+                            Some(_) => 1,
+                            None => 0,
+                        } + match &self.governance_action_deposit {
+                            Some(_) => 1,
+                            None => 0,
+                        } + match &self.d_rep_deposit {
+                            Some(_) => 1,
+                            None => 0,
+                        } + match &self.d_rep_inactivity_period {
+                            Some(_) => 1,
+                            None => 0,
                         }
             })
             .map(|encs| encs.orig_deser_order.clone())
             .unwrap_or_else(|| {
                 vec![
                     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+                    22, 23, 24, 25, 26, 27, 28,
                 ]
             });
         for field_index in deser_order {
@@ -608,22 +666,6 @@ impl Serialize for ProtocolParamUpdate {
                     }
                 }
                 12 => {
-                    if let Some(field) = &self.protocol_version {
-                        serializer.write_unsigned_integer_sz(
-                            14u64,
-                            fit_sz(
-                                14u64,
-                                self.encodings
-                                    .as_ref()
-                                    .map(|encs| encs.protocol_version_key_encoding)
-                                    .unwrap_or_default(),
-                                force_canonical,
-                            ),
-                        )?;
-                        field.serialize(serializer, force_canonical)?;
-                    }
-                }
-                13 => {
                     if let Some(field) = &self.min_pool_cost {
                         serializer.write_unsigned_integer_sz(
                             16u64,
@@ -649,7 +691,7 @@ impl Serialize for ProtocolParamUpdate {
                         )?;
                     }
                 }
-                14 => {
+                13 => {
                     if let Some(field) = &self.ada_per_utxo_byte {
                         serializer.write_unsigned_integer_sz(
                             17u64,
@@ -675,7 +717,7 @@ impl Serialize for ProtocolParamUpdate {
                         )?;
                     }
                 }
-                15 => {
+                14 => {
                     if let Some(field) = &self.cost_models_for_script_languages {
                         serializer.write_unsigned_integer_sz(
                             18u64,
@@ -691,7 +733,7 @@ impl Serialize for ProtocolParamUpdate {
                         field.serialize(serializer, force_canonical)?;
                     }
                 }
-                16 => {
+                15 => {
                     if let Some(field) = &self.execution_costs {
                         serializer.write_unsigned_integer_sz(
                             19u64,
@@ -707,7 +749,7 @@ impl Serialize for ProtocolParamUpdate {
                         field.serialize(serializer, force_canonical)?;
                     }
                 }
-                17 => {
+                16 => {
                     if let Some(field) = &self.max_tx_ex_units {
                         serializer.write_unsigned_integer_sz(
                             20u64,
@@ -723,7 +765,7 @@ impl Serialize for ProtocolParamUpdate {
                         field.serialize(serializer, force_canonical)?;
                     }
                 }
-                18 => {
+                17 => {
                     if let Some(field) = &self.max_block_ex_units {
                         serializer.write_unsigned_integer_sz(
                             21u64,
@@ -739,7 +781,7 @@ impl Serialize for ProtocolParamUpdate {
                         field.serialize(serializer, force_canonical)?;
                     }
                 }
-                19 => {
+                18 => {
                     if let Some(field) = &self.max_value_size {
                         serializer.write_unsigned_integer_sz(
                             22u64,
@@ -765,7 +807,7 @@ impl Serialize for ProtocolParamUpdate {
                         )?;
                     }
                 }
-                20 => {
+                19 => {
                     if let Some(field) = &self.collateral_percentage {
                         serializer.write_unsigned_integer_sz(
                             23u64,
@@ -791,7 +833,7 @@ impl Serialize for ProtocolParamUpdate {
                         )?;
                     }
                 }
-                21 => {
+                20 => {
                     if let Some(field) = &self.max_collateral_inputs {
                         serializer.write_unsigned_integer_sz(
                             24u64,
@@ -811,6 +853,194 @@ impl Serialize for ProtocolParamUpdate {
                                 self.encodings
                                     .as_ref()
                                     .map(|encs| encs.max_collateral_inputs_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                    }
+                }
+                21 => {
+                    if let Some(field) = &self.pool_voting_thresholds {
+                        serializer.write_unsigned_integer_sz(
+                            25u64,
+                            fit_sz(
+                                25u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.pool_voting_thresholds_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        field.serialize(serializer, force_canonical)?;
+                    }
+                }
+                22 => {
+                    if let Some(field) = &self.d_rep_voting_thresholds {
+                        serializer.write_unsigned_integer_sz(
+                            26u64,
+                            fit_sz(
+                                26u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.d_rep_voting_thresholds_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        field.serialize(serializer, force_canonical)?;
+                    }
+                }
+                23 => {
+                    if let Some(field) = &self.min_committee_size {
+                        serializer.write_unsigned_integer_sz(
+                            27u64,
+                            fit_sz(
+                                27u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.min_committee_size_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_unsigned_integer_sz(
+                            *field,
+                            fit_sz(
+                                *field,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.min_committee_size_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                    }
+                }
+                24 => {
+                    if let Some(field) = &self.committee_term_limit {
+                        serializer.write_unsigned_integer_sz(
+                            28u64,
+                            fit_sz(
+                                28u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.committee_term_limit_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_unsigned_integer_sz(
+                            *field,
+                            fit_sz(
+                                *field,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.committee_term_limit_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                    }
+                }
+                25 => {
+                    if let Some(field) = &self.governance_action_validity_period {
+                        serializer.write_unsigned_integer_sz(
+                            29u64,
+                            fit_sz(
+                                29u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.governance_action_validity_period_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_unsigned_integer_sz(
+                            *field,
+                            fit_sz(
+                                *field,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.governance_action_validity_period_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                    }
+                }
+                26 => {
+                    if let Some(field) = &self.governance_action_deposit {
+                        serializer.write_unsigned_integer_sz(
+                            30u64,
+                            fit_sz(
+                                30u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.governance_action_deposit_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_unsigned_integer_sz(
+                            *field,
+                            fit_sz(
+                                *field,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.governance_action_deposit_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                    }
+                }
+                27 => {
+                    if let Some(field) = &self.d_rep_deposit {
+                        serializer.write_unsigned_integer_sz(
+                            31u64,
+                            fit_sz(
+                                31u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.d_rep_deposit_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_unsigned_integer_sz(
+                            *field,
+                            fit_sz(
+                                *field,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.d_rep_deposit_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                    }
+                }
+                28 => {
+                    if let Some(field) = &self.d_rep_inactivity_period {
+                        serializer.write_unsigned_integer_sz(
+                            32u64,
+                            fit_sz(
+                                32u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.d_rep_inactivity_period_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_unsigned_integer_sz(
+                            *field,
+                            fit_sz(
+                                *field,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.d_rep_inactivity_period_encoding)
                                     .unwrap_or_default(),
                                 force_canonical,
                             ),
@@ -868,8 +1098,6 @@ impl Deserialize for ProtocolParamUpdate {
             let mut expansion_rate = None;
             let mut treasury_growth_rate_key_encoding = None;
             let mut treasury_growth_rate = None;
-            let mut protocol_version_key_encoding = None;
-            let mut protocol_version = None;
             let mut min_pool_cost_encoding = None;
             let mut min_pool_cost_key_encoding = None;
             let mut min_pool_cost = None;
@@ -893,378 +1121,411 @@ impl Deserialize for ProtocolParamUpdate {
             let mut max_collateral_inputs_encoding = None;
             let mut max_collateral_inputs_key_encoding = None;
             let mut max_collateral_inputs = None;
+            let mut pool_voting_thresholds_key_encoding = None;
+            let mut pool_voting_thresholds = None;
+            let mut d_rep_voting_thresholds_key_encoding = None;
+            let mut d_rep_voting_thresholds = None;
+            let mut min_committee_size_encoding = None;
+            let mut min_committee_size_key_encoding = None;
+            let mut min_committee_size = None;
+            let mut committee_term_limit_encoding = None;
+            let mut committee_term_limit_key_encoding = None;
+            let mut committee_term_limit = None;
+            let mut governance_action_validity_period_encoding = None;
+            let mut governance_action_validity_period_key_encoding = None;
+            let mut governance_action_validity_period = None;
+            let mut governance_action_deposit_encoding = None;
+            let mut governance_action_deposit_key_encoding = None;
+            let mut governance_action_deposit = None;
+            let mut d_rep_deposit_encoding = None;
+            let mut d_rep_deposit_key_encoding = None;
+            let mut d_rep_deposit = None;
+            let mut d_rep_inactivity_period_encoding = None;
+            let mut d_rep_inactivity_period_key_encoding = None;
+            let mut d_rep_inactivity_period = None;
             let mut read = 0;
-            while match len {
-                cbor_event::LenSz::Len(n, _) => read < n,
-                cbor_event::LenSz::Indefinite => true,
-            } {
+            while match len { cbor_event::LenSz::Len(n, _) => read < n, cbor_event::LenSz::Indefinite => true, } {
                 match raw.cbor_type()? {
                     cbor_event::Type::UnsignedInteger => match raw.unsigned_integer_sz()? {
-                        (0, key_enc) => {
+                        (0, key_enc) =>  {
                             if minfee_a.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(0)).into());
                             }
-                            let (tmp_minfee_a, tmp_minfee_a_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("minfee_a"))?;
+                            let (tmp_minfee_a, tmp_minfee_a_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("minfee_a"))?;
                             minfee_a = Some(tmp_minfee_a);
                             minfee_a_encoding = tmp_minfee_a_encoding;
                             minfee_a_key_encoding = Some(key_enc);
                             orig_deser_order.push(0);
-                        }
-                        (1, key_enc) => {
+                        },
+                        (1, key_enc) =>  {
                             if minfee_b.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(1)).into());
                             }
-                            let (tmp_minfee_b, tmp_minfee_b_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("minfee_b"))?;
+                            let (tmp_minfee_b, tmp_minfee_b_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("minfee_b"))?;
                             minfee_b = Some(tmp_minfee_b);
                             minfee_b_encoding = tmp_minfee_b_encoding;
                             minfee_b_key_encoding = Some(key_enc);
                             orig_deser_order.push(1);
-                        }
-                        (2, key_enc) => {
+                        },
+                        (2, key_enc) =>  {
                             if max_block_body_size.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
                             }
-                            let (tmp_max_block_body_size, tmp_max_block_body_size_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("max_block_body_size"))?;
+                            let (tmp_max_block_body_size, tmp_max_block_body_size_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("max_block_body_size"))?;
                             max_block_body_size = Some(tmp_max_block_body_size);
                             max_block_body_size_encoding = tmp_max_block_body_size_encoding;
                             max_block_body_size_key_encoding = Some(key_enc);
                             orig_deser_order.push(2);
-                        }
-                        (3, key_enc) => {
+                        },
+                        (3, key_enc) =>  {
                             if max_transaction_size.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(3)).into());
                             }
-                            let (tmp_max_transaction_size, tmp_max_transaction_size_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("max_transaction_size"))?;
+                            let (tmp_max_transaction_size, tmp_max_transaction_size_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("max_transaction_size"))?;
                             max_transaction_size = Some(tmp_max_transaction_size);
                             max_transaction_size_encoding = tmp_max_transaction_size_encoding;
                             max_transaction_size_key_encoding = Some(key_enc);
                             orig_deser_order.push(3);
-                        }
-                        (4, key_enc) => {
+                        },
+                        (4, key_enc) =>  {
                             if max_block_header_size.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(4)).into());
                             }
-                            let (tmp_max_block_header_size, tmp_max_block_header_size_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("max_block_header_size"))?;
+                            let (tmp_max_block_header_size, tmp_max_block_header_size_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("max_block_header_size"))?;
                             max_block_header_size = Some(tmp_max_block_header_size);
                             max_block_header_size_encoding = tmp_max_block_header_size_encoding;
                             max_block_header_size_key_encoding = Some(key_enc);
                             orig_deser_order.push(4);
-                        }
-                        (5, key_enc) => {
+                        },
+                        (5, key_enc) =>  {
                             if key_deposit.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(5)).into());
                             }
-                            let (tmp_key_deposit, tmp_key_deposit_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("key_deposit"))?;
+                            let (tmp_key_deposit, tmp_key_deposit_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("key_deposit"))?;
                             key_deposit = Some(tmp_key_deposit);
                             key_deposit_encoding = tmp_key_deposit_encoding;
                             key_deposit_key_encoding = Some(key_enc);
                             orig_deser_order.push(5);
-                        }
-                        (6, key_enc) => {
+                        },
+                        (6, key_enc) =>  {
                             if pool_deposit.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(6)).into());
                             }
-                            let (tmp_pool_deposit, tmp_pool_deposit_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("pool_deposit"))?;
+                            let (tmp_pool_deposit, tmp_pool_deposit_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("pool_deposit"))?;
                             pool_deposit = Some(tmp_pool_deposit);
                             pool_deposit_encoding = tmp_pool_deposit_encoding;
                             pool_deposit_key_encoding = Some(key_enc);
                             orig_deser_order.push(6);
-                        }
-                        (7, key_enc) => {
+                        },
+                        (7, key_enc) =>  {
                             if maximum_epoch.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(7)).into());
                             }
-                            let (tmp_maximum_epoch, tmp_maximum_epoch_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("maximum_epoch"))?;
+                            let (tmp_maximum_epoch, tmp_maximum_epoch_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("maximum_epoch"))?;
                             maximum_epoch = Some(tmp_maximum_epoch);
                             maximum_epoch_encoding = tmp_maximum_epoch_encoding;
                             maximum_epoch_key_encoding = Some(key_enc);
                             orig_deser_order.push(7);
-                        }
-                        (8, key_enc) => {
+                        },
+                        (8, key_enc) =>  {
                             if n_opt.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(8)).into());
                             }
-                            let (tmp_n_opt, tmp_n_opt_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("n_opt"))?;
+                            let (tmp_n_opt, tmp_n_opt_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("n_opt"))?;
                             n_opt = Some(tmp_n_opt);
                             n_opt_encoding = tmp_n_opt_encoding;
                             n_opt_key_encoding = Some(key_enc);
                             orig_deser_order.push(8);
-                        }
-                        (9, key_enc) => {
+                        },
+                        (9, key_enc) =>  {
                             if pool_pledge_influence.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(9)).into());
                             }
                             let tmp_pool_pledge_influence = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
                                 Rational::deserialize(raw)
-                            })()
-                            .map_err(|e| e.annotate("pool_pledge_influence"))?;
+                            })().map_err(|e| e.annotate("pool_pledge_influence"))?;
                             pool_pledge_influence = Some(tmp_pool_pledge_influence);
                             pool_pledge_influence_key_encoding = Some(key_enc);
                             orig_deser_order.push(9);
-                        }
-                        (10, key_enc) => {
+                        },
+                        (10, key_enc) =>  {
                             if expansion_rate.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(10)).into());
                             }
                             let tmp_expansion_rate = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
                                 UnitInterval::deserialize(raw)
-                            })()
-                            .map_err(|e| e.annotate("expansion_rate"))?;
+                            })().map_err(|e| e.annotate("expansion_rate"))?;
                             expansion_rate = Some(tmp_expansion_rate);
                             expansion_rate_key_encoding = Some(key_enc);
                             orig_deser_order.push(10);
-                        }
-                        (11, key_enc) => {
+                        },
+                        (11, key_enc) =>  {
                             if treasury_growth_rate.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(11)).into());
                             }
                             let tmp_treasury_growth_rate = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
                                 UnitInterval::deserialize(raw)
-                            })()
-                            .map_err(|e| e.annotate("treasury_growth_rate"))?;
+                            })().map_err(|e| e.annotate("treasury_growth_rate"))?;
                             treasury_growth_rate = Some(tmp_treasury_growth_rate);
                             treasury_growth_rate_key_encoding = Some(key_enc);
                             orig_deser_order.push(11);
-                        }
-                        (14, key_enc) => {
-                            if protocol_version.is_some() {
-                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(14)).into());
-                            }
-                            let tmp_protocol_version = (|| -> Result<_, DeserializeError> {
-                                read_len.read_elems(1)?;
-                                ProtocolVersionStruct::deserialize(raw)
-                            })()
-                            .map_err(|e| e.annotate("protocol_version"))?;
-                            protocol_version = Some(tmp_protocol_version);
-                            protocol_version_key_encoding = Some(key_enc);
-                            orig_deser_order.push(12);
-                        }
-                        (16, key_enc) => {
+                        },
+                        (16, key_enc) =>  {
                             if min_pool_cost.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(16)).into());
                             }
-                            let (tmp_min_pool_cost, tmp_min_pool_cost_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("min_pool_cost"))?;
+                            let (tmp_min_pool_cost, tmp_min_pool_cost_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("min_pool_cost"))?;
                             min_pool_cost = Some(tmp_min_pool_cost);
                             min_pool_cost_encoding = tmp_min_pool_cost_encoding;
                             min_pool_cost_key_encoding = Some(key_enc);
-                            orig_deser_order.push(13);
-                        }
-                        (17, key_enc) => {
+                            orig_deser_order.push(12);
+                        },
+                        (17, key_enc) =>  {
                             if ada_per_utxo_byte.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(17)).into());
                             }
-                            let (tmp_ada_per_utxo_byte, tmp_ada_per_utxo_byte_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("ada_per_utxo_byte"))?;
+                            let (tmp_ada_per_utxo_byte, tmp_ada_per_utxo_byte_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("ada_per_utxo_byte"))?;
                             ada_per_utxo_byte = Some(tmp_ada_per_utxo_byte);
                             ada_per_utxo_byte_encoding = tmp_ada_per_utxo_byte_encoding;
                             ada_per_utxo_byte_key_encoding = Some(key_enc);
-                            orig_deser_order.push(14);
-                        }
-                        (18, key_enc) => {
+                            orig_deser_order.push(13);
+                        },
+                        (18, key_enc) =>  {
                             if cost_models_for_script_languages.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(18)).into());
                             }
-                            let tmp_cost_models_for_script_languages =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    CostModels::deserialize(raw)
-                                })()
-                                .map_err(|e| e.annotate("cost_models_for_script_languages"))?;
-                            cost_models_for_script_languages =
-                                Some(tmp_cost_models_for_script_languages);
+                            let tmp_cost_models_for_script_languages = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                CostModels::deserialize(raw)
+                            })().map_err(|e| e.annotate("cost_models_for_script_languages"))?;
+                            cost_models_for_script_languages = Some(tmp_cost_models_for_script_languages);
                             cost_models_for_script_languages_key_encoding = Some(key_enc);
-                            orig_deser_order.push(15);
-                        }
-                        (19, key_enc) => {
+                            orig_deser_order.push(14);
+                        },
+                        (19, key_enc) =>  {
                             if execution_costs.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(19)).into());
                             }
                             let tmp_execution_costs = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
                                 ExUnitPrices::deserialize(raw)
-                            })()
-                            .map_err(|e| e.annotate("execution_costs"))?;
+                            })().map_err(|e| e.annotate("execution_costs"))?;
                             execution_costs = Some(tmp_execution_costs);
                             execution_costs_key_encoding = Some(key_enc);
-                            orig_deser_order.push(16);
-                        }
-                        (20, key_enc) => {
+                            orig_deser_order.push(15);
+                        },
+                        (20, key_enc) =>  {
                             if max_tx_ex_units.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(20)).into());
                             }
                             let tmp_max_tx_ex_units = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
                                 ExUnits::deserialize(raw)
-                            })()
-                            .map_err(|e| e.annotate("max_tx_ex_units"))?;
+                            })().map_err(|e| e.annotate("max_tx_ex_units"))?;
                             max_tx_ex_units = Some(tmp_max_tx_ex_units);
                             max_tx_ex_units_key_encoding = Some(key_enc);
-                            orig_deser_order.push(17);
-                        }
-                        (21, key_enc) => {
+                            orig_deser_order.push(16);
+                        },
+                        (21, key_enc) =>  {
                             if max_block_ex_units.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(21)).into());
                             }
                             let tmp_max_block_ex_units = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
                                 ExUnits::deserialize(raw)
-                            })()
-                            .map_err(|e| e.annotate("max_block_ex_units"))?;
+                            })().map_err(|e| e.annotate("max_block_ex_units"))?;
                             max_block_ex_units = Some(tmp_max_block_ex_units);
                             max_block_ex_units_key_encoding = Some(key_enc);
-                            orig_deser_order.push(18);
-                        }
-                        (22, key_enc) => {
+                            orig_deser_order.push(17);
+                        },
+                        (22, key_enc) =>  {
                             if max_value_size.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(22)).into());
                             }
-                            let (tmp_max_value_size, tmp_max_value_size_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("max_value_size"))?;
+                            let (tmp_max_value_size, tmp_max_value_size_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("max_value_size"))?;
                             max_value_size = Some(tmp_max_value_size);
                             max_value_size_encoding = tmp_max_value_size_encoding;
                             max_value_size_key_encoding = Some(key_enc);
-                            orig_deser_order.push(19);
-                        }
-                        (23, key_enc) => {
+                            orig_deser_order.push(18);
+                        },
+                        (23, key_enc) =>  {
                             if collateral_percentage.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(23)).into());
                             }
-                            let (tmp_collateral_percentage, tmp_collateral_percentage_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("collateral_percentage"))?;
+                            let (tmp_collateral_percentage, tmp_collateral_percentage_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("collateral_percentage"))?;
                             collateral_percentage = Some(tmp_collateral_percentage);
                             collateral_percentage_encoding = tmp_collateral_percentage_encoding;
                             collateral_percentage_key_encoding = Some(key_enc);
-                            orig_deser_order.push(20);
-                        }
-                        (24, key_enc) => {
+                            orig_deser_order.push(19);
+                        },
+                        (24, key_enc) =>  {
                             if max_collateral_inputs.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(24)).into());
                             }
-                            let (tmp_max_collateral_inputs, tmp_max_collateral_inputs_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
-                                        .map_err(Into::<DeserializeError>::into)
-                                })()
-                                .map_err(|e| e.annotate("max_collateral_inputs"))?;
+                            let (tmp_max_collateral_inputs, tmp_max_collateral_inputs_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("max_collateral_inputs"))?;
                             max_collateral_inputs = Some(tmp_max_collateral_inputs);
                             max_collateral_inputs_encoding = tmp_max_collateral_inputs_encoding;
                             max_collateral_inputs_key_encoding = Some(key_enc);
+                            orig_deser_order.push(20);
+                        },
+                        (25, key_enc) =>  {
+                            if pool_voting_thresholds.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(25)).into());
+                            }
+                            let tmp_pool_voting_thresholds = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                PoolVotingThresholds::deserialize(raw)
+                            })().map_err(|e| e.annotate("pool_voting_thresholds"))?;
+                            pool_voting_thresholds = Some(tmp_pool_voting_thresholds);
+                            pool_voting_thresholds_key_encoding = Some(key_enc);
                             orig_deser_order.push(21);
-                        }
-                        (unknown_key, _enc) => {
-                            return Err(
-                                DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            )
-                        }
+                        },
+                        (26, key_enc) =>  {
+                            if d_rep_voting_thresholds.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(26)).into());
+                            }
+                            let tmp_d_rep_voting_thresholds = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                DRepVotingThresholds::deserialize(raw)
+                            })().map_err(|e| e.annotate("d_rep_voting_thresholds"))?;
+                            d_rep_voting_thresholds = Some(tmp_d_rep_voting_thresholds);
+                            d_rep_voting_thresholds_key_encoding = Some(key_enc);
+                            orig_deser_order.push(22);
+                        },
+                        (27, key_enc) =>  {
+                            if min_committee_size.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(27)).into());
+                            }
+                            let (tmp_min_committee_size, tmp_min_committee_size_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("min_committee_size"))?;
+                            min_committee_size = Some(tmp_min_committee_size);
+                            min_committee_size_encoding = tmp_min_committee_size_encoding;
+                            min_committee_size_key_encoding = Some(key_enc);
+                            orig_deser_order.push(23);
+                        },
+                        (28, key_enc) =>  {
+                            if committee_term_limit.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(28)).into());
+                            }
+                            let (tmp_committee_term_limit, tmp_committee_term_limit_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("committee_term_limit"))?;
+                            committee_term_limit = Some(tmp_committee_term_limit);
+                            committee_term_limit_encoding = tmp_committee_term_limit_encoding;
+                            committee_term_limit_key_encoding = Some(key_enc);
+                            orig_deser_order.push(24);
+                        },
+                        (29, key_enc) =>  {
+                            if governance_action_validity_period.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(29)).into());
+                            }
+                            let (tmp_governance_action_validity_period, tmp_governance_action_validity_period_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("governance_action_validity_period"))?;
+                            governance_action_validity_period = Some(tmp_governance_action_validity_period);
+                            governance_action_validity_period_encoding = tmp_governance_action_validity_period_encoding;
+                            governance_action_validity_period_key_encoding = Some(key_enc);
+                            orig_deser_order.push(25);
+                        },
+                        (30, key_enc) =>  {
+                            if governance_action_deposit.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(30)).into());
+                            }
+                            let (tmp_governance_action_deposit, tmp_governance_action_deposit_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("governance_action_deposit"))?;
+                            governance_action_deposit = Some(tmp_governance_action_deposit);
+                            governance_action_deposit_encoding = tmp_governance_action_deposit_encoding;
+                            governance_action_deposit_key_encoding = Some(key_enc);
+                            orig_deser_order.push(26);
+                        },
+                        (31, key_enc) =>  {
+                            if d_rep_deposit.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(31)).into());
+                            }
+                            let (tmp_d_rep_deposit, tmp_d_rep_deposit_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("d_rep_deposit"))?;
+                            d_rep_deposit = Some(tmp_d_rep_deposit);
+                            d_rep_deposit_encoding = tmp_d_rep_deposit_encoding;
+                            d_rep_deposit_key_encoding = Some(key_enc);
+                            orig_deser_order.push(27);
+                        },
+                        (32, key_enc) =>  {
+                            if d_rep_inactivity_period.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(32)).into());
+                            }
+                            let (tmp_d_rep_inactivity_period, tmp_d_rep_inactivity_period_encoding) = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                            })().map_err(|e| e.annotate("d_rep_inactivity_period"))?;
+                            d_rep_inactivity_period = Some(tmp_d_rep_inactivity_period);
+                            d_rep_inactivity_period_encoding = tmp_d_rep_inactivity_period_encoding;
+                            d_rep_inactivity_period_key_encoding = Some(key_enc);
+                            orig_deser_order.push(28);
+                        },
+                        (unknown_key, _enc) => return Err(DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()),
                     },
-                    cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
-                    }
+                    cbor_event::Type::Text => return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into()),
                     cbor_event::Type::Special => match len {
-                        cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
-                        }
+                        cbor_event::LenSz::Len(_, _) => return Err(DeserializeFailure::BreakInDefiniteLen.into()),
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
-                    }
+                    other_type => return Err(DeserializeFailure::UnexpectedKeyType(other_type).into()),
                 }
                 read += 1;
             }
@@ -1282,7 +1543,6 @@ impl Deserialize for ProtocolParamUpdate {
                 pool_pledge_influence,
                 expansion_rate,
                 treasury_growth_rate,
-                protocol_version,
                 min_pool_cost,
                 ada_per_utxo_byte,
                 cost_models_for_script_languages,
@@ -1292,6 +1552,14 @@ impl Deserialize for ProtocolParamUpdate {
                 max_value_size,
                 collateral_percentage,
                 max_collateral_inputs,
+                pool_voting_thresholds,
+                d_rep_voting_thresholds,
+                min_committee_size,
+                committee_term_limit,
+                governance_action_validity_period,
+                governance_action_deposit,
+                d_rep_deposit,
+                d_rep_inactivity_period,
                 encodings: Some(ProtocolParamUpdateEncoding {
                     len_encoding,
                     orig_deser_order,
@@ -1316,7 +1584,6 @@ impl Deserialize for ProtocolParamUpdate {
                     pool_pledge_influence_key_encoding,
                     expansion_rate_key_encoding,
                     treasury_growth_rate_key_encoding,
-                    protocol_version_key_encoding,
                     min_pool_cost_key_encoding,
                     min_pool_cost_encoding,
                     ada_per_utxo_byte_key_encoding,
@@ -1331,60 +1598,23 @@ impl Deserialize for ProtocolParamUpdate {
                     collateral_percentage_encoding,
                     max_collateral_inputs_key_encoding,
                     max_collateral_inputs_encoding,
+                    pool_voting_thresholds_key_encoding,
+                    d_rep_voting_thresholds_key_encoding,
+                    min_committee_size_key_encoding,
+                    min_committee_size_encoding,
+                    committee_term_limit_key_encoding,
+                    committee_term_limit_encoding,
+                    governance_action_validity_period_key_encoding,
+                    governance_action_validity_period_encoding,
+                    governance_action_deposit_key_encoding,
+                    governance_action_deposit_encoding,
+                    d_rep_deposit_key_encoding,
+                    d_rep_deposit_encoding,
+                    d_rep_inactivity_period_key_encoding,
+                    d_rep_inactivity_period_encoding,
                 }),
             })
-        })()
-        .map_err(|e| e.annotate("ProtocolParamUpdate"))
-    }
-}
-
-impl Serialize for ProtocolVersionStruct {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.len_encoding)
-                .unwrap_or_default()
-                .to_len_sz(2, force_canonical),
-        )?;
-        self.protocol_version
-            .serialize_as_embedded_group(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
-    }
-}
-
-impl Deserialize for ProtocolVersionStruct {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
-        (|| -> Result<_, DeserializeError> {
-            let protocol_version =
-                ProtocolVersion::deserialize_as_embedded_group(raw, &mut read_len, len)
-                    .map_err(|e: DeserializeError| e.annotate("protocol_version"))?;
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
-            Ok(ProtocolVersionStruct {
-                protocol_version,
-                encodings: Some(ProtocolVersionStructEncoding { len_encoding }),
-            })
-        })()
-        .map_err(|e| e.annotate("ProtocolVersionStruct"))
+        })().map_err(|e| e.annotate("ProtocolParamUpdate"))
     }
 }
 
@@ -1541,6 +1771,20 @@ impl Serialize for Script {
                 len_encoding.end(serializer, force_canonical)?;
                 Ok(serializer)
             }
+            Script::PlutusV3 {
+                script,
+                len_encoding,
+                tag_encoding,
+            } => {
+                serializer.write_array_sz(len_encoding.to_len_sz(2, force_canonical))?;
+                serializer.write_unsigned_integer_sz(
+                    3u64,
+                    fit_sz(3u64, *tag_encoding, force_canonical),
+                )?;
+                script.serialize(serializer, force_canonical)?;
+                len_encoding.end(serializer, force_canonical)?;
+                Ok(serializer)
+            }
         }
     }
 }
@@ -1552,6 +1796,7 @@ impl Deserialize for Script {
             let len_encoding: LenEncoding = len.into();
             let _read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let mut errs = Vec::new();
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
@@ -1582,10 +1827,12 @@ impl Deserialize for Script {
             })(raw)
             {
                 Ok(variant) => return Ok(variant),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("Native"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
@@ -1617,10 +1864,12 @@ impl Deserialize for Script {
             })(raw)
             {
                 Ok(variant) => return Ok(variant),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("PlutusV1"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
@@ -1652,10 +1901,49 @@ impl Deserialize for Script {
             })(raw)
             {
                 Ok(variant) => return Ok(variant),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("PlutusV2"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let tag_encoding = (|| -> Result<_, DeserializeError> {
+                    let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
+                    if tag_value != 3 {
+                        return Err(DeserializeFailure::FixedValueMismatch {
+                            found: Key::Uint(tag_value),
+                            expected: Key::Uint(3),
+                        }
+                        .into());
+                    }
+                    Ok(Some(tag_encoding))
+                })()
+                .map_err(|e| e.annotate("tag"))?;
+                let script = PlutusV3Script::deserialize(raw)
+                    .map_err(|e: DeserializeError| e.annotate("script"))?;
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                Ok(Self::PlutusV3 {
+                    script,
+                    len_encoding,
+                    tag_encoding,
+                })
+            })(raw)
+            {
+                Ok(variant) => return Ok(variant),
+                Err(e) => {
+                    errs.push(e.annotate("PlutusV3"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
@@ -1666,7 +1954,7 @@ impl Deserialize for Script {
             }
             Err(DeserializeError::new(
                 "Script",
-                DeserializeFailure::NoVariantMatched,
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
             ))
         })()
         .map_err(|e| e.annotate("Script"))
@@ -1774,180 +2062,5 @@ impl Deserialize for UnitInterval {
             })
         })()
         .map_err(|e| e.annotate("UnitInterval"))
-    }
-}
-
-impl Serialize for Update {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.len_encoding)
-                .unwrap_or_default()
-                .to_len_sz(2, force_canonical),
-        )?;
-        serializer.write_map_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.proposed_protocol_parameter_updates_encoding)
-                .unwrap_or_default()
-                .to_len_sz(
-                    self.proposed_protocol_parameter_updates.len() as u64,
-                    force_canonical,
-                ),
-        )?;
-        let mut key_order = self
-            .proposed_protocol_parameter_updates
-            .iter()
-            .map(|(k, v)| {
-                let mut buf = cbor_event::se::Serializer::new_vec();
-                let proposed_protocol_parameter_updates_key_encoding = self
-                    .encodings
-                    .as_ref()
-                    .and_then(|encs| {
-                        encs.proposed_protocol_parameter_updates_key_encodings
-                            .get(k)
-                    })
-                    .cloned()
-                    .unwrap_or_default();
-                buf.write_bytes_sz(
-                    k.to_raw_bytes(),
-                    proposed_protocol_parameter_updates_key_encoding
-                        .to_str_len_sz(k.to_raw_bytes().len() as u64, force_canonical),
-                )?;
-                Ok((buf.finalize(), k, v))
-            })
-            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
-        if force_canonical {
-            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
-                match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                    diff_ord => diff_ord,
-                }
-            });
-        }
-        for (key_bytes, _key, value) in key_order {
-            serializer.write_raw_bytes(&key_bytes)?;
-            value.serialize(serializer, force_canonical)?;
-        }
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.proposed_protocol_parameter_updates_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)?;
-        serializer.write_unsigned_integer_sz(
-            self.epoch,
-            fit_sz(
-                self.epoch,
-                self.encodings
-                    .as_ref()
-                    .map(|encs| encs.epoch_encoding)
-                    .unwrap_or_default(),
-                force_canonical,
-            ),
-        )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
-    }
-}
-
-impl Deserialize for Update {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
-        (|| -> Result<_, DeserializeError> {
-            let (
-                proposed_protocol_parameter_updates,
-                proposed_protocol_parameter_updates_encoding,
-                proposed_protocol_parameter_updates_key_encodings,
-            ) = (|| -> Result<_, DeserializeError> {
-                let mut proposed_protocol_parameter_updates_table = OrderedHashMap::new();
-                let proposed_protocol_parameter_updates_len = raw.map_sz()?;
-                let proposed_protocol_parameter_updates_encoding =
-                    proposed_protocol_parameter_updates_len.into();
-                let mut proposed_protocol_parameter_updates_key_encodings = BTreeMap::new();
-                while match proposed_protocol_parameter_updates_len {
-                    cbor_event::LenSz::Len(n, _) => {
-                        (proposed_protocol_parameter_updates_table.len() as u64) < n
-                    }
-                    cbor_event::LenSz::Indefinite => true,
-                } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
-                    }
-                    let (
-                        proposed_protocol_parameter_updates_key,
-                        proposed_protocol_parameter_updates_key_encoding,
-                    ) = raw
-                        .bytes_sz()
-                        .map_err(Into::<DeserializeError>::into)
-                        .and_then(|(bytes, enc)| {
-                            GenesisHash::from_raw_bytes(&bytes)
-                                .map(|bytes| (bytes, StringEncoding::from(enc)))
-                                .map_err(|e| {
-                                    DeserializeFailure::InvalidStructure(Box::new(e)).into()
-                                })
-                        })?;
-                    let proposed_protocol_parameter_updates_value =
-                        ProtocolParamUpdate::deserialize(raw)?;
-                    if proposed_protocol_parameter_updates_table
-                        .insert(
-                            proposed_protocol_parameter_updates_key.clone(),
-                            proposed_protocol_parameter_updates_value,
-                        )
-                        .is_some()
-                    {
-                        return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
-                            "some complicated/unsupported type",
-                        )))
-                        .into());
-                    }
-                    proposed_protocol_parameter_updates_key_encodings.insert(
-                        proposed_protocol_parameter_updates_key.clone(),
-                        proposed_protocol_parameter_updates_key_encoding,
-                    );
-                }
-                Ok((
-                    proposed_protocol_parameter_updates_table,
-                    proposed_protocol_parameter_updates_encoding,
-                    proposed_protocol_parameter_updates_key_encodings,
-                ))
-            })()
-            .map_err(|e| e.annotate("proposed_protocol_parameter_updates"))?;
-            let (epoch, epoch_encoding) = raw
-                .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
-                .map_err(Into::<DeserializeError>::into)
-                .map_err(|e: DeserializeError| e.annotate("epoch"))?;
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
-            Ok(Update {
-                proposed_protocol_parameter_updates,
-                epoch,
-                encodings: Some(UpdateEncoding {
-                    len_encoding,
-                    proposed_protocol_parameter_updates_encoding,
-                    proposed_protocol_parameter_updates_key_encodings,
-                    epoch_encoding,
-                }),
-            })
-        })()
-        .map_err(|e| e.annotate("Update"))
     }
 }

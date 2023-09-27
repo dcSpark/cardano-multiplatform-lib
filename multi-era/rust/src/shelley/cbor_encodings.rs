@@ -6,6 +6,15 @@ use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
+pub struct GenesisKeyDelegationEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+    pub genesis_hash_encoding: StringEncoding,
+    pub genesis_delegate_hash_encoding: StringEncoding,
+    pub v_r_f_key_hash_encoding: StringEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct MultisigAllEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
@@ -32,6 +41,11 @@ pub struct MultisigPubkeyEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
     pub ed25519_key_hash_encoding: StringEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ProtocolVersionStructEncoding {
+    pub len_encoding: LenEncoding,
 }
 
 #[derive(Clone, Debug, Default)]

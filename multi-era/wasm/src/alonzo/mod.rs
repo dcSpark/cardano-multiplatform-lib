@@ -1,22 +1,22 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::shelley::ShelleyHeader;
+use crate::shelley::{ProtocolVersionStruct, ShelleyHeader};
 use crate::{
-    AlonzoTransactionBodyList, AlonzoTransactionOutputList, AlonzoTransactionWitnessSetList,
-    MapTransactionIndexToAlonzoAuxiliaryData,
+    AllegraCertificateList, AlonzoFormatTxOutList, AlonzoTransactionBodyList,
+    AlonzoTransactionWitnessSetList, GenesisHashList, MapTransactionIndexToAlonzoAuxiliaryData,
 };
 use cml_chain_wasm::assets::{Coin, Mint};
-use cml_chain_wasm::auxdata::{Metadata, ShelleyAuxData, ShelleyMaAuxData};
+use cml_chain_wasm::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMaFormatAuxData};
 use cml_chain_wasm::crypto::Nonce;
 use cml_chain_wasm::plutus::{ExUnitPrices, ExUnits};
-use cml_chain_wasm::transaction::{AlonzoTxOut, RequiredSigners, ShelleyTxOut};
+use cml_chain_wasm::transaction::RequiredSigners;
+use cml_chain_wasm::TransactionIndex;
 use cml_chain_wasm::{
-    BootstrapWitnessList, CertificateList, IntList, NativeScriptList, PlutusDataList,
-    PlutusV1ScriptList, RedeemerList, TransactionInputList, VkeywitnessList,
+    BootstrapWitnessList, IntList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
+    RedeemerList, TransactionInputList, VkeywitnessList,
 };
 use cml_chain_wasm::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
-use cml_chain_wasm::{GenesisHashList, ProtocolVersionStruct, TransactionIndex};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
@@ -35,19 +35,19 @@ impl_wasm_conversions!(
 
 #[wasm_bindgen]
 impl AlonzoAuxiliaryData {
-    pub fn new_shelley(shelley: &ShelleyAuxData) -> Self {
+    pub fn new_shelley(shelley: &ShelleyFormatAuxData) -> Self {
         Self(cml_multi_era::alonzo::AlonzoAuxiliaryData::new_shelley(
             shelley.clone().into(),
         ))
     }
 
-    pub fn new_shelley_m_a(shelley_m_a: &ShelleyMaAuxData) -> Self {
+    pub fn new_shelley_m_a(shelley_m_a: &ShelleyMaFormatAuxData) -> Self {
         Self(cml_multi_era::alonzo::AlonzoAuxiliaryData::new_shelley_m_a(
             shelley_m_a.clone().into(),
         ))
     }
 
-    pub fn new_alonzo(alonzo: &AlonzoOnlyAuxData) -> Self {
+    pub fn new_alonzo(alonzo: &AlonzoFormatAuxData) -> Self {
         Self(cml_multi_era::alonzo::AlonzoAuxiliaryData::new_alonzo(
             alonzo.clone().into(),
         ))
@@ -67,7 +67,7 @@ impl AlonzoAuxiliaryData {
         }
     }
 
-    pub fn as_shelley(&self) -> Option<ShelleyAuxData> {
+    pub fn as_shelley(&self) -> Option<ShelleyFormatAuxData> {
         match &self.0 {
             cml_multi_era::alonzo::AlonzoAuxiliaryData::Shelley(shelley) => {
                 Some(shelley.clone().into())
@@ -76,7 +76,7 @@ impl AlonzoAuxiliaryData {
         }
     }
 
-    pub fn as_shelley_m_a(&self) -> Option<ShelleyMaAuxData> {
+    pub fn as_shelley_m_a(&self) -> Option<ShelleyMaFormatAuxData> {
         match &self.0 {
             cml_multi_era::alonzo::AlonzoAuxiliaryData::ShelleyMA(shelley_m_a) => {
                 Some(shelley_m_a.clone().into())
@@ -85,7 +85,7 @@ impl AlonzoAuxiliaryData {
         }
     }
 
-    pub fn as_alonzo(&self) -> Option<AlonzoOnlyAuxData> {
+    pub fn as_alonzo(&self) -> Option<AlonzoFormatAuxData> {
         match &self.0 {
             cml_multi_era::alonzo::AlonzoAuxiliaryData::Alonzo(alonzo) => {
                 Some(alonzo.clone().into())
@@ -172,14 +172,17 @@ impl AlonzoCostmdls {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoOnlyAuxData(cml_multi_era::alonzo::AlonzoOnlyAuxData);
+pub struct AlonzoFormatAuxData(cml_multi_era::alonzo::AlonzoFormatAuxData);
 
-impl_wasm_cbor_json_api!(AlonzoOnlyAuxData);
+impl_wasm_cbor_json_api!(AlonzoFormatAuxData);
 
-impl_wasm_conversions!(cml_multi_era::alonzo::AlonzoOnlyAuxData, AlonzoOnlyAuxData);
+impl_wasm_conversions!(
+    cml_multi_era::alonzo::AlonzoFormatAuxData,
+    AlonzoFormatAuxData
+);
 
 #[wasm_bindgen]
-impl AlonzoOnlyAuxData {
+impl AlonzoFormatAuxData {
     pub fn set_metadata(&mut self, metadata: &Metadata) {
         self.0.metadata = Some(metadata.clone().into())
     }
@@ -208,7 +211,7 @@ impl AlonzoOnlyAuxData {
     }
 
     pub fn new() -> Self {
-        Self(cml_multi_era::alonzo::AlonzoOnlyAuxData::new())
+        Self(cml_multi_era::alonzo::AlonzoFormatAuxData::new())
     }
 }
 
@@ -546,7 +549,7 @@ impl AlonzoTransactionBody {
         self.0.inputs.clone().into()
     }
 
-    pub fn outputs(&self) -> AlonzoTransactionOutputList {
+    pub fn outputs(&self) -> AlonzoFormatTxOutList {
         self.0.outputs.clone().into()
     }
 
@@ -562,11 +565,11 @@ impl AlonzoTransactionBody {
         self.0.ttl
     }
 
-    pub fn set_certs(&mut self, certs: &CertificateList) {
+    pub fn set_certs(&mut self, certs: &AllegraCertificateList) {
         self.0.certs = Some(certs.clone().into())
     }
 
-    pub fn certs(&self) -> Option<CertificateList> {
+    pub fn certs(&self) -> Option<AllegraCertificateList> {
         self.0.certs.clone().map(std::convert::Into::into)
     }
 
@@ -646,90 +649,21 @@ impl AlonzoTransactionBody {
             .map(std::convert::Into::into)
     }
 
-    pub fn set_network_id(&mut self, network_id: NetworkId) {
-        self.0.network_id = Some(network_id)
+    pub fn set_network_id(&mut self, network_id: &NetworkId) {
+        self.0.network_id = Some(network_id.clone().into())
     }
 
     pub fn network_id(&self) -> Option<NetworkId> {
-        self.0.network_id
+        self.0.network_id.map(std::convert::Into::into)
     }
 
-    pub fn new(
-        inputs: &TransactionInputList,
-        outputs: &AlonzoTransactionOutputList,
-        fee: Coin,
-    ) -> Self {
+    pub fn new(inputs: &TransactionInputList, outputs: &AlonzoFormatTxOutList, fee: Coin) -> Self {
         Self(cml_multi_era::alonzo::AlonzoTransactionBody::new(
             inputs.clone().into(),
             outputs.clone().into(),
             fee,
         ))
     }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct AlonzoTransactionOutput(cml_multi_era::alonzo::AlonzoTransactionOutput);
-
-impl_wasm_cbor_json_api!(AlonzoTransactionOutput);
-
-impl_wasm_conversions!(
-    cml_multi_era::alonzo::AlonzoTransactionOutput,
-    AlonzoTransactionOutput
-);
-
-#[wasm_bindgen]
-impl AlonzoTransactionOutput {
-    pub fn new_shelley_tx_out(shelley_tx_out: &ShelleyTxOut) -> Self {
-        Self(
-            cml_multi_era::alonzo::AlonzoTransactionOutput::new_shelley_tx_out(
-                shelley_tx_out.clone().into(),
-            ),
-        )
-    }
-
-    pub fn new_alonzo_tx_out(alonzo_tx_out: &AlonzoTxOut) -> Self {
-        Self(
-            cml_multi_era::alonzo::AlonzoTransactionOutput::new_alonzo_tx_out(
-                alonzo_tx_out.clone().into(),
-            ),
-        )
-    }
-
-    pub fn kind(&self) -> AlonzoTransactionOutputKind {
-        match &self.0 {
-            cml_multi_era::alonzo::AlonzoTransactionOutput::ShelleyTxOut(_) => {
-                AlonzoTransactionOutputKind::ShelleyTxOut
-            }
-            cml_multi_era::alonzo::AlonzoTransactionOutput::AlonzoTxOut(_) => {
-                AlonzoTransactionOutputKind::AlonzoTxOut
-            }
-        }
-    }
-
-    pub fn as_shelley_tx_out(&self) -> Option<ShelleyTxOut> {
-        match &self.0 {
-            cml_multi_era::alonzo::AlonzoTransactionOutput::ShelleyTxOut(shelley_tx_out) => {
-                Some(shelley_tx_out.clone().into())
-            }
-            _ => None,
-        }
-    }
-
-    pub fn as_alonzo_tx_out(&self) -> Option<AlonzoTxOut> {
-        match &self.0 {
-            cml_multi_era::alonzo::AlonzoTransactionOutput::AlonzoTxOut(alonzo_tx_out) => {
-                Some(alonzo_tx_out.clone().into())
-            }
-            _ => None,
-        }
-    }
-}
-
-#[wasm_bindgen]
-pub enum AlonzoTransactionOutputKind {
-    ShelleyTxOut,
-    AlonzoTxOut,
 }
 
 #[derive(Clone, Debug)]

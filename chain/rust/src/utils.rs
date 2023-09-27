@@ -20,6 +20,7 @@ impl Script {
             Self::Native { script, .. } => script.hash(),
             Self::PlutusV1 { script, .. } => script.hash(),
             Self::PlutusV2 { script, .. } => script.hash(),
+            Self::PlutusV3 { script, .. } => script.hash(),
         }
     }
 
@@ -30,6 +31,7 @@ impl Script {
             Self::Native { .. } => None,
             Self::PlutusV1 { .. } => Some(Language::PlutusV1),
             Self::PlutusV2 { .. } => Some(Language::PlutusV2),
+            Self::PlutusV3 { .. } => Some(Language::PlutusV3),
         }
     }
 }
@@ -479,6 +481,68 @@ where
             num: x.into(),
             encoding: None,
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct NetworkId {
+    pub network: u64,
+    #[serde(skip)]
+    pub encoding: Option<cbor_event::Sz>,
+}
+
+impl NetworkId {
+    pub fn new(network: u64) -> Self {
+        Self {
+            network,
+            encoding: None,
+        }
+    }
+
+    pub fn mainnet() -> Self {
+        Self {
+            network: 1,
+            encoding: None,
+        }
+    }
+
+    pub fn testnet() -> Self {
+        Self {
+            network: 1,
+            encoding: None,
+        }
+    }
+}
+
+impl From<u64> for NetworkId {
+    fn from(network: u64) -> Self {
+        NetworkId::new(network)
+    }
+}
+
+impl From<NetworkId> for u64 {
+    fn from(id: NetworkId) -> u64 {
+        id.network
+    }
+}
+
+impl Serialize for NetworkId {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer_sz(
+            self.network,
+            fit_sz(self.network, self.encoding, force_canonical),
+        )
+    }
+}
+
+impl Deserialize for NetworkId {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let (network, encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
+        Ok(Self { network, encoding })
     }
 }
 

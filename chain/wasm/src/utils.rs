@@ -42,3 +42,30 @@ impl BigInt {
         self.0.as_int().map(Into::into)
     }
 }
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NetworkId(cml_chain::NetworkId);
+
+impl_wasm_cbor_json_api!(NetworkId);
+
+impl_wasm_conversions!(cml_chain::NetworkId, NetworkId);
+
+#[wasm_bindgen]
+impl NetworkId {
+    pub fn new(network: u64) -> Self {
+        cml_chain::NetworkId::new(network).into()
+    }
+
+    pub fn mainnet() -> Self {
+        cml_chain::NetworkId::mainnet().into()
+    }
+
+    pub fn testnet() -> Self {
+        cml_chain::NetworkId::testnet().into()
+    }
+
+    pub fn network(&self) -> u64 {
+        self.0.network
+    }
+}

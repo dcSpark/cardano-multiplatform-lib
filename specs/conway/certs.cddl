@@ -4,28 +4,63 @@ certificate =
   // stake_delegation
   // pool_registration
   // pool_retirement
-  // genesis_key_delegation
-  // move_instantaneous_rewards_cert
+  // reg_cert
+  // unreg_cert
+  // vote_deleg_cert
+  // stake_vote_deleg_cert
+  // stake_reg_deleg_cert
+  // vote_reg_deleg_cert
+  // stake_vote_reg_deleg_cert
+  // auth_committee_hot_cert
+  // resign_committee_cold_cert
+  // reg_drep_cert
+  // unreg_drep_cert
+  // update_drep_cert
   ]
 
 stake_registration = (tag: 0, stake_credential)
 stake_deregistration = (tag: 1, stake_credential)
 stake_delegation = (tag: 2, stake_credential, ed25519_key_hash)
+
+; POOL
 pool_registration = (tag: 3, pool_params)
 pool_retirement = (tag: 4, ed25519_key_hash, epoch)
-genesis_key_delegation = (tag: 5, genesis_hash, genesis_delegate_hash, VRF_key_hash)
-move_instantaneous_rewards_cert = (tag: 6, move_instantaneous_reward)
 
-MIR_pot = 0 ; @name reserve
-        / 1 ; @name treasury
+; these two are now deprecated in Conway:
+; genesis_key_delegation = (tag: 5, genesis_hash, genesis_delegate_hash, VRF_key_hash)
+; move_instantaneous_rewards_cert = (tag: 6, move_instantaneous_reward)
 
-MIR_action = { * stake_credential => delta_coin } ; @name to_stake_credentials
-           / coin                                 ; @name to_other_pot
+; DELEG
+reg_cert = (tag: 7, stake_credential, coin)
+unreg_cert = (tag: 8, stake_credential, coin)
+vote_deleg_cert = (tag: 9, stake_credential, d_rep)
+stake_vote_deleg_cert = (tag: 10, stake_credential, ed25519_key_hash, d_rep)
+stake_reg_deleg_cert = (tag: 11, stake_credential, ed25519_key_hash, coin)
+vote_reg_deleg_cert = (tag: 12, stake_credential, d_rep, coin)
+stake_vote_reg_deleg_cert = (tag: 13, stake_credential, ed25519_key_hash, d_rep, coin)
 
-move_instantaneous_reward = [
-  pot: MIR_pot,
-  action: MIR_action,
+; GOVCERT
+auth_committee_hot_cert = (14, committee_cold_credential, committee_hot_credential)
+resign_committee_cold_cert = (15, committee_cold_credential)
+reg_drep_cert = (16, drep_credential, coin, anchor / null)
+unreg_drep_cert = (17, drep_credential, coin)
+update_drep_cert = (18, drep_credential, anchor / null)
+
+d_rep = [
+  ; @name key
+  0, ed25519_key_hash //
+  ; @name script
+  1, script_hash //
+  ; @name always_abstain
+  2 //
+  ; @name always_no_confidence
+  3
 ]
+
+stake_credential = credential
+drep_credential = credential
+committee_cold_credential = credential
+committee_hot_credential = credential
 
 ; The first field determines where the funds are drawn from.
 ; 0 denotes the reserves, 1 denotes the treasury.
@@ -69,7 +104,7 @@ pool_metadata = [url, pool_metadata_hash]
 url = tstr .size (0..64)
 
 
-stake_credential = [
+credential = [
   ; @name PubKey
   tag: 0, hash: ed25519_key_hash //
   ; @name Script

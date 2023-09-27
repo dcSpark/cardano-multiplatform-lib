@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, convert::TryFrom, string::FromUtf8Error};
 
 use cbor_event::{de::Deserializer, se::Serializer};
-pub use cml_chain::{AssetName, PolicyId};
+pub use cml_chain::{assets::AssetName, PolicyId};
 pub use cml_core::{
     error::*,
     metadata::{Metadata, TransactionMetadatum},

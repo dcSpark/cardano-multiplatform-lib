@@ -1,19 +1,26 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::shelley::{ShelleyHeader, ShelleyUpdate};
+use crate::shelley::{GenesisKeyDelegation, ShelleyHeader, ShelleyUpdate};
 use crate::{
-    AllegraTransactionBodyList, AllegraTransactionWitnessSetList,
+    AllegraCertificateList, AllegraTransactionBodyList, AllegraTransactionWitnessSetList,
     MapTransactionIndexToAllegraAuxiliaryData, ShelleyTransactionOutputList,
 };
 use cml_chain_wasm::assets::Coin;
-use cml_chain_wasm::auxdata::{ShelleyAuxData, ShelleyMaAuxData};
-use cml_chain_wasm::Withdrawals;
-use cml_chain_wasm::{
-    BootstrapWitnessList, CertificateList, NativeScriptList, TransactionInputList, VkeywitnessList,
+use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
+use cml_chain_wasm::certs::{PoolParams, StakeCredential};
+use cml_chain_wasm::certs::{
+    PoolRegistration, PoolRetirement, StakeDelegation, StakeDeregistration, StakeRegistration,
 };
+use cml_chain_wasm::Epoch;
+use cml_chain_wasm::{
+    BootstrapWitnessList, NativeScriptList, TransactionInputList, VkeywitnessList,
+};
+use cml_chain_wasm::{MapStakeCredentialToDeltaCoin, Withdrawals};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use cml_crypto_wasm::AuxiliaryDataHash;
+use cml_crypto_wasm::Ed25519KeyHash;
+use cml_crypto_wasm::{AuxiliaryDataHash, GenesisDelegateHash, GenesisHash, VRFKeyHash};
+use cml_multi_era::allegra::MIRPot;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 #[derive(Clone, Debug)]
@@ -29,46 +36,44 @@ impl_wasm_conversions!(
 
 #[wasm_bindgen]
 impl AllegraAuxiliaryData {
-    pub fn new_shelley_aux_data(shelley_aux_data: &ShelleyAuxData) -> Self {
-        Self(
-            cml_multi_era::allegra::AllegraAuxiliaryData::new_shelley_aux_data(
-                shelley_aux_data.clone().into(),
-            ),
-        )
+    pub fn new_shelley(shelley: &ShelleyFormatAuxData) -> Self {
+        Self(cml_multi_era::allegra::AllegraAuxiliaryData::new_shelley(
+            shelley.clone().into(),
+        ))
     }
 
-    pub fn new_shelley_ma_aux_data(shelley_ma_aux_data: &ShelleyMaAuxData) -> Self {
+    pub fn new_shelley_m_a(shelley_m_a: &ShelleyMaFormatAuxData) -> Self {
         Self(
-            cml_multi_era::allegra::AllegraAuxiliaryData::new_shelley_ma_aux_data(
-                shelley_ma_aux_data.clone().into(),
+            cml_multi_era::allegra::AllegraAuxiliaryData::new_shelley_m_a(
+                shelley_m_a.clone().into(),
             ),
         )
     }
 
     pub fn kind(&self) -> AllegraAuxiliaryDataKind {
         match &self.0 {
-            cml_multi_era::allegra::AllegraAuxiliaryData::ShelleyAuxData(_) => {
-                AllegraAuxiliaryDataKind::ShelleyAuxData
+            cml_multi_era::allegra::AllegraAuxiliaryData::Shelley(_) => {
+                AllegraAuxiliaryDataKind::Shelley
             }
-            cml_multi_era::allegra::AllegraAuxiliaryData::ShelleyMaAuxData(_) => {
-                AllegraAuxiliaryDataKind::ShelleyMaAuxData
+            cml_multi_era::allegra::AllegraAuxiliaryData::ShelleyMA(_) => {
+                AllegraAuxiliaryDataKind::ShelleyMA
             }
         }
     }
 
-    pub fn as_shelley_aux_data(&self) -> Option<ShelleyAuxData> {
+    pub fn as_shelley(&self) -> Option<ShelleyFormatAuxData> {
         match &self.0 {
-            cml_multi_era::allegra::AllegraAuxiliaryData::ShelleyAuxData(shelley_aux_data) => {
-                Some(shelley_aux_data.clone().into())
+            cml_multi_era::allegra::AllegraAuxiliaryData::Shelley(shelley) => {
+                Some(shelley.clone().into())
             }
             _ => None,
         }
     }
 
-    pub fn as_shelley_ma_aux_data(&self) -> Option<ShelleyMaAuxData> {
+    pub fn as_shelley_m_a(&self) -> Option<ShelleyMaFormatAuxData> {
         match &self.0 {
-            cml_multi_era::allegra::AllegraAuxiliaryData::ShelleyMaAuxData(shelley_ma_aux_data) => {
-                Some(shelley_ma_aux_data.clone().into())
+            cml_multi_era::allegra::AllegraAuxiliaryData::ShelleyMA(shelley_m_a) => {
+                Some(shelley_m_a.clone().into())
             }
             _ => None,
         }
@@ -77,8 +82,8 @@ impl AllegraAuxiliaryData {
 
 #[wasm_bindgen]
 pub enum AllegraAuxiliaryDataKind {
-    ShelleyAuxData,
-    ShelleyMaAuxData,
+    Shelley,
+    ShelleyMA,
 }
 
 #[derive(Clone, Debug)]
@@ -120,6 +125,189 @@ impl AllegraBlock {
             auxiliary_data_set.clone().into(),
         ))
     }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct AllegraCertificate(cml_multi_era::allegra::AllegraCertificate);
+
+impl_wasm_cbor_json_api!(AllegraCertificate);
+
+impl_wasm_conversions!(
+    cml_multi_era::allegra::AllegraCertificate,
+    AllegraCertificate
+);
+
+#[wasm_bindgen]
+impl AllegraCertificate {
+    pub fn new_stake_registration(stake_credential: &StakeCredential) -> Self {
+        Self(
+            cml_multi_era::allegra::AllegraCertificate::new_stake_registration(
+                stake_credential.clone().into(),
+            ),
+        )
+    }
+
+    pub fn new_stake_deregistration(stake_credential: &StakeCredential) -> Self {
+        Self(
+            cml_multi_era::allegra::AllegraCertificate::new_stake_deregistration(
+                stake_credential.clone().into(),
+            ),
+        )
+    }
+
+    pub fn new_stake_delegation(
+        stake_credential: &StakeCredential,
+        ed25519_key_hash: &Ed25519KeyHash,
+    ) -> Self {
+        Self(
+            cml_multi_era::allegra::AllegraCertificate::new_stake_delegation(
+                stake_credential.clone().into(),
+                ed25519_key_hash.clone().into(),
+            ),
+        )
+    }
+
+    pub fn new_pool_registration(pool_params: &PoolParams) -> Self {
+        Self(
+            cml_multi_era::allegra::AllegraCertificate::new_pool_registration(
+                pool_params.clone().into(),
+            ),
+        )
+    }
+
+    pub fn new_pool_retirement(ed25519_key_hash: &Ed25519KeyHash, epoch: Epoch) -> Self {
+        Self(
+            cml_multi_era::allegra::AllegraCertificate::new_pool_retirement(
+                ed25519_key_hash.clone().into(),
+                epoch,
+            ),
+        )
+    }
+
+    pub fn new_genesis_key_delegation(
+        genesis_hash: &GenesisHash,
+        genesis_delegate_hash: &GenesisDelegateHash,
+        v_r_f_key_hash: &VRFKeyHash,
+    ) -> Self {
+        Self(
+            cml_multi_era::allegra::AllegraCertificate::new_genesis_key_delegation(
+                genesis_hash.clone().into(),
+                genesis_delegate_hash.clone().into(),
+                v_r_f_key_hash.clone().into(),
+            ),
+        )
+    }
+
+    pub fn new_move_instantaneous_rewards_cert(
+        move_instantaneous_reward: &MoveInstantaneousReward,
+    ) -> Self {
+        Self(
+            cml_multi_era::allegra::AllegraCertificate::new_move_instantaneous_rewards_cert(
+                move_instantaneous_reward.clone().into(),
+            ),
+        )
+    }
+
+    pub fn kind(&self) -> AllegraCertificateKind {
+        match &self.0 {
+            cml_multi_era::allegra::AllegraCertificate::StakeRegistration(_) => {
+                AllegraCertificateKind::StakeRegistration
+            }
+            cml_multi_era::allegra::AllegraCertificate::StakeDeregistration(_) => {
+                AllegraCertificateKind::StakeDeregistration
+            }
+            cml_multi_era::allegra::AllegraCertificate::StakeDelegation(_) => {
+                AllegraCertificateKind::StakeDelegation
+            }
+            cml_multi_era::allegra::AllegraCertificate::PoolRegistration(_) => {
+                AllegraCertificateKind::PoolRegistration
+            }
+            cml_multi_era::allegra::AllegraCertificate::PoolRetirement(_) => {
+                AllegraCertificateKind::PoolRetirement
+            }
+            cml_multi_era::allegra::AllegraCertificate::GenesisKeyDelegation(_) => {
+                AllegraCertificateKind::GenesisKeyDelegation
+            }
+            cml_multi_era::allegra::AllegraCertificate::MoveInstantaneousRewardsCert(_) => {
+                AllegraCertificateKind::MoveInstantaneousRewardsCert
+            }
+        }
+    }
+
+    pub fn as_stake_registration(&self) -> Option<StakeRegistration> {
+        match &self.0 {
+            cml_multi_era::allegra::AllegraCertificate::StakeRegistration(stake_registration) => {
+                Some(stake_registration.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_stake_deregistration(&self) -> Option<StakeDeregistration> {
+        match &self.0 {
+            cml_multi_era::allegra::AllegraCertificate::StakeDeregistration(
+                stake_deregistration,
+            ) => Some(stake_deregistration.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_stake_delegation(&self) -> Option<StakeDelegation> {
+        match &self.0 {
+            cml_multi_era::allegra::AllegraCertificate::StakeDelegation(stake_delegation) => {
+                Some(stake_delegation.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_pool_registration(&self) -> Option<PoolRegistration> {
+        match &self.0 {
+            cml_multi_era::allegra::AllegraCertificate::PoolRegistration(pool_registration) => {
+                Some(pool_registration.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_pool_retirement(&self) -> Option<PoolRetirement> {
+        match &self.0 {
+            cml_multi_era::allegra::AllegraCertificate::PoolRetirement(pool_retirement) => {
+                Some(pool_retirement.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_genesis_key_delegation(&self) -> Option<GenesisKeyDelegation> {
+        match &self.0 {
+            cml_multi_era::allegra::AllegraCertificate::GenesisKeyDelegation(
+                genesis_key_delegation,
+            ) => Some(genesis_key_delegation.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_move_instantaneous_rewards_cert(&self) -> Option<MoveInstantaneousRewardsCert> {
+        match &self.0 {
+            cml_multi_era::allegra::AllegraCertificate::MoveInstantaneousRewardsCert(
+                move_instantaneous_rewards_cert,
+            ) => Some(move_instantaneous_rewards_cert.clone().into()),
+            _ => None,
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub enum AllegraCertificateKind {
+    StakeRegistration,
+    StakeDeregistration,
+    StakeDelegation,
+    PoolRegistration,
+    PoolRetirement,
+    GenesisKeyDelegation,
+    MoveInstantaneousRewardsCert,
 }
 
 #[derive(Clone, Debug)]
@@ -193,11 +381,11 @@ impl AllegraTransactionBody {
         self.0.ttl
     }
 
-    pub fn set_certs(&mut self, certs: &CertificateList) {
+    pub fn set_certs(&mut self, certs: &AllegraCertificateList) {
         self.0.certs = Some(certs.clone().into())
     }
 
-    pub fn certs(&self) -> Option<CertificateList> {
+    pub fn certs(&self) -> Option<AllegraCertificateList> {
         self.0.certs.clone().map(std::convert::Into::into)
     }
 
@@ -291,5 +479,115 @@ impl AllegraTransactionWitnessSet {
 
     pub fn new() -> Self {
         Self(cml_multi_era::allegra::AllegraTransactionWitnessSet::new())
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MIRAction(cml_multi_era::allegra::MIRAction);
+
+impl_wasm_cbor_json_api!(MIRAction);
+
+impl_wasm_conversions!(cml_multi_era::allegra::MIRAction, MIRAction);
+
+#[wasm_bindgen]
+impl MIRAction {
+    pub fn new_to_stake_credentials(to_stake_credentials: &MapStakeCredentialToDeltaCoin) -> Self {
+        Self(cml_multi_era::allegra::MIRAction::new_to_stake_credentials(
+            to_stake_credentials.clone().into(),
+        ))
+    }
+
+    pub fn new_to_other_pot(to_other_pot: Coin) -> Self {
+        Self(cml_multi_era::allegra::MIRAction::new_to_other_pot(
+            to_other_pot,
+        ))
+    }
+
+    pub fn kind(&self) -> MIRActionKind {
+        match &self.0 {
+            cml_multi_era::allegra::MIRAction::ToStakeCredentials { .. } => {
+                MIRActionKind::ToStakeCredentials
+            }
+            cml_multi_era::allegra::MIRAction::ToOtherPot { .. } => MIRActionKind::ToOtherPot,
+        }
+    }
+
+    pub fn as_to_stake_credentials(&self) -> Option<MapStakeCredentialToDeltaCoin> {
+        match &self.0 {
+            cml_multi_era::allegra::MIRAction::ToStakeCredentials {
+                to_stake_credentials,
+                ..
+            } => Some(to_stake_credentials.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_to_other_pot(&self) -> Option<Coin> {
+        match &self.0 {
+            cml_multi_era::allegra::MIRAction::ToOtherPot { to_other_pot, .. } => {
+                Some(*to_other_pot)
+            }
+            _ => None,
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub enum MIRActionKind {
+    ToStakeCredentials,
+    ToOtherPot,
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MoveInstantaneousReward(cml_multi_era::allegra::MoveInstantaneousReward);
+
+impl_wasm_cbor_json_api!(MoveInstantaneousReward);
+
+impl_wasm_conversions!(
+    cml_multi_era::allegra::MoveInstantaneousReward,
+    MoveInstantaneousReward
+);
+
+#[wasm_bindgen]
+impl MoveInstantaneousReward {
+    pub fn pot(&self) -> MIRPot {
+        self.0.pot
+    }
+
+    pub fn action(&self) -> MIRAction {
+        self.0.action.clone().into()
+    }
+
+    pub fn new(pot: MIRPot, action: &MIRAction) -> Self {
+        Self(cml_multi_era::allegra::MoveInstantaneousReward::new(
+            pot,
+            action.clone().into(),
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MoveInstantaneousRewardsCert(cml_multi_era::allegra::MoveInstantaneousRewardsCert);
+
+impl_wasm_cbor_json_api!(MoveInstantaneousRewardsCert);
+
+impl_wasm_conversions!(
+    cml_multi_era::allegra::MoveInstantaneousRewardsCert,
+    MoveInstantaneousRewardsCert
+);
+
+#[wasm_bindgen]
+impl MoveInstantaneousRewardsCert {
+    pub fn move_instantaneous_reward(&self) -> MoveInstantaneousReward {
+        self.0.move_instantaneous_reward.clone().into()
+    }
+
+    pub fn new(move_instantaneous_reward: &MoveInstantaneousReward) -> Self {
+        Self(cml_multi_era::allegra::MoveInstantaneousRewardsCert::new(
+            move_instantaneous_reward.clone().into(),
+        ))
     }
 }

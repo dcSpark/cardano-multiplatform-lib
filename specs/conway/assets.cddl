@@ -1,5 +1,9 @@
 coin = uint
 
+; does not accept 0. to make things easy for now we'll keep it as a coin alias
+; but possibly it could be its own type with bounds checking (!=0)
+positive_coin = coin
+
 asset_name = bytes .size (0..32)
 
 ; these two are technically hand-written but we keep them here so that other code can
@@ -9,10 +13,13 @@ asset_name = bytes .size (0..32)
 ; NOTE: this means that after generation you must unfortunately manually remove Mint
 ; MultiAsset doesn't need removing since it's only referenced by Value which is also
 ; externally defined.
-; multi_asset = { * policy_id => { * asset_name => uint } }
-mint = { * policy_id => { * asset_name => int64 } }
+multi_asset = { * policy_id => { * asset_name => uint } }
+mint = { * policy_id => { * asset_name => non_zero_int_64 } }
 
 int64 = -9223372036854775808 .. 9223372036854775807 ; @no_alias
+
+; likewise to positive_coin we have nonZeroInt64
+non_zero_int_64 = -9223372036854775808 .. 9223372036854775807
 
 ; original def (hand-written due to be being such a common struct to improve API + match old CML):
 ; value = coin / [coin,multiasset]

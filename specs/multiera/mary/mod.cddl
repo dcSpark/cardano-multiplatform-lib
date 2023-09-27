@@ -16,17 +16,22 @@ mary_transaction = [
   auxiliary_data: allegra_auxiliary_data / null,
 ]
 
+mary_transaction_output = [
+  address,
+  amount : value,
+]
+
 mary_transaction_body = {
-    0 : [* transaction_input],  ; @name inputs
-    1 : [* shelley_tx_out],     ; @name outputs
-    2 : coin,                   ; @name fee
-  ? 3 : uint,                 ; @name ttl
-  ? 4 : [* certificate],      ; @name certs
-  ? 5 : withdrawals,          ; @name withdrawals
-  ? 6 : shelley_update,       ; @name update
-  ? 7 : auxiliary_data_hash,  ; @name auxiliary_data_hash
-  ? 8 : uint,                 ; @name validity_interval_start
-  ? 9 : mint,                 ; @name mint
+    0 : [* transaction_input],       ; @name inputs
+    1 : [* mary_transaction_output], ; @name outputs
+    2 : coin,                        ; @name fee
+  ? 3 : uint,                        ; @name ttl
+  ? 4 : [* allegra_certificate],     ; @name certs
+  ? 5 : withdrawals,                 ; @name withdrawals
+  ? 6 : shelley_update,              ; @name update
+  ? 7 : auxiliary_data_hash,         ; @name auxiliary_data_hash
+  ? 8 : uint,                        ; @name validity_interval_start
+  ? 9 : mint,                        ; @name mint
 }
 
 

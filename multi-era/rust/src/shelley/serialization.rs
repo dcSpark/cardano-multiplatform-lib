@@ -9,8 +9,167 @@ use cbor_event::se::Serializer;
 use cml_chain::address::RewardAccount;
 use cml_core::error::*;
 use cml_core::serialization::*;
+use cml_crypto::GenesisDelegateHash;
 use cml_crypto::RawBytesEncoding;
+use cml_crypto::VRFKeyHash;
 use std::io::{BufRead, Seek, SeekFrom, Write};
+
+impl Serialize for GenesisKeyDelegation {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(4, force_canonical),
+        )?;
+        self.serialize_as_embedded_group(serializer, force_canonical)
+    }
+}
+
+impl SerializeEmbeddedGroup for GenesisKeyDelegation {
+    fn serialize_as_embedded_group<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer_sz(
+            5u64,
+            fit_sz(
+                5u64,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.tag_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )?;
+        serializer.write_bytes_sz(
+            self.genesis_hash.to_raw_bytes(),
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.genesis_hash_encoding.clone())
+                .unwrap_or_default()
+                .to_str_len_sz(
+                    self.genesis_hash.to_raw_bytes().len() as u64,
+                    force_canonical,
+                ),
+        )?;
+        serializer.write_bytes_sz(
+            self.genesis_delegate_hash.to_raw_bytes(),
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.genesis_delegate_hash_encoding.clone())
+                .unwrap_or_default()
+                .to_str_len_sz(
+                    self.genesis_delegate_hash.to_raw_bytes().len() as u64,
+                    force_canonical,
+                ),
+        )?;
+        serializer.write_bytes_sz(
+            self.v_r_f_key_hash.to_raw_bytes(),
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.v_r_f_key_hash_encoding.clone())
+                .unwrap_or_default()
+                .to_str_len_sz(
+                    self.v_r_f_key_hash.to_raw_bytes().len() as u64,
+                    force_canonical,
+                ),
+        )?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for GenesisKeyDelegation {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(4)?;
+        read_len.finish()?;
+        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+        match len {
+            cbor_event::LenSz::Len(_, _) => (),
+            cbor_event::LenSz::Indefinite => match raw.special()? {
+                cbor_event::Special::Break => (),
+                _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+            },
+        }
+        ret
+    }
+}
+
+impl DeserializeEmbeddedGroup for GenesisKeyDelegation {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(
+        raw: &mut Deserializer<R>,
+        _read_len: &mut CBORReadLen,
+        len: cbor_event::LenSz,
+    ) -> Result<Self, DeserializeError> {
+        let len_encoding = len.into();
+        (|| -> Result<_, DeserializeError> {
+            let tag_encoding = (|| -> Result<_, DeserializeError> {
+                let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
+                if tag_value != 5 {
+                    return Err(DeserializeFailure::FixedValueMismatch {
+                        found: Key::Uint(tag_value),
+                        expected: Key::Uint(5),
+                    }
+                    .into());
+                }
+                Ok(Some(tag_encoding))
+            })()
+            .map_err(|e| e.annotate("tag"))?;
+            let (genesis_hash, genesis_hash_encoding) = raw
+                .bytes_sz()
+                .map_err(Into::<DeserializeError>::into)
+                .and_then(|(bytes, enc)| {
+                    GenesisHash::from_raw_bytes(&bytes)
+                        .map(|bytes| (bytes, StringEncoding::from(enc)))
+                        .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
+                })
+                .map_err(|e: DeserializeError| e.annotate("genesis_hash"))?;
+            let (genesis_delegate_hash, genesis_delegate_hash_encoding) = raw
+                .bytes_sz()
+                .map_err(Into::<DeserializeError>::into)
+                .and_then(|(bytes, enc)| {
+                    GenesisDelegateHash::from_raw_bytes(&bytes)
+                        .map(|bytes| (bytes, StringEncoding::from(enc)))
+                        .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
+                })
+                .map_err(|e: DeserializeError| e.annotate("genesis_delegate_hash"))?;
+            let (v_r_f_key_hash, v_r_f_key_hash_encoding) = raw
+                .bytes_sz()
+                .map_err(Into::<DeserializeError>::into)
+                .and_then(|(bytes, enc)| {
+                    VRFKeyHash::from_raw_bytes(&bytes)
+                        .map(|bytes| (bytes, StringEncoding::from(enc)))
+                        .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
+                })
+                .map_err(|e: DeserializeError| e.annotate("v_r_f_key_hash"))?;
+            Ok(GenesisKeyDelegation {
+                genesis_hash,
+                genesis_delegate_hash,
+                v_r_f_key_hash,
+                encodings: Some(GenesisKeyDelegationEncoding {
+                    len_encoding,
+                    tag_encoding,
+                    genesis_hash_encoding,
+                    genesis_delegate_hash_encoding,
+                    v_r_f_key_hash_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("GenesisKeyDelegation"))
+    }
+}
 
 impl Serialize for MultisigAll {
     fn serialize<'se, W: Write>(
@@ -611,6 +770,56 @@ impl Deserialize for MultisigScript {
     }
 }
 
+impl Serialize for ProtocolVersionStruct {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(2, force_canonical),
+        )?;
+        self.protocol_version
+            .serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for ProtocolVersionStruct {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let len_encoding: LenEncoding = len.into();
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(2)?;
+        read_len.finish()?;
+        (|| -> Result<_, DeserializeError> {
+            let protocol_version =
+                ProtocolVersion::deserialize_as_embedded_group(raw, &mut read_len, len)
+                    .map_err(|e: DeserializeError| e.annotate("protocol_version"))?;
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            Ok(ProtocolVersionStruct {
+                protocol_version,
+                encodings: Some(ProtocolVersionStructEncoding { len_encoding }),
+            })
+        })()
+        .map_err(|e| e.annotate("ProtocolVersionStruct"))
+    }
+}
+
 impl Serialize for ShelleyBlock {
     fn serialize<'se, W: Write>(
         &self,
@@ -767,9 +976,15 @@ impl Serialize for ShelleyCertificate {
             ShelleyCertificate::GenesisKeyDelegation(genesis_key_delegation) => {
                 genesis_key_delegation.serialize(serializer, force_canonical)
             }
-            ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert(
+            ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert {
                 shelley_move_instantaneous_rewards_cert,
-            ) => shelley_move_instantaneous_rewards_cert.serialize(serializer, force_canonical),
+                len_encoding,
+            } => {
+                serializer.write_array_sz(len_encoding.to_len_sz(1, force_canonical))?;
+                shelley_move_instantaneous_rewards_cert.serialize(serializer, force_canonical)?;
+                len_encoding.end(serializer, force_canonical)?;
+                Ok(serializer)
+            }
         }
     }
 }
@@ -777,9 +992,13 @@ impl Serialize for ShelleyCertificate {
 impl Deserialize for ShelleyCertificate {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            let deser_variant: Result<_, DeserializeError> = StakeRegistration::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                StakeRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(stake_registration) => return Ok(Self::StakeRegistration(stake_registration)),
                 Err(e) => {
@@ -789,7 +1008,8 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = StakeDeregistration::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                StakeDeregistration::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(stake_deregistration) => {
                     return Ok(Self::StakeDeregistration(stake_deregistration))
@@ -801,7 +1021,8 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = StakeDelegation::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                StakeDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(stake_delegation) => return Ok(Self::StakeDelegation(stake_delegation)),
                 Err(e) => {
@@ -811,7 +1032,8 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = PoolRegistration::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                PoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(pool_registration) => return Ok(Self::PoolRegistration(pool_registration)),
                 Err(e) => {
@@ -821,7 +1043,8 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = PoolRetirement::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                PoolRetirement::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(pool_retirement) => return Ok(Self::PoolRetirement(pool_retirement)),
                 Err(e) => {
@@ -831,7 +1054,8 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> = GenesisKeyDelegation::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> =
+                GenesisKeyDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
             match deser_variant {
                 Ok(genesis_key_delegation) => {
                     return Ok(Self::GenesisKeyDelegation(genesis_key_delegation))
@@ -847,9 +1071,10 @@ impl Deserialize for ShelleyCertificate {
                 ShelleyMoveInstantaneousRewardsCert::deserialize(raw);
             match deser_variant {
                 Ok(shelley_move_instantaneous_rewards_cert) => {
-                    return Ok(Self::ShelleyMoveInstantaneousRewardsCert(
+                    return Ok(Self::ShelleyMoveInstantaneousRewardsCert {
                         shelley_move_instantaneous_rewards_cert,
-                    ))
+                        len_encoding,
+                    })
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMoveInstantaneousRewardsCert"));
@@ -858,6 +1083,13 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
             Err(DeserializeError::new(
                 "ShelleyCertificate",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),

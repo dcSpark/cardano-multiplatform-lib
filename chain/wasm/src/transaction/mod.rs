@@ -1,16 +1,17 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use super::{
-    BootstrapWitnessList, CertificateList, NativeScriptList, NetworkId, PlutusDataList,
-    PlutusV1ScriptList, PlutusV2ScriptList, RedeemerList, Slot, TransactionInputList,
-    TransactionOutputList, Update, Value, VkeywitnessList, Withdrawals,
-};
 use crate::address::Address;
-use crate::assets::{Coin, Mint};
+use crate::assets::{Coin, Mint, PositiveCoin, Value};
 use crate::auxdata::AuxiliaryData;
+use crate::governance::VotingProcedures;
 use crate::plutus::PlutusData;
 use crate::Script;
+use crate::{
+    BootstrapWitnessList, CertificateList, NativeScriptList, NetworkId, PlutusDataList,
+    PlutusV1ScriptList, PlutusV2ScriptList, PlutusV3ScriptList, ProposalProcedureList,
+    RedeemerList, Slot, TransactionInputList, TransactionOutputList, VkeywitnessList, Withdrawals,
+};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
@@ -21,14 +22,14 @@ pub mod utils;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoTxOut(cml_chain::transaction::AlonzoTxOut);
+pub struct AlonzoFormatTxOut(cml_chain::transaction::AlonzoFormatTxOut);
 
-impl_wasm_cbor_json_api!(AlonzoTxOut);
+impl_wasm_cbor_json_api!(AlonzoFormatTxOut);
 
-impl_wasm_conversions!(cml_chain::transaction::AlonzoTxOut, AlonzoTxOut);
+impl_wasm_conversions!(cml_chain::transaction::AlonzoFormatTxOut, AlonzoFormatTxOut);
 
 #[wasm_bindgen]
-impl AlonzoTxOut {
+impl AlonzoFormatTxOut {
     pub fn address(&self) -> Address {
         self.0.address.clone().into()
     }
@@ -37,29 +38,32 @@ impl AlonzoTxOut {
         self.0.amount.clone().into()
     }
 
-    pub fn datum_hash(&self) -> DatumHash {
-        self.0.datum_hash.clone().into()
+    pub fn set_datum_hash(&mut self, datum_hash: &DatumHash) {
+        self.0.datum_hash = Some(datum_hash.clone().into())
     }
 
-    pub fn new(address: &Address, amount: &Value, datum_hash: &DatumHash) -> Self {
-        Self(cml_chain::transaction::AlonzoTxOut::new(
+    pub fn datum_hash(&self) -> Option<DatumHash> {
+        self.0.datum_hash.clone().map(std::convert::Into::into)
+    }
+
+    pub fn new(address: &Address, amount: &Value) -> Self {
+        Self(cml_chain::transaction::AlonzoFormatTxOut::new(
             address.clone().into(),
             amount.clone().into(),
-            datum_hash.clone().into(),
         ))
     }
 }
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageTxOut(cml_chain::transaction::BabbageTxOut);
+pub struct ConwayFormatTxOut(cml_chain::transaction::ConwayFormatTxOut);
 
-impl_wasm_cbor_json_api!(BabbageTxOut);
+impl_wasm_cbor_json_api!(ConwayFormatTxOut);
 
-impl_wasm_conversions!(cml_chain::transaction::BabbageTxOut, BabbageTxOut);
+impl_wasm_conversions!(cml_chain::transaction::ConwayFormatTxOut, ConwayFormatTxOut);
 
 #[wasm_bindgen]
-impl BabbageTxOut {
+impl ConwayFormatTxOut {
     pub fn address(&self) -> Address {
         self.0.address.clone().into()
     }
@@ -88,7 +92,7 @@ impl BabbageTxOut {
     }
 
     pub fn new(address: &Address, amount: &Value) -> Self {
-        Self(cml_chain::transaction::BabbageTxOut::new(
+        Self(cml_chain::transaction::ConwayFormatTxOut::new(
             address.clone().into(),
             amount.clone().into(),
         ))
@@ -432,32 +436,6 @@ pub type ScriptRef = Script;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyTxOut(cml_chain::transaction::ShelleyTxOut);
-
-impl_wasm_cbor_json_api!(ShelleyTxOut);
-
-impl_wasm_conversions!(cml_chain::transaction::ShelleyTxOut, ShelleyTxOut);
-
-#[wasm_bindgen]
-impl ShelleyTxOut {
-    pub fn address(&self) -> Address {
-        self.0.address.clone().into()
-    }
-
-    pub fn amount(&self) -> Value {
-        self.0.amount.clone().into()
-    }
-
-    pub fn new(address: &Address, amount: &Value) -> Self {
-        Self(cml_chain::transaction::ShelleyTxOut::new(
-            address.clone().into(),
-            amount.clone().into(),
-        ))
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
 pub struct Transaction(cml_chain::transaction::Transaction);
 
 impl_wasm_cbor_json_api!(Transaction);
@@ -543,14 +521,6 @@ impl TransactionBody {
         self.0.withdrawals.clone().map(std::convert::Into::into)
     }
 
-    pub fn set_update(&mut self, update: &Update) {
-        self.0.update = Some(update.clone().into())
-    }
-
-    pub fn update(&self) -> Option<Update> {
-        self.0.update.clone().map(std::convert::Into::into)
-    }
-
     pub fn set_auxiliary_data_hash(&mut self, auxiliary_data_hash: &AuxiliaryDataHash) {
         self.0.auxiliary_data_hash = Some(auxiliary_data_hash.clone().into())
     }
@@ -611,12 +581,12 @@ impl TransactionBody {
             .map(std::convert::Into::into)
     }
 
-    pub fn set_network_id(&mut self, network_id: NetworkId) {
-        self.0.network_id = Some(network_id)
+    pub fn set_network_id(&mut self, network_id: &NetworkId) {
+        self.0.network_id = Some(network_id.clone().into())
     }
 
     pub fn network_id(&self) -> Option<NetworkId> {
-        self.0.network_id
+        self.0.network_id.map(std::convert::Into::into)
     }
 
     pub fn set_collateral_return(&mut self, collateral_return: &TransactionOutput) {
@@ -647,6 +617,44 @@ impl TransactionBody {
             .reference_inputs
             .clone()
             .map(std::convert::Into::into)
+    }
+
+    pub fn set_voting_procedures(&mut self, voting_procedures: &VotingProcedures) {
+        self.0.voting_procedures = Some(voting_procedures.clone().into())
+    }
+
+    pub fn voting_procedures(&self) -> Option<VotingProcedures> {
+        self.0
+            .voting_procedures
+            .clone()
+            .map(std::convert::Into::into)
+    }
+
+    pub fn set_proposal_procedures(&mut self, proposal_procedures: &ProposalProcedureList) {
+        self.0.proposal_procedures = Some(proposal_procedures.clone().into())
+    }
+
+    pub fn proposal_procedures(&self) -> Option<ProposalProcedureList> {
+        self.0
+            .proposal_procedures
+            .clone()
+            .map(std::convert::Into::into)
+    }
+
+    pub fn set_current_treasury_value(&mut self, current_treasury_value: Coin) {
+        self.0.current_treasury_value = Some(current_treasury_value)
+    }
+
+    pub fn current_treasury_value(&self) -> Option<Coin> {
+        self.0.current_treasury_value
+    }
+
+    pub fn set_donation(&mut self, donation: PositiveCoin) {
+        self.0.donation = Some(donation)
+    }
+
+    pub fn donation(&self) -> Option<PositiveCoin> {
+        self.0.donation
     }
 
     pub fn new(inputs: &TransactionInputList, outputs: &TransactionOutputList, fee: Coin) -> Self {
@@ -694,66 +702,46 @@ impl_wasm_conversions!(cml_chain::transaction::TransactionOutput, TransactionOut
 
 #[wasm_bindgen]
 impl TransactionOutput {
-    pub fn new_shelley_tx_out(shelley_tx_out: &ShelleyTxOut) -> Self {
+    pub fn new_alonzo_format_tx_out(alonzo_format_tx_out: &AlonzoFormatTxOut) -> Self {
         Self(
-            cml_chain::transaction::TransactionOutput::new_shelley_tx_out(
-                shelley_tx_out.clone().into(),
+            cml_chain::transaction::TransactionOutput::new_alonzo_format_tx_out(
+                alonzo_format_tx_out.clone().into(),
             ),
         )
     }
 
-    pub fn new_alonzo_tx_out(alonzo_tx_out: &AlonzoTxOut) -> Self {
+    pub fn new_conway_format_tx_out(conway_format_tx_out: &ConwayFormatTxOut) -> Self {
         Self(
-            cml_chain::transaction::TransactionOutput::new_alonzo_tx_out(
-                alonzo_tx_out.clone().into(),
-            ),
-        )
-    }
-
-    pub fn new_babbage_tx_out(babbage_tx_out: &BabbageTxOut) -> Self {
-        Self(
-            cml_chain::transaction::TransactionOutput::new_babbage_tx_out(
-                babbage_tx_out.clone().into(),
+            cml_chain::transaction::TransactionOutput::new_conway_format_tx_out(
+                conway_format_tx_out.clone().into(),
             ),
         )
     }
 
     pub fn kind(&self) -> TransactionOutputKind {
         match &self.0 {
-            cml_chain::transaction::TransactionOutput::ShelleyTxOut(_) => {
-                TransactionOutputKind::ShelleyTxOut
+            cml_chain::transaction::TransactionOutput::AlonzoFormatTxOut(_) => {
+                TransactionOutputKind::AlonzoFormatTxOut
             }
-            cml_chain::transaction::TransactionOutput::AlonzoTxOut(_) => {
-                TransactionOutputKind::AlonzoTxOut
-            }
-            cml_chain::transaction::TransactionOutput::BabbageTxOut(_) => {
-                TransactionOutputKind::BabbageTxOut
+            cml_chain::transaction::TransactionOutput::ConwayFormatTxOut(_) => {
+                TransactionOutputKind::ConwayFormatTxOut
             }
         }
     }
 
-    pub fn as_shelley_tx_out(&self) -> Option<ShelleyTxOut> {
+    pub fn as_alonzo_format_tx_out(&self) -> Option<AlonzoFormatTxOut> {
         match &self.0 {
-            cml_chain::transaction::TransactionOutput::ShelleyTxOut(shelley_tx_out) => {
-                Some(shelley_tx_out.clone().into())
+            cml_chain::transaction::TransactionOutput::AlonzoFormatTxOut(alonzo_format_tx_out) => {
+                Some(alonzo_format_tx_out.clone().into())
             }
             _ => None,
         }
     }
 
-    pub fn as_alonzo_tx_out(&self) -> Option<AlonzoTxOut> {
+    pub fn as_conway_format_tx_out(&self) -> Option<ConwayFormatTxOut> {
         match &self.0 {
-            cml_chain::transaction::TransactionOutput::AlonzoTxOut(alonzo_tx_out) => {
-                Some(alonzo_tx_out.clone().into())
-            }
-            _ => None,
-        }
-    }
-
-    pub fn as_babbage_tx_out(&self) -> Option<BabbageTxOut> {
-        match &self.0 {
-            cml_chain::transaction::TransactionOutput::BabbageTxOut(babbage_tx_out) => {
-                Some(babbage_tx_out.clone().into())
+            cml_chain::transaction::TransactionOutput::ConwayFormatTxOut(conway_format_tx_out) => {
+                Some(conway_format_tx_out.clone().into())
             }
             _ => None,
         }
@@ -762,9 +750,8 @@ impl TransactionOutput {
 
 #[wasm_bindgen]
 pub enum TransactionOutputKind {
-    ShelleyTxOut,
-    AlonzoTxOut,
-    BabbageTxOut,
+    AlonzoFormatTxOut,
+    ConwayFormatTxOut,
 }
 
 #[derive(Clone, Debug)]
@@ -841,6 +828,17 @@ impl TransactionWitnessSet {
     pub fn plutus_v2_scripts(&self) -> Option<PlutusV2ScriptList> {
         self.0
             .plutus_v2_scripts
+            .clone()
+            .map(std::convert::Into::into)
+    }
+
+    pub fn set_plutus_v3_scripts(&mut self, plutus_v3_scripts: &PlutusV3ScriptList) {
+        self.0.plutus_v3_scripts = Some(plutus_v3_scripts.clone().into())
+    }
+
+    pub fn plutus_v3_scripts(&self) -> Option<PlutusV3ScriptList> {
+        self.0
+            .plutus_v3_scripts
             .clone()
             .map(std::convert::Into::into)
     }

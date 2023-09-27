@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use crate::{assets::AssetName, AssetNameList, MapAssetNameToI64, PolicyId, PolicyIdList};
+use crate::{assets::AssetName, AssetNameList, MapAssetNameToNonZeroInt64, PolicyId, PolicyIdList};
 use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 
 use cml_core_wasm::{impl_wasm_conversions, impl_wasm_map};
@@ -8,7 +8,7 @@ use cml_core_wasm::{impl_wasm_conversions, impl_wasm_map};
 use super::Coin;
 
 impl_wasm_map!(
-    cml_chain::AssetName,
+    cml_chain::assets::AssetName,
     Coin,
     AssetName,
     Coin,
@@ -114,14 +114,14 @@ impl Mint {
     pub fn insert_assets(
         &mut self,
         policy_id: &PolicyId,
-        assets: &MapAssetNameToI64,
-    ) -> Option<MapAssetNameToI64> {
+        assets: &MapAssetNameToNonZeroInt64,
+    ) -> Option<MapAssetNameToNonZeroInt64> {
         self.0
             .insert(policy_id.clone().into(), assets.clone().into())
             .map(Into::into)
     }
 
-    pub fn get_assets(&self, key: &PolicyId) -> Option<MapAssetNameToI64> {
+    pub fn get_assets(&self, key: &PolicyId) -> Option<MapAssetNameToNonZeroInt64> {
         self.0.deref().get(key.as_ref()).map(|v| v.clone().into())
     }
 

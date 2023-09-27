@@ -1,0 +1,93 @@
+delta_coin = int
+transaction_index = uint .size 2
+port = uint .le 65535
+epoch = uint
+slot = uint
+transaction_metadatum_label = uint
+
+unit_interval = #6.30([start: uint, end: uint])
+  ; real unit_interval is: #6.30([uint, uint])
+  ; but this produces numbers outside the unit interval
+  ; and can also produce a zero in the denominator
+
+rational = #6.30(
+   [ numerator   : uint
+   , denominator : uint
+   ])
+  ; real rational is: #6.30([uint, uint])
+  ; but this produces numbers outside the unit interval
+  ; and can also produce a zero in the denominator
+
+;positive_interval = #6.30([strart: uint, end: uint])
+;positive_interval = #6.30([1, 2])
+;  ; fractional positive_interval is: #6.30([uint, uint])
+;  ; but this can produce a zero in the denominator
+
+withdrawals = { * reward_account => coin }
+
+
+
+protocol_param_update = {
+  ? 0:  uint,                    ; @name minfee_a
+  ? 1:  uint,                    ; @name minfee_b
+  ? 2:  uint,                    ; @name max_block_body_size
+  ? 3:  uint,                    ; @name max_transaction_size
+  ? 4:  uint,                    ; @name max_block_header_size
+  ? 5:  coin,                    ; @name key_deposit
+  ? 6:  coin,                    ; @name pool_deposit
+  ? 7: epoch,                    ; @name maximum_epoch
+  ? 8: uint,                     ; @name n_opt desired number of stake pools
+  ? 9: rational,                 ; @name pool_pledge_influence
+  ? 10: unit_interval,           ; @name expansion_rate
+  ? 11: unit_interval,           ; @name treasury_growth_rate
+  ? 16: coin,                    ; @name min_pool_cost
+  ? 17: coin,                    ; @name ada_per_utxo_byte
+  ? 18: cost_models,             ; @name cost_models_for_script_languages
+  ? 19: ex_unit_prices,          ; @name execution_costs
+  ? 20: ex_units,                ; @name max_tx_ex_units
+  ? 21: ex_units,                ; @name max_block_ex_units
+  ? 22: uint,                    ; @name max_value_size
+  ? 23: uint,                    ; @name collateral_percentage
+  ? 24: uint,                    ; @name max_collateral_inputs
+  ? 25: pool_voting_thresholds,  ; @name pool_voting_thresholds
+  ? 26: d_rep_voting_thresholds, ; @name d_rep_voting_thresholds
+  ? 27: uint,                    ; @name min_committee_size
+  ? 28: uint,                    ; @name committee_term_limit
+  ? 29: epoch,                   ; @name governance_action_validity_period
+  ? 30: coin,                    ; @name governance_action_deposit
+  ? 31: coin,                    ; @name d_rep_deposit
+  ? 32: epoch,                   ; @name d_rep_inactivity_period
+}
+
+pool_voting_thresholds = [
+  motion_no_confidence: unit_interval,
+  committee_normal: unit_interval, 
+  committee_no_confidence: unit_interval, 
+  hard_fork_initiation: unit_interval, 
+]
+
+d_rep_voting_thresholds = [
+  motion_no_confidence: unit_interval,
+  committee_normal: unit_interval,
+  committee_no_confidence: unit_interval,
+  update_constitution: unit_interval,
+  hard_fork_initiation: unit_interval,
+  pp_network_group: unit_interval,
+  pp_economic_group: unit_interval,
+  pp_technical_group: unit_interval,
+  pp_governance_group: unit_interval,
+  treasury_withdrawal: unit_interval,
+]
+
+sub_coin = rational
+
+policy_id = script_hash
+
+; original def (modified to support other networks):
+; network_id = 0 / 1
+; could be the following instead:
+; ; not actually 0-256 but codegen doesn't support 0-16
+; network_id = uint .size 1 ; @newtype
+; but then hand-coded to add functionality/check bounds more
+network_id = uint ; @newtype
+; _CDDL_CODEGEN_EXTERN_TYPE_

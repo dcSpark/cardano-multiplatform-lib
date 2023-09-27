@@ -601,7 +601,7 @@ impl Serialize for KeyRegistration {
         // code hand-edited to deal with including voting purpose or not depending on format
         // defaulting to weighted including it is based on the test vectors as it is not well specified
         // this seems to have changed as previously it was not included in old test vectors
-        let (legacy_format, should_include_voting_purpose) = match self.delegation {
+        let (_legacy_format, should_include_voting_purpose) = match self.delegation {
             DelegationDistribution::Legacy { .. } => (true, false),
             DelegationDistribution::Weighted { .. } => (
                 false,

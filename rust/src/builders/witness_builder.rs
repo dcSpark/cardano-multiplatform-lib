@@ -48,18 +48,18 @@ impl PlutusScriptWitness {
 #[derive(Clone, Debug)]
 pub struct PartialPlutusWitness {
     pub(crate) script: PlutusScriptWitness,
-    pub(crate) data: PlutusData,
+    pub(crate) redeemer_data: PlutusData,
 }
 
 #[wasm_bindgen]
 impl PartialPlutusWitness {
     pub fn new(
         script: &PlutusScriptWitness,
-        data: &PlutusData
+        redeemer_data: &PlutusData
     ) -> Self {
         Self {
             script: script.clone(),
-            data: data.clone(),
+            redeemer_data: redeemer_data.clone(),
         }
     }
 
@@ -67,8 +67,8 @@ impl PartialPlutusWitness {
         self.script.clone()
     }
 
-    pub fn data(&self) -> PlutusData {
-        self.data.clone()
+    pub fn redeemer_data(&self) -> PlutusData {
+        self.redeemer_data.clone()
     }
 }
 
@@ -79,10 +79,10 @@ pub enum InputAggregateWitnessData {
 }
 
 impl InputAggregateWitnessData {
-    pub fn plutus_data(&self) -> Option<PlutusData> {
+    pub fn redeemer_data(&self) -> Option<PlutusData> {
         match self {
             InputAggregateWitnessData::PlutusScript(witness, _, _) => {
-                Some(witness.data())
+                Some(witness.redeemer_data())
             }
             _ => None
         }

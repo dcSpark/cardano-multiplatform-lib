@@ -742,10 +742,6 @@ impl TransactionBuilder {
         }
 
         reference_inputs.push(utxo);
-
-        // TODO: my understand is that inline datums in inputs also need to be added to the witness
-        // but I still need to confirm this by actually submitting a transaction that tests this
-        // see same comment in input_required_wits
     }
 
     /// Add explicit output via a TransactionOutput object

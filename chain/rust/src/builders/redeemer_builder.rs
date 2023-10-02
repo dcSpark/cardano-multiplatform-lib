@@ -150,7 +150,7 @@ impl RedeemerSetBuilder {
             result
                 .aggregate_witness
                 .as_ref()
-                .and_then(|data| data.plutus_data())
+                .and_then(|data| data.redeemer_plutus_data())
         };
         if let Some(data) = plutus_data {
             self.spend.insert(
@@ -167,7 +167,7 @@ impl RedeemerSetBuilder {
             result
                 .aggregate_witness
                 .as_ref()
-                .and_then(|data| data.plutus_data())
+                .and_then(|data| data.redeemer_plutus_data())
         };
         if let Some(data) = plutus_data {
             self.mint.insert(
@@ -184,7 +184,7 @@ impl RedeemerSetBuilder {
             result
                 .aggregate_witness
                 .as_ref()
-                .and_then(|data| data.plutus_data())
+                .and_then(|data| data.redeemer_plutus_data())
         };
         if let Some(data) = plutus_data {
             self.reward.insert(
@@ -201,7 +201,7 @@ impl RedeemerSetBuilder {
             result
                 .aggregate_witness
                 .as_ref()
-                .and_then(|data| data.plutus_data())
+                .and_then(|data| data.redeemer_plutus_data())
         };
         if let Some(data) = plutus_data {
             self.cert
@@ -330,7 +330,7 @@ mod tests {
                 let script = PlutusScript::PlutusV1(PlutusV1Script::new(vec![0]));
                 PartialPlutusWitness {
                     script: PlutusScriptWitness::Script(script),
-                    data: PlutusData::new_big_int(0u64.into()),
+                    redeemer: PlutusData::new_big_int(0u64.into()),
                 }
             };
             let missing_signers = vec![fake_raw_key_public(0).hash()];

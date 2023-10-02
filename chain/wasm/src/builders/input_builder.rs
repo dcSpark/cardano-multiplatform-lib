@@ -71,4 +71,19 @@ impl SingleInputBuilder {
             .map(Into::into)
             .map_err(Into::into)
     }
+
+    pub fn plutus_script_inline_datum(
+        &self,
+        partial_witness: &PartialPlutusWitness,
+        required_signers: &RequiredSigners,
+    ) -> Result<InputBuilderResult, JsError> {
+        self.0
+            .clone()
+            .plutus_script_inline_datum(
+                partial_witness.clone().into(),
+                required_signers.clone().into(),
+            )
+            .map(Into::into)
+            .map_err(Into::into)
+    }
 }

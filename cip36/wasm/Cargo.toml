@@ -8,12 +8,12 @@ keywords = ["cardano", "cip36"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-cip36 = { path = "../rust" }
-cml-crypto = { path = "../../crypto/rust" }
-cml-crypto-wasm = { path = "../../crypto/wasm" }
-cml-chain-wasm = { path = "../../chain/wasm" }
-cml-core = { path = "../../core/rust" }
-cml-core-wasm = { path = "../../core/wasm" }
+cml-cip36 = { path = "../rust", version = "0.1.0" }
+cml-crypto = { path = "../../crypto/rust", version = "0.1.0" }
+cml-crypto-wasm = { path = "../../crypto/wasm", version = "0.1.0" }
+cml-chain-wasm = { path = "../../chain/wasm", version = "0.1.0" }
+cml-core = { path = "../../core/rust", version = "0.1.0" }
+cml-core-wasm = { path = "../../core/wasm", version = "0.1.0" }
 cbor_event = "2.2.0"
 wasm-bindgen = { version = "=0.2.83", features = ["serde-serialize"] }
 linked-hash-map = "0.5.3"

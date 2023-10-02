@@ -7,9 +7,9 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-core = { path = "../../core/rust" }
-cml-crypto = { path = "../../crypto/rust" }
-cml-chain = { path = "../../chain/rust" }
+cml-core = { path = "../../core/rust", version = "0.1.0" }
+cml-crypto = { path = "../../crypto/rust", version = "0.1.0" }
+cml-chain = { path = "../../chain/rust", version = "0.1.0" }
 cbor_event = "2.4.0"
 linked-hash-map = "0.5.3"
 derivative = "2.2.0"

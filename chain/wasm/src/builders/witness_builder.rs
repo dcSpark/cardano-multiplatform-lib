@@ -64,7 +64,7 @@ impl PartialPlutusWitness {
     }
 
     pub fn data(&self) -> PlutusData {
-        self.0.data.clone().into()
+        self.0.redeemer.clone().into()
     }
 }
 
@@ -82,7 +82,7 @@ impl_wasm_conversions!(
 #[wasm_bindgen]
 impl InputAggregateWitnessData {
     pub fn plutus_data(&self) -> Option<PlutusData> {
-        self.0.plutus_data().map(|d| d.clone().into())
+        self.0.redeemer_plutus_data().map(|d| d.clone().into())
     }
 }
 

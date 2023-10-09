@@ -10,7 +10,7 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_json_api};
 
-use cml_chain_wasm::address::RewardAddress;
+use cml_chain_wasm::address::Address;
 pub mod utils;
 
 #[derive(Clone, Debug)]
@@ -210,13 +210,6 @@ impl KeyDeregistration {
     pub fn voting_purpose(&self) -> VotingPurpose {
         self.0.voting_purpose
     }
-
-    pub fn new(stake_credential: &StakeCredential, nonce: Nonce) -> Self {
-        Self(cml_cip36::KeyDeregistration::new(
-            stake_credential.clone().into(),
-            nonce,
-        ))
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -237,8 +230,8 @@ impl KeyRegistration {
         self.0.stake_credential.clone().into()
     }
 
-    pub fn reward_address(&self) -> RewardAddress {
-        self.0.reward_address.clone().into()
+    pub fn payment_address(&self) -> Address {
+        self.0.payment_address.clone().into()
     }
 
     pub fn nonce(&self) -> Nonce {
@@ -251,20 +244,6 @@ impl KeyRegistration {
 
     pub fn voting_purpose(&self) -> VotingPurpose {
         self.0.voting_purpose
-    }
-
-    pub fn new(
-        delegation: &DelegationDistribution,
-        stake_credential: &StakeCredential,
-        reward_address: &RewardAddress,
-        nonce: Nonce,
-    ) -> Self {
-        Self(cml_cip36::KeyRegistration::new(
-            delegation.clone().into(),
-            stake_credential.clone().into(),
-            reward_address.clone().into(),
-            nonce,
-        ))
     }
 }
 

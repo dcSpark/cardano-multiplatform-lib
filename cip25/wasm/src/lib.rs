@@ -12,7 +12,7 @@ use cml_core_wasm::{
 };
 pub use utils::LabelMetadata;
 
-pub use core::CIP25Version;
+pub use cml_cip25::CIP25Version;
 
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
@@ -22,9 +22,9 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 /// Parsing from CBOR bytes should be marginally faster.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP25Metadata(core::CIP25Metadata);
+pub struct CIP25Metadata(cml_cip25::CIP25Metadata);
 
-impl_wasm_conversions!(core::CIP25Metadata, CIP25Metadata);
+impl_wasm_conversions!(cml_cip25::CIP25Metadata, CIP25Metadata);
 
 // we manually write to_cbor_bytes/from_cbor_bytes so we can add the comments
 
@@ -35,18 +35,18 @@ impl CIP25Metadata {
     /// Serialize to CBOR bytes compatible with tx metadata
     /// Does not guarantee any specific type of CBOR format and should NOT
     /// be used with round-tripping. It will ignore all non-CIP25 keys.
-    /// Use core::metadate crate for round-tripping metadata.
+    /// Use cml_cip25::metadate crate for round-tripping metadata.
     pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        use core::serialization::ToBytes;
+        use cml_cip25::serialization::ToBytes;
         ToBytes::to_bytes(&self.0)
     }
 
     /// Deserialize from CBOR bytes compatible with tx metadata
     /// Does not guarantee any specific type of CBOR format and should NOT
     /// be used with round-tripping. It will ignore all non-CIP25 keys.
-    /// Use core::metadate crate for round-tripping metadata.
+    /// Use cml_cip25::metadate crate for round-tripping metadata.
     pub fn from_cbor_bytes(data: Vec<u8>) -> Result<CIP25Metadata, JsValue> {
-        use core::serialization::FromBytes;
+        use cml_cip25::serialization::FromBytes;
         FromBytes::from_bytes(data)
             .map(Self)
             .map_err(|e| JsValue::from_str(&format!("from_cbor_bytes: {e}")))
@@ -58,7 +58,7 @@ impl CIP25Metadata {
     }
 
     pub fn new(key_721: &LabelMetadata) -> Self {
-        Self(core::CIP25Metadata::new(key_721.clone().into()))
+        Self(cml_cip25::CIP25Metadata::new(key_721.clone().into()))
     }
 }
 
@@ -71,39 +71,43 @@ impl CIP25Metadata {
 /// ```
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ChunkableString(core::ChunkableString);
+pub struct ChunkableString(cml_cip25::ChunkableString);
 
-impl_wasm_conversions!(core::ChunkableString, ChunkableString);
+impl_wasm_conversions!(cml_cip25::ChunkableString, ChunkableString);
 
 impl_wasm_cbor_json_api_cbor_event_serialize!(ChunkableString);
 
 #[wasm_bindgen]
 impl ChunkableString {
     pub fn new_single(single: &String64) -> Self {
-        Self(core::ChunkableString::new_single(single.clone().into()))
+        Self(cml_cip25::ChunkableString::new_single(
+            single.clone().into(),
+        ))
     }
 
     pub fn new_chunked(chunked: &String64List) -> Self {
-        Self(core::ChunkableString::new_chunked(chunked.clone().into()))
+        Self(cml_cip25::ChunkableString::new_chunked(
+            chunked.clone().into(),
+        ))
     }
 
     pub fn kind(&self) -> ChunkableStringKind {
         match &self.0 {
-            core::ChunkableString::Single(_) => ChunkableStringKind::Single,
-            core::ChunkableString::Chunked(_) => ChunkableStringKind::Chunked,
+            cml_cip25::ChunkableString::Single(_) => ChunkableStringKind::Single,
+            cml_cip25::ChunkableString::Chunked(_) => ChunkableStringKind::Chunked,
         }
     }
 
     pub fn as_single(&self) -> Option<String64> {
         match &self.0 {
-            core::ChunkableString::Single(single) => Some(single.clone().into()),
+            cml_cip25::ChunkableString::Single(single) => Some(single.clone().into()),
             _ => None,
         }
     }
 
     pub fn as_chunked(&self) -> Option<String64List> {
         match &self.0 {
-            core::ChunkableString::Chunked(chunked) => Some(chunked.clone().into()),
+            cml_cip25::ChunkableString::Chunked(chunked) => Some(chunked.clone().into()),
             _ => None,
         }
     }
@@ -117,9 +121,9 @@ pub enum ChunkableStringKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct FilesDetails(core::FilesDetails);
+pub struct FilesDetails(cml_cip25::FilesDetails);
 
-impl_wasm_conversions!(core::FilesDetails, FilesDetails);
+impl_wasm_conversions!(cml_cip25::FilesDetails, FilesDetails);
 
 impl_wasm_cbor_json_api_cbor_event_serialize!(FilesDetails);
 
@@ -138,7 +142,7 @@ impl FilesDetails {
     }
 
     pub fn new(name: &String64, media_type: &String64, src: &ChunkableString) -> Self {
-        Self(core::FilesDetails::new(
+        Self(cml_cip25::FilesDetails::new(
             name.clone().into(),
             media_type.clone().into(),
             src.clone().into(),
@@ -146,13 +150,13 @@ impl FilesDetails {
     }
 }
 
-impl_wasm_list!(core::FilesDetails, FilesDetails, FilesDetailsList);
+impl_wasm_list!(cml_cip25::FilesDetails, FilesDetails, FilesDetailsList);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MetadataDetails(core::MetadataDetails);
+pub struct MetadataDetails(cml_cip25::MetadataDetails);
 
-impl_wasm_conversions!(core::MetadataDetails, MetadataDetails);
+impl_wasm_conversions!(cml_cip25::MetadataDetails, MetadataDetails);
 
 impl_wasm_cbor_json_api_cbor_event_serialize!(MetadataDetails);
 
@@ -191,7 +195,7 @@ impl MetadataDetails {
     }
 
     pub fn new(name: &String64, image: &ChunkableString) -> Self {
-        Self(core::MetadataDetails::new(
+        Self(cml_cip25::MetadataDetails::new(
             name.clone().into(),
             image.clone().into(),
         ))
@@ -202,9 +206,9 @@ impl MetadataDetails {
 /// This is to conform with Cardano metadata restrictions.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct String64(core::String64);
+pub struct String64(cml_cip25::String64);
 
-impl_wasm_conversions!(core::String64, String64);
+impl_wasm_conversions!(cml_cip25::String64, String64);
 
 impl_wasm_cbor_json_api_cbor_event_serialize!(String64);
 
@@ -215,4 +219,4 @@ impl String64 {
     }
 }
 
-impl_wasm_list!(core::String64, String64, String64List);
+impl_wasm_list!(cml_cip25::String64, String64, String64List);

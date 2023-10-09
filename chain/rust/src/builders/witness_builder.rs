@@ -68,12 +68,12 @@ impl From<ScriptHash> for PlutusScriptWitness {
 #[derive(Clone, Debug)]
 pub struct PartialPlutusWitness {
     pub script: PlutusScriptWitness,
-    pub data: PlutusData,
+    pub redeemer: PlutusData,
 }
 
 impl PartialPlutusWitness {
-    pub fn new(script: PlutusScriptWitness, data: PlutusData) -> Self {
-        Self { script, data }
+    pub fn new(script: PlutusScriptWitness, redeemer: PlutusData) -> Self {
+        Self { script, redeemer }
     }
 }
 
@@ -84,9 +84,9 @@ pub enum InputAggregateWitnessData {
 }
 
 impl InputAggregateWitnessData {
-    pub fn plutus_data(&self) -> Option<&PlutusData> {
+    pub fn redeemer_plutus_data(&self) -> Option<&PlutusData> {
         match self {
-            InputAggregateWitnessData::PlutusScript(witness, _, _) => Some(&witness.data),
+            InputAggregateWitnessData::PlutusScript(witness, _, _) => Some(&witness.redeemer),
             _ => None,
         }
     }
@@ -616,7 +616,7 @@ mod tests {
                 let script = PlutusScript::PlutusV1(PlutusV1Script::new(vec![0]));
                 PartialPlutusWitness {
                     script: PlutusScriptWitness::Script(script),
-                    data: PlutusData::new_big_int(0u64.into()),
+                    redeemer: PlutusData::new_big_int(0u64.into()),
                 }
             };
             let missing_signers = vec![fake_raw_key_public(0).hash()];
@@ -640,7 +640,7 @@ mod tests {
                 let script = PlutusScript::PlutusV1(PlutusV1Script::new(vec![0]));
                 PartialPlutusWitness {
                     script: PlutusScriptWitness::Script(script),
-                    data: PlutusData::new_big_int(0u64.into()),
+                    redeemer: PlutusData::new_big_int(0u64.into()),
                 }
             };
             let missing_signers = vec![hash];

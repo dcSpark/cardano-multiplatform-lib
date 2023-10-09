@@ -1,5 +1,5 @@
 use cml_chain::builders::tx_builder::{ChangeSelectionAlgo, CoinSelectionStrategyCIP2};
-use cml_core_wasm::impl_wasm_conversions;
+use cml_core_wasm::{impl_wasm_cbor_event_serialize_api, impl_wasm_conversions};
 use cml_crypto_wasm::Ed25519KeyHash;
 use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
@@ -28,6 +28,8 @@ impl_wasm_conversions!(
     cml_chain::builders::tx_builder::TransactionUnspentOutput,
     TransactionUnspentOutput
 );
+
+impl_wasm_cbor_event_serialize_api!(TransactionUnspentOutput);
 
 #[wasm_bindgen]
 impl TransactionUnspentOutput {
@@ -450,6 +452,9 @@ impl SignedTxBuilder {
         .into()
     }
 
+    /**
+     * Builds the final transaction and checks that all witnesses are there
+     */
     pub fn build_checked(&self) -> Result<Transaction, JsError> {
         self.0
             .clone()
@@ -458,6 +463,13 @@ impl SignedTxBuilder {
             .map_err(Into::into)
     }
 
+    /**
+     * Builds the transaction without doing any witness checks.
+     *
+     * This can be useful if other witnesses will be added later.
+     * e.g. CIP30 signing takes a Transaction with possible witnesses
+     * to send to the wallet to fill in the missing ones.
+     */
     pub fn build_unchecked(&self) -> Transaction {
         self.0.clone().build_unchecked().into()
     }

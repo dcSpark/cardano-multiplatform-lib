@@ -1,4 +1,7 @@
-use crate::builders::witness_builder::{NativeScriptWitnessInfo, PartialPlutusWitness};
+use crate::builders::{
+    tx_builder::TransactionUnspentOutput,
+    witness_builder::{NativeScriptWitnessInfo, PartialPlutusWitness},
+};
 use crate::{
     plutus::PlutusData,
     transaction::{RequiredSigners, TransactionInput, TransactionOutput},
@@ -31,6 +34,13 @@ impl SingleInputBuilder {
         cml_chain::builders::input_builder::SingleInputBuilder::new(
             input.clone().into(),
             utxo_info.clone().into(),
+        )
+        .into()
+    }
+
+    pub fn from_transaction_unspent_output(utxo: &TransactionUnspentOutput) -> Self {
+        cml_chain::builders::input_builder::SingleInputBuilder::from(
+            Into::<cml_chain::builders::tx_builder::TransactionUnspentOutput>::into(utxo.clone()),
         )
         .into()
     }

@@ -7,7 +7,7 @@ use crate::{
 };
 use cml_crypto::{DatumHash, Ed25519KeyHash};
 
-use super::{AlonzoFormatTxOut, ConwayFormatTxOut, NativeScript};
+use super::{AlonzoFormatTxOut, ConwayFormatTxOut, NativeScript, TransactionWitnessSet};
 
 impl TransactionOutput {
     pub fn new(
@@ -128,5 +128,67 @@ impl NativeScript {
     /// The order of the keys in the result is not determined in any way.
     pub fn get_required_signers(&self) -> Vec<Ed25519KeyHash> {
         RequiredSignersSet::from(self).iter().cloned().collect()
+    }
+}
+
+impl TransactionWitnessSet {
+    pub fn add_all_witnesses(&mut self, other: Self) {
+        // TODO: should we do duplicate checking here?
+        if let Some(other_vkeys) = other.vkeywitnesses {
+            if let Some(vkeys) = &mut self.vkeywitnesses {
+                vkeys.extend(other_vkeys);
+            } else {
+                self.vkeywitnesses = Some(other_vkeys);
+            }
+        }
+        if let Some(other_native_scripts) = other.native_scripts {
+            if let Some(scripts) = &mut self.native_scripts {
+                scripts.extend(other_native_scripts);
+            } else {
+                self.native_scripts = Some(other_native_scripts);
+            }
+        }
+        if let Some(other_bootstraps) = other.bootstrap_witnesses {
+            if let Some(bootstraps) = &mut self.bootstrap_witnesses {
+                bootstraps.extend(other_bootstraps);
+            } else {
+                self.bootstrap_witnesses = Some(other_bootstraps);
+            }
+        }
+        if let Some(other_plutus_v1_scripts) = other.plutus_v1_scripts {
+            if let Some(scripts) = &mut self.plutus_v1_scripts {
+                scripts.extend(other_plutus_v1_scripts);
+            } else {
+                self.plutus_v1_scripts = Some(other_plutus_v1_scripts);
+            }
+        }
+        if let Some(other_plutus_v2_scripts) = other.plutus_v2_scripts {
+            if let Some(scripts) = &mut self.plutus_v2_scripts {
+                scripts.extend(other_plutus_v2_scripts);
+            } else {
+                self.plutus_v2_scripts = Some(other_plutus_v2_scripts);
+            }
+        }
+        if let Some(other_plutus_v3_scripts) = other.plutus_v3_scripts {
+            if let Some(scripts) = &mut self.plutus_v3_scripts {
+                scripts.extend(other_plutus_v3_scripts);
+            } else {
+                self.plutus_v3_scripts = Some(other_plutus_v3_scripts);
+            }
+        }
+        if let Some(other_plutus_datums) = other.plutus_datums {
+            if let Some(datums) = &mut self.plutus_datums {
+                datums.extend(other_plutus_datums);
+            } else {
+                self.plutus_datums = Some(other_plutus_datums);
+            }
+        }
+        if let Some(other_redeemers) = other.redeemers {
+            if let Some(redeemers) = &mut self.redeemers {
+                redeemers.extend(other_redeemers);
+            } else {
+                self.redeemers = Some(other_redeemers);
+            }
+        }
     }
 }

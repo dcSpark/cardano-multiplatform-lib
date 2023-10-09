@@ -1,4 +1,5 @@
-use super::Int;
+use super::{Int, Script, ScriptHash};
+use cml_chain::plutus::Language;
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
@@ -40,6 +41,19 @@ impl BigInt {
     /// Retains encoding info if the original was encoded as an Int
     pub fn as_int(&self) -> Option<Int> {
         self.0.as_int().map(Into::into)
+    }
+}
+
+#[wasm_bindgen]
+impl Script {
+    pub fn hash(&self) -> ScriptHash {
+        self.0.hash().into()
+    }
+
+    // Returns which language the script is if it's a Plutus script
+    // Returns None otherwise (i.e. NativeScript)
+    pub fn language(&self) -> Option<Language> {
+        self.0.language()
     }
 }
 

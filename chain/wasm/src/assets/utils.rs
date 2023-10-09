@@ -1,9 +1,12 @@
-use std::ops::Deref;
+use std::{
+    convert::{TryFrom, TryInto},
+    ops::Deref,
+};
 
 use crate::{assets::AssetName, AssetNameList, MapAssetNameToNonZeroInt64, PolicyId, PolicyIdList};
-use wasm_bindgen::{prelude::wasm_bindgen, JsError};
+use wasm_bindgen::{prelude::wasm_bindgen, JsError, JsValue};
 
-use cml_core_wasm::{impl_wasm_conversions, impl_wasm_map};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_map};
 
 use super::Coin;
 
@@ -19,6 +22,38 @@ impl_wasm_map!(
     false,
     true
 );
+
+#[wasm_bindgen]
+impl AssetName {
+    /**
+     * Create an AssetName from raw bytes. 64 byte maximum.
+     */
+    pub fn from_bytes(bytes: Vec<u8>) -> Result<AssetName, JsError> {
+        cml_chain::assets::AssetName::try_from(bytes)
+            .map(Into::into)
+            .map_err(Into::into)
+    }
+
+    /**
+     * Create an AssetName from utf8 string. 64 byte (not char!) maximum.
+     */
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(utf8_str: &str) -> Result<AssetName, JsError> {
+        cml_chain::assets::AssetName::try_from(utf8_str)
+            .map(Into::into)
+            .map_err(Into::into)
+    }
+
+    /**
+     * AssetName as a utf8 string if it's possible. Will error if the asset is not utf8
+     */
+    pub fn to_str(&self) -> Result<String, JsError> {
+        self.as_ref()
+            .try_into()
+            .map(str::to_owned)
+            .map_err(Into::into)
+    }
+}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -165,6 +200,8 @@ impl_wasm_conversions!(cml_chain::assets::Mint, Mint);
 #[wasm_bindgen]
 #[derive(Debug, Clone)]
 pub struct Value(cml_chain::assets::Value);
+
+impl_wasm_cbor_json_api!(Value);
 
 #[wasm_bindgen]
 impl Value {

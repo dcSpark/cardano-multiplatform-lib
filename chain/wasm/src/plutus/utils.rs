@@ -1,4 +1,7 @@
-use crate::{plutus::PlutusData, PlutusDataList, RedeemerList};
+use crate::{
+    plutus::PlutusData,
+    PlutusDataList, RedeemerList,
+};
 use cml_chain::plutus::Language;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::ScriptHash;
@@ -114,18 +117,21 @@ impl PlutusScript {
     }
 }
 
+#[wasm_bindgen]
 impl PlutusV1Script {
     pub fn hash(&self) -> ScriptHash {
         self.0.hash().into()
     }
 }
 
+#[wasm_bindgen]
 impl PlutusV2Script {
     pub fn hash(&self) -> ScriptHash {
         self.0.hash().into()
     }
 }
 
+#[wasm_bindgen]
 impl ExUnits {
     pub fn checked_add(&self, other: &ExUnits) -> Result<ExUnits, JsError> {
         self.0
@@ -135,6 +141,7 @@ impl ExUnits {
     }
 }
 
+#[wasm_bindgen]
 pub fn compute_total_ex_units(redeemers: &RedeemerList) -> Result<ExUnits, JsError> {
     cml_chain::plutus::utils::compute_total_ex_units(redeemers.as_ref())
         .map(Into::into)

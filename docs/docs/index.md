@@ -8,13 +8,17 @@ sidebar_position: 1
 
 This is a library, written in Rust, that can be deployed to multiple platforms (Rust crate, JS, Typescript, WASM, etc). It handles:
 - Serialization & deserialization of core data structures
+- Builders to streamline and verify the construction of transactions and related components
 - Useful utility functions for dApps & wallets
 
 ##### NPM packages
 
+TODO: update these once we publish new versions:
 - browser: [link](https://www.npmjs.com/package/@dcspark/cardano-multiplatform-lib-browser)
 - nodejs: [link](https://www.npmjs.com/package/@dcspark/cardano-multiplatform-lib-nodejs)
 - asm.js (strongly discouraged): [link](https://www.npmjs.com/package/@dcspark/cardano-multiplatform-lib-asmjs)
+
+Note: If you are using WebPack, you must use version 5 or later for CML to work.
 
 ##### Rust crates
 
@@ -27,18 +31,22 @@ We recommend using Ionic + Capacitor or an equivalent setup to have the WASM bin
 
 ## Pre-requisite knowledge
 
-This library assumes a certain amount of knowledge about how Cardano works (want to avoid re-documenting the wheel).
+This library assumes a certain amount of knowledge about how Cardano works (to avoid re-documenting the wheel).
 
-You can find the specifications of Cardano's ledger [here](https://github.com/input-output-hk/cardano-ledger-specs) which we suggest consulting as you use this library. Notably, the `Shelley ledger formal specification` covers the core concepts.
+You can find the specifications of Cardano's ledger [here](https://github.com/input-output-hk/cardano-ledger-specs) which we suggest consulting as you use this library. Notably, the `Shelley ledger formal specification` covers the core concepts. Make sure to check the specs for later eras as well when needed.
 
 
 ## Benefits of using this library
 
 Serialization/deserialization code is automatically generated from
 Cardano’s official specification, which guarantees it can easily stay up
-to date! We do this using a tool managed by EMURGO & dcSpark called `cddl-codegen`_
+to date! We do this using a tool managed by EMURGO & dcSpark called `cddl-codegen`
 which can be re-used for other tasks such as automatically generate a
 Rust library for Cardano metadata specifications!
+
+The most important feature of this is that CML has been generated to allow all CBOR details to be preserved.
+With CBOR many CBOR structures can have multiple ways to serialize to bytes from the same equivalent structure.
+This causes issues especially when computing hashes and is a frequent problem with working across tools e.g. cardano-node-cli and cardano-serialization-lib encoding plutus datums differently. This makes CML much more compatible with all other libraries as it will remember all these specific CBOR encoding details. This is particularly important for use with dApps and wallets connecting to dApps.
 
 It is also very easy to create scripts in Rust or WASM to share with
 stake pools, or even embed inside an online tool! No more crazy
@@ -47,11 +55,13 @@ cardano-cli bash scripts!
 Powerful and flexible enough to be used to power wallets and exchanges!
 (Yes, it’s used in production!)
 
+## A note on code examples
+
+All code examples are using the WASM (typescript/javascript) API. If you are using CML from rust you will need to change the code to rust syntax e.g. `Foo.bar()` to `Foo::new()` etc. We've tried to keep the API as consistent as possible between the different bindings but some exceptions exist. The array/map wrappers (e.g. `FooList` / `MapFooToBar`) in WASM are simply `Vec<Foo>` and `OrderedHashMap<Foo, Bar>` respectively. There will be some changes relating to reference params/moving/etc as well.
+
+You can find complete examples in the `/examples/` directory.
+
 ## Documentation
 
-This library generates both `Typescript`_ and `Flow`_ type definitions,
-so it’s often easiest to see what is possible by just looking at the
-types! You can find the Flow types `here`_
-
-You can also look in the `example`_ folder to see how to use this
-library from Typescript or just experiment with the library.
+This library generates `Typescript` type definitions, so it’s often easiest to see what is possible by just looking at the types! These are found in the `.ts` file in the npm package roots.
+If you are using rust the full API will be shown in the respective crates.io pages.

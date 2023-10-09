@@ -7,8 +7,11 @@ use cml_core::{
     ArithmeticError,
 };
 use cml_crypto::{RawBytesEncoding, ScriptHash};
-use std::cmp::PartialOrd;
 use std::io::{BufRead, Seek, Write};
+use std::{
+    cmp::PartialOrd,
+    convert::{TryFrom, TryInto},
+};
 
 use std::collections::BTreeMap;
 
@@ -34,6 +37,22 @@ pub enum AssetArithmeticError {
     AssetDoesntExist(AssetName),
     #[error("PolicyId {0:?} doesn't exist")]
     PolicyIdDoesntExist(PolicyId),
+}
+
+impl TryFrom<&str> for AssetName {
+    type Error = DeserializeError;
+
+    fn try_from(utf8_str: &str) -> Result<Self, Self::Error> {
+        Self::new(utf8_str.as_bytes().to_vec())
+    }
+}
+
+impl<'a> TryInto<&'a str> for &'a AssetName {
+    type Error = std::str::Utf8Error;
+
+    fn try_into(self) -> Result<&'a str, Self::Error> {
+        std::str::from_utf8(self.get())
+    }
 }
 
 /// Bundle of assets within range of T, grouped by PolicyID then AssetName

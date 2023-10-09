@@ -103,6 +103,16 @@ impl Address {
             .map_err(Into::into)
     }
 
+    pub fn to_hex(&self) -> String {
+        self.0.to_hex()
+    }
+
+    pub fn from_hex(hex: &str) -> Result<Address, JsError> {
+        cml_chain::address::Address::from_hex(hex)
+            .map(Into::into)
+            .map_err(Into::into)
+    }
+
     pub fn to_json(&self) -> Result<String, JsError> {
         serde_json::to_string_pretty(&self.0).map_err(Into::into)
     }

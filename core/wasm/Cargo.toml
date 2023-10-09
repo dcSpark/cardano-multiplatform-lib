@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 cml-core = { path = "../rust" }
 cbor_event = "2.2.0"
+hex = "0.4.0"
 wasm-bindgen = { version = "=0.2.83", features = ["serde-serialize"] }
 linked-hash-map = "0.5.3"
 serde_json = "1.0.57"

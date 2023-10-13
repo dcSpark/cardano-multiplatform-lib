@@ -1,7 +1,11 @@
+use std::convert::From;
+use std::io::{BufRead, Write};
+
 use cbor_event::{self, de::Deserializer, se::Serializer};
+use cbor_event::Special as CBORSpecial;
+use cbor_event::Type as CBORType;
 
-use crate::error::CIP36Error;
-
+pub use cml_chain::{address::RewardAddress, NetworkId};
 pub use cml_core::{
     error::{DeserializeError, DeserializeFailure},
     metadata::{Metadata, TransactionMetadatum},
@@ -9,20 +13,12 @@ pub use cml_core::{
     serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
 };
 
-pub use cml_chain::{address::RewardAddress, NetworkId};
-
-use std::convert::From;
+use crate::error::CIP36Error;
 
 use super::{
     DelegationDistribution, DeregistrationCbor, DeregistrationWitness, KeyDeregistration,
     KeyRegistration, Nonce, RegistrationCbor, RegistrationWitness, StakeCredential,
 };
-
-use std::io::{BufRead, Write};
-
-use cbor_event::Type as CBORType;
-
-use cbor_event::Special as CBORSpecial;
 
 pub static KEY_REGISTRATION_LABEL: u64 = 61284;
 pub static REGISTRATION_WITNESS_LABEL: u64 = 61285;
@@ -98,7 +94,7 @@ impl DeregistrationCbor {
     pub fn deserialize<R: BufRead + std::io::Seek>(
         raw: &mut Deserializer<R>,
     ) -> Result<Self, DeserializeError> {
-        use cml_core::{serialization::CBORReadLen, Key};
+        use cml_core::{Key, serialization::CBORReadLen};
 
         let len = raw.map_sz()?;
         let mut read_len = CBORReadLen::new(len);
@@ -118,7 +114,7 @@ impl DeregistrationCbor {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(
                                     DEREGISTRATION_WITNESS_LABEL,
                                 ))
-                                .into());
+                                    .into());
                             }
                             deregistration_witness =
                                 Some(DeregistrationWitness::deserialize(raw).map_err(
@@ -130,7 +126,7 @@ impl DeregistrationCbor {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(
                                     KEY_DEREGISTRATION_LABEL,
                                 ))
-                                .into());
+                                    .into());
                             }
                             key_deregistration =
                                 Some(KeyDeregistration::deserialize(raw).map_err(
@@ -141,7 +137,7 @@ impl DeregistrationCbor {
                     },
                     CBORType::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             CBORSpecial::Break => break,
@@ -149,7 +145,7 @@ impl DeregistrationCbor {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;
@@ -160,7 +156,7 @@ impl DeregistrationCbor {
                     return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(
                         KEY_DEREGISTRATION_LABEL,
                     ))
-                    .into())
+                        .into());
                 }
             };
             let deregistration_witness = match deregistration_witness {
@@ -169,7 +165,7 @@ impl DeregistrationCbor {
                     return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(
                         DEREGISTRATION_WITNESS_LABEL,
                     ))
-                    .into())
+                        .into());
                 }
             };
             read_len.finish()?;
@@ -178,7 +174,7 @@ impl DeregistrationCbor {
                 deregistration_witness,
             })
         })()
-        .map_err(|e| e.annotate("DeregistrationCbor"))
+            .map_err(|e| e.annotate("DeregistrationCbor"))
     }
 }
 
@@ -187,12 +183,12 @@ impl std::convert::TryFrom<&Metadata> for DeregistrationCbor {
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
         use cml_core::error::Key;
-        let dereg_metadatum = metadata.get(KEY_DEREGISTRATION_LABEL).ok_or_else(|| {
+        let dereg_metadatum = metadata.get(KEY_DEREGISTRATION_LABEL).ok_or(
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(KEY_DEREGISTRATION_LABEL))
-        })?;
-        let witness_metadatum = metadata.get(DEREGISTRATION_WITNESS_LABEL).ok_or_else(|| {
+        )?;
+        let witness_metadatum = metadata.get(DEREGISTRATION_WITNESS_LABEL).ok_or(
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(DEREGISTRATION_WITNESS_LABEL))
-        })?;
+        )?;
         Ok(Self {
             key_deregistration: KeyDeregistration::from_cbor_bytes(
                 &dereg_metadatum.to_cbor_bytes(),
@@ -392,7 +388,7 @@ impl RegistrationCbor {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(
                                     KEY_REGISTRATION_LABEL,
                                 ))
-                                .into());
+                                    .into());
                             }
                             key_registration =
                                 Some(KeyRegistration::deserialize(raw).map_err(
@@ -404,7 +400,7 @@ impl RegistrationCbor {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(
                                     REGISTRATION_WITNESS_LABEL,
                                 ))
-                                .into());
+                                    .into());
                             }
                             registration_witness =
                                 Some(RegistrationWitness::deserialize(raw).map_err(
@@ -414,11 +410,11 @@ impl RegistrationCbor {
                         _unknown_key => (), /* permissive of other metadatum labels */
                     },
                     CBORType::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
                     }
                     CBORType::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             CBORSpecial::Break => break,
@@ -426,7 +422,7 @@ impl RegistrationCbor {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;
@@ -437,7 +433,7 @@ impl RegistrationCbor {
                     return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(
                         KEY_REGISTRATION_LABEL,
                     ))
-                    .into())
+                        .into());
                 }
             };
             let registration_witness = match registration_witness {
@@ -446,7 +442,7 @@ impl RegistrationCbor {
                     return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(
                         REGISTRATION_WITNESS_LABEL,
                     ))
-                    .into())
+                        .into());
                 }
             };
             read_len.finish()?;
@@ -459,7 +455,7 @@ impl RegistrationCbor {
                 .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?;
             Ok(reg_cbor)
         })()
-        .map_err(|e| e.annotate("RegistrationCbor"))
+            .map_err(|e| e.annotate("RegistrationCbor"))
     }
 }
 
@@ -468,12 +464,12 @@ impl std::convert::TryFrom<&Metadata> for RegistrationCbor {
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
         use cml_core::error::Key;
-        let reg_metadatum = metadata.get(KEY_REGISTRATION_LABEL).ok_or_else(|| {
+        let reg_metadatum = metadata.get(KEY_REGISTRATION_LABEL).ok_or(
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(KEY_REGISTRATION_LABEL))
-        })?;
-        let witness_metadatum = metadata.get(REGISTRATION_WITNESS_LABEL).ok_or_else(|| {
+        )?;
+        let witness_metadatum = metadata.get(REGISTRATION_WITNESS_LABEL).ok_or(
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(REGISTRATION_WITNESS_LABEL))
-        })?;
+        )?;
         Ok(Self {
             key_registration: KeyRegistration::from_cbor_bytes(&reg_metadatum.to_cbor_bytes())?,
             registration_witness: RegistrationWitness::from_cbor_bytes(

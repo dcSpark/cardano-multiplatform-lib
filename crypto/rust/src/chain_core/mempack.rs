@@ -186,7 +186,7 @@ impl<'a> ReadBuf<'a> {
 
     pub fn get_nz_u32(&mut self) -> Result<NonZeroU32, ReadError> {
         let v = self.get_u32()?;
-        NonZeroU32::new(v).ok_or(ReadError::StructureInvalid("received zero u32".to_string()))
+        NonZeroU32::new(v).ok_or_else(|| ReadError::StructureInvalid("received zero u32".to_string()))
     }
 
     /// Return the next u64 from the buffer
@@ -199,7 +199,7 @@ impl<'a> ReadBuf<'a> {
 
     pub fn get_nz_u64(&mut self) -> Result<NonZeroU64, ReadError> {
         let v = self.get_u64()?;
-        NonZeroU64::new(v).ok_or(ReadError::StructureInvalid("received zero u64".to_string()))
+        NonZeroU64::new(v).ok_or_else(|| ReadError::StructureInvalid("received zero u64".to_string()))
     }
 
     /// Return the next u128 from the buffer

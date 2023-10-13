@@ -200,15 +200,15 @@ impl_wasm_conversions!(cml_chain::certs::GenesisKeyDelegation, GenesisKeyDelegat
 #[wasm_bindgen]
 impl GenesisKeyDelegation {
     pub fn genesis_hash(&self) -> GenesisHash {
-        self.0.genesis_hash.clone().into()
+        self.0.genesis_hash.into()
     }
 
     pub fn genesis_delegate_hash(&self) -> GenesisDelegateHash {
-        self.0.genesis_delegate_hash.clone().into()
+        self.0.genesis_delegate_hash.into()
     }
 
     pub fn v_r_f_key_hash(&self) -> VRFKeyHash {
-        self.0.v_r_f_key_hash.clone().into()
+        self.0.v_r_f_key_hash.into()
     }
 
     pub fn new(
@@ -396,7 +396,7 @@ impl PoolMetadata {
     }
 
     pub fn pool_metadata_hash(&self) -> PoolMetadataHash {
-        self.0.pool_metadata_hash.clone().into()
+        self.0.pool_metadata_hash.into()
     }
 
     pub fn new(url: &Url, pool_metadata_hash: &PoolMetadataHash) -> Self {
@@ -418,11 +418,11 @@ impl_wasm_conversions!(cml_chain::certs::PoolParams, PoolParams);
 #[wasm_bindgen]
 impl PoolParams {
     pub fn operator(&self) -> Ed25519KeyHash {
-        self.0.operator.clone().into()
+        self.0.operator.into()
     }
 
     pub fn vrf_keyhash(&self) -> VRFKeyHash {
-        self.0.vrf_keyhash.clone().into()
+        self.0.vrf_keyhash.into()
     }
 
     pub fn pledge(&self) -> Coin {
@@ -510,7 +510,7 @@ impl_wasm_conversions!(cml_chain::certs::PoolRetirement, PoolRetirement);
 #[wasm_bindgen]
 impl PoolRetirement {
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.clone().into()
+        self.0.ed25519_key_hash.into()
     }
 
     pub fn epoch(&self) -> Epoch {
@@ -691,14 +691,14 @@ impl StakeCredential {
 
     pub fn as_pub_key(&self) -> Option<Ed25519KeyHash> {
         match &self.0 {
-            cml_chain::certs::StakeCredential::PubKey { hash, .. } => Some(hash.clone().into()),
+            cml_chain::certs::StakeCredential::PubKey { hash, .. } => Some((*hash).into()),
             _ => None,
         }
     }
 
     pub fn as_script(&self) -> Option<ScriptHash> {
         match &self.0 {
-            cml_chain::certs::StakeCredential::Script { hash, .. } => Some(hash.clone().into()),
+            cml_chain::certs::StakeCredential::Script { hash, .. } => Some((*hash).into()),
             _ => None,
         }
     }
@@ -725,7 +725,7 @@ impl StakeDelegation {
     }
 
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.clone().into()
+        self.0.ed25519_key_hash.into()
     }
 
     pub fn new(stake_credential: &StakeCredential, ed25519_key_hash: &Ed25519KeyHash) -> Self {

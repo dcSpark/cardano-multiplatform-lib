@@ -57,7 +57,7 @@ impl TransactionOutput {
     pub fn datum(&self) -> Option<DatumOption> {
         match self {
             Self::ShelleyTxOut(_) => None,
-            Self::AlonzoTxOut(tx_out) => Some(DatumOption::new_hash(tx_out.datum_hash.clone())),
+            Self::AlonzoTxOut(tx_out) => Some(DatumOption::new_hash(tx_out.datum_hash)),
             Self::BabbageTxOut(tx_out) => tx_out.datum_option.clone(),
         }
     }
@@ -109,7 +109,7 @@ impl From<&NativeScript> for RequiredSignersSet {
         fn from_scripts(scripts: &[NativeScript]) -> RequiredSignersSet {
             scripts.iter().fold(BTreeSet::new(), |mut set, s| {
                 RequiredSignersSet::from(s).iter().for_each(|pk| {
-                    set.insert(pk.clone());
+                    set.insert(*pk);
                 });
                 set
             })
@@ -117,7 +117,7 @@ impl From<&NativeScript> for RequiredSignersSet {
         match script {
             NativeScript::ScriptPubkey(spk) => {
                 let mut set = BTreeSet::new();
-                set.insert(spk.ed25519_key_hash.clone());
+                set.insert(spk.ed25519_key_hash);
                 set
             }
             NativeScript::ScriptAll(all) => from_scripts(&all.native_scripts),

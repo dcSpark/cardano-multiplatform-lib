@@ -69,7 +69,7 @@ impl_wasm_cbor_event_serialize_api!(AddressContent);
 #[wasm_bindgen]
 impl AddressContent {
     pub fn address_id(&self) -> AddressId {
-        self.0.address_id.clone().into()
+        self.0.address_id.into()
     }
 
     pub fn addr_attributes(&self) -> AddrAttributes {
@@ -188,7 +188,7 @@ impl SpendingData {
     pub fn as_spending_data_script(&self) -> Option<ByronScript> {
         match &self.0 {
             cml_chain::byron::SpendingData::SpendingDataScript(script) => {
-                Some(script.clone().into())
+                Some((*script).into())
             }
             _ => None,
         }
@@ -243,7 +243,7 @@ impl StakeDistribution {
     pub fn as_single_key(&self) -> Option<StakeholderId> {
         match &self.0 {
             cml_chain::byron::StakeDistribution::SingleKey(stakeholder_id) => {
-                Some(stakeholder_id.clone().into())
+                Some((*stakeholder_id).into())
             }
             _ => None,
         }

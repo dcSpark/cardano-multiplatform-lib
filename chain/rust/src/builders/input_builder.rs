@@ -26,15 +26,15 @@ pub fn input_required_wits(
     if let Some(cred) = utxo_info.address().payment_cred() {
         match cred {
             StakeCredential::PubKey { hash, .. } => {
-                required_witnesses.add_vkey_key_hash(hash.clone());
+                required_witnesses.add_vkey_key_hash(*hash);
             }
             StakeCredential::Script { hash, .. } => {
-                required_witnesses.add_script_hash(hash.clone());
+                required_witnesses.add_script_hash(*hash);
                 // TODO: my understand is that inline datums in inputs also need to be added to the witness
                 // but I still need to confirm this by actually submitting a transaction that tests this
                 // see same comment in add_reference_input
                 if let Some(data_hash) = utxo_info.datum_hash() {
-                    required_witnesses.add_plutus_datum_hash(data_hash.clone());
+                    required_witnesses.add_plutus_datum_hash(*data_hash);
                     // note: redeemer is required as well
                     // but we can't know the index, so we rely on the tx builder to satisfy this requirement
                 }
@@ -124,7 +124,7 @@ impl SingleInputBuilder {
         let mut required_wits = RequiredWitnessSet::default();
         required_signers
             .iter()
-            .for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer.clone()));
+            .for_each(|required_signer| required_wits.add_vkey_key_hash(*required_signer));
         input_required_wits(&self.utxo_info, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
 

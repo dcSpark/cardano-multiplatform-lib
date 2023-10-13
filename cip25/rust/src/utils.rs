@@ -1,6 +1,8 @@
 use std::{collections::BTreeMap, convert::TryFrom, string::FromUtf8Error};
+use std::io::{BufRead, Seek, SeekFrom, Write};
 
 use cbor_event::{de::Deserializer, se::Serializer};
+
 pub use cml_chain::{AssetName, PolicyId};
 pub use cml_core::{
     error::*,
@@ -9,9 +11,8 @@ pub use cml_core::{
 };
 pub use cml_core::{error::*, serialization::*};
 use cml_crypto::RawBytesEncoding;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 
-use crate::{CIP25Metadata, ChunkableString, MetadataDetails, String64};
+use crate::{ChunkableString, CIP25Metadata, MetadataDetails, String64};
 
 pub static CIP25_METADATA_LABEL: u64 = 721;
 
@@ -40,9 +41,9 @@ impl std::convert::TryFrom<&Metadata> for CIP25Metadata {
     type Error = DeserializeError;
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
-        let cip25_metadatum = metadata.get(CIP25_METADATA_LABEL).ok_or_else(|| {
+        let cip25_metadatum = metadata.get(CIP25_METADATA_LABEL).ok_or(
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(CIP25_METADATA_LABEL))
-        })?;
+        )?;
         Ok(Self {
             key_721: LabelMetadata::from_cbor_bytes(&cip25_metadatum.to_cbor_bytes())?,
         })
@@ -198,16 +199,16 @@ pub enum CIP25Error {
 /// the same information.
 #[wasm_bindgen::prelude::wasm_bindgen]
 #[derive(
-    Copy,
-    Clone,
-    Debug,
-    PartialEq,
-    PartialOrd,
-    Eq,
-    Ord,
-    serde::Deserialize,
-    serde::Serialize,
-    schemars::JsonSchema,
+Copy,
+Clone,
+Debug,
+PartialEq,
+PartialOrd,
+Eq,
+Ord,
+serde::Deserialize,
+serde::Serialize,
+schemars::JsonSchema,
 )]
 pub enum CIP25Version {
     /// Initial version of CIP25 with only string (utf8) asset names allowed.
@@ -364,7 +365,7 @@ impl Deserialize for LabelMetadata {
                                                     "some complicated/unsupported type",
                                                 )),
                                             )
-                                            .into());
+                                                .into());
                                         }
                                         label_metadata_v1_value_table_len += 1;
                                     }
@@ -388,13 +389,13 @@ impl Deserialize for LabelMetadata {
                             }
                             let label_metadata_v1_value = label_metadata_v1_value_table;
                             if label_metadata_v1_table
-                                .insert(label_metadata_v1_key.clone(), label_metadata_v1_value)
+                                .insert(label_metadata_v1_key, label_metadata_v1_value)
                                 .is_some()
                             {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Str(
                                     String::from("some complicated/unsupported type"),
                                 ))
-                                .into());
+                                    .into());
                             }
                             label_metadata_v1_table_len += 1;
                         }
@@ -421,7 +422,7 @@ impl Deserialize for LabelMetadata {
                         nfts: label_metadata_v1,
                         version: CIP25Version::V1,
                     });
-                },
+                }
                 Err(_) => raw
                     .as_mut_ref()
                     .seek(SeekFrom::Start(initial_position))
@@ -450,7 +451,7 @@ impl Deserialize for LabelMetadata {
                                     return Err(DeserializeFailure::DuplicateKey(Key::Str(
                                         "data".into(),
                                     ))
-                                    .into());
+                                        .into());
                                 }
                                 data = Some(
                                     (|| -> Result<_, DeserializeError> {
@@ -490,49 +491,49 @@ impl Deserialize for LabelMetadata {
                                                                             "some complicated/unsupported type",
                                                                         )),
                                                                     )
-                                                                    .into());
+                                                                        .into());
                                                                 }
                                                                 data_value_table_len += 1;
-                                                            },
+                                                            }
                                                             cbor_event::Type::Special => {
                                                                 assert_eq!(raw.special()?, cbor_event::Special::Break);
                                                                 break;
-                                                            },
+                                                            }
                                                             _other_type => {
                                                                 // we still need to read the data to move on to the CBOR after it
                                                                 let _other_key = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
                                                                 let _other_value = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
                                                                 data_value_table_len += 1;
-                                                            },
+                                                            }
                                                         }
                                                     }
                                                     let data_value = data_value_table;
-                                                    if data_table.insert(data_key.clone(), data_value).is_some()
+                                                    if data_table.insert(data_key, data_value).is_some()
                                                     {
                                                         return Err(DeserializeFailure::DuplicateKey(
                                                             Key::Str(String::from(
                                                                 "some complicated/unsupported type",
                                                             )),
                                                         )
-                                                        .into());
+                                                            .into());
                                                     }
                                                     data_table_len += 1;
-                                                },
+                                                }
                                                 cbor_event::Type::Special => {
                                                     assert_eq!(raw.special()?, cbor_event::Special::Break);
                                                     break;
-                                                },
+                                                }
                                                 _other_type => {
                                                     // we still need to read the data to move on to the CBOR after it
                                                     let _other_key = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
                                                     let _other_value = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
                                                     data_table_len += 1;
-                                                },
+                                                }
                                             }
                                         }
                                         Ok(data_table)
                                     })()
-                                    .map_err(|e| e.annotate("data"))?,
+                                        .map_err(|e| e.annotate("data"))?,
                                 );
                             }
                             "version" => {
@@ -540,7 +541,7 @@ impl Deserialize for LabelMetadata {
                                     return Err(DeserializeFailure::DuplicateKey(Key::Str(
                                         "version".into(),
                                     ))
-                                    .into());
+                                        .into());
                                 }
                                 version_present = (|| -> Result<_, DeserializeError> {
                                     let version_value = raw.unsigned_integer()?;
@@ -549,11 +550,11 @@ impl Deserialize for LabelMetadata {
                                             found: Key::Uint(version_value),
                                             expected: Key::Uint(2),
                                         }
-                                        .into());
+                                            .into());
                                     }
                                     Ok(true)
                                 })()
-                                .map_err(|e| e.annotate("version"))?;
+                                    .map_err(|e| e.annotate("version"))?;
                             }
                             _unknown_key => {
                                 // CIP-25 allows permissive parsing
@@ -564,7 +565,7 @@ impl Deserialize for LabelMetadata {
                         },
                         cbor_event::Type::Special => match len {
                             cbor_event::Len::Len(_) => {
-                                return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                                return Err(DeserializeFailure::BreakInDefiniteLen.into());
                             }
                             cbor_event::Len::Indefinite => match raw.special()? {
                                 cbor_event::Special::Break => break,
@@ -587,7 +588,7 @@ impl Deserialize for LabelMetadata {
                         return Err(
                             DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("data")))
                                 .into(),
-                        )
+                        );
                     }
                 };
                 if !version_present {
@@ -599,7 +600,7 @@ impl Deserialize for LabelMetadata {
                 // hand-edit: expression only here, no Self wrapper
                 Ok(data)
             })(raw)
-            .map_err(|e| e.annotate("LabelMetadataV2"))
+                .map_err(|e| e.annotate("LabelMetadataV2"))
             {
                 Ok(label_metadata_v2) => {
                     // hand-edit: construct merged type
@@ -607,7 +608,7 @@ impl Deserialize for LabelMetadata {
                         nfts: label_metadata_v2,
                         version: CIP25Version::V2,
                     });
-                },
+                }
                 Err(_) => raw
                     .as_mut_ref()
                     .seek(SeekFrom::Start(initial_position))
@@ -620,7 +621,7 @@ impl Deserialize for LabelMetadata {
                 DeserializeFailure::NoVariantMatched,
             ))
         })()
-        .map_err(|e| e.annotate("LabelMetadata"))
+            .map_err(|e| e.annotate("LabelMetadata"))
     }
 }
 
@@ -660,7 +661,7 @@ mod tests {
             AssetName::new(vec![0xCA, 0xFE, 0xD0, 0x0D]).unwrap(),
             details,
         )
-        .unwrap();
+            .unwrap();
         let metadata = CIP25Metadata::new(v2);
         let metadata_bytes = metadata.to_bytes();
         let roundtrip = CIP25Metadata::from_cbor_bytes(&metadata_bytes).unwrap();
@@ -701,9 +702,9 @@ mod tests {
             &TransactionMetadatum::from_bytes(
                 hex::decode("a1646e616d65694d6574617665727365").unwrap(),
             )
-            .unwrap(),
+                .unwrap(),
         )
-        .unwrap();
+            .unwrap();
         assert_eq!(details.name.unwrap().0, "Metaverse");
     }
 

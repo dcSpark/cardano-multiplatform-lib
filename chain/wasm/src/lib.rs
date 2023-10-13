@@ -141,7 +141,7 @@ impl Ed25519KeyHashList {
     }
 
     pub fn get(&self, index: usize) -> Ed25519KeyHash {
-        self.0[index].clone().into()
+        self.0[index].into()
     }
 
     pub fn add(&mut self, elem: &Ed25519KeyHash) {
@@ -166,7 +166,7 @@ impl GenesisHashList {
     }
 
     pub fn get(&self, index: usize) -> GenesisHash {
-        self.0[index].clone().into()
+        self.0[index].into()
     }
 
     pub fn add(&mut self, elem: &GenesisHash) {
@@ -459,7 +459,7 @@ impl PolicyIdList {
     }
 
     pub fn get(&self, index: usize) -> PolicyId {
-        self.0[index].clone().into()
+        self.0[index].into()
     }
 
     pub fn add(&mut self, elem: &PolicyId) {
@@ -503,7 +503,7 @@ impl ProposedProtocolParameterUpdates {
     }
 
     pub fn keys(&self) -> GenesisHashList {
-        GenesisHashList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+        GenesisHashList(self.0.iter().map(|(k, _v)| *k).collect::<Vec<_>>())
     }
 }
 

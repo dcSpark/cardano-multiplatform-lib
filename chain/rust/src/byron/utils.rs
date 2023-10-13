@@ -1,24 +1,27 @@
+use std::{
+    convert::{TryFrom, TryInto},
+    fmt,
+};
+
 use cbor_event::cbor;
 
-use super::*;
-use crate::{
-    address::{Address, AddressError},
-    crypto::BootstrapWitness,
-    genesis::network_info::NetworkInfo,
-};
 use cml_core::{
     error::{DeserializeError, DeserializeFailure},
     serialization::{Deserialize, ToBytes},
 };
 use cml_crypto::{
-    chain_crypto::{self, Sha3_256},
-    impl_hash_type, Bip32PrivateKey, Bip32PublicKey, CryptoError, Ed25519Signature,
+    Bip32PrivateKey,
+    Bip32PublicKey, chain_crypto::{self, Sha3_256}, CryptoError, Ed25519Signature, impl_hash_type,
     LegacyDaedalusPrivateKey, PublicKey, RawBytesEncoding, TransactionHash,
 };
-use std::{
-    convert::{TryFrom, TryInto},
-    fmt,
+
+use crate::{
+    address::{Address, AddressError},
+    crypto::BootstrapWitness,
+    genesis::network_info::NetworkInfo,
 };
+
+use super::*;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ByronAddressError {
@@ -268,17 +271,17 @@ impl fmt::Display for ProtocolMagic {
 }
 
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    Ord,
-    PartialEq,
-    PartialOrd,
-    Hash,
-    serde::Serialize,
-    serde::Deserialize,
-    JsonSchema,
+Clone,
+Copy,
+Debug,
+Eq,
+Ord,
+PartialEq,
+PartialOrd,
+Hash,
+serde::Serialize,
+serde::Deserialize,
+JsonSchema,
 )]
 pub struct ProtocolMagic(u32);
 
@@ -354,17 +357,19 @@ pub fn make_icarus_bootstrap_witness(
 
 #[cfg(test)]
 mod tests {
-    use super::ByronAddress;
-    use crate::genesis::network_info::NetworkInfo;
     use cml_core::serialization::ToBytes;
     use cml_crypto::{
         chain_crypto::{self, Ed25519Bip32},
         Deserialize,
     };
 
+    use crate::genesis::network_info::NetworkInfo;
+
+    use super::ByronAddress;
+
     fn assert_same_address(address: ByronAddress, xpub: chain_crypto::PublicKey<Ed25519Bip32>) {
         assert!(
-            address.content.identical_with_pubkey(xpub.clone().into()),
+            address.content.identical_with_pubkey(xpub.into()),
             "expected public key {xpub} to match address {address}",
         )
     }
@@ -379,7 +384,7 @@ mod tests {
             0x7f, 0xf2, 0x3e, 0x1a, 0x20, 0xcd, 0x90, 0xd8, 0x34, 0x6c, 0x31, 0xf0, 0xed, 0xb8,
             0x99, 0x89, 0x52, 0xdc, 0x67, 0x66, 0x55, 0x80,
         ])
-        .unwrap();
+            .unwrap();
         assert_same_address(address, public_key);
     }
 
@@ -393,7 +398,7 @@ mod tests {
             0x6c, 0x6c, 0x18, 0xbc, 0x3e, 0x71, 0x3f, 0xfd, 0x82, 0x67, 0x59, 0x4f, 0xf6, 0x34,
             0x93, 0x32, 0xce, 0x4f, 0x98, 0x04, 0xa7, 0xff,
         ])
-        .unwrap();
+            .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -407,7 +412,7 @@ mod tests {
             0xfe, 0x5b, 0x7d, 0x55, 0x6f, 0x50, 0x1c, 0x5c, 0x4e, 0x2d, 0x58, 0xe0, 0x54, 0x67,
             0xe1, 0xab, 0xc0, 0x44, 0xc6, 0xc1, 0xbf, 0x8e,
         ])
-        .unwrap();
+            .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -421,7 +426,7 @@ mod tests {
             0xa4, 0xad, 0xbf, 0xcd, 0x59, 0x7a, 0x7c, 0x89, 0x6a, 0x52, 0xa9, 0xa3, 0xa9, 0xce,
             0x49, 0x64, 0x4a, 0x10, 0x2d, 0x00, 0x71, 0x99,
         ])
-        .unwrap();
+            .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -435,7 +440,7 @@ mod tests {
             0x4b, 0x72, 0xba, 0xda, 0x90, 0xab, 0x14, 0x6c, 0xdd, 0x01, 0x42, 0x0e, 0x4b, 0x40,
             0x18, 0xf1, 0xa0, 0x55, 0x29, 0x82, 0xd2, 0x31,
         ])
-        .unwrap();
+            .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -449,7 +454,7 @@ mod tests {
             0x08, 0xdb, 0x20, 0xba, 0x64, 0xb6, 0x33, 0x4d, 0xca, 0x34, 0xea, 0xc8, 0x2c, 0xf7,
             0xb4, 0x91, 0xc3, 0x5f, 0x5c, 0xae, 0xc7, 0xb0,
         ])
-        .unwrap();
+            .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -463,7 +468,7 @@ mod tests {
             0x34, 0x37, 0x4d, 0xfe, 0x3f, 0xda, 0xa6, 0x28, 0x48, 0x30, 0xb8, 0xf6, 0xe4, 0x0d,
             0x29, 0x93, 0xde, 0xa2, 0xfb, 0x0a, 0xbe, 0x82,
         ])
-        .unwrap();
+            .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -477,7 +482,7 @@ mod tests {
             0x02, 0x4a, 0x72, 0x03, 0x45, 0x5b, 0x03, 0xd6, 0xd0, 0x0d, 0x0a, 0x5c, 0xd6, 0xee,
             0x82, 0xde, 0x2e, 0xce, 0x73, 0x8a, 0xa1, 0xbf,
         ])
-        .unwrap();
+            .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -491,7 +496,7 @@ mod tests {
             0x0d, 0x25, 0x23, 0x43, 0xab, 0xa8, 0xef, 0x77, 0x93, 0x34, 0x79, 0xde, 0xa8, 0xdd,
             0xe2, 0x9e, 0xec, 0x56, 0xcc, 0x6a, 0xc0, 0x69,
         ])
-        .unwrap();
+            .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -505,7 +510,7 @@ mod tests {
             0xcf, 0xd5, 0x38, 0x0d, 0xbb, 0xcd, 0x4d, 0x7c, 0x28, 0x0a, 0xef, 0x9e, 0xc7, 0x57,
             0x4a, 0xe0, 0xac, 0xac, 0x0c, 0xf7, 0x9e, 0x89,
         ])
-        .unwrap();
+            .unwrap();
         assert_same_address(address, public_key)
     }
 
@@ -515,7 +520,7 @@ mod tests {
         let addr = ByronAddress::from_base58(
             "Ae2tdPwUPEZ4YjgvykNpoFeYUxoyhNj2kg8KfKWN2FizsSpLUPv68MpTVDo",
         )
-        .unwrap();
+            .unwrap();
         assert_eq!(
             addr.content.byron_protocol_magic(),
             NetworkInfo::mainnet().protocol_magic()
@@ -529,7 +534,7 @@ mod tests {
         let addr = ByronAddress::from_base58(
             "2cWKMJemoBaipzQe9BArYdo2iPUfJQdZAjm4iCzDA1AfNxJSTgm9FZQTmFCYhKkeYrede",
         )
-        .unwrap();
+            .unwrap();
         assert_eq!(
             addr.content.byron_protocol_magic(),
             NetworkInfo::testnet().protocol_magic()
@@ -575,7 +580,7 @@ mod tests {
         let byron_addr = ByronAddress::from_base58(
             "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp",
         )
-        .unwrap();
+            .unwrap();
         assert_eq!(
             byron_addr.to_base58(),
             "Ae2tdPwUPEZ3MHKkpT5Bpj549vrRH7nBqYjNXnCV8G2Bc2YxNcGHEa8ykDp"

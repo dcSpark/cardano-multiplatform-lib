@@ -1,24 +1,30 @@
-use super::{CostModels, Language, Redeemer};
-use super::{ExUnits, PlutusData, PlutusV1Script, PlutusV2Script};
-use cbor_event::de::Deserializer;
-use cbor_event::se::Serializer;
-use cml_core::serialization::*;
-use cml_core::{error::*, Int};
 use std::collections::BTreeMap;
 use std::io::{BufRead, Seek, Write};
 
+use cbor_event::de::Deserializer;
+use cbor_event::se::Serializer;
+
+use cml_core::{error::*, Int};
+use cml_core::serialization::*;
+use cml_crypto::ScriptHash;
+
+use crate::crypto::hash::{hash_script, ScriptHashNamespace};
+
+use super::{CostModels, Language, Redeemer};
+use super::{ExUnits, PlutusData, PlutusV1Script, PlutusV2Script};
+
 #[derive(
-    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
 )]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ConstrPlutusData {
     pub alternative: u64,
     pub fields: Vec<PlutusData>,
     #[derivative(
-        PartialEq = "ignore",
-        Ord = "ignore",
-        PartialOrd = "ignore",
-        Hash = "ignore"
+    PartialEq = "ignore",
+    Ord = "ignore",
+    PartialOrd = "ignore",
+    Hash = "ignore"
     )]
     #[serde(skip)]
     pub encodings: Option<ConstrPlutusDataEncoding>,
@@ -81,40 +87,40 @@ impl Serialize for ConstrPlutusData {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match Self::alternative_to_compact_cbor_tag(self.alternative) {
             Some(compact_tag)
-                if self
-                    .encodings
-                    .as_ref()
-                    .map(|encs| encs.prefer_compact)
-                    .unwrap_or(true) =>
-            {
-                // compact form
-                serializer.write_tag_sz(
-                    compact_tag,
-                    fit_sz(
+            if self
+                .encodings
+                .as_ref()
+                .map(|encs| encs.prefer_compact)
+                .unwrap_or(true) =>
+                {
+                    // compact form
+                    serializer.write_tag_sz(
                         compact_tag,
+                        fit_sz(
+                            compact_tag,
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.tag_encoding)
+                                .unwrap_or_default(),
+                            force_canonical,
+                        ),
+                    )?;
+                    serializer.write_array_sz(
                         self.encodings
                             .as_ref()
-                            .map(|encs| encs.tag_encoding)
-                            .unwrap_or_default(),
-                        force_canonical,
-                    ),
-                )?;
-                serializer.write_array_sz(
+                            .map(|encs| encs.fields_encoding)
+                            .unwrap_or_default()
+                            .to_len_sz(self.fields.len() as u64, force_canonical),
+                    )?;
+                    for element in self.fields.iter() {
+                        element.serialize(serializer, force_canonical)?;
+                    }
                     self.encodings
                         .as_ref()
                         .map(|encs| encs.fields_encoding)
                         .unwrap_or_default()
-                        .to_len_sz(self.fields.len() as u64, force_canonical),
-                )?;
-                for element in self.fields.iter() {
-                    element.serialize(serializer, force_canonical)?;
+                        .end(serializer, force_canonical)
                 }
-                self.encodings
-                    .as_ref()
-                    .map(|encs| encs.fields_encoding)
-                    .unwrap_or_default()
-                    .end(serializer, force_canonical)
-            }
             _ => {
                 // general form
                 serializer.write_tag_sz(
@@ -203,7 +209,7 @@ impl Deserialize for ConstrPlutusData {
                         }
                         Ok((fields_arr, fields_encoding))
                     })()
-                    .map_err(|e| e.annotate("fields"))?;
+                        .map_err(|e| e.annotate("fields"))?;
                     match len {
                         cbor_event::LenSz::Len(_, _) => (),
                         cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -242,7 +248,7 @@ impl Deserialize for ConstrPlutusData {
                             }
                             Ok((fields_arr, fields_encoding))
                         })()
-                        .map_err(|e| e.annotate("fields"))?;
+                            .map_err(|e| e.annotate("fields"))?;
                         Ok(ConstrPlutusData {
                             alternative,
                             fields,
@@ -259,12 +265,12 @@ impl Deserialize for ConstrPlutusData {
                             found: tag,
                             expected: Self::GENERAL_FORM_TAG,
                         }
-                        .into())
+                            .into())
                     }
                 }
             }
         })()
-        .map_err(|e| e.annotate("ConstrPlutusData"))
+            .map_err(|e| e.annotate("ConstrPlutusData"))
     }
 }
 
@@ -298,8 +304,7 @@ impl CostModels {
         // as canonical encodings are used, we odn't need to check the keys' bytes encodings
         // and can order this statically.
         serializer.write_map(cbor_event::Len::Len(
-            if self.plutus_v1.is_some() { 1 } else { 0 }
-                + if self.plutus_v2.is_some() { 1 } else { 0 },
+            u64::from(self.plutus_v1.is_some()) + u64::from(self.plutus_v2.is_some()),
         ))?;
         if let Some(v1_costs) = &self.plutus_v1 {
             // For PlutusV1 (language id 0), the language view is the following:
@@ -355,8 +360,6 @@ impl PlutusScript {
         }
     }
 }
-use crate::crypto::hash::{hash_script, ScriptHashNamespace};
-use cml_crypto::ScriptHash;
 
 impl PlutusV1Script {
     pub fn hash(&self) -> ScriptHash {
@@ -398,23 +401,23 @@ pub fn compute_total_ex_units(redeemers: &[Redeemer]) -> Result<ExUnits, Arithme
 }
 
 #[derive(
-    Clone,
-    Debug,
-    Default,
-    serde::Deserialize,
-    serde::Serialize,
-    schemars::JsonSchema,
-    derivative::Derivative,
+Clone,
+Debug,
+Default,
+serde::Deserialize,
+serde::Serialize,
+schemars::JsonSchema,
+derivative::Derivative,
 )]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PlutusMap {
     // possibly duplicates (very rare - only found on testnet)
     pub entries: Vec<(PlutusData, PlutusData)>,
     #[derivative(
-        PartialEq = "ignore",
-        Ord = "ignore",
-        PartialOrd = "ignore",
-        Hash = "ignore"
+    PartialEq = "ignore",
+    Ord = "ignore",
+    PartialOrd = "ignore",
+    Hash = "ignore"
     )]
     #[serde(skip)]
     pub encoding: LenEncoding,
@@ -519,14 +522,15 @@ impl Deserialize for PlutusMap {
             }
             Ok(Self { entries, encoding })
         })()
-        .map_err(|e| e.annotate("PlutusMap"))
+            .map_err(|e| e.annotate("PlutusMap"))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::plutus::CostModels;
     use cml_core::Int;
+
+    use crate::plutus::CostModels;
 
     #[test]
     pub fn test_cost_model() {

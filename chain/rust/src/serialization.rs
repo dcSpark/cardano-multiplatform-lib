@@ -1903,7 +1903,7 @@ impl Deserialize for Update {
                         ProtocolParamUpdate::deserialize(raw)?;
                     if proposed_protocol_parameter_updates_table
                         .insert(
-                            proposed_protocol_parameter_updates_key.clone(),
+                            proposed_protocol_parameter_updates_key,
                             proposed_protocol_parameter_updates_value,
                         )
                         .is_some()
@@ -1914,7 +1914,7 @@ impl Deserialize for Update {
                         .into());
                     }
                     proposed_protocol_parameter_updates_key_encodings.insert(
-                        proposed_protocol_parameter_updates_key.clone(),
+                        proposed_protocol_parameter_updates_key,
                         proposed_protocol_parameter_updates_key_encoding,
                     );
                 }

@@ -1,19 +1,20 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_core::{
-    serialization::{fit_sz, CBORReadLen, Deserialize, Serialize},
-    Key,
-};
+use std::io::{BufRead, Seek, SeekFrom, Write};
 
-use cml_crypto::{Ed25519Signature, PublicKey, RawBytesEncoding};
-
-use super::cbor_encodings::*;
-use super::*;
 use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
-use std::io::{BufRead, Seek, SeekFrom, Write};
+
+use cml_core::{
+    Key,
+    serialization::{CBORReadLen, Deserialize, fit_sz, Serialize},
+};
+use cml_crypto::{Ed25519Signature, PublicKey, RawBytesEncoding};
+
+use super::*;
+use super::cbor_encodings::*;
 
 impl Serialize for Delegation {
     fn serialize<'se, W: Write>(
@@ -96,7 +97,7 @@ impl Deserialize for Delegation {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("Delegation"))
+            .map_err(|e| e.annotate("Delegation"))
     }
 }
 
@@ -155,7 +156,7 @@ impl Deserialize for DelegationDistribution {
                     return Ok(Self::Weighted {
                         delegations,
                         delegations_encoding,
-                    })
+                    });
                 }
                 Err(_) => raw
                     .as_mut_ref()
@@ -175,7 +176,7 @@ impl Deserialize for DelegationDistribution {
                     return Ok(Self::Legacy {
                         legacy,
                         legacy_encoding,
-                    })
+                    });
                 }
                 Err(_) => raw
                     .as_mut_ref()
@@ -187,7 +188,7 @@ impl Deserialize for DelegationDistribution {
                 DeserializeFailure::NoVariantMatched,
             ))
         })()
-        .map_err(|e| e.annotate("DelegationDistribution"))
+            .map_err(|e| e.annotate("DelegationDistribution"))
     }
 }
 
@@ -288,15 +289,15 @@ impl Deserialize for DeregistrationWitness {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            )
+                            );
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -304,7 +305,7 @@ impl Deserialize for DeregistrationWitness {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;
@@ -323,7 +324,7 @@ impl Deserialize for DeregistrationWitness {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("DeregistrationWitness"))
+            .map_err(|e| e.annotate("DeregistrationWitness"))
     }
 }
 
@@ -339,17 +340,12 @@ impl Serialize for KeyDeregistration {
                 .map(|encs| encs.len_encoding)
                 .unwrap_or_default()
                 .to_len_sz(
-                    2 + if self.voting_purpose != 0
+                    2 + u64::from(self.voting_purpose != 0
                         || self
-                            .encodings
-                            .as_ref()
-                            .map(|encs| encs.voting_purpose_default_present)
-                            .unwrap_or(false)
-                    {
-                        1
-                    } else {
-                        0
-                    },
+                        .encodings
+                        .as_ref()
+                        .map(|encs| encs.voting_purpose_default_present)
+                        .unwrap_or(false)),
                     force_canonical,
                 ),
         )?;
@@ -359,17 +355,12 @@ impl Serialize for KeyDeregistration {
             .filter(|encs| {
                 !force_canonical
                     && encs.orig_deser_order.len()
-                        == 2 + if self.voting_purpose != 0
-                            || self
-                                .encodings
-                                .as_ref()
-                                .map(|encs| encs.voting_purpose_default_present)
-                                .unwrap_or(false)
-                        {
-                            1
-                        } else {
-                            0
-                        }
+                    == 2 + usize::from(self.voting_purpose != 0
+                    || self
+                    .encodings
+                    .as_ref()
+                    .map(|encs| encs.voting_purpose_default_present)
+                    .unwrap_or(false))
             })
             .map(|encs| encs.orig_deser_order.clone())
             .unwrap_or_else(|| vec![0, 1, 2]);
@@ -528,7 +519,7 @@ impl Deserialize for KeyDeregistration {
                                         .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
                                 })()
-                                .map_err(|e| e.annotate("voting_purpose"))?;
+                                    .map_err(|e| e.annotate("voting_purpose"))?;
                             voting_purpose = Some(tmp_voting_purpose);
                             voting_purpose_encoding = tmp_voting_purpose_encoding;
                             voting_purpose_key_encoding = Some(key_enc);
@@ -537,15 +528,15 @@ impl Deserialize for KeyDeregistration {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            )
+                            );
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -553,7 +544,7 @@ impl Deserialize for KeyDeregistration {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;
@@ -588,7 +579,7 @@ impl Deserialize for KeyDeregistration {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("KeyDeregistration"))
+            .map_err(|e| e.annotate("KeyDeregistration"))
     }
 }
 
@@ -604,17 +595,12 @@ impl Serialize for KeyRegistration {
                 .map(|encs| encs.len_encoding)
                 .unwrap_or_default()
                 .to_len_sz(
-                    4 + if self.voting_purpose != 0
+                    4 + u64::from(self.voting_purpose != 0
                         || self
-                            .encodings
-                            .as_ref()
-                            .map(|encs| encs.voting_purpose_default_present)
-                            .unwrap_or(false)
-                    {
-                        1
-                    } else {
-                        0
-                    },
+                        .encodings
+                        .as_ref()
+                        .map(|encs| encs.voting_purpose_default_present)
+                        .unwrap_or(false)),
                     force_canonical,
                 ),
         )?;
@@ -624,10 +610,10 @@ impl Serialize for KeyRegistration {
                 false,
                 self.voting_purpose != 0
                     || self
-                        .encodings
-                        .as_ref()
-                        .map(|encs| encs.voting_purpose_default_present)
-                        .unwrap_or(false),
+                    .encodings
+                    .as_ref()
+                    .map(|encs| encs.voting_purpose_default_present)
+                    .unwrap_or(false),
             ),
         };
         let deser_order = self
@@ -636,7 +622,7 @@ impl Serialize for KeyRegistration {
             .filter(|encs| {
                 !force_canonical
                     && encs.orig_deser_order.len()
-                        == 4 + if should_include_voting_purpose { 1 } else { 0 }
+                    == 4 + usize::from(should_include_voting_purpose)
             })
             .map(|encs| encs.orig_deser_order.clone())
             .unwrap_or_else(|| {
@@ -855,7 +841,7 @@ impl Deserialize for KeyRegistration {
                                         .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
                                 })()
-                                .map_err(|e| e.annotate("voting_purpose"))?;
+                                    .map_err(|e| e.annotate("voting_purpose"))?;
                             voting_purpose = Some(tmp_voting_purpose);
                             voting_purpose_encoding = tmp_voting_purpose_encoding;
                             voting_purpose_key_encoding = Some(key_enc);
@@ -864,15 +850,15 @@ impl Deserialize for KeyRegistration {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            )
+                            );
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -880,7 +866,7 @@ impl Deserialize for KeyRegistration {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;
@@ -927,7 +913,7 @@ impl Deserialize for KeyRegistration {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("KeyRegistration"))
+            .map_err(|e| e.annotate("KeyRegistration"))
     }
 }
 
@@ -1028,15 +1014,15 @@ impl Deserialize for RegistrationWitness {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            )
+                            );
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -1044,7 +1030,7 @@ impl Deserialize for RegistrationWitness {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;
@@ -1063,6 +1049,6 @@ impl Deserialize for RegistrationWitness {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("RegistrationWitness"))
+            .map_err(|e| e.annotate("RegistrationWitness"))
     }
 }

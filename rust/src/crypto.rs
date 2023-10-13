@@ -804,7 +804,7 @@ impl_signature!(Ed25519Signature, Vec<u8>, crypto::Ed25519);
 macro_rules! impl_hash_type {
     ($name:ident, $byte_count:expr) => {
         #[wasm_bindgen]
-        #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+        #[derive(Debug, Copy, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
         pub struct $name(pub (crate) [u8; $byte_count]);
 
         // hash types are the only types in this library to not expect the entire CBOR structure.

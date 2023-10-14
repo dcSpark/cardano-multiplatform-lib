@@ -254,7 +254,7 @@ impl Ed25519KeyHashList {
     }
 
     pub fn get(&self, index: usize) -> Ed25519KeyHash {
-        self.0[index].clone().into()
+        self.0[index].into()
     }
 
     pub fn add(&mut self, elem: &Ed25519KeyHash) {
@@ -760,7 +760,7 @@ impl PolicyIdList {
     }
 
     pub fn get(&self, index: usize) -> PolicyId {
-        self.0[index].clone().into()
+        self.0[index].into()
     }
 
     pub fn add(&mut self, elem: &PolicyId) {

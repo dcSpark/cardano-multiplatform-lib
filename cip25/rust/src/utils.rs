@@ -388,7 +388,7 @@ impl Deserialize for LabelMetadata {
                             }
                             let label_metadata_v1_value = label_metadata_v1_value_table;
                             if label_metadata_v1_table
-                                .insert(label_metadata_v1_key.clone(), label_metadata_v1_value)
+                                .insert(label_metadata_v1_key, label_metadata_v1_value)
                                 .is_some()
                             {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Str(
@@ -507,7 +507,7 @@ impl Deserialize for LabelMetadata {
                                                         }
                                                     }
                                                     let data_value = data_value_table;
-                                                    if data_table.insert(data_key.clone(), data_value).is_some()
+                                                    if data_table.insert(data_key, data_value).is_some()
                                                     {
                                                         return Err(DeserializeFailure::DuplicateKey(
                                                             Key::Str(String::from(

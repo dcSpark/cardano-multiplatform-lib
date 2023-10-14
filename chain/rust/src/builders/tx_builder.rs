@@ -683,7 +683,7 @@ impl TransactionBuilder {
                             .is_none()
                         {
                             Err(TxBuilderError::RefScriptNotFound(
-                                ref_script.clone(),
+                                *ref_script,
                                 self.witness_builders
                                     .witness_set_builder
                                     .required_wits
@@ -891,7 +891,7 @@ impl TransactionBuilder {
         let mut mint = self.mint.take().unwrap_or_default();
         let combined_assets = mint
             .deref_mut()
-            .entry(result.policy_id.clone())
+            .entry(result.policy_id)
             .or_default();
         for (asset_name, asset_value) in result.assets.iter() {
             if combined_assets
@@ -899,7 +899,7 @@ impl TransactionBuilder {
                 .is_some()
             {
                 return Err(TxBuilderError::DuplicateMint(
-                    result.policy_id.clone(),
+                    result.policy_id,
                     asset_name.clone(),
                 ));
             }
@@ -980,7 +980,7 @@ impl TransactionBuilder {
             if let InputAggregateWitnessData::PlutusScript(_, required_signers, _) = data {
                 required_signers
                     .iter()
-                    .for_each(|signer| self.add_required_signer(signer.clone()));
+                    .for_each(|signer| self.add_required_signer(*signer));
             }
         }
         self.witness_builders
@@ -992,7 +992,7 @@ impl TransactionBuilder {
 
     pub fn add_required_signer(&mut self, hash: Ed25519KeyHash) {
         let mut set = RequiredWitnessSet::new();
-        set.add_vkey_key_hash(hash.clone());
+        set.add_vkey_key_hash(hash);
         self.witness_builders
             .witness_set_builder
             .add_required_wits(set);
@@ -1593,7 +1593,7 @@ pub fn add_change_if_needed(
                             if will_adding_asset_make_output_overflow(
                                 &output,
                                 &rebuilt_assets,
-                                (policy.clone(), asset_name.clone(), *value),
+                                (*policy, asset_name.clone(), *value),
                                 max_value_size,
                                 coins_per_utxo_byte,
                             ) {
@@ -1601,7 +1601,7 @@ pub fn add_change_if_needed(
                                 // so we want to split into multiple outputs, for that we...
 
                                 // 1. insert the current assets as they are, as this won't overflow
-                                next_nft.insert(policy.clone(), rebuilt_assets);
+                                next_nft.insert(*policy, rebuilt_assets);
                                 val.multiasset = next_nft;
                                 output.set_amount(output.amount().checked_add(&val)?);
                                 change_assets.push(output.amount().multiasset.clone());
@@ -1626,7 +1626,7 @@ pub fn add_change_if_needed(
                             rebuilt_assets.insert(asset_name.clone(), *value);
                         }
 
-                        next_nft.insert(policy.clone(), rebuilt_assets);
+                        next_nft.insert(*policy, rebuilt_assets);
                         val.multiasset = next_nft;
                         output.set_amount(output.amount().checked_add(&val)?);
 
@@ -2550,7 +2550,7 @@ mod tests {
         tx_builder.add_mint(result).unwrap();
 
         let mut mass = MultiAsset::new();
-        mass.set(policy_id.clone(), name.clone(), amount_sent);
+        mass.set(policy_id, name.clone(), amount_sent);
 
         // One coin and the minted asset goes into the output
         let mut output_amount = Value::from(264);
@@ -2613,7 +2613,7 @@ mod tests {
             .iter()
             .map(|input| {
                 let mut multiasset = MultiAsset::new();
-                multiasset.set(policy_id.clone(), name.clone(), *input);
+                multiasset.set(policy_id, name.clone(), *input);
                 multiasset
             })
             .collect::<Vec<MultiAsset>>();
@@ -2695,7 +2695,7 @@ mod tests {
             .iter()
             .map(|input| {
                 let mut multiasset = MultiAsset::new();
-                multiasset.set(policy_id.clone(), name.clone(), *input);
+                multiasset.set(*policy_id, name.clone(), *input);
                 multiasset
             })
             .collect::<Vec<MultiAsset>>();
@@ -2782,7 +2782,7 @@ mod tests {
             .iter()
             .map(|input| {
                 let mut multiasset = MultiAsset::new();
-                multiasset.set(policy_id.clone(), name.clone(), *input);
+                multiasset.set(*policy_id, name.clone(), *input);
                 multiasset
             })
             .collect::<Vec<MultiAsset>>();
@@ -3037,7 +3037,7 @@ mod tests {
         // add an output that uses up all the token but leaves ADA
         let input_amount = {
             let mut input_multiasset = MultiAsset::new();
-            input_multiasset.set(policy_id.clone(), name.clone(), 100);
+            input_multiasset.set(policy_id, name.clone(), 100);
             Value::new(5_000_000, input_multiasset)
         };
 
@@ -3109,7 +3109,7 @@ mod tests {
         let multiasset = policy_ids.iter().zip(names.iter()).fold(
             MultiAsset::new(),
             |mut acc, (policy_id, name)| {
-                acc.set(policy_id.clone(), name.clone(), 500);
+                acc.set(*policy_id, name.clone(), 500);
                 acc
             },
         );
@@ -3244,7 +3244,7 @@ mod tests {
         let multiasset = policy_ids.iter().zip(names.iter()).fold(
             MultiAsset::new(),
             |mut acc, (policy_id, name)| {
-                acc.set(policy_id.clone(), name.clone(), 500);
+                acc.set(*policy_id, name.clone(), 500);
                 acc
             },
         );
@@ -3417,10 +3417,10 @@ mod tests {
 
         let mut output_value = Value::from(415);
         let mut output_ma = MultiAsset::new();
-        output_ma.set(pid1.clone(), asset_name1.clone(), 5);
-        output_ma.set(pid1.clone(), asset_name2.clone(), 1);
-        output_ma.set(pid2.clone(), asset_name2.clone(), 2);
-        output_ma.set(pid2.clone(), asset_name3.clone(), 4);
+        output_ma.set(pid1, asset_name1.clone(), 5);
+        output_ma.set(pid1, asset_name2.clone(), 1);
+        output_ma.set(pid2, asset_name2.clone(), 2);
+        output_ma.set(pid2, asset_name3.clone(), 4);
         output_value.multiasset = output_ma;
         tx_builder
             .add_output(SingleOutputBuilderResult::new(TransactionOutput::new(
@@ -3437,39 +3437,39 @@ mod tests {
 
         // should not be taken
         let mut ma1 = MultiAsset::new();
-        ma1.set(pid1.clone(), asset_name1.clone(), 10);
-        ma1.set(pid1.clone(), asset_name2.clone(), 1);
-        ma1.set(pid2.clone(), asset_name2.clone(), 2);
+        ma1.set(pid1, asset_name1.clone(), 10);
+        ma1.set(pid1, asset_name2.clone(), 1);
+        ma1.set(pid2, asset_name2.clone(), 2);
         let input1 = make_input(1u8, Value::new(200, ma1));
         tx_builder.add_utxo(input1);
 
         // taken first to satisfy pid1:asset_name1 (but also satisfies pid2:asset_name3)
         let mut ma2 = MultiAsset::new();
-        ma2.set(pid1.clone(), asset_name1.clone(), 20);
-        ma2.set(pid2.clone(), asset_name3.clone(), 4);
+        ma2.set(pid1, asset_name1.clone(), 20);
+        ma2.set(pid2, asset_name3.clone(), 4);
         let input2 = make_input(2u8, Value::new(10, ma2));
         tx_builder.add_utxo(input2.clone());
 
         // taken second to satisfy pid1:asset_name2 (but also satisfies pid2:asset_name1)
 
         let mut ma3 = MultiAsset::new();
-        ma3.set(pid2.clone(), asset_name1.clone(), 5);
-        ma3.set(pid1.clone(), asset_name2.clone(), 15);
+        ma3.set(pid2, asset_name1.clone(), 5);
+        ma3.set(pid1, asset_name2.clone(), 15);
         let input3 = make_input(3u8, Value::new(50, ma3));
         tx_builder.add_utxo(input3.clone());
 
         // should not be taken either
 
         let mut ma4 = MultiAsset::new();
-        ma4.set(pid1.clone(), asset_name1.clone(), 10);
-        ma4.set(pid1.clone(), asset_name2.clone(), 10);
+        ma4.set(pid1, asset_name1.clone(), 10);
+        ma4.set(pid1, asset_name2.clone(), 10);
         let input4 = make_input(4u8, Value::new(10, ma4));
         tx_builder.add_utxo(input4);
 
         // taken third to satisfy pid2:asset_name_2
         let mut ma5 = MultiAsset::new();
-        ma5.set(pid1.clone(), asset_name2.clone(), 10);
-        ma5.set(pid2.clone(), asset_name2.clone(), 3);
+        ma5.set(pid1, asset_name2.clone(), 10);
+        ma5.set(pid2, asset_name2.clone(), 3);
         let input5 = make_input(5u8, Value::new(10, ma5));
         tx_builder.add_utxo(input5.clone());
 
@@ -3532,10 +3532,10 @@ mod tests {
         let asset_name3 = AssetName::new(vec![3u8; 9]).unwrap();
 
         let mut output_ma = MultiAsset::new();
-        output_ma.set(pid1.clone(), asset_name1.clone(), 5);
-        output_ma.set(pid1.clone(), asset_name2.clone(), 1);
-        output_ma.set(pid2.clone(), asset_name2.clone(), 2);
-        output_ma.set(pid2.clone(), asset_name3.clone(), 4);
+        output_ma.set(pid1, asset_name1.clone(), 5);
+        output_ma.set(pid1, asset_name2.clone(), 1);
+        output_ma.set(pid2, asset_name2.clone(), 2);
+        output_ma.set(pid2, asset_name3.clone(), 4);
         let output_value = Value::new(415, output_ma);
         tx_builder
             .add_output(SingleOutputBuilderResult::new(TransactionOutput::new(
@@ -3550,33 +3550,33 @@ mod tests {
         tx_builder.add_utxo(make_input(0u8, Value::from(150)));
 
         let mut ma1 = MultiAsset::new();
-        ma1.set(pid1.clone(), asset_name1.clone(), 10);
-        ma1.set(pid1.clone(), asset_name2.clone(), 1);
-        ma1.set(pid2.clone(), asset_name2.clone(), 2);
+        ma1.set(pid1, asset_name1.clone(), 10);
+        ma1.set(pid1, asset_name2.clone(), 1);
+        ma1.set(pid2, asset_name2.clone(), 2);
         let input1 = make_input(1u8, Value::new(200, ma1));
         tx_builder.add_utxo(input1);
 
         let mut ma2 = MultiAsset::new();
-        ma2.set(pid1.clone(), asset_name1.clone(), 20);
-        ma2.set(pid2.clone(), asset_name3.clone(), 4);
+        ma2.set(pid1, asset_name1.clone(), 20);
+        ma2.set(pid2, asset_name3.clone(), 4);
         let input2 = make_input(2u8, Value::new(10, ma2));
         tx_builder.add_utxo(input2);
 
         let mut ma3 = MultiAsset::new();
-        ma3.set(pid2.clone(), asset_name1.clone(), 5);
-        ma3.set(pid1.clone(), asset_name2.clone(), 15);
+        ma3.set(pid2, asset_name1.clone(), 5);
+        ma3.set(pid1, asset_name2.clone(), 15);
         let input3 = make_input(3u8, Value::new(50, ma3));
         tx_builder.add_utxo(input3);
 
         let mut ma4 = MultiAsset::new();
-        ma4.set(pid1.clone(), asset_name1, 10);
-        ma4.set(pid1.clone(), asset_name2.clone(), 10);
+        ma4.set(pid1, asset_name1, 10);
+        ma4.set(pid1, asset_name2.clone(), 10);
         let input4 = make_input(4u8, Value::new(10, ma4));
         tx_builder.add_utxo(input4);
 
         let mut ma5 = MultiAsset::new();
         ma5.set(pid1, asset_name2.clone(), 10);
-        ma5.set(pid2.clone(), asset_name2.clone(), 3);
+        ma5.set(pid2, asset_name2.clone(), 3);
         let input5 = make_input(5u8, Value::new(10, ma5));
         tx_builder.add_utxo(input5);
 
@@ -3585,7 +3585,7 @@ mod tests {
         tx_builder.add_utxo(make_input(7u8, Value::from(100)));
 
         let mut ma8 = MultiAsset::new();
-        ma8.set(pid2.clone(), asset_name2, 10);
+        ma8.set(pid2, asset_name2, 10);
         let input8 = make_input(8u8, Value::new(10, ma8));
         tx_builder.add_utxo(input8);
 
@@ -3659,7 +3659,7 @@ mod tests {
         let mut input_values = BTreeMap::new();
         for utxo in tx_builder.utxos.iter() {
             input_values.insert(
-                utxo.input.transaction_id.clone(),
+                utxo.input.transaction_id,
                 utxo.utxo_info.amount().clone(),
             );
         }
@@ -3667,7 +3667,7 @@ mod tests {
         let mut input_total = Value::from(Coin::zero());
         for input in tx.inputs.iter() {
             let txid = &input.transaction_id;
-            if !encountered.insert(txid.clone()) {
+            if !encountered.insert(*txid) {
                 panic!("Input {:?} duplicated", txid);
             }
             let value = input_values.get(txid).unwrap();
@@ -4076,7 +4076,7 @@ mod tests {
         ];
         let mut multiasset = MultiAsset::new();
         for name in names.iter() {
-            multiasset.set(policy_id.clone(), name.clone(), 500);
+            multiasset.set(policy_id, name.clone(), 500);
         }
 
         let input_value = Value::new(1300, multiasset);
@@ -4447,7 +4447,7 @@ mod tests {
 
     fn create_multiasset_one_asset(policy_id: &PolicyId) -> MultiAsset {
         let mut mint = MultiAsset::default();
-        mint.set(policy_id.clone(), create_asset_name(), 1234);
+        mint.set(*policy_id, create_asset_name(), 1234);
         mint
     }
 
@@ -4462,7 +4462,7 @@ mod tests {
 
     fn mint_script_and_policy_and_hash(x: u8) -> (NativeScript, PolicyId, Ed25519KeyHash) {
         let hash = fake_key_hash(x);
-        let mint_script = NativeScript::new_script_pubkey(hash.clone());
+        let mint_script = NativeScript::new_script_pubkey(hash);
         let policy_id = mint_script.hash();
         (mint_script, policy_id, hash)
     }
@@ -4602,7 +4602,7 @@ mod tests {
 
         // One input from a related address
         let input = {
-            let cred = StakeCredential::new_script(policy_id1.clone());
+            let cred = StakeCredential::new_script(policy_id1);
             let address = BaseAddress::new(NetworkInfo::testnet().network_id(), cred.clone(), cred)
                 .to_address();
             let builder = SingleInputBuilder::new(
@@ -4804,7 +4804,7 @@ mod tests {
 
         let multiasset = {
             let mut multiasset = MultiAsset::new();
-            multiasset.set(policy_id1.clone(), name.clone(), 1234);
+            multiasset.set(policy_id1, name.clone(), 1234);
             multiasset
         };
 
@@ -4874,7 +4874,7 @@ mod tests {
 
         let multiasset = {
             let mut multiasset = MultiAsset::new();
-            multiasset.set(policy_id1.clone(), name.clone(), 1234);
+            multiasset.set(policy_id1, name.clone(), 1234);
             multiasset
         };
 
@@ -4942,8 +4942,8 @@ mod tests {
             .iter()
             .map(|input| {
                 let mut multiasset = MultiAsset::new();
-                multiasset.set(policy_id1.clone(), name.clone(), *input);
-                multiasset.set(policy_id2.clone(), name.clone(), *input);
+                multiasset.set(policy_id1, name.clone(), *input);
+                multiasset.set(policy_id2, name.clone(), *input);
                 multiasset
             })
             .collect::<Vec<MultiAsset>>();
@@ -5628,7 +5628,7 @@ mod tests {
 
         let script_base_address = BaseAddress::new(
             NetworkInfo::testnet().network_id(),
-            StakeCredential::new_script(script_hash.clone()),
+            StakeCredential::new_script(script_hash),
             stake_cred.clone(),
         );
 

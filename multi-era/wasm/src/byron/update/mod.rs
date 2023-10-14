@@ -237,19 +237,19 @@ impl_wasm_conversions!(
 #[wasm_bindgen]
 impl ByronUpdateData {
     pub fn blake2b256(&self) -> Blake2b256 {
-        self.0.blake2b256.clone().into()
+        self.0.blake2b256.into()
     }
 
     pub fn blake2b2562(&self) -> Blake2b256 {
-        self.0.blake2b2562.clone().into()
+        self.0.blake2b2562.into()
     }
 
     pub fn blake2b2563(&self) -> Blake2b256 {
-        self.0.blake2b2563.clone().into()
+        self.0.blake2b2563.into()
     }
 
     pub fn blake2b2564(&self) -> Blake2b256 {
-        self.0.blake2b2564.clone().into()
+        self.0.blake2b2564.into()
     }
 
     pub fn new(
@@ -347,7 +347,7 @@ impl ByronUpdateVote {
     }
 
     pub fn proposal_id(&self) -> ByronUpdateId {
-        self.0.proposal_id.clone().into()
+        self.0.proposal_id.into()
     }
 
     pub fn vote(&self) -> bool {

@@ -158,7 +158,7 @@ where
                             // asset name is missing from left hand side
                             if !T::min_value().is_zero() {
                                 bundle.set(
-                                    policy.clone(),
+                                    *policy,
                                     asset_name.clone(),
                                     T::zero().clamped_sub(rhs_amount),
                                 );
@@ -169,7 +169,7 @@ where
                         // policy id missing from left hand side
                         if !T::min_value().is_zero() {
                             bundle.set(
-                                policy.clone(),
+                                *policy,
                                 asset_name.clone(),
                                 T::zero().clamped_sub(rhs_amount),
                             );
@@ -210,7 +210,7 @@ where
         let mut bundle = self.0.clone();
         for (policy, assets) in rhs.0.iter() {
             for (asset_name, amount) in assets.iter() {
-                match bundle.entry(policy.clone()) {
+                match bundle.entry(*policy) {
                     Entry::Occupied(mut assets) => {
                         match assets.get_mut().entry(asset_name.clone()) {
                             Entry::Occupied(mut assets2) => {
@@ -268,7 +268,7 @@ where
                     },
                     None => {
                         // policy id missing from left hand side
-                        return Err(AssetArithmeticError::PolicyIdDoesntExist(policy.clone()));
+                        return Err(AssetArithmeticError::PolicyIdDoesntExist(*policy));
                     }
                 }
             }
@@ -296,7 +296,7 @@ impl Mint {
                             acc
                         });
                 if !assets.is_empty() {
-                    acc.insert(policy.clone(), new_assets);
+                    acc.insert(*policy, new_assets);
                 }
                 acc
             })
@@ -693,7 +693,7 @@ impl Deserialize for Value {
                                 multiasset_value_value_encodings,
                             );
                             if multiasset_table
-                                .insert(multiasset_key.clone(), multiasset_value)
+                                .insert(multiasset_key, multiasset_value)
                                 .is_some()
                             {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Str(
@@ -702,9 +702,9 @@ impl Deserialize for Value {
                                 .into());
                             }
                             multiasset_key_encodings
-                                .insert(multiasset_key.clone(), multiasset_key_encoding);
+                                .insert(multiasset_key, multiasset_key_encoding);
                             multiasset_value_encodings.insert(
-                                multiasset_key.clone(),
+                                multiasset_key,
                                 (multiasset_value_encoding, multiasset_value_value_encodings),
                             );
                         }

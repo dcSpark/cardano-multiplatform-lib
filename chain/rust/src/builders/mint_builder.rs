@@ -37,7 +37,7 @@ impl SingleMintBuilder {
     ) -> MintBuilderResult {
         let mut required_wits = RequiredWitnessSet::default();
         let script_hash = native_script.hash();
-        required_wits.add_script_hash(script_hash.clone());
+        required_wits.add_script_hash(script_hash);
 
         MintBuilderResult {
             assets: self.assets,
@@ -60,8 +60,8 @@ impl SingleMintBuilder {
         let script_hash = partial_witness.script.hash();
         required_signers
             .iter()
-            .for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer.clone()));
-        required_wits.add_script_hash(script_hash.clone());
+            .for_each(|required_signer| required_wits.add_vkey_key_hash(*required_signer));
+        required_wits.add_script_hash(script_hash);
 
         MintBuilderResult {
             assets: self.assets,

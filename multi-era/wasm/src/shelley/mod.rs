@@ -39,15 +39,15 @@ impl_wasm_conversions!(
 #[wasm_bindgen]
 impl GenesisKeyDelegation {
     pub fn genesis_hash(&self) -> GenesisHash {
-        self.0.genesis_hash.clone().into()
+        self.0.genesis_hash.into()
     }
 
     pub fn genesis_delegate_hash(&self) -> GenesisDelegateHash {
-        self.0.genesis_delegate_hash.clone().into()
+        self.0.genesis_delegate_hash.into()
     }
 
     pub fn v_r_f_key_hash(&self) -> VRFKeyHash {
-        self.0.v_r_f_key_hash.clone().into()
+        self.0.v_r_f_key_hash.into()
     }
 
     pub fn new(
@@ -142,7 +142,7 @@ impl_wasm_conversions!(cml_multi_era::shelley::MultisigPubkey, MultisigPubkey);
 #[wasm_bindgen]
 impl MultisigPubkey {
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.clone().into()
+        self.0.ed25519_key_hash.into()
     }
 
     pub fn new(ed25519_key_hash: &Ed25519KeyHash) -> Self {
@@ -545,7 +545,7 @@ impl ShelleyHeaderBody {
     }
 
     pub fn prev_hash(&self) -> Option<BlockHeaderHash> {
-        self.0.prev_hash.clone().map(std::convert::Into::into)
+        self.0.prev_hash.map(std::convert::Into::into)
     }
 
     pub fn issuer_vkey(&self) -> Vkey {
@@ -553,7 +553,7 @@ impl ShelleyHeaderBody {
     }
 
     pub fn v_r_f_vkey(&self) -> VRFVkey {
-        self.0.v_r_f_vkey.clone().into()
+        self.0.v_r_f_vkey.into()
     }
 
     pub fn nonce_vrf(&self) -> VRFCert {
@@ -569,7 +569,7 @@ impl ShelleyHeaderBody {
     }
 
     pub fn block_body_hash(&self) -> BlockBodyHash {
-        self.0.block_body_hash.clone().into()
+        self.0.block_body_hash.into()
     }
 
     pub fn operational_cert(&self) -> OperationalCert {
@@ -704,7 +704,7 @@ impl ShelleyProposedProtocolParameterUpdates {
     pub fn keys(&self) -> GenesisHashList {
         self.0
             .iter()
-            .map(|(k, _v)| k.clone())
+            .map(|(k, _v)| *k)
             .collect::<Vec<_>>()
             .into()
     }
@@ -966,7 +966,6 @@ impl ShelleyTransactionBody {
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
         self.0
             .auxiliary_data_hash
-            .clone()
             .map(std::convert::Into::into)
     }
 

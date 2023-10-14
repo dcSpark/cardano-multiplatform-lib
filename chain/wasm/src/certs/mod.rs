@@ -444,14 +444,14 @@ impl Credential {
 
     pub fn as_pub_key(&self) -> Option<Ed25519KeyHash> {
         match &self.0 {
-            cml_chain::certs::Credential::PubKey { hash, .. } => Some(hash.clone().into()),
+            cml_chain::certs::Credential::PubKey { hash, .. } => Some((*hash).into()),
             _ => None,
         }
     }
 
     pub fn as_script(&self) -> Option<ScriptHash> {
         match &self.0 {
-            cml_chain::certs::Credential::Script { hash, .. } => Some(hash.clone().into()),
+            cml_chain::certs::Credential::Script { hash, .. } => Some((*hash).into()),
             _ => None,
         }
     }
@@ -506,14 +506,14 @@ impl DRep {
         match &self.0 {
             cml_chain::certs::DRep::Key {
                 ed25519_key_hash, ..
-            } => Some(ed25519_key_hash.clone().into()),
+            } => Some((*ed25519_key_hash).into()),
             _ => None,
         }
     }
 
     pub fn as_script(&self) -> Option<ScriptHash> {
         match &self.0 {
-            cml_chain::certs::DRep::Script { script_hash, .. } => Some(script_hash.clone().into()),
+            cml_chain::certs::DRep::Script { script_hash, .. } => Some((*script_hash).into()),
             _ => None,
         }
     }
@@ -610,7 +610,7 @@ impl PoolMetadata {
     }
 
     pub fn pool_metadata_hash(&self) -> PoolMetadataHash {
-        self.0.pool_metadata_hash.clone().into()
+        self.0.pool_metadata_hash.into()
     }
 
     pub fn new(url: &Url, pool_metadata_hash: &PoolMetadataHash) -> Self {
@@ -632,11 +632,11 @@ impl_wasm_conversions!(cml_chain::certs::PoolParams, PoolParams);
 #[wasm_bindgen]
 impl PoolParams {
     pub fn operator(&self) -> Ed25519KeyHash {
-        self.0.operator.clone().into()
+        self.0.operator.into()
     }
 
     pub fn vrf_keyhash(&self) -> VRFKeyHash {
-        self.0.vrf_keyhash.clone().into()
+        self.0.vrf_keyhash.into()
     }
 
     pub fn pledge(&self) -> Coin {
@@ -724,7 +724,7 @@ impl_wasm_conversions!(cml_chain::certs::PoolRetirement, PoolRetirement);
 #[wasm_bindgen]
 impl PoolRetirement {
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.clone().into()
+        self.0.ed25519_key_hash.into()
     }
 
     pub fn epoch(&self) -> Epoch {
@@ -972,7 +972,7 @@ impl StakeDelegation {
     }
 
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.clone().into()
+        self.0.ed25519_key_hash.into()
     }
 
     pub fn new(stake_credential: &StakeCredential, ed25519_key_hash: &Ed25519KeyHash) -> Self {
@@ -1019,7 +1019,7 @@ impl StakeRegDelegCert {
     }
 
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.clone().into()
+        self.0.ed25519_key_hash.into()
     }
 
     pub fn coin(&self) -> Coin {
@@ -1075,7 +1075,7 @@ impl StakeVoteDelegCert {
     }
 
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.clone().into()
+        self.0.ed25519_key_hash.into()
     }
 
     pub fn d_rep(&self) -> DRep {
@@ -1113,7 +1113,7 @@ impl StakeVoteRegDelegCert {
     }
 
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.clone().into()
+        self.0.ed25519_key_hash.into()
     }
 
     pub fn d_rep(&self) -> DRep {

@@ -154,7 +154,6 @@ impl MaryTransactionBody {
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
         self.0
             .auxiliary_data_hash
-            .clone()
             .map(std::convert::Into::into)
     }
 

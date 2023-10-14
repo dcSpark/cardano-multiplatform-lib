@@ -3569,11 +3569,11 @@ impl Deserialize for BabbageTransactionBody {
                                         mint_value_value_encodings.insert(mint_value_key, mint_value_value_encoding);
                                     }
                                     let (mint_value, mint_value_encoding, mint_value_value_encodings) = (mint_value_table, mint_value_encoding, mint_value_value_encodings);
-                                    if mint_table.insert(mint_key.clone(), mint_value).is_some() {
+                                    if mint_table.insert(mint_key, mint_value).is_some() {
                                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
                                     }
-                                    mint_key_encodings.insert(mint_key.clone(), mint_key_encoding);
-                                    mint_value_encodings.insert(mint_key.clone(), (mint_value_encoding, mint_value_value_encodings));
+                                    mint_key_encodings.insert(mint_key, mint_key_encoding);
+                                    mint_value_encodings.insert(mint_key, (mint_value_encoding, mint_value_value_encodings));
                                 }
                                 Ok((mint_table, mint_encoding, mint_key_encodings, mint_value_encodings))
                             })().map_err(|e| e.annotate("mint"))?;
@@ -4556,7 +4556,7 @@ impl Deserialize for BabbageUpdate {
                             })?;
                         let updates_value = BabbageProtocolParamUpdate::deserialize(raw)?;
                         if updates_table
-                            .insert(updates_key.clone(), updates_value)
+                            .insert(updates_key, updates_value)
                             .is_some()
                         {
                             return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
@@ -4564,7 +4564,7 @@ impl Deserialize for BabbageUpdate {
                             )))
                             .into());
                         }
-                        updates_key_encodings.insert(updates_key.clone(), updates_key_encoding);
+                        updates_key_encodings.insert(updates_key, updates_key_encoding);
                     }
                     Ok((updates_table, updates_encoding, updates_key_encodings))
                 })()

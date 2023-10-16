@@ -39,9 +39,9 @@ impl SingleInputBuilder {
     }
 
     pub fn from_transaction_unspent_output(utxo: &TransactionUnspentOutput) -> Self {
-        cml_chain::builders::input_builder::SingleInputBuilder::from(
-            Into::<cml_chain::builders::tx_builder::TransactionUnspentOutput>::into(utxo.clone()),
-        )
+        cml_chain::builders::input_builder::SingleInputBuilder::from(Into::<
+            cml_chain::builders::tx_builder::TransactionUnspentOutput,
+        >::into(utxo.clone()))
         .into()
     }
 

@@ -1,7 +1,4 @@
-use crate::{
-    plutus::PlutusData,
-    PlutusDataList, RedeemerList,
-};
+use crate::{plutus::PlutusData, PlutusDataList, RedeemerList};
 use cml_chain::plutus::Language;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::ScriptHash;

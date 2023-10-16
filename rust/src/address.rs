@@ -456,17 +456,6 @@ impl Address {
         })().map_err(|e| e.annotate("Address"))
     }
 
-    fn to_hex(&self) -> String {
-        hex::encode(self.to_bytes())
-    }
-
-    fn from_hex(hex: &str) -> Result<Self, DeserializeError> {
-        hex::decode(hex)
-            .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
-            .and_then(Self::from_bytes)
-            
-    }
-
     pub fn to_bech32(&self, prefix: Option<String>) -> Result<String, JsError> {
         let final_prefix = match prefix {
             Some(prefix) => prefix,

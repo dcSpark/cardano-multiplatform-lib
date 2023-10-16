@@ -187,9 +187,7 @@ impl SpendingData {
 
     pub fn as_spending_data_script(&self) -> Option<ByronScript> {
         match &self.0 {
-            cml_chain::byron::SpendingData::SpendingDataScript(script) => {
-                Some((*script).into())
-            }
+            cml_chain::byron::SpendingData::SpendingDataScript(script) => Some((*script).into()),
             _ => None,
         }
     }

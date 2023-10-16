@@ -152,9 +152,7 @@ impl MaryTransactionBody {
     }
 
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
-        self.0
-            .auxiliary_data_hash
-            .map(std::convert::Into::into)
+        self.0.auxiliary_data_hash.map(std::convert::Into::into)
     }
 
     pub fn set_validity_interval_start(&mut self, validity_interval_start: u64) {

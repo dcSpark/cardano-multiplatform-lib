@@ -4555,10 +4555,7 @@ impl Deserialize for BabbageUpdate {
                                     })
                             })?;
                         let updates_value = BabbageProtocolParamUpdate::deserialize(raw)?;
-                        if updates_table
-                            .insert(updates_key, updates_value)
-                            .is_some()
-                        {
+                        if updates_table.insert(updates_key, updates_value).is_some() {
                             return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
                                 "some complicated/unsupported type",
                             )))

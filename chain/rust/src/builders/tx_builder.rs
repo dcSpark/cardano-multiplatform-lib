@@ -889,10 +889,7 @@ impl TransactionBuilder {
             .witness_set_builder
             .add_required_wits(result.required_wits.clone());
         let mut mint = self.mint.take().unwrap_or_default();
-        let combined_assets = mint
-            .deref_mut()
-            .entry(result.policy_id)
-            .or_default();
+        let combined_assets = mint.deref_mut().entry(result.policy_id).or_default();
         for (asset_name, asset_value) in result.assets.iter() {
             if combined_assets
                 .insert(asset_name.clone(), *asset_value)
@@ -3658,10 +3655,7 @@ mod tests {
         // we need to look up the values to ensure there's enough
         let mut input_values = BTreeMap::new();
         for utxo in tx_builder.utxos.iter() {
-            input_values.insert(
-                utxo.input.transaction_id,
-                utxo.utxo_info.amount().clone(),
-            );
+            input_values.insert(utxo.input.transaction_id, utxo.utxo_info.amount().clone());
         }
         let mut encountered = std::collections::HashSet::new();
         let mut input_total = Value::from(Coin::zero());

@@ -1,3 +1,15 @@
+// This recently introduced lint does not play well with the derivative crate.
+// We have both Ord and PartialOrd derive automatically by derivative's proc macros
+// but clippy sees these as hand implementations.
+// Putting this allow locally where it's found did not seem to supress it,
+// likely due to the structure of how the proc macro derives the code.
+// Doing what is suggested by this lint would just result in us actually doing
+// hand implementations of the PartialOrd (an maybe PartialEq) when there's no need,
+// possibly impacting PartialOrd performance on top of being unnecessary and occuring in generated code.
+// Possibly the derivative crate could get updated to suppress this lint
+// from within their proc macros itself. Issue: https://github.com/mcarton/rust-derivative/issues/115
+#![allow(clippy::incorrect_partial_ord_impl_on_ord_type)]
+
 pub mod address;
 pub mod assets;
 pub mod auxdata;

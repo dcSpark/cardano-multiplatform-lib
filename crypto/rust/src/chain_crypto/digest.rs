@@ -337,7 +337,7 @@ impl<H: DigestAlg, T> Eq for DigestOf<H, T> {}
 
 impl<H: DigestAlg, T> PartialOrd for DigestOf<H, T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.inner.partial_cmp(&other.inner)
+        Some(self.cmp(other))
     }
 }
 

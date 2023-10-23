@@ -25,24 +25,15 @@ pub enum CertBuilderError {
 // comes from witsVKeyNeeded in the Ledger spec
 pub fn cert_required_wits(cert: &Certificate, required_witnesses: &mut RequiredWitnessSet) {
     match cert {
-        // stake key registrations do not require a witness
-        Certificate::StakeRegistration(_cert) => (),
-        Certificate::StakeDeregistration(cert) => match &cert.stake_credential {
-            StakeCredential::Script { hash, .. } => {
-                required_witnesses.add_script_hash(hash.clone());
-            }
-            StakeCredential::PubKey { hash, .. } => {
-                required_witnesses.add_vkey_key_hash(hash.clone());
-            }
-        },
-        Certificate::StakeDelegation(cert) => match &cert.stake_credential {
-            StakeCredential::Script { hash, .. } => {
-                required_witnesses.add_script_hash(hash.clone());
-            }
-            StakeCredential::PubKey { hash, .. } => {
-                required_witnesses.add_vkey_key_hash(hash.clone());
-            }
-        },
+        Certificate::StakeRegistration(_cert) => {
+            // stake key registrations do not require a witness
+        }
+        Certificate::StakeDeregistration(cert) => {
+            required_witnesses.add_from_credential(cert.stake_credential.clone());
+        }
+        Certificate::StakeDelegation(cert) => {
+            required_witnesses.add_from_credential(cert.stake_credential.clone());
+        }
         Certificate::PoolRegistration(cert) => {
             for owner in &cert.pool_params.pool_owners {
                 required_witnesses.add_vkey_key_hash(owner.clone());
@@ -52,18 +43,42 @@ pub fn cert_required_wits(cert: &Certificate, required_witnesses: &mut RequiredW
         Certificate::PoolRetirement(cert) => {
             required_witnesses.add_vkey_key_hash(cert.ed25519_key_hash.clone());
         }
-        Certificate::RegCert(_cert) => todo!(),
-        Certificate::UnregCert(_cert) => todo!(),
-        Certificate::VoteDelegCert(_cert) => todo!(),
-        Certificate::StakeVoteDelegCert(_cert) => todo!(),
-        Certificate::StakeRegDelegCert(_cert) => todo!(),
-        Certificate::VoteRegDelegCert(_cert) => todo!(),
-        Certificate::StakeVoteRegDelegCert(_cert) => todo!(),
-        Certificate::AuthCommitteeHotCert(_cert) => todo!(),
-        Certificate::ResignCommitteeColdCert(_cert) => todo!(),
-        Certificate::RegDrepCert(_cert) => todo!(),
-        Certificate::UnregDrepCert(_cert) => todo!(),
-        Certificate::UpdateDrepCert(_cert) => todo!(),
+        Certificate::RegCert(cert) => {
+            required_witnesses.add_from_credential(cert.stake_credential.clone());
+        }
+        Certificate::UnregCert(cert) => {
+            required_witnesses.add_from_credential(cert.stake_credential.clone());
+        }
+        Certificate::VoteDelegCert(cert) => {
+            required_witnesses.add_from_credential(cert.stake_credential.clone());
+        }
+        Certificate::StakeVoteDelegCert(cert) => {
+            required_witnesses.add_from_credential(cert.stake_credential.clone());
+        }
+        Certificate::StakeRegDelegCert(cert) => {
+            required_witnesses.add_from_credential(cert.stake_credential.clone());
+        }
+        Certificate::VoteRegDelegCert(cert) => {
+            required_witnesses.add_from_credential(cert.stake_credential.clone());
+        }
+        Certificate::StakeVoteRegDelegCert(cert) => {
+            required_witnesses.add_from_credential(cert.stake_credential.clone());
+        }
+        Certificate::AuthCommitteeHotCert(cert) => {
+            required_witnesses.add_from_credential(cert.committee_cold_credential.clone());
+        }
+        Certificate::ResignCommitteeColdCert(cert) => {
+            required_witnesses.add_from_credential(cert.committee_cold_credential.clone());
+        }
+        Certificate::RegDrepCert(_cert) => {
+            // does not need a witness
+        }
+        Certificate::UnregDrepCert(cert) => {
+            required_witnesses.add_from_credential(cert.drep_credential.clone());
+        }
+        Certificate::UpdateDrepCert(cert) => {
+            required_witnesses.add_from_credential(cert.drep_credential.clone());
+        }
     };
 }
 
@@ -101,7 +116,9 @@ pub fn add_cert_vkeys(
         Certificate::PoolRetirement(cert) => {
             vkeys.insert(cert.ed25519_key_hash.clone());
         }
-        Certificate::RegCert(_cert) => todo!(),
+        Certificate::RegCert(_cert) => {
+            // does not require a witness
+        }
         Certificate::UnregCert(_cert) => todo!(),
         Certificate::VoteDelegCert(_cert) => todo!(),
         Certificate::StakeVoteDelegCert(_cert) => todo!(),

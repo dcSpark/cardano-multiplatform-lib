@@ -508,7 +508,7 @@ impl NetworkId {
 
     pub fn testnet() -> Self {
         Self {
-            network: 1,
+            network: 0,
             encoding: None,
         }
     }

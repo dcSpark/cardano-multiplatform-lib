@@ -6,6 +6,7 @@ use std::{
 
 use crate::{
     byron::ByronAddress,
+    certs::Credential,
     crypto::{hash::hash_plutus_data, BootstrapWitness, Vkey, Vkeywitness},
     plutus::{PlutusData, PlutusScript, PlutusV1Script, PlutusV2Script, Redeemer},
     transaction::{RequiredSigners, TransactionWitnessSet},
@@ -138,6 +139,13 @@ impl RequiredWitnessSet {
                 self.scripts.insert(script_hash);
             }
             Some(_) => {}
+        }
+    }
+
+    pub(crate) fn add_from_credential(&mut self, credential: Credential) {
+        match credential {
+            Credential::PubKey { hash, .. } => self.add_vkey_key_hash(hash),
+            Credential::Script { hash, .. } => self.add_script_hash(hash),
         }
     }
 

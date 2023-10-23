@@ -21,10 +21,10 @@ pub fn withdrawal_required_wits(
 ) {
     match &address.payment {
         StakeCredential::PubKey { hash, .. } => {
-            required_witnesses.add_vkey_key_hash(hash.clone());
+            required_witnesses.add_vkey_key_hash(*hash);
         }
         StakeCredential::Script { hash, .. } => {
-            required_witnesses.add_script_hash(hash.clone());
+            required_witnesses.add_script_hash(*hash);
             // recall: no datum hash for reward withdrawals
         }
     }
@@ -104,7 +104,7 @@ impl SingleWithdrawalBuilder {
         let mut required_wits = RequiredWitnessSet::default();
         required_signers
             .iter()
-            .for_each(|required_signer| required_wits.add_vkey_key_hash(required_signer.clone()));
+            .for_each(|required_signer| required_wits.add_vkey_key_hash(*required_signer));
         withdrawal_required_wits(&self.address, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
 

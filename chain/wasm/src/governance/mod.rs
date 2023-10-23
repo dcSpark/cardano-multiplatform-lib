@@ -31,7 +31,7 @@ impl Anchor {
     }
 
     pub fn anchor_doc_hash(&self) -> AnchorDocHash {
-        self.0.anchor_doc_hash.clone().into()
+        self.0.anchor_doc_hash.into()
     }
 
     pub fn new(anchor_url: &Url, anchor_doc_hash: &AnchorDocHash) -> Self {
@@ -86,7 +86,7 @@ impl Constitution {
     }
 
     pub fn script_hash(&self) -> Option<ScriptHash> {
-        self.0.script_hash.clone().map(std::convert::Into::into)
+        self.0.script_hash.map(std::convert::Into::into)
     }
 
     pub fn new(anchor: &Anchor, script_hash: Option<ScriptHash>) -> Self {
@@ -255,7 +255,7 @@ impl_wasm_conversions!(cml_chain::governance::GovActionId, GovActionId);
 #[wasm_bindgen]
 impl GovActionId {
     pub fn transaction_id(&self) -> TransactionHash {
-        self.0.transaction_id.clone().into()
+        self.0.transaction_id.into()
     }
 
     pub fn gov_action_index(&self) -> u64 {
@@ -554,7 +554,7 @@ impl Voter {
             cml_chain::governance::Voter::ConstitutionalCommitteeHotKeyHash {
                 ed25519_key_hash,
                 ..
-            } => Some(ed25519_key_hash.clone().into()),
+            } => Some((*ed25519_key_hash).into()),
             _ => None,
         }
     }
@@ -564,7 +564,7 @@ impl Voter {
             cml_chain::governance::Voter::ConstitutionalCommitteeHotScriptHash {
                 script_hash,
                 ..
-            } => Some(script_hash.clone().into()),
+            } => Some((*script_hash).into()),
             _ => None,
         }
     }
@@ -573,7 +573,7 @@ impl Voter {
         match &self.0 {
             cml_chain::governance::Voter::DRepKeyHash {
                 ed25519_key_hash, ..
-            } => Some(ed25519_key_hash.clone().into()),
+            } => Some((*ed25519_key_hash).into()),
             _ => None,
         }
     }
@@ -581,7 +581,7 @@ impl Voter {
     pub fn as_d_rep_script_hash(&self) -> Option<ScriptHash> {
         match &self.0 {
             cml_chain::governance::Voter::DRepScriptHash { script_hash, .. } => {
-                Some(script_hash.clone().into())
+                Some((*script_hash).into())
             }
             _ => None,
         }
@@ -591,7 +591,7 @@ impl Voter {
         match &self.0 {
             cml_chain::governance::Voter::StakingPoolKeyHash {
                 ed25519_key_hash, ..
-            } => Some(ed25519_key_hash.clone().into()),
+            } => Some((*ed25519_key_hash).into()),
             _ => None,
         }
     }

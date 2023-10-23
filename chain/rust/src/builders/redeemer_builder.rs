@@ -171,11 +171,11 @@ impl RedeemerSetBuilder {
         };
         if let Some(data) = plutus_data {
             self.mint.insert(
-                result.policy_id.clone(),
+                result.policy_id,
                 Some(UntaggedRedeemerPlaceholder::JustData(data.clone())),
             );
         } else {
-            self.mint.insert(result.policy_id.clone(), None);
+            self.mint.insert(result.policy_id, None);
         }
     }
 

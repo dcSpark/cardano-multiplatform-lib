@@ -566,7 +566,7 @@ impl Deserialize for SscOpeningsPayload {
                         })?;
                     let ssc_opens_value = raw.bytes()? as Vec<u8>;
                     if ssc_opens_table
-                        .insert(ssc_opens_key.clone(), ssc_opens_value)
+                        .insert(ssc_opens_key, ssc_opens_value)
                         .is_some()
                     {
                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
@@ -862,7 +862,7 @@ impl Deserialize for SscSharesPayload {
                         }
                         let ssc_shares_value_value = ssc_shares_value_value_arr;
                         if ssc_shares_value_table
-                            .insert(ssc_shares_value_key.clone(), ssc_shares_value_value)
+                            .insert(ssc_shares_value_key, ssc_shares_value_value)
                             .is_some()
                         {
                             return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
@@ -873,7 +873,7 @@ impl Deserialize for SscSharesPayload {
                     }
                     let ssc_shares_value = ssc_shares_value_table;
                     if ssc_shares_table
-                        .insert(ssc_shares_key.clone(), ssc_shares_value)
+                        .insert(ssc_shares_key, ssc_shares_value)
                         .is_some()
                     {
                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(

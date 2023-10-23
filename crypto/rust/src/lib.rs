@@ -503,7 +503,7 @@ impl_signature!(Ed25519Signature, Vec<u8>, chain_crypto::Ed25519);
 #[macro_export]
 macro_rules! impl_hash_type {
     ($name:ident, $byte_count:expr) => {
-        #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+        #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
         pub struct $name([u8; $byte_count]);
 
         impl $name {

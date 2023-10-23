@@ -40,7 +40,7 @@ impl BlockHeaderExtraData {
     }
 
     pub fn extra_proof(&self) -> Blake2b256 {
-        self.0.extra_proof.clone().into()
+        self.0.extra_proof.into()
     }
 
     pub fn new(
@@ -209,7 +209,7 @@ impl ByronBlockHeader {
     }
 
     pub fn prev_block(&self) -> ByronBlockId {
-        self.0.prev_block.clone().into()
+        self.0.prev_block.into()
     }
 
     pub fn body_proof(&self) -> ByronBodyProof {
@@ -432,11 +432,11 @@ impl ByronBodyProof {
     }
 
     pub fn dlg_proof(&self) -> Blake2b256 {
-        self.0.dlg_proof.clone().into()
+        self.0.dlg_proof.into()
     }
 
     pub fn upd_proof(&self) -> Blake2b256 {
-        self.0.upd_proof.clone().into()
+        self.0.upd_proof.into()
     }
 
     pub fn new(
@@ -586,11 +586,11 @@ impl EbbHead {
     }
 
     pub fn prev_block(&self) -> ByronBlockId {
-        self.0.prev_block.clone().into()
+        self.0.prev_block.into()
     }
 
     pub fn body_proof(&self) -> Blake2b256 {
-        self.0.body_proof.clone().into()
+        self.0.body_proof.into()
     }
 
     pub fn consensus_data(&self) -> EbbConsensusData {

@@ -372,7 +372,7 @@ impl_wasm_conversions!(
 #[wasm_bindgen]
 impl ByronTxOutPtr {
     pub fn byron_tx_id(&self) -> ByronTxId {
-        self.0.byron_tx_id.clone().into()
+        self.0.byron_tx_id.into()
     }
 
     pub fn u32(&self) -> u32 {
@@ -405,11 +405,11 @@ impl ByronTxProof {
     }
 
     pub fn blake2b256(&self) -> Blake2b256 {
-        self.0.blake2b256.clone().into()
+        self.0.blake2b256.into()
     }
 
     pub fn blake2b2562(&self) -> Blake2b256 {
-        self.0.blake2b2562.clone().into()
+        self.0.blake2b2562.into()
     }
 
     pub fn new(u32: u32, blake2b256: &Blake2b256, blake2b2562: &Blake2b256) -> Self {

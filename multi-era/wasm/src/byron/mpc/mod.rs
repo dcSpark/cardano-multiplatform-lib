@@ -177,7 +177,7 @@ impl_wasm_conversions!(
 #[wasm_bindgen]
 impl SscCertificatesProof {
     pub fn blake2b256(&self) -> Blake2b256 {
-        self.0.blake2b256.clone().into()
+        self.0.blake2b256.into()
     }
 
     pub fn new(blake2b256: &Blake2b256) -> Self {
@@ -258,11 +258,11 @@ impl_wasm_conversions!(
 #[wasm_bindgen]
 impl SscCommitmentsProof {
     pub fn blake2b256(&self) -> Blake2b256 {
-        self.0.blake2b256.clone().into()
+        self.0.blake2b256.into()
     }
 
     pub fn blake2b2562(&self) -> Blake2b256 {
-        self.0.blake2b2562.clone().into()
+        self.0.blake2b2562.into()
     }
 
     pub fn new(blake2b256: &Blake2b256, blake2b2562: &Blake2b256) -> Self {
@@ -324,11 +324,11 @@ impl_wasm_conversions!(
 #[wasm_bindgen]
 impl SscOpeningsProof {
     pub fn blake2b256(&self) -> Blake2b256 {
-        self.0.blake2b256.clone().into()
+        self.0.blake2b256.into()
     }
 
     pub fn blake2b2562(&self) -> Blake2b256 {
-        self.0.blake2b2562.clone().into()
+        self.0.blake2b2562.into()
     }
 
     pub fn new(blake2b256: &Blake2b256, blake2b2562: &Blake2b256) -> Self {
@@ -499,11 +499,11 @@ impl_wasm_conversions!(cml_multi_era::byron::mpc::SscSharesProof, SscSharesProof
 #[wasm_bindgen]
 impl SscSharesProof {
     pub fn blake2b256(&self) -> Blake2b256 {
-        self.0.blake2b256.clone().into()
+        self.0.blake2b256.into()
     }
 
     pub fn blake2b2562(&self) -> Blake2b256 {
-        self.0.blake2b2562.clone().into()
+        self.0.blake2b2562.into()
     }
 
     pub fn new(blake2b256: &Blake2b256, blake2b2562: &Blake2b256) -> Self {

@@ -44,7 +44,7 @@ impl PlutusScriptWitness {
 
     pub fn hash(&self) -> ScriptHash {
         match self {
-            Self::Ref(hash) => hash.clone(),
+            Self::Ref(hash) => *hash,
             Self::Script(script) => script.hash(),
         }
     }
@@ -641,7 +641,7 @@ mod tests {
         let mut required_wits = RequiredWitnessSet::new();
         let key = fake_raw_key_public(0);
         let hash = key.hash();
-        required_wits.add_vkey_key_hash(hash.clone());
+        required_wits.add_vkey_key_hash(hash);
 
         let data = {
             let witness = {

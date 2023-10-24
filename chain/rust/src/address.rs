@@ -1363,7 +1363,7 @@ mod tests {
         let script_hash =
             ScriptHash::from_raw_bytes(oneof_native_script.hash().to_raw_bytes()).unwrap();
 
-        let spend_cred = StakeCredential::new_script(script_hash.clone());
+        let spend_cred = StakeCredential::new_script(script_hash);
         let stake_cred = StakeCredential::new_script(script_hash);
         let addr_net_0 = BaseAddress::new(
             NetworkInfo::testnet().network_id(),

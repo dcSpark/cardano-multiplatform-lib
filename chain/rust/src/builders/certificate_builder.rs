@@ -121,66 +121,66 @@ pub fn add_cert_vkeys(
         }
         Certificate::UnregCert(cert) => match &cert.stake_credential {
             StakeCredential::Script { hash, .. } => {
-                return Err(CertBuilderError::ExpectedKeyHash(hash.clone()))
+                return Err(CertBuilderError::ExpectedKeyHash(*hash))
             }
             StakeCredential::PubKey { hash, .. } => {
-                vkeys.insert(hash.clone());
+                vkeys.insert(*hash);
             }
         },
         Certificate::VoteDelegCert(cert) => match &cert.stake_credential {
             StakeCredential::Script { hash, .. } => {
-                return Err(CertBuilderError::ExpectedKeyHash(hash.clone()))
+                return Err(CertBuilderError::ExpectedKeyHash(*hash))
             }
             StakeCredential::PubKey { hash, .. } => {
-                vkeys.insert(hash.clone());
+                vkeys.insert(*hash);
             }
         },
         Certificate::StakeVoteDelegCert(cert) => match &cert.stake_credential {
             StakeCredential::Script { hash, .. } => {
-                return Err(CertBuilderError::ExpectedKeyHash(hash.clone()))
+                return Err(CertBuilderError::ExpectedKeyHash(*hash))
             }
             StakeCredential::PubKey { hash, .. } => {
-                vkeys.insert(hash.clone());
+                vkeys.insert(*hash);
             }
         },
         Certificate::StakeRegDelegCert(cert) => match &cert.stake_credential {
             StakeCredential::Script { hash, .. } => {
-                return Err(CertBuilderError::ExpectedKeyHash(hash.clone()))
+                return Err(CertBuilderError::ExpectedKeyHash(*hash))
             }
             StakeCredential::PubKey { hash, .. } => {
-                vkeys.insert(hash.clone());
+                vkeys.insert(*hash);
             }
         },
         Certificate::VoteRegDelegCert(cert) => match &cert.stake_credential {
             StakeCredential::Script { hash, .. } => {
-                return Err(CertBuilderError::ExpectedKeyHash(hash.clone()))
+                return Err(CertBuilderError::ExpectedKeyHash(*hash))
             }
             StakeCredential::PubKey { hash, .. } => {
-                vkeys.insert(hash.clone());
+                vkeys.insert(*hash);
             }
         },
         Certificate::StakeVoteRegDelegCert(cert) => match &cert.stake_credential {
             StakeCredential::Script { hash, .. } => {
-                return Err(CertBuilderError::ExpectedKeyHash(hash.clone()))
+                return Err(CertBuilderError::ExpectedKeyHash(*hash))
             }
             StakeCredential::PubKey { hash, .. } => {
-                vkeys.insert(hash.clone());
+                vkeys.insert(*hash);
             }
         },
         Certificate::AuthCommitteeHotCert(cert) => match &cert.committee_cold_credential {
             StakeCredential::Script { hash, .. } => {
-                return Err(CertBuilderError::ExpectedKeyHash(hash.clone()))
+                return Err(CertBuilderError::ExpectedKeyHash(*hash))
             }
             StakeCredential::PubKey { hash, .. } => {
-                vkeys.insert(hash.clone());
+                vkeys.insert(*hash);
             }
         },
         Certificate::ResignCommitteeColdCert(cert) => match &cert.committee_cold_credential {
             StakeCredential::Script { hash, .. } => {
-                return Err(CertBuilderError::ExpectedKeyHash(hash.clone()))
+                return Err(CertBuilderError::ExpectedKeyHash(*hash))
             }
             StakeCredential::PubKey { hash, .. } => {
-                vkeys.insert(hash.clone());
+                vkeys.insert(*hash);
             }
         },
         Certificate::RegDrepCert(_cert) => {
@@ -188,18 +188,18 @@ pub fn add_cert_vkeys(
         }
         Certificate::UnregDrepCert(cert) => match &cert.drep_credential {
             StakeCredential::Script { hash, .. } => {
-                return Err(CertBuilderError::ExpectedKeyHash(hash.clone()))
+                return Err(CertBuilderError::ExpectedKeyHash(*hash))
             }
             StakeCredential::PubKey { hash, .. } => {
-                vkeys.insert(hash.clone());
+                vkeys.insert(*hash);
             }
         },
         Certificate::UpdateDrepCert(cert) => match &cert.drep_credential {
             StakeCredential::Script { hash, .. } => {
-                return Err(CertBuilderError::ExpectedKeyHash(hash.clone()))
+                return Err(CertBuilderError::ExpectedKeyHash(*hash))
             }
             StakeCredential::PubKey { hash, .. } => {
-                vkeys.insert(hash.clone());
+                vkeys.insert(*hash);
             }
         },
     };

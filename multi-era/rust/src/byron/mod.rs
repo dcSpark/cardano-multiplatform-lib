@@ -9,6 +9,7 @@ pub mod transaction;
 pub mod update;
 pub mod utils;
 
+use cml_crypto::TransactionHash;
 pub use utils::*;
 
 pub type ByronBlockId = Blake2b256;
@@ -29,7 +30,7 @@ impl ByronSlotId {
     }
 }
 
-pub type ByronTxId = Blake2b256;
+pub type ByronTxId = TransactionHash;
 
 pub type ByronUpdateId = Blake2b256;
 

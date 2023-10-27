@@ -2,8 +2,9 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use crate::{
-    GenesisHashList, MapStakeCredentialToCoin, MultisigScriptList, ShelleyCertificateList,
-    ShelleyTransactionBodyList, ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
+    GenesisHashList, MapStakeCredentialToCoin, MapTransactionIndexToMetadata, MultisigScriptList,
+    ShelleyCertificateList, ShelleyTransactionBodyList, ShelleyTransactionOutputList,
+    ShelleyTransactionWitnessSetList,
 };
 use cml_chain_wasm::address::Address;
 use cml_chain_wasm::assets::Coin;
@@ -295,7 +296,7 @@ impl ShelleyBlock {
         self.0.transaction_witness_sets.clone().into()
     }
 
-    pub fn transaction_metadata_set(&self) -> Metadata {
+    pub fn transaction_metadata_set(&self) -> MapTransactionIndexToMetadata {
         self.0.transaction_metadata_set.clone().into()
     }
 
@@ -303,7 +304,7 @@ impl ShelleyBlock {
         header: &ShelleyHeader,
         transaction_bodies: &ShelleyTransactionBodyList,
         transaction_witness_sets: &ShelleyTransactionWitnessSetList,
-        transaction_metadata_set: &Metadata,
+        transaction_metadata_set: &MapTransactionIndexToMetadata,
     ) -> Self {
         Self(cml_multi_era::shelley::ShelleyBlock::new(
             header.clone().into(),

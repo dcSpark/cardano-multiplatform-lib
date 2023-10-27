@@ -1,12 +1,35 @@
-use crate::MultiEraBlock;
+use crate::allegra::{
+    AllegraCertificate, MIRAction, MoveInstantaneousReward, MoveInstantaneousRewardsCert,
+};
+use crate::babbage::BabbageTransactionOutput;
+use crate::byron::transaction::ByronTxIn;
+use crate::mary::MaryTransactionOutput;
+use crate::shelley::{GenesisKeyDelegation, ShelleyCertificate, ShelleyTransactionOutput};
 use crate::{
     allegra::AllegraBlock, alonzo::AlonzoBlock, babbage::BabbageBlock, byron::block::ByronBlock,
     mary::MaryBlock, shelley::ShelleyBlock,
 };
+use crate::{MultiEraBlock, MultiEraTransactionBody};
 use cbor_event::de::Deserializer;
+use cml_chain::address::Address;
+use cml_chain::assets::Mint;
+use cml_chain::auxdata::AuxiliaryData;
 use cml_chain::block::Block;
+use cml_chain::byron::ByronTxOut;
+use cml_chain::certs::{
+    AuthCommitteeHotCert, Certificate, PoolRegistration, PoolRetirement, RegCert, RegDrepCert,
+    ResignCommitteeColdCert, StakeDelegation, StakeDeregistration, StakeRegDelegCert,
+    StakeRegistration, StakeVoteDelegCert, StakeVoteRegDelegCert, UnregCert, UnregDrepCert,
+    UpdateDrepCert, VoteDelegCert, VoteRegDelegCert,
+};
+use cml_chain::transaction::{
+    AlonzoFormatTxOut, RequiredSigners, TransactionInput, TransactionOutput, TransactionWitnessSet,
+};
+use cml_chain::{Coin, NetworkId, OrderedHashMap, Value, Withdrawals};
 use cml_core::error::{DeserializeError, DeserializeFailure};
 use cml_core::serialization::{CBORReadLen, Deserialize};
+use cml_core::{Int, TransactionIndex};
+use cml_crypto::{AuxiliaryDataHash, ScriptDataHash, TransactionHash};
 
 impl MultiEraBlock {
     /**
@@ -59,6 +82,611 @@ impl MultiEraBlock {
             },
         }
         Ok(block)
+    }
+
+    pub fn transaction_bodies(&self) -> Vec<MultiEraTransactionBody> {
+        match self {
+            Self::Byron(block) => match block {
+                ByronBlock::EpochBoundary(_) => vec![],
+                ByronBlock::Main(main) => main
+                    .body
+                    .tx_payload
+                    .iter()
+                    .map(|tx| MultiEraTransactionBody::Byron(tx.byron_tx.clone()))
+                    .collect(),
+            },
+            Self::Shelley(block) => block
+                .transaction_bodies
+                .iter()
+                .map(|i| MultiEraTransactionBody::Shelley(i.clone()))
+                .collect(),
+            Self::Allegra(block) => block
+                .transaction_bodies
+                .iter()
+                .map(|i| MultiEraTransactionBody::Allegra(i.clone()))
+                .collect(),
+            Self::Mary(block) => block
+                .transaction_bodies
+                .iter()
+                .map(|i| MultiEraTransactionBody::Mary(i.clone()))
+                .collect(),
+            Self::Alonzo(block) => block
+                .transaction_bodies
+                .iter()
+                .map(|i| MultiEraTransactionBody::Alonzo(i.clone()))
+                .collect(),
+            Self::Babbage(block) => block
+                .transaction_bodies
+                .iter()
+                .map(|i| MultiEraTransactionBody::Babbage(i.clone()))
+                .collect(),
+            Self::Conway(block) => block
+                .transaction_bodies
+                .iter()
+                .map(|i| MultiEraTransactionBody::Conway(i.clone()))
+                .collect(),
+        }
+    }
+
+    pub fn transaction_witness_sets(&self) -> Vec<TransactionWitnessSet> {
+        match self {
+            Self::Byron(_block) => todo!(),
+            Self::Shelley(block) => block
+                .transaction_witness_sets
+                .iter()
+                .map(|wits| wits.clone().into())
+                .collect(),
+            Self::Allegra(block) => block
+                .transaction_witness_sets
+                .iter()
+                .map(|wits| wits.clone().into())
+                .collect(),
+            Self::Mary(block) => block
+                .transaction_witness_sets
+                .iter()
+                .map(|wits| wits.clone().into())
+                .collect(),
+            Self::Alonzo(block) => block
+                .transaction_witness_sets
+                .iter()
+                .map(|wits| wits.clone().into())
+                .collect(),
+            Self::Babbage(block) => block
+                .transaction_witness_sets
+                .iter()
+                .map(|wits| wits.clone().into())
+                .collect(),
+            Self::Conway(block) => block.transaction_witness_sets.clone(),
+        }
+    }
+
+    pub fn auxiliary_data_set(&self) -> OrderedHashMap<TransactionIndex, AuxiliaryData> {
+        match self {
+            Self::Byron(_block) => OrderedHashMap::default(),
+            Self::Shelley(block) => block
+                .transaction_metadata_set
+                .iter()
+                .map(|(i, md)| (*i, AuxiliaryData::new_shelley(md.clone())))
+                .collect(),
+            Self::Allegra(block) => block
+                .auxiliary_data_set
+                .iter()
+                .map(|(i, md)| (*i, md.clone().into()))
+                .collect(),
+            Self::Mary(block) => block
+                .auxiliary_data_set
+                .iter()
+                .map(|(i, md)| (*i, md.clone().into()))
+                .collect(),
+            Self::Alonzo(block) => block
+                .auxiliary_data_set
+                .iter()
+                .map(|(i, md)| (*i, md.clone().into()))
+                .collect(),
+            Self::Babbage(block) => block
+                .auxiliary_data_set
+                .iter()
+                .map(|(i, md)| (*i, md.clone().into()))
+                .collect(),
+            Self::Conway(block) => block.auxiliary_data_set.clone(),
+        }
+    }
+
+    pub fn invalid_transactions(&self) -> Vec<TransactionIndex> {
+        match self {
+            Self::Byron(_block) => vec![],
+            Self::Shelley(_block) => vec![],
+            Self::Allegra(_block) => vec![],
+            Self::Mary(_block) => vec![],
+            Self::Alonzo(block) => block.invalid_transactions.clone(),
+            Self::Babbage(block) => block.invalid_transactions.clone(),
+            Self::Conway(block) => block.invalid_transactions.clone(),
+        }
+    }
+}
+
+impl MultiEraTransactionBody {
+    pub fn inputs(&self) -> Vec<MultiEraTransactionInput> {
+        match self {
+            Self::Byron(tx) => tx
+                .inputs
+                .iter()
+                .map(|i| MultiEraTransactionInput::Byron(i.clone()))
+                .collect(),
+            Self::Shelley(tx) => tx
+                .inputs
+                .iter()
+                .map(|i| MultiEraTransactionInput::Shelley(i.clone()))
+                .collect(),
+            Self::Allegra(tx) => tx
+                .inputs
+                .iter()
+                .map(|i| MultiEraTransactionInput::Shelley(i.clone()))
+                .collect(),
+            Self::Mary(tx) => tx
+                .inputs
+                .iter()
+                .map(|i| MultiEraTransactionInput::Shelley(i.clone()))
+                .collect(),
+            Self::Alonzo(tx) => tx
+                .inputs
+                .iter()
+                .map(|i| MultiEraTransactionInput::Shelley(i.clone()))
+                .collect(),
+            Self::Babbage(tx) => tx
+                .inputs
+                .iter()
+                .map(|i| MultiEraTransactionInput::Shelley(i.clone()))
+                .collect(),
+            Self::Conway(tx) => tx
+                .inputs
+                .iter()
+                .map(|i| MultiEraTransactionInput::Shelley(i.clone()))
+                .collect(),
+        }
+    }
+
+    pub fn outputs(&self) -> Vec<MultiEraTransactionOutput> {
+        match self {
+            Self::Byron(tx) => tx
+                .outputs
+                .iter()
+                .map(|o| MultiEraTransactionOutput::Byron(o.clone()))
+                .collect(),
+            Self::Shelley(tx) => tx
+                .outputs
+                .clone()
+                .into_iter()
+                .map(MultiEraTransactionOutput::from)
+                .collect(),
+            Self::Allegra(tx) => tx
+                .outputs
+                .clone()
+                .into_iter()
+                .map(MultiEraTransactionOutput::from)
+                .collect(),
+            Self::Mary(tx) => tx
+                .outputs
+                .clone()
+                .into_iter()
+                .map(MultiEraTransactionOutput::from)
+                .collect(),
+            Self::Alonzo(tx) => tx
+                .outputs
+                .clone()
+                .into_iter()
+                .map(MultiEraTransactionOutput::from)
+                .collect(),
+            Self::Babbage(tx) => tx
+                .outputs
+                .clone()
+                .into_iter()
+                .map(MultiEraTransactionOutput::from)
+                .collect(),
+            Self::Conway(tx) => tx
+                .outputs
+                .iter()
+                .map(|o| MultiEraTransactionOutput::Shelley(o.clone()))
+                .collect(),
+        }
+    }
+
+    pub fn fee(&self) -> Option<Coin> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(tx) => Some(tx.fee),
+            Self::Allegra(tx) => Some(tx.fee),
+            Self::Mary(tx) => Some(tx.fee),
+            Self::Alonzo(tx) => Some(tx.fee),
+            Self::Babbage(tx) => Some(tx.fee),
+            Self::Conway(tx) => Some(tx.fee),
+        }
+    }
+
+    pub fn ttl(&self) -> Option<u64> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(tx) => Some(tx.ttl),
+            Self::Allegra(tx) => tx.ttl,
+            Self::Mary(tx) => tx.ttl,
+            Self::Alonzo(tx) => tx.ttl,
+            Self::Babbage(tx) => tx.ttl,
+            Self::Conway(tx) => tx.ttl,
+        }
+    }
+
+    pub fn certs(&self) -> Option<Vec<MultiEraCertificate>> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(tx) => tx.certs.as_ref().map(|certs| {
+                certs
+                    .iter()
+                    .map(|c| MultiEraCertificate::from(c.clone()))
+                    .collect()
+            }),
+            Self::Allegra(tx) => tx.certs.as_ref().map(|certs| {
+                certs
+                    .iter()
+                    .map(|c| MultiEraCertificate::from(c.clone()))
+                    .collect()
+            }),
+            Self::Mary(tx) => tx.certs.as_ref().map(|certs| {
+                certs
+                    .iter()
+                    .map(|c| MultiEraCertificate::from(c.clone()))
+                    .collect()
+            }),
+            Self::Alonzo(tx) => tx.certs.as_ref().map(|certs| {
+                certs
+                    .iter()
+                    .map(|c| MultiEraCertificate::from(c.clone()))
+                    .collect()
+            }),
+            Self::Babbage(tx) => tx.certs.as_ref().map(|certs| {
+                certs
+                    .iter()
+                    .map(|c| MultiEraCertificate::from(c.clone()))
+                    .collect()
+            }),
+            Self::Conway(tx) => tx.certs.as_ref().map(|certs| {
+                certs
+                    .iter()
+                    .map(|c| MultiEraCertificate::from(c.clone()))
+                    .collect()
+            }),
+        }
+    }
+
+    pub fn withdrawals(&self) -> Option<&Withdrawals> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(tx) => tx.withdrawals.as_ref(),
+            Self::Allegra(tx) => tx.withdrawals.as_ref(),
+            Self::Mary(tx) => tx.withdrawals.as_ref(),
+            Self::Alonzo(tx) => tx.withdrawals.as_ref(),
+            Self::Babbage(tx) => tx.withdrawals.as_ref(),
+            Self::Conway(tx) => tx.withdrawals.as_ref(),
+        }
+    }
+
+    pub fn auxiliary_data_hash(&self) -> Option<&AuxiliaryDataHash> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(tx) => tx.auxiliary_data_hash.as_ref(),
+            Self::Allegra(tx) => tx.auxiliary_data_hash.as_ref(),
+            Self::Mary(tx) => tx.auxiliary_data_hash.as_ref(),
+            Self::Alonzo(tx) => tx.auxiliary_data_hash.as_ref(),
+            Self::Babbage(tx) => tx.auxiliary_data_hash.as_ref(),
+            Self::Conway(tx) => tx.auxiliary_data_hash.as_ref(),
+        }
+    }
+
+    pub fn validity_interval_start(&self) -> Option<u64> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(tx) => tx.validity_interval_start,
+            Self::Mary(tx) => tx.validity_interval_start,
+            Self::Alonzo(tx) => tx.validity_interval_start,
+            Self::Babbage(tx) => tx.validity_interval_start,
+            Self::Conway(tx) => tx.validity_interval_start,
+        }
+    }
+
+    pub fn mint(&self) -> Option<&Mint> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(_tx) => None,
+            Self::Mary(tx) => tx.mint.as_ref(),
+            Self::Alonzo(tx) => tx.mint.as_ref(),
+            Self::Babbage(tx) => tx.mint.as_ref(),
+            Self::Conway(tx) => tx.mint.as_ref(),
+        }
+    }
+
+    pub fn script_data_hash(&self) -> Option<ScriptDataHash> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(_tx) => None,
+            Self::Mary(_tx) => None,
+            Self::Alonzo(tx) => tx.script_data_hash,
+            Self::Babbage(tx) => tx.script_data_hash,
+            Self::Conway(tx) => tx.script_data_hash,
+        }
+    }
+
+    pub fn collateral_inputs(&self) -> Option<&Vec<TransactionInput>> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(_tx) => None,
+            Self::Mary(_tx) => None,
+            Self::Alonzo(tx) => tx.collateral_inputs.as_ref(),
+            Self::Babbage(tx) => tx.collateral_inputs.as_ref(),
+            Self::Conway(tx) => tx.collateral_inputs.as_ref(),
+        }
+    }
+
+    pub fn required_signers(&self) -> Option<&RequiredSigners> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(_tx) => None,
+            Self::Mary(_tx) => None,
+            Self::Alonzo(tx) => tx.required_signers.as_ref(),
+            Self::Babbage(tx) => tx.required_signers.as_ref(),
+            Self::Conway(tx) => tx.required_signers.as_ref(),
+        }
+    }
+
+    pub fn network_id(&self) -> Option<NetworkId> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(_tx) => None,
+            Self::Mary(_tx) => None,
+            Self::Alonzo(tx) => tx.network_id,
+            Self::Babbage(tx) => tx.network_id,
+            Self::Conway(tx) => tx.network_id,
+        }
+    }
+
+    pub fn collateral_return(&self) -> Option<MultiEraTransactionOutput> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(_tx) => None,
+            Self::Mary(_tx) => None,
+            Self::Alonzo(_tx) => None,
+            Self::Babbage(tx) => tx.collateral_return.as_ref().map(|ret| ret.clone().into()),
+            Self::Conway(tx) => tx.collateral_return.as_ref().map(|ret| ret.clone().into()),
+        }
+    }
+
+    pub fn total_collateral(&self) -> Option<Coin> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(_tx) => None,
+            Self::Mary(_tx) => None,
+            Self::Alonzo(_tx) => None,
+            Self::Babbage(tx) => tx.total_collateral,
+            Self::Conway(tx) => tx.total_collateral,
+        }
+    }
+
+    pub fn reference_inputs(&self) -> Option<&Vec<TransactionInput>> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(_tx) => None,
+            Self::Mary(_tx) => None,
+            Self::Alonzo(_tx) => None,
+            Self::Babbage(tx) => tx.reference_inputs.as_ref(),
+            Self::Conway(tx) => tx.reference_inputs.as_ref(),
+        }
+    }
+}
+
+#[allow(clippy::large_enum_variant)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub enum MultiEraCertificate {
+    StakeRegistration(StakeRegistration),
+    StakeDeregistration(StakeDeregistration),
+    StakeDelegation(StakeDelegation),
+    PoolRegistration(PoolRegistration),
+    PoolRetirement(PoolRetirement),
+    GenesisKeyDelegation(GenesisKeyDelegation),
+    MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCert),
+    RegCert(RegCert),
+    UnregCert(UnregCert),
+    VoteDelegCert(VoteDelegCert),
+    StakeVoteDelegCert(StakeVoteDelegCert),
+    StakeRegDelegCert(StakeRegDelegCert),
+    VoteRegDelegCert(VoteRegDelegCert),
+    StakeVoteRegDelegCert(StakeVoteRegDelegCert),
+    AuthCommitteeHotCert(AuthCommitteeHotCert),
+    ResignCommitteeColdCert(ResignCommitteeColdCert),
+    RegDrepCert(RegDrepCert),
+    UnregDrepCert(UnregDrepCert),
+    UpdateDrepCert(UpdateDrepCert),
+}
+
+impl From<ShelleyCertificate> for MultiEraCertificate {
+    fn from(cert: ShelleyCertificate) -> Self {
+        match cert {
+            ShelleyCertificate::StakeRegistration(cert) => Self::StakeRegistration(cert),
+            ShelleyCertificate::StakeDeregistration(cert) => Self::StakeDeregistration(cert),
+            ShelleyCertificate::StakeDelegation(cert) => Self::StakeDelegation(cert),
+            ShelleyCertificate::PoolRegistration(cert) => Self::PoolRegistration(cert),
+            ShelleyCertificate::PoolRetirement(cert) => Self::PoolRetirement(cert),
+            ShelleyCertificate::GenesisKeyDelegation(cert) => Self::GenesisKeyDelegation(cert),
+            ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert {
+                shelley_move_instantaneous_rewards_cert,
+                ..
+            } => Self::MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCert::new(
+                MoveInstantaneousReward::new(
+                    shelley_move_instantaneous_rewards_cert
+                        .shelley_move_instantaneous_reward
+                        .pot,
+                    MIRAction::new_to_stake_credentials(
+                        shelley_move_instantaneous_rewards_cert
+                            .shelley_move_instantaneous_reward
+                            .to_stake_credentials
+                            .iter()
+                            .map(|(k, v)| (k.clone(), Int::from(*v)))
+                            .collect(),
+                    ),
+                ),
+            )),
+        }
+    }
+}
+
+impl From<AllegraCertificate> for MultiEraCertificate {
+    fn from(cert: AllegraCertificate) -> Self {
+        match cert {
+            AllegraCertificate::StakeRegistration(cert) => Self::StakeRegistration(cert),
+            AllegraCertificate::StakeDeregistration(cert) => Self::StakeDeregistration(cert),
+            AllegraCertificate::StakeDelegation(cert) => Self::StakeDelegation(cert),
+            AllegraCertificate::PoolRegistration(cert) => Self::PoolRegistration(cert),
+            AllegraCertificate::PoolRetirement(cert) => Self::PoolRetirement(cert),
+            AllegraCertificate::GenesisKeyDelegation(cert) => Self::GenesisKeyDelegation(cert),
+            AllegraCertificate::MoveInstantaneousRewardsCert(cert) => {
+                Self::MoveInstantaneousRewardsCert(cert)
+            }
+        }
+    }
+}
+
+impl From<Certificate> for MultiEraCertificate {
+    fn from(cert: Certificate) -> Self {
+        match cert {
+            Certificate::StakeRegistration(cert) => Self::StakeRegistration(cert),
+            Certificate::StakeDeregistration(cert) => Self::StakeDeregistration(cert),
+            Certificate::StakeDelegation(cert) => Self::StakeDelegation(cert),
+            Certificate::PoolRegistration(cert) => Self::PoolRegistration(cert),
+            Certificate::PoolRetirement(cert) => Self::PoolRetirement(cert),
+            Certificate::RegCert(cert) => Self::RegCert(cert),
+            Certificate::UnregCert(cert) => Self::UnregCert(cert),
+            Certificate::VoteDelegCert(cert) => Self::VoteDelegCert(cert),
+            Certificate::StakeVoteDelegCert(cert) => Self::StakeVoteDelegCert(cert),
+            Certificate::StakeRegDelegCert(cert) => Self::StakeRegDelegCert(cert),
+            Certificate::VoteRegDelegCert(cert) => Self::VoteRegDelegCert(cert),
+            Certificate::StakeVoteRegDelegCert(cert) => Self::StakeVoteRegDelegCert(cert),
+            Certificate::AuthCommitteeHotCert(cert) => Self::AuthCommitteeHotCert(cert),
+            Certificate::ResignCommitteeColdCert(cert) => Self::ResignCommitteeColdCert(cert),
+            Certificate::RegDrepCert(cert) => Self::RegDrepCert(cert),
+            Certificate::UnregDrepCert(cert) => Self::UnregDrepCert(cert),
+            Certificate::UpdateDrepCert(cert) => Self::UpdateDrepCert(cert),
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub enum MultiEraTransactionInput {
+    Byron(ByronTxIn),
+    /// All eras from Shelley onward have the same tx in format
+    Shelley(TransactionInput),
+}
+
+impl MultiEraTransactionInput {
+    /// Transaction hash this input was created in
+    /// Will return None only for Byron Genesis inputs
+    pub fn hash(&self) -> Option<&TransactionHash> {
+        match self {
+            Self::Byron(input) => match input {
+                ByronTxIn::ByronTxInRegular(reg) => Some(&reg.index_1.byron_tx_id),
+                ByronTxIn::ByronTxInGenesis(_gen) => None,
+            },
+            Self::Shelley(input) => Some(&input.transaction_id),
+        }
+    }
+
+    /// Transaction index into the tx that this input was created in
+    /// Will return None for only Byron Genesis inputs
+    pub fn index(&self) -> Option<u64> {
+        match self {
+            Self::Byron(input) => match input {
+                ByronTxIn::ByronTxInRegular(reg) => Some(reg.index_1.u32.into()),
+                ByronTxIn::ByronTxInGenesis(_gen) => None,
+            },
+            Self::Shelley(input) => Some(input.index),
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub enum MultiEraTransactionOutput {
+    Byron(ByronTxOut),
+    Shelley(TransactionOutput),
+}
+
+impl MultiEraTransactionOutput {
+    pub fn address(&self) -> Address {
+        match self {
+            Self::Byron(output) => output.address.clone().to_address(),
+            Self::Shelley(output) => output.address().clone(),
+        }
+    }
+
+    pub fn amount(&self) -> Value {
+        match self {
+            Self::Byron(output) => output.amount.into(),
+            Self::Shelley(output) => output.amount().clone(),
+        }
+    }
+}
+
+impl From<ShelleyTransactionOutput> for MultiEraTransactionOutput {
+    fn from(o: ShelleyTransactionOutput) -> Self {
+        MultiEraTransactionOutput::Shelley(TransactionOutput::new(
+            o.address.clone(),
+            Value::from(o.amount),
+            None,
+            None,
+        ))
+    }
+}
+
+impl From<MaryTransactionOutput> for MultiEraTransactionOutput {
+    fn from(o: MaryTransactionOutput) -> Self {
+        MultiEraTransactionOutput::Shelley(TransactionOutput::new(
+            o.address.clone(),
+            o.amount.clone(),
+            None,
+            None,
+        ))
+    }
+}
+
+impl From<AlonzoFormatTxOut> for MultiEraTransactionOutput {
+    fn from(o: AlonzoFormatTxOut) -> Self {
+        MultiEraTransactionOutput::Shelley(o.clone().into())
+    }
+}
+
+impl From<BabbageTransactionOutput> for MultiEraTransactionOutput {
+    fn from(o: BabbageTransactionOutput) -> Self {
+        MultiEraTransactionOutput::Shelley(match o {
+            BabbageTransactionOutput::AlonzoFormatTxOut(alonzo) => {
+                TransactionOutput::AlonzoFormatTxOut(alonzo.clone())
+            }
+            BabbageTransactionOutput::BabbageFormatTxOut(babbage) => TransactionOutput::new(
+                babbage.address.clone(),
+                babbage.amount.clone(),
+                babbage.datum_option.clone(),
+                babbage.script_reference.clone().map(Into::into),
+            ),
+        })
+    }
+}
+
+impl From<TransactionOutput> for MultiEraTransactionOutput {
+    fn from(o: TransactionOutput) -> Self {
+        MultiEraTransactionOutput::Shelley(o)
     }
 }
 

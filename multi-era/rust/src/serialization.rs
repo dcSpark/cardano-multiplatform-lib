@@ -106,3 +106,121 @@ impl Deserialize for MultiEraBlock {
         .map_err(|e| e.annotate("MultiEraBlock"))
     }
 }
+
+impl Serialize for MultiEraTransactionBody {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        match self {
+            MultiEraTransactionBody::Byron(byron) => {
+                cbor_event::se::Serialize::serialize(byron, serializer)
+            }
+            MultiEraTransactionBody::Shelley(shelley) => {
+                shelley.serialize(serializer, force_canonical)
+            }
+            MultiEraTransactionBody::Allegra(allegra) => {
+                allegra.serialize(serializer, force_canonical)
+            }
+            MultiEraTransactionBody::Mary(mary) => mary.serialize(serializer, force_canonical),
+            MultiEraTransactionBody::Alonzo(alonzo) => {
+                alonzo.serialize(serializer, force_canonical)
+            }
+            MultiEraTransactionBody::Babbage(babbage) => {
+                babbage.serialize(serializer, force_canonical)
+            }
+            MultiEraTransactionBody::Conway(conway) => {
+                conway.serialize(serializer, force_canonical)
+            }
+        }
+    }
+}
+
+impl Deserialize for MultiEraTransactionBody {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let mut errs = Vec::new();
+            let deser_variant: Result<_, DeserializeError> = ByronTx::deserialize(raw);
+            match deser_variant {
+                Ok(byron) => return Ok(Self::Byron(byron)),
+                Err(e) => {
+                    errs.push(e.annotate("Byron"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> =
+                ShelleyTransactionBody::deserialize(raw);
+            match deser_variant {
+                Ok(shelley) => return Ok(Self::Shelley(shelley)),
+                Err(e) => {
+                    errs.push(e.annotate("Shelley"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> =
+                AllegraTransactionBody::deserialize(raw);
+            match deser_variant {
+                Ok(allegra) => return Ok(Self::Allegra(allegra)),
+                Err(e) => {
+                    errs.push(e.annotate("Allegra"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> = MaryTransactionBody::deserialize(raw);
+            match deser_variant {
+                Ok(mary) => return Ok(Self::Mary(mary)),
+                Err(e) => {
+                    errs.push(e.annotate("Mary"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> =
+                AlonzoTransactionBody::deserialize(raw);
+            match deser_variant {
+                Ok(alonzo) => return Ok(Self::Alonzo(alonzo)),
+                Err(e) => {
+                    errs.push(e.annotate("Alonzo"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> =
+                BabbageTransactionBody::deserialize(raw);
+            match deser_variant {
+                Ok(babbage) => return Ok(Self::Babbage(babbage)),
+                Err(e) => {
+                    errs.push(e.annotate("Babbage"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant: Result<_, DeserializeError> = TransactionBody::deserialize(raw);
+            match deser_variant {
+                Ok(conway) => return Ok(Self::Conway(conway)),
+                Err(e) => {
+                    errs.push(e.annotate("Conway"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            Err(DeserializeError::new(
+                "MultiEraTransactionBody",
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
+            ))
+        })()
+        .map_err(|e| e.annotate("MultiEraTransactionBody"))
+    }
+}

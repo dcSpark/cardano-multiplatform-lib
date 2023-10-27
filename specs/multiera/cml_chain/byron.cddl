@@ -35,3 +35,4 @@ addr_attributes = _CDDL_CODEGEN_EXTERN_TYPE_
 address_content = _CDDL_CODEGEN_EXTERN_TYPE_
 byron_address = _CDDL_CODEGEN_EXTERN_TYPE_
 byron_tx_out = _CDDL_CODEGEN_EXTERN_TYPE_
+byron_tx = _CDDL_CODEGEN_EXTERN_TYPE_

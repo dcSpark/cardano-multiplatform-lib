@@ -3,6 +3,7 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
+pub mod utils;
 
 use cbor_encodings::{
     MultisigAllEncoding, MultisigAnyEncoding, MultisigNOfKEncoding, MultisigPubkeyEncoding,
@@ -25,6 +26,7 @@ use cml_chain::crypto::{
 use cml_chain::transaction::TransactionInput;
 use cml_chain::{Epoch, LenEncoding, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::TransactionIndex;
 use cml_crypto::{GenesisDelegateHash, VRFKeyHash};
 use std::collections::BTreeMap;
 
@@ -171,7 +173,7 @@ pub struct ShelleyBlock {
     pub header: ShelleyHeader,
     pub transaction_bodies: Vec<ShelleyTransactionBody>,
     pub transaction_witness_sets: Vec<ShelleyTransactionWitnessSet>,
-    pub transaction_metadata_set: Metadata,
+    pub transaction_metadata_set: OrderedHashMap<TransactionIndex, Metadata>,
     #[serde(skip)]
     pub encodings: Option<ShelleyBlockEncoding>,
 }
@@ -181,7 +183,7 @@ impl ShelleyBlock {
         header: ShelleyHeader,
         transaction_bodies: Vec<ShelleyTransactionBody>,
         transaction_witness_sets: Vec<ShelleyTransactionWitnessSet>,
-        transaction_metadata_set: Metadata,
+        transaction_metadata_set: OrderedHashMap<TransactionIndex, Metadata>,
     ) -> Self {
         Self {
             header,

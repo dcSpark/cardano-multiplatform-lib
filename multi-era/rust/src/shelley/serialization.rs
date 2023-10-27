@@ -864,8 +864,52 @@ impl Serialize for ShelleyBlock {
             .map(|encs| encs.transaction_witness_sets_encoding)
             .unwrap_or_default()
             .end(serializer, force_canonical)?;
-        self.transaction_metadata_set
-            .serialize(serializer, force_canonical)?;
+        serializer.write_map_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.transaction_metadata_set_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.transaction_metadata_set.len() as u64, force_canonical),
+        )?;
+        let mut key_order = self
+            .transaction_metadata_set
+            .iter()
+            .map(|(k, v)| {
+                let mut buf = cbor_event::se::Serializer::new_vec();
+                let transaction_metadata_set_key_encoding = self
+                    .encodings
+                    .as_ref()
+                    .and_then(|encs| encs.transaction_metadata_set_key_encodings.get(k))
+                    .cloned()
+                    .unwrap_or_default();
+                buf.write_unsigned_integer_sz(
+                    *k as u64,
+                    fit_sz(
+                        *k as u64,
+                        transaction_metadata_set_key_encoding,
+                        force_canonical,
+                    ),
+                )?;
+                Ok((buf.finalize(), k, v))
+            })
+            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
+        if force_canonical {
+            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
+                match lhs_bytes.len().cmp(&rhs_bytes.len()) {
+                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                    diff_ord => diff_ord,
+                }
+            });
+        }
+        for (key_bytes, _key, value) in key_order {
+            serializer.write_raw_bytes(&key_bytes)?;
+            value.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.transaction_metadata_set_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)?;
         self.encodings
             .as_ref()
             .map(|encs| encs.len_encoding)
@@ -926,8 +970,50 @@ impl Deserialize for ShelleyBlock {
                     ))
                 })()
                 .map_err(|e| e.annotate("transaction_witness_sets"))?;
-            let transaction_metadata_set = Metadata::deserialize(raw)
-                .map_err(|e: DeserializeError| e.annotate("transaction_metadata_set"))?;
+            let (
+                transaction_metadata_set,
+                transaction_metadata_set_encoding,
+                transaction_metadata_set_key_encodings,
+            ) = (|| -> Result<_, DeserializeError> {
+                let mut transaction_metadata_set_table = OrderedHashMap::new();
+                let transaction_metadata_set_len = raw.map_sz()?;
+                let transaction_metadata_set_encoding = transaction_metadata_set_len.into();
+                let mut transaction_metadata_set_key_encodings = BTreeMap::new();
+                while match transaction_metadata_set_len {
+                    cbor_event::LenSz::Len(n, _) => {
+                        (transaction_metadata_set_table.len() as u64) < n
+                    }
+                    cbor_event::LenSz::Indefinite => true,
+                } {
+                    if raw.cbor_type()? == cbor_event::Type::Special {
+                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                        break;
+                    }
+                    let (transaction_metadata_set_key, transaction_metadata_set_key_encoding) = raw
+                        .unsigned_integer_sz()
+                        .map(|(x, enc)| (x as u16, Some(enc)))?;
+                    let transaction_metadata_set_value = Metadata::deserialize(raw)?;
+                    if transaction_metadata_set_table
+                        .insert(transaction_metadata_set_key, transaction_metadata_set_value)
+                        .is_some()
+                    {
+                        return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
+                            "some complicated/unsupported type",
+                        )))
+                        .into());
+                    }
+                    transaction_metadata_set_key_encodings.insert(
+                        transaction_metadata_set_key,
+                        transaction_metadata_set_key_encoding,
+                    );
+                }
+                Ok((
+                    transaction_metadata_set_table,
+                    transaction_metadata_set_encoding,
+                    transaction_metadata_set_key_encodings,
+                ))
+            })()
+            .map_err(|e| e.annotate("transaction_metadata_set"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
                 cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -944,6 +1030,8 @@ impl Deserialize for ShelleyBlock {
                     len_encoding,
                     transaction_bodies_encoding,
                     transaction_witness_sets_encoding,
+                    transaction_metadata_set_encoding,
+                    transaction_metadata_set_key_encodings,
                 }),
             })
         })()

@@ -7,7 +7,7 @@ use std::io::{BufRead, Write};
 
 use cml_core::network::ProtocolMagic;
 
-use super::{Ed25519Bip32, Signature, byron_tags};
+use super::{byron_tags, Ed25519Bip32, Signature};
 
 type SignData = ();
 
@@ -141,9 +141,7 @@ pub enum BlockSignature {
 impl BlockSignature {
     pub fn to_bytes(&self) -> Option<&[u8; ed25519_bip32::SIGNATURE_SIZE]> {
         match self {
-            BlockSignature::Signature(s) => {
-                Some(s.signdata.to_bytes())
-            },
+            BlockSignature::Signature(s) => Some(s.signdata.to_bytes()),
             _ => None,
         }
     }
@@ -191,11 +189,13 @@ impl cbor_event::de::Deserialize for BlockSignature {
 
 #[cfg(test)]
 mod tests {
-    use base64::{Engine, engine::general_purpose::STANDARD};
+    use base64::{engine::general_purpose::STANDARD, Engine};
 
     use std::str::FromStr;
 
-    use crate::chain_crypto::{Ed25519Bip32, SecretKey, PublicKey, byron_proxy_key::ByronProxySecretKey, Signature};
+    use crate::chain_crypto::{
+        byron_proxy_key::ByronProxySecretKey, Ed25519Bip32, PublicKey, SecretKey, Signature,
+    };
 
     #[test]
     fn test_psk_verify() {

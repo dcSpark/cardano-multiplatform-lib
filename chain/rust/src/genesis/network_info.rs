@@ -1,5 +1,8 @@
 use crate::{byron::ProtocolMagic, plutus::CostModels};
-use cml_core::{Int, network::{BYRON_MAINNET_NETWORK_MAGIC, BYRON_TESTNET_NETWORK_MAGIC}};
+use cml_core::{
+    network::{BYRON_MAINNET_NETWORK_MAGIC, BYRON_TESTNET_NETWORK_MAGIC},
+    Int,
+};
 
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NetworkInfo {

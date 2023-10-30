@@ -13,11 +13,11 @@ use crate::Coin;
 use cbor_event::{self, de::Deserializer, se::Serializer};
 
 pub use self::crc32::Crc32;
+pub use cml_core::network::ProtocolMagic;
 pub use utils::{
     make_daedalus_bootstrap_witness, make_icarus_bootstrap_witness, AddressId, ByronAddressError,
-    ByronScript, StakeholderId, ParseExtendedAddrError
+    ByronScript, ParseExtendedAddrError, StakeholderId,
 };
-pub use cml_core::network::ProtocolMagic;
 
 mod base58;
 mod crc32;

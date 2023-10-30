@@ -8,11 +8,11 @@ cfg_if! {
 
 pub mod algorithms;
 pub mod bech32;
+pub mod byron_proxy_key;
+pub mod byron_tags;
 pub mod derive;
 pub mod digest;
 pub mod hash;
-pub mod byron_tags;
-pub mod byron_proxy_key;
 mod key;
 pub(crate) mod securemem;
 mod sign;

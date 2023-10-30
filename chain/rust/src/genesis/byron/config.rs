@@ -10,11 +10,13 @@ use std::{
 };
 
 use crate::{
-    fees::LinearFee, Coin,
-    byron::{ProtocolMagic, ByronAddress, StakeholderId}
+    byron::{ByronAddress, ProtocolMagic, StakeholderId},
+    fees::LinearFee,
+    Coin,
 };
 use cml_crypto::{
-    chain_crypto::{Ed25519Bip32, self, Ed25519}, BlockHeaderHash
+    chain_crypto::{self, Ed25519, Ed25519Bip32},
+    BlockHeaderHash,
 };
 
 /// Configuration for the wallet-crypto
@@ -25,9 +27,7 @@ pub struct Config {
 }
 impl Config {
     pub fn new(protocol_magic: ProtocolMagic) -> Self {
-        Config {
-            protocol_magic,
-        }
+        Config { protocol_magic }
     }
 }
 impl Default for Config {

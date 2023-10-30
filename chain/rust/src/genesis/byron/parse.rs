@@ -194,7 +194,7 @@ mod test {
                 "./test_data/96fceff972c2c06bd3bb5243c39215333be6d56aaf4823073dca31afe5038471.json"
             ))
         } else {
-            Err(genesis_prev.clone())
+            Err(*genesis_prev)
         }
     }
 
@@ -222,7 +222,7 @@ mod test {
     #[test]
     pub fn parse_test_genesis_files() {
         let genesis_hash = BlockHeaderHash::from_hex(
-            &"c6a004d3d178f600cd8caa10abbebe1549bef878f0665aea2903472d5abf7323",
+            "c6a004d3d178f600cd8caa10abbebe1549bef878f0665aea2903472d5abf7323",
         )
         .unwrap();
 
@@ -243,11 +243,11 @@ mod test {
         assert_eq!(genesis_data.slot_duration.subsec_millis(), 0);
         assert_eq!(genesis_data.protocol_magic, 633343913.into());
         assert_eq!(
-            u64::from(genesis_data.fee_policy.coefficient),
+            genesis_data.fee_policy.coefficient,
             43946 * 1_000_000u64
         );
         assert_eq!(
-            u64::from(genesis_data.fee_policy.constant),
+            genesis_data.fee_policy.constant,
             155381 * 1_000_000_000u64
         );
 

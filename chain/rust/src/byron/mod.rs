@@ -3,8 +3,6 @@
 
 use std::io::{BufRead, Write};
 
-use schemars::JsonSchema;
-
 use cml_crypto::{chain_crypto::hash::Blake2b224, Bip32PublicKey, PublicKey};
 
 use crate::Coin;
@@ -17,8 +15,9 @@ use cbor_event::{self, de::Deserializer, se::Serializer};
 pub use self::crc32::Crc32;
 pub use utils::{
     make_daedalus_bootstrap_witness, make_icarus_bootstrap_witness, AddressId, ByronAddressError,
-    ByronScript, ProtocolMagic, StakeholderId,
+    ByronScript, StakeholderId, ParseExtendedAddrError
 };
+pub use cml_core::network::ProtocolMagic;
 
 mod base58;
 mod crc32;

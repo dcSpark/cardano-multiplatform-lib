@@ -1,5 +1,5 @@
 use crate::{byron::ProtocolMagic, plutus::CostModels};
-use cml_core::Int;
+use cml_core::{Int, network::{BYRON_MAINNET_NETWORK_MAGIC, BYRON_TESTNET_NETWORK_MAGIC}};
 
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NetworkInfo {
@@ -23,13 +23,13 @@ impl NetworkInfo {
     pub fn testnet() -> NetworkInfo {
         NetworkInfo {
             network_id: 0b0000,
-            protocol_magic: ProtocolMagic::from(1097911063),
+            protocol_magic: ProtocolMagic::from(BYRON_TESTNET_NETWORK_MAGIC),
         }
     }
     pub fn mainnet() -> NetworkInfo {
         NetworkInfo {
             network_id: 0b0001,
-            protocol_magic: ProtocolMagic::from(764824073),
+            protocol_magic: ProtocolMagic::from(BYRON_MAINNET_NETWORK_MAGIC),
         }
     }
 }

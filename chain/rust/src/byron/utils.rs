@@ -255,71 +255,12 @@ impl ::std::str::FromStr for ByronAddress {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum ParseExtendedAddrError {
+    #[error("Deserialize: {0:?}")]
     DeserializeError(DeserializeError),
+    #[error("Base58: {0:?}")]
     Base58Error(base58::Error),
-}
-
-impl fmt::Display for ProtocolMagic {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    Ord,
-    PartialEq,
-    PartialOrd,
-    Hash,
-    serde::Serialize,
-    serde::Deserialize,
-    JsonSchema,
-)]
-pub struct ProtocolMagic(u32);
-
-impl From<ProtocolMagic> for u32 {
-    fn from(val: ProtocolMagic) -> Self {
-        val.0
-    }
-}
-
-impl From<u32> for ProtocolMagic {
-    fn from(inner: u32) -> Self {
-        ProtocolMagic(inner)
-    }
-}
-
-impl ::std::ops::Deref for ProtocolMagic {
-    type Target = u32;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Default for ProtocolMagic {
-    fn default() -> Self {
-        NetworkInfo::mainnet().protocol_magic()
-    }
-}
-
-impl cbor_event::se::Serialize for ProtocolMagic {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_unsigned_integer(self.0 as u64)
-    }
-}
-
-impl Deserialize for ProtocolMagic {
-    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        Ok(Self(raw.unsigned_integer()? as u32))
-    }
 }
 
 pub fn make_daedalus_bootstrap_witness(

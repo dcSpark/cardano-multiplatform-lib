@@ -12,7 +12,7 @@ use crate::{
 use crate::{MultiEraBlock, MultiEraTransactionBody};
 use cbor_event::de::Deserializer;
 use cml_chain::address::Address;
-use cml_chain::assets::Mint;
+use cml_chain::assets::{Mint, PositiveCoin};
 use cml_chain::auxdata::AuxiliaryData;
 use cml_chain::block::Block;
 use cml_chain::byron::ByronTxOut;
@@ -22,6 +22,7 @@ use cml_chain::certs::{
     StakeRegistration, StakeVoteDelegCert, StakeVoteRegDelegCert, UnregCert, UnregDrepCert,
     UpdateDrepCert, VoteDelegCert, VoteRegDelegCert,
 };
+use cml_chain::governance::{ProposalProcedure, VotingProcedures};
 use cml_chain::transaction::{
     AlonzoFormatTxOut, RequiredSigners, TransactionInput, TransactionOutput, TransactionWitnessSet,
 };
@@ -486,6 +487,54 @@ impl MultiEraTransactionBody {
             Self::Alonzo(_tx) => None,
             Self::Babbage(tx) => tx.reference_inputs.as_ref(),
             Self::Conway(tx) => tx.reference_inputs.as_ref(),
+        }
+    }
+
+    pub fn voting_procedures(&self) -> Option<&VotingProcedures> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(_tx) => None,
+            Self::Mary(_tx) => None,
+            Self::Alonzo(_tx) => None,
+            Self::Babbage(_tx) => None,
+            Self::Conway(tx) => tx.voting_procedures.as_ref(),
+        }
+    }
+
+    pub fn proposal_procedures(&self) -> Option<&Vec<ProposalProcedure>> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(_tx) => None,
+            Self::Mary(_tx) => None,
+            Self::Alonzo(_tx) => None,
+            Self::Babbage(_tx) => None,
+            Self::Conway(tx) => tx.proposal_procedures.as_ref(),
+        }
+    }
+
+    pub fn current_treasury_value(&self) -> Option<Coin> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(_tx) => None,
+            Self::Mary(_tx) => None,
+            Self::Alonzo(_tx) => None,
+            Self::Babbage(_tx) => None,
+            Self::Conway(tx) => tx.current_treasury_value,
+        }
+    }
+
+    pub fn donation(&self) -> Option<PositiveCoin> {
+        match self {
+            Self::Byron(_tx) => None,
+            Self::Shelley(_tx) => None,
+            Self::Allegra(_tx) => None,
+            Self::Mary(_tx) => None,
+            Self::Alonzo(_tx) => None,
+            Self::Babbage(_tx) => None,
+            Self::Conway(tx) => tx.donation,
         }
     }
 }

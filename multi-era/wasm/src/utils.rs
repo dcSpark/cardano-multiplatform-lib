@@ -1,4 +1,4 @@
-use cml_chain::Coin;
+use cml_chain::{assets::PositiveCoin, Coin};
 use cml_chain_wasm::{
     address::Address,
     assets::{Mint, Value},
@@ -8,9 +8,10 @@ use cml_chain_wasm::{
         StakeRegistration, StakeVoteDelegCert, StakeVoteRegDelegCert, UnregCert, UnregDrepCert,
         UpdateDrepCert, VoteDelegCert, VoteRegDelegCert,
     },
+    governance::VotingProcedures,
     transaction::RequiredSigners,
-    MapTransactionIndexToAuxiliaryData, NetworkId, TransactionInputList, TransactionWitnessSetList,
-    Withdrawals,
+    MapTransactionIndexToAuxiliaryData, NetworkId, ProposalProcedureList, TransactionInputList,
+    TransactionWitnessSetList, Withdrawals,
 };
 use cml_core::TransactionIndex;
 use cml_core_wasm::{impl_wasm_conversions, impl_wasm_json_api, impl_wasm_list};
@@ -420,6 +421,22 @@ impl MultiEraTransactionBody {
         self.0
             .reference_inputs()
             .map(|inputs| inputs.clone().into())
+    }
+
+    pub fn voting_procedures(&self) -> Option<VotingProcedures> {
+        self.0.voting_procedures().map(|vps| vps.clone().into())
+    }
+
+    pub fn proposal_procedures(&self) -> Option<ProposalProcedureList> {
+        self.0.proposal_procedures().map(|pps| pps.clone().into())
+    }
+
+    pub fn current_treasury_value(&self) -> Option<Coin> {
+        self.0.current_treasury_value()
+    }
+
+    pub fn donation(&self) -> Option<PositiveCoin> {
+        self.0.donation()
     }
 }
 

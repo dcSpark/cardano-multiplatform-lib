@@ -11,6 +11,7 @@ pub struct LinearFee(cml_chain::fees::LinearFee);
 
 impl_wasm_conversions!(cml_chain::fees::LinearFee, LinearFee);
 
+#[wasm_bindgen]
 impl LinearFee {
     pub fn new(coefficient: Coin, constant: Coin) -> Self {
         cml_chain::fees::LinearFee::new(coefficient, constant).into()
@@ -25,14 +26,20 @@ impl LinearFee {
     }
 }
 
+/**
+ * Min fee for JUST the script
+ */
+#[wasm_bindgen]
 pub fn min_script_fee(tx: &Transaction, ex_unit_prices: &ExUnitPrices) -> Result<Coin, JsError> {
     cml_chain::fees::min_script_fee(tx.as_ref(), ex_unit_prices.as_ref()).map_err(Into::into)
 }
 
+#[wasm_bindgen]
 pub fn min_no_script_fee(tx: &Transaction, linear_fee: &LinearFee) -> Result<Coin, JsError> {
     cml_chain::fees::min_no_script_fee(tx.as_ref(), linear_fee.as_ref()).map_err(Into::into)
 }
 
+#[wasm_bindgen]
 pub fn min_fee(
     tx: &Transaction,
     linear_fee: &LinearFee,

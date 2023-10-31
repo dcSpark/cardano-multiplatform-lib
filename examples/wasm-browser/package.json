@@ -1,0 +1,21 @@
+{
+  "name": "test-cml-dapp",
+  "version": "0.1.0",
+  "description": "test dApp to interact with CIP-30 compatible wallets (e.g. Flint)",
+  "main": "index.js",
+  "bin": {
+    "test-cml-dapp": ".bin/test-cml-dapp.js"
+  },
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "start": "webpack-dev-server"
+  },
+  "dependencies": {
+    "cml-chain-wasm": "file:../../chain/wasm/pkg",
+    "cml-cip25-wasm": "file:../../cip25/wasm/pkg",
+    "copy-webpack-plugin": "11.0.0",
+    "webpack": "5.1.0",
+    "webpack-cli": "5.0.0",
+    "webpack-dev-server": "4.0.0"
+  }
+}

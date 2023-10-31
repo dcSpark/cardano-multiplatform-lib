@@ -21,7 +21,7 @@ use cml_chain_wasm::{Epoch, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::TransactionIndex;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, metadata::Metadata};
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

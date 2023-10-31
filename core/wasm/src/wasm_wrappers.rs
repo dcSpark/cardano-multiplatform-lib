@@ -402,19 +402,51 @@ macro_rules! impl_wasm_cbor_api {
     ($wasm_name:ident) => {
         #[wasm_bindgen::prelude::wasm_bindgen]
         impl $wasm_name {
+            /**
+             * Serialize this type to CBOR bytes
+             * This type type supports encoding preservation so this will preserve round-trip CBOR formats.
+             * If created from scratch the CBOR will be canonical.
+             */
             pub fn to_cbor_bytes(&self) -> Vec<u8> {
                 cml_core::serialization::Serialize::to_cbor_bytes(&self.0)
             }
 
-            pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<$wasm_name, JsValue> {
+            /**
+             * Create this type from CBOR bytes
+             */
+            pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<$wasm_name, JsError> {
                 cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
                     .map(Self)
                     .map_err(|e| {
-                        JsValue::from_str(&format!(
+                        JsError::new(&format!(
                             concat!(stringify!($wasm_name), "::from_bytes: {}"),
                             e
                         ))
                     })
+            }
+
+            /**
+             * Serialize this type to CBOR bytes encoded as a hex string (useful for working with CIP30).
+             * This type type supports encoding preservation so this will preserve round-trip CBOR formats.
+             * If created from scratch the CBOR will be canonical.
+             */
+            pub fn to_cbor_hex(&self) -> String {
+                hex::encode(self.to_cbor_bytes())
+            }
+
+            /**
+             * Create this type from the CBOR bytes encoded as a hex string.
+             * This is useful for interfacing with CIP30
+             */
+            pub fn from_cbor_hex(cbor_bytes: &str) -> Result<$wasm_name, JsError> {
+                hex::decode(cbor_bytes)
+                    .map_err(|e| {
+                        JsError::new(&format!(
+                            concat!(stringify!($wasm_name), "::from_cbor_hex: {}"),
+                            e
+                        ))
+                    })
+                    .and_then(|bytes| Self::from_cbor_bytes(&bytes))
             }
         }
     };
@@ -427,19 +459,51 @@ macro_rules! impl_wasm_cbor_event_serialize_api {
     ($wasm_name:ident) => {
         #[wasm_bindgen::prelude::wasm_bindgen]
         impl $wasm_name {
+            /**
+             * Serialize this type to CBOR bytes.
+             * This type does NOT support fine-tuned encoding options so this may or may not be
+             * canonical CBOR and may or may not preserve round-trip encodings.
+             */
             pub fn to_cbor_bytes(&self) -> Vec<u8> {
                 cml_core::serialization::ToBytes::to_bytes(&self.0)
             }
 
-            pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<$wasm_name, JsValue> {
+            /**
+             * Create this type from CBOR bytes
+             */
+            pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<$wasm_name, JsError> {
                 cml_core::serialization::Deserialize::from_cbor_bytes(cbor_bytes)
                     .map(Self)
                     .map_err(|e| {
-                        JsValue::from_str(&format!(
+                        JsError::new(&format!(
                             concat!(stringify!($wasm_name), "::from_cbor_bytes: {}"),
                             e
                         ))
                     })
+            }
+
+            /**
+             * Serialize this type to CBOR bytes encoded as a hex string (useful for working with CIP30).
+             * This type does NOT support fine-tuned encoding options so this may or may not be
+             * canonical CBOR and may or may not preserve round-trip encodings.
+             */
+            pub fn to_cbor_hex(&self) -> String {
+                hex::encode(self.to_cbor_bytes())
+            }
+
+            /**
+             * Create this type from the CBOR bytes encoded as a hex string.
+             * This is useful for interfacing with CIP30
+             */
+            pub fn from_cbor_hex(cbor_bytes: &str) -> Result<$wasm_name, JsError> {
+                hex::decode(cbor_bytes)
+                    .map_err(|e| {
+                        JsError::new(&format!(
+                            concat!(stringify!($wasm_name), "::from_cbor_hex: {}"),
+                            e
+                        ))
+                    })
+                    .and_then(|bytes| Self::from_cbor_bytes(&bytes))
             }
         }
     };
@@ -451,27 +515,27 @@ macro_rules! impl_wasm_json_api {
     ($wasm_name:ident) => {
         #[wasm_bindgen::prelude::wasm_bindgen]
         impl $wasm_name {
-            pub fn to_json(&self) -> Result<String, JsValue> {
+            pub fn to_json(&self) -> Result<String, JsError> {
                 serde_json::to_string_pretty(&self.0).map_err(|e| {
-                    JsValue::from_str(&format!(
+                    JsError::new(&format!(
                         concat!(stringify!($wasm_name), "::to_json: {}"),
                         e
                     ))
                 })
             }
 
-            pub fn to_js_value(&self) -> Result<JsValue, JsValue> {
+            pub fn to_js_value(&self) -> Result<JsValue, JsError> {
                 serde_wasm_bindgen::to_value(&self.0).map_err(|e| {
-                    JsValue::from_str(&format!(
+                    JsError::new(&format!(
                         concat!(stringify!($wasm_name), "::to_js_value: {}"),
                         e
                     ))
                 })
             }
 
-            pub fn from_json(json: &str) -> Result<$wasm_name, JsValue> {
+            pub fn from_json(json: &str) -> Result<$wasm_name, JsError> {
                 serde_json::from_str(json).map(Self).map_err(|e| {
-                    JsValue::from_str(&format!(
+                    JsError::new(&format!(
                         concat!(stringify!($wasm_name), "::from_json: {}"),
                         e
                     ))

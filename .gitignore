@@ -51,3 +51,7 @@ tools/metadata-cddl-checker/Cargo.lock
 # Docs
 docs/node_modules/
 docs/.docusaurus/
+
+# Examples
+examples/wasm-browser/node_modules/
+

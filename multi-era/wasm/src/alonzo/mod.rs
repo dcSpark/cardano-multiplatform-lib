@@ -20,7 +20,7 @@ use cml_chain_wasm::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

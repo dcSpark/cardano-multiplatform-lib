@@ -23,7 +23,7 @@ use cml_crypto_wasm::{
     GenesisHash, VRFKeyHash, VRFVkey,
 };
 use cml_multi_era::allegra::MIRPot;
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

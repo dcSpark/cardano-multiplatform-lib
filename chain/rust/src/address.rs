@@ -204,6 +204,16 @@ impl Address {
         (header >> 4) == kind as u8
     }
 
+    pub fn to_hex(&self) -> String {
+        hex::encode(self.to_raw_bytes())
+    }
+
+    pub fn from_hex(hex: &str) -> Result<Address, DeserializeError> {
+        hex::decode(hex)
+            .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
+            .and_then(|bytes| Self::from_raw_bytes(&bytes))
+    }
+
     /// The raw bytes of the Address - does not include any wrapping CBOR
     pub fn to_raw_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();

@@ -1,4 +1,4 @@
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 pub mod utils;
 

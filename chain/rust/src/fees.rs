@@ -22,6 +22,9 @@ impl LinearFee {
     }
 }
 
+/**
+ * Min fee for JUST the script
+ */
 pub fn min_script_fee(
     tx: &Transaction,
     ex_unit_prices: &ExUnitPrices,

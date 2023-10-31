@@ -29,18 +29,26 @@ use crate::transaction::{
     TransactionWitnessSet,
 };
 use crate::{assets::AssetName, Coin, ExUnitPrices, NetworkId, PolicyId, Value, Withdrawals};
+use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::{ArithmeticError, Slot};
+use cml_core::serialization::{CBORReadLen, Deserialize};
+use cml_core::{ArithmeticError, DeserializeError, DeserializeFailure, Slot};
 use cml_crypto::{Ed25519KeyHash, ScriptDataHash, ScriptHash, Serialize};
 use fraction::Zero;
 use rand::Rng;
 use std::collections::{BTreeSet, HashMap};
 use std::convert::TryInto;
+use std::io::{BufRead, Seek, Write};
 use std::ops::DerefMut;
 
 // for enums:
 use wasm_bindgen::prelude::wasm_bindgen;
 
+/**
+ * A UTXO structure.
+ * This is not used on-chain anywhere but is useful for the builders
+ * as well as interfacing with CIP30 (same name as there)
+ */
 #[derive(Clone, Debug)]
 pub struct TransactionUnspentOutput {
     pub input: TransactionInput,
@@ -50,6 +58,43 @@ pub struct TransactionUnspentOutput {
 impl TransactionUnspentOutput {
     pub fn new(input: TransactionInput, output: TransactionOutput) -> Self {
         Self { input, output }
+    }
+}
+
+// this isn't on-chain (hence why cbor_event's Serialize since we don't care about outer format)
+// but being able to (de)serialize helps massively with CIP30.
+impl cbor_event::se::Serialize for TransactionUnspentOutput {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array(cbor_event::Len::Len(2))?;
+        self.input.serialize(serializer, false)?;
+        self.output.serialize(serializer, false)
+    }
+}
+
+impl Deserialize for TransactionUnspentOutput {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(2)?;
+        read_len.finish()?;
+        (|| -> Result<_, DeserializeError> {
+            let input = TransactionInput::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("input"))?;
+            let output = TransactionOutput::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("output"))?;
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            Ok(Self { input, output })
+        })()
+        .map_err(|e| e.annotate("TransactionUnspentOutput"))
     }
 }
 
@@ -1410,6 +1455,9 @@ impl SignedTxBuilder {
         }
     }
 
+    /**
+     * Builds the final transaction and checks that all witnesses are there
+     */
     pub fn build_checked(self) -> Result<Transaction, WitnessBuilderError> {
         Ok(Transaction::new(
             self.body,
@@ -1419,6 +1467,13 @@ impl SignedTxBuilder {
         ))
     }
 
+    /**
+     * Builds the transaction without doing any witness checks.
+     *
+     * This can be useful if other witnesses will be added later.
+     * e.g. CIP30 signing takes a Transaction with possible witnesses
+     * to send to the wallet to fill in the missing ones.
+     */
     pub fn build_unchecked(self) -> Transaction {
         Transaction::new(
             self.body,

@@ -1,6 +1,9 @@
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 
-use super::witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet};
+use super::{
+    tx_builder::TransactionUnspentOutput,
+    witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet},
+};
 
 use crate::{
     address::Address,
@@ -171,5 +174,14 @@ impl SingleInputBuilder {
             )),
             required_wits,
         })
+    }
+}
+
+impl From<TransactionUnspentOutput> for SingleInputBuilder {
+    fn from(utxo: TransactionUnspentOutput) -> Self {
+        Self {
+            input: utxo.input,
+            utxo_info: utxo.output,
+        }
     }
 }

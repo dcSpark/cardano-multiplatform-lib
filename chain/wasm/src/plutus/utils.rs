@@ -114,18 +114,21 @@ impl PlutusScript {
     }
 }
 
+#[wasm_bindgen]
 impl PlutusV1Script {
     pub fn hash(&self) -> ScriptHash {
         self.0.hash().into()
     }
 }
 
+#[wasm_bindgen]
 impl PlutusV2Script {
     pub fn hash(&self) -> ScriptHash {
         self.0.hash().into()
     }
 }
 
+#[wasm_bindgen]
 impl ExUnits {
     pub fn checked_add(&self, other: &ExUnits) -> Result<ExUnits, JsError> {
         self.0
@@ -135,6 +138,7 @@ impl ExUnits {
     }
 }
 
+#[wasm_bindgen]
 pub fn compute_total_ex_units(redeemers: &RedeemerList) -> Result<ExUnits, JsError> {
     cml_chain::plutus::utils::compute_total_ex_units(redeemers.as_ref())
         .map(Into::into)

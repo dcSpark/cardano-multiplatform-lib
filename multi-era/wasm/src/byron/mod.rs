@@ -9,7 +9,7 @@ pub mod update;
 #[macro_use]
 pub mod utils;
 
-use ::wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+use ::wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 use cml_chain_wasm::byron::ByronTxOut;
 use cml_chain_wasm::utils::BigInt;
 use cml_core_wasm::{

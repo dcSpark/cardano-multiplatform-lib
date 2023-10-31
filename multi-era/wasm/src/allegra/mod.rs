@@ -21,7 +21,7 @@ use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::Ed25519KeyHash;
 use cml_crypto_wasm::{AuxiliaryDataHash, GenesisDelegateHash, GenesisHash, VRFKeyHash};
 use cml_multi_era::allegra::MIRPot;
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

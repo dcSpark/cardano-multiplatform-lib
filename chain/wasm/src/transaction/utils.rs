@@ -3,8 +3,10 @@ use crate::{
     transaction::{DatumOption, ScriptRef, TransactionOutput},
     Ed25519KeyHashList, NativeScript, Value,
 };
-use cml_crypto_wasm::DatumHash;
+use cml_crypto_wasm::{DatumHash, ScriptHash};
 use wasm_bindgen::prelude::wasm_bindgen;
+
+use super::TransactionWitnessSet;
 
 #[wasm_bindgen]
 impl TransactionOutput {
@@ -60,5 +62,16 @@ impl NativeScript {
     /// The order of the keys in the result is not determined in any way.
     pub fn get_required_signers(&self) -> Ed25519KeyHashList {
         self.as_ref().get_required_signers().into()
+    }
+
+    pub fn hash(&self) -> ScriptHash {
+        self.0.hash().into()
+    }
+}
+
+#[wasm_bindgen]
+impl TransactionWitnessSet {
+    pub fn add_all_witnesses(&mut self, other: &TransactionWitnessSet) {
+        self.0.add_all_witnesses(other.clone().into());
     }
 }

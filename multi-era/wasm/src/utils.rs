@@ -2,25 +2,31 @@ use cml_chain::{assets::PositiveCoin, Coin};
 use cml_chain_wasm::{
     address::Address,
     assets::{Mint, Value},
+    block::{OperationalCert, ProtocolVersion},
     certs::{
         AuthCommitteeHotCert, PoolRegistration, PoolRetirement, RegCert, RegDrepCert,
         ResignCommitteeColdCert, StakeDelegation, StakeDeregistration, StakeRegDelegCert,
         StakeRegistration, StakeVoteDelegCert, StakeVoteRegDelegCert, UnregCert, UnregDrepCert,
         UpdateDrepCert, VoteDelegCert, VoteRegDelegCert,
     },
+    crypto::{GenesisHash, Nonce, VRFCert, Vkey},
     governance::VotingProcedures,
+    plutus::{CostModels, ExUnitPrices, ExUnits},
     transaction::RequiredSigners,
-    MapTransactionIndexToAuxiliaryData, NetworkId, ProposalProcedureList, TransactionInputList,
-    TransactionWitnessSetList, Withdrawals,
+    DRepVotingThresholds, MapTransactionIndexToAuxiliaryData, NetworkId, PoolVotingThresholds,
+    ProposalProcedureList, Rational, TransactionInputList, TransactionWitnessSetList, UnitInterval,
+    Withdrawals,
 };
-use cml_core::TransactionIndex;
-use cml_core_wasm::{impl_wasm_conversions, impl_wasm_json_api, impl_wasm_list};
-use cml_crypto_wasm::{AuxiliaryDataHash, ScriptDataHash, TransactionHash};
+use cml_core::{Epoch, TransactionIndex};
+use cml_core_wasm::{impl_wasm_conversions, impl_wasm_json_api, impl_wasm_list, impl_wasm_map};
+use cml_crypto_wasm::{
+    AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, ScriptDataHash, TransactionHash, VRFVkey,
+};
 use wasm_bindgen::{prelude::wasm_bindgen, JsError, JsValue};
 
 use crate::{
-    allegra::MoveInstantaneousRewardsCert, shelley::GenesisKeyDelegation, MultiEraBlock,
-    MultiEraTransactionBody,
+    allegra::MoveInstantaneousRewardsCert, shelley::GenesisKeyDelegation,
+    shelley::ProtocolVersionStruct, GenesisHashList, MultiEraBlock, MultiEraTransactionBody,
 };
 
 #[wasm_bindgen]
@@ -80,6 +86,68 @@ impl_wasm_list!(
     MultiEraTransactionOutput,
     MultiEraTransactionOutputList
 );
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MultiEraBlockHeader(cml_multi_era::utils::MultiEraBlockHeader);
+
+impl_wasm_json_api!(MultiEraBlockHeader);
+
+impl_wasm_conversions!(
+    cml_multi_era::utils::MultiEraBlockHeader,
+    MultiEraBlockHeader
+);
+
+#[wasm_bindgen]
+impl MultiEraBlockHeader {
+    pub fn block_number(&self) -> Option<u64> {
+        self.0.block_number()
+    }
+
+    pub fn slot(&self) -> Option<u64> {
+        self.0.slot()
+    }
+
+    pub fn prev_hash(&self) -> Option<BlockHeaderHash> {
+        self.0.prev_hash().map(Into::into)
+    }
+
+    pub fn issuer_vkey(&self) -> Option<Vkey> {
+        self.0.issuer_vkey().map(|vkey| vkey.clone().into())
+    }
+
+    pub fn vrf_vkey(&self) -> Option<VRFVkey> {
+        self.0.vrf_vkey().map(|vkey| (*vkey).into())
+    }
+
+    pub fn nonce_vrf(&self) -> Option<VRFCert> {
+        self.0.nonce_vrf().map(|vrf| vrf.clone().into())
+    }
+
+    pub fn leader_vrf(&self) -> Option<VRFCert> {
+        self.0.leader_vrf().map(|vrf| vrf.clone().into())
+    }
+
+    pub fn vrf_result(&self) -> Option<VRFCert> {
+        self.0.vrf_result().map(|res| res.clone().into())
+    }
+
+    pub fn block_body_size(&self) -> Option<u64> {
+        self.0.block_body_size()
+    }
+
+    pub fn block_body_hash(&self) -> Option<BlockBodyHash> {
+        self.0.block_body_hash().map(Into::into)
+    }
+
+    pub fn operational_cert(&self) -> Option<OperationalCert> {
+        self.0.operational_cert().map(|cert| cert.clone().into())
+    }
+
+    pub fn protocol_version(&self) -> Option<ProtocolVersion> {
+        self.0.protocol_version().map(|ver| ver.clone().into())
+    }
+}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -351,6 +419,158 @@ pub enum MultiEraCertificateKind {
     UpdateDrepCert,
 }
 
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MultiEraProtocolParamUpdate(cml_multi_era::utils::MultiEraProtocolParamUpdate);
+
+impl_wasm_json_api!(MultiEraProtocolParamUpdate);
+
+impl_wasm_conversions!(
+    cml_multi_era::utils::MultiEraProtocolParamUpdate,
+    MultiEraProtocolParamUpdate
+);
+
+#[wasm_bindgen]
+impl MultiEraProtocolParamUpdate {
+    pub fn minfee_a(&self) -> Option<u64> {
+        self.0.minfee_a()
+    }
+
+    pub fn minfee_b(&self) -> Option<u64> {
+        self.0.minfee_b()
+    }
+
+    pub fn max_block_body_size(&self) -> Option<u64> {
+        self.0.max_block_body_size()
+    }
+
+    pub fn max_transaction_size(&self) -> Option<u64> {
+        self.0.max_transaction_size()
+    }
+
+    pub fn max_block_header_size(&self) -> Option<u64> {
+        self.0.max_block_header_size()
+    }
+
+    pub fn key_deposit(&self) -> Option<Coin> {
+        self.0.key_deposit()
+    }
+
+    pub fn pool_deposit(&self) -> Option<Coin> {
+        self.0.pool_deposit()
+    }
+
+    pub fn maximum_epoch(&self) -> Option<Epoch> {
+        self.0.maximum_epoch()
+    }
+
+    pub fn n_opt(&self) -> Option<u64> {
+        self.0.n_opt()
+    }
+
+    pub fn pool_pledge_influence(&self) -> Option<Rational> {
+        self.0.pool_pledge_influence().map(|ppi| ppi.clone().into())
+    }
+
+    pub fn expansion_rate(&self) -> Option<UnitInterval> {
+        self.0.expansion_rate().map(|er| er.clone().into())
+    }
+
+    pub fn treasury_growth_rate(&self) -> Option<UnitInterval> {
+        self.0.treasury_growth_rate().map(|tgr| tgr.clone().into())
+    }
+
+    pub fn decentralization_constant(&self) -> Option<UnitInterval> {
+        self.0
+            .decentralization_constant()
+            .map(|dc| dc.clone().into())
+    }
+
+    pub fn extra_entropy(&self) -> Option<Nonce> {
+        self.0.extra_entropy().map(|ee| ee.clone().into())
+    }
+
+    pub fn protocol_version(&self) -> Option<ProtocolVersionStruct> {
+        self.0.protocol_version().map(|pv| pv.clone().into())
+    }
+
+    pub fn min_utxo_value(&self) -> Option<Coin> {
+        self.0.min_utxo_value()
+    }
+
+    pub fn min_pool_cost(&self) -> Option<Coin> {
+        self.0.min_pool_cost()
+    }
+
+    pub fn ada_per_utxo_byte(&self) -> Option<Coin> {
+        self.0.ada_per_utxo_byte()
+    }
+
+    pub fn cost_models_for_script_languages(&self) -> Option<CostModels> {
+        self.0.cost_models_for_script_languages().map(Into::into)
+    }
+
+    pub fn execution_costs(&self) -> Option<ExUnitPrices> {
+        self.0.execution_costs().map(|ec| ec.clone().into())
+    }
+
+    pub fn max_tx_ex_units(&self) -> Option<ExUnits> {
+        self.0.max_tx_ex_units().map(|mteu| mteu.clone().into())
+    }
+
+    pub fn max_block_ex_units(&self) -> Option<ExUnits> {
+        self.0.max_block_ex_units().map(|mbeu| mbeu.clone().into())
+    }
+
+    pub fn max_value_size(&self) -> Option<u64> {
+        self.0.max_value_size()
+    }
+
+    pub fn collateral_percentage(&self) -> Option<u64> {
+        self.0.collateral_percentage()
+    }
+
+    pub fn max_collateral_inputs(&self) -> Option<u64> {
+        self.0.max_collateral_inputs()
+    }
+
+    pub fn pool_voting_thresholds(&self) -> Option<PoolVotingThresholds> {
+        self.0
+            .pool_voting_thresholds()
+            .map(|pvt| pvt.clone().into())
+    }
+
+    pub fn d_rep_voting_thresholds(&self) -> Option<DRepVotingThresholds> {
+        self.0
+            .d_rep_voting_thresholds()
+            .map(|drvt| drvt.clone().into())
+    }
+
+    pub fn min_committee_size(&self) -> Option<u64> {
+        self.0.min_committee_size()
+    }
+
+    pub fn committee_term_limit(&self) -> Option<u64> {
+        self.0.committee_term_limit()
+    }
+
+    pub fn governance_action_validity_period(&self) -> Option<Epoch> {
+        self.0.governance_action_validity_period()
+    }
+
+    pub fn governance_action_deposit(&self) -> Option<Coin> {
+        self.0.governance_action_deposit()
+    }
+
+    pub fn d_rep_deposit(&self) -> Option<Coin> {
+        self.0.d_rep_deposit()
+    }
+
+    pub fn d_rep_inactivity_period(&self) -> Option<Epoch> {
+        self.0.d_rep_inactivity_period()
+    }
+}
+
 #[wasm_bindgen]
 impl MultiEraTransactionBody {
     pub fn inputs(&self) -> MultiEraTransactionInputList {
@@ -375,6 +595,10 @@ impl MultiEraTransactionBody {
 
     pub fn withdrawals(&self) -> Option<Withdrawals> {
         self.0.withdrawals().map(|wd| wd.clone().into())
+    }
+
+    pub fn update(&self) -> Option<MultiEraUpdate> {
+        self.0.update().map(Into::into)
     }
 
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
@@ -483,3 +707,31 @@ impl MultiEraTransactionOutput {
         self.0.amount().into()
     }
 }
+
+#[wasm_bindgen]
+#[derive(Clone, Debug)]
+pub struct MultiEraUpdate(cml_multi_era::utils::MultiEraUpdate);
+
+impl_wasm_conversions!(cml_multi_era::utils::MultiEraUpdate, MultiEraUpdate);
+
+#[wasm_bindgen]
+impl MultiEraUpdate {
+    pub fn epoch(&self) -> u64 {
+        self.0.epoch
+    }
+
+    pub fn proposed_protocol_parameter_updates(
+        &self,
+    ) -> MapGenesisHashToMultiEraProtocolParamUpdate {
+        self.0.proposed_protocol_parameter_updates.clone().into()
+    }
+}
+
+impl_wasm_map!(
+    cml_crypto::GenesisHash,
+    cml_multi_era::utils::MultiEraProtocolParamUpdate,
+    GenesisHash,
+    MultiEraProtocolParamUpdate,
+    GenesisHashList,
+    MapGenesisHashToMultiEraProtocolParamUpdate
+);

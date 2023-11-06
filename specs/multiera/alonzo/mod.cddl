@@ -64,7 +64,7 @@ alonzo_protocol_param_update = {
   ? 19: ex_unit_prices,     ; @name execution_costs
   ? 20: ex_units,           ; @name max_tx_ex_units
   ? 21: ex_units,           ; @name max_block_ex_units
-  ? 22: uint,               ; @name max value size
+  ? 22: uint,               ; @name max_value_size
   ? 23: uint,               ; @name collateral_percentage
   ? 24: uint,               ; @name max_collateral_inputs
 }

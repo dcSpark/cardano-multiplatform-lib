@@ -10,6 +10,13 @@ pub mod byron;
 pub mod mary;
 pub mod shelley;
 pub mod utils;
+
+// We export types from cip25/cip36 in order to have them be exported to WASM
+// to allow this crate to be like cml + multi-era (e.g. all functionality).
+// See comment in cml/wasm/src/lib.rs
+pub use cml_cip25_wasm::CIP25Metadata;
+pub use cml_cip36_wasm::DeregistrationCbor;
+
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 

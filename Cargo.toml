@@ -4,15 +4,15 @@
 members = [
     "chain/rust",
     "chain/wasm",
-# names changed - will be replaced in the PR coming soon to regen chain
     "chain/wasm/json-gen",
     "cip25/rust",
     "cip25/wasm",
     "cip25/wasm/json-gen",
     "cip36/rust",
     "cip36/wasm",
-# TODO: where did this go? replace it (will do when doing finishing cip36 work)
-#    "cip36/wasm/json-gen",
+    "cip36/wasm/json-gen",
+    "cml/wasm",
+    "cml/wasm/json-gen",
     "core/rust",
     "core/wasm",
     "crypto/rust",
@@ -27,3 +27,7 @@ exclude = [
     "rust",
     "rust/json-gen"
 ]
+
+[profile.release]
+lto = true
+opt-level = "z"

@@ -6,7 +6,7 @@
 pub mod serialization;
 pub mod utils;
 
-pub use utils::{CIP25Version, LabelMetadata};
+pub use utils::{CIP25LabelMetadata, CIP25Version};
 
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
@@ -16,66 +16,50 @@ pub use cml_core::error::*;
 use std::convert::{From, TryFrom};
 use std::io::{BufRead, Write};
 
-/// This is the entire metadata schema for CIP-25
-/// It can be parsed by passing in the CBOR bytes of the entire transaction metadata
-/// or by passing in an existing Metadata struct.
-/// Parsing from CBOR bytes should be marginally faster.
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct CIP25Metadata {
-    /// The core details of the CIP25 spec
-    pub key_721: LabelMetadata,
-}
-
-impl CIP25Metadata {
-    pub fn new(key_721: LabelMetadata) -> Self {
-        Self { key_721 }
-    }
-}
-
 /// A String that may or may not be chunked into 64-byte chunks to be able
 /// to conform to Cardano TX Metadata limitations.
 /// Unless you have good reasons, you should be using the From<&str> trait to construct this:
 /// ```
-/// use cml_cip25::ChunkableString;
+/// use cml_cip25::CIP25ChunkableString;
 /// // automatically chunks this too long string into two chunks:
-/// let chunkable_string = ChunkableString::from("this can be any length and will automatically be chunked into 64-byte pieces when/if needed");
+/// let chunkable_string = CIP25ChunkableString::from("this can be any length and will automatically be chunked into 64-byte pieces when/if needed");
 /// match chunkable_string {
-///     ChunkableString::Single(_) => panic!(),
-///     ChunkableString::Chunked(chunks) => {
+///     CIP25ChunkableString::Single(_) => panic!(),
+///     CIP25ChunkableString::Chunked(chunks) => {
 ///         assert_eq!(chunks[0].to_str(), "this can be any length and will automatically be chunked into 64");
 ///         assert_eq!(chunks[1].to_str(), "-byte pieces when/if needed");
 ///     },
 /// }
 /// ```
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub enum ChunkableString {
-    Single(String64),
-    Chunked(Vec<String64>),
+pub enum CIP25ChunkableString {
+    Single(CIP25String64),
+    Chunked(Vec<CIP25String64>),
 }
 
-impl ChunkableString {
+impl CIP25ChunkableString {
     /// Construct from a single <=64 byte string chunk.
     /// If size is not known or for simplicity use From<&str> instead
-    pub fn new_single(single: String64) -> Self {
+    pub fn new_single(single: CIP25String64) -> Self {
         Self::Single(single)
     }
 
     /// Construct from an explicit list of chunks
     /// If size is not known or for simplicity use From<&str> instead
-    pub fn new_chunked(chunked: Vec<String64>) -> Self {
+    pub fn new_chunked(chunked: Vec<CIP25String64>) -> Self {
         Self::Chunked(chunked)
     }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct FilesDetails {
-    pub name: String64,
-    pub media_type: String64,
-    pub src: ChunkableString,
+pub struct CIP25FilesDetails {
+    pub name: CIP25String64,
+    pub media_type: CIP25String64,
+    pub src: CIP25ChunkableString,
 }
 
-impl FilesDetails {
-    pub fn new(name: String64, media_type: String64, src: ChunkableString) -> Self {
+impl CIP25FilesDetails {
+    pub fn new(name: CIP25String64, media_type: CIP25String64, src: CIP25ChunkableString) -> Self {
         Self {
             name,
             media_type,
@@ -84,17 +68,33 @@ impl FilesDetails {
     }
 }
 
+/// This is the entire metadata schema for CIP-25
+/// It can be parsed by passing in the CBOR bytes of the entire transaction metadata
+/// or by passing in an existing Metadata struct.
+/// Parsing from CBOR bytes should be marginally faster.
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct MetadataDetails {
-    pub name: String64,
-    pub image: ChunkableString,
-    pub media_type: Option<String64>,
-    pub description: Option<ChunkableString>,
-    pub files: Option<Vec<FilesDetails>>,
+pub struct CIP25Metadata {
+    /// The core details of the CIP25 spec
+    pub key_721: CIP25LabelMetadata,
 }
 
-impl MetadataDetails {
-    pub fn new(name: String64, image: ChunkableString) -> Self {
+impl CIP25Metadata {
+    pub fn new(key_721: CIP25LabelMetadata) -> Self {
+        Self { key_721 }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct CIP25MetadataDetails {
+    pub name: CIP25String64,
+    pub image: CIP25ChunkableString,
+    pub media_type: Option<CIP25String64>,
+    pub description: Option<CIP25ChunkableString>,
+    pub files: Option<Vec<CIP25FilesDetails>>,
+}
+
+impl CIP25MetadataDetails {
+    pub fn new(name: CIP25String64, image: CIP25ChunkableString) -> Self {
         Self {
             name,
             image,
@@ -105,26 +105,10 @@ impl MetadataDetails {
     }
 }
 
-impl From<String64> for String {
-    fn from(wrapper: String64) -> Self {
-        wrapper.0
-    }
-}
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct CIP25String64(pub String);
 
-#[derive(
-    Clone,
-    Debug,
-    serde::Deserialize,
-    serde::Serialize,
-    schemars::JsonSchema,
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-)]
-pub struct String64(pub String);
-
-impl String64 {
+impl CIP25String64 {
     pub fn get(&self) -> &String {
         &self.0
     }
@@ -132,7 +116,7 @@ impl String64 {
     pub fn new(inner: String) -> Result<Self, DeserializeError> {
         if inner.len() > 64 {
             return Err(DeserializeError::new(
-                "String64",
+                "CIP25String64",
                 DeserializeFailure::RangeCheck {
                     found: inner.len(),
                     min: Some(0),
@@ -144,10 +128,16 @@ impl String64 {
     }
 }
 
-impl TryFrom<String> for String64 {
+impl TryFrom<String> for CIP25String64 {
     type Error = DeserializeError;
 
     fn try_from(inner: String) -> Result<Self, Self::Error> {
-        String64::new(inner)
+        CIP25String64::new(inner)
+    }
+}
+
+impl From<CIP25String64> for String {
+    fn from(wrapper: CIP25String64) -> Self {
+        wrapper.0
     }
 }

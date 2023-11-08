@@ -15,7 +15,7 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
-impl Serialize for Delegation {
+impl Serialize for CIP36Delegation {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -58,7 +58,7 @@ impl Serialize for Delegation {
     }
 }
 
-impl Deserialize for Delegation {
+impl Deserialize for CIP36Delegation {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array_sz()?;
         let len_encoding: LenEncoding = len.into();
@@ -86,28 +86,28 @@ impl Deserialize for Delegation {
                     _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                 },
             }
-            Ok(Delegation {
+            Ok(CIP36Delegation {
                 voting_pub_key,
                 weight,
-                encodings: Some(DelegationEncoding {
+                encodings: Some(CIP36DelegationEncoding {
                     len_encoding,
                     voting_pub_key_encoding,
                     weight_encoding,
                 }),
             })
         })()
-        .map_err(|e| e.annotate("Delegation"))
+        .map_err(|e| e.annotate("CIP36Delegation"))
     }
 }
 
-impl Serialize for DelegationDistribution {
+impl Serialize for CIP36DelegationDistribution {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
-            DelegationDistribution::Weighted {
+            CIP36DelegationDistribution::Weighted {
                 delegations,
                 delegations_encoding,
             } => {
@@ -119,7 +119,7 @@ impl Serialize for DelegationDistribution {
                 }
                 delegations_encoding.end(serializer, force_canonical)
             }
-            DelegationDistribution::Legacy {
+            CIP36DelegationDistribution::Legacy {
                 legacy,
                 legacy_encoding,
             } => serializer.write_bytes_sz(
@@ -130,7 +130,7 @@ impl Serialize for DelegationDistribution {
     }
 }
 
-impl Deserialize for DelegationDistribution {
+impl Deserialize for CIP36DelegationDistribution {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
@@ -146,7 +146,7 @@ impl Deserialize for DelegationDistribution {
                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                         break;
                     }
-                    weighted_arr.push(Delegation::deserialize(raw)?);
+                    weighted_arr.push(CIP36Delegation::deserialize(raw)?);
                 }
                 Ok((weighted_arr, delegations_encoding))
             })(raw)
@@ -183,15 +183,15 @@ impl Deserialize for DelegationDistribution {
                     .unwrap(),
             };
             Err(DeserializeError::new(
-                "DelegationDistribution",
+                "CIP36DelegationDistribution",
                 DeserializeFailure::NoVariantMatched,
             ))
         })()
-        .map_err(|e| e.annotate("DelegationDistribution"))
+        .map_err(|e| e.annotate("CIP36DelegationDistribution"))
     }
 }
 
-impl Serialize for DeregistrationWitness {
+impl Serialize for CIP36DeregistrationWitness {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -247,7 +247,7 @@ impl Serialize for DeregistrationWitness {
     }
 }
 
-impl Deserialize for DeregistrationWitness {
+impl Deserialize for CIP36DeregistrationWitness {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.map_sz()?;
         let len_encoding: LenEncoding = len.into();
@@ -315,7 +315,7 @@ impl Deserialize for DeregistrationWitness {
             };
             Ok(Self {
                 stake_witness,
-                encodings: Some(DeregistrationWitnessEncoding {
+                encodings: Some(CIP36DeregistrationWitnessEncoding {
                     len_encoding,
                     orig_deser_order,
                     stake_witness_key_encoding,
@@ -323,11 +323,11 @@ impl Deserialize for DeregistrationWitness {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("DeregistrationWitness"))
+        .map_err(|e| e.annotate("CIP36DeregistrationWitness"))
     }
 }
 
-impl Serialize for KeyDeregistration {
+impl Serialize for CIP36KeyDeregistration {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -458,7 +458,7 @@ impl Serialize for KeyDeregistration {
     }
 }
 
-impl Deserialize for KeyDeregistration {
+impl Deserialize for CIP36KeyDeregistration {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.map_sz()?;
         let len_encoding: LenEncoding = len.into();
@@ -575,7 +575,7 @@ impl Deserialize for KeyDeregistration {
                 stake_credential,
                 nonce,
                 voting_purpose,
-                encodings: Some(KeyDeregistrationEncoding {
+                encodings: Some(CIP36KeyDeregistrationEncoding {
                     len_encoding,
                     orig_deser_order,
                     stake_credential_key_encoding,
@@ -588,11 +588,11 @@ impl Deserialize for KeyDeregistration {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("KeyDeregistration"))
+        .map_err(|e| e.annotate("CIP36KeyDeregistration"))
     }
 }
 
-impl Serialize for KeyRegistration {
+impl Serialize for CIP36KeyRegistration {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -602,8 +602,8 @@ impl Serialize for KeyRegistration {
         // defaulting to weighted including it is based on the test vectors as it is not well specified
         // this seems to have changed as previously it was not included in old test vectors
         let (_legacy_format, should_include_voting_purpose) = match self.delegation {
-            DelegationDistribution::Legacy { .. } => (true, false),
-            DelegationDistribution::Weighted { .. } => (
+            CIP36DelegationDistribution::Legacy { .. } => (true, false),
+            CIP36DelegationDistribution::Weighted { .. } => (
                 false,
                 self.voting_purpose != 0
                     || self
@@ -755,7 +755,7 @@ impl Serialize for KeyRegistration {
     }
 }
 
-impl Deserialize for KeyRegistration {
+impl Deserialize for CIP36KeyRegistration {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.map_sz()?;
         let len_encoding: LenEncoding = len.into();
@@ -788,7 +788,7 @@ impl Deserialize for KeyRegistration {
                             if delegation.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(1)).into());
                             }
-                            let tmp_delegation = DelegationDistribution::deserialize(raw)
+                            let tmp_delegation = CIP36DelegationDistribution::deserialize(raw)
                                 .map_err(|e: DeserializeError| e.annotate("delegation"))?;
                             delegation = Some(tmp_delegation);
                             delegation_key_encoding = Some(key_enc);
@@ -906,7 +906,7 @@ impl Deserialize for KeyRegistration {
                 payment_address,
                 nonce,
                 voting_purpose,
-                encodings: Some(KeyRegistrationEncoding {
+                encodings: Some(CIP36KeyRegistrationEncoding {
                     len_encoding,
                     orig_deser_order,
                     delegation_key_encoding,
@@ -921,11 +921,11 @@ impl Deserialize for KeyRegistration {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("KeyRegistration"))
+        .map_err(|e| e.annotate("CIP36KeyRegistration"))
     }
 }
 
-impl Serialize for RegistrationWitness {
+impl Serialize for CIP36RegistrationWitness {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -981,7 +981,7 @@ impl Serialize for RegistrationWitness {
     }
 }
 
-impl Deserialize for RegistrationWitness {
+impl Deserialize for CIP36RegistrationWitness {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.map_sz()?;
         let len_encoding: LenEncoding = len.into();
@@ -1049,7 +1049,7 @@ impl Deserialize for RegistrationWitness {
             };
             Ok(Self {
                 stake_witness,
-                encodings: Some(RegistrationWitnessEncoding {
+                encodings: Some(CIP36RegistrationWitnessEncoding {
                     len_encoding,
                     orig_deser_order,
                     stake_witness_key_encoding,
@@ -1057,6 +1057,6 @@ impl Deserialize for RegistrationWitness {
                 }),
             })
         })()
-        .map_err(|e| e.annotate("RegistrationWitness"))
+        .map_err(|e| e.annotate("CIP36RegistrationWitness"))
     }
 }

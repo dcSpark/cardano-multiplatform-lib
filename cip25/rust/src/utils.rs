@@ -634,7 +634,7 @@ impl Deserialize for CIP25LabelMetadata {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CIP25MetadataDetails, FilesDetails};
+    use crate::{CIP25MetadataDetails, CIP25FilesDetails};
 
     use super::*;
 
@@ -647,12 +647,12 @@ mod tests {
         details.description = Some(CIP25ChunkableString::from("description of this NFT"));
         details.media_type = Some(CIP25String64::try_from("image/*").unwrap());
         details.files = Some(vec![
-            FilesDetails::new(
+            CIP25FilesDetails::new(
                 CIP25String64::new_str("filename1").unwrap(),
                 CIP25String64::new_str("filetype1").unwrap(),
                 CIP25ChunkableString::from("src1"),
             ),
-            FilesDetails::new(
+            CIP25FilesDetails::new(
                 CIP25String64::new_str("filename2").unwrap(),
                 CIP25String64::new_str("filetype2").unwrap(),
                 CIP25ChunkableString::from("src2"),

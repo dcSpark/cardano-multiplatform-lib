@@ -207,9 +207,9 @@ mod tests {
             178, 68, 6, 83, 163, 77, 50, 33, 156, 131, 233,
         ])
         .unwrap();
-        let legacy_reg = KeyRegistration::new(
-            DelegationDistribution::new_legacy(
-                LegacyKeyRegistration::from_raw_bytes(&[
+        let legacy_reg = CIP36KeyRegistration::new(
+            CIP36DelegationDistribution::new_legacy(
+                CIP36LegacyKeyRegistration::from_raw_bytes(&[
                     0, 54, 239, 62, 31, 13, 63, 89, 137, 226, 209, 85, 234, 84, 189, 178, 167, 44,
                     76, 69, 108, 203, 149, 154, 244, 201, 72, 104, 244, 115, 245, 160,
                 ])
@@ -236,9 +236,9 @@ mod tests {
             233,
         ])
         .unwrap();
-        let weighted_reg = KeyRegistration::new(
-            DelegationDistribution::new_weighted(vec![Delegation::new(
-                VotingPubKey::from_raw_bytes(&[
+        let weighted_reg = CIP36KeyRegistration::new(
+            CIP36DelegationDistribution::new_weighted(vec![CIP36Delegation::new(
+                CIP36VotingPubKey::from_raw_bytes(&[
                     0, 54, 239, 62, 31, 13, 63, 89, 137, 226, 209, 85, 234, 84, 189, 178, 167, 44,
                     76, 69, 108, 203, 149, 154, 244, 201, 72, 104, 244, 115, 245, 160,
                 ])

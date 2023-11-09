@@ -634,7 +634,7 @@ impl Deserialize for CIP25LabelMetadata {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CIP25MetadataDetails, CIP25FilesDetails};
+    use crate::{CIP25FilesDetails, CIP25MetadataDetails};
 
     use super::*;
 

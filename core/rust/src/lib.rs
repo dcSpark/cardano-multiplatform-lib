@@ -11,13 +11,12 @@
 #![allow(clippy::incorrect_partial_ord_impl_on_ord_type)]
 
 pub use error::*;
+
 pub mod error;
-
-pub mod serialization;
-
 pub mod metadata;
-
+pub mod network;
 pub mod ordered_hash_map;
+pub mod serialization;
 
 use crate::serialization::{fit_sz, Deserialize, Serialize};
 

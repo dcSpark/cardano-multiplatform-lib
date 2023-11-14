@@ -458,12 +458,12 @@ impl AlonzoProtocolParamUpdate {
             .map(std::convert::Into::into)
     }
 
-    pub fn set_max(&mut self, max: u64) {
-        self.0.max = Some(max)
+    pub fn set_max_value_size(&mut self, max_value_size: u64) {
+        self.0.max_value_size = Some(max_value_size)
     }
 
-    pub fn max(&self) -> Option<u64> {
-        self.0.max
+    pub fn max_value_size(&self) -> Option<u64> {
+        self.0.max_value_size
     }
 
     pub fn set_collateral_percentage(&mut self, collateral_percentage: u64) {

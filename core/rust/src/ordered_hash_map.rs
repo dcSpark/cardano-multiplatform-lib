@@ -1,4 +1,5 @@
 use core::hash::{Hash, Hasher};
+use std::iter::FromIterator;
 
 // allowing this since PartialEq equality here still implies hash equality
 #[allow(clippy::derived_hash_with_manual_eq)]
@@ -103,5 +104,14 @@ where
     }
     fn is_referenceable() -> bool {
         std::collections::BTreeMap::<K, V>::is_referenceable()
+    }
+}
+
+impl<K, V> FromIterator<(K, V)> for OrderedHashMap<K, V>
+where
+    K: Hash + Eq + Ord,
+{
+    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
+        Self(linked_hash_map::LinkedHashMap::from_iter(iter))
     }
 }

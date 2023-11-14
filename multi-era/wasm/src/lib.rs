@@ -25,7 +25,7 @@ use crate::{
         BabbageAuxiliaryData, BabbageBlock, BabbageTransactionBody, BabbageTransactionOutput,
         BabbageTransactionWitnessSet,
     },
-    byron::block::ByronBlock,
+    byron::{block::ByronBlock, transaction::ByronTx},
     mary::{MaryBlock, MaryTransactionBody, MaryTransactionOutput},
     shelley::{
         MultisigScript, ShelleyBlock, ShelleyCertificate, ShelleyTransactionBody,
@@ -33,8 +33,10 @@ use crate::{
     },
 };
 use cml_chain_wasm::{
-    block::Block, certs::StakeCredential, transaction::AlonzoFormatTxOut, Coin,
-    StakeCredentialList, TransactionIndex,
+    block::Block,
+    certs::StakeCredential,
+    transaction::{AlonzoFormatTxOut, TransactionBody},
+    Coin, StakeCredentialList, TransactionIndex,
 };
 use cml_core_wasm::{
     impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list, impl_wasm_map,
@@ -144,6 +146,19 @@ impl_wasm_map!(
     BabbageAuxiliaryData,
     Vec<TransactionIndex>,
     MapTransactionIndexToBabbageAuxiliaryData,
+    true,
+    false,
+    true,
+    false
+);
+
+impl_wasm_map!(
+    cml_chain::TransactionIndex,
+    cml_core::metadata::Metadata,
+    TransactionIndex,
+    cml_core_wasm::metadata::Metadata,
+    Vec<TransactionIndex>,
+    MapTransactionIndexToMetadata,
     true,
     false,
     true,
@@ -282,6 +297,150 @@ impl MultiEraBlock {
 
 #[wasm_bindgen]
 pub enum MultiEraBlockKind {
+    Byron,
+    Shelley,
+    Allegra,
+    Mary,
+    Alonzo,
+    Babbage,
+    Conway,
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct MultiEraTransactionBody(cml_multi_era::MultiEraTransactionBody);
+
+impl_wasm_cbor_json_api!(MultiEraTransactionBody);
+
+impl_wasm_conversions!(
+    cml_multi_era::MultiEraTransactionBody,
+    MultiEraTransactionBody
+);
+
+#[wasm_bindgen]
+impl MultiEraTransactionBody {
+    pub fn new_byron(byron: &ByronTx) -> Self {
+        Self(cml_multi_era::MultiEraTransactionBody::new_byron(
+            byron.clone().into(),
+        ))
+    }
+
+    pub fn new_shelley(shelley: &ShelleyTransactionBody) -> Self {
+        Self(cml_multi_era::MultiEraTransactionBody::new_shelley(
+            shelley.clone().into(),
+        ))
+    }
+
+    pub fn new_allegra(allegra: &AllegraTransactionBody) -> Self {
+        Self(cml_multi_era::MultiEraTransactionBody::new_allegra(
+            allegra.clone().into(),
+        ))
+    }
+
+    pub fn new_mary(mary: &MaryTransactionBody) -> Self {
+        Self(cml_multi_era::MultiEraTransactionBody::new_mary(
+            mary.clone().into(),
+        ))
+    }
+
+    pub fn new_alonzo(alonzo: &AlonzoTransactionBody) -> Self {
+        Self(cml_multi_era::MultiEraTransactionBody::new_alonzo(
+            alonzo.clone().into(),
+        ))
+    }
+
+    pub fn new_babbage(babbage: &BabbageTransactionBody) -> Self {
+        Self(cml_multi_era::MultiEraTransactionBody::new_babbage(
+            babbage.clone().into(),
+        ))
+    }
+
+    pub fn new_conway(conway: &TransactionBody) -> Self {
+        Self(cml_multi_era::MultiEraTransactionBody::new_conway(
+            conway.clone().into(),
+        ))
+    }
+
+    pub fn kind(&self) -> MultiEraTransactionBodyKind {
+        match &self.0 {
+            cml_multi_era::MultiEraTransactionBody::Byron(_) => MultiEraTransactionBodyKind::Byron,
+            cml_multi_era::MultiEraTransactionBody::Shelley(_) => {
+                MultiEraTransactionBodyKind::Shelley
+            }
+            cml_multi_era::MultiEraTransactionBody::Allegra(_) => {
+                MultiEraTransactionBodyKind::Allegra
+            }
+            cml_multi_era::MultiEraTransactionBody::Mary(_) => MultiEraTransactionBodyKind::Mary,
+            cml_multi_era::MultiEraTransactionBody::Alonzo(_) => {
+                MultiEraTransactionBodyKind::Alonzo
+            }
+            cml_multi_era::MultiEraTransactionBody::Babbage(_) => {
+                MultiEraTransactionBodyKind::Babbage
+            }
+            cml_multi_era::MultiEraTransactionBody::Conway(_) => {
+                MultiEraTransactionBodyKind::Conway
+            }
+        }
+    }
+
+    pub fn as_byron(&self) -> Option<ByronTx> {
+        match &self.0 {
+            cml_multi_era::MultiEraTransactionBody::Byron(byron) => Some(byron.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_shelley(&self) -> Option<ShelleyTransactionBody> {
+        match &self.0 {
+            cml_multi_era::MultiEraTransactionBody::Shelley(shelley) => {
+                Some(shelley.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_allegra(&self) -> Option<AllegraTransactionBody> {
+        match &self.0 {
+            cml_multi_era::MultiEraTransactionBody::Allegra(allegra) => {
+                Some(allegra.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_mary(&self) -> Option<MaryTransactionBody> {
+        match &self.0 {
+            cml_multi_era::MultiEraTransactionBody::Mary(mary) => Some(mary.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_alonzo(&self) -> Option<AlonzoTransactionBody> {
+        match &self.0 {
+            cml_multi_era::MultiEraTransactionBody::Alonzo(alonzo) => Some(alonzo.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_babbage(&self) -> Option<BabbageTransactionBody> {
+        match &self.0 {
+            cml_multi_era::MultiEraTransactionBody::Babbage(babbage) => {
+                Some(babbage.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_conway(&self) -> Option<TransactionBody> {
+        match &self.0 {
+            cml_multi_era::MultiEraTransactionBody::Conway(conway) => Some(conway.clone().into()),
+            _ => None,
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub enum MultiEraTransactionBodyKind {
     Byron,
     Shelley,
     Allegra,

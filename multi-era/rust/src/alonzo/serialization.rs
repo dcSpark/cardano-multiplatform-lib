@@ -815,7 +815,7 @@ impl Serialize for AlonzoProtocolParamUpdate {
                     } + match &self.max_block_ex_units {
                         Some(_) => 1,
                         None => 0,
-                    } + match &self.max {
+                    } + match &self.max_value_size {
                         Some(_) => 1,
                         None => 0,
                     } + match &self.collateral_percentage {
@@ -897,7 +897,7 @@ impl Serialize for AlonzoProtocolParamUpdate {
                         } + match &self.max_block_ex_units {
                             Some(_) => 1,
                             None => 0,
-                        } + match &self.max {
+                        } + match &self.max_value_size {
                             Some(_) => 1,
                             None => 0,
                         } + match &self.collateral_percentage {
@@ -1364,14 +1364,14 @@ impl Serialize for AlonzoProtocolParamUpdate {
                     }
                 }
                 21 => {
-                    if let Some(field) = &self.max {
+                    if let Some(field) = &self.max_value_size {
                         serializer.write_unsigned_integer_sz(
                             22u64,
                             fit_sz(
                                 22u64,
                                 self.encodings
                                     .as_ref()
-                                    .map(|encs| encs.max_key_encoding)
+                                    .map(|encs| encs.max_value_size_key_encoding)
                                     .unwrap_or_default(),
                                 force_canonical,
                             ),
@@ -1382,7 +1382,7 @@ impl Serialize for AlonzoProtocolParamUpdate {
                                 *field,
                                 self.encodings
                                     .as_ref()
-                                    .map(|encs| encs.max_encoding)
+                                    .map(|encs| encs.max_value_size_encoding)
                                     .unwrap_or_default(),
                                 force_canonical,
                             ),
@@ -1512,9 +1512,9 @@ impl Deserialize for AlonzoProtocolParamUpdate {
             let mut max_tx_ex_units = None;
             let mut max_block_ex_units_key_encoding = None;
             let mut max_block_ex_units = None;
-            let mut max_encoding = None;
-            let mut max_key_encoding = None;
-            let mut max = None;
+            let mut max_value_size_encoding = None;
+            let mut max_value_size_key_encoding = None;
+            let mut max_value_size = None;
             let mut collateral_percentage_encoding = None;
             let mut collateral_percentage_key_encoding = None;
             let mut collateral_percentage = None;
@@ -1849,20 +1849,20 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                             orig_deser_order.push(20);
                         }
                         (22, key_enc) => {
-                            if max.is_some() {
+                            if max_value_size.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(22)).into());
                             }
-                            let (tmp_max, tmp_max_encoding) =
+                            let (tmp_max_value_size, tmp_max_value_size_encoding) =
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
                                         .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
                                 })()
-                                .map_err(|e| e.annotate("max"))?;
-                            max = Some(tmp_max);
-                            max_encoding = tmp_max_encoding;
-                            max_key_encoding = Some(key_enc);
+                                .map_err(|e| e.annotate("max_value_size"))?;
+                            max_value_size = Some(tmp_max_value_size);
+                            max_value_size_encoding = tmp_max_value_size_encoding;
+                            max_value_size_key_encoding = Some(key_enc);
                             orig_deser_order.push(21);
                         }
                         (23, key_enc) => {
@@ -1946,7 +1946,7 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                 execution_costs,
                 max_tx_ex_units,
                 max_block_ex_units,
-                max,
+                max_value_size,
                 collateral_percentage,
                 max_collateral_inputs,
                 encodings: Some(AlonzoProtocolParamUpdateEncoding {
@@ -1984,8 +1984,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                     execution_costs_key_encoding,
                     max_tx_ex_units_key_encoding,
                     max_block_ex_units_key_encoding,
-                    max_key_encoding,
-                    max_encoding,
+                    max_value_size_key_encoding,
+                    max_value_size_encoding,
                     collateral_percentage_key_encoding,
                     collateral_percentage_encoding,
                     max_collateral_inputs_key_encoding,

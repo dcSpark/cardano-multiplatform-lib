@@ -3,6 +3,7 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
+pub mod utils;
 
 use cml_core::Int;
 
@@ -144,7 +145,7 @@ pub struct AlonzoProtocolParamUpdate {
     pub execution_costs: Option<ExUnitPrices>,
     pub max_tx_ex_units: Option<ExUnits>,
     pub max_block_ex_units: Option<ExUnits>,
-    pub max: Option<u64>,
+    pub max_value_size: Option<u64>,
     pub collateral_percentage: Option<u64>,
     pub max_collateral_inputs: Option<u64>,
     #[serde(skip)]
@@ -175,7 +176,7 @@ impl AlonzoProtocolParamUpdate {
             execution_costs: None,
             max_tx_ex_units: None,
             max_block_ex_units: None,
-            max: None,
+            max_value_size: None,
             collateral_percentage: None,
             max_collateral_inputs: None,
             encodings: None,

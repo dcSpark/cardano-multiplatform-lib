@@ -7,7 +7,7 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::{Serialize, Serializer};
 use cml_core::error::*;
 use cml_core::serialization::*;
-use cml_crypto::RawBytesEncoding;
+use cml_crypto::{RawBytesEncoding, TransactionHash};
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl cbor_event::se::Serialize for ByronPkWitness {
@@ -703,7 +703,7 @@ impl Deserialize for ByronTxOutPtr {
                 .bytes()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|bytes| {
-                    Blake2b256::from_raw_bytes(&bytes)
+                    TransactionHash::from_raw_bytes(&bytes)
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
                 .map_err(|e: DeserializeError| e.annotate("byron_tx_id"))?;

@@ -2,7 +2,7 @@ shelley_block = [
   header: shelley_header,
   transaction_bodies         : [* shelley_transaction_body],
   transaction_witness_sets   : [* shelley_transaction_witness_set],
-  transaction_metadata_set   : metadata,
+  transaction_metadata_set   : { * transaction_index => metadata },
 ]
    ; Valid blocks must also satisfy the following two constraints:
    ; 1) the length of transaction_bodies and transaction_witness_sets

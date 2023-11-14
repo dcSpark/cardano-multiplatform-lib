@@ -53,6 +53,8 @@ pub struct ShelleyBlockEncoding {
     pub len_encoding: LenEncoding,
     pub transaction_bodies_encoding: LenEncoding,
     pub transaction_witness_sets_encoding: LenEncoding,
+    pub transaction_metadata_set_encoding: LenEncoding,
+    pub transaction_metadata_set_key_encodings: BTreeMap<u16, Option<cbor_event::Sz>>,
 }
 
 #[derive(Clone, Debug, Default)]

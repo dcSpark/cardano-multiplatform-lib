@@ -16,6 +16,7 @@ use cml_core_wasm::{
     impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_list,
     impl_wasm_map_btree,
 };
+use cml_crypto_wasm::TransactionHash;
 pub use utils::{Blake2b224, Blake2b256, ByronAny};
 
 pub type SystemTag = String;
@@ -49,7 +50,7 @@ impl ByronSlotId {
     }
 }
 
-pub type ByronTxId = Blake2b256;
+pub type ByronTxId = TransactionHash;
 
 pub type ByronUpdateId = Blake2b256;
 

@@ -11,3 +11,12 @@ multi_era_block =
   / alonzo_block  ; @name Alonzo
   / babbage_block ; @name Babbage
   / block         ; @name Conway
+
+multi_era_transaction_body =
+    byron_tx                 ; @name byron
+  / shelley_transaction_body ; @name Shelley
+  / allegra_transaction_body ; @name Allegra
+  / mary_transaction_body    ; @name Mary
+  / alonzo_transaction_body  ; @name Alonzo
+  / babbage_transaction_body ; @name Babbage
+  / transaction_body         ; @name Conway

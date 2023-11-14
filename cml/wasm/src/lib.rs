@@ -6,4 +6,4 @@
 // will be exported by the other crates here.
 pub use cml_chain_wasm::AssetNameList;
 pub use cml_cip25_wasm::CIP25Metadata;
-pub use cml_cip36_wasm::DeregistrationCbor;
+pub use cml_cip36_wasm::CIP36DeregistrationCbor;

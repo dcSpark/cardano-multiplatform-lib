@@ -10,7 +10,7 @@ use cml_core_wasm::{
     impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_json_api,
     impl_wasm_list,
 };
-pub use utils::LabelMetadata;
+pub use utils::CIP25LabelMetadata;
 
 pub use cml_cip25::CIP25Version;
 
@@ -53,61 +53,61 @@ impl CIP25Metadata {
     }
 
     /// The core details of the CIP25 spec
-    pub fn key_721(&self) -> LabelMetadata {
+    pub fn key_721(&self) -> CIP25LabelMetadata {
         self.0.key_721.clone().into()
     }
 
-    pub fn new(key_721: &LabelMetadata) -> Self {
+    pub fn new(key_721: &CIP25LabelMetadata) -> Self {
         Self(cml_cip25::CIP25Metadata::new(key_721.clone().into()))
     }
 }
 
 /// A String that may or may not be chunked into 64-byte chunks to be able
 /// to conform to Cardano TX Metadata limitations.
-/// Most users should simply use ChunkableString::from_string() and ChunkableString::to_string()
+/// Most users should simply use CIP25ChunkableString::from_string() and CIP25ChunkableString::to_string()
 /// and avoid the explicit single/chunk interface:
 /// ```javascript
-/// let chunkableString = CIP25.ChunkableString.from_string("this can be any length and will automatically be chunked if needed");
+/// let chunkableString = CIP25.CIP25ChunkableString.from_string("this can be any length and will automatically be chunked if needed");
 /// ```
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ChunkableString(cml_cip25::ChunkableString);
+pub struct CIP25ChunkableString(cml_cip25::CIP25ChunkableString);
 
-impl_wasm_conversions!(cml_cip25::ChunkableString, ChunkableString);
+impl_wasm_conversions!(cml_cip25::CIP25ChunkableString, CIP25ChunkableString);
 
-impl_wasm_cbor_json_api_cbor_event_serialize!(ChunkableString);
+impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25ChunkableString);
 
 #[wasm_bindgen]
-impl ChunkableString {
-    pub fn new_single(single: &String64) -> Self {
-        Self(cml_cip25::ChunkableString::new_single(
+impl CIP25ChunkableString {
+    pub fn new_single(single: &CIP25String64) -> Self {
+        Self(cml_cip25::CIP25ChunkableString::new_single(
             single.clone().into(),
         ))
     }
 
-    pub fn new_chunked(chunked: &String64List) -> Self {
-        Self(cml_cip25::ChunkableString::new_chunked(
+    pub fn new_chunked(chunked: &CIP25String64List) -> Self {
+        Self(cml_cip25::CIP25ChunkableString::new_chunked(
             chunked.clone().into(),
         ))
     }
 
     pub fn kind(&self) -> ChunkableStringKind {
         match &self.0 {
-            cml_cip25::ChunkableString::Single(_) => ChunkableStringKind::Single,
-            cml_cip25::ChunkableString::Chunked(_) => ChunkableStringKind::Chunked,
+            cml_cip25::CIP25ChunkableString::Single(_) => ChunkableStringKind::Single,
+            cml_cip25::CIP25ChunkableString::Chunked(_) => ChunkableStringKind::Chunked,
         }
     }
 
-    pub fn as_single(&self) -> Option<String64> {
+    pub fn as_single(&self) -> Option<CIP25String64> {
         match &self.0 {
-            cml_cip25::ChunkableString::Single(single) => Some(single.clone().into()),
+            cml_cip25::CIP25ChunkableString::Single(single) => Some(single.clone().into()),
             _ => None,
         }
     }
 
-    pub fn as_chunked(&self) -> Option<String64List> {
+    pub fn as_chunked(&self) -> Option<CIP25String64List> {
         match &self.0 {
-            cml_cip25::ChunkableString::Chunked(chunked) => Some(chunked.clone().into()),
+            cml_cip25::CIP25ChunkableString::Chunked(chunked) => Some(chunked.clone().into()),
             _ => None,
         }
     }
@@ -121,28 +121,32 @@ pub enum ChunkableStringKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct FilesDetails(cml_cip25::FilesDetails);
+pub struct CIP25FilesDetails(cml_cip25::CIP25FilesDetails);
 
-impl_wasm_conversions!(cml_cip25::FilesDetails, FilesDetails);
+impl_wasm_conversions!(cml_cip25::CIP25FilesDetails, CIP25FilesDetails);
 
-impl_wasm_cbor_json_api_cbor_event_serialize!(FilesDetails);
+impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25FilesDetails);
 
 #[wasm_bindgen]
-impl FilesDetails {
-    pub fn name(&self) -> String64 {
+impl CIP25FilesDetails {
+    pub fn name(&self) -> CIP25String64 {
         self.0.name.clone().into()
     }
 
-    pub fn media_type(&self) -> String64 {
+    pub fn media_type(&self) -> CIP25String64 {
         self.0.media_type.clone().into()
     }
 
-    pub fn src(&self) -> ChunkableString {
+    pub fn src(&self) -> CIP25ChunkableString {
         self.0.src.clone().into()
     }
 
-    pub fn new(name: &String64, media_type: &String64, src: &ChunkableString) -> Self {
-        Self(cml_cip25::FilesDetails::new(
+    pub fn new(
+        name: &CIP25String64,
+        media_type: &CIP25String64,
+        src: &CIP25ChunkableString,
+    ) -> Self {
+        Self(cml_cip25::CIP25FilesDetails::new(
             name.clone().into(),
             media_type.clone().into(),
             src.clone().into(),
@@ -150,39 +154,43 @@ impl FilesDetails {
     }
 }
 
-impl_wasm_list!(cml_cip25::FilesDetails, FilesDetails, FilesDetailsList);
+impl_wasm_list!(
+    cml_cip25::CIP25FilesDetails,
+    CIP25FilesDetails,
+    FilesDetailsList
+);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MetadataDetails(cml_cip25::MetadataDetails);
+pub struct CIP25MetadataDetails(cml_cip25::CIP25MetadataDetails);
 
-impl_wasm_conversions!(cml_cip25::MetadataDetails, MetadataDetails);
+impl_wasm_conversions!(cml_cip25::CIP25MetadataDetails, CIP25MetadataDetails);
 
-impl_wasm_cbor_json_api_cbor_event_serialize!(MetadataDetails);
+impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25MetadataDetails);
 
 #[wasm_bindgen]
-impl MetadataDetails {
-    pub fn name(&self) -> String64 {
+impl CIP25MetadataDetails {
+    pub fn name(&self) -> CIP25String64 {
         self.0.name.clone().into()
     }
 
-    pub fn image(&self) -> ChunkableString {
+    pub fn image(&self) -> CIP25ChunkableString {
         self.0.image.clone().into()
     }
 
-    pub fn set_media_type(&mut self, media_type: &String64) {
+    pub fn set_media_type(&mut self, media_type: &CIP25String64) {
         self.0.media_type = Some(media_type.clone().into())
     }
 
-    pub fn media_type(&self) -> Option<String64> {
+    pub fn media_type(&self) -> Option<CIP25String64> {
         self.0.media_type.clone().map(std::convert::Into::into)
     }
 
-    pub fn set_description(&mut self, description: &ChunkableString) {
+    pub fn set_description(&mut self, description: &CIP25ChunkableString) {
         self.0.description = Some(description.clone().into())
     }
 
-    pub fn description(&self) -> Option<ChunkableString> {
+    pub fn description(&self) -> Option<CIP25ChunkableString> {
         self.0.description.clone().map(std::convert::Into::into)
     }
 
@@ -194,8 +202,8 @@ impl MetadataDetails {
         self.0.files.clone().map(std::convert::Into::into)
     }
 
-    pub fn new(name: &String64, image: &ChunkableString) -> Self {
-        Self(cml_cip25::MetadataDetails::new(
+    pub fn new(name: &CIP25String64, image: &CIP25ChunkableString) -> Self {
+        Self(cml_cip25::CIP25MetadataDetails::new(
             name.clone().into(),
             image.clone().into(),
         ))
@@ -206,17 +214,17 @@ impl MetadataDetails {
 /// This is to conform with Cardano metadata restrictions.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct String64(cml_cip25::String64);
+pub struct CIP25String64(cml_cip25::CIP25String64);
 
-impl_wasm_conversions!(cml_cip25::String64, String64);
+impl_wasm_conversions!(cml_cip25::CIP25String64, CIP25String64);
 
-impl_wasm_cbor_json_api_cbor_event_serialize!(String64);
+impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25String64);
 
 #[wasm_bindgen]
-impl String64 {
+impl CIP25String64 {
     pub fn get(&self) -> String {
         self.0.get().clone()
     }
 }
 
-impl_wasm_list!(cml_cip25::String64, String64, String64List);
+impl_wasm_list!(cml_cip25::CIP25String64, CIP25String64, CIP25String64List);

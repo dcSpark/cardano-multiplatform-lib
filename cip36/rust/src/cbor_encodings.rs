@@ -4,14 +4,14 @@
 use cml_core::serialization::{LenEncoding, StringEncoding};
 
 #[derive(Clone, Debug, Default)]
-pub struct DelegationEncoding {
+pub struct CIP36DelegationEncoding {
     pub len_encoding: LenEncoding,
     pub voting_pub_key_encoding: StringEncoding,
     pub weight_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct DeregistrationCborEncoding {
+pub struct CIP36DeregistrationCborEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
     pub key_deregistration_key_encoding: Option<cbor_event::Sz>,
@@ -19,7 +19,7 @@ pub struct DeregistrationCborEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct DeregistrationWitnessEncoding {
+pub struct CIP36DeregistrationWitnessEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
     pub stake_witness_encoding: StringEncoding,
@@ -27,7 +27,7 @@ pub struct DeregistrationWitnessEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct KeyDeregistrationEncoding {
+pub struct CIP36KeyDeregistrationEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
     pub stake_credential_encoding: StringEncoding,
@@ -40,7 +40,7 @@ pub struct KeyDeregistrationEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct KeyRegistrationEncoding {
+pub struct CIP36KeyRegistrationEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
     pub delegation_key_encoding: Option<cbor_event::Sz>,
@@ -55,7 +55,7 @@ pub struct KeyRegistrationEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct RegistrationCborEncoding {
+pub struct CIP36RegistrationCborEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
     pub key_registration_key_encoding: Option<cbor_event::Sz>,
@@ -63,7 +63,7 @@ pub struct RegistrationCborEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct RegistrationWitnessEncoding {
+pub struct CIP36RegistrationWitnessEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
     pub stake_witness_encoding: StringEncoding,

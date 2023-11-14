@@ -14,8 +14,9 @@ pub use cml_chain::{address::Address, NetworkId};
 use std::convert::From;
 
 use super::{
-    DelegationDistribution, DeregistrationCbor, DeregistrationWitness, KeyDeregistration,
-    KeyRegistration, Nonce, RegistrationCbor, RegistrationWitness, StakeCredential,
+    CIP36DelegationDistribution, CIP36DeregistrationCbor, CIP36DeregistrationWitness,
+    CIP36KeyDeregistration, CIP36KeyRegistration, CIP36Nonce, CIP36RegistrationCbor,
+    CIP36RegistrationWitness, CIP36StakeCredential,
 };
 
 use std::io::{BufRead, Write};
@@ -29,10 +30,10 @@ pub static REGISTRATION_WITNESS_LABEL: u64 = 61285;
 pub static DEREGISTRATION_WITNESS_LABEL: u64 = REGISTRATION_WITNESS_LABEL;
 pub static KEY_DEREGISTRATION_LABEL: u64 = 61286;
 
-impl DeregistrationCbor {
+impl CIP36DeregistrationCbor {
     pub fn new(
-        key_deregistration: KeyDeregistration,
-        deregistration_witness: DeregistrationWitness,
+        key_deregistration: CIP36KeyDeregistration,
+        deregistration_witness: CIP36DeregistrationWitness,
     ) -> Self {
         Self {
             key_deregistration,
@@ -66,7 +67,7 @@ impl DeregistrationCbor {
     }
 
     /// Create a CIP36 view from the bytes of a Metadata.
-    /// The resulting DeregistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
+    /// The resulting CIP36DeregistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
     pub fn from_metadata_bytes(metadata_cbor_bytes: &[u8]) -> Result<Self, DeserializeError> {
         let mut raw = Deserializer::from(std::io::Cursor::new(metadata_cbor_bytes));
         Self::deserialize(&mut raw)
@@ -90,7 +91,7 @@ impl DeregistrationCbor {
             .serialize(serializer, force_canonical)
     }
 
-    /// Deserializes a CIP36 view from either a Metadata or a DeregistrationCbor
+    /// Deserializes a CIP36 view from either a Metadata or a CIP36DeregistrationCbor
     /// This contains ONLY the relevant fields for CIP36 if created from a Metadata
     pub fn deserialize<R: BufRead + std::io::Seek>(
         raw: &mut Deserializer<R>,
@@ -118,7 +119,7 @@ impl DeregistrationCbor {
                                 .into());
                             }
                             deregistration_witness =
-                                Some(DeregistrationWitness::deserialize(raw).map_err(
+                                Some(CIP36DeregistrationWitness::deserialize(raw).map_err(
                                     |e: DeserializeError| e.annotate("deregistration_witness"),
                                 )?);
                         }
@@ -130,7 +131,7 @@ impl DeregistrationCbor {
                                 .into());
                             }
                             key_deregistration =
-                                Some(KeyDeregistration::deserialize(raw).map_err(
+                                Some(CIP36KeyDeregistration::deserialize(raw).map_err(
                                     |e: DeserializeError| e.annotate("key_deregistration"),
                                 )?);
                         }
@@ -175,11 +176,11 @@ impl DeregistrationCbor {
                 deregistration_witness,
             })
         })()
-        .map_err(|e| e.annotate("DeregistrationCbor"))
+        .map_err(|e| e.annotate("CIP36DeregistrationCbor"))
     }
 }
 
-impl std::convert::TryFrom<&Metadata> for DeregistrationCbor {
+impl std::convert::TryFrom<&Metadata> for CIP36DeregistrationCbor {
     type Error = DeserializeError;
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
@@ -191,17 +192,17 @@ impl std::convert::TryFrom<&Metadata> for DeregistrationCbor {
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(DEREGISTRATION_WITNESS_LABEL))
         })?;
         Ok(Self {
-            key_deregistration: KeyDeregistration::from_cbor_bytes(
+            key_deregistration: CIP36KeyDeregistration::from_cbor_bytes(
                 &dereg_metadatum.to_cbor_bytes(),
             )?,
-            deregistration_witness: DeregistrationWitness::from_cbor_bytes(
+            deregistration_witness: CIP36DeregistrationWitness::from_cbor_bytes(
                 &witness_metadatum.to_cbor_bytes(),
             )?,
         })
     }
 }
 
-impl std::convert::TryInto<Metadata> for &DeregistrationCbor {
+impl std::convert::TryInto<Metadata> for &CIP36DeregistrationCbor {
     type Error = DeserializeError;
 
     fn try_into(self) -> Result<Metadata, Self::Error> {
@@ -211,14 +212,14 @@ impl std::convert::TryInto<Metadata> for &DeregistrationCbor {
     }
 }
 
-impl KeyDeregistration {
-    /// Creates a new KeyDeregistration. You must then sign self.hash_to_sign() to make a `DeregistrationWitness`.
+impl CIP36KeyDeregistration {
+    /// Creates a new CIP36KeyDeregistration. You must then sign self.hash_to_sign() to make a `CIP36DeregistrationWitness`.
     ///
     /// # Arguments
     ///
     /// * `stake_credential` - stake address for the network that this transaction is submitted to (to point to the Ada that was being delegated).
     /// * `nonce` - Monotonically rising across all transactions with the same staking key. Recommended to just use the slot of this tx.
-    pub fn new(stake_credential: StakeCredential, nonce: Nonce) -> Self {
+    pub fn new(stake_credential: CIP36StakeCredential, nonce: CIP36Nonce) -> Self {
         Self {
             stake_credential,
             nonce,
@@ -227,7 +228,7 @@ impl KeyDeregistration {
         }
     }
 
-    /// Create bytes to sign to make a `DeregistrationWitness` from.
+    /// Create bytes to sign to make a `CIP36DeregistrationWitness` from.
     ///
     /// # Arguments
     ///
@@ -242,8 +243,8 @@ impl KeyDeregistration {
     }
 }
 
-impl KeyRegistration {
-    /// Creates a new KeyRegistration. You must then sign self.hash_to_sign() to make a `RegistrationWitness`.
+impl CIP36KeyRegistration {
+    /// Creates a new CIP36KeyRegistration. You must then sign self.hash_to_sign() to make a `CIP36RegistrationWitness`.
     ///
     /// # Arguments
     ///
@@ -252,10 +253,10 @@ impl KeyRegistration {
     /// * `payment_address` - Shelley payment address discriminated for the same network this transaction is submitted to for receiving awairds.
     /// * `nonce` - Monotonically rising across all transactions with the same staking key. Recommended to just use the slot of this tx.
     pub fn new(
-        delegation: DelegationDistribution,
-        stake_credential: StakeCredential,
+        delegation: CIP36DelegationDistribution,
+        stake_credential: CIP36StakeCredential,
         payment_address: Address,
-        nonce: Nonce,
+        nonce: CIP36Nonce,
     ) -> Self {
         Self {
             delegation,
@@ -267,7 +268,7 @@ impl KeyRegistration {
         }
     }
 
-    /// Create bytes to sign to make a `RegistrationWitness` from.
+    /// Create bytes to sign to make a `CIP36RegistrationWitness` from.
     ///
     /// # Arguments
     ///
@@ -282,10 +283,10 @@ impl KeyRegistration {
     }
 }
 
-impl RegistrationCbor {
+impl CIP36RegistrationCbor {
     pub fn new(
-        key_registration: KeyRegistration,
-        registration_witness: RegistrationWitness,
+        key_registration: CIP36KeyRegistration,
+        registration_witness: CIP36RegistrationWitness,
     ) -> Self {
         Self {
             key_registration,
@@ -308,7 +309,7 @@ impl RegistrationCbor {
 
     /// Verifies invariants in CIP36.
     pub fn verify(&self) -> Result<(), CIP36Error> {
-        if let DelegationDistribution::Weighted { delegations, .. } =
+        if let CIP36DelegationDistribution::Weighted { delegations, .. } =
             &self.key_registration.delegation
         {
             if delegations.is_empty() {
@@ -336,7 +337,7 @@ impl RegistrationCbor {
     }
 
     /// Create a CIP36 view from the bytes of a Metadata.
-    /// The resulting RegistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
+    /// The resulting CIP36RegistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
     pub fn from_metadata_bytes(metadata_cbor_bytes: &[u8]) -> Result<Self, DeserializeError> {
         let mut raw = Deserializer::from(std::io::Cursor::new(metadata_cbor_bytes));
         Self::deserialize(&mut raw)
@@ -362,7 +363,7 @@ impl RegistrationCbor {
             .serialize(serializer, force_canonical)
     }
 
-    /// Deserializes a CIP36 view from either a Metadata or a RegistrationCbor
+    /// Deserializes a CIP36 view from either a Metadata or a CIP36RegistrationCbor
     /// This contains ONLY the relevant fields for CIP36 if created from a Metadata
     fn deserialize<R: BufRead + std::io::Seek>(
         raw: &mut Deserializer<R>,
@@ -389,7 +390,7 @@ impl RegistrationCbor {
                                 .into());
                             }
                             key_registration =
-                                Some(KeyRegistration::deserialize(raw).map_err(
+                                Some(CIP36KeyRegistration::deserialize(raw).map_err(
                                     |e: DeserializeError| e.annotate("key_registration"),
                                 )?);
                         }
@@ -401,7 +402,7 @@ impl RegistrationCbor {
                                 .into());
                             }
                             registration_witness =
-                                Some(RegistrationWitness::deserialize(raw).map_err(
+                                Some(CIP36RegistrationWitness::deserialize(raw).map_err(
                                     |e: DeserializeError| e.annotate("registration_witness"),
                                 )?);
                         }
@@ -453,11 +454,11 @@ impl RegistrationCbor {
                 .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?;
             Ok(reg_cbor)
         })()
-        .map_err(|e| e.annotate("RegistrationCbor"))
+        .map_err(|e| e.annotate("CIP36RegistrationCbor"))
     }
 }
 
-impl std::convert::TryFrom<&Metadata> for RegistrationCbor {
+impl std::convert::TryFrom<&Metadata> for CIP36RegistrationCbor {
     type Error = DeserializeError;
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
@@ -469,15 +470,17 @@ impl std::convert::TryFrom<&Metadata> for RegistrationCbor {
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(REGISTRATION_WITNESS_LABEL))
         })?;
         Ok(Self {
-            key_registration: KeyRegistration::from_cbor_bytes(&reg_metadatum.to_cbor_bytes())?,
-            registration_witness: RegistrationWitness::from_cbor_bytes(
+            key_registration: CIP36KeyRegistration::from_cbor_bytes(
+                &reg_metadatum.to_cbor_bytes(),
+            )?,
+            registration_witness: CIP36RegistrationWitness::from_cbor_bytes(
                 &witness_metadatum.to_cbor_bytes(),
             )?,
         })
     }
 }
 
-impl std::convert::TryInto<Metadata> for &RegistrationCbor {
+impl std::convert::TryInto<Metadata> for &CIP36RegistrationCbor {
     type Error = DeserializeError;
 
     fn try_into(self) -> Result<Metadata, Self::Error> {

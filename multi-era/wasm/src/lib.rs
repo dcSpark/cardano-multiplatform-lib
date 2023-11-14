@@ -15,7 +15,7 @@ pub mod utils;
 // to allow this crate to be like cml + multi-era (e.g. all functionality).
 // See comment in cml/wasm/src/lib.rs
 pub use cml_cip25_wasm::CIP25Metadata;
-pub use cml_cip36_wasm::DeregistrationCbor;
+pub use cml_cip36_wasm::CIP36DeregistrationCbor;
 
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen

@@ -26,38 +26,38 @@ extern crate derivative;
 /// To avoid linking voting keys directly with Cardano spending keys,
 /// the voting key derivation path must start with a specific segment:
 /// m / 1694' / 1815' / account' / chain / address_index
-pub type VotingPubKey = cml_crypto::PublicKey;
+pub type CIP36VotingPubKey = cml_crypto::PublicKey;
 
-pub type StakingPubKey = cml_crypto::PublicKey;
+pub type CIP36StakingPubKey = cml_crypto::PublicKey;
 
-pub type LegacyKeyRegistration = VotingPubKey;
+pub type CIP36LegacyKeyRegistration = CIP36VotingPubKey;
 
 /// The nonce is an unsigned integer that should be monotonically rising across all transactions with the same staking key.
 /// The advised way to construct a nonce is to use the current slot number.
 /// This is a simple way to keep the nonce increasing without having to access the previous transaction data.
-pub type Nonce = u64;
+pub type CIP36Nonce = u64;
 
-pub type StakeCredential = StakingPubKey;
+pub type CIP36StakeCredential = CIP36StakingPubKey;
 
-pub type StakeWitness = cml_crypto::Ed25519Signature;
+pub type CIP36StakeWitness = cml_crypto::Ed25519Signature;
 
-pub type VotingPurpose = u64;
+pub type CIP36VotingPurpose = u64;
 
-pub type Weight = u32;
+pub type CIP36Weight = u32;
 
 /// Weighted delegation input.
 /// This is the proportion of weight to assign to this public key relative to the weights
 /// of all other Delegations where this is used.
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Delegation {
-    pub voting_pub_key: VotingPubKey,
-    pub weight: Weight,
+pub struct CIP36Delegation {
+    pub voting_pub_key: CIP36VotingPubKey,
+    pub weight: CIP36Weight,
     #[serde(skip)]
-    pub encodings: Option<DelegationEncoding>,
+    pub encodings: Option<CIP36DelegationEncoding>,
 }
 
-impl Delegation {
-    pub fn new(voting_pub_key: VotingPubKey, weight: Weight) -> Self {
+impl CIP36Delegation {
+    pub fn new(voting_pub_key: CIP36VotingPubKey, weight: CIP36Weight) -> Self {
         Self {
             voting_pub_key,
             weight,
@@ -67,23 +67,23 @@ impl Delegation {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub enum DelegationDistribution {
+pub enum CIP36DelegationDistribution {
     Weighted {
-        delegations: Vec<Delegation>,
+        delegations: Vec<CIP36Delegation>,
         #[serde(skip)]
         delegations_encoding: LenEncoding,
     },
     Legacy {
-        legacy: LegacyKeyRegistration,
+        legacy: CIP36LegacyKeyRegistration,
         #[serde(skip)]
         legacy_encoding: StringEncoding,
     },
 }
 
-impl DelegationDistribution {
+impl CIP36DelegationDistribution {
     /// Create a new delegations delegation. Weights are relative to all others and will be rounded down.
     /// Leftover ADA will be delegated to the last item in the array.
-    pub fn new_weighted(delegations: Vec<Delegation>) -> Self {
+    pub fn new_weighted(delegations: Vec<CIP36Delegation>) -> Self {
         Self::Weighted {
             delegations,
             delegations_encoding: LenEncoding::default(),
@@ -91,7 +91,7 @@ impl DelegationDistribution {
     }
 
     /// Delegate to a single key i.e. CIP-15.
-    pub fn new_legacy(legacy: LegacyKeyRegistration) -> Self {
+    pub fn new_legacy(legacy: CIP36LegacyKeyRegistration) -> Self {
         Self::Legacy {
             legacy,
             legacy_encoding: StringEncoding::default(),
@@ -102,20 +102,20 @@ impl DelegationDistribution {
 /// This is the entire metadata schema for CIP-36 deregistration.
 /// It can be parsed by passing in the CBOR bytes of the entire transaction metadatum
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct DeregistrationCbor {
-    pub key_deregistration: KeyDeregistration,
-    pub deregistration_witness: DeregistrationWitness,
+pub struct CIP36DeregistrationCbor {
+    pub key_deregistration: CIP36KeyDeregistration,
+    pub deregistration_witness: CIP36DeregistrationWitness,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct DeregistrationWitness {
-    pub stake_witness: StakeWitness,
+pub struct CIP36DeregistrationWitness {
+    pub stake_witness: CIP36StakeWitness,
     #[serde(skip)]
-    pub encodings: Option<DeregistrationWitnessEncoding>,
+    pub encodings: Option<CIP36DeregistrationWitnessEncoding>,
 }
 
-impl DeregistrationWitness {
-    pub fn new(stake_witness: StakeWitness) -> Self {
+impl CIP36DeregistrationWitness {
+    pub fn new(stake_witness: CIP36StakeWitness) -> Self {
         Self {
             stake_witness,
             encodings: None,
@@ -124,42 +124,42 @@ impl DeregistrationWitness {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct KeyDeregistration {
-    pub stake_credential: StakeCredential,
-    pub nonce: Nonce,
-    pub voting_purpose: VotingPurpose,
+pub struct CIP36KeyDeregistration {
+    pub stake_credential: CIP36StakeCredential,
+    pub nonce: CIP36Nonce,
+    pub voting_purpose: CIP36VotingPurpose,
     #[serde(skip)]
-    pub encodings: Option<KeyDeregistrationEncoding>,
+    pub encodings: Option<CIP36KeyDeregistrationEncoding>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct KeyRegistration {
-    pub delegation: DelegationDistribution,
-    pub stake_credential: StakeCredential,
+pub struct CIP36KeyRegistration {
+    pub delegation: CIP36DelegationDistribution,
+    pub stake_credential: CIP36StakeCredential,
     pub payment_address: Address,
-    pub nonce: Nonce,
-    pub voting_purpose: VotingPurpose,
+    pub nonce: CIP36Nonce,
+    pub voting_purpose: CIP36VotingPurpose,
     #[serde(skip)]
-    pub encodings: Option<KeyRegistrationEncoding>,
+    pub encodings: Option<CIP36KeyRegistrationEncoding>,
 }
 
 /// This is the entire metadata schema for CIP-36 registration.
 /// It can be parsed by passing in the CBOR bytes of the entire transaction metadatum
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct RegistrationCbor {
-    pub key_registration: KeyRegistration,
-    pub registration_witness: RegistrationWitness,
+pub struct CIP36RegistrationCbor {
+    pub key_registration: CIP36KeyRegistration,
+    pub registration_witness: CIP36RegistrationWitness,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct RegistrationWitness {
-    pub stake_witness: StakeWitness,
+pub struct CIP36RegistrationWitness {
+    pub stake_witness: CIP36StakeWitness,
     #[serde(skip)]
-    pub encodings: Option<RegistrationWitnessEncoding>,
+    pub encodings: Option<CIP36RegistrationWitnessEncoding>,
 }
 
-impl RegistrationWitness {
-    pub fn new(stake_witness: StakeWitness) -> Self {
+impl CIP36RegistrationWitness {
+    pub fn new(stake_witness: CIP36StakeWitness) -> Self {
         Self {
             stake_witness,
             encodings: None,
@@ -207,9 +207,9 @@ mod tests {
             178, 68, 6, 83, 163, 77, 50, 33, 156, 131, 233,
         ])
         .unwrap();
-        let legacy_reg = KeyRegistration::new(
-            DelegationDistribution::new_legacy(
-                LegacyKeyRegistration::from_raw_bytes(&[
+        let legacy_reg = CIP36KeyRegistration::new(
+            CIP36DelegationDistribution::new_legacy(
+                CIP36LegacyKeyRegistration::from_raw_bytes(&[
                     0, 54, 239, 62, 31, 13, 63, 89, 137, 226, 209, 85, 234, 84, 189, 178, 167, 44,
                     76, 69, 108, 203, 149, 154, 244, 201, 72, 104, 244, 115, 245, 160,
                 ])
@@ -236,9 +236,9 @@ mod tests {
             233,
         ])
         .unwrap();
-        let weighted_reg = KeyRegistration::new(
-            DelegationDistribution::new_weighted(vec![Delegation::new(
-                VotingPubKey::from_raw_bytes(&[
+        let weighted_reg = CIP36KeyRegistration::new(
+            CIP36DelegationDistribution::new_weighted(vec![CIP36Delegation::new(
+                CIP36VotingPubKey::from_raw_bytes(&[
                     0, 54, 239, 62, 31, 13, 63, 89, 137, 226, 209, 85, 234, 84, 189, 178, 167, 44,
                     76, 69, 108, 203, 149, 154, 244, 201, 72, 104, 244, 115, 245, 160,
                 ])

@@ -15,12 +15,12 @@ pub fn export_schemas() {
     if !schema_path.exists() {
         std::fs::create_dir(schema_path).unwrap();
     }
-    gen_json_schema!(cml_cip36::Delegation);
-    gen_json_schema!(cml_cip36::DelegationDistribution);
-    gen_json_schema!(cml_cip36::DeregistrationCbor);
-    gen_json_schema!(cml_cip36::DeregistrationWitness);
-    gen_json_schema!(cml_cip36::KeyDeregistration);
-    gen_json_schema!(cml_cip36::KeyRegistration);
-    gen_json_schema!(cml_cip36::RegistrationCbor);
-    gen_json_schema!(cml_cip36::RegistrationWitness);
+    gen_json_schema!(cml_cip36::CIP36Delegation);
+    gen_json_schema!(cml_cip36::CIP36DelegationDistribution);
+    gen_json_schema!(cml_cip36::CIP36DeregistrationCbor);
+    gen_json_schema!(cml_cip36::CIP36DeregistrationWitness);
+    gen_json_schema!(cml_cip36::CIP36KeyDeregistration);
+    gen_json_schema!(cml_cip36::CIP36KeyRegistration);
+    gen_json_schema!(cml_cip36::CIP36RegistrationCbor);
+    gen_json_schema!(cml_cip36::CIP36RegistrationWitness);
 }

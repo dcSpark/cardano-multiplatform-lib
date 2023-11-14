@@ -17,9 +17,9 @@ pub fn export_schemas() {
     }
     gen_json_schema!(cml_cip25::CIP25Metadata);
     gen_json_schema!(cml_cip25::CIP25Version);
-    gen_json_schema!(cml_cip25::ChunkableString);
-    gen_json_schema!(cml_cip25::FilesDetails);
-    gen_json_schema!(cml_cip25::LabelMetadata);
-    gen_json_schema!(cml_cip25::MetadataDetails);
-    gen_json_schema!(cml_cip25::String64);
+    gen_json_schema!(cml_cip25::CIP25ChunkableString);
+    gen_json_schema!(cml_cip25::CIP25FilesDetails);
+    gen_json_schema!(cml_cip25::CIP25LabelMetadata);
+    gen_json_schema!(cml_cip25::CIP25MetadataDetails);
+    gen_json_schema!(cml_cip25::CIP25String64);
 }

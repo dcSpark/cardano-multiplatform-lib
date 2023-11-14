@@ -12,11 +12,11 @@ use wasm_bindgen::JsError;
 use std::convert::{TryFrom, TryInto};
 
 use super::{
-    DelegationDistribution, DeregistrationCbor, KeyDeregistration, KeyRegistration, Nonce,
-    RegistrationCbor, StakeCredential,
+    CIP36DelegationDistribution, CIP36DeregistrationCbor, CIP36KeyDeregistration,
+    CIP36KeyRegistration, CIP36Nonce, CIP36RegistrationCbor, CIP36StakeCredential,
 };
 
-impl DeregistrationCbor {
+impl CIP36DeregistrationCbor {
     /// Add to an existing metadata (could be empty) the full CIP36 deregistration metadata
     pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), JsError> {
         self.0
@@ -37,15 +37,15 @@ impl DeregistrationCbor {
     }
 
     /// Create a CIP36 view from the bytes of a Metadata.
-    /// The resulting DeregistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
+    /// The resulting CIP36DeregistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
     pub fn from_metadata_bytes(metadata_cbor_bytes: &[u8]) -> Result<Self, DeserializeError> {
-        cml_cip36::DeregistrationCbor::from_metadata_bytes(metadata_cbor_bytes)
+        cml_cip36::CIP36DeregistrationCbor::from_metadata_bytes(metadata_cbor_bytes)
             .map(Into::into)
             .map_err(Into::into)
     }
 
-    pub fn try_from_metadata(metadata: &Metadata) -> Result<DeregistrationCbor, JsError> {
-        cml_cip36::DeregistrationCbor::try_from(metadata.as_ref())
+    pub fn try_from_metadata(metadata: &Metadata) -> Result<CIP36DeregistrationCbor, JsError> {
+        cml_cip36::CIP36DeregistrationCbor::try_from(metadata.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }
@@ -57,15 +57,15 @@ impl DeregistrationCbor {
     }
 }
 
-impl KeyDeregistration {
-    /// Creates a new KeyDeregistration. You must then sign self.hash_to_sign() to make a `DeregistrationWitness`.
+impl CIP36KeyDeregistration {
+    /// Creates a new CIP36KeyDeregistration. You must then sign self.hash_to_sign() to make a `DeregistrationWitness`.
     ///
     /// # Arguments
     ///
     /// * `stake_credential` - stake address for the network that this transaction is submitted to (to point to the Ada that was being delegated).
     /// * `nonce` - Monotonically rising across all transactions with the same staking key. Recommended to just use the slot of this tx.
-    pub fn new(stake_credential: &StakeCredential, nonce: Nonce) -> Self {
-        Self(cml_cip36::KeyDeregistration::new(
+    pub fn new(stake_credential: &CIP36StakeCredential, nonce: CIP36Nonce) -> Self {
+        Self(cml_cip36::CIP36KeyDeregistration::new(
             stake_credential.clone().into(),
             nonce,
         ))
@@ -81,8 +81,8 @@ impl KeyDeregistration {
     }
 }
 
-impl KeyRegistration {
-    /// Creates a new KeyRegistration. You must then sign self.hash_to_sign() to make a `RegistrationWitness`.
+impl CIP36KeyRegistration {
+    /// Creates a new CIP36KeyRegistration. You must then sign self.hash_to_sign() to make a `RegistrationWitness`.
     ///
     /// # Arguments
     ///
@@ -91,12 +91,12 @@ impl KeyRegistration {
     /// * `payment_address` - Shelley oayment address discriminated for the same network this transaction is submitted to for receiving awairds.
     /// * `nonce` - Monotonically rising across all transactions with the same staking key. Recommended to just use the slot of this tx.
     pub fn new(
-        delegation: &DelegationDistribution,
-        stake_credential: &StakeCredential,
+        delegation: &CIP36DelegationDistribution,
+        stake_credential: &CIP36StakeCredential,
         payment_address: &Address,
-        nonce: Nonce,
+        nonce: CIP36Nonce,
     ) -> Self {
-        Self(cml_cip36::KeyRegistration::new(
+        Self(cml_cip36::CIP36KeyRegistration::new(
             delegation.clone().into(),
             stake_credential.clone().into(),
             payment_address.clone().into(),
@@ -114,7 +114,7 @@ impl KeyRegistration {
     }
 }
 
-impl RegistrationCbor {
+impl CIP36RegistrationCbor {
     /// Add to an existing metadata (could be empty) the full CIP36 registration metadata
     pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), JsError> {
         self.0
@@ -140,15 +140,15 @@ impl RegistrationCbor {
     }
 
     /// Create a CIP36 view from the bytes of a Metadata.
-    /// The resulting RegistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
+    /// The resulting CIP36RegistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
     pub fn from_metadata_bytes(metadata_cbor_bytes: &[u8]) -> Result<Self, JsError> {
-        cml_cip36::RegistrationCbor::from_metadata_bytes(metadata_cbor_bytes)
+        cml_cip36::CIP36RegistrationCbor::from_metadata_bytes(metadata_cbor_bytes)
             .map(Into::into)
             .map_err(Into::into)
     }
 
-    pub fn try_from_metadata(metadata: &Metadata) -> Result<RegistrationCbor, JsError> {
-        cml_cip36::RegistrationCbor::try_from(metadata.as_ref())
+    pub fn try_from_metadata(metadata: &Metadata) -> Result<CIP36RegistrationCbor, JsError> {
+        cml_cip36::CIP36RegistrationCbor::try_from(metadata.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }

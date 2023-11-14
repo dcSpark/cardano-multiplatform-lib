@@ -1,5 +1,5 @@
 [package]
-name = "cip25-json-schema-gen"
+name = "cml-cip25-json-schema-gen"
 version = "0.0.1"
 edition = "2018"
 keywords = ["cardano"]

@@ -54,14 +54,14 @@ jobs:
           args: --workspace --all-features --all-targets -- --deny "clippy::all"
       - name: all:test
         run: cargo test
-      - name: chain:install
-        working-directory: chain/wasm
+      - name: cml:install
+        working-directory: cml/wasm
         run: npm install
-      - name: chain:rust:build-nodejs
-        working-directory: chain/wasm
+      - name: cml:rust:build-nodejs
+        working-directory: cml/wasm
         run: npm run rust:build-nodejs
-      - name: chain:rust:build-browser
-        working-directory: chain/wasm
+      - name: cml:rust:build-browser
+        working-directory: cml/wasm
         run: npm run rust:build-browser
       - name: multi-era:install
         working-directory: multi-era/wasm
@@ -71,22 +71,4 @@ jobs:
         run: npm run rust:build-nodejs
       - name: multi-era:rust:build-browser
         working-directory: multi-era/wasm
-        run: npm run rust:build-browser
-      - name: cip25:install
-        working-directory: cip25/wasm
-        run: npm install
-      - name: cip25:rust:build-nodejs
-        working-directory: cip25/wasm
-        run: npm run rust:build-nodejs
-      - name: cip25:rust:build-browser
-        working-directory: cip25/wasm
-        run: npm run rust:build-browser
-      - name: cip36:install
-        working-directory: cip36/wasm
-        run: npm install
-      - name: cip36:rust:build-nodejs
-        working-directory: cip36/wasm
-        run: npm run rust:build-nodejs
-      - name: cip36:rust:build-browser
-        working-directory: cip36/wasm
         run: npm run rust:build-browser

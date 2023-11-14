@@ -18,6 +18,9 @@ chain/rust/Cargo.lock
 chain/wasm/target/**
 chain/wasm/Cargo.lock
 chain/wasm/pkg/**
+chain/wasm/json-gen/target/**
+chain/wasm/json-gen/output/**
+chain/wasm/json-gen/schemas/**
 
 cip25/rust/target/**
 cip25/rust/Cargo.lock
@@ -25,6 +28,8 @@ cip25/wasm/target/**
 cip25/wasm/Cargo.lock
 cip25/wasm/pkg/**
 cip25/wasm/json-gen/target/**
+cip25/wasm/json-gen/output/**
+cip25/wasm/json-gen/schemas/**
 
 cip36/rust/target/**
 cip36/rust/Cargo.lock
@@ -32,6 +37,8 @@ cip36/wasm/target/**
 cip36/wasm/Cargo.lock
 cip36/wasm/pkg/**
 cip36/wasm/json-gen/target/**
+cip36/wasm/json-gen/output/**
+cip36/wasm/json-gen/schemas/**
 
 core/rust/target/**
 core/rust/Cargo.lock
@@ -45,8 +52,22 @@ crypto/wasm/target/**
 crypto/wasm/Cargo.lock
 crypto/wasm/pkg/**
 
-tools/metadata-cddl-checker/Cargo.lock
+multi-era/rust/target/**
+multi-era/rust/Cargo.lock
+multi-era/wasm/target/**
+multi-era/wasm/Cargo.lock
+multi-era/wasm/pkg/**
+multi-era/wasm/json-gen/target/**
+multi-era/wasm/json-gen/output/**
+multi-era/wasm/json-gen/schemas/**
+multi-era/wasm/node_modules/**
 
+cml/wasm/json-gen/target/**
+cml/wasm/json-gen/output/**
+cml/wasm/json-gen/schemas/**
+cml/wasm/node_modules/**
+
+tools/metadata-cddl-checker/Cargo.lock
 
 # Docs
 docs/node_modules/
@@ -54,4 +75,3 @@ docs/.docusaurus/
 
 # Examples
 examples/wasm-browser/node_modules/
-

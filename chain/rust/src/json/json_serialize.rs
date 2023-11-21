@@ -632,7 +632,7 @@ mod tests {
 
     fn generate_array_of_primitives() -> Vec<Value> {
         let mut cml_arr = vec![Value::Null];
-        cml_arr.extend(vec![true, false].into_iter().map(|b| Value::Bool(b)));
+        cml_arr.extend(vec![true, false].into_iter().map(Value::Bool));
         cml_arr.extend(
             vec![0, u64::MAX]
                 .into_iter()
@@ -653,20 +653,12 @@ mod tests {
 
     fn generate_array_of_primitives_serde_json() -> Vec<serde_json::Value> {
         let mut serde_arr = vec![serde_json::Value::Null];
-        serde_arr.extend(
-            vec![true, false]
-                .into_iter()
-                .map(|b| serde_json::Value::Bool(b)),
-        );
-        serde_arr.extend(
-            vec![0, u64::MAX]
-                .into_iter()
-                .map(|integer| serde_json::Value::from(integer)),
-        );
+        serde_arr.extend(vec![true, false].into_iter().map(serde_json::Value::Bool));
+        serde_arr.extend(vec![0, u64::MAX].into_iter().map(serde_json::Value::from));
         serde_arr.extend(
             vec![0, i64::MAX, i64::MIN]
                 .into_iter()
-                .map(|integer| serde_json::Value::from(integer)),
+                .map(serde_json::Value::from),
         );
         serde_arr.extend(
             vec!["supported_string", ""]
@@ -679,7 +671,7 @@ mod tests {
     // serde_json::Value didn't support big integers like that
     fn generate_array_of_primitives_with_unsupported() -> Vec<Value> {
         let mut cml_arr = vec![Value::Null];
-        cml_arr.extend(vec![true, false].into_iter().map(|b| Value::Bool(b)));
+        cml_arr.extend(vec![true, false].into_iter().map(Value::Bool));
         cml_arr.extend(
             vec![0, u64::MAX]
                 .into_iter()
@@ -696,7 +688,7 @@ mod tests {
                 BigInt::from_str("-980949788381070983313748912887").unwrap(),
             ]
             .into_iter()
-            .map(|integer| Value::Number(integer)),
+            .map(Value::Number),
         );
         cml_arr.extend(
             vec!["supported_string", ""]
@@ -746,7 +738,7 @@ mod tests {
             (local.to_string(), Value::Array(arr))
         }));
 
-        BTreeMap::from_iter(cml_map.into_iter())
+        BTreeMap::from_iter(cml_map)
     }
 
     fn generate_map_unsupported() -> BTreeMap<String, Value> {
@@ -809,7 +801,7 @@ mod tests {
                 }),
         );
 
-        serde_json::Value::Object(serde_json::Map::from_iter(serde_map.into_iter()))
+        serde_json::Value::Object(serde_json::Map::from_iter(serde_map))
     }
 
     #[test]

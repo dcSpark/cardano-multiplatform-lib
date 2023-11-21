@@ -330,7 +330,7 @@ mod tests {
                 let script = PlutusScript::PlutusV1(PlutusV1Script::new(vec![0]));
                 PartialPlutusWitness {
                     script: PlutusScriptWitness::Script(script),
-                    redeemer: PlutusData::new_big_int(0u64.into()),
+                    redeemer: PlutusData::new_integer(0u64.into()),
                 }
             };
             let missing_signers = vec![fake_raw_key_public(0).hash()];

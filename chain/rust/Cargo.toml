@@ -29,6 +29,7 @@ num-integer = "0.1.45"
 #rand_os = "0.1"
 thiserror = "1.0.37"
 num = "0.4"
+unicode-segmentation = "1.10.1"
 # These can be removed if we make wasm bindings for ALL functionality here.
 # This was not done right now as there is a lot of existing legacy code e.g.
 # for Byron that might need to be used from WASM and might not.

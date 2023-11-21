@@ -18,7 +18,7 @@ plutus_data =
     constr_plutus_data
   / { * plutus_data => plutus_data } ; @name map
   / [ * plutus_data ] ; @name list
-  / big_int
+  / big_int ; @name integer
   / bounded_bytes ; @name bytes
 
 big_int = _CDDL_CODEGEN_EXTERN_TYPE_

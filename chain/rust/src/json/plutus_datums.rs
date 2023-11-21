@@ -1,3 +1,13 @@
+use crate::{
+    json::json_serialize::{JsonParseError, Value as JSONValue},
+    plutus::{ConstrPlutusData, PlutusData, PlutusMap},
+    utils::BigInt,
+};
+use std::collections::BTreeMap;
+use std::str::FromStr;
+
+use wasm_bindgen::prelude::wasm_bindgen;
+
 /// JSON <-> PlutusData conversion schemas.
 /// Follows ScriptDataJsonSchema in cardano-cli defined at:
 /// https://github.com/input-output-hk/cardano-node/blob/master/cardano-api/src/Cardano/Api/ScriptData.hs#L254
@@ -9,7 +19,7 @@
 ///      on either side when tested so proceed with caution
 #[wasm_bindgen]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum PlutusDatumSchema {
+pub enum CardanoNodePlutusDatumSchema {
     /// ScriptDataJsonNoSchema in cardano-node.
     ///
     /// This is the format used by --script-data-value in cardano-cli
@@ -24,14 +34,14 @@ pub enum PlutusDatumSchema {
     ////
     BasicConversions,
     /// ScriptDataJsonDetailedSchema in cardano-node.
-    /// 
+    ///
     /// This is the format used by --script-data-file in cardano-cli
     /// This covers almost all (only minor exceptions) Plutus datums, but the JSON must conform to a strict schema.
     /// The schema specifies that ALL keys and ALL values must be contained in a JSON map with 2 cases:
     /// 1. For ConstrPlutusData there must be two fields "constructor" contianing a number and "fields" containing its fields
     ///    e.g. { "constructor": 2, "fields": [{"int": 2}, {"list": [{"bytes": "CAFEF00D"}]}]}
     /// 2. For all other cases there must be only one field named "int", "bytes", "list" or "map"
-    ///    Integer's value is a JSON number e.g. {"int": 100}
+    ///    BigInt's value is a JSON number e.g. {"int": 100}
     ///    Bytes' value is a hex string representing the bytes WITHOUT any prefix e.g. {"bytes": "CAFEF00D"}
     ///    Lists' value is a JSON list of its elements encoded via the same schema e.g. {"list": [{"bytes": "CAFEF00D"}]}
     ///    Maps' value is a JSON list of objects, one for each key-value pair in the map, with keys "k" and "v"
@@ -49,228 +59,277 @@ pub enum PlutusDatumSchema {
     DetailedSchema,
 }
 
-#[wasm_bindgen]
-pub fn encode_json_str_to_plutus_datum(json: &str, schema: PlutusDatumSchema) -> Result<PlutusData, JsError> {
-    let value = json_serialize::Value::from_string(json.to_string())?;
+#[derive(Debug, thiserror::Error)]
+pub enum PlutusJsonError {
+    #[error("JSON Parsing: {0}")]
+    JsonParse(#[from] JsonParseError),
+    #[error("JSON printing: {0}")]
+    JsonPrinting(#[from] serde_json::Error),
+    #[error("null not allowed in plutus datums")]
+    NullFound,
+    #[error("bools not allowed in plutus datums")]
+    BoolFound,
+    #[error(
+        "DetailedSchema requires ALL JSON to be tagged objects, found: {:?}",
+        0
+    )]
+    DetailedNonObject(JSONValue),
+    #[error("Hex byte strings in detailed schema should NOT start with 0x and should just contain the hex characters")]
+    DetailedHexWith0x,
+    #[error("DetailedSchema key {0} does not match type {1:?}")]
+    DetailedKeyMismatch(String, JSONValue),
+    #[error("Invalid hex string: {0}")]
+    InvalidHex(#[from] hex::FromHexError),
+    #[error("entry format in detailed schema map object not correct. Needs to be of form {{\"k\": {{\"key_type\": key}}, \"v\": {{\"value_type\", value}}}}")]
+    InvalidMapEntry,
+    #[error("key '{0}' in tagged object not valid")]
+    InvalidTag(String),
+    #[error("Key requires DetailedSchema: {:?}", 0)]
+    DetailedKeyInBasicSchema(PlutusData),
+    #[error("detailed schemas must either have only one of the following keys: \"int\", \"bytes\", \"list\" or \"map\", or both of these 2 keys: \"constructor\" + \"fields\"")]
+    InvalidTaggedConstructor,
+}
+
+pub fn encode_json_str_to_plutus_datum(
+    json: &str,
+    schema: CardanoNodePlutusDatumSchema,
+) -> Result<PlutusData, PlutusJsonError> {
+    let value = JSONValue::from_string(json.to_string())?;
     encode_json_value_to_plutus_datum(value, schema)
 }
 
-pub fn encode_json_value_to_plutus_datum(value: json_serialize::Value, schema: PlutusDatumSchema) -> Result<PlutusData, JsError> {
-    fn encode_string(s: &str, schema: PlutusDatumSchema, is_key: bool) -> Result<PlutusData, JsError> {
-        if schema == PlutusDatumSchema::BasicConversions {
-            if s.starts_with("0x") {
+pub fn encode_json_value_to_plutus_datum(
+    value: JSONValue,
+    schema: CardanoNodePlutusDatumSchema,
+) -> Result<PlutusData, PlutusJsonError> {
+    fn encode_string(
+        s: &str,
+        schema: CardanoNodePlutusDatumSchema,
+        is_key: bool,
+    ) -> Result<PlutusData, PlutusJsonError> {
+        if schema == CardanoNodePlutusDatumSchema::BasicConversions {
+            if let Some(stripped) = s.strip_prefix("0x") {
                 // this must be a valid hex bytestring after
-                hex::decode(&s[2..])
-                    .map(|bytes| PlutusData::new_bytes(bytes))
-                    .map_err(|err| JsError::from_str(&format!("Error decoding {}: {}", s, err)))
+                hex::decode(stripped)
+                    .map(PlutusData::new_bytes)
+                    .map_err(Into::into)
             } else if is_key {
                 // try as an integer
-                BigInt::from_str(s)
-                    .map(|x| PlutusData::new_integer(&x))
-                // if not, we use the utf8 bytes of the string instead directly
-                    .or_else(|_err| Ok(PlutusData::new_bytes(s.as_bytes().to_vec())))
+                match BigInt::from_str(s) {
+                    Ok(x) => Ok(PlutusData::new_integer(x)),
+                    // if not, we use the utf8 bytes of the string instead directly
+                    Err(_err) => Ok(PlutusData::new_bytes(s.as_bytes().to_vec())),
+                }
             } else {
                 // can only be UTF bytes if not in a key and not prefixed by 0x
                 Ok(PlutusData::new_bytes(s.as_bytes().to_vec()))
             }
+        } else if s.starts_with("0x") {
+            Err(PlutusJsonError::DetailedHexWith0x)
         } else {
-            if s.starts_with("0x") {
-                Err(JsError::from_str("Hex byte strings in detailed schema should NOT start with 0x and should just contain the hex characters"))
-            } else {
-                hex::decode(s)
-                    .map(|bytes| PlutusData::new_bytes(bytes))
-                    .map_err(|e| JsError::from_str(&e.to_string()))
-            }
+            hex::decode(s)
+                .map(PlutusData::new_bytes)
+                .map_err(Into::into)
         }
     }
-    fn encode_array(json_arr: Vec<json_serialize::Value>, schema: PlutusDatumSchema) -> Result<PlutusData, JsError> {
-        let mut arr = PlutusList::new();
+    fn encode_array(
+        json_arr: Vec<JSONValue>,
+        schema: CardanoNodePlutusDatumSchema,
+    ) -> Result<PlutusData, PlutusJsonError> {
+        let mut arr = Vec::new();
         for value in json_arr {
-            arr.add(&encode_json_value_to_plutus_datum(value, schema)?);
+            arr.push(encode_json_value_to_plutus_datum(value, schema)?);
         }
-        Ok(PlutusData::new_list(&arr))
+        Ok(PlutusData::new_list(arr))
     }
     match schema {
-        PlutusDatumSchema::BasicConversions => match value {
-            json_serialize::Value::Null => Err(JsError::from_str("null not allowed in plutus datums")),
-            json_serialize::Value::Bool(_) => Err(JsError::from_str("bools not allowed in plutus datums")),
-            json_serialize::Value::Number(x) => Ok(PlutusData::new_integer(&x)),
+        CardanoNodePlutusDatumSchema::BasicConversions => match value {
+            JSONValue::Null => Err(PlutusJsonError::NullFound),
+            JSONValue::Bool(_) => Err(PlutusJsonError::BoolFound),
+            JSONValue::Number(x) => Ok(PlutusData::new_integer(x)),
             // no strings in plutus so it's all bytes (as hex or utf8 printable)
-            json_serialize::Value::String(s) => encode_string(&s, schema, false),
-            json_serialize::Value::Array(json_arr) => encode_array(json_arr, schema),
-            json_serialize::Value::Object(json_obj) => {
+            JSONValue::String(s) => encode_string(&s, schema, false),
+            JSONValue::Array(json_arr) => encode_array(json_arr, schema),
+            JSONValue::Object(json_obj) => {
                 let mut map = PlutusMap::new();
                 for (raw_key, raw_value) in json_obj {
                     let key = encode_string(&raw_key, schema, true)?;
                     let value = encode_json_value_to_plutus_datum(raw_value, schema)?;
-                    map.insert(&key, &value);
+                    map.set(key, value);
                 }
-                Ok(PlutusData::new_map(&map))
-            },
+                Ok(PlutusData::new_map(map))
+            }
         },
-        PlutusDatumSchema::DetailedSchema => match value {
-            json_serialize::Value::Object(obj) => {
+        CardanoNodePlutusDatumSchema::DetailedSchema => match value {
+            JSONValue::Object(obj) => {
                 if obj.len() == 1 {
                     // all variants except tagged constructors
                     let (k, v) = obj.into_iter().next().unwrap();
-                    fn tag_mismatch() -> JsError {
-                        JsError::from_str("key does not match type")
-                    }
                     match k.as_str() {
                         "int" => match v {
-                            json_serialize::Value::Number(x) => Ok(PlutusData::new_integer(&x)),
-                            _ => Err(tag_mismatch()),
+                            JSONValue::Number(x) => Ok(PlutusData::new_integer(x)),
+                            _ => Err(PlutusJsonError::DetailedKeyMismatch(k, v)),
                         },
                         "bytes" => match v {
-                            json_serialize::Value::String(s) => encode_string(&s, schema, false),
-                            _ => Err(tag_mismatch()),
+                            JSONValue::String(s) => encode_string(&s, schema, false),
+                            _ => Err(PlutusJsonError::DetailedKeyMismatch(k, v)),
                         },
                         "list" => match v {
-                            json_serialize::Value::Array(arr) => encode_array(arr, schema),
-                            _ => Err(tag_mismatch()),
+                            JSONValue::Array(arr) => encode_array(arr, schema),
+                            _ => Err(PlutusJsonError::DetailedKeyMismatch(k, v)),
                         },
                         "map" => {
                             let mut map = PlutusMap::new();
-                            fn map_entry_err() -> JsError {
-                                JsError::from_str("entry format in detailed schema map object not correct. Needs to be of form {\"k\": {\"key_type\": key}, \"v\": {\"value_type\", value}}")
-                            }
                             let array = match v {
-                                json_serialize::Value::Array(array) => Ok(array),
-                               _ => Err(tag_mismatch()),
+                                JSONValue::Array(array) => Ok(array),
+                                _ => Err(PlutusJsonError::DetailedKeyMismatch(k, v)),
                             }?;
 
                             for entry in array {
-
                                 let entry_obj = match entry {
-                                    json_serialize::Value::Object(obj) => Ok(obj),
-                                    _ => Err(map_entry_err()),
+                                    JSONValue::Object(obj) => Ok(obj),
+                                    _ => Err(PlutusJsonError::InvalidMapEntry),
                                 }?;
-                                let raw_key = entry_obj
-                                    .get("k")
-                                    .ok_or_else(map_entry_err)?;
-                                let value = entry_obj
-                                    .get("v")
-                                    .ok_or_else(map_entry_err)?;
-                                let key = encode_json_value_to_plutus_datum(raw_key.clone(), schema)?;
-                                map.insert(&key, &encode_json_value_to_plutus_datum(value.clone(), schema)?);
+                                let raw_key =
+                                    entry_obj.get("k").ok_or(PlutusJsonError::InvalidMapEntry)?;
+                                let value =
+                                    entry_obj.get("v").ok_or(PlutusJsonError::InvalidMapEntry)?;
+                                let key =
+                                    encode_json_value_to_plutus_datum(raw_key.clone(), schema)?;
+                                map.set(
+                                    key,
+                                    encode_json_value_to_plutus_datum(value.clone(), schema)?,
+                                );
                             }
-                            Ok(PlutusData::new_map(&map))
-                        },
-                        invalid_key => Err(JsError::from_str(&format!("key '{}' in tagged object not valid", invalid_key))),
+                            Ok(PlutusData::new_map(map))
+                        }
+                        _invalid_key => Err(PlutusJsonError::InvalidTag(k)),
                     }
                 } else {
                     // constructor with tagged variant
-                    if obj.len() != 2 {
-                        return Err(JsError::from_str("detailed schemas must either have only one of the following keys: \"int\", \"bytes\", \"list\" or \"map\", or both of these 2 keys: \"constructor\" + \"fields\""));
-                    }
-                    let variant: BigNum = obj
-                        .get("constructor")
-                        .and_then(|v|
-                            match v {
-                                json_serialize::Value::Number(number) => {
-                                    number.as_u64()
-                                }
-                                _ => None
+                    let variant = obj.get("constructor").and_then(|v| match v {
+                        JSONValue::Number(number) => number.as_u64(),
+                        _ => None,
+                    });
+                    let fields_json = obj.get("fields").and_then(|f| match f {
+                        JSONValue::Array(arr) => Some(arr),
+                        _ => None,
+                    });
+                    match (obj.len(), variant, fields_json) {
+                        (2, Some(variant), Some(fields_json)) => {
+                            let mut fields = Vec::new();
+                            for field_json in fields_json {
+                                let field =
+                                    encode_json_value_to_plutus_datum(field_json.clone(), schema)?;
+                                fields.push(field);
                             }
-                        )
-                        .ok_or_else(|| JsError::from_str("tagged constructors must contain an unsigned integer called \"constructor\""))?;
-                    let fields_json = obj
-                        .get("fields")
-                        .and_then(|f| match f {
-                            json_serialize::Value::Array(arr) => {
-                                Some(arr)
-                            }
-                            _ => None
-                        })
-                        .ok_or_else(|| JsError::from_str("tagged constructors must contian a list called \"fields\""))?;
-                    let mut fields = PlutusList::new();
-                    for field_json in fields_json {
-                        let field = encode_json_value_to_plutus_datum(field_json.clone(), schema)?;
-                        fields.add(&field);
+                            Ok(PlutusData::new_constr_plutus_data(ConstrPlutusData::new(
+                                variant, fields,
+                            )))
+                        }
+                        _ => Err(PlutusJsonError::InvalidTaggedConstructor),
                     }
-                    Ok(PlutusData::new_constr_plutus_data(&ConstrPlutusData::new(&variant, &fields)))
                 }
-            },
-            _ => Err(JsError::from_str(&format!("DetailedSchema requires ALL JSON to be tagged objects, found: {:?}", value))),
+            }
+            _ => Err(PlutusJsonError::DetailedNonObject(value)),
         },
     }
 }
 
-#[wasm_bindgen]
-pub fn decode_plutus_datum_to_json_str(datum: &PlutusData, schema: PlutusDatumSchema) -> Result<String, JsError> {
-    let value = decode_plutus_datum_to_json_value(datum, schema)?;
-    value.to_string()
+pub fn decode_plutus_datum_to_json_str(
+    datum: &PlutusData,
+    schema: CardanoNodePlutusDatumSchema,
+) -> Result<String, PlutusJsonError> {
+    decode_plutus_datum_to_json_value(datum, schema).and_then(|v| v.to_string().map_err(Into::into))
 }
 
-pub fn decode_plutus_datum_to_json_value(datum: &PlutusData, schema: PlutusDatumSchema) -> Result<json_serialize::Value, JsError> {
-    use serde_json::Value;
-    use std::convert::TryFrom;
-    let (type_tag, json_value) = match &datum.datum {
-        PlutusDataEnum::ConstrPlutusData(constr) => {
+pub fn decode_plutus_datum_to_json_value(
+    datum: &PlutusData,
+    schema: CardanoNodePlutusDatumSchema,
+) -> Result<JSONValue, PlutusJsonError> {
+    let (type_tag, json_value) = match datum {
+        PlutusData::ConstrPlutusData(constr) => {
             let mut obj = BTreeMap::new();
             obj.insert(
                 String::from("constructor"),
-                json_serialize::Value::from(from_bignum(&constr.alternative))
+                JSONValue::from(constr.alternative),
             );
             let mut fields = Vec::new();
-            for field in constr.data.elems.iter() {
+            for field in constr.fields.iter() {
                 fields.push(decode_plutus_datum_to_json_value(field, schema)?);
             }
-            obj.insert(
-                String::from("fields"),
-                json_serialize::Value::from(fields)
-            );
-            (None, json_serialize::Value::from(obj))
+            obj.insert(String::from("fields"), JSONValue::from(fields));
+            (None, JSONValue::from(obj))
+        }
+        PlutusData::Map(map) => match schema {
+            CardanoNodePlutusDatumSchema::BasicConversions => (
+                None,
+                JSONValue::from(
+                    map.entries
+                        .iter()
+                        .map(|(key, value)| {
+                            let json_key: String = match key {
+                                PlutusData::ConstrPlutusData(_)
+                                | PlutusData::Map(_)
+                                | PlutusData::List { .. } => {
+                                    Err(PlutusJsonError::DetailedKeyInBasicSchema(key.clone()))
+                                }
+                                PlutusData::Integer(x) => Ok(x.to_string()),
+                                PlutusData::Bytes { bytes, .. } => String::from_utf8(bytes.clone())
+                                    .or_else(|_err| Ok(format!("0x{}", hex::encode(bytes)))),
+                            }?;
+                            let json_value = decode_plutus_datum_to_json_value(value, schema)?;
+                            Ok((json_key, json_value))
+                        })
+                        .collect::<Result<BTreeMap<String, JSONValue>, PlutusJsonError>>()?,
+                ),
+            ),
+            CardanoNodePlutusDatumSchema::DetailedSchema => (
+                Some("map"),
+                JSONValue::from(
+                    map.entries
+                        .iter()
+                        .map(|(key, value)| {
+                            let k = decode_plutus_datum_to_json_value(key, schema)?;
+                            let v = decode_plutus_datum_to_json_value(value, schema)?;
+                            let mut kv_obj = BTreeMap::new();
+                            kv_obj.insert(String::from("k"), k);
+                            kv_obj.insert(String::from("v"), v);
+                            Ok(JSONValue::from(kv_obj))
+                        })
+                        .collect::<Result<Vec<_>, PlutusJsonError>>()?,
+                ),
+            ),
         },
-        PlutusDataEnum::Map(map) => match schema {
-            PlutusDatumSchema::BasicConversions => (None, json_serialize::Value::from(map.0.iter().map(|(key, value)| {
-                let json_key: String = match &key.datum {
-                    PlutusDataEnum::ConstrPlutusData(_) => Err(JsError::from_str("plutus data constructors are not allowed as keys in this schema. Use DetailedSchema.")),
-                    PlutusDataEnum::Map(_) => Err(JsError::from_str("plutus maps are not allowed as keys in this schema. Use DetailedSchema.")),
-                    PlutusDataEnum::List(_) => Err(JsError::from_str("plutus lists are not allowed as keys in this schema. Use DetailedSchema.")),
-                    PlutusDataEnum::Integer(x) => Ok(x.to_str()),
-                    PlutusDataEnum::Bytes(bytes) => String::from_utf8(bytes.clone()).or_else(|_err| Ok(format!("0x{}", hex::encode(bytes))))
-                }?;
-                let json_value = decode_plutus_datum_to_json_value(value, schema)?;
-                Ok((json_key, json_value))
-            }).collect::<Result<BTreeMap<String, json_serialize::Value>, JsError>>()?)),
-            PlutusDatumSchema::DetailedSchema => (Some("map"), json_serialize::Value::from(map.0.iter().map(|(key, value)| {
-                let k = decode_plutus_datum_to_json_value(key, schema)?;
-                let v = decode_plutus_datum_to_json_value(value, schema)?;
-                let mut kv_obj = BTreeMap::new();
-                kv_obj.insert(String::from("k"), k);
-                kv_obj.insert(String::from("v"), v);
-                Ok(json_serialize::Value::from(kv_obj))
-            }).collect::<Result<Vec<_>, JsError>>()?)),
-        },
-        PlutusDataEnum::List(list) => {
+        PlutusData::List { list, .. } => {
             let mut elems = Vec::new();
-            for elem in list.elems.iter() {
+            for elem in list.iter() {
                 elems.push(decode_plutus_datum_to_json_value(elem, schema)?);
             }
-            (Some("list"), json_serialize::Value::from(elems))
-        },
-        PlutusDataEnum::Integer(bigint) => (
-            Some("int"),
-            json_serialize::Value::from(bigint.clone())
+            (Some("list"), JSONValue::from(elems))
+        }
+        PlutusData::Integer(bigint) => (Some("int"), JSONValue::from(bigint.clone())),
+        PlutusData::Bytes { bytes, .. } => (
+            Some("bytes"),
+            JSONValue::from(match schema {
+                CardanoNodePlutusDatumSchema::BasicConversions => {
+                    // cardano-cli converts to a string only if bytes are utf8 and all characters are printable
+                    String::from_utf8(bytes.clone())
+                        .ok()
+                        .filter(|utf8| utf8.chars().all(|c| !c.is_control()))
+                        // otherwise we hex-encode the bytes with a 0x prefix
+                        .unwrap_or_else(|| format!("0x{}", hex::encode(bytes)))
+                }
+                CardanoNodePlutusDatumSchema::DetailedSchema => hex::encode(bytes),
+            }),
         ),
-        PlutusDataEnum::Bytes(bytes) => (Some("bytes"), json_serialize::Value::from(match schema {
-            PlutusDatumSchema::BasicConversions => {
-                // cardano-cli converts to a string only if bytes are utf8 and all characters are printable
-                String::from_utf8(bytes.clone())
-                    .ok()
-                    .filter(|utf8| utf8.chars().all(|c| !c.is_control()))
-                // otherwise we hex-encode the bytes with a 0x prefix
-                    .unwrap_or_else(|| format!("0x{}", hex::encode(bytes)))
-            },
-            PlutusDatumSchema::DetailedSchema => hex::encode(bytes),
-        })),
     };
-    if type_tag.is_none() || schema != PlutusDatumSchema::DetailedSchema {
-        Ok(json_value)
-    } else {
-        let mut wrapper = BTreeMap::new();
-        wrapper.insert(String::from(type_tag.unwrap()), json_value);
-        Ok(json_serialize::Value::from(wrapper))
+    match (type_tag, schema) {
+        (Some(type_tag), CardanoNodePlutusDatumSchema::DetailedSchema) => {
+            let mut wrapper = BTreeMap::new();
+            wrapper.insert(String::from(type_tag), json_value);
+            Ok(JSONValue::from(wrapper))
+        }
+        _ => Ok(json_value),
     }
 }

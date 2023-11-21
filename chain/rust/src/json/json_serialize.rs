@@ -1,14 +1,13 @@
 use std::collections::{BTreeMap, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::iter::FromIterator;
+use std::str::FromStr;
 
 use itertools::Itertools;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde::ser::Error;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::JsError;
-use crate::ledger::common::value::BigInt;
+use crate::utils::BigInt;
 
 /**
  * Value replaces traditional serde_json::Value in some places.
@@ -29,7 +28,7 @@ pub enum Value {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-enum JsonToken {
+pub enum JsonToken {
     ArrayStart,
     ArrayEnd,
 
@@ -40,56 +39,51 @@ enum JsonToken {
     Comma,
     Quote,
 
-    String {
-        raw: String,
-    },
+    String { raw: String },
 
-    LeftQuotedString {
-        raw: String,
-    },
+    LeftQuotedString { raw: String },
 
-    ParsedValue {
-        value: Value,
-    },
+    ParsedValue { value: Value },
     // This is an object's key when [Quote, String, Quote, Colon] or [Quote, Quote, Colon] are parsed
-    ParsedKey {
-        key: String,
-    },
+    ParsedKey { key: String },
 }
 
 impl JsonToken {
     fn is_quote(&self) -> bool {
-        match self {
-            JsonToken::Quote => true,
-            _ => false,
-        }
+        matches!(self, JsonToken::Quote)
     }
 
     fn is_string(&self) -> bool {
-        match self {
-            JsonToken::String { .. } => true,
-            _ => false,
-        }
+        matches!(self, JsonToken::String { .. })
     }
 }
 
 impl Serialize for Value {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        let string = self.clone().to_string().map_err(|err| serde::ser::Error::custom(&format!("{:?}", err)))?;
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let string = self
+            .clone()
+            .to_string()
+            .map_err(|err| serde::ser::Error::custom(format!("{:?}", err)))?;
 
         serializer.serialize_str(string.as_str())
     }
 }
 
 impl<'de> Deserialize<'de> for Value {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        Value::from_string(s).map_err(|err| serde::de::Error::custom(&format!("{:?}", err)))
+        Value::from_string(s).map_err(|err| serde::de::Error::custom(format!("{:?}", err)))
     }
 }
 
 #[derive(Debug, Clone)]
-enum JsonParseError {
+pub enum JsonParseError {
     // general
     InvalidToken(JsonToken),
     InvalidParseResult(Vec<JsonToken>),
@@ -126,42 +120,46 @@ impl Display for JsonParseError {
     }
 }
 
+impl std::error::Error for JsonParseError {}
+
 fn tokenize_string(string: String) -> Vec<JsonToken> {
     fn are_we_inside_string(tokens: &Vec<JsonToken>) -> bool {
-        if tokens.len() == 0 {
+        if tokens.is_empty() {
             return false;
         }
         if tokens.len() == 1 {
             let is_last_token_quote = tokens.last().map(|t| t.is_quote()).unwrap_or(false);
             return is_last_token_quote;
         }
-        let last_token = tokens.get(tokens.len() - 1);
+        let last_token = tokens.last();
         let token_before_last_token = tokens.get(tokens.len() - 2);
-        let is_token_before_last_string_or_quote = token_before_last_token.map(|t| t.is_quote() || t.is_string()).unwrap_or(false);
+        let is_token_before_last_string_or_quote = token_before_last_token
+            .map(|t| t.is_quote() || t.is_string())
+            .unwrap_or(false);
         let is_last_token_quote = last_token.map(|t| t.is_quote()).unwrap_or(false);
 
-        return !is_token_before_last_string_or_quote && is_last_token_quote;
+        !is_token_before_last_string_or_quote && is_last_token_quote
         /*
 
-         This works because of the following:
-         We either have:
-           - string without quote on right (which could be invalid as well)
-           - string with quote on right
+        This works because of the following:
+        We either have:
+          - string without quote on right (which could be invalid as well)
+          - string with quote on right
 
-         If we had a string with quote on right before current position, the tokens will be:
-         [.., String, Quote, <current pos>]
-         or in case of empty string:
-         [.., Quote, Quote, <current pos>].
+        If we had a string with quote on right before current position, the tokens will be:
+        [.., String, Quote, <current pos>]
+        or in case of empty string:
+        [.., Quote, Quote, <current pos>].
 
-         We never have 2 strings in a row [.., String, String, ..], so we won't face situation
-         when we consider we're in / not in the string incorrectly
+        We never have 2 strings in a row [.., String, String, ..], so we won't face situation
+        when we consider we're in / not in the string incorrectly
 
-         If we had a string without quote on right than it's just current string and it's not pushed.
-         This way we will have [.., Quote, <current pos>]
+        If we had a string without quote on right than it's just current string and it's not pushed.
+        This way we will have [.., Quote, <current pos>]
 
-         if before quote there was another string - this is invalid json
+        if before quote there was another string - this is invalid json
 
-         */
+        */
     }
 
     let mut tokens = Vec::<JsonToken>::new();
@@ -170,9 +168,14 @@ fn tokenize_string(string: String) -> Vec<JsonToken> {
         let (reset_string, token) = match char {
             "\"" => {
                 // if we have backslashed quotes in a string they're in the string already
-                if !current_string.is_empty() && current_string.graphemes(true).last().clone().unwrap() == "\\" {
+                if !current_string.is_empty()
+                    && current_string.graphemes(true).last().unwrap() == "\\"
+                {
                     let graphemes_count = current_string.graphemes(true).count();
-                    current_string = current_string.graphemes(true).take(graphemes_count - 1).collect();
+                    current_string = current_string
+                        .graphemes(true)
+                        .take(graphemes_count - 1)
+                        .collect();
                     current_string += "\"";
                     (false, None)
                 } else {
@@ -183,27 +186,16 @@ fn tokenize_string(string: String) -> Vec<JsonToken> {
                 current_string += char;
                 (false, None)
             }
-            "{" => {
-                (true, Some(JsonToken::ObjectStart))
-            }
-            "}" => {
-                (true, Some(JsonToken::ObjectEnd))
-            }
-            "[" => {
-                (true, Some(JsonToken::ArrayStart))
-            }
-            "]" => {
-                (true, Some(JsonToken::ArrayEnd))
-            }
-            ":" => {
-                (true, Some(JsonToken::Colon))
-            }
-            "," => {
-                (true, Some(JsonToken::Comma))
-            }
+            "{" => (true, Some(JsonToken::ObjectStart)),
+            "}" => (true, Some(JsonToken::ObjectEnd)),
+            "[" => (true, Some(JsonToken::ArrayStart)),
+            "]" => (true, Some(JsonToken::ArrayEnd)),
+            ":" => (true, Some(JsonToken::Colon)),
+            "," => (true, Some(JsonToken::Comma)),
             _ => {
-                let splitted: Vec<&str> = char.split_whitespace().into_iter().collect();
-                let is_whitespace = splitted.is_empty() || (splitted.len() == 1 && splitted.first().cloned().unwrap_or("").is_empty());
+                let splitted: Vec<&str> = char.split_whitespace().collect();
+                let is_whitespace = splitted.is_empty()
+                    || (splitted.len() == 1 && splitted.first().cloned().unwrap_or("").is_empty());
                 if !is_whitespace || are_we_inside_string(&tokens) {
                     current_string += char;
                 }
@@ -212,7 +204,9 @@ fn tokenize_string(string: String) -> Vec<JsonToken> {
         };
 
         if reset_string && !current_string.is_empty() {
-            tokens.push(JsonToken::String { raw: current_string.clone() });
+            tokens.push(JsonToken::String {
+                raw: current_string.clone(),
+            });
             current_string = String::new();
         }
 
@@ -222,8 +216,9 @@ fn tokenize_string(string: String) -> Vec<JsonToken> {
     }
 
     if !current_string.is_empty() {
-        tokens.push(JsonToken::String { raw: current_string.clone() });
-        current_string = String::new();
+        tokens.push(JsonToken::String {
+            raw: current_string.clone(),
+        });
     }
 
     tokens
@@ -255,51 +250,55 @@ fn parse_json(tokens: Vec<JsonToken>) -> Result<Value, JsonParseError> {
             JsonToken::String { raw } => {
                 handle_string(raw, &mut stack)?;
             }
-            JsonToken::ParsedKey { .. } | JsonToken::ParsedValue { .. } | JsonToken::LeftQuotedString { .. } => {
+            JsonToken::ParsedKey { .. }
+            | JsonToken::ParsedValue { .. }
+            | JsonToken::LeftQuotedString { .. } => {
                 return Err(JsonParseError::InvalidToken(token));
             }
         }
     }
 
     if stack.len() > 1 {
-        return Err(JsonParseError::InvalidParseResult(Vec::from_iter(stack.into_iter())));
+        return Err(JsonParseError::InvalidParseResult(Vec::from_iter(stack)));
     }
 
     match stack.pop_back() {
-        None => {
-            Err(JsonParseError::InvalidParseResult(vec![]))
-        }
-        Some(JsonToken::ParsedValue { value }) => {
-            Ok(value)
-        }
-        Some(other) => {
-            Err(JsonParseError::InvalidParseResult(vec![other]))
-        }
+        None => Err(JsonParseError::InvalidParseResult(vec![])),
+        Some(JsonToken::ParsedValue { value }) => Ok(value),
+        Some(other) => Err(JsonParseError::InvalidParseResult(vec![other])),
     }
 }
 
-fn handle_array_or_object_open(token: JsonToken, stack: &mut VecDeque<JsonToken>) -> Result<(), JsonParseError> {
+fn handle_array_or_object_open(
+    token: JsonToken,
+    stack: &mut VecDeque<JsonToken>,
+) -> Result<(), JsonParseError> {
     match stack.back() {
-        None | Some(JsonToken::ArrayStart) | Some(JsonToken::ParsedKey { .. }) | Some(JsonToken::Comma) => {
+        None
+        | Some(JsonToken::ArrayStart)
+        | Some(JsonToken::ParsedKey { .. })
+        | Some(JsonToken::Comma) => {
             stack.push_back(token);
             Ok(())
         }
-        back => {
-            Err(JsonParseError::InvalidTokenBeforeArrayOrObjectStart(back.cloned().unwrap()))
-        }
+        back => Err(JsonParseError::InvalidTokenBeforeArrayOrObjectStart(
+            back.cloned().unwrap(),
+        )),
     }
 }
 
 fn handle_colon(stack: &mut VecDeque<JsonToken>) -> Result<(), JsonParseError> {
     let back = stack.pop_back();
     match &back {
-        Some(JsonToken::ParsedValue { value: Value::String(string) }) => {
-            stack.push_back(JsonToken::ParsedKey { key: string.clone() });
+        Some(JsonToken::ParsedValue {
+            value: Value::String(string),
+        }) => {
+            stack.push_back(JsonToken::ParsedKey {
+                key: string.clone(),
+            });
             Ok(())
         }
-        _ => {
-            Err(JsonParseError::InvalidTokenBeforeColon(back))
-        }
+        _ => Err(JsonParseError::InvalidTokenBeforeColon(back)),
     }
 }
 
@@ -310,9 +309,7 @@ fn handle_comma(stack: &mut VecDeque<JsonToken>) -> Result<(), JsonParseError> {
             stack.push_back(JsonToken::Comma);
             Ok(())
         }
-        _ => {
-            Err(JsonParseError::InvalidTokenBeforeComma(back.cloned()))
-        }
+        _ => Err(JsonParseError::InvalidTokenBeforeComma(back.cloned())),
     }
 }
 
@@ -323,45 +320,40 @@ fn handle_quote(stack: &mut VecDeque<JsonToken>) -> Result<(), JsonParseError> {
             stack.push_back(JsonToken::Quote);
             Ok(())
         }
-        Some(JsonToken::ArrayStart) | Some(JsonToken::ObjectStart) | Some(JsonToken::Comma) | Some(JsonToken::ParsedKey { .. }) => {
+        Some(JsonToken::ArrayStart)
+        | Some(JsonToken::ObjectStart)
+        | Some(JsonToken::Comma)
+        | Some(JsonToken::ParsedKey { .. }) => {
             stack.push_back(back.unwrap());
             stack.push_back(JsonToken::Quote);
             Ok(())
         }
         Some(JsonToken::Quote) => {
-            stack.push_back(JsonToken::ParsedValue { value: Value::String(String::new()) });
+            stack.push_back(JsonToken::ParsedValue {
+                value: Value::String(String::new()),
+            });
             Ok(())
         }
         Some(JsonToken::LeftQuotedString { raw }) => {
-            stack.push_back(JsonToken::ParsedValue { value: Value::String(raw) });
+            stack.push_back(JsonToken::ParsedValue {
+                value: Value::String(raw),
+            });
             Ok(())
         }
-        _ => {
-            Err(JsonParseError::InvalidTokenBeforeQuote(back.unwrap()))
-        }
+        _ => Err(JsonParseError::InvalidTokenBeforeQuote(back.unwrap())),
     }
 }
 
 fn parse_raw_string(string: String) -> Result<Value, JsonParseError> {
     match string.as_str() {
-        "null" => {
-            Ok(Value::Null)
-        }
-        "false" => {
-            Ok(Value::Bool(false))
-        }
-        "true" => {
-            Ok(Value::Bool(true))
-        }
+        "null" => Ok(Value::Null),
+        "false" => Ok(Value::Bool(false)),
+        "true" => Ok(Value::Bool(true)),
         string => {
             let number = BigInt::from_str(string);
             match number {
-                Ok(number) => {
-                    Ok(Value::Number(number))
-                }
-                Err(_) => {
-                    Err(JsonParseError::InvalidRawString(String::from(string)))
-                }
+                Ok(number) => Ok(Value::Number(number)),
+                Err(_) => Err(JsonParseError::InvalidRawString(String::from(string))),
             }
         }
     }
@@ -379,16 +371,16 @@ fn handle_string(string: String, stack: &mut VecDeque<JsonToken>) -> Result<(), 
             stack.push_back(JsonToken::LeftQuotedString { raw: string });
             Ok(())
         }
-        Some(JsonToken::ParsedKey { .. }) | Some(JsonToken::Comma) | Some(JsonToken::ArrayStart) => {
+        Some(JsonToken::ParsedKey { .. })
+        | Some(JsonToken::Comma)
+        | Some(JsonToken::ArrayStart) => {
             stack.push_back(back.unwrap());
 
             let event = parse_raw_string(string)?;
             stack.push_back(JsonToken::ParsedValue { value: event });
             Ok(())
         }
-        _ => {
-            Err(JsonParseError::InvalidTokenBeforeString(back.unwrap()))
-        }
+        _ => Err(JsonParseError::InvalidTokenBeforeString(back.unwrap())),
     }
 }
 
@@ -433,11 +425,13 @@ fn parse_array(stack: &mut VecDeque<JsonToken>) -> Result<(), JsonParseError> {
                 }
                 result.push(value);
             }
-            _ => return Err(JsonParseError::NotAllowedInArray(token))
+            _ => return Err(JsonParseError::NotAllowedInArray(token)),
         }
     }
 
-    stack.push_back(JsonToken::ParsedValue { value: Value::Array(result) });
+    stack.push_back(JsonToken::ParsedValue {
+        value: Value::Array(result),
+    });
 
     Ok(())
 }
@@ -504,51 +498,44 @@ fn parse_object(stack: &mut VecDeque<JsonToken>) -> Result<(), JsonParseError> {
                     return Err(JsonParseError::ObjectStructureError);
                 }
             }
-            _ => return Err(JsonParseError::NotAllowedInObject(token))
+            _ => return Err(JsonParseError::NotAllowedInObject(token)),
         }
     }
 
-    stack.push_back(JsonToken::ParsedValue { value: Value::Object(result) });
+    stack.push_back(JsonToken::ParsedValue {
+        value: Value::Object(result),
+    });
 
     Ok(())
 }
 
 impl Value {
-    pub fn to_string(self) -> Result<String, JsError> {
-        let result = match self {
-            Value::Null => {
-                serde_json::to_string(&serde_json::Value::Null).map_err(|err| JsError::from_str(&format!("Can't convert null to string: {:?}", err)))?
-            }
-            Value::Bool(b) => {
-                serde_json::to_string(&serde_json::Value::Bool(b)).map_err(|err| JsError::from_str(&format!("Can't convert bool to string: {:?}", err)))?
-            }
-            Value::Number(bigint) => {
-                bigint.to_str()
-            }
-            Value::String(str) => {
-                serde_json::to_string(&serde_json::Value::String(str)).map_err(|err| JsError::from_str(&format!("Can't convert string to string: {:?}", err)))?
-            }
+    pub fn to_string(&self) -> Result<String, serde_json::Error> {
+        match self {
+            Value::Null => serde_json::to_string(&serde_json::Value::Null),
+            Value::Bool(b) => serde_json::to_string(&serde_json::Value::Bool(*b)),
+            Value::Number(bigint) => Ok(bigint.to_string()),
+            Value::String(text) => serde_json::to_string(&serde_json::Value::String(text.clone())),
             Value::Array(arr) => {
                 let mut arr_serialized = vec![String::new(); arr.len()];
-                for (i, item) in arr.into_iter().enumerate() {
+                for (i, item) in arr.iter().enumerate() {
                     arr_serialized[i] = item.to_string()?;
                 }
-                format!("[{}]", arr_serialized.iter().join(","))
+                Ok(format!("[{}]", arr_serialized.iter().join(",")))
             }
             Value::Object(items) => {
                 let mut items_serialized = vec![String::new(); items.len()];
-                for (i, (key, value)) in items.into_iter().enumerate() {
+                for (i, (key, value)) in items.iter().enumerate() {
                     items_serialized[i] = format!("\"{}\":{}", key, value.to_string()?);
                 }
-                format!("{{{}}}", items_serialized.iter().join(","))
+                Ok(format!("{{{}}}", items_serialized.iter().join(",")))
             }
-        };
-        Ok(result)
+        }
     }
 
-    pub fn from_string(from: String) -> Result<Self, JsError> {
+    pub fn from_string(from: String) -> Result<Self, JsonParseError> {
         let tokens = tokenize_string(from);
-        parse_json(tokens).map_err(|err| JsError::from_str(&format!("Can't parse json: {}", err)))
+        parse_json(tokens)
     }
 }
 
@@ -588,29 +575,49 @@ mod tests {
     use std::iter::FromIterator;
     use std::str::FromStr;
 
-    use schemars::Map;
-
-    use crate::json_serialize::{JsonParseError, JsonToken, parse_json, tokenize_string, Value};
-    use crate::ledger::common::value::BigInt;
+    use super::{parse_json, tokenize_string, JsonToken, Value};
+    use crate::utils::BigInt;
 
     #[test]
     fn run_primitives() {
-        assert_eq!(Value::Null.to_string().unwrap(), serde_json::Value::Null.to_string());
+        assert_eq!(
+            Value::Null.to_string().unwrap(),
+            serde_json::Value::Null.to_string()
+        );
         for b in vec![true, false].into_iter() {
-            assert_eq!(Value::Bool(b).to_string().unwrap(), serde_json::Value::Bool(b).to_string());
+            assert_eq!(
+                Value::Bool(b).to_string().unwrap(),
+                serde_json::Value::Bool(b).to_string()
+            );
         }
         // supported uints
         for integer in vec![0, u64::MAX].into_iter() {
-            assert_eq!(Value::Number(BigInt::from(integer)).to_string().unwrap(), serde_json::Value::from(integer).to_string());
+            assert_eq!(
+                Value::Number(BigInt::from(integer)).to_string().unwrap(),
+                serde_json::Value::from(integer).to_string()
+            );
         }
         // supported ints
         for integer in vec![0, i64::MAX, i64::MIN].into_iter() {
-            assert_eq!(Value::Number(BigInt::from(integer)).to_string().unwrap(), serde_json::Value::from(integer).to_string());
+            assert_eq!(
+                Value::Number(BigInt::from(integer)).to_string().unwrap(),
+                serde_json::Value::from(integer).to_string()
+            );
         }
         // unsupported ints
-        assert_eq!(Value::Number(BigInt::from_str("980949788381070983313748912887").unwrap()).to_string().unwrap(), "980949788381070983313748912887");
+        assert_eq!(
+            Value::Number(BigInt::from_str("980949788381070983313748912887").unwrap())
+                .to_string()
+                .unwrap(),
+            "980949788381070983313748912887"
+        );
         // string
-        assert_eq!(Value::String(String::from("supported string")).to_string().unwrap(), serde_json::Value::from(String::from("supported string")).to_string());
+        assert_eq!(
+            Value::String(String::from("supported string"))
+                .to_string()
+                .unwrap(),
+            serde_json::Value::from(String::from("supported string")).to_string()
+        );
     }
 
     #[test]
@@ -626,18 +633,46 @@ mod tests {
     fn generate_array_of_primitives() -> Vec<Value> {
         let mut cml_arr = vec![Value::Null];
         cml_arr.extend(vec![true, false].into_iter().map(|b| Value::Bool(b)));
-        cml_arr.extend(vec![0, u64::MAX].into_iter().map(|integer| Value::Number(BigInt::from(integer))));
-        cml_arr.extend(vec![0, i64::MAX, i64::MIN].into_iter().map(|integer| Value::Number(BigInt::from(integer))));
-        cml_arr.extend(vec!["supported_string", ""].into_iter().map(|str| Value::String(String::from(str))));
+        cml_arr.extend(
+            vec![0, u64::MAX]
+                .into_iter()
+                .map(|integer| Value::Number(BigInt::from(integer))),
+        );
+        cml_arr.extend(
+            vec![0, i64::MAX, i64::MIN]
+                .into_iter()
+                .map(|integer| Value::Number(BigInt::from(integer))),
+        );
+        cml_arr.extend(
+            vec!["supported_string", ""]
+                .into_iter()
+                .map(|str| Value::String(String::from(str))),
+        );
         cml_arr
     }
 
     fn generate_array_of_primitives_serde_json() -> Vec<serde_json::Value> {
         let mut serde_arr = vec![serde_json::Value::Null];
-        serde_arr.extend(vec![true, false].into_iter().map(|b| serde_json::Value::Bool(b)));
-        serde_arr.extend(vec![0, u64::MAX].into_iter().map(|integer| serde_json::Value::from(integer)));
-        serde_arr.extend(vec![0, i64::MAX, i64::MIN].into_iter().map(|integer| serde_json::Value::from(integer)));
-        serde_arr.extend(vec!["supported_string", ""].into_iter().map(|str| serde_json::Value::from(String::from(str))));
+        serde_arr.extend(
+            vec![true, false]
+                .into_iter()
+                .map(|b| serde_json::Value::Bool(b)),
+        );
+        serde_arr.extend(
+            vec![0, u64::MAX]
+                .into_iter()
+                .map(|integer| serde_json::Value::from(integer)),
+        );
+        serde_arr.extend(
+            vec![0, i64::MAX, i64::MIN]
+                .into_iter()
+                .map(|integer| serde_json::Value::from(integer)),
+        );
+        serde_arr.extend(
+            vec!["supported_string", ""]
+                .into_iter()
+                .map(|str| serde_json::Value::from(String::from(str))),
+        );
         serde_arr
     }
 
@@ -645,10 +680,29 @@ mod tests {
     fn generate_array_of_primitives_with_unsupported() -> Vec<Value> {
         let mut cml_arr = vec![Value::Null];
         cml_arr.extend(vec![true, false].into_iter().map(|b| Value::Bool(b)));
-        cml_arr.extend(vec![0, u64::MAX].into_iter().map(|integer| Value::Number(BigInt::from(integer))));
-        cml_arr.extend(vec![0, i64::MAX, i64::MIN].into_iter().map(|integer| Value::Number(BigInt::from(integer))));
-        cml_arr.extend(vec![BigInt::from_str("980949788381070983313748912887").unwrap(), BigInt::from_str("-980949788381070983313748912887").unwrap()].into_iter().map(|integer| Value::Number(integer)));
-        cml_arr.extend(vec!["supported_string", ""].into_iter().map(|str| Value::String(String::from(str))));
+        cml_arr.extend(
+            vec![0, u64::MAX]
+                .into_iter()
+                .map(|integer| Value::Number(BigInt::from(integer))),
+        );
+        cml_arr.extend(
+            vec![0, i64::MAX, i64::MIN]
+                .into_iter()
+                .map(|integer| Value::Number(BigInt::from(integer))),
+        );
+        cml_arr.extend(
+            vec![
+                BigInt::from_str("980949788381070983313748912887").unwrap(),
+                BigInt::from_str("-980949788381070983313748912887").unwrap(),
+            ]
+            .into_iter()
+            .map(|integer| Value::Number(integer)),
+        );
+        cml_arr.extend(
+            vec!["supported_string", ""]
+                .into_iter()
+                .map(|str| Value::String(String::from(str))),
+        );
         cml_arr
     }
 
@@ -685,23 +739,29 @@ mod tests {
             let local = index;
             index += 1;
             (local.to_string(), Value::String(String::from(str)))
-        }
-        ));
+        }));
         cml_map.extend(vec![generate_array_of_primitives()].into_iter().map(|arr| {
             let local = index;
             index += 1;
             (local.to_string(), Value::Array(arr))
-        }
-        ));
+        }));
 
         BTreeMap::from_iter(cml_map.into_iter())
     }
 
     fn generate_map_unsupported() -> BTreeMap<String, Value> {
         let mut map = generate_map();
-        let mut index = map.keys().map(|key| u64::from_str(key).unwrap()).max().unwrap() + 1;
+        let mut index = map
+            .keys()
+            .map(|key| u64::from_str(key).unwrap())
+            .max()
+            .unwrap()
+            + 1;
 
-        map.insert(index.to_string(), Value::Number(BigInt::from_str("980949788381070983313748912887").unwrap()));
+        map.insert(
+            index.to_string(),
+            Value::Number(BigInt::from_str("980949788381070983313748912887").unwrap()),
+        );
         index += 1;
 
         let arr = generate_array_of_primitives_with_unsupported();
@@ -710,7 +770,6 @@ mod tests {
 
         let arr = generate_map();
         map.insert(index.to_string(), Value::Object(arr));
-        index += 1;
 
         map
     }
@@ -739,14 +798,16 @@ mod tests {
             let local = index;
             index += 1;
             (local.to_string(), serde_json::Value::from(str))
-        }
-        ));
-        serde_map.extend(vec![generate_array_of_primitives_serde_json()].into_iter().map(|arr| {
-            let local = index;
-            index += 1;
-            (local.to_string(), serde_json::Value::Array(arr))
-        }
-        ));
+        }));
+        serde_map.extend(
+            vec![generate_array_of_primitives_serde_json()]
+                .into_iter()
+                .map(|arr| {
+                    let local = index;
+                    index += 1;
+                    (local.to_string(), serde_json::Value::Array(arr))
+                }),
+        );
 
         serde_json::Value::Object(serde_json::Map::from_iter(serde_map.into_iter()))
     }
@@ -774,44 +835,204 @@ mod tests {
 
     fn easy_cases() -> Vec<(String, Vec<JsonToken>, Value)> {
         vec![
-            ("false".to_string(), vec![JsonToken::String { raw: "false".to_string() }], Value::Bool(false)),
-            ("true".to_string(), vec![JsonToken::String { raw: "true".to_string() }], Value::Bool(true)),
-            ("null".to_string(), vec![JsonToken::String { raw: "null".to_string() }], Value::Null),
-            ("\"string\"".to_string(), vec![JsonToken::Quote, JsonToken::String { raw: "string".to_string() }, JsonToken::Quote], Value::String("string".to_string())),
-            ("\"str\\\"ing\"".to_string(), vec![JsonToken::Quote, JsonToken::String { raw: "str\"ing".to_string() }, JsonToken::Quote], Value::String("str\"ing".to_string())),
-            ("\"\\\"\\\"\\\"\\\"\"".to_string(), vec![JsonToken::Quote, JsonToken::String { raw: "\"\"\"\"".to_string() }, JsonToken::Quote], Value::String("\"\"\"\"".to_string())),
-            ("\"\\\"\"".to_string(), vec![JsonToken::Quote, JsonToken::String { raw: "\"".to_string() }, JsonToken::Quote], Value::String("\"".to_string())),
-            ("\"\\\"\\\"\"".to_string(), vec![JsonToken::Quote, JsonToken::String { raw: "\"\"".to_string() }, JsonToken::Quote], Value::String("\"\"".to_string())),
-            ("\"y̆\\\"\"".to_string(), vec![JsonToken::Quote, JsonToken::String { raw: "y̆\"".to_string() }, JsonToken::Quote], Value::String("y̆\"".to_string())),
-            ("\"y̆\\\"y̆\\\"y̆\"".to_string(), vec![JsonToken::Quote, JsonToken::String { raw: "y̆\"y̆\"y̆".to_string() }, JsonToken::Quote], Value::String("y̆\"y̆\"y̆".to_string())),
-            ("\"y̆\\\"y̆y̆\\\"y̆\"".to_string(), vec![JsonToken::Quote, JsonToken::String { raw: "y̆\"y̆y̆\"y̆".to_string() }, JsonToken::Quote], Value::String("y̆\"y̆y̆\"y̆".to_string())),
-            ("1234".to_string(), vec![JsonToken::String { raw: "1234".to_string() }], Value::Number(BigInt::from_str("1234").unwrap())),
-            ("-1234".to_string(), vec![JsonToken::String { raw: "-1234".to_string() }], Value::Number(BigInt::from_str("-1234").unwrap())),
-            ("123456789876543212345678900000000000000000000".to_string(), vec![JsonToken::String { raw: "123456789876543212345678900000000000000000000".to_string() }], Value::Number(BigInt::from_str("123456789876543212345678900000000000000000000").unwrap())),
-            ("-123456789876543212345678900000000000000000000".to_string(), vec![JsonToken::String { raw: "-123456789876543212345678900000000000000000000".to_string() }], Value::Number(BigInt::from_str("-123456789876543212345678900000000000000000000").unwrap())),
-            ("0".to_string(), vec![JsonToken::String { raw: "0".to_string() }], Value::Number(BigInt::from_str("0").unwrap())),
-            ("-0".to_string(), vec![JsonToken::String { raw: "-0".to_string() }], Value::Number(BigInt::from_str("-0").unwrap())),
+            (
+                "false".to_string(),
+                vec![JsonToken::String {
+                    raw: "false".to_string(),
+                }],
+                Value::Bool(false),
+            ),
+            (
+                "true".to_string(),
+                vec![JsonToken::String {
+                    raw: "true".to_string(),
+                }],
+                Value::Bool(true),
+            ),
+            (
+                "null".to_string(),
+                vec![JsonToken::String {
+                    raw: "null".to_string(),
+                }],
+                Value::Null,
+            ),
+            (
+                "\"string\"".to_string(),
+                vec![
+                    JsonToken::Quote,
+                    JsonToken::String {
+                        raw: "string".to_string(),
+                    },
+                    JsonToken::Quote,
+                ],
+                Value::String("string".to_string()),
+            ),
+            (
+                "\"str\\\"ing\"".to_string(),
+                vec![
+                    JsonToken::Quote,
+                    JsonToken::String {
+                        raw: "str\"ing".to_string(),
+                    },
+                    JsonToken::Quote,
+                ],
+                Value::String("str\"ing".to_string()),
+            ),
+            (
+                "\"\\\"\\\"\\\"\\\"\"".to_string(),
+                vec![
+                    JsonToken::Quote,
+                    JsonToken::String {
+                        raw: "\"\"\"\"".to_string(),
+                    },
+                    JsonToken::Quote,
+                ],
+                Value::String("\"\"\"\"".to_string()),
+            ),
+            (
+                "\"\\\"\"".to_string(),
+                vec![
+                    JsonToken::Quote,
+                    JsonToken::String {
+                        raw: "\"".to_string(),
+                    },
+                    JsonToken::Quote,
+                ],
+                Value::String("\"".to_string()),
+            ),
+            (
+                "\"\\\"\\\"\"".to_string(),
+                vec![
+                    JsonToken::Quote,
+                    JsonToken::String {
+                        raw: "\"\"".to_string(),
+                    },
+                    JsonToken::Quote,
+                ],
+                Value::String("\"\"".to_string()),
+            ),
+            (
+                "\"y̆\\\"\"".to_string(),
+                vec![
+                    JsonToken::Quote,
+                    JsonToken::String {
+                        raw: "y̆\"".to_string(),
+                    },
+                    JsonToken::Quote,
+                ],
+                Value::String("y̆\"".to_string()),
+            ),
+            (
+                "\"y̆\\\"y̆\\\"y̆\"".to_string(),
+                vec![
+                    JsonToken::Quote,
+                    JsonToken::String {
+                        raw: "y̆\"y̆\"y̆".to_string(),
+                    },
+                    JsonToken::Quote,
+                ],
+                Value::String("y̆\"y̆\"y̆".to_string()),
+            ),
+            (
+                "\"y̆\\\"y̆y̆\\\"y̆\"".to_string(),
+                vec![
+                    JsonToken::Quote,
+                    JsonToken::String {
+                        raw: "y̆\"y̆y̆\"y̆".to_string(),
+                    },
+                    JsonToken::Quote,
+                ],
+                Value::String("y̆\"y̆y̆\"y̆".to_string()),
+            ),
+            (
+                "1234".to_string(),
+                vec![JsonToken::String {
+                    raw: "1234".to_string(),
+                }],
+                Value::Number(BigInt::from_str("1234").unwrap()),
+            ),
+            (
+                "-1234".to_string(),
+                vec![JsonToken::String {
+                    raw: "-1234".to_string(),
+                }],
+                Value::Number(BigInt::from_str("-1234").unwrap()),
+            ),
+            (
+                "123456789876543212345678900000000000000000000".to_string(),
+                vec![JsonToken::String {
+                    raw: "123456789876543212345678900000000000000000000".to_string(),
+                }],
+                Value::Number(
+                    BigInt::from_str("123456789876543212345678900000000000000000000").unwrap(),
+                ),
+            ),
+            (
+                "-123456789876543212345678900000000000000000000".to_string(),
+                vec![JsonToken::String {
+                    raw: "-123456789876543212345678900000000000000000000".to_string(),
+                }],
+                Value::Number(
+                    BigInt::from_str("-123456789876543212345678900000000000000000000").unwrap(),
+                ),
+            ),
+            (
+                "0".to_string(),
+                vec![JsonToken::String {
+                    raw: "0".to_string(),
+                }],
+                Value::Number(BigInt::from_str("0").unwrap()),
+            ),
+            (
+                "-0".to_string(),
+                vec![JsonToken::String {
+                    raw: "-0".to_string(),
+                }],
+                Value::Number(BigInt::from_str("-0").unwrap()),
+            ),
         ]
     }
 
     fn run_cases(cases: Vec<(String, Vec<JsonToken>, Value)>) {
         for (case, correct_tokens, correct) in cases {
             let computed_tokens = tokenize_string(case.clone());
-            assert_eq!(computed_tokens, correct_tokens, "Can't tokenize case: {}\n tokens: {}\n correct: {}\n", case, serde_json::to_string(&computed_tokens).unwrap(), serde_json::to_string(&correct_tokens).unwrap());
+            assert_eq!(
+                computed_tokens,
+                correct_tokens,
+                "Can't tokenize case: {}\n tokens: {}\n correct: {}\n",
+                case,
+                serde_json::to_string(&computed_tokens).unwrap(),
+                serde_json::to_string(&correct_tokens).unwrap()
+            );
 
             let parsed = parse_json(computed_tokens);
-            assert!(parsed.is_ok(), "Can't parse case: {}\n error: {:?}\n correct: {:?}\n", case, parsed.err(), correct);
-            assert_eq!(parsed.clone().unwrap(), correct, "Mismatch case: {}\n parsed: {:?}\n correct: {:?}\n", case, parsed, correct);
+            assert!(
+                parsed.is_ok(),
+                "Can't parse case: {}\n error: {:?}\n correct: {:?}\n",
+                case,
+                parsed.err(),
+                correct
+            );
+            assert_eq!(
+                parsed.clone().unwrap(),
+                correct,
+                "Mismatch case: {}\n parsed: {:?}\n correct: {:?}\n",
+                case,
+                parsed,
+                correct
+            );
         }
     }
 
     #[test]
     fn deserialize_easy() {
-        let mut cases = easy_cases();
+        let cases = easy_cases();
         run_cases(cases);
     }
 
-    fn generate_array(cases: Vec<(String, Vec<JsonToken>, Value)>) -> (String, Vec<JsonToken>, Value) {
+    fn generate_array(
+        cases: Vec<(String, Vec<JsonToken>, Value)>,
+    ) -> (String, Vec<JsonToken>, Value) {
         let mut test_string = String::from("[");
         let mut correct_tokens = vec![JsonToken::ArrayStart];
         let mut correct_value = vec![];
@@ -835,12 +1056,18 @@ mod tests {
         vec![
             generate_array(easy_cases()),
             generate_array(Vec::from_iter(
-                vec![generate_array(easy_cases())].into_iter().chain(easy_cases().into_iter())
+                vec![generate_array(easy_cases())]
+                    .into_iter()
+                    .chain(easy_cases().into_iter()),
             )),
             generate_array(Vec::from_iter(
                 vec![generate_array(Vec::from_iter(
-                    vec![generate_array(easy_cases())].into_iter().chain(easy_cases().into_iter())
-                ))].into_iter().chain(easy_cases().into_iter())
+                    vec![generate_array(easy_cases())]
+                        .into_iter()
+                        .chain(easy_cases().into_iter()),
+                ))]
+                .into_iter()
+                .chain(easy_cases().into_iter()),
             )),
         ]
     }
@@ -852,8 +1079,9 @@ mod tests {
         run_cases(cases);
     }
 
-
-    fn generate_object(cases: Vec<(String, Vec<JsonToken>, Value)>) -> (String, Vec<JsonToken>, Value) {
+    fn generate_object(
+        cases: Vec<(String, Vec<JsonToken>, Value)>,
+    ) -> (String, Vec<JsonToken>, Value) {
         let mut test_string = String::from("{");
         let mut correct_tokens = vec![JsonToken::ObjectStart];
         let mut correct_value = BTreeMap::new();
@@ -862,7 +1090,14 @@ mod tests {
         for (number, (test, tokens, parsed)) in cases.into_iter().enumerate() {
             test_string += &format!("\"{}\":", number);
             test_string += &test;
-            correct_tokens.extend(vec![JsonToken::Quote, JsonToken::String { raw: number.to_string() }, JsonToken::Quote, JsonToken::Colon]);
+            correct_tokens.extend(vec![
+                JsonToken::Quote,
+                JsonToken::String {
+                    raw: number.to_string(),
+                },
+                JsonToken::Quote,
+                JsonToken::Colon,
+            ]);
             correct_tokens.extend(tokens);
             correct_value.insert(number.to_string(), parsed);
             if number + 1 != count {
@@ -878,21 +1113,37 @@ mod tests {
     fn generate_objects() -> Vec<(String, Vec<JsonToken>, Value)> {
         vec![
             generate_object(Vec::from_iter(
-                vec![generate_array(easy_cases())].into_iter().chain(easy_cases().into_iter()),
+                vec![generate_array(easy_cases())]
+                    .into_iter()
+                    .chain(easy_cases().into_iter()),
             )),
             generate_object(Vec::from_iter(
-                vec![generate_array(easy_cases())].into_iter().chain(easy_cases().into_iter()).chain(
-                    vec![generate_object(Vec::from_iter(
-                        vec![generate_array(easy_cases())].into_iter().chain(easy_cases().into_iter()),
-                    ))].into_iter()
-                ),
+                vec![generate_array(easy_cases())]
+                    .into_iter()
+                    .chain(easy_cases().into_iter())
+                    .chain(
+                        vec![generate_object(Vec::from_iter(
+                            vec![generate_array(easy_cases())]
+                                .into_iter()
+                                .chain(easy_cases().into_iter()),
+                        ))]
+                        .into_iter(),
+                    ),
             )),
             generate_object(Vec::from_iter(
-                vec![generate_array(easy_cases())].into_iter().chain(easy_cases().into_iter()).chain(
-                    vec![generate_object(Vec::from_iter(
-                        vec![generate_array(easy_cases())].into_iter().chain(easy_cases().into_iter()).chain(generate_arrays().into_iter()),
-                    ))].into_iter().chain(generate_arrays().into_iter())
-                ),
+                vec![generate_array(easy_cases())]
+                    .into_iter()
+                    .chain(easy_cases().into_iter())
+                    .chain(
+                        vec![generate_object(Vec::from_iter(
+                            vec![generate_array(easy_cases())]
+                                .into_iter()
+                                .chain(easy_cases().into_iter())
+                                .chain(generate_arrays().into_iter()),
+                        ))]
+                        .into_iter()
+                        .chain(generate_arrays().into_iter()),
+                    ),
             )),
         ]
     }
@@ -976,7 +1227,12 @@ mod tests {
         for case in cases.into_iter() {
             let computed_tokens = tokenize_string(case.to_string());
             let parsed = parse_json(computed_tokens.clone());
-            assert!(parsed.is_err(), "False parse case: {}\n result: {:?}\n", case, parsed.unwrap());
+            assert!(
+                parsed.is_err(),
+                "False parse case: {}\n result: {:?}\n",
+                case,
+                parsed.unwrap()
+            );
         }
     }
 
@@ -989,46 +1245,197 @@ mod tests {
             ("null", Value::Null),
             ("null ", Value::Null),
             (" null ", Value::Null),
-            (" \
+            (
+                " \
             [\
              \"\
               \
              \"] \
-            ", Value::Array(vec![Value::String("\
+            ",
+                Value::Array(vec![Value::String(
+                    "\
               \
-             ".to_string())])),
-            ("  \
+             "
+                    .to_string(),
+                )]),
+            ),
+            (
+                "  \
              [\"   \"    \
             ,   \"    \"   ] \
-            ", Value::Array(vec![Value::String("   ".to_string()), Value::String("    ".to_string())])),
-            ("{\"kek\":1}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Number(BigInt::from(1)))]))),
-            ("{\"kek\": 1}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Number(BigInt::from(1)))]))),
-            ("{\"kek\":false}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Bool(false))]))),
-            ("{\"kek\":true}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Bool(true))]))),
-            ("{\"kek\":null}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Null)]))),
-            ("{\"kek\":{}}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Object(BTreeMap::new()))]))),
-            ("{\"kek\":[]}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![]))]))),
-            ("{\"kek\":[ ]}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![]))]))),
-            (" {\"kek\": []}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![]))]))),
-            ("{\"kek\":[{\"\":[{}]}]}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Object(BTreeMap::new())]))]))]))]))),
-            ("{\"kek\":[{\"\":[1]}]}", Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))]))),
-            ("[{\"kek\":[{\"\":[1, \"{}[]:,\\\"{}[]:,\\\"\"\
-            ]}]},{\"kek\":[{\"\":[1]}]}]", Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1)), Value::String("{}[]:,\"{}[]:,\"".to_string())]))]))]))])), Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))]))])),
-            ("[{\"kek\":[{\"\":[1]}]},{\"kek\":[{\"\":[1]}]}]", Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))])), Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))]))])),
-            ("[\
+            ",
+                Value::Array(vec![
+                    Value::String("   ".to_string()),
+                    Value::String("    ".to_string()),
+                ]),
+            ),
+            (
+                "{\"kek\":1}",
+                Value::Object(BTreeMap::from_iter(vec![(
+                    "kek".to_string(),
+                    Value::Number(BigInt::from(1)),
+                )])),
+            ),
+            (
+                "{\"kek\": 1}",
+                Value::Object(BTreeMap::from_iter(vec![(
+                    "kek".to_string(),
+                    Value::Number(BigInt::from(1)),
+                )])),
+            ),
+            (
+                "{\"kek\":false}",
+                Value::Object(BTreeMap::from_iter(vec![(
+                    "kek".to_string(),
+                    Value::Bool(false),
+                )])),
+            ),
+            (
+                "{\"kek\":true}",
+                Value::Object(BTreeMap::from_iter(vec![(
+                    "kek".to_string(),
+                    Value::Bool(true),
+                )])),
+            ),
+            (
+                "{\"kek\":null}",
+                Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Null)])),
+            ),
+            (
+                "{\"kek\":{}}",
+                Value::Object(BTreeMap::from_iter(vec![(
+                    "kek".to_string(),
+                    Value::Object(BTreeMap::new()),
+                )])),
+            ),
+            (
+                "{\"kek\":[]}",
+                Value::Object(BTreeMap::from_iter(vec![(
+                    "kek".to_string(),
+                    Value::Array(vec![]),
+                )])),
+            ),
+            (
+                "{\"kek\":[ ]}",
+                Value::Object(BTreeMap::from_iter(vec![(
+                    "kek".to_string(),
+                    Value::Array(vec![]),
+                )])),
+            ),
+            (
+                " {\"kek\": []}",
+                Value::Object(BTreeMap::from_iter(vec![(
+                    "kek".to_string(),
+                    Value::Array(vec![]),
+                )])),
+            ),
+            (
+                "{\"kek\":[{\"\":[{}]}]}",
+                Value::Object(BTreeMap::from_iter(vec![(
+                    "kek".to_string(),
+                    Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
+                        String::new(),
+                        Value::Array(vec![Value::Object(BTreeMap::new())]),
+                    )]))]),
+                )])),
+            ),
+            (
+                "{\"kek\":[{\"\":[1]}]}",
+                Value::Object(BTreeMap::from_iter(vec![(
+                    "kek".to_string(),
+                    Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
+                        String::new(),
+                        Value::Array(vec![Value::Number(BigInt::from(1))]),
+                    )]))]),
+                )])),
+            ),
+            (
+                "[{\"kek\":[{\"\":[1, \"{}[]:,\\\"{}[]:,\\\"\"\
+            ]}]},{\"kek\":[{\"\":[1]}]}]",
+                Value::Array(vec![
+                    Value::Object(BTreeMap::from_iter(vec![(
+                        "kek".to_string(),
+                        Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
+                            String::new(),
+                            Value::Array(vec![
+                                Value::Number(BigInt::from(1)),
+                                Value::String("{}[]:,\"{}[]:,\"".to_string()),
+                            ]),
+                        )]))]),
+                    )])),
+                    Value::Object(BTreeMap::from_iter(vec![(
+                        "kek".to_string(),
+                        Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
+                            String::new(),
+                            Value::Array(vec![Value::Number(BigInt::from(1))]),
+                        )]))]),
+                    )])),
+                ]),
+            ),
+            (
+                "[{\"kek\":[{\"\":[1]}]},{\"kek\":[{\"\":[1]}]}]",
+                Value::Array(vec![
+                    Value::Object(BTreeMap::from_iter(vec![(
+                        "kek".to_string(),
+                        Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
+                            String::new(),
+                            Value::Array(vec![Value::Number(BigInt::from(1))]),
+                        )]))]),
+                    )])),
+                    Value::Object(BTreeMap::from_iter(vec![(
+                        "kek".to_string(),
+                        Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
+                            String::new(),
+                            Value::Array(vec![Value::Number(BigInt::from(1))]),
+                        )]))]),
+                    )])),
+                ]),
+            ),
+            (
+                "[\
                 {\
                     \"kek\": [\
                         {\"\":[1]}]},{\
             \"kek\":\
             [{\"\":[1]}]\
-            }]", Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))])), Value::Object(BTreeMap::from_iter(vec![("kek".to_string(), Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(String::new(), Value::Array(vec![Value::Number(BigInt::from(1))]))]))]))]))])),
+            }]",
+                Value::Array(vec![
+                    Value::Object(BTreeMap::from_iter(vec![(
+                        "kek".to_string(),
+                        Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
+                            String::new(),
+                            Value::Array(vec![Value::Number(BigInt::from(1))]),
+                        )]))]),
+                    )])),
+                    Value::Object(BTreeMap::from_iter(vec![(
+                        "kek".to_string(),
+                        Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
+                            String::new(),
+                            Value::Array(vec![Value::Number(BigInt::from(1))]),
+                        )]))]),
+                    )])),
+                ]),
+            ),
         ];
 
         for (case, correct) in cases {
             let computed_tokens = tokenize_string(case.to_string());
             let parsed = parse_json(computed_tokens);
-            assert!(parsed.is_ok(), "Can't parse case: {}\n error: {:?}\n correct: {:?}\n", case, parsed.err(), correct);
-            assert_eq!(parsed.clone().unwrap(), correct, "Mismatch case: {}\n parsed: {:?}\n correct: {:?}\n", case, parsed, correct);
+            assert!(
+                parsed.is_ok(),
+                "Can't parse case: {}\n error: {:?}\n correct: {:?}\n",
+                case,
+                parsed.err(),
+                correct
+            );
+            assert_eq!(
+                parsed.clone().unwrap(),
+                correct,
+                "Mismatch case: {}\n parsed: {:?}\n correct: {:?}\n",
+                case,
+                parsed,
+                correct
+            );
         }
     }
 }

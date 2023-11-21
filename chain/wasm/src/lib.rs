@@ -20,6 +20,7 @@ pub mod certs;
 pub mod crypto;
 pub mod fees;
 pub mod governance;
+pub mod json;
 pub mod plutus;
 pub mod transaction;
 pub mod utils;

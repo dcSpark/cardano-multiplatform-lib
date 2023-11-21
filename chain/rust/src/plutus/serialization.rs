@@ -473,7 +473,7 @@ impl Serialize for PlutusData {
                 }
                 list_encoding.end(serializer, force_canonical)
             }
-            PlutusData::BigInt(big_int) => big_int.serialize(serializer, force_canonical),
+            PlutusData::Integer(big_int) => big_int.serialize(serializer, force_canonical),
             // hand-written
             PlutusData::Bytes {
                 bytes,
@@ -499,8 +499,8 @@ impl Deserialize for PlutusData {
                         .unwrap();
                     if tag == 2 || tag == 3 {
                         BigInt::deserialize(raw)
-                            .map(Self::BigInt)
-                            .map_err(|e| e.annotate("BigInt"))
+                            .map(Self::Integer)
+                            .map_err(|e| e.annotate("Integer"))
                     } else {
                         ConstrPlutusData::deserialize(raw)
                             .map(Self::ConstrPlutusData)
@@ -534,8 +534,8 @@ impl Deserialize for PlutusData {
                 }
                 cbor_event::Type::UnsignedInteger | cbor_event::Type::NegativeInteger => {
                     BigInt::deserialize(raw)
-                        .map(Self::BigInt)
-                        .map_err(|e| e.annotate("BigInt"))
+                        .map(Self::Integer)
+                        .map_err(|e| e.annotate("Integer"))
                 }
                 // hand-written 100% since the format is not just arbitrary CBOR bytes
                 cbor_event::Type::Bytes => read_bounded_bytes(raw)

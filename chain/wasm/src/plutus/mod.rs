@@ -123,8 +123,8 @@ impl PlutusData {
         Self(cml_chain::plutus::PlutusData::new_list(list.clone().into()))
     }
 
-    pub fn new_big_int(big_int: &BigInt) -> Self {
-        Self(cml_chain::plutus::PlutusData::new_big_int(
+    pub fn new_integer(big_int: &BigInt) -> Self {
+        Self(cml_chain::plutus::PlutusData::new_integer(
             big_int.clone().into(),
         ))
     }
@@ -138,7 +138,7 @@ impl PlutusData {
             cml_chain::plutus::PlutusData::ConstrPlutusData(_) => PlutusDataKind::ConstrPlutusData,
             cml_chain::plutus::PlutusData::Map { .. } => PlutusDataKind::Map,
             cml_chain::plutus::PlutusData::List { .. } => PlutusDataKind::List,
-            cml_chain::plutus::PlutusData::BigInt(_) => PlutusDataKind::BigInt,
+            cml_chain::plutus::PlutusData::Integer(_) => PlutusDataKind::Integer,
             cml_chain::plutus::PlutusData::Bytes { .. } => PlutusDataKind::Bytes,
         }
     }
@@ -166,9 +166,9 @@ impl PlutusData {
         }
     }
 
-    pub fn as_big_int(&self) -> Option<BigInt> {
+    pub fn as_integer(&self) -> Option<BigInt> {
         match &self.0 {
-            cml_chain::plutus::PlutusData::BigInt(big_int) => Some(big_int.clone().into()),
+            cml_chain::plutus::PlutusData::Integer(big_int) => Some(big_int.clone().into()),
             _ => None,
         }
     }
@@ -186,7 +186,7 @@ pub enum PlutusDataKind {
     ConstrPlutusData,
     Map,
     List,
-    BigInt,
+    Integer,
     Bytes,
 }
 

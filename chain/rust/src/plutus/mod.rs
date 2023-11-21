@@ -128,7 +128,7 @@ pub enum PlutusData {
         #[serde(skip)]
         list_encoding: LenEncoding,
     },
-    BigInt(BigInt),
+    Integer(BigInt),
     Bytes {
         bytes: Vec<u8>,
         #[derivative(
@@ -158,8 +158,8 @@ impl PlutusData {
         }
     }
 
-    pub fn new_big_int(big_int: BigInt) -> Self {
-        Self::BigInt(big_int)
+    pub fn new_integer(integer: BigInt) -> Self {
+        Self::Integer(integer)
     }
 
     pub fn new_bytes(bytes: Vec<u8>) -> Self {

@@ -22,6 +22,7 @@ pub mod deposit;
 pub mod fees;
 pub mod genesis;
 pub mod governance;
+pub mod json;
 pub mod min_ada;
 pub mod plutus;
 pub mod serialization;

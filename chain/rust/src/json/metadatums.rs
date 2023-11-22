@@ -329,3 +329,186 @@ pub fn decode_metadatum_to_json_value(
         Ok(value)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn json_encoding_no_conversions() {
+        let input_str = "{\"receiver_id\": \"SJKdj34k3jjKFDKfjFUDfdjkfd\",\"sender_id\": \"jkfdsufjdk34h3Sdfjdhfduf873\",\"comment\": \"happy birthday\",\"tags\": [0, 264, -1024, 32]}";
+        let metadata = encode_json_str_to_metadatum(input_str, MetadataJsonSchema::NoConversions)
+            .expect("encode failed");
+        let map = metadata.as_map().unwrap();
+        assert_eq!(
+            map.get_str("receiver_id").unwrap().as_text().unwrap(),
+            "SJKdj34k3jjKFDKfjFUDfdjkfd"
+        );
+        assert_eq!(
+            map.get_str("sender_id").unwrap().as_text().unwrap(),
+            "jkfdsufjdk34h3Sdfjdhfduf873"
+        );
+        assert_eq!(
+            map.get_str("comment").unwrap().as_text().unwrap(),
+            "happy birthday"
+        );
+        let tags = map.get_str("tags").unwrap().as_list().unwrap();
+        let tags_i32 = tags
+            .iter()
+            .map(|md| md.as_int().unwrap().into())
+            .collect::<Vec<i128>>();
+        assert_eq!(tags_i32, vec![0, 264, -1024, 32]);
+        let output_str = decode_metadatum_to_json_str(&metadata, MetadataJsonSchema::NoConversions)
+            .expect("decode failed");
+        let input_json: serde_json::Value = serde_json::from_str(input_str).unwrap();
+        let output_json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+        assert_eq!(input_json, output_json);
+    }
+
+    #[test]
+    fn json_encoding_basic() {
+        let input_str =
+            "{\"0x8badf00d\": \"0xdeadbeef\",\"9\": 5,\"obj\": {\"a\":[{\"5\": 2},{}]}}";
+        let metadata =
+            encode_json_str_to_metadatum(input_str, MetadataJsonSchema::BasicConversions)
+                .expect("encode failed");
+        json_encoding_check_example_metadatum(&metadata);
+        let output_str =
+            decode_metadatum_to_json_str(&metadata, MetadataJsonSchema::BasicConversions)
+                .expect("decode failed");
+        let input_json: serde_json::Value = serde_json::from_str(input_str).unwrap();
+        let output_json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+        assert_eq!(input_json, output_json);
+    }
+
+    #[test]
+    fn json_encoding_detailed() {
+        let input_str = "{\"map\":[
+            {
+                \"k\":{\"bytes\":\"8badf00d\"},
+                \"v\":{\"bytes\":\"deadbeef\"}
+            },
+            {
+                \"k\":{\"int\":9},
+                \"v\":{\"int\":5}
+            },
+            {
+                \"k\":{\"string\":\"obj\"},
+                \"v\":{\"map\":[
+                    {
+                        \"k\":{\"string\":\"a\"},
+                        \"v\":{\"list\":[
+                        {\"map\":[
+                            {
+                                \"k\":{\"int\":5},
+                                \"v\":{\"int\":2}
+                            }
+                            ]},
+                            {\"map\":[
+                            ]}
+                        ]}
+                    }
+                ]}
+            }
+        ]}";
+        let metadata = encode_json_str_to_metadatum(input_str, MetadataJsonSchema::DetailedSchema)
+            .expect("encode failed");
+        json_encoding_check_example_metadatum(&metadata);
+        let output_str =
+            decode_metadatum_to_json_str(&metadata, MetadataJsonSchema::DetailedSchema)
+                .expect("decode failed");
+        let input_json: serde_json::Value = serde_json::from_str(input_str).unwrap();
+        let output_json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+        assert_eq!(input_json, output_json);
+    }
+
+    fn json_encoding_check_example_metadatum(metadata: &TransactionMetadatum) {
+        let map = metadata.as_map().unwrap();
+        assert_eq!(
+            *map.get(&TransactionMetadatum::new_bytes(
+                hex::decode("8badf00d").unwrap()
+            ))
+            .unwrap()
+            .as_bytes()
+            .unwrap(),
+            hex::decode("deadbeef").unwrap()
+        );
+        assert_eq!(
+            i128::from(
+                map.get(&TransactionMetadatum::new_int(Int::from(9u64)))
+                    .unwrap()
+                    .as_int()
+                    .unwrap()
+            ),
+            5
+        );
+        let inner_map = map.get_str("obj").unwrap().as_map().unwrap();
+        let a = inner_map.get_str("a").unwrap().as_list().unwrap();
+        let a1 = a[0].as_map().unwrap();
+        assert_eq!(
+            i128::from(
+                a1.get(&TransactionMetadatum::new_int(Int::from(5u64)))
+                    .unwrap()
+                    .as_int()
+                    .unwrap()
+            ),
+            2
+        );
+        let a2 = a[1].as_map().unwrap();
+        assert_eq!(a2.len(), 0);
+    }
+
+    #[test]
+    fn json_encoding_detailed_complex_key() {
+        let input_str = "{\"map\":[
+            {
+            \"k\":{\"list\":[
+                {\"map\": [
+                    {
+                        \"k\": {\"int\": 5},
+                        \"v\": {\"int\": -7}
+                    },
+                    {
+                        \"k\": {\"string\": \"hello\"},
+                        \"v\": {\"string\": \"world\"}
+                    }
+                ]},
+                {\"bytes\": \"ff00ff00\"}
+            ]},
+            \"v\":{\"int\":5}
+            }
+        ]}";
+        let metadata = encode_json_str_to_metadatum(input_str, MetadataJsonSchema::DetailedSchema)
+            .expect("encode failed");
+
+        let map = metadata.as_map().unwrap();
+        let (k, v) = map.entries.first().unwrap();
+        assert_eq!(i128::from(v.as_int().unwrap()), 5i128);
+        let key_list = k.as_list().unwrap();
+        assert_eq!(key_list.len(), 2);
+        let key_map = key_list[0].as_map().unwrap();
+        assert_eq!(
+            i128::from(
+                key_map
+                    .get(&TransactionMetadatum::new_int(Int::from(5u64)))
+                    .unwrap()
+                    .as_int()
+                    .unwrap()
+            ),
+            -7i128
+        );
+        assert_eq!(
+            key_map.get_str("hello").unwrap().as_text().unwrap(),
+            "world"
+        );
+        let key_bytes = key_list[1].as_bytes().unwrap();
+        assert_eq!(*key_bytes, hex::decode("ff00ff00").unwrap());
+
+        let output_str =
+            decode_metadatum_to_json_str(&metadata, MetadataJsonSchema::DetailedSchema)
+                .expect("decode failed");
+        let input_json: serde_json::Value = serde_json::from_str(input_str).unwrap();
+        let output_json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+        assert_eq!(input_json, output_json);
+    }
+}

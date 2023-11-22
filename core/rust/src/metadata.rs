@@ -205,6 +205,11 @@ impl MetadatumMap {
             Some(matches)
         }
     }
+
+    /// Gets the Metadatum by string only. Convenience functionality for get()
+    pub fn get_str(&self, key: &str) -> Option<&TransactionMetadatum> {
+        self.get(&TransactionMetadatum::new_text(key.to_owned()))
+    }
 }
 
 impl Serialize for MetadatumMap {
@@ -339,6 +344,41 @@ impl TransactionMetadatum {
         Self::Text {
             text,
             text_encoding: StringEncoding::default(),
+        }
+    }
+
+    pub fn as_map(&self) -> Option<&MetadatumMap> {
+        match self {
+            Self::Map(map) => Some(map),
+            _ => None,
+        }
+    }
+
+    pub fn as_list(&self) -> Option<&Vec<TransactionMetadatum>> {
+        match self {
+            Self::List { elements, .. } => Some(elements),
+            _ => None,
+        }
+    }
+
+    pub fn as_int(&self) -> Option<&Int> {
+        match self {
+            Self::Int(x) => Some(x),
+            _ => None,
+        }
+    }
+
+    pub fn as_bytes(&self) -> Option<&Vec<u8>> {
+        match self {
+            Self::Bytes { bytes, .. } => Some(bytes),
+            _ => None,
+        }
+    }
+
+    pub fn as_text(&self) -> Option<&String> {
+        match self {
+            Self::Text { text, .. } => Some(text),
+            _ => None,
         }
     }
 }

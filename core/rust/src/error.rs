@@ -37,7 +37,7 @@ pub enum DeserializeFailure {
         found: usize,
     },
     RangeCheck {
-        found: usize,
+        found: isize,
         min: Option<isize>,
         max: Option<isize>,
     },

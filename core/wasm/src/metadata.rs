@@ -4,7 +4,10 @@
     clippy::new_without_default
 )]
 
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+use wasm_bindgen::{
+    prelude::{wasm_bindgen, JsValue},
+    JsError,
+};
 
 use cml_core::metadata as core;
 
@@ -236,12 +239,16 @@ impl TransactionMetadatum {
         Self(core::TransactionMetadatum::new_int(int.clone().into()))
     }
 
-    pub fn new_bytes(bytes: Vec<u8>) -> Self {
-        Self(core::TransactionMetadatum::new_bytes(bytes))
+    pub fn new_bytes(bytes: Vec<u8>) -> Result<TransactionMetadatum, JsError> {
+        core::TransactionMetadatum::new_bytes(bytes)
+            .map(Into::into)
+            .map_err(Into::into)
     }
 
-    pub fn new_text(text: String) -> Self {
-        Self(core::TransactionMetadatum::new_text(text))
+    pub fn new_text(text: String) -> Result<TransactionMetadatum, JsError> {
+        core::TransactionMetadatum::new_text(text)
+            .map(Into::into)
+            .map_err(Into::into)
     }
 
     pub fn kind(&self) -> TransactionMetadatumKind {
@@ -306,4 +313,16 @@ impl AsRef<core::TransactionMetadatum> for TransactionMetadatum {
     fn as_ref(&self) -> &core::TransactionMetadatum {
         &self.0
     }
+}
+
+/// encodes arbitrary bytes into chunks of 64 bytes (the limit for bytes) as a list to be valid Metadata
+#[wasm_bindgen]
+pub fn encode_arbitrary_bytes_as_metadatum(bytes: &[u8]) -> TransactionMetadatum {
+    cml_core::metadata::encode_arbitrary_bytes_as_metadatum(bytes).into()
+}
+
+/// decodes from chunks of bytes in a list to a byte vector if that is the metadata format, otherwise returns None
+#[wasm_bindgen]
+pub fn decode_arbitrary_bytes_from_metadatum(metadata: &TransactionMetadatum) -> Option<Vec<u8>> {
+    cml_core::metadata::decode_arbitrary_bytes_from_metadatum(metadata.as_ref())
 }

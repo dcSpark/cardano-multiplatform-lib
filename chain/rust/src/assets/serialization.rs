@@ -35,7 +35,7 @@ impl Deserialize for AssetName {
             return Err(DeserializeError::new(
                 "AssetName",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len(),
+                    found: inner.len() as isize,
                     min: Some(0),
                     max: Some(32),
                 },

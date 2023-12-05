@@ -9,6 +9,8 @@ use std::io::{BufRead, Seek, Write};
 
 pub type TransactionMetadatumLabel = u64;
 
+pub const METADATA_MAX_LEN: usize = 64;
+
 /// Collection of TransactionMetadatums indexed by TransactionMetadatumLabels
 /// Handles the extremely rare edge-case of in previous generations allowing
 /// duplicate metadatum labels.
@@ -208,7 +210,7 @@ impl MetadatumMap {
 
     /// Gets the Metadatum by string only. Convenience functionality for get()
     pub fn get_str(&self, key: &str) -> Option<&TransactionMetadatum> {
-        self.get(&TransactionMetadatum::new_text(key.to_owned()))
+        self.get(&TransactionMetadatum::new_text(key.to_owned()).ok()?)
     }
 }
 
@@ -333,18 +335,34 @@ impl TransactionMetadatum {
         Self::Int(int)
     }
 
-    pub fn new_bytes(bytes: Vec<u8>) -> Self {
-        Self::Bytes {
+    pub fn new_bytes(bytes: Vec<u8>) -> Result<Self, DeserializeError> {
+        if bytes.len() > METADATA_MAX_LEN {
+            return Err(DeserializeFailure::RangeCheck {
+                found: bytes.len() as isize,
+                min: None,
+                max: Some(METADATA_MAX_LEN as isize),
+            }
+            .into());
+        }
+        Ok(Self::Bytes {
             bytes,
             bytes_encoding: StringEncoding::default(),
-        }
+        })
     }
 
-    pub fn new_text(text: String) -> Self {
-        Self::Text {
+    pub fn new_text(text: String) -> Result<Self, DeserializeError> {
+        if text.len() > METADATA_MAX_LEN {
+            return Err(DeserializeFailure::RangeCheck {
+                found: text.len() as isize,
+                min: None,
+                max: Some(METADATA_MAX_LEN as isize),
+            }
+            .into());
+        }
+        Ok(Self::Text {
             text,
             text_encoding: StringEncoding::default(),
-        }
+        })
     }
 
     pub fn as_map(&self) -> Option<&MetadatumMap> {
@@ -451,23 +469,66 @@ impl Deserialize for TransactionMetadatum {
                 }
                 cbor_event::Type::Bytes => raw
                     .bytes_sz()
-                    .map(|(bytes, enc)| Self::Bytes {
-                        bytes,
-                        bytes_encoding: StringEncoding::from(enc),
-                    })
-                    .map_err(Into::<DeserializeError>::into),
+                    .map_err(Into::<DeserializeError>::into)
+                    .and_then(|(bytes, enc)| {
+                        if bytes.len() > METADATA_MAX_LEN {
+                            Err(DeserializeFailure::RangeCheck {
+                                found: bytes.len() as isize,
+                                min: None,
+                                max: Some(METADATA_MAX_LEN as isize),
+                            }
+                            .into())
+                        } else {
+                            Ok(Self::Bytes {
+                                bytes,
+                                bytes_encoding: StringEncoding::from(enc),
+                            })
+                        }
+                    }),
                 cbor_event::Type::Text => raw
                     .text_sz()
-                    .map(|(text, enc)| Self::Text {
-                        text,
-                        text_encoding: StringEncoding::from(enc),
-                    })
-                    .map_err(Into::<DeserializeError>::into),
+                    .map_err(Into::<DeserializeError>::into)
+                    .and_then(|(text, enc)| {
+                        if text.len() > METADATA_MAX_LEN {
+                            Err(DeserializeFailure::RangeCheck {
+                                found: text.len() as isize,
+                                min: None,
+                                max: Some(METADATA_MAX_LEN as isize),
+                            }
+                            .into())
+                        } else {
+                            Ok(Self::Text {
+                                text,
+                                text_encoding: StringEncoding::from(enc),
+                            })
+                        }
+                    }),
                 _ => Err(DeserializeFailure::NoVariantMatched.into()),
             }
         })()
         .map_err(|e| e.annotate("TransactionMetadatum"))
     }
+}
+
+/// encodes arbitrary bytes into chunks of 64 bytes (the limit for bytes) as a list to be valid Metadata
+pub fn encode_arbitrary_bytes_as_metadatum(bytes: &[u8]) -> TransactionMetadatum {
+    let mut list = Vec::new();
+    for chunk in bytes.chunks(METADATA_MAX_LEN) {
+        list.push(
+            TransactionMetadatum::new_bytes(chunk.to_vec())
+                .expect("this should never fail as we are already chunking it"),
+        );
+    }
+    TransactionMetadatum::new_list(list)
+}
+
+/// decodes from chunks of bytes in a list to a byte vector if that is the metadata format, otherwise returns None
+pub fn decode_arbitrary_bytes_from_metadatum(metadata: &TransactionMetadatum) -> Option<Vec<u8>> {
+    let mut bytes = Vec::new();
+    for elem in metadata.as_list()? {
+        bytes.extend(elem.as_bytes()?.iter());
+    }
+    Some(bytes)
 }
 
 #[cfg(test)]
@@ -486,5 +547,13 @@ mod tests {
         let bytes_hex = "a100a567536572766963656c4c4946542042616c6c6f7473685175657374696f6e6d536f6d65207175657374696f6e66417574686f7273736f6d652d677569642d686572652d736f6f6e64547970656653696e676c656743686f69636573a26643686f6963656b536f6d652043686f6963656643686f69636573536f6d6520416e6f746865722043686f696365";
         let md = Metadata::from_cbor_bytes(&hex::decode(bytes_hex).unwrap()).unwrap();
         assert_eq!(bytes_hex, hex::encode(md.to_cbor_bytes()));
+    }
+
+    #[test]
+    fn binary_encoding() {
+        let input_bytes = (0..1000).map(|x| x as u8).collect::<Vec<u8>>();
+        let metadata = encode_arbitrary_bytes_as_metadatum(input_bytes.as_ref());
+        let output_bytes = decode_arbitrary_bytes_from_metadatum(&metadata).expect("decode failed");
+        assert_eq!(input_bytes, output_bytes);
     }
 }

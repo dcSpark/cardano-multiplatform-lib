@@ -601,22 +601,26 @@ impl Serialize for DRep {
                 Ok(serializer)
             }
             DRep::AlwaysAbstain {
-                i2_encoding,
+                always_abstain_encoding,
                 len_encoding,
             } => {
                 serializer.write_array_sz(len_encoding.to_len_sz(1, force_canonical))?;
-                serializer
-                    .write_unsigned_integer_sz(2u64, fit_sz(2u64, *i2_encoding, force_canonical))?;
+                serializer.write_unsigned_integer_sz(
+                    2u64,
+                    fit_sz(2u64, *always_abstain_encoding, force_canonical),
+                )?;
                 len_encoding.end(serializer, force_canonical)?;
                 Ok(serializer)
             }
             DRep::AlwaysNoConfidence {
-                i3_encoding,
+                always_no_confidence_encoding,
                 len_encoding,
             } => {
                 serializer.write_array_sz(len_encoding.to_len_sz(1, force_canonical))?;
-                serializer
-                    .write_unsigned_integer_sz(3u64, fit_sz(3u64, *i3_encoding, force_canonical))?;
+                serializer.write_unsigned_integer_sz(
+                    3u64,
+                    fit_sz(3u64, *always_no_confidence_encoding, force_canonical),
+                )?;
                 len_encoding.end(serializer, force_canonical)?;
                 Ok(serializer)
             }
@@ -723,7 +727,7 @@ impl Deserialize for DRep {
                 }
             };
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let (i2_value, i2_encoding) = raw.unsigned_integer_sz()?;
+                let (i2_value, always_abstain_encoding) = raw.unsigned_integer_sz()?;
                 if i2_value != 2 {
                     return Err(DeserializeFailure::FixedValueMismatch {
                         found: Key::Uint(i2_value),
@@ -731,12 +735,12 @@ impl Deserialize for DRep {
                     }
                     .into());
                 }
-                Ok(Some(i2_encoding))
+                Ok(Some(always_abstain_encoding))
             })(raw)
             {
-                Ok(i2_encoding) => {
+                Ok(always_abstain_encoding) => {
                     return Ok(Self::AlwaysAbstain {
-                        i2_encoding,
+                        always_abstain_encoding,
                         len_encoding,
                     })
                 }
@@ -748,7 +752,7 @@ impl Deserialize for DRep {
                 }
             };
             match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let (i3_value, i3_encoding) = raw.unsigned_integer_sz()?;
+                let (i3_value, always_no_confidence_encoding) = raw.unsigned_integer_sz()?;
                 if i3_value != 3 {
                     return Err(DeserializeFailure::FixedValueMismatch {
                         found: Key::Uint(i3_value),
@@ -756,12 +760,12 @@ impl Deserialize for DRep {
                     }
                     .into());
                 }
-                Ok(Some(i3_encoding))
+                Ok(Some(always_no_confidence_encoding))
             })(raw)
             {
-                Ok(i3_encoding) => {
+                Ok(always_no_confidence_encoding) => {
                     return Ok(Self::AlwaysNoConfidence {
-                        i3_encoding,
+                        always_no_confidence_encoding,
                         len_encoding,
                     })
                 }
@@ -814,7 +818,7 @@ impl Deserialize for DnsName {
             return Err(DeserializeError::new(
                 "DnsName",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len(),
+                    found: inner.len() as isize,
                     min: Some(0),
                     max: Some(64),
                 },
@@ -853,7 +857,7 @@ impl Deserialize for Ipv4 {
             return Err(DeserializeError::new(
                 "Ipv4",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len(),
+                    found: inner.len() as isize,
                     min: Some(4),
                     max: Some(4),
                 },
@@ -892,7 +896,7 @@ impl Deserialize for Ipv6 {
             return Err(DeserializeError::new(
                 "Ipv6",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len(),
+                    found: inner.len() as isize,
                     min: Some(16),
                     max: Some(16),
                 },
@@ -3339,7 +3343,7 @@ impl Deserialize for Url {
             return Err(DeserializeError::new(
                 "Url",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len(),
+                    found: inner.len() as isize,
                     min: Some(0),
                     max: Some(64),
                 },

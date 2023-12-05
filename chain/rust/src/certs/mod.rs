@@ -297,13 +297,13 @@ pub enum DRep {
     },
     AlwaysAbstain {
         #[serde(skip)]
-        i2_encoding: Option<cbor_event::Sz>,
+        always_abstain_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
         len_encoding: LenEncoding,
     },
     AlwaysNoConfidence {
         #[serde(skip)]
-        i3_encoding: Option<cbor_event::Sz>,
+        always_no_confidence_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
         len_encoding: LenEncoding,
     },
@@ -330,14 +330,14 @@ impl DRep {
 
     pub fn new_always_abstain() -> Self {
         Self::AlwaysAbstain {
-            i2_encoding: None,
+            always_abstain_encoding: None,
             len_encoding: LenEncoding::default(),
         }
     }
 
     pub fn new_always_no_confidence() -> Self {
         Self::AlwaysNoConfidence {
-            i3_encoding: None,
+            always_no_confidence_encoding: None,
             len_encoding: LenEncoding::default(),
         }
     }
@@ -360,7 +360,7 @@ impl DnsName {
             return Err(DeserializeError::new(
                 "DnsName",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len(),
+                    found: inner.len() as isize,
                     min: Some(0),
                     max: Some(64),
                 },
@@ -400,7 +400,7 @@ impl Ipv4 {
             return Err(DeserializeError::new(
                 "Ipv4",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len(),
+                    found: inner.len() as isize,
                     min: Some(4),
                     max: Some(4),
                 },
@@ -444,7 +444,7 @@ impl Ipv6 {
             return Err(DeserializeError::new(
                 "Ipv6",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len(),
+                    found: inner.len() as isize,
                     min: Some(16),
                     max: Some(16),
                 },
@@ -909,7 +909,7 @@ impl Url {
             return Err(DeserializeError::new(
                 "Url",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len(),
+                    found: inner.len() as isize,
                     min: Some(0),
                     max: Some(64),
                 },

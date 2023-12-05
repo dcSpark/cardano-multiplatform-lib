@@ -7,7 +7,7 @@ use crate::{
 
 use cml_core::{
     metadata::{MetadatumMap, TransactionMetadatum},
-    Int,
+    DeserializeError, Int,
 };
 
 use std::collections::BTreeMap;
@@ -84,6 +84,8 @@ pub enum MetadataJsonError {
     IntTooBig(BigInt),
     #[error("key type {0:?} not allowed in JSON under specified schema")]
     InvalidKeyType(TransactionMetadatum),
+    #[error("Metadatum structure error (e.g. too big for bounds): {0}")]
+    InvalidStructure(#[from] DeserializeError),
 }
 
 fn supports_tagged_values(schema: MetadataJsonSchema) -> bool {
@@ -118,7 +120,10 @@ pub fn encode_json_value_to_metadatum(
     value: JSONValue,
     schema: MetadataJsonSchema,
 ) -> Result<TransactionMetadatum, MetadataJsonError> {
-    fn encode_string(s: String, schema: MetadataJsonSchema) -> TransactionMetadatum {
+    fn encode_string(
+        s: String,
+        schema: MetadataJsonSchema,
+    ) -> Result<TransactionMetadatum, DeserializeError> {
         if schema == MetadataJsonSchema::BasicConversions {
             match hex_string_to_bytes(&s) {
                 Some(bytes) => TransactionMetadatum::new_bytes(bytes),
@@ -145,7 +150,7 @@ pub fn encode_json_value_to_metadatum(
             JSONValue::Number(x) => Ok(TransactionMetadatum::new_int(
                 x.as_int().ok_or(MetadataJsonError::IntTooBig(x.clone()))?,
             )),
-            JSONValue::String(s) => Ok(encode_string(s, schema)),
+            JSONValue::String(s) => encode_string(s, schema).map_err(Into::into),
             JSONValue::Array(json_arr) => encode_array(json_arr, schema),
             JSONValue::Object(json_obj) => {
                 let mut map = MetadatumMap::new();
@@ -156,10 +161,10 @@ pub fn encode_json_value_to_metadatum(
                                 Int::try_from(x)
                                     .map_err(|_e| MetadataJsonError::IntTooBig(BigInt::from(x)))?,
                             ),
-                            Err(_) => encode_string(raw_key, schema),
+                            Err(_) => encode_string(raw_key, schema)?,
                         }
                     } else {
-                        TransactionMetadatum::new_text(raw_key)
+                        TransactionMetadatum::new_text(raw_key)?
                     };
                     map.set(key, encode_json_value_to_metadatum(value, schema)?);
                 }
@@ -178,13 +183,15 @@ pub fn encode_json_value_to_metadatum(
                         _ => Err(MetadataJsonError::DetailedKeyMismatch(k, v)),
                     },
                     "string" => match v {
-                        JSONValue::String(string) => Ok(encode_string(string, schema)),
+                        JSONValue::String(string) => {
+                            encode_string(string, schema).map_err(Into::into)
+                        }
                         _ => Err(MetadataJsonError::DetailedKeyMismatch(k, v)),
                     },
                     "bytes" => match v {
                         JSONValue::String(string) => hex::decode(string)
-                            .map(TransactionMetadatum::new_bytes)
-                            .map_err(Into::into),
+                            .map_err(Into::into)
+                            .and_then(|b| TransactionMetadatum::new_bytes(b).map_err(Into::into)),
                         _ => Err(MetadataJsonError::DetailedKeyMismatch(k, v)),
                     },
                     "list" => match v {
@@ -425,12 +432,10 @@ mod tests {
     fn json_encoding_check_example_metadatum(metadata: &TransactionMetadatum) {
         let map = metadata.as_map().unwrap();
         assert_eq!(
-            *map.get(&TransactionMetadatum::new_bytes(
-                hex::decode("8badf00d").unwrap()
-            ))
-            .unwrap()
-            .as_bytes()
-            .unwrap(),
+            *map.get(&TransactionMetadatum::new_bytes(hex::decode("8badf00d").unwrap()).unwrap())
+                .unwrap()
+                .as_bytes()
+                .unwrap(),
             hex::decode("deadbeef").unwrap()
         );
         assert_eq!(

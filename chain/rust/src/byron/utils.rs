@@ -276,7 +276,7 @@ pub fn make_daedalus_bootstrap_witness(
         Ed25519Signature::from_raw_bytes(key.as_ref().sign(&tx_body_hash.to_raw_bytes()).as_ref())
             .unwrap();
 
-    BootstrapWitness::new(vkey, signature, chain_code, addr.content.addr_attributes)
+    BootstrapWitness::new(vkey, signature, chain_code, addr.content.addr_attributes).unwrap()
 }
 
 pub fn make_icarus_bootstrap_witness(
@@ -290,7 +290,7 @@ pub fn make_icarus_bootstrap_witness(
     let vkey = raw_key.to_public();
     let signature = raw_key.sign(tx_body_hash.to_raw_bytes());
 
-    BootstrapWitness::new(vkey, signature, chain_code, addr.content.addr_attributes)
+    BootstrapWitness::new(vkey, signature, chain_code, addr.content.addr_attributes).unwrap()
 }
 
 #[cfg(test)]

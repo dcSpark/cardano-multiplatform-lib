@@ -46,13 +46,15 @@ impl BootstrapWitness {
         signature: &Ed25519Signature,
         chain_code: Vec<u8>,
         attributes: &AddrAttributes,
-    ) -> Self {
-        Self(cml_chain::crypto::BootstrapWitness::new(
+    ) -> Result<BootstrapWitness, JsError> {
+        cml_chain::crypto::BootstrapWitness::new(
             public_key.clone().into(),
             signature.clone().into(),
             chain_code,
             attributes.clone().into(),
-        ))
+        )
+        .map(Into::into)
+        .map_err(Into::into)
     }
 }
 
@@ -128,8 +130,10 @@ impl VRFCert {
         self.0.proof.clone()
     }
 
-    pub fn new(output: Vec<u8>, proof: Vec<u8>) -> Self {
-        Self(cml_chain::crypto::VRFCert::new(output, proof))
+    pub fn new(output: Vec<u8>, proof: Vec<u8>) -> Result<VRFCert, JsError> {
+        cml_chain::crypto::VRFCert::new(output, proof)
+            .map(Into::into)
+            .map_err(Into::into)
     }
 }
 

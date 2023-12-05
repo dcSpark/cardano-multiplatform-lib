@@ -158,7 +158,7 @@ impl Deserialize for KESSignature {
             return Err(DeserializeError::new(
                 "KESSignature",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len(),
+                    found: inner.len() as isize,
                     min: Some(448),
                     max: Some(448),
                 },

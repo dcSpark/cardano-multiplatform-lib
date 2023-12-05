@@ -6,7 +6,6 @@ use hex::ToHex;
 
 use std::iter::repeat;
 
-
 // taken from js-cardano-wasm
 
 mod password_encryption_parameter {
@@ -64,7 +63,7 @@ pub fn emip3_encrypt_with_password(
         return Err(EmIP3Error::NonceLen(NONCE_SIZE, nonce.len()));
     }
     if password.is_empty() {
-      return Err(EmIP3Error::EmptyPassword);
+        return Err(EmIP3Error::EmptyPassword);
     }
 
     let key = {
@@ -90,10 +89,7 @@ pub fn emip3_encrypt_with_password(
 }
 
 /// Decrypt using Emip3: https://github.com/Emurgo/EmIPs/blob/master/specs/emip-003.md
-pub fn emip3_decrypt_with_password(
-    password: &str,
-    data: &str,
-) -> Result<String, EmIP3Error> {
+pub fn emip3_decrypt_with_password(password: &str, data: &str) -> Result<String, EmIP3Error> {
     use password_encryption_parameter::*;
     let password = hex::decode(password)?;
     let data = hex::decode(data)?;
@@ -125,7 +121,6 @@ pub fn emip3_decrypt_with_password(
         Err(EmIP3Error::DecryptionFailed)
     }
 }
-
 
 #[cfg(test)]
 mod tests {

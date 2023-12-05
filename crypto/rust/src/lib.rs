@@ -10,6 +10,8 @@ use impl_mockchain::key;
 use rand::rngs::OsRng;
 use std::convert::From;
 
+pub mod emip3;
+
 // brought over from old IOHK code
 pub mod chain_core;
 pub mod chain_crypto;

@@ -94,7 +94,7 @@ pub fn encode_json_str_to_plutus_datum(
     json: &str,
     schema: CardanoNodePlutusDatumSchema,
 ) -> Result<PlutusData, PlutusJsonError> {
-    let value = JSONValue::from_string(json.to_string())?;
+    let value = JSONValue::from_string(json)?;
     encode_json_value_to_plutus_datum(value, schema)
 }
 

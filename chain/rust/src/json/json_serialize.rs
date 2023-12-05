@@ -78,7 +78,7 @@ impl<'de> Deserialize<'de> for Value {
         D: Deserializer<'de>,
     {
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        Value::from_string(s).map_err(|err| serde::de::Error::custom(format!("{:?}", err)))
+        Value::from_string(&s).map_err(|err| serde::de::Error::custom(format!("{:?}", err)))
     }
 }
 
@@ -122,7 +122,7 @@ impl Display for JsonParseError {
 
 impl std::error::Error for JsonParseError {}
 
-fn tokenize_string(string: String) -> Vec<JsonToken> {
+fn tokenize_string(string: &str) -> Vec<JsonToken> {
     fn are_we_inside_string(tokens: &Vec<JsonToken>) -> bool {
         if tokens.is_empty() {
             return false;
@@ -533,7 +533,7 @@ impl Value {
         }
     }
 
-    pub fn from_string(from: String) -> Result<Self, JsonParseError> {
+    pub fn from_string(from: &str) -> Result<Self, JsonParseError> {
         let tokens = tokenize_string(from);
         parse_json(tokens)
     }
@@ -987,7 +987,7 @@ mod tests {
 
     fn run_cases(cases: Vec<(String, Vec<JsonToken>, Value)>) {
         for (case, correct_tokens, correct) in cases {
-            let computed_tokens = tokenize_string(case.clone());
+            let computed_tokens = tokenize_string(&case);
             assert_eq!(
                 computed_tokens,
                 correct_tokens,
@@ -1217,7 +1217,7 @@ mod tests {
             \\\"",
         ];
         for case in cases.into_iter() {
-            let computed_tokens = tokenize_string(case.to_string());
+            let computed_tokens = tokenize_string(case);
             let parsed = parse_json(computed_tokens.clone());
             assert!(
                 parsed.is_err(),
@@ -1411,7 +1411,7 @@ mod tests {
         ];
 
         for (case, correct) in cases {
-            let computed_tokens = tokenize_string(case.to_string());
+            let computed_tokens = tokenize_string(case);
             let parsed = parse_json(computed_tokens);
             assert!(
                 parsed.is_ok(),

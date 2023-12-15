@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkcddl_codegen_documentation=self.webpackChunkcddl_codegen_documentation||[]).push([[617],{7516:e=>{e.exports=JSON.parse('{"title":"Core","slug":"/category/core","permalink":"/category/core","navigation":{"previous":{"title":"Modules","permalink":"/category/modules"},"next":{"title":"Core","permalink":"/modules/core/"}}}')}}]);

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkcddl_codegen_documentation=self.webpackChunkcddl_codegen_documentation||[]).push([[731],{9235:e=>{e.exports=JSON.parse('{"title":"Modules","slug":"/category/modules","permalink":"/category/modules","navigation":{"previous":{"title":"Crate Architecture","permalink":"/crate_architecture"},"next":{"title":"Core","permalink":"/category/core"}}}')}}]);

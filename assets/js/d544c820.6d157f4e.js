@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkcddl_codegen_documentation=self.webpackChunkcddl_codegen_documentation||[]).push([[793],{7557:e=>{e.exports=JSON.parse('{"title":"Chain","slug":"/category/chain","permalink":"/category/chain","navigation":{"previous":{"title":"Core","permalink":"/modules/core/"},"next":{"title":"Chain","permalink":"/modules/chain/"}}}')}}]);

@@ -2,6 +2,8 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 use cml_crypto::RawBytesEncoding;
 
+pub mod emip3;
+
 #[wasm_bindgen]
 pub struct Bip32PrivateKey(cml_crypto::Bip32PrivateKey);
 

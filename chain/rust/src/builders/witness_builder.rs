@@ -521,7 +521,8 @@ pub fn merge_fake_witness(
             fake_sig,
             fake_chaincode.to_vec(),
             address_content.addr_attributes.clone(),
-        );
+        )
+        .unwrap();
 
         // avoid accidentally overriding real witness
         if !builder.bootstraps.contains_key(&fake_witness.public_key) {

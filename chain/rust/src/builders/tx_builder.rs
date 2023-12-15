@@ -4218,7 +4218,7 @@ mod tests {
     fn create_metadatum() -> TransactionMetadatum {
         let mut entries = MetadatumMap::new();
         entries.set(
-            TransactionMetadatum::new_text("qwe".into()),
+            TransactionMetadatum::new_text("qwe".into()).unwrap(),
             TransactionMetadatum::new_int(123i64.into()),
         );
         TransactionMetadatum::new_map(entries)
@@ -4244,7 +4244,7 @@ mod tests {
         match dat {
             TransactionMetadatum::Map(map) => {
                 assert_eq!(map.len(), 1);
-                let key = TransactionMetadatum::new_text(String::from("qwe"));
+                let key = TransactionMetadatum::new_text(String::from("qwe")).unwrap();
                 let val = map.get(&key).unwrap();
                 match val {
                     TransactionMetadatum::Int(x) => assert_eq!(*x, 123u64.into()),
@@ -4401,7 +4401,7 @@ mod tests {
         let mut tx_builder = create_default_tx_builder();
 
         let key = 42;
-        let value = TransactionMetadatum::new_text("Hello World".to_string());
+        let value = TransactionMetadatum::new_text("Hello World".to_string()).unwrap();
         {
             let mut aux_data = AuxiliaryData::new();
             aux_data.metadata_mut().set(key, value.clone());
@@ -4445,7 +4445,7 @@ mod tests {
         tx_builder.add_auxiliary_data(create_aux_with_metadata(key1));
 
         let key2 = 84;
-        let val2 = TransactionMetadatum::new_text("Hello World".to_string());
+        let val2 = TransactionMetadatum::new_text("Hello World".to_string()).unwrap();
         {
             let mut aux_data = AuxiliaryData::new();
             aux_data.metadata_mut().set(key2, val2.clone());
@@ -5193,7 +5193,7 @@ mod tests {
             let mut map = MetadatumMap::new();
             map.set(
                 TransactionMetadatum::new_int(Int::from(0u64)),
-                TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()),
+                TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()).unwrap(),
             );
 
             let mut aux_data = AuxiliaryData::new();
@@ -5341,7 +5341,7 @@ mod tests {
             let mut map = MetadatumMap::new();
             map.set(
                 TransactionMetadatum::new_int(0u64.into()),
-                TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()),
+                TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()).unwrap(),
             );
 
             let mut aux_data = AuxiliaryData::new();
@@ -5519,7 +5519,7 @@ mod tests {
             let mut map = MetadatumMap::new();
             map.set(
                 TransactionMetadatum::new_int(0u64.into()),
-                TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()),
+                TransactionMetadatum::new_bytes(hex::decode("d866820080").unwrap()).unwrap(),
             );
 
             let mut aux_data = AuxiliaryData::new();

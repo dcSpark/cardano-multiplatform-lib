@@ -65,7 +65,7 @@ impl CIP25String64 {
             return Err(DeserializeError::new(
                 "CIP25String64",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len(),
+                    found: inner.len() as isize,
                     min: Some(0),
                     max: Some(64),
                 },
@@ -138,13 +138,17 @@ impl CIP25MiniMetadataDetails {
         match metadatum {
             TransactionMetadatum::Map(map) => {
                 let name: Option<CIP25String64> = map
-                    .get(&TransactionMetadatum::new_text("name".to_owned()))
+                    .get(&TransactionMetadatum::new_text("name".to_owned()).unwrap())
                     // for some reason, 1% of NFTs seem to use the wrong case
-                    .or_else(|| map.get(&TransactionMetadatum::new_text("Name".to_owned())))
+                    .or_else(|| {
+                        map.get(&TransactionMetadatum::new_text("Name".to_owned()).unwrap())
+                    })
                     // for some reason, 0.5% of NFTs use "title" instead of name
-                    .or_else(|| map.get(&TransactionMetadatum::new_text("title".to_owned())))
+                    .or_else(|| {
+                        map.get(&TransactionMetadatum::new_text("title".to_owned()).unwrap())
+                    })
                     // for some reason, 0.3% of NFTs use "id" instead of name
-                    .or_else(|| map.get(&TransactionMetadatum::new_text("id".to_owned())))
+                    .or_else(|| map.get(&TransactionMetadatum::new_text("id".to_owned()).unwrap()))
                     .and_then(|result| match result {
                         TransactionMetadatum::Text { text, .. } => {
                             CIP25String64::new_str(text).ok()
@@ -152,7 +156,8 @@ impl CIP25MiniMetadataDetails {
                         _ => None,
                     });
 
-                let image_base = map.get(&TransactionMetadatum::new_text("image".to_owned()));
+                let image_base =
+                    map.get(&TransactionMetadatum::new_text("image".to_owned()).unwrap());
                 let image = match image_base {
                     None => None,
                     Some(base) => match base {

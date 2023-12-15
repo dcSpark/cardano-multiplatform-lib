@@ -118,7 +118,7 @@ impl CIP25String64 {
             return Err(DeserializeError::new(
                 "CIP25String64",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len(),
+                    found: inner.len() as isize,
                     min: Some(0),
                     max: Some(64),
                 },

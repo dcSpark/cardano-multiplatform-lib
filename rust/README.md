@@ -1,3 +1,0 @@
-# Crate Architecture
-
-For current users, this root `rust/ `crate is the main version of CML and is the only one that should be used. There are also two crates here `rust/core` and `rust/wasm` which are a part of a big refactor and will eventually replace the root crate here at some point in the future, but are still quite WIP for now. The root crate when used for WASM builds via the npm scripts in the root repo dir will utilize the `rust/json-gen` crate here in the build scripts to generate typescript definitions for the JSON conversion. The `rust/json-gen-split` crate is the equivalent for the `rust/core`/`rust/wasm` crates and is not called anywhere from the build scripts, but will someday replace the `rust/json-gen` crate once the refactoring is completed.

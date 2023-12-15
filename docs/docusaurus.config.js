@@ -9,7 +9,7 @@ const config = {
   title: "CML",
   tagline: 'Getting started',
   url: "https://dcspark.github.io",
-  baseUrl: "/",
+  baseUrl: "/cardano-multiplatform-lib/",
   onBrokenLinks: "throw",
   onBrokenMarkdownLinks: "warn",
   favicon: "img/favicon.svg",

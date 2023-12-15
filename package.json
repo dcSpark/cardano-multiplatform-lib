@@ -6,23 +6,17 @@
     "cardano"
   ],
   "scripts": {
-    "rust:build-nodejs": "(rimraf ./rust/pkg && cd rust; wasm-pack build --target=nodejs -- --features wasm; cd ..; npm run js:ts-json-gen; cd rust; wasm-pack pack) && npm run js:flowgen",
-    "rust:build-browser": "(rimraf ./rust/pkg && cd rust; wasm-pack build --target=browser -- --features wasm; cd ..; npm run js:ts-json-gen; cd rust; wasm-pack pack) && npm run js:flowgen",
-    "rust:build-web": "(rimraf ./rust/pkg && cd rust; wasm-pack build --target=web -- --features wasm; cd ..; npm run js:ts-json-gen; cd rust; wasm-pack pack) && npm run js:flowgen",
-    "rust:build-asm": "(rimraf ./rust/pkg && cd rust; wasm-pack build --target=browser -- --features wasm; cd ..; npm run js:ts-json-gen; cd rust; wasm-pack pack) && npm run asm:build && npm run js:flowgen",
-    "rust:publish": "cd rust && cargo publish && cd ../",
-    "asm:build": "./binaryen/bin/wasm2js ./rust/pkg/cardano_multiplatform_lib_bg.wasm --output ./rust/pkg/cardano_multiplatform_lib.asm.js && node ./scripts/legacy/wasm-to-asm",
-    "rust:check-warnings": "(cd rust; RUSTFLAGS=\"-D warnings\" cargo +stable build)",
-    "rust:test": "(cd rust; cargo test)",
-    "js:flowgen": "flowgen ./rust/pkg/cardano_multiplatform_lib.d.ts -o ./rust/pkg/cardano_multiplatform_lib.js.flow --add-flow-header",
-    "js:prepublish": "npm run rust:test && rimraf ./publish && cp -r ./rust/pkg ./publish && cp README.md publish/ && cp LICENSE publish/",
-    "js:publish-nodejs:prod": "npm run rust:build-nodejs && npm run js:prepublish && node ./scripts/legacy/publish-helper -nodejs && cd publish && npm publish --access public",
-    "js:publish-nodejs:beta": "npm run rust:build-nodejs && npm run js:prepublish && node ./scripts/legacy/publish-helper -nodejs && cd publish && npm publish --tag beta --access public",
-    "js:publish-browser:prod": "npm run rust:build-browser && npm run js:prepublish && node ./scripts/legacy/publish-helper -browser && cd publish && npm publish --access public",
-    "js:publish-browser:beta": "npm run rust:build-browser && npm run js:prepublish && node ./scripts/legacy/publish-helper -browser && cd publish && npm publish --tag beta --access public",
-    "js:publish-asm:prod": "npm run rust:build-asm && npm run js:prepublish && node ./scripts/legacy/publish-helper -asmjs && cd publish && npm publish --access public",
-    "js:publish-asm:beta": "npm run rust:build-asm && npm run js:prepublish && node ./scripts/legacy/publish-helper -asmjs && cd publish && npm publish --tag beta --access public",
-    "js:ts-json-gen": "cd rust/json-gen && cargo +stable run && cd ../.. && node ./scripts/legacy/run-json2ts.js && node ./scripts/legacy/json-ts-types.js",
+    "rust:test": "cargo test",
+    "rust:build-nodejs": "(cd cml/wasm && npm run rust:build-nodejs) && (cd multi-era/wasm && npm run rust:build-nodejs)",
+    "rust:build-browser": "(cd cml/wasm && npm run rust:build-browser) && (cd multi-era/wasm && npm run rust:build-browser)",
+    "rust:build-web": "(cd cml/wasm && npm run rust:build-web) && (cd multi-era/wasm && npm run rust:build-web)",
+    "rust:build-asm": "(cd cml/wasm && npm run rust:build-asm) && (cd multi-era/wasm && npm run rust:build-asm)",
+    "js:publish-nodejs:prod": "(cd cml/wasm && npm run js:publish-nodejs:prod) && (cd multi-era/wasm && npm run js:publish-nodejs:prod)",
+    "js:publish-nodejs:beta": "(cd cml/wasm && npm run js:publish-nodejs:beta) && (cd multi-era/wasm && npm run js:publish-nodejs:beta)",
+    "js:publish-browser:prod": "(cd cml/wasm && npm run js:publish-browser:prod) && (cd multi-era/wasm && npm run js:publish-browser:prod)",
+    "js:publish-browser:beta": "(cd cml/wasm && npm run js:publish-browser:beta) && (cd multi-era/wasm && npm run js:publish-browser:beta)",
+    "js:publish-asm:prod": "(cd cml/wasm && npm run js:publish-asm:prod) && (cd multi-era/wasm && npm run js:publish-asm:prod)",
+    "js:publish-asm:beta": "(cd cml/wasm && npm run js:publish-asm:beta) && (cd multi-era/wasm && npm run js:publish-asm:beta)",
     "postinstall": "git submodule update --init --recursive && cd binaryen; cmake . && make"
   },
   "husky": {
@@ -38,6 +32,7 @@
   },
   "devDependencies": {
     "flowgen": "1.11.0",
+    "cross-env": "^7.0.3",
     "husky": "4.2.5",
     "json-schema-to-typescript": "^10.1.5",
     "rimraf": "3.0.2"

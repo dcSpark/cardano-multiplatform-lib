@@ -146,13 +146,13 @@ impl RedeemerSetBuilder {
     }
 
     pub fn add_spend(&mut self, result: &InputBuilderResult) {
-        let plutus_data = {
+        let redeemer_data = {
             result
                 .aggregate_witness
                 .as_ref()
                 .and_then(|data| data.redeemer_plutus_data())
         };
-        if let Some(data) = plutus_data {
+        if let Some(data) = redeemer_data {
             self.spend.insert(
                 result.input.clone(),
                 Some(UntaggedRedeemerPlaceholder::JustData(data.clone())),
@@ -163,13 +163,13 @@ impl RedeemerSetBuilder {
     }
 
     pub fn add_mint(&mut self, result: &MintBuilderResult) {
-        let plutus_data = {
+        let redeemer_data = {
             result
                 .aggregate_witness
                 .as_ref()
                 .and_then(|data| data.redeemer_plutus_data())
         };
-        if let Some(data) = plutus_data {
+        if let Some(data) = redeemer_data {
             self.mint.insert(
                 result.policy_id,
                 Some(UntaggedRedeemerPlaceholder::JustData(data.clone())),
@@ -180,13 +180,13 @@ impl RedeemerSetBuilder {
     }
 
     pub fn add_reward(&mut self, result: &WithdrawalBuilderResult) {
-        let plutus_data = {
+        let redeemer_data = {
             result
                 .aggregate_witness
                 .as_ref()
                 .and_then(|data| data.redeemer_plutus_data())
         };
-        if let Some(data) = plutus_data {
+        if let Some(data) = redeemer_data {
             self.reward.insert(
                 result.address.clone(),
                 Some(UntaggedRedeemerPlaceholder::JustData(data.clone())),
@@ -197,13 +197,13 @@ impl RedeemerSetBuilder {
     }
 
     pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
-        let plutus_data = {
+        let redeemer_data = {
             result
                 .aggregate_witness
                 .as_ref()
                 .and_then(|data| data.redeemer_plutus_data())
         };
-        if let Some(data) = plutus_data {
+        if let Some(data) = redeemer_data {
             self.cert
                 .push(Some(UntaggedRedeemerPlaceholder::JustData(data.clone())));
         } else {

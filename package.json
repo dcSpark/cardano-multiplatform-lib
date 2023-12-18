@@ -1,6 +1,6 @@
 {
   "name": "cardano-multiplatform-lib",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Cardano Multiplatform SDK for core Cardano blockchain functionality",
   "keywords": [
     "cardano"

@@ -1,17 +1,20 @@
 {
-  "name": "cml-multi-era",
-  "version": "0.1.0",
+  "name": "cardano-multiplatform-multiera-lib",
+  "version": "4.0.1",
   "description": "Multiplatform SDK for on-chain Cardano blochain types of all eras (Byron, Shelley, etc)",
+  "keywords": [
+    "cardano"
+  ],
   "scripts": {
     "rust:build-nodejs": "rimraf ./pkg; cross-env WASM_BINDGEN_WEAKREF=1 wasm-pack build --target=nodejs; npm run js:ts-json-gen; wasm-pack pack",
     "rust:build-browser": "rimraf ./pkg; cross-env WASM_BINDGEN_WEAKREF=1 wasm-pack build --target=browser; npm run js:ts-json-gen; wasm-pack pack",
     "rust:build-web": "rimraf ./pkg; cross-env WASM_BINDGEN_WEAKREF=1 wasm-pack build --target=web; npm run js:ts-json-gen; wasm-pack pack",
-    "rust:build-asm": "(rimraf ./rust/pkg && cd rust; wasm-pack build --target=browser -- --features wasm; cd ..; npm run js:ts-json-gen; cd rust; wasm-pack pack) && npm run asm:build && npm run js:flowgen",
-    "asm:build": "../../binaryen/bin/wasm2js ./rust/pkg/cardano_multiplatform_lib_bg.wasm --output ./rust/pkg/cardano_multiplatform_lib.asm.js && node ./scripts/legacy/wasm-to-asm",
+    "rust:build-asm": "(rimraf ./pkg && wasm-pack build --target=browser -- --features wasm; npm run js:ts-json-gen; wasm-pack pack) && npm run asm:build",
+    "asm:build": "../../binaryen/bin/wasm2js ./pkg/cardano_multiplatform_multiera_lib_bg.wasm --output ./pkg/cardano_multiplatform_multiera_lib.asm.js && node ../../scripts/legacy/wasm-to-asm",
     "rust:publish": "cargo publish",
     "rust:check-warnings": "(RUSTFLAGS=\"-D warnings\" cargo +stable build)",
     "rust:test": "cargo test",
-    "js:prepublish": "npm run rust:test && rimraf ./publish && cp -r ./pkg ./publish && cp README.md publish/ && cp ../../LICENSE publish/",
+    "js:prepublish": "npm run rust:test && rimraf ./publish && cp -r ./pkg ./publish && cp ../../README.md publish/ && cp ../../LICENSE publish/",
     "js:test-publish": "npm run rust:build-nodejs && npm run js:prepublish && node ../../scripts/publish-helper multi-era -nodejs && cd publish",
     "js:publish-nodejs:prod": "npm run rust:build-nodejs && npm run js:prepublish && node ../../scripts/publish-helper multi-era -nodejs && cd publish && npm publish --access public",
     "js:publish-nodejs:beta": "npm run rust:build-nodejs && npm run js:prepublish && node ../../scripts/publish-helper multi-era -nodejs && cd publish && npm publish --tag beta --access public",

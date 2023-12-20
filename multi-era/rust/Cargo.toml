@@ -2,6 +2,13 @@
 name = "cml-multi-era"
 version = "0.1.0"
 edition = "2018"
+authors = ["dcSpark"]
+license = "MIT"
+description = "Multiplatform SDK for era-agnostic Cardano blockchain parsing"
+documentation = "https://github.com/dcSpark/cardano-multiplatform-lib/docs"
+repository = "https://github.com/dcSpark/cardano-multiplatform-lib"
+readme = "../../README.md"
+keywords = ["cardano"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

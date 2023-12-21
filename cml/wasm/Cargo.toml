@@ -8,7 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 cml-chain-wasm = { path = "../../chain/wasm", version = "0.1.0" }
-cml-cip25-wasm = { path = "../../cip25/wasm", version = "0.1.0" }
+cml-cip25-wasm = { path = "../../cip25/wasm", version = "1.1.0" }
 cml-cip36-wasm = { path = "../../cip36/wasm", version = "0.1.0" }
 cml-crypto-wasm = { path = "../../crypto/wasm", version = "0.1.0" }
 cml-core-wasm = { path = "../../core/wasm", version = "0.1.0" }

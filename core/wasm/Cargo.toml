@@ -3,6 +3,11 @@ name = "cml-core-wasm"
 version = "0.1.0"
 edition = "2018"
 keywords = ["cardano"]
+license = "MIT"
+description = "Multiplatform WASM SDK for core Cardano blockchain functionality"
+documentation = "https://github.com/dcSpark/cardano-multiplatform-lib/docs"
+repository = "https://github.com/dcSpark/cardano-multiplatform-lib"
+readme = "../../README.md"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

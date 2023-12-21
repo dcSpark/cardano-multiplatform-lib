@@ -2,7 +2,13 @@
 name = "cml-cip25-wasm"
 version = "1.1.0"
 edition = "2018"
-keywords = ["cardano"]
+authors = ["dcSpark"]
+license = "MIT"
+description = "Multiplatform WASM SDK for CIP25 Cardano NFT Metadata functionality"
+documentation = "https://github.com/dcSpark/cardano-multiplatform-lib/docs"
+repository = "https://github.com/dcSpark/cardano-multiplatform-lib"
+readme = "../../README.md"
+keywords = ["cardano", "cip25"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

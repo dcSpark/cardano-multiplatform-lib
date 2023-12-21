@@ -2,6 +2,12 @@
 name = "cml-chain-wasm"
 version = "0.1.0"
 edition = "2018"
+authors = ["dcSpark"]
+license = "MIT"
+description = "Multiplatform WASM SDK for main Cardano blockchain functionality"
+documentation = "https://github.com/dcSpark/cardano-multiplatform-lib/docs"
+repository = "https://github.com/dcSpark/cardano-multiplatform-lib"
+readme = "../../README.md"
 keywords = ["cardano"]
 
 [lib]

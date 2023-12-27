@@ -546,6 +546,12 @@ macro_rules! impl_hash_type {
             }
         }
 
+        impl From<$name> for [u8; $byte_count] {
+            fn from($name(bytes): $name) -> Self {
+                bytes
+            }
+        }
+
         impl RawBytesEncoding for $name {
             fn to_raw_bytes(&self) -> &[u8] {
                 self.0.as_ref()

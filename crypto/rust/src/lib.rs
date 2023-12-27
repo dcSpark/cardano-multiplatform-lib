@@ -546,6 +546,12 @@ macro_rules! impl_hash_type {
             }
         }
 
+        impl Into<[u8; $byte_count]> for $name {
+            fn into(self) -> [u8; $byte_count] {
+                self.0
+            }
+        }
+
         impl RawBytesEncoding for $name {
             fn to_raw_bytes(&self) -> &[u8] {
                 self.0.as_ref()

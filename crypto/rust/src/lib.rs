@@ -546,9 +546,9 @@ macro_rules! impl_hash_type {
             }
         }
 
-        impl Into<[u8; $byte_count]> for $name {
-            fn into(self) -> [u8; $byte_count] {
-                self.0
+        impl From<$name> for [u8; $byte_count] {
+            fn from($name(bytes): $name) -> Self {
+                bytes
             }
         }
 

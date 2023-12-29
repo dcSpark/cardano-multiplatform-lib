@@ -2,7 +2,8 @@ use super::*;
 
 pub use cml_chain::address::{AddressHeaderKind, AddressKind};
 
-use cml_core_wasm::impl_wasm_conversions;
+use cml_core::CertificateIndex;
+use cml_core_wasm::{impl_wasm_conversions, impl_wasm_json_api};
 
 use crate::certs::StakeCredential;
 
@@ -11,6 +12,8 @@ use crate::certs::StakeCredential;
 pub struct Address(cml_chain::address::Address);
 
 impl_wasm_conversions!(cml_chain::address::Address, Address);
+
+impl_wasm_json_api!(Address);
 
 #[wasm_bindgen]
 impl Address {
@@ -112,18 +115,147 @@ impl Address {
             .map(Into::into)
             .map_err(Into::into)
     }
+}
 
-    pub fn to_json(&self) -> Result<String, JsError> {
-        serde_json::to_string_pretty(&self.0).map_err(Into::into)
+#[wasm_bindgen]
+#[derive(Clone, Debug)]
+pub struct BaseAddress(cml_chain::address::BaseAddress);
+
+impl_wasm_conversions!(cml_chain::address::BaseAddress, BaseAddress);
+
+#[wasm_bindgen]
+impl BaseAddress {
+    pub fn new(network: u8, payment: &StakeCredential, stake: &StakeCredential) -> Self {
+        Self(cml_chain::address::BaseAddress::new(
+            network,
+            payment.as_ref().clone(),
+            stake.as_ref().clone(),
+        ))
     }
 
-    pub fn to_json_value(&self) -> Result<JsValue, JsError> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsError::new(&format!("Address::to_js_value: {e}")))
+    pub fn to_address(&self) -> Address {
+        Address(self.0.clone().to_address())
     }
 
-    pub fn from_json(json: &str) -> Result<Address, JsError> {
-        serde_json::from_str(json).map(Self).map_err(Into::into)
+    pub fn from_address(address: &Address) -> Option<BaseAddress> {
+        match &address.0 {
+            cml_chain::address::Address::Base(ba) => Some(ba.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn network_id(&self) -> u8 {
+        self.0.network
+    }
+
+    pub fn payment(&self) -> StakeCredential {
+        self.0.payment.clone().into()
+    }
+
+    pub fn stake(&self) -> StakeCredential {
+        self.0.stake.clone().into()
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Debug)]
+pub struct EnterpriseAddress(cml_chain::address::EnterpriseAddress);
+
+impl_wasm_conversions!(cml_chain::address::EnterpriseAddress, EnterpriseAddress);
+
+#[wasm_bindgen]
+impl EnterpriseAddress {
+    pub fn new(network: u8, payment: &StakeCredential) -> Self {
+        Self(cml_chain::address::EnterpriseAddress::new(
+            network,
+            payment.as_ref().clone(),
+        ))
+    }
+
+    pub fn to_address(&self) -> Address {
+        Address(self.0.clone().to_address())
+    }
+
+    pub fn from_address(address: &Address) -> Option<EnterpriseAddress> {
+        match &address.0 {
+            cml_chain::address::Address::Enterprise(ea) => Some(ea.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn network_id(&self) -> u8 {
+        self.0.network
+    }
+
+    pub fn payment(&self) -> StakeCredential {
+        self.0.payment.clone().into()
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Debug)]
+pub struct Pointer(cml_chain::address::Pointer);
+
+impl_wasm_conversions!(cml_chain::address::Pointer, Pointer);
+
+impl Pointer {
+    pub fn new(slot: Slot, tx_index: TransactionIndex, cert_index: CertificateIndex) -> Self {
+        Self(cml_chain::address::Pointer::new(slot, tx_index, cert_index))
+    }
+
+    /// This will be truncated if above u64::MAX
+    pub fn slot(&self) -> Slot {
+        self.0.slot()
+    }
+
+    /// This will be truncated if above u64::MAX
+    pub fn tx_index(&self) -> Slot {
+        self.0.tx_index()
+    }
+
+    /// This will be truncated if above u64::MAX
+    pub fn cert_index(&self) -> Slot {
+        self.0.cert_index()
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Debug)]
+pub struct PointerAddress(cml_chain::address::PointerAddress);
+
+impl_wasm_conversions!(cml_chain::address::PointerAddress, PointerAddress);
+
+#[wasm_bindgen]
+impl PointerAddress {
+    pub fn new(network: u8, payment: &StakeCredential, stake: &Pointer) -> Self {
+        Self(cml_chain::address::PointerAddress::new(
+            network,
+            payment.as_ref().clone(),
+            stake.as_ref().clone(),
+        ))
+    }
+
+    pub fn to_address(&self) -> Address {
+        Address(self.0.clone().to_address())
+    }
+
+    pub fn from_address(address: &Address) -> Option<PointerAddress> {
+        match &address.0 {
+            cml_chain::address::Address::Ptr(pa) => Some(pa.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn network_id(&self) -> u8 {
+        self.0.network
+    }
+
+    pub fn payment(&self) -> StakeCredential {
+        self.0.payment.clone().into()
+    }
+
+    pub fn stake(&self) -> Pointer {
+        self.0.stake.clone().into()
     }
 }
 
@@ -134,6 +266,8 @@ pub type RewardAccount = RewardAddress;
 pub struct RewardAddress(cml_chain::address::RewardAddress);
 
 impl_wasm_conversions!(cml_chain::address::RewardAddress, RewardAddress);
+
+impl_wasm_json_api!(RewardAddress);
 
 #[wasm_bindgen]
 impl RewardAddress {
@@ -155,16 +289,11 @@ impl RewardAddress {
         }
     }
 
-    pub fn to_json(&self) -> Result<String, JsError> {
-        serde_json::to_string_pretty(&self.0).map_err(Into::into)
+    pub fn network_id(&self) -> u8 {
+        self.0.network
     }
 
-    pub fn to_json_value(&self) -> Result<JsValue, JsError> {
-        serde_wasm_bindgen::to_value(&self.0)
-            .map_err(|e| JsError::new(&format!("RewardAddress::to_js_value: {e}")))
-    }
-
-    pub fn from_json(json: &str) -> Result<RewardAddress, JsError> {
-        serde_json::from_str(json).map(Self).map_err(Into::into)
+    pub fn payment(&self) -> StakeCredential {
+        self.0.payment.clone().into()
     }
 }

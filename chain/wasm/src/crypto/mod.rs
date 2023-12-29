@@ -7,6 +7,9 @@ pub use cml_crypto_wasm::{
     ScriptDataHash, ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
 };
 
+pub mod hash;
+pub mod utils;
+
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};

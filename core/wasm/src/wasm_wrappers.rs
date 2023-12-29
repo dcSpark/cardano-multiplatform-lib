@@ -94,6 +94,12 @@ macro_rules! impl_wasm_list {
             }
         }
 
+        impl AsRef<[$rust_elem_name]> for $wasm_list_name {
+            fn as_ref(&self) -> &[$rust_elem_name] {
+                &self.0
+            }
+        }
+
         $crate::impl_wasm_list_add!(
             $rust_elem_name,
             $wasm_elem_name,

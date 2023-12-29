@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::{
     address::Address,
+    plutus::Language,
     transaction::{DatumOption, ScriptRef, TransactionOutput},
     Value,
 };
@@ -190,5 +191,19 @@ impl TransactionWitnessSet {
                 self.redeemers = Some(other_redeemers);
             }
         }
+    }
+
+    pub fn languages(&self) -> Vec<Language> {
+        let mut used_langs = vec![];
+        if self.plutus_v1_scripts.is_some() {
+            used_langs.push(Language::PlutusV1);
+        }
+        if self.plutus_v2_scripts.is_some() {
+            used_langs.push(Language::PlutusV2);
+        }
+        if self.plutus_v3_scripts.is_some() {
+            used_langs.push(Language::PlutusV3);
+        }
+        used_langs
     }
 }

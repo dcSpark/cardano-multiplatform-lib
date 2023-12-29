@@ -1,6 +1,7 @@
 use crate::{
     address::Address,
     transaction::{DatumOption, ScriptRef, TransactionOutput},
+    utils::LanguageList,
     Ed25519KeyHashList, NativeScript, Value,
 };
 use cml_crypto_wasm::{DatumHash, ScriptHash};
@@ -73,5 +74,9 @@ impl NativeScript {
 impl TransactionWitnessSet {
     pub fn add_all_witnesses(&mut self, other: &TransactionWitnessSet) {
         self.0.add_all_witnesses(other.clone().into());
+    }
+
+    pub fn languages(&self) -> LanguageList {
+        self.0.languages().into()
     }
 }

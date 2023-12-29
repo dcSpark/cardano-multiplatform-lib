@@ -7,7 +7,9 @@ use cml_crypto::{
 use crate::{
     auxdata::AuxiliaryData,
     plutus::{CostModels, Language, PlutusData, Redeemer},
-    transaction::{cbor_encodings::TransactionWitnessSetEncoding, TransactionBody, TransactionWitnessSet},
+    transaction::{
+        cbor_encodings::TransactionWitnessSetEncoding, TransactionBody, TransactionWitnessSet,
+    },
 };
 
 pub fn hash_auxiliary_data(auxiliary_data: &AuxiliaryData) -> AuxiliaryDataHash {
@@ -24,7 +26,7 @@ pub fn hash_plutus_data(plutus_data: &PlutusData) -> DatumHash {
 
 /// Calculates the hash for script data (no plutus scripts) if it is necessary.
 /// Returns None if it was not necessary (no datums/redeemers) to include.
-/// 
+///
 /// Most users will not directly need this as when using the builders
 /// it will be invoked for you.
 pub fn hash_script_data(
@@ -121,7 +123,7 @@ pub enum ScriptDataHashError {
 
 /// Calculates the hash for script data (with plutus scripts) if it is necessary.
 /// Returns None if it was not necessary (no datums/redeemers) to include.
-/// 
+///
 /// Most users will not directly need this as when using the builders
 /// it will be invoked for you.
 pub fn calc_script_data_hash(
@@ -182,7 +184,7 @@ pub fn calc_script_data_hash(
 
 /// Calculates the hash for script data from a witness if it is necessary.
 /// Returns None if it was not necessary (no datums/redeemers) to include.
-/// 
+///
 /// Most users will not directly need this as when using the builders
 /// it will be invoked for you.
 pub fn calc_script_data_hash_from_witness(

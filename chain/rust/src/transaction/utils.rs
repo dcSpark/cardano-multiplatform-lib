@@ -2,8 +2,9 @@ use std::collections::BTreeSet;
 
 use crate::{
     address::Address,
+    plutus::Language,
     transaction::{DatumOption, ScriptRef, TransactionOutput},
-    Value, plutus::Language,
+    Value,
 };
 use cml_crypto::{DatumHash, Ed25519KeyHash};
 

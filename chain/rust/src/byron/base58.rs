@@ -36,72 +36,6 @@ pub fn decode(input: &str) -> Result<Vec<u8>> {
 //    base_decode(ALPHABET, input)
 //}
 
-#[cfg(test)]
-mod tests {
-    fn encode(input: &[u8], expected: &str) {
-        let encoded = super::encode(input);
-        assert_eq!(encoded, expected);
-    }
-    fn decode(expected: &[u8], input: &str) {
-        let decoded = super::decode(input).unwrap();
-        assert_eq!(decoded.as_slice(), expected);
-    }
-
-    #[test]
-    fn test_vector_1() {
-        encode(b"\0\0\0\0", "11111");
-        decode(b"\0\0\0\0", "11111");
-    }
-
-    #[test]
-    fn test_vector_2() {
-        encode(b"This is awesome!", "BRY7dK2V98Sgi7CFWiZbap");
-        decode(b"This is awesome!", "BRY7dK2V98Sgi7CFWiZbap");
-    }
-
-    #[test]
-    fn test_vector_3() {
-        encode(b"Hello World...", "TcgsE5dzphUWfjcb9i5");
-        decode(b"Hello World...", "TcgsE5dzphUWfjcb9i5");
-    }
-
-    #[test]
-    fn test_vector_4() {
-        encode(b"\0abc", "1ZiCa");
-        decode(b"\0abc", "1ZiCa");
-    }
-
-    #[test]
-    fn test_vector_5() {
-        encode(b"\0\0abc", "11ZiCa");
-        decode(b"\0\0abc", "11ZiCa");
-    }
-
-    #[test]
-    fn test_vector_6() {
-        encode(b"\0\0\0abc", "111ZiCa");
-        decode(b"\0\0\0abc", "111ZiCa");
-    }
-
-    #[test]
-    fn test_vector_7() {
-        encode(b"\0\0\0\0abc", "1111ZiCa");
-        decode(b"\0\0\0\0abc", "1111ZiCa");
-    }
-
-    #[test]
-    fn test_vector_8() {
-        encode(
-            b"abcdefghijklmnopqrstuvwxyz",
-            "3yxU3u1igY8WkgtjK92fbJQCd4BZiiT1v25f",
-        );
-        decode(
-            b"abcdefghijklmnopqrstuvwxyz",
-            "3yxU3u1igY8WkgtjK92fbJQCd4BZiiT1v25f",
-        );
-    }
-}
-
 fn base_encode(alphabet_s: &str, input: &[u8]) -> Vec<u8> {
     let alphabet = alphabet_s.as_bytes();
     let base = alphabet.len() as u32;
@@ -170,4 +104,70 @@ fn base_decode(alphabet_s: &str, input: &[u8]) -> Result<Vec<u8>> {
     }
     bytes.reverse();
     Ok(bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    fn encode(input: &[u8], expected: &str) {
+        let encoded = super::encode(input);
+        assert_eq!(encoded, expected);
+    }
+    fn decode(expected: &[u8], input: &str) {
+        let decoded = super::decode(input).unwrap();
+        assert_eq!(decoded.as_slice(), expected);
+    }
+
+    #[test]
+    fn test_vector_1() {
+        encode(b"\0\0\0\0", "11111");
+        decode(b"\0\0\0\0", "11111");
+    }
+
+    #[test]
+    fn test_vector_2() {
+        encode(b"This is awesome!", "BRY7dK2V98Sgi7CFWiZbap");
+        decode(b"This is awesome!", "BRY7dK2V98Sgi7CFWiZbap");
+    }
+
+    #[test]
+    fn test_vector_3() {
+        encode(b"Hello World...", "TcgsE5dzphUWfjcb9i5");
+        decode(b"Hello World...", "TcgsE5dzphUWfjcb9i5");
+    }
+
+    #[test]
+    fn test_vector_4() {
+        encode(b"\0abc", "1ZiCa");
+        decode(b"\0abc", "1ZiCa");
+    }
+
+    #[test]
+    fn test_vector_5() {
+        encode(b"\0\0abc", "11ZiCa");
+        decode(b"\0\0abc", "11ZiCa");
+    }
+
+    #[test]
+    fn test_vector_6() {
+        encode(b"\0\0\0abc", "111ZiCa");
+        decode(b"\0\0\0abc", "111ZiCa");
+    }
+
+    #[test]
+    fn test_vector_7() {
+        encode(b"\0\0\0\0abc", "1111ZiCa");
+        decode(b"\0\0\0\0abc", "1111ZiCa");
+    }
+
+    #[test]
+    fn test_vector_8() {
+        encode(
+            b"abcdefghijklmnopqrstuvwxyz",
+            "3yxU3u1igY8WkgtjK92fbJQCd4BZiiT1v25f",
+        );
+        decode(
+            b"abcdefghijklmnopqrstuvwxyz",
+            "3yxU3u1igY8WkgtjK92fbJQCd4BZiiT1v25f",
+        );
+    }
 }

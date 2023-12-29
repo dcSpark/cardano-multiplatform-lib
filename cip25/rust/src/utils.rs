@@ -7,7 +7,6 @@ pub use cml_core::{
     metadata::{Metadata, TransactionMetadatum},
     serialization::*,
 };
-pub use cml_core::{error::*, serialization::*};
 use cml_crypto::RawBytesEncoding;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 

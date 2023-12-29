@@ -215,43 +215,6 @@ impl<T, A: VerificationAlgorithm> std::cmp::PartialEq<Self> for Signature<T, A> 
 
 impl<T, A: VerificationAlgorithm> std::cmp::Eq for Signature<T, A> {}
 
-#[cfg(test)]
-pub(crate) mod test {
-    use super::*;
-    use crate::chain_crypto::key::{AsymmetricKey, KeyPair};
-
-    pub(crate) fn keypair_signing_ok<A: AsymmetricKey + SigningAlgorithm>(
-        input: (KeyPair<A>, Vec<u8>),
-    ) -> bool
-    where
-        <A as AsymmetricKey>::PubAlg: VerificationAlgorithm,
-    {
-        let (sk, pk) = input.0.into_keys();
-        let data = input.1;
-
-        let signature = sk.sign(&data);
-        signature.verify(&pk, &data) == Verification::Success
-    }
-
-    pub(crate) fn keypair_signing_ko<A: AsymmetricKey + SigningAlgorithm>(
-        input: (KeyPair<A>, KeyPair<A>, Vec<u8>),
-    ) -> bool
-    where
-        <A as AsymmetricKey>::PubAlg: VerificationAlgorithm,
-    {
-        let (sk, pk) = input.0.into_keys();
-        let pk_random = input.1.public_key();
-        let data = input.2;
-
-        if &pk == pk_random {
-            return true;
-        }
-
-        let signature = sk.sign(&data);
-        signature.verify(pk_random, &data) == Verification::Failed
-    }
-}
-
 impl<U, A: VerificationAlgorithm> cbor_event::se::Serialize for Signature<U, A> {
     fn serialize<'se, W: std::io::Write>(
         &self,
@@ -290,5 +253,42 @@ impl<'de, U, A: VerificationAlgorithm> serde::de::Deserialize<'de> for Signature
                 &"hex bytes for signature",
             )
         })
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod test {
+    use super::*;
+    use crate::chain_crypto::key::{AsymmetricKey, KeyPair};
+
+    pub(crate) fn keypair_signing_ok<A: AsymmetricKey + SigningAlgorithm>(
+        input: (KeyPair<A>, Vec<u8>),
+    ) -> bool
+    where
+        <A as AsymmetricKey>::PubAlg: VerificationAlgorithm,
+    {
+        let (sk, pk) = input.0.into_keys();
+        let data = input.1;
+
+        let signature = sk.sign(&data);
+        signature.verify(&pk, &data) == Verification::Success
+    }
+
+    pub(crate) fn keypair_signing_ko<A: AsymmetricKey + SigningAlgorithm>(
+        input: (KeyPair<A>, KeyPair<A>, Vec<u8>),
+    ) -> bool
+    where
+        <A as AsymmetricKey>::PubAlg: VerificationAlgorithm,
+    {
+        let (sk, pk) = input.0.into_keys();
+        let pk_random = input.1.public_key();
+        let data = input.2;
+
+        if &pk == pk_random {
+            return true;
+        }
+
+        let signature = sk.sign(&data);
+        signature.verify(pk_random, &data) == Verification::Failed
     }
 }

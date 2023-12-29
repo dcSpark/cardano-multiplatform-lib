@@ -8,7 +8,7 @@
 // possibly impacting PartialOrd performance on top of being unnecessary and occuring in generated code.
 // Possibly the derivative crate could get updated to suppress this lint
 // from within their proc macros itself. Issue: https://github.com/mcarton/rust-derivative/issues/115
-#![allow(clippy::incorrect_partial_ord_impl_on_ord_type)]
+#![allow(clippy::non_canonical_partial_ord_impl)]
 
 pub use error::*;
 

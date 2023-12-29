@@ -6,7 +6,7 @@
 
 use ::wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 use cml_core_wasm::metadata::TransactionMetadatumList;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list};
 
 pub use cml_core_wasm::Int;
 
@@ -642,30 +642,7 @@ impl NativeScriptList {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct PlutusDataList(Vec<cml_chain::plutus::PlutusData>);
-
-impl_wasm_conversions!(Vec<cml_chain::plutus::PlutusData>, PlutusDataList);
-
-#[wasm_bindgen]
-impl PlutusDataList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> PlutusData {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &PlutusData) {
-        self.0.push(elem.clone().into());
-    }
-}
+impl_wasm_list!(cml_chain::plutus::PlutusData, PlutusData, PlutusDataList);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

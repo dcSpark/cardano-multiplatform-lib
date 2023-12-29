@@ -15,10 +15,7 @@ use cml_crypto::{
     impl_hash_type, Bip32PrivateKey, Bip32PublicKey, CryptoError, Ed25519Signature,
     LegacyDaedalusPrivateKey, PublicKey, RawBytesEncoding, TransactionHash,
 };
-use std::{
-    convert::{TryFrom, TryInto},
-    fmt,
-};
+use std::{convert::TryFrom, fmt};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ByronAddressError {
@@ -40,7 +37,7 @@ impl StakeholderId {
         let buf = cbor!(pubk.0.as_ref()).unwrap();
 
         let hash = Sha3_256::new(&buf);
-        StakeholderId(Blake2b224::new(hash.as_ref()).try_into().unwrap())
+        StakeholderId(Blake2b224::new(hash.as_ref()).into())
     }
 }
 

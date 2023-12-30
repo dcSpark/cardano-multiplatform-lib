@@ -193,6 +193,16 @@ impl Mint {
             .map(Into::into)
             .map_err(Into::into)
     }
+
+    /// Returns the multiasset where only positive (minting) entries are present
+    pub fn as_positive_multiasset(&self) -> MultiAsset {
+        self.0.as_positive_multiasset().into()
+    }
+
+    /// Returns the multiasset where only negative (burning) entries are present
+    pub fn as_negative_multiasset(&self) -> MultiAsset {
+        self.0.as_negative_multiasset().into()
+    }
 }
 
 impl_wasm_conversions!(cml_chain::assets::Mint, Mint);

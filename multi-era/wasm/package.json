@@ -15,14 +15,14 @@
     "rust:check-warnings": "(RUSTFLAGS=\"-D warnings\" cargo +stable build)",
     "rust:test": "cargo test",
     "js:prepublish": "npm run rust:test && rimraf ./publish && cp -r ./pkg ./publish && cp ../../README.md publish/ && cp ../../LICENSE publish/",
-    "js:test-publish": "npm run rust:build-nodejs && npm run js:prepublish && node ../../scripts/publish-helper multi-era -nodejs && cd publish",
-    "js:publish-nodejs:prod": "npm run rust:build-nodejs && npm run js:prepublish && node ../../scripts/publish-helper multi-era -nodejs && cd publish && npm publish --access public",
-    "js:publish-nodejs:beta": "npm run rust:build-nodejs && npm run js:prepublish && node ../../scripts/publish-helper multi-era -nodejs && cd publish && npm publish --tag beta --access public",
-    "js:publish-browser:prod": "npm run rust:build-browser && npm run js:prepublish && node ../../scripts/publish-helper multi-era -browser && cd publish && npm publish --access public",
-    "js:publish-browser:beta": "npm run rust:build-browser && npm run js:prepublish && node ../../scripts/publish-helper multi-era -browser && cd publish && npm publish --tag beta --access public",
-    "js:publish-asm:prod": "npm run rust:build-asm && npm run js:prepublish && node ../../scripts/publish-helper multi-era -asmjs && cd publish && npm publish --access public",
-    "js:publish-asm:beta": "npm run rust:build-asm && npm run js:prepublish && node ../../scripts/publish-helper multi-era -asmjs && cd publish && npm publish --tag beta --access public",
-    "js:ts-json-gen": "cd json-gen && cargo +stable run && cd .. && node ../../scripts/run-json2ts.js && node ../../scripts/json-ts-types.js multi-era"
+    "js:test-publish": "npm run rust:build-nodejs && npm run js:prepublish && node ../../scripts/publish-helper multi-era cardano-multiplatform-multiera-lib -nodejs && cd publish",
+    "js:publish-nodejs:prod": "npm run rust:build-nodejs && npm run js:prepublish && node ../../scripts/publish-helper multi-era cardano-multiplatform-multiera-lib -nodejs && cd publish && npm publish --access public",
+    "js:publish-nodejs:beta": "npm run rust:build-nodejs && npm run js:prepublish && node ../../scripts/publish-helper multi-era cardano-multiplatform-multiera-lib -nodejs && cd publish && npm publish --tag beta --access public",
+    "js:publish-browser:prod": "npm run rust:build-browser && npm run js:prepublish && node ../../scripts/publish-helper multi-era cardano-multiplatform-multiera-lib -browser && cd publish && npm publish --access public",
+    "js:publish-browser:beta": "npm run rust:build-browser && npm run js:prepublish && node ../../scripts/publish-helper multi-era cardano-multiplatform-multiera-lib -browser && cd publish && npm publish --tag beta --access public",
+    "js:publish-asm:prod": "npm run rust:build-asm && npm run js:prepublish && node ../../scripts/publish-helper multi-era cardano-multiplatform-multiera-lib -asmjs && cd publish && npm publish --access public",
+    "js:publish-asm:beta": "npm run rust:build-asm && npm run js:prepublish && node ../../scripts/publish-helper multi-era cardano-multiplatform-multiera-lib -asmjs && cd publish && npm publish --tag beta --access public",
+    "js:ts-json-gen": "cd json-gen && cargo +stable run && cd .. && node ../../scripts/run-json2ts.js && node ../../scripts/json-ts-types.js multi-era cardano-multiplatform-multiera-lib"
   },
   "husky": {
     "hooks": {
@@ -36,7 +36,6 @@
     "url": "git+https://github.com/dcSpark/cardano-multiplatform-lib.git"
   },
   "devDependencies": {
-    "flowgen": "1.11.0",
     "husky": "4.2.5",
     "json-schema-to-typescript": "^10.1.5",
     "rimraf": "3.0.2",

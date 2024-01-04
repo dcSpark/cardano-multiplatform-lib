@@ -1,6 +1,6 @@
 [package]
 name = "cml-crypto"
-version = "0.1.0"
+version = "4.0.2"
 edition = "2018"
 authors = ["dcSpark"]
 license = "MIT"
@@ -14,7 +14,7 @@ keywords = ["cardano"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-core = { "path" = "../../core/rust", version = "0.1.0" }
+cml-core = { "path" = "../../core/rust", version = "4.0.2" }
 base64 = "0.21.5"
 cbor_event = "2.2.0"
 cryptoxide = "0.4.2"

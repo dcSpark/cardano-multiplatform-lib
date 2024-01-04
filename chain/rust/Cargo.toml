@@ -1,6 +1,6 @@
 [package]
 name = "cml-chain"
-version = "0.1.0"
+version = "4.0.2"
 edition = "2018"
 authors = ["dcSpark"]
 license = "MIT"
@@ -14,8 +14,8 @@ keywords = ["cardano"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-core = { "path" = "../../core/rust", version = "0.1.0" }
-cml-crypto = { "path" = "../../crypto/rust", version = "0.1.0" }
+cml-core = { "path" = "../../core/rust", version = "4.0.2" }
+cml-crypto = { "path" = "../../crypto/rust", version = "4.0.2" }
 cbor_event = "2.2.0"
 linked-hash-map = "0.5.3"
 derivative = "2.2.0"
@@ -61,4 +61,4 @@ wasm-bindgen = { version = "=0.2.83", features = ["serde-serialize"] }
 quickcheck = "0.9.2"
 quickcheck_macros = "0.9.1"
 rand_chacha = "0.3.1"
-flaky_test = "0.1.0"
+flaky_test = "4.0.2"

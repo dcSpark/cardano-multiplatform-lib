@@ -1,6 +1,6 @@
 {
   "name": "test-cml-dapp",
-  "version": "0.1.0",
+  "version": "4.0.2",
   "description": "test dApp to interact with CIP-30 compatible wallets (e.g. Flint)",
   "main": "index.js",
   "bin": {

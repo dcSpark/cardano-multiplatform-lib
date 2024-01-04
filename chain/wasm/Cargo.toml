@@ -1,6 +1,6 @@
 [package]
 name = "cml-chain-wasm"
-version = "0.1.0"
+version = "4.0.2"
 edition = "2018"
 authors = ["dcSpark"]
 license = "MIT"
@@ -14,12 +14,12 @@ keywords = ["cardano"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-chain = { path = "../rust", version = "0.1.0" }
-cml-core = { path = "../../core/rust", version = "0.1.0" }
-cml-core-wasm = { path = "../../core/wasm", version = "0.1.0" }
+cml-chain = { path = "../rust", version = "4.0.2" }
+cml-core = { path = "../../core/rust", version = "4.0.2" }
+cml-core-wasm = { path = "../../core/wasm", version = "4.0.2" }
 # TODO: remove this dependency if possible to reduce confusion? maybe pub export necessary things in crypto-wasm?
-cml-crypto = { path = "../../crypto/rust", version = "0.1.0" }
-cml-crypto-wasm = { path = "../../crypto/wasm", version = "0.1.0" }
+cml-crypto = { path = "../../crypto/rust", version = "4.0.2" }
+cml-crypto-wasm = { path = "../../crypto/wasm", version = "4.0.2" }
 cbor_event = "2.4.0"
 hex = "0.4.0"
 wasm-bindgen = { version = "=0.2.83", features = ["serde-serialize"] }

@@ -9,9 +9,8 @@ const underscoreRepoName = hyphenRepoName.replaceAll('-', '_');
 const pathToRepo = path.join(__dirname, '..', crateName, 'wasm');
 const oldPkg = require(`${pathToRepo}/publish/package.json`);
 
-if (oldPkg.name === hyphenRepoName) {
-  oldPkg.name = '@dcspark/' + oldPkg.name + buildType;
-}
+const packageNameRoot = hyphenRepoName.split("-wasm")[0];
+oldPkg.name = '@dcspark/' + packageNameRoot + buildType;
 if (buildType === '-browser' || buildType === '-asmjs') {
   // due to a bug in wasm-pack, this file is missing from browser builds
   const missingFile = `${underscoreRepoName}_bg.js`;

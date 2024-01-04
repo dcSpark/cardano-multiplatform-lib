@@ -6,10 +6,10 @@
     "cardano"
   ],
   "scripts": {
-    "rust:build-nodejs": "rimraf ./pkg; cross-env WASM_BINDGEN_WEAKREF=1 wasm-pack build --target=nodejs; npm run js:ts-json-gen; wasm-pack pack",
-    "rust:build-browser": "rimraf ./pkg; cross-env WASM_BINDGEN_WEAKREF=1 wasm-pack build --target=browser; npm run js:ts-json-gen; wasm-pack pack",
-    "rust:build-web": "rimraf ./pkg; cross-env WASM_BINDGEN_WEAKREF=1 wasm-pack build --target=web; npm run js:ts-json-gen; wasm-pack pack",
-    "rust:build-asm": "(rimraf ./pkg && wasm-pack build --target=browser -- --features wasm; npm run js:ts-json-gen; wasm-pack pack) && npm run asm:build",
+    "rust:build-nodejs": "rimraf ./pkg; cross-env WASM_BINDGEN_WEAKREF=1 wasm-pack build --target=nodejs --out-name cardano_multiplatform_multiera_lib; npm run js:ts-json-gen; wasm-pack pack",
+    "rust:build-browser": "rimraf ./pkg; cross-env WASM_BINDGEN_WEAKREF=1 wasm-pack build --target=browser --out-name cardano_multiplatform_multiera_lib; npm run js:ts-json-gen; wasm-pack pack",
+    "rust:build-web": "rimraf ./pkg; cross-env WASM_BINDGEN_WEAKREF=1 wasm-pack build --target=web --out-name cardano_multiplatform_multiera_lib; npm run js:ts-json-gen; wasm-pack pack",
+    "rust:build-asm": "(rimraf ./pkg && wasm-pack build --target=browser  --out-name cardano_multiplatform_multiera_lib -- --features wasm; npm run js:ts-json-gen; wasm-pack pack) && npm run asm:build",
     "asm:build": "../../binaryen/bin/wasm2js ./pkg/cardano_multiplatform_multiera_lib_bg.wasm --output ./pkg/cardano_multiplatform_multiera_lib.asm.js && node ../../scripts/legacy/wasm-to-asm",
     "rust:publish": "cargo publish",
     "rust:check-warnings": "(RUSTFLAGS=\"-D warnings\" cargo +stable build)",

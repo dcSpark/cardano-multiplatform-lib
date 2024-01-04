@@ -17,6 +17,7 @@
     "js:publish-browser:beta": "(cd cml/wasm && npm run js:publish-browser:beta) && (cd multi-era/wasm && npm run js:publish-browser:beta)",
     "js:publish-asm:prod": "(cd cml/wasm && npm run js:publish-asm:prod) && (cd multi-era/wasm && npm run js:publish-asm:prod)",
     "js:publish-asm:beta": "(cd cml/wasm && npm run js:publish-asm:beta) && (cd multi-era/wasm && npm run js:publish-asm:beta)",
+    "all:publish": "./release.sh prod",
     "postinstall": "git submodule update --init --recursive && cd binaryen; cmake . && make"
   },
   "husky": {

@@ -604,7 +604,7 @@ mod tests {
 
     #[test]
     fn bigint_uint_u128_max() {
-        let bytes = BigInt::from_str(&*u128::MAX.to_string())
+        let bytes = BigInt::from_str(&u128::MAX.to_string())
             .unwrap()
             .to_cbor_bytes();
         let x = BigInt::from_cbor_bytes(&bytes).unwrap();

@@ -295,7 +295,12 @@ impl BigInt {
             [a] => Some(u128::from(a)),
             [a, b] => Some(u128::from(b) | (u128::from(a) << 32)),
             [a, b, c] => Some(u128::from(c) | (u128::from(b) << 32) | (u128::from(a) << 64)),
-            [a, b, c, d] => Some(u128::from(d) | (u128::from(c) << 32) | (u128::from(b) << 64) | (u128::from(a) << 96)),
+            [a, b, c, d] => Some(
+                u128::from(d)
+                    | (u128::from(c) << 32)
+                    | (u128::from(b) << 64)
+                    | (u128::from(a) << 96),
+            ),
             _ => None,
         }
     }
@@ -565,8 +570,8 @@ impl Deserialize for NetworkId {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
     use super::*;
+    use std::str::FromStr;
 
     #[test]
     fn bigint_uint_u64_min() {
@@ -599,7 +604,9 @@ mod tests {
 
     #[test]
     fn bigint_uint_u128_max() {
-        let bytes = BigInt::from_str(&*u128::MAX.to_string()).unwrap().to_cbor_bytes();
+        let bytes = BigInt::from_str(&*u128::MAX.to_string())
+            .unwrap()
+            .to_cbor_bytes();
         let x = BigInt::from_cbor_bytes(&bytes).unwrap();
         assert_eq!(bytes, x.to_cbor_bytes().as_slice());
         assert_eq!(x.as_u128(), Some(u128::MAX));

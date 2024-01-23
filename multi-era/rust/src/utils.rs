@@ -15,6 +15,7 @@ use crate::{
     mary::MaryBlock, shelley::ShelleyBlock,
 };
 use crate::{MultiEraBlock, MultiEraTransactionBody};
+
 use cbor_event::de::Deserializer;
 use cml_chain::address::Address;
 use cml_chain::assets::{Mint, PositiveCoin};
@@ -39,10 +40,10 @@ use cml_chain::{
     ProtocolParamUpdate, Rational, UnitInterval, Value, Withdrawals,
 };
 use cml_core::error::{DeserializeError, DeserializeFailure};
-use cml_core::serialization::{CBORReadLen, Deserialize};
+use cml_core::serialization::*;
 use cml_core::{Epoch, Int, TransactionIndex};
 use cml_crypto::{
-    AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, GenesisHash, RawBytesEncoding,
+    blake2b256, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, GenesisHash, RawBytesEncoding,
     ScriptDataHash, TransactionHash, VRFVkey,
 };
 
@@ -233,6 +234,39 @@ impl MultiEraBlock {
             Self::Conway(block) => block.invalid_transactions.clone(),
         }
     }
+
+    pub fn hash(&self) -> [u8; 32] {
+        let bytes = match self {
+            Self::Byron(block) => match block {
+                // why there's no to_bytes or sth for byron block headers?
+                ByronBlock::EpochBoundary(ebb) => ebb.header.to_bytes(),
+                ByronBlock::Main(mb) => mb.header.to_bytes(),
+            },
+            Self::Shelley(block) => block.header.to_cbor_bytes(),
+            Self::Allegra(block) => block.header.to_cbor_bytes(),
+            Self::Mary(block) => block.header.to_cbor_bytes(),
+            Self::Alonzo(block) => block.header.to_cbor_bytes(),
+            Self::Babbage(block) => block.header.to_cbor_bytes(),
+            Self::Conway(block) => block.header.to_cbor_bytes(),
+        };
+
+        blake2b256(&bytes)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match self {
+            MultiEraBlock::Byron(b) => match b {
+                ByronBlock::EpochBoundary(_) => true,
+                ByronBlock::Main(block) => block.body.tx_payload.is_empty(),
+            },
+            MultiEraBlock::Shelley(block) => block.transaction_bodies.is_empty(),
+            MultiEraBlock::Allegra(block) => block.transaction_bodies.is_empty(),
+            MultiEraBlock::Mary(block) => block.transaction_bodies.is_empty(),
+            MultiEraBlock::Alonzo(block) => block.transaction_bodies.is_empty(),
+            MultiEraBlock::Babbage(block) => block.transaction_bodies.is_empty(),
+            MultiEraBlock::Conway(block) => block.transaction_bodies.is_empty(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -244,21 +278,24 @@ pub enum MultiEraBlockHeader {
 }
 
 impl MultiEraBlockHeader {
-    pub fn block_number(&self) -> Option<u64> {
+    pub fn block_number(&self) -> u64 {
         match self {
-            Self::ByronEB(_) => None,
-            Self::Byron(_) => None,
-            Self::Shelley(header) => Some(header.body.block_number),
-            Self::Babbage(header) => Some(header.header_body.block_number),
+            Self::ByronEB(eb) => eb.consensus_data.byron_difficulty.u64,
+            Self::Byron(b) => b.consensus_data.byron_difficulty.u64,
+            Self::Shelley(header) => header.body.block_number,
+            Self::Babbage(header) => header.header_body.block_number,
         }
     }
 
-    pub fn slot(&self) -> Option<u64> {
+    pub fn slot(&self) -> u64 {
         match self {
-            Self::ByronEB(_) => None,
-            Self::Byron(_) => None,
-            Self::Shelley(header) => Some(header.body.slot),
-            Self::Babbage(header) => Some(header.header_body.slot),
+            Self::ByronEB(eb) => byron_epoch_slot_to_absolute(eb.consensus_data.epoch_id, 0),
+            Self::Byron(b) => byron_epoch_slot_to_absolute(
+                b.consensus_data.byron_slot_id.epoch,
+                b.consensus_data.byron_slot_id.slot,
+            ),
+            Self::Shelley(header) => header.body.slot,
+            Self::Babbage(header) => header.header_body.slot,
         }
     }
 
@@ -733,6 +770,18 @@ impl MultiEraTransactionBody {
             Self::Alonzo(_tx) => None,
             Self::Babbage(_tx) => None,
             Self::Conway(tx) => tx.donation,
+        }
+    }
+
+    pub fn hash(&self) -> [u8; 32] {
+        match self {
+            MultiEraTransactionBody::Byron(tx) => tx.hash(),
+            MultiEraTransactionBody::Shelley(tx) => tx.hash(),
+            MultiEraTransactionBody::Allegra(tx) => tx.hash(),
+            MultiEraTransactionBody::Mary(tx) => tx.hash(),
+            MultiEraTransactionBody::Alonzo(tx) => tx.hash(),
+            MultiEraTransactionBody::Babbage(tx) => tx.hash(),
+            MultiEraTransactionBody::Conway(tx) => tx.hash(),
         }
     }
 }
@@ -1296,6 +1345,13 @@ impl From<BabbageCostModels> for CostModels {
             }),
         }
     }
+}
+
+const KNOWN_SLOT_LENGTH_SECS: u64 = 20; // 20 secs
+const KNOWN_EPOCH_LENGTH_SECS: u64 = 5 * 24 * 60 * 60; // 5 days
+
+fn byron_epoch_slot_to_absolute(epoch: u64, sub_epoch_slot: u64) -> u64 {
+    ((epoch * KNOWN_EPOCH_LENGTH_SECS) / KNOWN_SLOT_LENGTH_SECS) + sub_epoch_slot
 }
 
 #[cfg(test)]

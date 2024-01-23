@@ -28,9 +28,10 @@ use cml_chain::transaction::{
 use cml_chain::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
 
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::LenEncoding;
+use cml_core::serialization::{LenEncoding, Serialize};
 use cml_core::{Int, TransactionIndex};
 
+use cml_crypto::blake2b256;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -354,6 +355,10 @@ impl BabbageTransactionBody {
             reference_inputs: None,
             encodings: None,
         }
+    }
+
+    pub fn hash(&self) -> [u8; 32] {
+        blake2b256(&self.to_cbor_bytes())
     }
 }
 

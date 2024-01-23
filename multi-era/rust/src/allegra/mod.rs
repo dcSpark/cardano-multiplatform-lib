@@ -23,8 +23,9 @@ use cml_chain::transaction::{NativeScript, TransactionInput};
 use cml_chain::Withdrawals;
 use cml_chain::{DeltaCoin, LenEncoding, TransactionIndex};
 use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::serialization::Serialize;
 use cml_core::Epoch;
-use cml_crypto::{Ed25519KeyHash, GenesisDelegateHash, GenesisHash, VRFKeyHash};
+use cml_crypto::{blake2b256, Ed25519KeyHash, GenesisDelegateHash, GenesisHash, VRFKeyHash};
 use std::collections::BTreeMap;
 
 use self::cbor_encodings::{MoveInstantaneousRewardEncoding, MoveInstantaneousRewardsCertEncoding};
@@ -186,6 +187,10 @@ impl AllegraTransactionBody {
             validity_interval_start: None,
             encodings: None,
         }
+    }
+
+    pub fn hash(&self) -> [u8; 32] {
+        blake2b256(&self.to_cbor_bytes())
     }
 }
 

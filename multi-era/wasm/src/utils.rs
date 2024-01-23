@@ -100,11 +100,11 @@ impl_wasm_conversions!(
 
 #[wasm_bindgen]
 impl MultiEraBlockHeader {
-    pub fn block_number(&self) -> Option<u64> {
+    pub fn block_number(&self) -> u64 {
         self.0.block_number()
     }
 
-    pub fn slot(&self) -> Option<u64> {
+    pub fn slot(&self) -> u64 {
         self.0.slot()
     }
 

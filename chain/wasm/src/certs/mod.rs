@@ -60,13 +60,10 @@ impl Certificate {
         ))
     }
 
-    pub fn new_stake_delegation(
-        stake_credential: &StakeCredential,
-        ed25519_key_hash: &Ed25519KeyHash,
-    ) -> Self {
+    pub fn new_stake_delegation(stake_credential: &StakeCredential, pool: &Ed25519KeyHash) -> Self {
         Self(cml_chain::certs::Certificate::new_stake_delegation(
             stake_credential.clone().into(),
-            ed25519_key_hash.clone().into(),
+            pool.clone().into(),
         ))
     }
 
@@ -76,9 +73,9 @@ impl Certificate {
         ))
     }
 
-    pub fn new_pool_retirement(ed25519_key_hash: &Ed25519KeyHash, epoch: Epoch) -> Self {
+    pub fn new_pool_retirement(pool: &Ed25519KeyHash, epoch: Epoch) -> Self {
         Self(cml_chain::certs::Certificate::new_pool_retirement(
-            ed25519_key_hash.clone().into(),
+            pool.clone().into(),
             epoch,
         ))
     }
@@ -106,24 +103,24 @@ impl Certificate {
 
     pub fn new_stake_vote_deleg_cert(
         stake_credential: &StakeCredential,
-        ed25519_key_hash: &Ed25519KeyHash,
+        pool: &Ed25519KeyHash,
         d_rep: &DRep,
     ) -> Self {
         Self(cml_chain::certs::Certificate::new_stake_vote_deleg_cert(
             stake_credential.clone().into(),
-            ed25519_key_hash.clone().into(),
+            pool.clone().into(),
             d_rep.clone().into(),
         ))
     }
 
     pub fn new_stake_reg_deleg_cert(
         stake_credential: &StakeCredential,
-        ed25519_key_hash: &Ed25519KeyHash,
+        pool: &Ed25519KeyHash,
         coin: Coin,
     ) -> Self {
         Self(cml_chain::certs::Certificate::new_stake_reg_deleg_cert(
             stake_credential.clone().into(),
-            ed25519_key_hash.clone().into(),
+            pool.clone().into(),
             coin,
         ))
     }
@@ -142,14 +139,14 @@ impl Certificate {
 
     pub fn new_stake_vote_reg_deleg_cert(
         stake_credential: &StakeCredential,
-        ed25519_key_hash: &Ed25519KeyHash,
+        pool: &Ed25519KeyHash,
         d_rep: &DRep,
         coin: Coin,
     ) -> Self {
         Self(
             cml_chain::certs::Certificate::new_stake_vote_reg_deleg_cert(
                 stake_credential.clone().into(),
-                ed25519_key_hash.clone().into(),
+                pool.clone().into(),
                 d_rep.clone().into(),
                 coin,
             ),
@@ -473,10 +470,8 @@ impl_wasm_conversions!(cml_chain::certs::DRep, DRep);
 
 #[wasm_bindgen]
 impl DRep {
-    pub fn new_key(ed25519_key_hash: &Ed25519KeyHash) -> Self {
-        Self(cml_chain::certs::DRep::new_key(
-            ed25519_key_hash.clone().into(),
-        ))
+    pub fn new_key(pool: &Ed25519KeyHash) -> Self {
+        Self(cml_chain::certs::DRep::new_key(pool.clone().into()))
     }
 
     pub fn new_script(script_hash: &ScriptHash) -> Self {
@@ -504,9 +499,7 @@ impl DRep {
 
     pub fn as_key(&self) -> Option<Ed25519KeyHash> {
         match &self.0 {
-            cml_chain::certs::DRep::Key {
-                ed25519_key_hash, ..
-            } => Some((*ed25519_key_hash).into()),
+            cml_chain::certs::DRep::Key { pool, .. } => Some((*pool).into()),
             _ => None,
         }
     }
@@ -723,17 +716,17 @@ impl_wasm_conversions!(cml_chain::certs::PoolRetirement, PoolRetirement);
 
 #[wasm_bindgen]
 impl PoolRetirement {
-    pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.into()
+    pub fn pool(&self) -> Ed25519KeyHash {
+        self.0.pool.into()
     }
 
     pub fn epoch(&self) -> Epoch {
         self.0.epoch
     }
 
-    pub fn new(ed25519_key_hash: &Ed25519KeyHash, epoch: Epoch) -> Self {
+    pub fn new(pool: &Ed25519KeyHash, epoch: Epoch) -> Self {
         Self(cml_chain::certs::PoolRetirement::new(
-            ed25519_key_hash.clone().into(),
+            pool.clone().into(),
             epoch,
         ))
     }
@@ -971,14 +964,14 @@ impl StakeDelegation {
         self.0.stake_credential.clone().into()
     }
 
-    pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.into()
+    pub fn pool(&self) -> Ed25519KeyHash {
+        self.0.pool.into()
     }
 
-    pub fn new(stake_credential: &StakeCredential, ed25519_key_hash: &Ed25519KeyHash) -> Self {
+    pub fn new(stake_credential: &StakeCredential, pool: &Ed25519KeyHash) -> Self {
         Self(cml_chain::certs::StakeDelegation::new(
             stake_credential.clone().into(),
-            ed25519_key_hash.clone().into(),
+            pool.clone().into(),
         ))
     }
 }
@@ -1018,22 +1011,18 @@ impl StakeRegDelegCert {
         self.0.stake_credential.clone().into()
     }
 
-    pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.into()
+    pub fn pool(&self) -> Ed25519KeyHash {
+        self.0.pool.into()
     }
 
     pub fn coin(&self) -> Coin {
         self.0.coin
     }
 
-    pub fn new(
-        stake_credential: &StakeCredential,
-        ed25519_key_hash: &Ed25519KeyHash,
-        coin: Coin,
-    ) -> Self {
+    pub fn new(stake_credential: &StakeCredential, pool: &Ed25519KeyHash, coin: Coin) -> Self {
         Self(cml_chain::certs::StakeRegDelegCert::new(
             stake_credential.clone().into(),
-            ed25519_key_hash.clone().into(),
+            pool.clone().into(),
             coin,
         ))
     }
@@ -1074,22 +1063,18 @@ impl StakeVoteDelegCert {
         self.0.stake_credential.clone().into()
     }
 
-    pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.into()
+    pub fn pool(&self) -> Ed25519KeyHash {
+        self.0.pool.into()
     }
 
     pub fn d_rep(&self) -> DRep {
         self.0.d_rep.clone().into()
     }
 
-    pub fn new(
-        stake_credential: &StakeCredential,
-        ed25519_key_hash: &Ed25519KeyHash,
-        d_rep: &DRep,
-    ) -> Self {
+    pub fn new(stake_credential: &StakeCredential, pool: &Ed25519KeyHash, d_rep: &DRep) -> Self {
         Self(cml_chain::certs::StakeVoteDelegCert::new(
             stake_credential.clone().into(),
-            ed25519_key_hash.clone().into(),
+            pool.clone().into(),
             d_rep.clone().into(),
         ))
     }
@@ -1112,8 +1097,8 @@ impl StakeVoteRegDelegCert {
         self.0.stake_credential.clone().into()
     }
 
-    pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.into()
+    pub fn pool(&self) -> Ed25519KeyHash {
+        self.0.pool.into()
     }
 
     pub fn d_rep(&self) -> DRep {
@@ -1126,13 +1111,13 @@ impl StakeVoteRegDelegCert {
 
     pub fn new(
         stake_credential: &StakeCredential,
-        ed25519_key_hash: &Ed25519KeyHash,
+        pool: &Ed25519KeyHash,
         d_rep: &DRep,
         coin: Coin,
     ) -> Self {
         Self(cml_chain::certs::StakeVoteRegDelegCert::new(
             stake_credential.clone().into(),
-            ed25519_key_hash.clone().into(),
+            pool.clone().into(),
             d_rep.clone().into(),
             coin,
         ))

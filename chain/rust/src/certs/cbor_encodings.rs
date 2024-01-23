@@ -58,7 +58,7 @@ pub struct PoolRegistrationEncoding {
 pub struct PoolRetirementEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
-    pub ed25519_key_hash_encoding: StringEncoding,
+    pub pool_encoding: StringEncoding,
     pub epoch_encoding: Option<cbor_event::Sz>,
 }
 
@@ -100,7 +100,7 @@ pub struct SingleHostNameEncoding {
 pub struct StakeDelegationEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
-    pub ed25519_key_hash_encoding: StringEncoding,
+    pub pool_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -113,7 +113,7 @@ pub struct StakeDeregistrationEncoding {
 pub struct StakeRegDelegCertEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
-    pub ed25519_key_hash_encoding: StringEncoding,
+    pub pool_encoding: StringEncoding,
     pub coin_encoding: Option<cbor_event::Sz>,
 }
 
@@ -127,14 +127,14 @@ pub struct StakeRegistrationEncoding {
 pub struct StakeVoteDelegCertEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
-    pub ed25519_key_hash_encoding: StringEncoding,
+    pub pool_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct StakeVoteRegDelegCertEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
-    pub ed25519_key_hash_encoding: StringEncoding,
+    pub pool_encoding: StringEncoding,
     pub coin_encoding: Option<cbor_event::Sz>,
 }
 

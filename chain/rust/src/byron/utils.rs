@@ -290,6 +290,42 @@ pub fn make_icarus_bootstrap_witness(
     BootstrapWitness::new(vkey, signature, chain_code, addr.content.addr_attributes).unwrap()
 }
 
+impl serde::Serialize for ByronAddress {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_base58())
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for ByronAddress {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let base58 = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        Self::from_base58(&base58).map_err(|_e| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(&base58),
+                &"base58 byron address string",
+            )
+        })
+    }
+}
+
+impl schemars::JsonSchema for ByronAddress {
+    fn schema_name() -> String {
+        String::from("ByronAddress")
+    }
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::ByronAddress;

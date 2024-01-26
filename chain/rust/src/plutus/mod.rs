@@ -175,13 +175,10 @@ impl PlutusData {
     }
 }
 
-#[derive(
-    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
-)]
+#[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Hash, PartialEq, Eq)]
 pub struct PlutusV1Script {
     pub inner: Vec<u8>,
-    #[serde(skip)]
     #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<PlutusV1ScriptEncoding>,
 }
@@ -211,13 +208,45 @@ impl From<PlutusV1Script> for Vec<u8> {
     }
 }
 
-#[derive(
-    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
-)]
+impl serde::Serialize for PlutusV1Script {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&hex::encode(self.inner.clone()))
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for PlutusV1Script {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        hex::decode(&s).map(PlutusV1Script::new).map_err(|_e| {
+            serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"invalid hex bytes")
+        })
+    }
+}
+
+impl schemars::JsonSchema for PlutusV1Script {
+    fn schema_name() -> String {
+        String::from("PlutusV1Script")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
+    }
+}
+
+#[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Hash, PartialEq, Eq)]
 pub struct PlutusV2Script {
     pub inner: Vec<u8>,
-    #[serde(skip)]
     #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<PlutusV2ScriptEncoding>,
 }
@@ -246,13 +275,46 @@ impl From<PlutusV2Script> for Vec<u8> {
         wrapper.inner
     }
 }
-#[derive(
-    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
-)]
+
+impl serde::Serialize for PlutusV2Script {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&hex::encode(self.inner.clone()))
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for PlutusV2Script {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        hex::decode(&s).map(PlutusV2Script::new).map_err(|_e| {
+            serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"invalid hex bytes")
+        })
+    }
+}
+
+impl schemars::JsonSchema for PlutusV2Script {
+    fn schema_name() -> String {
+        String::from("PlutusV2Script")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
+    }
+}
+
+#[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Hash, PartialEq, Eq)]
 pub struct PlutusV3Script {
     pub inner: Vec<u8>,
-    #[serde(skip)]
     #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<PlutusV3ScriptEncoding>,
 }
@@ -279,6 +341,41 @@ impl From<Vec<u8>> for PlutusV3Script {
 impl From<PlutusV3Script> for Vec<u8> {
     fn from(wrapper: PlutusV3Script) -> Self {
         wrapper.inner
+    }
+}
+
+impl serde::Serialize for PlutusV3Script {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&hex::encode(self.inner.clone()))
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for PlutusV3Script {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        hex::decode(&s).map(PlutusV3Script::new).map_err(|_e| {
+            serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"invalid hex bytes")
+        })
+    }
+}
+
+impl schemars::JsonSchema for PlutusV3Script {
+    fn schema_name() -> String {
+        String::from("PlutusV3Script")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
     }
 }
 

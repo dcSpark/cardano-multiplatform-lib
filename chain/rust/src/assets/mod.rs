@@ -12,9 +12,7 @@ use cml_core::error::*;
 
 use std::convert::TryFrom;
 
-#[derive(
-    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
-)]
+#[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct AssetName {
     pub inner: Vec<u8>,
@@ -24,7 +22,6 @@ pub struct AssetName {
         PartialOrd = "ignore",
         Hash = "ignore"
     )]
-    #[serde(skip)]
     pub encodings: Option<AssetNameEncoding>,
 }
 
@@ -62,5 +59,46 @@ impl TryFrom<Vec<u8>> for AssetName {
 impl From<AssetName> for Vec<u8> {
     fn from(wrapper: AssetName) -> Self {
         wrapper.inner
+    }
+}
+
+impl serde::Serialize for AssetName {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&hex::encode(self.inner.clone()))
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for AssetName {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        hex::decode(&s)
+            .ok()
+            .and_then(|bytes| AssetName::new(bytes).ok())
+            .ok_or_else(|| {
+                serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Str(&s),
+                    &"invalid hex bytes",
+                )
+            })
+    }
+}
+
+impl schemars::JsonSchema for AssetName {
+    fn schema_name() -> String {
+        String::from("AssetName")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
     }
 }

@@ -34,7 +34,7 @@ pub type TransactionIndex = u16;
 
 pub type CertificateIndex = u64;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
+#[derive(Clone, Debug, Derivative)]
 #[derivative(
     Eq,
     PartialEq,
@@ -51,7 +51,6 @@ pub enum Int {
             PartialOrd = "ignore",
             Hash = "ignore"
         )]
-        #[serde(skip)]
         encoding: Option<cbor_event::Sz>,
     },
     Nint {
@@ -62,7 +61,6 @@ pub enum Int {
             PartialOrd = "ignore",
             Hash = "ignore"
         )]
-        #[serde(skip)]
         encoding: Option<cbor_event::Sz>,
     },
 }
@@ -114,6 +112,48 @@ impl std::str::FromStr for Int {
         use std::convert::TryFrom;
         let x = i128::from_str(s).map_err(IntError::Parsing)?;
         Self::try_from(x).map_err(IntError::Bounds)
+    }
+}
+
+// serde has no proper support for the full spectrum
+// of int values - notably i64 doesn't cover the lower half of negatives
+// and i128 support is not fully supported by serde
+impl serde::Serialize for Int {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for Int {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        use std::str::FromStr;
+        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        Self::from_str(&s).map_err(|_e| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(&s),
+                &"invalid int (as string)",
+            )
+        })
+    }
+}
+
+impl schemars::JsonSchema for Int {
+    fn schema_name() -> String {
+        String::from("Int")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
     }
 }
 

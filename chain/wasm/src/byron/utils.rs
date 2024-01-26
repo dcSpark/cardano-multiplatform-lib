@@ -108,8 +108,8 @@ impl AddressContent {
         self.0.byron_protocol_magic().into()
     }
 
-    pub fn network_id(&self) -> Result<u8, JsError> {
-        self.0.network_id().map_err(Into::into)
+    pub fn network_id(&self) -> u8 {
+        self.0.network_id()
     }
 
     // icarus-style address (Ae2)

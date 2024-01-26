@@ -142,7 +142,7 @@ impl AddressContent {
         }
     }
 
-    pub fn network_id(&self) -> Result<u8, ByronAddressError> {
+    pub fn network_id(&self) -> u8 {
         // premise: during the Byron-era, we had one mainnet (764824073) and many many testnets
         // with each testnet getting a different protocol magic
         // in Shelley, this changes so that:
@@ -156,12 +156,9 @@ impl AddressContent {
         let protocol_magic = self.byron_protocol_magic();
         match protocol_magic {
             magic if magic == NetworkInfo::mainnet().protocol_magic() => {
-                Ok(NetworkInfo::mainnet().network_id())
+                NetworkInfo::mainnet().network_id()
             }
-            magic if magic == NetworkInfo::testnet().protocol_magic() => {
-                Ok(NetworkInfo::testnet().network_id())
-            }
-            _ => Err(ByronAddressError::UnknownNetwork(protocol_magic)),
+            _ => NetworkInfo::testnet().network_id(),
         }
     }
 
@@ -460,7 +457,7 @@ mod tests {
             NetworkInfo::mainnet().protocol_magic()
         );
         assert_eq!(
-            addr.content.network_id().unwrap(),
+            addr.content.network_id(),
             NetworkInfo::mainnet().network_id()
         );
 
@@ -474,7 +471,7 @@ mod tests {
             NetworkInfo::testnet().protocol_magic()
         );
         assert_eq!(
-            addr.content.network_id().unwrap(),
+            addr.content.network_id(),
             NetworkInfo::testnet().network_id()
         );
     }

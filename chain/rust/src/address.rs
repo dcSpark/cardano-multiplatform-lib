@@ -495,7 +495,7 @@ impl Address {
             Self::Enterprise(a) => Ok(a.network),
             Self::Ptr(a) => Ok(a.network),
             Self::Reward(a) => Ok(a.network),
-            Self::Byron(a) => a.content.network_id().map_err(Into::into),
+            Self::Byron(a) => Ok(a.content.network_id()),
         }
     }
 
@@ -1199,7 +1199,7 @@ mod tests {
         assert!(ByronAddress::is_valid(
             "Ae2tdPwUPEZHtBmjZBF4YpMkK9tMSPTE2ADEZTPN97saNkhG78TvXdp3GDk"
         ));
-        assert_eq!(byron_addr.network_id().unwrap(), 0b0001);
+        assert_eq!(byron_addr.network_id(), 0b0001);
 
         // round-trip from generic address type and back
         let generic_addr = Address::from_raw_bytes(&byron_addr.to_address().to_bytes()).unwrap();

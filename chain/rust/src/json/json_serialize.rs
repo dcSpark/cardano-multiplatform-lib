@@ -7,7 +7,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::utils::BigInt;
+use crate::utils::BigInteger;
 
 /**
  * Value replaces traditional serde_json::Value in some places.
@@ -21,7 +21,7 @@ use crate::utils::BigInt;
 pub enum Value {
     Null,
     Bool(bool),
-    Number(BigInt),
+    Number(BigInteger),
     String(String),
     Array(Vec<Value>),
     Object(BTreeMap<String, Value>),
@@ -350,7 +350,7 @@ fn parse_raw_string(string: String) -> Result<Value, JsonParseError> {
         "false" => Ok(Value::Bool(false)),
         "true" => Ok(Value::Bool(true)),
         string => {
-            let number = BigInt::from_str(string);
+            let number = BigInteger::from_str(string);
             match number {
                 Ok(number) => Ok(Value::Number(number)),
                 Err(_) => Err(JsonParseError::InvalidRawString(String::from(string))),
@@ -553,12 +553,12 @@ impl From<String> for Value {
 
 impl From<u64> for Value {
     fn from(number: u64) -> Self {
-        Value::Number(BigInt::from(number))
+        Value::Number(BigInteger::from(number))
     }
 }
 
-impl From<BigInt> for Value {
-    fn from(number: BigInt) -> Self {
+impl From<BigInteger> for Value {
+    fn from(number: BigInteger) -> Self {
         Value::Number(number)
     }
 }
@@ -576,7 +576,7 @@ mod tests {
     use std::str::FromStr;
 
     use super::{parse_json, tokenize_string, JsonToken, Value};
-    use crate::utils::BigInt;
+    use crate::utils::BigInteger;
 
     #[test]
     fn run_primitives() {
@@ -593,20 +593,24 @@ mod tests {
         // supported uints
         for integer in vec![0, u64::MAX].into_iter() {
             assert_eq!(
-                Value::Number(BigInt::from(integer)).to_string().unwrap(),
+                Value::Number(BigInteger::from(integer))
+                    .to_string()
+                    .unwrap(),
                 serde_json::Value::from(integer).to_string()
             );
         }
         // supported ints
         for integer in vec![0, i64::MAX, i64::MIN].into_iter() {
             assert_eq!(
-                Value::Number(BigInt::from(integer)).to_string().unwrap(),
+                Value::Number(BigInteger::from(integer))
+                    .to_string()
+                    .unwrap(),
                 serde_json::Value::from(integer).to_string()
             );
         }
         // unsupported ints
         assert_eq!(
-            Value::Number(BigInt::from_str("980949788381070983313748912887").unwrap())
+            Value::Number(BigInteger::from_str("980949788381070983313748912887").unwrap())
                 .to_string()
                 .unwrap(),
             "980949788381070983313748912887"
@@ -636,12 +640,12 @@ mod tests {
         cml_arr.extend(
             vec![0, u64::MAX]
                 .into_iter()
-                .map(|integer| Value::Number(BigInt::from(integer))),
+                .map(|integer| Value::Number(BigInteger::from(integer))),
         );
         cml_arr.extend(
             vec![0, i64::MAX, i64::MIN]
                 .into_iter()
-                .map(|integer| Value::Number(BigInt::from(integer))),
+                .map(|integer| Value::Number(BigInteger::from(integer))),
         );
         cml_arr.extend(
             vec!["supported_string", ""]
@@ -675,17 +679,17 @@ mod tests {
         cml_arr.extend(
             vec![0, u64::MAX]
                 .into_iter()
-                .map(|integer| Value::Number(BigInt::from(integer))),
+                .map(|integer| Value::Number(BigInteger::from(integer))),
         );
         cml_arr.extend(
             vec![0, i64::MAX, i64::MIN]
                 .into_iter()
-                .map(|integer| Value::Number(BigInt::from(integer))),
+                .map(|integer| Value::Number(BigInteger::from(integer))),
         );
         cml_arr.extend(
             vec![
-                BigInt::from_str("980949788381070983313748912887").unwrap(),
-                BigInt::from_str("-980949788381070983313748912887").unwrap(),
+                BigInteger::from_str("980949788381070983313748912887").unwrap(),
+                BigInteger::from_str("-980949788381070983313748912887").unwrap(),
             ]
             .into_iter()
             .map(Value::Number),
@@ -720,12 +724,12 @@ mod tests {
         cml_map.extend(vec![0, u64::MAX].into_iter().map(|integer| {
             let local = index;
             index += 1;
-            (local.to_string(), Value::Number(BigInt::from(integer)))
+            (local.to_string(), Value::Number(BigInteger::from(integer)))
         }));
         cml_map.extend(vec![0, i64::MAX, i64::MIN].into_iter().map(|integer| {
             let local = index;
             index += 1;
-            (local.to_string(), Value::Number(BigInt::from(integer)))
+            (local.to_string(), Value::Number(BigInteger::from(integer)))
         }));
         cml_map.extend(vec!["supported_string", ""].into_iter().map(|str| {
             let local = index;
@@ -752,7 +756,7 @@ mod tests {
 
         map.insert(
             index.to_string(),
-            Value::Number(BigInt::from_str("980949788381070983313748912887").unwrap()),
+            Value::Number(BigInteger::from_str("980949788381070983313748912887").unwrap()),
         );
         index += 1;
 
@@ -941,14 +945,14 @@ mod tests {
                 vec![JsonToken::String {
                     raw: "1234".to_string(),
                 }],
-                Value::Number(BigInt::from_str("1234").unwrap()),
+                Value::Number(BigInteger::from_str("1234").unwrap()),
             ),
             (
                 "-1234".to_string(),
                 vec![JsonToken::String {
                     raw: "-1234".to_string(),
                 }],
-                Value::Number(BigInt::from_str("-1234").unwrap()),
+                Value::Number(BigInteger::from_str("-1234").unwrap()),
             ),
             (
                 "123456789876543212345678900000000000000000000".to_string(),
@@ -956,7 +960,7 @@ mod tests {
                     raw: "123456789876543212345678900000000000000000000".to_string(),
                 }],
                 Value::Number(
-                    BigInt::from_str("123456789876543212345678900000000000000000000").unwrap(),
+                    BigInteger::from_str("123456789876543212345678900000000000000000000").unwrap(),
                 ),
             ),
             (
@@ -965,7 +969,7 @@ mod tests {
                     raw: "-123456789876543212345678900000000000000000000".to_string(),
                 }],
                 Value::Number(
-                    BigInt::from_str("-123456789876543212345678900000000000000000000").unwrap(),
+                    BigInteger::from_str("-123456789876543212345678900000000000000000000").unwrap(),
                 ),
             ),
             (
@@ -973,14 +977,14 @@ mod tests {
                 vec![JsonToken::String {
                     raw: "0".to_string(),
                 }],
-                Value::Number(BigInt::from_str("0").unwrap()),
+                Value::Number(BigInteger::from_str("0").unwrap()),
             ),
             (
                 "-0".to_string(),
                 vec![JsonToken::String {
                     raw: "-0".to_string(),
                 }],
-                Value::Number(BigInt::from_str("-0").unwrap()),
+                Value::Number(BigInteger::from_str("-0").unwrap()),
             ),
         ]
     }
@@ -1265,14 +1269,14 @@ mod tests {
                 "{\"kek\":1}",
                 Value::Object(BTreeMap::from_iter(vec![(
                     "kek".to_string(),
-                    Value::Number(BigInt::from(1)),
+                    Value::Number(BigInteger::from(1)),
                 )])),
             ),
             (
                 "{\"kek\": 1}",
                 Value::Object(BTreeMap::from_iter(vec![(
                     "kek".to_string(),
-                    Value::Number(BigInt::from(1)),
+                    Value::Number(BigInteger::from(1)),
                 )])),
             ),
             (
@@ -1337,7 +1341,7 @@ mod tests {
                     "kek".to_string(),
                     Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
                         String::new(),
-                        Value::Array(vec![Value::Number(BigInt::from(1))]),
+                        Value::Array(vec![Value::Number(BigInteger::from(1))]),
                     )]))]),
                 )])),
             ),
@@ -1350,7 +1354,7 @@ mod tests {
                         Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
                             String::new(),
                             Value::Array(vec![
-                                Value::Number(BigInt::from(1)),
+                                Value::Number(BigInteger::from(1)),
                                 Value::String("{}[]:,\"{}[]:,\"".to_string()),
                             ]),
                         )]))]),
@@ -1359,7 +1363,7 @@ mod tests {
                         "kek".to_string(),
                         Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
                             String::new(),
-                            Value::Array(vec![Value::Number(BigInt::from(1))]),
+                            Value::Array(vec![Value::Number(BigInteger::from(1))]),
                         )]))]),
                     )])),
                 ]),
@@ -1371,14 +1375,14 @@ mod tests {
                         "kek".to_string(),
                         Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
                             String::new(),
-                            Value::Array(vec![Value::Number(BigInt::from(1))]),
+                            Value::Array(vec![Value::Number(BigInteger::from(1))]),
                         )]))]),
                     )])),
                     Value::Object(BTreeMap::from_iter(vec![(
                         "kek".to_string(),
                         Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
                             String::new(),
-                            Value::Array(vec![Value::Number(BigInt::from(1))]),
+                            Value::Array(vec![Value::Number(BigInteger::from(1))]),
                         )]))]),
                     )])),
                 ]),
@@ -1396,14 +1400,14 @@ mod tests {
                         "kek".to_string(),
                         Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
                             String::new(),
-                            Value::Array(vec![Value::Number(BigInt::from(1))]),
+                            Value::Array(vec![Value::Number(BigInteger::from(1))]),
                         )]))]),
                     )])),
                     Value::Object(BTreeMap::from_iter(vec![(
                         "kek".to_string(),
                         Value::Array(vec![Value::Object(BTreeMap::from_iter(vec![(
                             String::new(),
-                            Value::Array(vec![Value::Number(BigInt::from(1))]),
+                            Value::Array(vec![Value::Number(BigInteger::from(1))]),
                         )]))]),
                     )])),
                 ]),

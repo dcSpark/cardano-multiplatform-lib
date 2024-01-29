@@ -11,7 +11,7 @@ pub mod utils;
 
 use ::wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 use cml_chain_wasm::byron::ByronTxOut;
-use cml_chain_wasm::utils::BigInt;
+use cml_chain_wasm::utils::BigInteger;
 use cml_core_wasm::{
     impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_list,
     impl_wasm_map_btree,
@@ -70,7 +70,7 @@ use crate::byron::{
 
 impl_wasm_list!(cml_chain::byron::AddressId, AddressId, AddressIdList);
 
-impl_wasm_list!(cml_chain::utils::BigInt, BigInt, BigIntList);
+impl_wasm_list!(cml_chain::utils::BigInteger, BigInteger, BigIntegerList);
 
 impl_wasm_list!(cml_multi_era::byron::ByronAny, ByronAny, ByronAnyList);
 

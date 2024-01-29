@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     json::json_serialize::{JsonParseError, Value as JSONValue},
-    utils::BigInt,
+    utils::BigInteger,
 };
 
 use cml_core::{
@@ -81,7 +81,7 @@ pub enum MetadataJsonError {
     #[error("Bytes not allowed in BasicConversions schema")]
     BytesInNoConversions,
     #[error("Metadatum ints must fit in 8 bytes: {0}")]
-    IntTooBig(BigInt),
+    IntTooBig(BigInteger),
     #[error("key type {0:?} not allowed in JSON under specified schema")]
     InvalidKeyType(TransactionMetadatum),
     #[error("Metadatum structure error (e.g. too big for bounds): {0}")]
@@ -155,17 +155,17 @@ pub fn encode_json_value_to_metadatum(
             JSONValue::Object(json_obj) => {
                 let mut map = MetadatumMap::new();
                 for (raw_key, value) in json_obj {
-                    let key = if schema == MetadataJsonSchema::BasicConversions {
-                        match raw_key.parse::<i128>() {
-                            Ok(x) => TransactionMetadatum::new_int(
-                                Int::try_from(x)
-                                    .map_err(|_e| MetadataJsonError::IntTooBig(BigInt::from(x)))?,
-                            ),
-                            Err(_) => encode_string(raw_key, schema)?,
-                        }
-                    } else {
-                        TransactionMetadatum::new_text(raw_key)?
-                    };
+                    let key =
+                        if schema == MetadataJsonSchema::BasicConversions {
+                            match raw_key.parse::<i128>() {
+                                Ok(x) => TransactionMetadatum::new_int(Int::try_from(x).map_err(
+                                    |_e| MetadataJsonError::IntTooBig(BigInteger::from(x)),
+                                )?),
+                                Err(_) => encode_string(raw_key, schema)?,
+                            }
+                        } else {
+                            TransactionMetadatum::new_text(raw_key)?
+                        };
                     map.set(key, encode_json_value_to_metadatum(value, schema)?);
                 }
                 Ok(TransactionMetadatum::new_map(map))
@@ -312,7 +312,7 @@ pub fn decode_metadatum_to_json_value(
                     .collect::<Result<Vec<_>, MetadataJsonError>>()?,
             ),
         ),
-        TransactionMetadatum::Int(x) => ("int", JSONValue::Number(BigInt::from_int(x))),
+        TransactionMetadatum::Int(x) => ("int", JSONValue::Number(BigInteger::from_int(x))),
         TransactionMetadatum::Bytes { bytes, .. } => (
             "bytes",
             match schema {

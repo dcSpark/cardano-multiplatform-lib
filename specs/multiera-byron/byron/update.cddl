@@ -1,7 +1,7 @@
 ; Updates
 
-; is this the same one? is big_int here. is this the cbor prelude?
-big_int = _CDDL_CODEGEN_EXTERN_TYPE_
+; is this the same one? is big_integer here. is this the cbor prelude?
+big_integer = _CDDL_CODEGEN_EXTERN_TYPE_
 
 byron_block_version = [
       u16 ; @name major
@@ -9,8 +9,8 @@ byron_block_version = [
     , u8 ; @name alt
 ]
 
-std_fee_policy = [ big_int ; @name summand
-                 , big_int ; @name multiplier
+std_fee_policy = [ big_integer ; @name summand
+                 , big_integer ; @name multiplier
                  ]
 byron_tx_fee_policy = [ 0
                 , #6.24(bytes .cbor (std_fee_policy)) ; @name std_fee_policy
@@ -22,11 +22,11 @@ soft_fork_rule = [ coin_portion ; @name init_threshold
                  , coin_portion ; @name threshold_decrement
                  ]
 bvermod = [ scriptVersion : [? u16]
-          , slotDuration : [? big_int]
-          , maxBlockSize : [? big_int]
-          , maxHeaderSize  : [? big_int]
-          , maxTxSize : [? big_int]
-          , maxProposalSize : [? big_int]
+          , slotDuration : [? big_integer]
+          , maxBlockSize : [? big_integer]
+          , maxHeaderSize  : [? big_integer]
+          , maxTxSize : [? big_integer]
+          , maxProposalSize : [? big_integer]
           , mpcThd : [? u64]
           , heavyDelThd : [? u64]
           , updateVoteThd : [? u64]

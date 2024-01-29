@@ -5,17 +5,17 @@ pub mod serialization;
 
 use crate::byron::transaction::ByronAttributes;
 use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronUpdateId, EpochId};
-use cml_chain::utils::BigInt;
+use cml_chain::utils::BigInteger;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct Bvermod {
     pub script_version: Vec<u16>,
-    pub slot_duration: Vec<BigInt>,
-    pub max_block_size: Vec<BigInt>,
-    pub max_header_size: Vec<BigInt>,
-    pub max_tx_size: Vec<BigInt>,
-    pub max_proposal_size: Vec<BigInt>,
+    pub slot_duration: Vec<BigInteger>,
+    pub max_block_size: Vec<BigInteger>,
+    pub max_header_size: Vec<BigInteger>,
+    pub max_tx_size: Vec<BigInteger>,
+    pub max_proposal_size: Vec<BigInteger>,
     pub mpc_thd: Vec<u64>,
     pub heavy_del_thd: Vec<u64>,
     pub update_vote_thd: Vec<u64>,
@@ -29,11 +29,11 @@ pub struct Bvermod {
 impl Bvermod {
     pub fn new(
         script_version: Vec<u16>,
-        slot_duration: Vec<BigInt>,
-        max_block_size: Vec<BigInt>,
-        max_header_size: Vec<BigInt>,
-        max_tx_size: Vec<BigInt>,
-        max_proposal_size: Vec<BigInt>,
+        slot_duration: Vec<BigInteger>,
+        max_block_size: Vec<BigInteger>,
+        max_header_size: Vec<BigInteger>,
+        max_tx_size: Vec<BigInteger>,
+        max_proposal_size: Vec<BigInteger>,
         mpc_thd: Vec<u64>,
         heavy_del_thd: Vec<u64>,
         update_vote_thd: Vec<u64>,
@@ -219,13 +219,16 @@ impl SoftForkRule {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct StdFeePolicy {
-    pub big_int: BigInt,
-    pub big_int2: BigInt,
+    pub big_integer: BigInteger,
+    pub big_integer2: BigInteger,
 }
 
 impl StdFeePolicy {
-    pub fn new(big_int: BigInt, big_int2: BigInt) -> Self {
-        Self { big_int, big_int2 }
+    pub fn new(big_integer: BigInteger, big_integer2: BigInteger) -> Self {
+        Self {
+            big_integer,
+            big_integer2,
+        }
     }
 }
 

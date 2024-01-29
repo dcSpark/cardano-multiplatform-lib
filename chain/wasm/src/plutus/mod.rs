@@ -3,7 +3,7 @@ pub mod utils;
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::utils::BigInt;
+use crate::utils::BigInteger;
 
 use super::{IntList, PlutusDataList, SubCoin};
 pub use cml_chain::plutus::{Language, RedeemerTag};
@@ -123,7 +123,7 @@ impl PlutusData {
         Self(cml_chain::plutus::PlutusData::new_list(list.clone().into()))
     }
 
-    pub fn new_integer(big_int: &BigInt) -> Self {
+    pub fn new_integer(big_int: &BigInteger) -> Self {
         Self(cml_chain::plutus::PlutusData::new_integer(
             big_int.clone().into(),
         ))
@@ -166,7 +166,7 @@ impl PlutusData {
         }
     }
 
-    pub fn as_integer(&self) -> Option<BigInt> {
+    pub fn as_integer(&self) -> Option<BigInteger> {
         match &self.0 {
             cml_chain::plutus::PlutusData::Integer(big_int) => Some(big_int.clone().into()),
             _ => None,

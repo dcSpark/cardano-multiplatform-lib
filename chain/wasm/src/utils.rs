@@ -8,22 +8,22 @@ impl_wasm_list!(Language, Language, LanguageList, true, true);
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct BigInt(cml_chain::utils::BigInt);
+pub struct BigInteger(cml_chain::utils::BigInteger);
 
-impl_wasm_conversions!(cml_chain::utils::BigInt, BigInt);
+impl_wasm_conversions!(cml_chain::utils::BigInteger, BigInteger);
 
-impl_wasm_cbor_json_api!(BigInt);
+impl_wasm_cbor_json_api!(BigInteger);
 
 #[wasm_bindgen]
-impl BigInt {
+impl BigInteger {
     pub fn from_int(x: &Int) -> Self {
-        Self(cml_chain::utils::BigInt::from_int(x.as_ref()))
+        Self(cml_chain::utils::BigInteger::from_int(x.as_ref()))
     }
 
     #[allow(clippy::should_implement_trait)]
-    pub fn from_str(s: &str) -> Result<BigInt, JsError> {
+    pub fn from_str(s: &str) -> Result<BigInteger, JsError> {
         use std::str::FromStr;
-        cml_chain::utils::BigInt::from_str(s)
+        cml_chain::utils::BigInteger::from_str(s)
             .map(Self)
             .map_err(Into::into)
     }

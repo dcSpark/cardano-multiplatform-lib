@@ -8,7 +8,7 @@ pub mod utils;
 use self::cbor_encodings::PlutusV3ScriptEncoding;
 
 use super::{Rational, SubCoin};
-use crate::utils::BigInt;
+use crate::utils::BigInteger;
 use cbor_encodings::{
     CostModelsEncoding, ExUnitPricesEncoding, ExUnitsEncoding, PlutusV1ScriptEncoding,
     PlutusV2ScriptEncoding, RedeemerEncoding,
@@ -128,7 +128,7 @@ pub enum PlutusData {
         #[serde(skip)]
         list_encoding: LenEncoding,
     },
-    Integer(BigInt),
+    Integer(BigInteger),
     Bytes {
         bytes: Vec<u8>,
         #[derivative(
@@ -158,7 +158,7 @@ impl PlutusData {
         }
     }
 
-    pub fn new_integer(integer: BigInt) -> Self {
+    pub fn new_integer(integer: BigInteger) -> Self {
         Self::Integer(integer)
     }
 

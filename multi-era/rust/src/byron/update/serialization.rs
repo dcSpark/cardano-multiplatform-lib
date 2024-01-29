@@ -7,7 +7,7 @@ use super::*;
 use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
-use cml_chain::utils::BigInt;
+use cml_chain::utils::BigInteger;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::RawBytesEncoding;
@@ -118,7 +118,7 @@ impl Deserialize for Bvermod {
                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                         break;
                     }
-                    slot_duration_arr.push(BigInt::deserialize(raw)?);
+                    slot_duration_arr.push(BigInteger::deserialize(raw)?);
                 }
                 Ok(slot_duration_arr)
             })()
@@ -134,7 +134,7 @@ impl Deserialize for Bvermod {
                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                         break;
                     }
-                    max_block_size_arr.push(BigInt::deserialize(raw)?);
+                    max_block_size_arr.push(BigInteger::deserialize(raw)?);
                 }
                 Ok(max_block_size_arr)
             })()
@@ -150,7 +150,7 @@ impl Deserialize for Bvermod {
                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                         break;
                     }
-                    max_header_size_arr.push(BigInt::deserialize(raw)?);
+                    max_header_size_arr.push(BigInteger::deserialize(raw)?);
                 }
                 Ok(max_header_size_arr)
             })()
@@ -166,7 +166,7 @@ impl Deserialize for Bvermod {
                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                         break;
                     }
-                    max_tx_size_arr.push(BigInt::deserialize(raw)?);
+                    max_tx_size_arr.push(BigInteger::deserialize(raw)?);
                 }
                 Ok(max_tx_size_arr)
             })()
@@ -182,7 +182,7 @@ impl Deserialize for Bvermod {
                         assert_eq!(raw.special()?, cbor_event::Special::Break);
                         break;
                     }
-                    max_proposal_size_arr.push(BigInt::deserialize(raw)?);
+                    max_proposal_size_arr.push(BigInteger::deserialize(raw)?);
                 }
                 Ok(max_proposal_size_arr)
             })()
@@ -844,8 +844,8 @@ impl cbor_event::se::Serialize for StdFeePolicy {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_array(cbor_event::Len::Len(2))?;
         // hand-edit to call our serialize instead
-        cml_core::serialization::Serialize::serialize(&self.big_int, serializer, true)?;
-        cml_core::serialization::Serialize::serialize(&self.big_int2, serializer, true)?;
+        cml_core::serialization::Serialize::serialize(&self.big_integer, serializer, true)?;
+        cml_core::serialization::Serialize::serialize(&self.big_integer2, serializer, true)?;
 
         Ok(serializer)
     }
@@ -858,10 +858,10 @@ impl Deserialize for StdFeePolicy {
         read_len.read_elems(2)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
-            let big_int =
-                BigInt::deserialize(raw).map_err(|e: DeserializeError| e.annotate("big_int"))?;
-            let big_int2 =
-                BigInt::deserialize(raw).map_err(|e: DeserializeError| e.annotate("big_int2"))?;
+            let big_integer = BigInteger::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("big_integer"))?;
+            let big_integer2 = BigInteger::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("big_integer2"))?;
             match len {
                 cbor_event::Len::Len(_) => (),
                 cbor_event::Len::Indefinite => match raw.special()? {
@@ -869,7 +869,10 @@ impl Deserialize for StdFeePolicy {
                     _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                 },
             }
-            Ok(StdFeePolicy { big_int, big_int2 })
+            Ok(StdFeePolicy {
+                big_integer,
+                big_integer2,
+            })
         })()
         .map_err(|e| e.annotate("StdFeePolicy"))
     }

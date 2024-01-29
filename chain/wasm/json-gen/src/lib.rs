@@ -119,5 +119,5 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::transaction::TransactionOutput);
     gen_json_schema!(cml_chain::transaction::TransactionWitnessSet);
     // utils
-    gen_json_schema!(cml_chain::utils::BigInt);
+    gen_json_schema!(cml_chain::utils::BigInteger);
 }

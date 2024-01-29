@@ -18,10 +18,10 @@ plutus_data =
     constr_plutus_data
   / { * plutus_data => plutus_data } ; @name map
   / [ * plutus_data ] ; @name list
-  / big_int ; @name integer
+  / big_integer ; @name integer
   / bounded_bytes ; @name bytes
 
-big_int = _CDDL_CODEGEN_EXTERN_TYPE_
+big_integer = _CDDL_CODEGEN_EXTERN_TYPE_
 
 ; original definition not used to avoid hundreds of variants:
 ; constr<a> =

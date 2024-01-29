@@ -3,11 +3,11 @@
 
 use crate::byron::transaction::ByronAttributes;
 use crate::byron::{
-    BigIntList, ByronTxFeePolicyList, ByronUpdateProposalList, ByronUpdateVoteList,
+    BigIntegerList, ByronTxFeePolicyList, ByronUpdateProposalList, ByronUpdateVoteList,
     MapSystemTagToByronUpdateData, SoftForkRuleList,
 };
 use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronUpdateId, EpochId};
-use cml_chain_wasm::utils::BigInt;
+use cml_chain_wasm::utils::BigInteger;
 use cml_core_wasm::{impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions};
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
@@ -25,23 +25,23 @@ impl Bvermod {
         self.0.script_version.clone()
     }
 
-    pub fn slot_duration(&self) -> BigIntList {
+    pub fn slot_duration(&self) -> BigIntegerList {
         self.0.slot_duration.clone().into()
     }
 
-    pub fn max_block_size(&self) -> BigIntList {
+    pub fn max_block_size(&self) -> BigIntegerList {
         self.0.max_block_size.clone().into()
     }
 
-    pub fn max_header_size(&self) -> BigIntList {
+    pub fn max_header_size(&self) -> BigIntegerList {
         self.0.max_header_size.clone().into()
     }
 
-    pub fn max_tx_size(&self) -> BigIntList {
+    pub fn max_tx_size(&self) -> BigIntegerList {
         self.0.max_tx_size.clone().into()
     }
 
-    pub fn max_proposal_size(&self) -> BigIntList {
+    pub fn max_proposal_size(&self) -> BigIntegerList {
         self.0.max_proposal_size.clone().into()
     }
 
@@ -79,11 +79,11 @@ impl Bvermod {
 
     pub fn new(
         script_version: Vec<u16>,
-        slot_duration: &BigIntList,
-        max_block_size: &BigIntList,
-        max_header_size: &BigIntList,
-        max_tx_size: &BigIntList,
-        max_proposal_size: &BigIntList,
+        slot_duration: &BigIntegerList,
+        max_block_size: &BigIntegerList,
+        max_header_size: &BigIntegerList,
+        max_tx_size: &BigIntegerList,
+        max_proposal_size: &BigIntegerList,
         mpc_thd: Vec<u64>,
         heavy_del_thd: Vec<u64>,
         update_vote_thd: Vec<u64>,
@@ -420,18 +420,18 @@ impl_wasm_conversions!(cml_multi_era::byron::update::StdFeePolicy, StdFeePolicy)
 
 #[wasm_bindgen]
 impl StdFeePolicy {
-    pub fn big_int(&self) -> BigInt {
-        self.0.big_int.clone().into()
+    pub fn big_integer(&self) -> BigInteger {
+        self.0.big_integer.clone().into()
     }
 
-    pub fn big_int2(&self) -> BigInt {
-        self.0.big_int2.clone().into()
+    pub fn big_integer2(&self) -> BigInteger {
+        self.0.big_integer2.clone().into()
     }
 
-    pub fn new(big_int: &BigInt, big_int2: &BigInt) -> Self {
+    pub fn new(big_integer: &BigInteger, big_integer2: &BigInteger) -> Self {
         Self(cml_multi_era::byron::update::StdFeePolicy::new(
-            big_int.clone().into(),
-            big_int2.clone().into(),
+            big_integer.clone().into(),
+            big_integer2.clone().into(),
         ))
     }
 }

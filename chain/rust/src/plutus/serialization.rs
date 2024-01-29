@@ -491,14 +491,14 @@ impl Deserialize for PlutusData {
             // 2) to give better errors / direct branch on cbor_type()?
             match raw.cbor_type()? {
                 cbor_event::Type::Tag => {
-                    // could be large BigInt or ConstrPlutusData so check tag to see which it is
+                    // could be large BigInteger or ConstrPlutusData so check tag to see which it is
                     let initial_position = raw.as_mut_ref().stream_position().unwrap();
                     let tag = raw.tag()?;
                     raw.as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap();
                     if tag == 2 || tag == 3 {
-                        BigInt::deserialize(raw)
+                        BigInteger::deserialize(raw)
                             .map(Self::Integer)
                             .map_err(|e| e.annotate("Integer"))
                     } else {
@@ -533,7 +533,7 @@ impl Deserialize for PlutusData {
                     .map_err(|e| e.annotate("List"))
                 }
                 cbor_event::Type::UnsignedInteger | cbor_event::Type::NegativeInteger => {
-                    BigInt::deserialize(raw)
+                    BigInteger::deserialize(raw)
                         .map(Self::Integer)
                         .map_err(|e| e.annotate("Integer"))
                 }

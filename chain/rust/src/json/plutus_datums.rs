@@ -1,7 +1,7 @@
 use crate::{
     json::json_serialize::{JsonParseError, Value as JSONValue},
     plutus::{ConstrPlutusData, PlutusData, PlutusMap},
-    utils::BigInt,
+    utils::BigInteger,
 };
 use std::collections::BTreeMap;
 use std::str::FromStr;
@@ -41,7 +41,7 @@ pub enum CardanoNodePlutusDatumSchema {
     /// 1. For ConstrPlutusData there must be two fields "constructor" contianing a number and "fields" containing its fields
     ///    e.g. { "constructor": 2, "fields": [{"int": 2}, {"list": [{"bytes": "CAFEF00D"}]}]}
     /// 2. For all other cases there must be only one field named "int", "bytes", "list" or "map"
-    ///    BigInt's value is a JSON number e.g. {"int": 100}
+    ///    BigInteger's value is a JSON number e.g. {"int": 100}
     ///    Bytes' value is a hex string representing the bytes WITHOUT any prefix e.g. {"bytes": "CAFEF00D"}
     ///    Lists' value is a JSON list of its elements encoded via the same schema e.g. {"list": [{"bytes": "CAFEF00D"}]}
     ///    Maps' value is a JSON list of objects, one for each key-value pair in the map, with keys "k" and "v"
@@ -115,7 +115,7 @@ pub fn encode_json_value_to_plutus_datum(
                     .map_err(Into::into)
             } else if is_key {
                 // try as an integer
-                match BigInt::from_str(s) {
+                match BigInteger::from_str(s) {
                     Ok(x) => Ok(PlutusData::new_integer(x)),
                     // if not, we use the utf8 bytes of the string instead directly
                     Err(_err) => Ok(PlutusData::new_bytes(s.as_bytes().to_vec())),

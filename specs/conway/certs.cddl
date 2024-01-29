@@ -20,11 +20,20 @@ certificate =
 
 stake_registration = (tag: 0, stake_credential)
 stake_deregistration = (tag: 1, stake_credential)
-stake_delegation = (tag: 2, stake_credential, ed25519_key_hash)
+stake_delegation = (
+    tag: 2,
+    stake_credential,
+    ed25519_key_hash ; @name pool
+)
 
 ; POOL
 pool_registration = (tag: 3, pool_params)
 pool_retirement = (tag: 4, ed25519_key_hash, epoch)
+pool_retirement = (
+    tag: 4,
+    ed25519_key_hash, ; @name pool
+    epoch
+)
 
 ; these two are now deprecated in Conway:
 ; genesis_key_delegation = (tag: 5, genesis_hash, genesis_delegate_hash, VRF_key_hash)

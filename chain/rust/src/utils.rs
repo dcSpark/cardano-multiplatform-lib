@@ -283,6 +283,28 @@ impl BigInteger {
         }
     }
 
+    /// Converts to a u128
+    /// Returns None if the number was negative or too big for a u128
+    pub fn as_u128(&self) -> Option<u128> {
+        let (sign, u32_digits) = self.num.to_u32_digits();
+        if sign == num_bigint::Sign::Minus {
+            return None;
+        }
+        match *u32_digits {
+            [] => Some(0),
+            [a] => Some(u128::from(a)),
+            [a, b] => Some(u128::from(b) | (u128::from(a) << 32)),
+            [a, b, c] => Some(u128::from(c) | (u128::from(b) << 32) | (u128::from(a) << 64)),
+            [a, b, c, d] => Some(
+                u128::from(d)
+                    | (u128::from(c) << 32)
+                    | (u128::from(b) << 64)
+                    | (u128::from(a) << 96),
+            ),
+            _ => None,
+        }
+    }
+
     /// Converts to an Int
     /// Returns None when the number is too big for an Int (outside +/- 64-bit unsigned)
     /// Retains encoding info if the original was encoded as an Int
@@ -549,9 +571,10 @@ impl Deserialize for NetworkId {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
 
     #[test]
-    fn bigint_uint_min() {
+    fn bigint_uint_u64_min() {
         let bytes = [0x00];
         let x = BigInteger::from_cbor_bytes(&bytes).unwrap();
         assert_eq!(bytes, x.to_cbor_bytes().as_slice());
@@ -561,13 +584,33 @@ mod tests {
     }
 
     #[test]
-    fn bigint_uint_max() {
+    fn bigint_uint_u64_max() {
         let bytes = [0x1B, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
         let x = BigInteger::from_cbor_bytes(&bytes).unwrap();
         assert_eq!(bytes, x.to_cbor_bytes().as_slice());
         assert_eq!(x.as_u64(), Some(u64::MAX));
         assert_eq!(x.as_int().unwrap().to_string(), x.to_string());
         assert_eq!(x.to_string(), "18446744073709551615");
+    }
+
+    #[test]
+    fn bigint_uint_u128_min() {
+        let bytes = [0x00];
+        let x = BigInt::from_cbor_bytes(&bytes).unwrap();
+        assert_eq!(bytes, x.to_cbor_bytes().as_slice());
+        assert_eq!(x.as_u128(), Some(u128::MIN));
+        assert_eq!(x.to_string(), "0");
+    }
+
+    #[test]
+    fn bigint_uint_u128_max() {
+        let bytes = BigInt::from_str(&u128::MAX.to_string())
+            .unwrap()
+            .to_cbor_bytes();
+        let x = BigInt::from_cbor_bytes(&bytes).unwrap();
+        assert_eq!(bytes, x.to_cbor_bytes().as_slice());
+        assert_eq!(x.as_u128(), Some(u128::MAX));
+        assert_eq!(x.to_string(), "340282366920938463463374607431768211455");
     }
 
     #[test]

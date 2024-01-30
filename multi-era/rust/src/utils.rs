@@ -238,7 +238,6 @@ impl MultiEraBlock {
     pub fn hash(&self) -> [u8; 32] {
         let bytes = match self {
             Self::Byron(block) => match block {
-                // why there's no to_bytes or sth for byron block headers?
                 ByronBlock::EpochBoundary(ebb) => ebb.header.to_bytes(),
                 ByronBlock::Main(mb) => mb.header.to_bytes(),
             },

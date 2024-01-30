@@ -41,7 +41,7 @@ pub fn cert_required_wits(cert: &Certificate, required_witnesses: &mut RequiredW
             required_witnesses.add_vkey_key_hash(cert.pool_params.operator);
         }
         Certificate::PoolRetirement(cert) => {
-            required_witnesses.add_vkey_key_hash(cert.ed25519_key_hash);
+            required_witnesses.add_vkey_key_hash(cert.pool);
         }
         Certificate::RegCert(cert) => {
             required_witnesses.add_from_credential(cert.stake_credential.clone());
@@ -114,7 +114,7 @@ pub fn add_cert_vkeys(
             vkeys.insert(cert.pool_params.operator);
         }
         Certificate::PoolRetirement(cert) => {
-            vkeys.insert(cert.ed25519_key_hash);
+            vkeys.insert(cert.pool);
         }
         Certificate::RegCert(_cert) => {
             // does not require a witness

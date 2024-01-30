@@ -14,8 +14,9 @@ use cbor_encodings::{
     PlutusV2ScriptEncoding, RedeemerEncoding,
 };
 
-use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_core::serialization::{LenEncoding, Serialize, StringEncoding};
 use cml_core::Int;
+use cml_crypto::{blake2b256, DatumHash};
 
 pub use utils::{ConstrPlutusData, PlutusMap, PlutusScript};
 
@@ -167,6 +168,10 @@ impl PlutusData {
             bytes,
             bytes_encoding: StringEncoding::default(),
         }
+    }
+
+    pub fn hash(&self) -> DatumHash {
+        DatumHash::from(blake2b256(&self.to_cbor_bytes()))
     }
 }
 

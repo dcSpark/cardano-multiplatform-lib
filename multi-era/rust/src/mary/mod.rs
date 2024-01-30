@@ -15,6 +15,8 @@ use cml_chain::transaction::TransactionInput;
 use cml_chain::TransactionIndex;
 use cml_chain::Withdrawals;
 use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::serialization::Serialize;
+use cml_crypto::blake2b256;
 use std::collections::BTreeMap;
 
 use self::cbor_encodings::MaryTransactionOutputEncoding;
@@ -105,6 +107,10 @@ impl MaryTransactionBody {
             mint: None,
             encodings: None,
         }
+    }
+
+    pub fn hash(&self) -> [u8; 32] {
+        blake2b256(&self.to_cbor_bytes())
     }
 }
 

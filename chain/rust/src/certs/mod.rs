@@ -78,19 +78,16 @@ impl Certificate {
         Self::StakeDeregistration(StakeDeregistration::new(stake_credential))
     }
 
-    pub fn new_stake_delegation(
-        stake_credential: StakeCredential,
-        ed25519_key_hash: Ed25519KeyHash,
-    ) -> Self {
-        Self::StakeDelegation(StakeDelegation::new(stake_credential, ed25519_key_hash))
+    pub fn new_stake_delegation(stake_credential: StakeCredential, pool: Ed25519KeyHash) -> Self {
+        Self::StakeDelegation(StakeDelegation::new(stake_credential, pool))
     }
 
     pub fn new_pool_registration(pool_params: PoolParams) -> Self {
         Self::PoolRegistration(PoolRegistration::new(pool_params))
     }
 
-    pub fn new_pool_retirement(ed25519_key_hash: Ed25519KeyHash, epoch: Epoch) -> Self {
-        Self::PoolRetirement(PoolRetirement::new(ed25519_key_hash, epoch))
+    pub fn new_pool_retirement(pool: Ed25519KeyHash, epoch: Epoch) -> Self {
+        Self::PoolRetirement(PoolRetirement::new(pool, epoch))
     }
 
     pub fn new_reg_cert(stake_credential: StakeCredential, coin: Coin) -> Self {
@@ -107,26 +104,18 @@ impl Certificate {
 
     pub fn new_stake_vote_deleg_cert(
         stake_credential: StakeCredential,
-        ed25519_key_hash: Ed25519KeyHash,
+        pool: Ed25519KeyHash,
         d_rep: DRep,
     ) -> Self {
-        Self::StakeVoteDelegCert(StakeVoteDelegCert::new(
-            stake_credential,
-            ed25519_key_hash,
-            d_rep,
-        ))
+        Self::StakeVoteDelegCert(StakeVoteDelegCert::new(stake_credential, pool, d_rep))
     }
 
     pub fn new_stake_reg_deleg_cert(
         stake_credential: StakeCredential,
-        ed25519_key_hash: Ed25519KeyHash,
+        pool: Ed25519KeyHash,
         coin: Coin,
     ) -> Self {
-        Self::StakeRegDelegCert(StakeRegDelegCert::new(
-            stake_credential,
-            ed25519_key_hash,
-            coin,
-        ))
+        Self::StakeRegDelegCert(StakeRegDelegCert::new(stake_credential, pool, coin))
     }
 
     pub fn new_vote_reg_deleg_cert(
@@ -139,13 +128,13 @@ impl Certificate {
 
     pub fn new_stake_vote_reg_deleg_cert(
         stake_credential: StakeCredential,
-        ed25519_key_hash: Ed25519KeyHash,
+        pool: Ed25519KeyHash,
         d_rep: DRep,
         coin: Coin,
     ) -> Self {
         Self::StakeVoteRegDelegCert(StakeVoteRegDelegCert::new(
             stake_credential,
-            ed25519_key_hash,
+            pool,
             d_rep,
             coin,
         ))
@@ -278,13 +267,13 @@ impl Credential {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum DRep {
     Key {
-        ed25519_key_hash: Ed25519KeyHash,
+        pool: Ed25519KeyHash,
         #[serde(skip)]
         len_encoding: LenEncoding,
         #[serde(skip)]
         index_0_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
-        ed25519_key_hash_encoding: StringEncoding,
+        pool_encoding: StringEncoding,
     },
     Script {
         script_hash: ScriptHash,
@@ -310,12 +299,12 @@ pub enum DRep {
 }
 
 impl DRep {
-    pub fn new_key(ed25519_key_hash: Ed25519KeyHash) -> Self {
+    pub fn new_key(pool: Ed25519KeyHash) -> Self {
         Self::Key {
-            ed25519_key_hash,
+            pool,
             len_encoding: LenEncoding::default(),
             index_0_encoding: None,
-            ed25519_key_hash_encoding: StringEncoding::default(),
+            pool_encoding: StringEncoding::default(),
         }
     }
 
@@ -566,16 +555,16 @@ impl PoolRegistration {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct PoolRetirement {
-    pub ed25519_key_hash: Ed25519KeyHash,
+    pub pool: Ed25519KeyHash,
     pub epoch: Epoch,
     #[serde(skip)]
     pub encodings: Option<PoolRetirementEncoding>,
 }
 
 impl PoolRetirement {
-    pub fn new(ed25519_key_hash: Ed25519KeyHash, epoch: Epoch) -> Self {
+    pub fn new(pool: Ed25519KeyHash, epoch: Epoch) -> Self {
         Self {
-            ed25519_key_hash,
+            pool,
             epoch,
             encodings: None,
         }
@@ -704,16 +693,16 @@ pub type StakeCredential = Credential;
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct StakeDelegation {
     pub stake_credential: StakeCredential,
-    pub ed25519_key_hash: Ed25519KeyHash,
+    pub pool: Ed25519KeyHash,
     #[serde(skip)]
     pub encodings: Option<StakeDelegationEncoding>,
 }
 
 impl StakeDelegation {
-    pub fn new(stake_credential: StakeCredential, ed25519_key_hash: Ed25519KeyHash) -> Self {
+    pub fn new(stake_credential: StakeCredential, pool: Ed25519KeyHash) -> Self {
         Self {
             stake_credential,
-            ed25519_key_hash,
+            pool,
             encodings: None,
         }
     }
@@ -738,21 +727,17 @@ impl StakeDeregistration {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct StakeRegDelegCert {
     pub stake_credential: StakeCredential,
-    pub ed25519_key_hash: Ed25519KeyHash,
+    pub pool: Ed25519KeyHash,
     pub coin: Coin,
     #[serde(skip)]
     pub encodings: Option<StakeRegDelegCertEncoding>,
 }
 
 impl StakeRegDelegCert {
-    pub fn new(
-        stake_credential: StakeCredential,
-        ed25519_key_hash: Ed25519KeyHash,
-        coin: Coin,
-    ) -> Self {
+    pub fn new(stake_credential: StakeCredential, pool: Ed25519KeyHash, coin: Coin) -> Self {
         Self {
             stake_credential,
-            ed25519_key_hash,
+            pool,
             coin,
             encodings: None,
         }
@@ -778,21 +763,17 @@ impl StakeRegistration {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct StakeVoteDelegCert {
     pub stake_credential: StakeCredential,
-    pub ed25519_key_hash: Ed25519KeyHash,
+    pub pool: Ed25519KeyHash,
     pub d_rep: DRep,
     #[serde(skip)]
     pub encodings: Option<StakeVoteDelegCertEncoding>,
 }
 
 impl StakeVoteDelegCert {
-    pub fn new(
-        stake_credential: StakeCredential,
-        ed25519_key_hash: Ed25519KeyHash,
-        d_rep: DRep,
-    ) -> Self {
+    pub fn new(stake_credential: StakeCredential, pool: Ed25519KeyHash, d_rep: DRep) -> Self {
         Self {
             stake_credential,
-            ed25519_key_hash,
+            pool,
             d_rep,
             encodings: None,
         }
@@ -802,7 +783,7 @@ impl StakeVoteDelegCert {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct StakeVoteRegDelegCert {
     pub stake_credential: StakeCredential,
-    pub ed25519_key_hash: Ed25519KeyHash,
+    pub pool: Ed25519KeyHash,
     pub d_rep: DRep,
     pub coin: Coin,
     #[serde(skip)]
@@ -812,13 +793,13 @@ pub struct StakeVoteRegDelegCert {
 impl StakeVoteRegDelegCert {
     pub fn new(
         stake_credential: StakeCredential,
-        ed25519_key_hash: Ed25519KeyHash,
+        pool: Ed25519KeyHash,
         d_rep: DRep,
         coin: Coin,
     ) -> Self {
         Self {
             stake_credential,
-            ed25519_key_hash,
+            pool,
             d_rep,
             coin,
             encodings: None,

@@ -561,10 +561,10 @@ impl Serialize for DRep {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
             DRep::Key {
-                ed25519_key_hash,
+                pool,
                 len_encoding,
                 index_0_encoding,
-                ed25519_key_hash_encoding,
+                pool_encoding,
             } => {
                 serializer.write_array_sz(len_encoding.to_len_sz(2, force_canonical))?;
                 serializer.write_unsigned_integer_sz(
@@ -572,11 +572,8 @@ impl Serialize for DRep {
                     fit_sz(0u64, *index_0_encoding, force_canonical),
                 )?;
                 serializer.write_bytes_sz(
-                    ed25519_key_hash.to_raw_bytes(),
-                    ed25519_key_hash_encoding.to_str_len_sz(
-                        ed25519_key_hash.to_raw_bytes().len() as u64,
-                        force_canonical,
-                    ),
+                    pool.to_raw_bytes(),
+                    pool_encoding.to_str_len_sz(pool.to_raw_bytes().len() as u64, force_canonical),
                 )?;
                 len_encoding.end(serializer, force_canonical)?;
                 Ok(serializer)
@@ -649,7 +646,7 @@ impl Deserialize for DRep {
                     Ok(Some(index_0_encoding))
                 })()
                 .map_err(|e| e.annotate("index_0"))?;
-                let (ed25519_key_hash, ed25519_key_hash_encoding) = raw
+                let (pool, pool_encoding) = raw
                     .bytes_sz()
                     .map_err(Into::<DeserializeError>::into)
                     .and_then(|(bytes, enc)| {
@@ -657,7 +654,7 @@ impl Deserialize for DRep {
                             .map(|bytes| (bytes, StringEncoding::from(enc)))
                             .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                     })
-                    .map_err(|e: DeserializeError| e.annotate("ed25519_key_hash"))?;
+                    .map_err(|e: DeserializeError| e.annotate("pool"))?;
                 match len {
                     cbor_event::LenSz::Len(_, _) => (),
                     cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -666,10 +663,10 @@ impl Deserialize for DRep {
                     },
                 }
                 Ok(Self::Key {
-                    ed25519_key_hash,
+                    pool,
                     len_encoding,
                     index_0_encoding,
-                    ed25519_key_hash_encoding,
+                    pool_encoding,
                 })
             })(raw)
             {
@@ -1471,15 +1468,12 @@ impl SerializeEmbeddedGroup for PoolRetirement {
             ),
         )?;
         serializer.write_bytes_sz(
-            self.ed25519_key_hash.to_raw_bytes(),
+            self.pool.to_raw_bytes(),
             self.encodings
                 .as_ref()
-                .map(|encs| encs.ed25519_key_hash_encoding.clone())
+                .map(|encs| encs.pool_encoding.clone())
                 .unwrap_or_default()
-                .to_str_len_sz(
-                    self.ed25519_key_hash.to_raw_bytes().len() as u64,
-                    force_canonical,
-                ),
+                .to_str_len_sz(self.pool.to_raw_bytes().len() as u64, force_canonical),
         )?;
         serializer.write_unsigned_integer_sz(
             self.epoch,
@@ -1538,7 +1532,7 @@ impl DeserializeEmbeddedGroup for PoolRetirement {
                 Ok(Some(tag_encoding))
             })()
             .map_err(|e| e.annotate("tag"))?;
-            let (ed25519_key_hash, ed25519_key_hash_encoding) = raw
+            let (pool, pool_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|(bytes, enc)| {
@@ -1546,19 +1540,19 @@ impl DeserializeEmbeddedGroup for PoolRetirement {
                         .map(|bytes| (bytes, StringEncoding::from(enc)))
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
-                .map_err(|e: DeserializeError| e.annotate("ed25519_key_hash"))?;
+                .map_err(|e: DeserializeError| e.annotate("pool"))?;
             let (epoch, epoch_encoding) = raw
                 .unsigned_integer_sz()
                 .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
                 .map_err(|e: DeserializeError| e.annotate("epoch"))?;
             Ok(PoolRetirement {
-                ed25519_key_hash,
+                pool,
                 epoch,
                 encodings: Some(PoolRetirementEncoding {
                     len_encoding,
                     tag_encoding,
-                    ed25519_key_hash_encoding,
+                    pool_encoding,
                     epoch_encoding,
                 }),
             })
@@ -2305,15 +2299,12 @@ impl SerializeEmbeddedGroup for StakeDelegation {
         self.stake_credential
             .serialize(serializer, force_canonical)?;
         serializer.write_bytes_sz(
-            self.ed25519_key_hash.to_raw_bytes(),
+            self.pool.to_raw_bytes(),
             self.encodings
                 .as_ref()
-                .map(|encs| encs.ed25519_key_hash_encoding.clone())
+                .map(|encs| encs.pool_encoding.clone())
                 .unwrap_or_default()
-                .to_str_len_sz(
-                    self.ed25519_key_hash.to_raw_bytes().len() as u64,
-                    force_canonical,
-                ),
+                .to_str_len_sz(self.pool.to_raw_bytes().len() as u64, force_canonical),
         )?;
         self.encodings
             .as_ref()
@@ -2363,7 +2354,7 @@ impl DeserializeEmbeddedGroup for StakeDelegation {
             .map_err(|e| e.annotate("tag"))?;
             let stake_credential = Credential::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
-            let (ed25519_key_hash, ed25519_key_hash_encoding) = raw
+            let (pool, pool_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|(bytes, enc)| {
@@ -2371,14 +2362,14 @@ impl DeserializeEmbeddedGroup for StakeDelegation {
                         .map(|bytes| (bytes, StringEncoding::from(enc)))
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
-                .map_err(|e: DeserializeError| e.annotate("ed25519_key_hash"))?;
+                .map_err(|e: DeserializeError| e.annotate("pool"))?;
             Ok(StakeDelegation {
                 stake_credential,
-                ed25519_key_hash,
+                pool,
                 encodings: Some(StakeDelegationEncoding {
                     len_encoding,
                     tag_encoding,
-                    ed25519_key_hash_encoding,
+                    pool_encoding,
                 }),
             })
         })()
@@ -2519,15 +2510,12 @@ impl SerializeEmbeddedGroup for StakeRegDelegCert {
         self.stake_credential
             .serialize(serializer, force_canonical)?;
         serializer.write_bytes_sz(
-            self.ed25519_key_hash.to_raw_bytes(),
+            self.pool.to_raw_bytes(),
             self.encodings
                 .as_ref()
-                .map(|encs| encs.ed25519_key_hash_encoding.clone())
+                .map(|encs| encs.pool_encoding.clone())
                 .unwrap_or_default()
-                .to_str_len_sz(
-                    self.ed25519_key_hash.to_raw_bytes().len() as u64,
-                    force_canonical,
-                ),
+                .to_str_len_sz(self.pool.to_raw_bytes().len() as u64, force_canonical),
         )?;
         serializer.write_unsigned_integer_sz(
             self.coin,
@@ -2588,7 +2576,7 @@ impl DeserializeEmbeddedGroup for StakeRegDelegCert {
             .map_err(|e| e.annotate("tag"))?;
             let stake_credential = Credential::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
-            let (ed25519_key_hash, ed25519_key_hash_encoding) = raw
+            let (pool, pool_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|(bytes, enc)| {
@@ -2596,7 +2584,7 @@ impl DeserializeEmbeddedGroup for StakeRegDelegCert {
                         .map(|bytes| (bytes, StringEncoding::from(enc)))
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
-                .map_err(|e: DeserializeError| e.annotate("ed25519_key_hash"))?;
+                .map_err(|e: DeserializeError| e.annotate("pool"))?;
             let (coin, coin_encoding) = raw
                 .unsigned_integer_sz()
                 .map(|(x, enc)| (x, Some(enc)))
@@ -2604,12 +2592,12 @@ impl DeserializeEmbeddedGroup for StakeRegDelegCert {
                 .map_err(|e: DeserializeError| e.annotate("coin"))?;
             Ok(StakeRegDelegCert {
                 stake_credential,
-                ed25519_key_hash,
+                pool,
                 coin,
                 encodings: Some(StakeRegDelegCertEncoding {
                     len_encoding,
                     tag_encoding,
-                    ed25519_key_hash_encoding,
+                    pool_encoding,
                     coin_encoding,
                 }),
             })
@@ -2751,15 +2739,12 @@ impl SerializeEmbeddedGroup for StakeVoteDelegCert {
         self.stake_credential
             .serialize(serializer, force_canonical)?;
         serializer.write_bytes_sz(
-            self.ed25519_key_hash.to_raw_bytes(),
+            self.pool.to_raw_bytes(),
             self.encodings
                 .as_ref()
-                .map(|encs| encs.ed25519_key_hash_encoding.clone())
+                .map(|encs| encs.pool_encoding.clone())
                 .unwrap_or_default()
-                .to_str_len_sz(
-                    self.ed25519_key_hash.to_raw_bytes().len() as u64,
-                    force_canonical,
-                ),
+                .to_str_len_sz(self.pool.to_raw_bytes().len() as u64, force_canonical),
         )?;
         self.d_rep.serialize(serializer, force_canonical)?;
         self.encodings
@@ -2810,7 +2795,7 @@ impl DeserializeEmbeddedGroup for StakeVoteDelegCert {
             .map_err(|e| e.annotate("tag"))?;
             let stake_credential = Credential::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
-            let (ed25519_key_hash, ed25519_key_hash_encoding) = raw
+            let (pool, pool_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|(bytes, enc)| {
@@ -2818,17 +2803,17 @@ impl DeserializeEmbeddedGroup for StakeVoteDelegCert {
                         .map(|bytes| (bytes, StringEncoding::from(enc)))
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
-                .map_err(|e: DeserializeError| e.annotate("ed25519_key_hash"))?;
+                .map_err(|e: DeserializeError| e.annotate("pool"))?;
             let d_rep =
                 DRep::deserialize(raw).map_err(|e: DeserializeError| e.annotate("d_rep"))?;
             Ok(StakeVoteDelegCert {
                 stake_credential,
-                ed25519_key_hash,
+                pool,
                 d_rep,
                 encodings: Some(StakeVoteDelegCertEncoding {
                     len_encoding,
                     tag_encoding,
-                    ed25519_key_hash_encoding,
+                    pool_encoding,
                 }),
             })
         })()
@@ -2873,15 +2858,12 @@ impl SerializeEmbeddedGroup for StakeVoteRegDelegCert {
         self.stake_credential
             .serialize(serializer, force_canonical)?;
         serializer.write_bytes_sz(
-            self.ed25519_key_hash.to_raw_bytes(),
+            self.pool.to_raw_bytes(),
             self.encodings
                 .as_ref()
-                .map(|encs| encs.ed25519_key_hash_encoding.clone())
+                .map(|encs| encs.pool_encoding.clone())
                 .unwrap_or_default()
-                .to_str_len_sz(
-                    self.ed25519_key_hash.to_raw_bytes().len() as u64,
-                    force_canonical,
-                ),
+                .to_str_len_sz(self.pool.to_raw_bytes().len() as u64, force_canonical),
         )?;
         self.d_rep.serialize(serializer, force_canonical)?;
         serializer.write_unsigned_integer_sz(
@@ -2943,7 +2925,7 @@ impl DeserializeEmbeddedGroup for StakeVoteRegDelegCert {
             .map_err(|e| e.annotate("tag"))?;
             let stake_credential = Credential::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
-            let (ed25519_key_hash, ed25519_key_hash_encoding) = raw
+            let (pool, pool_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|(bytes, enc)| {
@@ -2951,7 +2933,7 @@ impl DeserializeEmbeddedGroup for StakeVoteRegDelegCert {
                         .map(|bytes| (bytes, StringEncoding::from(enc)))
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
-                .map_err(|e: DeserializeError| e.annotate("ed25519_key_hash"))?;
+                .map_err(|e: DeserializeError| e.annotate("pool"))?;
             let d_rep =
                 DRep::deserialize(raw).map_err(|e: DeserializeError| e.annotate("d_rep"))?;
             let (coin, coin_encoding) = raw
@@ -2961,13 +2943,13 @@ impl DeserializeEmbeddedGroup for StakeVoteRegDelegCert {
                 .map_err(|e: DeserializeError| e.annotate("coin"))?;
             Ok(StakeVoteRegDelegCert {
                 stake_credential,
-                ed25519_key_hash,
+                pool,
                 d_rep,
                 coin,
                 encodings: Some(StakeVoteRegDelegCertEncoding {
                     len_encoding,
                     tag_encoding,
-                    ed25519_key_hash_encoding,
+                    pool_encoding,
                     coin_encoding,
                 }),
             })

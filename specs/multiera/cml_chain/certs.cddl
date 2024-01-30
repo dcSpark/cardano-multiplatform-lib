@@ -8,9 +8,17 @@ pool_metadata = _CDDL_CODEGEN_EXTERN_TYPE_
 
 stake_registration = (tag: 0, stake_credential)
 stake_deregistration = (tag: 1, stake_credential)
-stake_delegation = (tag: 2, stake_credential, ed25519_key_hash)
+stake_delegation = (
+    tag: 2,
+    stake_credential,
+    ed25519_key_hash ; @name pool
+)
 pool_registration = (tag: 3, pool_params)
-pool_retirement = (tag: 4, ed25519_key_hash, epoch)
+pool_retirement = (
+    tag: 4,
+    ed25519_key_hash, ; @name pool
+    epoch
+)
 
 pool_params = ( operator:       ed25519_key_hash
               , vrf_keyhash:    VRF_key_hash

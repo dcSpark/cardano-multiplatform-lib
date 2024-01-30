@@ -1,6 +1,6 @@
 [package]
 name = "cml-cip36"
-version = "4.0.2"
+version = "5.0.0"
 edition = "2018"
 authors = ["dcSpark"]
 license = "MIT"
@@ -14,9 +14,9 @@ keywords = ["cardano", "cip36"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-core = { "path" = "../../core/rust", version = "4.0.2" }
-cml-crypto = { "path" = "../../crypto/rust", version = "4.0.2" }
-cml-chain = { "path" = "../../chain/rust", version = "4.0.2" }
+cml-core = { "path" = "../../core/rust", version = "5.0.0" }
+cml-crypto = { "path" = "../../crypto/rust", version = "5.0.0" }
+cml-chain = { "path" = "../../chain/rust", version = "5.0.0" }
 cbor_event = "2.2.0"
 linked-hash-map = "0.5.3"
 derivative = "2.2.0"

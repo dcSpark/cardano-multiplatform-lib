@@ -596,7 +596,7 @@ mod tests {
     #[test]
     fn bigint_uint_u128_min() {
         let bytes = [0x00];
-        let x = BigInt::from_cbor_bytes(&bytes).unwrap();
+        let x = BigInteger::from_cbor_bytes(&bytes).unwrap();
         assert_eq!(bytes, x.to_cbor_bytes().as_slice());
         assert_eq!(x.as_u128(), Some(u128::MIN));
         assert_eq!(x.to_string(), "0");
@@ -604,10 +604,10 @@ mod tests {
 
     #[test]
     fn bigint_uint_u128_max() {
-        let bytes = BigInt::from_str(&u128::MAX.to_string())
+        let bytes = BigInteger::from_str(&u128::MAX.to_string())
             .unwrap()
             .to_cbor_bytes();
-        let x = BigInt::from_cbor_bytes(&bytes).unwrap();
+        let x = BigInteger::from_cbor_bytes(&bytes).unwrap();
         assert_eq!(bytes, x.to_cbor_bytes().as_slice());
         assert_eq!(x.as_u128(), Some(u128::MAX));
         assert_eq!(x.to_string(), "340282366920938463463374607431768211455");

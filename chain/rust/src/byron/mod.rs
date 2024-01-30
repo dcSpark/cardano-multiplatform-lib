@@ -115,18 +115,7 @@ impl AddressContent {
     }
 }
 
-#[derive(
-    Clone,
-    Debug,
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-    Hash,
-    serde::Deserialize,
-    serde::Serialize,
-    schemars::JsonSchema,
-)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ByronAddress {
     pub content: AddressContent,
     pub crc: Crc32,

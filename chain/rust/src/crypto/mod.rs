@@ -57,10 +57,9 @@ impl BootstrapWitness {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug)]
 pub struct KESSignature {
     pub inner: Vec<u8>,
-    #[serde(skip)]
     pub encodings: Option<KESSignatureEncoding>,
 }
 
@@ -98,6 +97,47 @@ impl TryFrom<Vec<u8>> for KESSignature {
 impl From<KESSignature> for Vec<u8> {
     fn from(wrapper: KESSignature) -> Self {
         wrapper.inner
+    }
+}
+
+impl serde::Serialize for KESSignature {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&hex::encode(self.inner.clone()))
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for KESSignature {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        hex::decode(&s)
+            .ok()
+            .and_then(|bytes| KESSignature::new(bytes).ok())
+            .ok_or_else(|| {
+                serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Str(&s),
+                    &"invalid hex bytes",
+                )
+            })
+    }
+}
+
+impl schemars::JsonSchema for KESSignature {
+    fn schema_name() -> String {
+        String::from("KESSignature")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
     }
 }
 

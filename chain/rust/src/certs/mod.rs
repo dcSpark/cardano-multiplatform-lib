@@ -332,10 +332,9 @@ impl DRep {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug)]
 pub struct DnsName {
     pub inner: String,
-    #[serde(skip)]
     pub encodings: Option<DnsNameEncoding>,
 }
 
@@ -370,12 +369,46 @@ impl TryFrom<String> for DnsName {
     }
 }
 
+impl serde::Serialize for DnsName {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.inner.serialize(serializer)
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for DnsName {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let inner = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        Self::new(inner.clone()).map_err(|_e| {
+            serde::de::Error::invalid_value(serde::de::Unexpected::Str(&inner), &"invalid DnsName")
+        })
+    }
+}
+
+impl schemars::JsonSchema for DnsName {
+    fn schema_name() -> String {
+        String::from("DnsName")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
+    }
+}
+
 pub type DrepCredential = Credential;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug)]
 pub struct Ipv4 {
     pub inner: Vec<u8>,
-    #[serde(skip)]
     pub encodings: Option<Ipv4Encoding>,
 }
 
@@ -416,10 +449,9 @@ impl From<Ipv4> for Vec<u8> {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug)]
 pub struct Ipv6 {
     pub inner: Vec<u8>,
-    #[serde(skip)]
     pub encodings: Option<Ipv6Encoding>,
 }
 
@@ -873,10 +905,9 @@ impl UpdateDrepCert {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug)]
 pub struct Url {
     pub inner: String,
-    #[serde(skip)]
     pub encodings: Option<UrlEncoding>,
 }
 
@@ -908,6 +939,41 @@ impl TryFrom<String> for Url {
 
     fn try_from(inner: String) -> Result<Self, Self::Error> {
         Url::new(inner)
+    }
+}
+
+impl serde::Serialize for Url {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.inner.serialize(serializer)
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for Url {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let inner = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        Self::new(inner.clone()).map_err(|_e| {
+            serde::de::Error::invalid_value(serde::de::Unexpected::Str(&inner), &"invalid Url")
+        })
+    }
+}
+
+impl schemars::JsonSchema for Url {
+    fn schema_name() -> String {
+        String::from("Url")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
     }
 }
 

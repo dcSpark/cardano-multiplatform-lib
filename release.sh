@@ -1,3 +1,4 @@
+set -eu
 if [ $1 = "prod" ];
 then RELEASE_TYPE="prod"
 elif [ $1 = "beta" ];

@@ -1,6 +1,6 @@
 [package]
 name = "cml-multi-era-json-schema-gen"
-version = "5.0.0"
+version = "5.1.0"
 edition = "2018"
 
 

@@ -2,7 +2,7 @@ use crate::{
     address::RewardAddress,
     byron::ByronAddress,
     crypto::{BootstrapWitness, Vkeywitness},
-    plutus::{PlutusData, Redeemer},
+    plutus::{utils::PlutusScript, PlutusData, Redeemer},
     transaction::TransactionWitnessSet,
     Ed25519KeyHashList, NativeScriptList, PlutusDataList, PlutusV1ScriptList, PlutusV2ScriptList,
     RedeemerList, Script,
@@ -24,6 +24,15 @@ impl_wasm_conversions!(
 
 #[wasm_bindgen]
 impl PlutusScriptWitness {
+    pub fn new_script(script: &PlutusScript) -> Self {
+        cml_chain::builders::witness_builder::PlutusScriptWitness::from(script.as_ref().clone())
+            .into()
+    }
+
+    pub fn new_ref(hash: &ScriptHash) -> Self {
+        cml_chain::builders::witness_builder::PlutusScriptWitness::from(*hash.as_ref()).into()
+    }
+
     // pub fn script(&self) -> Option<PlutusScript> {
     //     match self {
     //         Self::Ref(_) => None,

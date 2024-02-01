@@ -1,9 +1,11 @@
 use super::{CostModels, Language, Redeemer};
 use super::{ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script};
+use crate::crypto::hash::{hash_script, ScriptHashNamespace};
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::serialization::*;
 use cml_core::{error::*, Int};
+use cml_crypto::ScriptHash;
 use std::collections::BTreeMap;
 use std::io::{BufRead, Seek, Write};
 
@@ -348,6 +350,7 @@ impl CostModels {
 pub enum PlutusScript {
     PlutusV1(PlutusV1Script),
     PlutusV2(PlutusV2Script),
+    PlutusV3(PlutusV3Script),
 }
 
 impl PlutusScript {
@@ -355,6 +358,7 @@ impl PlutusScript {
         match &self {
             Self::PlutusV1(script) => script.hash(),
             Self::PlutusV2(script) => script.hash(),
+            Self::PlutusV3(script) => script.hash(),
         }
     }
 
@@ -362,11 +366,28 @@ impl PlutusScript {
         match self {
             Self::PlutusV1(_) => Language::PlutusV1,
             Self::PlutusV2(_) => Language::PlutusV2,
+            Self::PlutusV3(_) => Language::PlutusV3,
         }
     }
 }
-use crate::crypto::hash::{hash_script, ScriptHashNamespace};
-use cml_crypto::ScriptHash;
+
+impl From<PlutusV1Script> for PlutusScript {
+    fn from(script: PlutusV1Script) -> Self {
+        Self::PlutusV1(script)
+    }
+}
+
+impl From<PlutusV2Script> for PlutusScript {
+    fn from(script: PlutusV2Script) -> Self {
+        Self::PlutusV2(script)
+    }
+}
+
+impl From<PlutusV3Script> for PlutusScript {
+    fn from(script: PlutusV3Script) -> Self {
+        Self::PlutusV3(script)
+    }
+}
 
 impl PlutusV1Script {
     pub fn hash(&self) -> ScriptHash {

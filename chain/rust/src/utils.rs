@@ -65,6 +65,7 @@ impl From<PlutusScript> for Script {
         match script {
             PlutusScript::PlutusV1(v1) => Self::new_plutus_v1(v1),
             PlutusScript::PlutusV2(v2) => Self::new_plutus_v2(v2),
+            PlutusScript::PlutusV3(v3) => Self::new_plutus_v3(v3),
         }
     }
 }

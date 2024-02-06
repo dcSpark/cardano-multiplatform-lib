@@ -39,7 +39,7 @@ println!("tx_in JSON: {}", serde_json::to_string(&tx_in).unwrap());
 
 Metadata, on top of the generic API mentioned above, has specific JSON functionality for compatability with cardano-node.
 
-There are three formats on `MetadataJsonSchema`. `NoConversions` is the stricted, stricter than cardano-node and only converts when there are no implicit conversions at all. `BasicConversions` is the node's `TxMetadataJsonNoSchema` and `DetailedSchema` its `TxMetadataJsonDetailedSchema`. See `MetadataJsonSchema` for more info.
+There are three formats on `MetadataJsonSchema`. `NoConversions` is the stricted, stricter than cardano-node and only converts when there are no implicit conversions at all. `BasicConversions` is the node's `TxMetadataJsonNoSchema` and `DetailedSchema` its `TxMetadataJsonDetailedSchema`. See `MetadataJsonSchema` for more info on the schema.
 
 ```javascript
 let basic_json = "{\"0x8badf00d\": \"0xdeadbeef\",\"9\": 5,\"obj\": {\"a\":[{\"5\": 2},{}]}}";
@@ -51,7 +51,7 @@ console.log(`detailed json: ${CML.decode_metadatum_to_json_str(metadatum, CML.Me
 
 ## Plutus Datums
 
-Plutus datums also have additional cardano-node JSON support. Remember that Plutus has no String datum so the strings there will be converted to utf8 bytes.
+Plutus datums also have additional cardano-node JSON support. Remember that Plutus has no String datum so the strings there will be converted to utf8 bytes. See `CardanoNodePlutusDatumSchema` for more info on the schema.
 
 ```javascript
 let basic_json = "{ \"100\": [ { \"x\": \"0\", \"y\": 1 } ], \"foo\": \"0x0000baadf00d0000cafed00d0000deadbeef0000\" }";

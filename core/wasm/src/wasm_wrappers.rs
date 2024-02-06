@@ -418,6 +418,13 @@ macro_rules! impl_wasm_cbor_api {
             }
 
             /**
+             * Serialize this type to CBOR bytes using canonical CBOR encodings
+             */
+            pub fn to_canonical_cbor_bytes(&self) -> Vec<u8> {
+                cml_core::serialization::Serialize::to_canonical_cbor_bytes(&self.0)
+            }
+
+            /**
              * Create this type from CBOR bytes
              */
             pub fn from_cbor_bytes(cbor_bytes: &[u8]) -> Result<$wasm_name, JsError> {
@@ -438,6 +445,13 @@ macro_rules! impl_wasm_cbor_api {
              */
             pub fn to_cbor_hex(&self) -> String {
                 hex::encode(self.to_cbor_bytes())
+            }
+
+            /**
+             * Serialize this type to CBOR bytes using canonical CBOR encodings as hex bytes
+             */
+            pub fn to_canonical_cbor_hex(&self) -> String {
+                hex::encode(self.to_canonical_cbor_bytes())
             }
 
             /**

@@ -6,6 +6,9 @@ use std::io::{BufRead, Write};
 
 pub static BYRON_MAINNET_NETWORK_MAGIC: u32 = 764824073;
 pub static BYRON_TESTNET_NETWORK_MAGIC: u32 = 1097911063;
+pub static SANCHO_TESTNET_NETWORK_MAGIC: u32 = 4;
+pub static PREPROD_NETWORK_MAGIC: u32 = 1;
+pub static PREVIEW_NETWORK_MAGIC: u32 = 2;
 
 impl std::fmt::Display for ProtocolMagic {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

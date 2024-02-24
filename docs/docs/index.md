@@ -13,16 +13,26 @@ This is a library, written in Rust, that can be deployed to multiple platforms (
 
 ##### NPM packages
 
-TODO: update these once we publish new versions:
 - browser: [link](https://www.npmjs.com/package/@dcspark/cardano-multiplatform-lib-browser)
 - nodejs: [link](https://www.npmjs.com/package/@dcspark/cardano-multiplatform-lib-nodejs)
+
+There is also an outdated asm.js . It is strongly discouraged from using this as it is out of date and asm.js results in incredibly slow cryptographic operations.
 - asm.js (strongly discouraged): [link](https://www.npmjs.com/package/@dcspark/cardano-multiplatform-lib-asmjs)
 
 Note: If you are using WebPack, you must use version 5 or later for CML to work.
 
 ##### Rust crates
 
-- crates: [link](https://crates.io/crates/cardano-multiplatform-lib)
+The rust crates are split up by functionality.
+
+- core: [link](https://crates.io/crates/cml-core)
+- crypto: [link](https://crates.io/crates/cml-crypto)
+- chain: [link](https://crates.io/crates/cml-chain)
+- multi-era: [link](https://crates.io/crates/cml-multi-era)
+- cip25: [link](https://crates.io/crates/cml-cip25)
+- cip36: [link](https://crates.io/crates/cml-cip36)
+
+Most users will likely be using primarily `cml-chain` for general uses, `cml-multi-era` if they need historical (pre-babbage eras) chain-parsing and `cip25` or `cip36` if they need those specific metadata standards.
 
 ##### Mobile bindings
 

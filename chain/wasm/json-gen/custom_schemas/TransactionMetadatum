@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TransactionMetadatum",
+  "oneOf": [
+    { 
+      "type": "object",
+      "required": [
+        "map"
+      ],
+      "properties": {
+        "map": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["k", "v"],
+            "properties": {
+              "k": {
+                "$ref": "#/definitions/TransactionMetadatum"
+              },
+              "v": {
+                "$ref": "#/definitions/TransactionMetadatum"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "list"
+      ],
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TransactionMetadatum"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "int"
+      ],
+      "properties": {
+        "int": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "bytes"
+      ],
+      "properties": {
+        "bytes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "string"
+      ],
+      "properties": {
+        "string": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "definitions": {
+    "TransactionMetadatum": {
+      "oneOf": [
+        { 
+          "type": "object",
+          "required": [
+            "map"
+          ],
+          "properties": {
+            "map": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["k", "v"],
+                "properties": {
+                  "k": {
+                    "$ref": "#/definitions/TransactionMetadatum"
+                  },
+                  "v": {
+                    "$ref": "#/definitions/TransactionMetadatum"
+                  }
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "list"
+          ],
+          "properties": {
+            "list": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/TransactionMetadatum"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "int"
+          ],
+          "properties": {
+            "int": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "bytes"
+          ],
+          "properties": {
+            "bytes": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "string"
+          ],
+          "properties": {
+            "string": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "BigInteger": {
+      "type": "string"
+    }
+  }
+}

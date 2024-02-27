@@ -46,9 +46,7 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::assets::Value);
     // auxdata
     gen_json_schema!(cml_chain::auxdata::AuxiliaryData);
-    gen_json_schema!(cml_chain::auxdata::TransactionMetadatum);
     gen_json_schema!(cml_chain::auxdata::Metadata);
-    gen_json_schema!(cml_chain::auxdata::MetadatumMap);
     // block
     gen_json_schema!(cml_chain::block::Block);
     gen_json_schema!(cml_chain::block::Header);

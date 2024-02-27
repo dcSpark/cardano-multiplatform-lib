@@ -33,12 +33,16 @@ impl<'de> serde::de::Deserialize<'de> for PlutusData {
         let serde_json_value =
             <serde_json::Value as serde::de::Deserialize>::deserialize(deserializer)?;
         let json_value = crate::json::json_serialize::Value::from(serde_json_value);
-        println!("json_value: {json_value:?}");
         encode_json_value_to_plutus_datum(
             json_value.clone(),
             CardanoNodePlutusDatumSchema::DetailedSchema,
         )
-        .map_err(|_e| serde::de::Error::invalid_value((&json_value).into(), &"invalid hex bytes"))
+        .map_err(|_e| {
+            serde::de::Error::invalid_value(
+                (&json_value).into(),
+                &"invalid plutus datum (cardano-node JSON format)",
+            )
+        })
     }
 }
 

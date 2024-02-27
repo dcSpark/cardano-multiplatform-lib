@@ -531,8 +531,8 @@ impl DeserializeEmbeddedGroup for MultisigNOfK {
             .map_err(|e| e.annotate("tag"))?;
             let (n, n_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("n"))?;
             let (multisig_scripts, multisig_scripts_encoding) =
                 (|| -> Result<_, DeserializeError> {
@@ -707,11 +707,22 @@ impl Deserialize for MultisigScript {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
-            let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            let deser_variant: Result<_, DeserializeError> =
-                MultisigPubkey::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = MultisigPubkey::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(multisig_pubkey) => return Ok(Self::MultisigPubkey(multisig_pubkey)),
                 Err(e) => {
@@ -721,8 +732,20 @@ impl Deserialize for MultisigScript {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                MultisigAll::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = MultisigAll::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(multisig_all) => return Ok(Self::MultisigAll(multisig_all)),
                 Err(e) => {
@@ -732,8 +755,20 @@ impl Deserialize for MultisigScript {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                MultisigAny::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = MultisigAny::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(multisig_any) => return Ok(Self::MultisigAny(multisig_any)),
                 Err(e) => {
@@ -743,8 +778,20 @@ impl Deserialize for MultisigScript {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                MultisigNOfK::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = MultisigNOfK::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(multisig_n_of_k) => return Ok(Self::MultisigNOfK(multisig_n_of_k)),
                 Err(e) => {
@@ -754,13 +801,6 @@ impl Deserialize for MultisigScript {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "MultisigScript",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),
@@ -1082,11 +1122,22 @@ impl Deserialize for ShelleyCertificate {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            let deser_variant: Result<_, DeserializeError> =
-                StakeRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = StakeRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(stake_registration) => return Ok(Self::StakeRegistration(stake_registration)),
                 Err(e) => {
@@ -1096,8 +1147,21 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                StakeDeregistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret =
+                    StakeDeregistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(stake_deregistration) => {
                     return Ok(Self::StakeDeregistration(stake_deregistration))
@@ -1109,8 +1173,20 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                StakeDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = StakeDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(stake_delegation) => return Ok(Self::StakeDelegation(stake_delegation)),
                 Err(e) => {
@@ -1120,8 +1196,20 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                PoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(10)?;
+                read_len.finish()?;
+                let ret = PoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(pool_registration) => return Ok(Self::PoolRegistration(pool_registration)),
                 Err(e) => {
@@ -1131,8 +1219,20 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                PoolRetirement::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = PoolRetirement::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(pool_retirement) => return Ok(Self::PoolRetirement(pool_retirement)),
                 Err(e) => {
@@ -1142,8 +1242,21 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                GenesisKeyDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(4)?;
+                read_len.finish()?;
+                let ret =
+                    GenesisKeyDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(genesis_key_delegation) => {
                     return Ok(Self::GenesisKeyDelegation(genesis_key_delegation))
@@ -1155,8 +1268,20 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                ShelleyMoveInstantaneousRewardsCert::deserialize(raw);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(1)?;
+                read_len.finish()?;
+                let ret = ShelleyMoveInstantaneousRewardsCert::deserialize(raw);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(shelley_move_instantaneous_rewards_cert) => {
                     return Ok(Self::ShelleyMoveInstantaneousRewardsCert {
@@ -1171,13 +1296,6 @@ impl Deserialize for ShelleyCertificate {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "ShelleyCertificate",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),
@@ -1350,13 +1468,13 @@ impl Deserialize for ShelleyHeaderBody {
         (|| -> Result<_, DeserializeError> {
             let (block_number, block_number_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("block_number"))?;
             let (slot, slot_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("slot"))?;
             let (prev_hash, prev_hash_encoding) = (|| -> Result<_, DeserializeError> {
                 Ok(match raw.cbor_type()? != cbor_event::Type::Special {
@@ -1405,8 +1523,8 @@ impl Deserialize for ShelleyHeaderBody {
                 .map_err(|e: DeserializeError| e.annotate("leader_vrf"))?;
             let (block_body_size, block_body_size_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("block_body_size"))?;
             let (block_body_hash, block_body_hash_encoding) = raw
                 .bytes_sz()
@@ -1555,7 +1673,7 @@ impl Deserialize for ShelleyMoveInstantaneousReward {
         (|| -> Result<_, DeserializeError> {
             let (pot, pot_encoding) = (|| -> Result<_, DeserializeError> {
                 let initial_position = raw.as_mut_ref().stream_position().unwrap();
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (reserve_value, reserve_encoding) = raw.unsigned_integer_sz()?;
                     if reserve_value != 0 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1565,15 +1683,15 @@ impl Deserialize for ShelleyMoveInstantaneousReward {
                         .into());
                     }
                     Ok(Some(reserve_encoding))
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(pot_encoding) => return Ok((MIRPot::Reserve, pot_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap(),
                 };
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (treasury_value, treasury_encoding) = raw.unsigned_integer_sz()?;
                     if treasury_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1583,8 +1701,8 @@ impl Deserialize for ShelleyMoveInstantaneousReward {
                         .into());
                     }
                     Ok(Some(treasury_encoding))
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(pot_encoding) => return Ok((MIRPot::Treasury, pot_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
@@ -2292,8 +2410,8 @@ impl Deserialize for ShelleyProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("minfee_a"))?;
                             minfee_a = Some(tmp_minfee_a);
@@ -2309,8 +2427,8 @@ impl Deserialize for ShelleyProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("minfee_b"))?;
                             minfee_b = Some(tmp_minfee_b);
@@ -2326,8 +2444,8 @@ impl Deserialize for ShelleyProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_block_body_size"))?;
                             max_block_body_size = Some(tmp_max_block_body_size);
@@ -2343,8 +2461,8 @@ impl Deserialize for ShelleyProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_transaction_size"))?;
                             max_transaction_size = Some(tmp_max_transaction_size);
@@ -2360,8 +2478,8 @@ impl Deserialize for ShelleyProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_block_header_size"))?;
                             max_block_header_size = Some(tmp_max_block_header_size);
@@ -2377,8 +2495,8 @@ impl Deserialize for ShelleyProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("key_deposit"))?;
                             key_deposit = Some(tmp_key_deposit);
@@ -2394,8 +2512,8 @@ impl Deserialize for ShelleyProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("pool_deposit"))?;
                             pool_deposit = Some(tmp_pool_deposit);
@@ -2411,8 +2529,8 @@ impl Deserialize for ShelleyProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("maximum_epoch"))?;
                             maximum_epoch = Some(tmp_maximum_epoch);
@@ -2428,8 +2546,8 @@ impl Deserialize for ShelleyProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("n_opt"))?;
                             n_opt = Some(tmp_n_opt);
@@ -2524,8 +2642,8 @@ impl Deserialize for ShelleyProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("min_utxo_value"))?;
                             min_utxo_value = Some(tmp_min_utxo_value);
@@ -3079,8 +3197,8 @@ impl Deserialize for ShelleyTransactionBody {
                             }
                             let (tmp_fee, tmp_fee_encoding) = raw
                                 .unsigned_integer_sz()
-                                .map(|(x, enc)| (x, Some(enc)))
                                 .map_err(Into::<DeserializeError>::into)
+                                .map(|(x, enc)| (x, Some(enc)))
                                 .map_err(|e: DeserializeError| e.annotate("fee"))?;
                             fee = Some(tmp_fee);
                             fee_encoding = tmp_fee_encoding;
@@ -3093,8 +3211,8 @@ impl Deserialize for ShelleyTransactionBody {
                             }
                             let (tmp_ttl, tmp_ttl_encoding) = raw
                                 .unsigned_integer_sz()
-                                .map(|(x, enc)| (x, Some(enc)))
                                 .map_err(Into::<DeserializeError>::into)
+                                .map(|(x, enc)| (x, Some(enc)))
                                 .map_err(|e: DeserializeError| e.annotate("ttl"))?;
                             ttl = Some(tmp_ttl);
                             ttl_encoding = tmp_ttl_encoding;
@@ -3343,8 +3461,8 @@ impl Deserialize for ShelleyTransactionOutput {
                 Address::deserialize(raw).map_err(|e: DeserializeError| e.annotate("address"))?;
             let (amount, amount_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("amount"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
@@ -3822,8 +3940,8 @@ impl Deserialize for ShelleyUpdate {
             .map_err(|e| e.annotate("shelley_proposed_protocol_parameter_updates"))?;
             let (epoch, epoch_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("epoch"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),

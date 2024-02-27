@@ -13,15 +13,16 @@ proposal_procedure =
   , anchor
   ]
 
-gov_action =
-  [ parameter_change_action
-  // hard_fork_initiation_action
-  // treasury_withdrawals_action
-  // no_confidence
-  // new_committee
-  // new_constitution
-  // 6 ; @name info_action
-  ]
+gov_action = [
+  parameter_change_action //
+  hard_fork_initiation_action //
+  treasury_withdrawals_action //
+  no_confidence //
+  new_committee //
+  new_constitution //
+  ; @name info_action
+  6
+]
 
 parameter_change_action = (tag: 0, gov_action_id / null, protocol_param_update)
 

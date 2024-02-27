@@ -453,10 +453,12 @@ impl Deserialize for DatumOption {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let _read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 0 {
@@ -491,8 +493,8 @@ impl Deserialize for DatumOption {
                     tag_encoding,
                     datum_hash_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("Hash"));
@@ -501,7 +503,10 @@ impl Deserialize for DatumOption {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 1 {
@@ -549,8 +554,8 @@ impl Deserialize for DatumOption {
                     datum_tag_encoding,
                     datum_bytes_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("Datum"));
@@ -559,13 +564,6 @@ impl Deserialize for DatumOption {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "DatumOption",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),
@@ -608,11 +606,22 @@ impl Deserialize for NativeScript {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
-            let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            let deser_variant: Result<_, DeserializeError> =
-                ScriptPubkey::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = ScriptPubkey::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(script_pubkey) => return Ok(Self::ScriptPubkey(script_pubkey)),
                 Err(e) => {
@@ -622,8 +631,20 @@ impl Deserialize for NativeScript {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                ScriptAll::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = ScriptAll::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(script_all) => return Ok(Self::ScriptAll(script_all)),
                 Err(e) => {
@@ -633,8 +654,20 @@ impl Deserialize for NativeScript {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                ScriptAny::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = ScriptAny::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(script_any) => return Ok(Self::ScriptAny(script_any)),
                 Err(e) => {
@@ -644,8 +677,20 @@ impl Deserialize for NativeScript {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                ScriptNOfK::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = ScriptNOfK::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(script_n_of_k) => return Ok(Self::ScriptNOfK(script_n_of_k)),
                 Err(e) => {
@@ -655,8 +700,21 @@ impl Deserialize for NativeScript {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                ScriptInvalidBefore::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret =
+                    ScriptInvalidBefore::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(script_invalid_before) => {
                     return Ok(Self::ScriptInvalidBefore(script_invalid_before))
@@ -668,8 +726,21 @@ impl Deserialize for NativeScript {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                ScriptInvalidHereafter::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret =
+                    ScriptInvalidHereafter::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(script_invalid_hereafter) => {
                     return Ok(Self::ScriptInvalidHereafter(script_invalid_hereafter))
@@ -681,13 +752,6 @@ impl Deserialize for NativeScript {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "NativeScript",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),

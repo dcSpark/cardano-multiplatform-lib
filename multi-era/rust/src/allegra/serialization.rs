@@ -274,11 +274,22 @@ impl Deserialize for AllegraCertificate {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
-            let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            let deser_variant: Result<_, DeserializeError> =
-                StakeRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = StakeRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(stake_registration) => return Ok(Self::StakeRegistration(stake_registration)),
                 Err(e) => {
@@ -288,8 +299,21 @@ impl Deserialize for AllegraCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                StakeDeregistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret =
+                    StakeDeregistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(stake_deregistration) => {
                     return Ok(Self::StakeDeregistration(stake_deregistration))
@@ -301,8 +325,20 @@ impl Deserialize for AllegraCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                StakeDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = StakeDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(stake_delegation) => return Ok(Self::StakeDelegation(stake_delegation)),
                 Err(e) => {
@@ -312,8 +348,20 @@ impl Deserialize for AllegraCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                PoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(10)?;
+                read_len.finish()?;
+                let ret = PoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(pool_registration) => return Ok(Self::PoolRegistration(pool_registration)),
                 Err(e) => {
@@ -323,8 +371,20 @@ impl Deserialize for AllegraCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                PoolRetirement::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = PoolRetirement::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(pool_retirement) => return Ok(Self::PoolRetirement(pool_retirement)),
                 Err(e) => {
@@ -334,8 +394,21 @@ impl Deserialize for AllegraCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                GenesisKeyDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(4)?;
+                read_len.finish()?;
+                let ret =
+                    GenesisKeyDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(genesis_key_delegation) => {
                     return Ok(Self::GenesisKeyDelegation(genesis_key_delegation))
@@ -347,12 +420,24 @@ impl Deserialize for AllegraCertificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                MoveInstantaneousRewardsCert::deserialize_as_embedded_group(
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = MoveInstantaneousRewardsCert::deserialize_as_embedded_group(
                     raw,
                     &mut read_len,
                     len,
                 );
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(move_instantaneous_rewards_cert) => {
                     return Ok(Self::MoveInstantaneousRewardsCert(
@@ -366,13 +451,6 @@ impl Deserialize for AllegraCertificate {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "AllegraCertificate",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),
@@ -873,7 +951,7 @@ impl Deserialize for AllegraTransactionBody {
                             if fee.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
                             }
-                            let (tmp_fee, tmp_fee_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into).map_err(|e: DeserializeError| e.annotate("fee"))?;
+                            let (tmp_fee, tmp_fee_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc))).map_err(|e: DeserializeError| e.annotate("fee"))?;
                             fee = Some(tmp_fee);
                             fee_encoding = tmp_fee_encoding;
                             fee_key_encoding = Some(key_enc);
@@ -885,7 +963,7 @@ impl Deserialize for AllegraTransactionBody {
                             }
                             let (tmp_ttl, tmp_ttl_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("ttl"))?;
                             ttl = Some(tmp_ttl);
                             ttl_encoding = tmp_ttl_encoding;
@@ -976,7 +1054,7 @@ impl Deserialize for AllegraTransactionBody {
                             }
                             let (tmp_validity_interval_start, tmp_validity_interval_start_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("validity_interval_start"))?;
                             validity_interval_start = Some(tmp_validity_interval_start);
                             validity_interval_start_encoding = tmp_validity_interval_start_encoding;
@@ -1512,7 +1590,7 @@ impl Deserialize for MoveInstantaneousReward {
         (|| -> Result<_, DeserializeError> {
             let (pot, pot_encoding) = (|| -> Result<_, DeserializeError> {
                 let initial_position = raw.as_mut_ref().stream_position().unwrap();
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (reserve_value, reserve_encoding) = raw.unsigned_integer_sz()?;
                     if reserve_value != 0 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1522,15 +1600,15 @@ impl Deserialize for MoveInstantaneousReward {
                         .into());
                     }
                     Ok(Some(reserve_encoding))
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(pot_encoding) => return Ok((MIRPot::Reserve, pot_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap(),
                 };
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (treasury_value, treasury_encoding) = raw.unsigned_integer_sz()?;
                     if treasury_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1540,8 +1618,8 @@ impl Deserialize for MoveInstantaneousReward {
                         .into());
                     }
                     Ok(Some(treasury_encoding))
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(pot_encoding) => return Ok((MIRPot::Treasury, pot_encoding)),
                     Err(_) => raw
                         .as_mut_ref()

@@ -197,7 +197,7 @@ impl Deserialize for AddressContent {
                 .map_err(|e: DeserializeError| e.annotate("addr_attributes"))?;
             let addr_type = (|| -> Result<_, DeserializeError> {
                 let initial_position = raw.as_mut_ref().stream_position().unwrap();
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let public_key_value = raw.unsigned_integer()?;
                     if public_key_value != 0 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -207,15 +207,15 @@ impl Deserialize for AddressContent {
                         .into());
                     }
                     Ok(())
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(()) => return Ok(ByronAddrType::PublicKey),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap(),
                 };
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let script_value = raw.unsigned_integer()?;
                     if script_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -225,15 +225,15 @@ impl Deserialize for AddressContent {
                         .into());
                     }
                     Ok(())
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(()) => return Ok(ByronAddrType::Script),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap(),
                 };
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let redeem_value = raw.unsigned_integer()?;
                     if redeem_value != 2 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -243,8 +243,8 @@ impl Deserialize for AddressContent {
                         .into());
                     }
                     Ok(())
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(()) => return Ok(ByronAddrType::Redeem),
                     Err(_) => raw
                         .as_mut_ref()
@@ -419,7 +419,7 @@ impl Deserialize for SpendingData {
             let len = raw.array()?;
             let _read_len = CBORReadLen::from(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 (|| -> Result<_, DeserializeError> {
                     let tag_value = raw.unsigned_integer()?;
                     if tag_value != 0 {
@@ -448,15 +448,15 @@ impl Deserialize for SpendingData {
                     },
                 }
                 Ok(Self::SpendingDataPubKey(pubkey))
-            })(raw)
-            {
+            })(raw);
+            match deser_variant {
                 Ok(variant) => return Ok(variant),
                 Err(_) => raw
                     .as_mut_ref()
                     .seek(SeekFrom::Start(initial_position))
                     .unwrap(),
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 (|| -> Result<_, DeserializeError> {
                     let tag_value = raw.unsigned_integer()?;
                     if tag_value != 1 {
@@ -485,15 +485,15 @@ impl Deserialize for SpendingData {
                     },
                 }
                 Ok(Self::SpendingDataScript(script))
-            })(raw)
-            {
+            })(raw);
+            match deser_variant {
                 Ok(variant) => return Ok(variant),
                 Err(_) => raw
                     .as_mut_ref()
                     .seek(SeekFrom::Start(initial_position))
                     .unwrap(),
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 (|| -> Result<_, DeserializeError> {
                     let tag_value = raw.unsigned_integer()?;
                     if tag_value != 2 {
@@ -522,8 +522,8 @@ impl Deserialize for SpendingData {
                     },
                 }
                 Ok(Self::SpendingDataRedeem(redeem))
-            })(raw)
-            {
+            })(raw);
+            match deser_variant {
                 Ok(variant) => return Ok(variant),
                 Err(_) => raw
                     .as_mut_ref()
@@ -572,7 +572,7 @@ impl Deserialize for StakeDistribution {
             let len = raw.array()?;
             let _read_len = CBORReadLen::from(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 (|| -> Result<_, DeserializeError> {
                     let tag_value = raw.unsigned_integer()?;
                     if tag_value != 0 {
@@ -601,15 +601,15 @@ impl Deserialize for StakeDistribution {
                     },
                 }
                 Ok(Self::SingleKey(stakeholder_id))
-            })(raw)
-            {
+            })(raw);
+            match deser_variant {
                 Ok(variant) => return Ok(variant),
                 Err(_) => raw
                     .as_mut_ref()
                     .seek(SeekFrom::Start(initial_position))
                     .unwrap(),
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let bootstrap_era_distr_value = raw.unsigned_integer()?;
                 if bootstrap_era_distr_value != 1 {
                     return Err(DeserializeFailure::FixedValueMismatch {
@@ -619,8 +619,8 @@ impl Deserialize for StakeDistribution {
                     .into());
                 }
                 Ok(())
-            })(raw)
-            {
+            })(raw);
+            match deser_variant {
                 Ok(()) => return Ok(StakeDistribution::BootstrapEra),
                 Err(_) => raw
                     .as_mut_ref()

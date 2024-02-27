@@ -1,8 +1,7 @@
-use cml_core_wasm::metadata::Metadata;
-use wasm_bindgen::prelude::wasm_bindgen;
 use crate::{NativeScriptList, PlutusV1ScriptList, PlutusV2ScriptList};
+use wasm_bindgen::prelude::wasm_bindgen;
 
-use super::AuxiliaryData;
+use super::{AuxiliaryData, Metadata};
 
 #[wasm_bindgen]
 impl AuxiliaryData {

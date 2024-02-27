@@ -9,17 +9,17 @@ use wasm_bindgen::{
     JsError,
 };
 
-use cml_core::metadata as core;
+use cml_core::serialization::{Deserialize, Serialize};
 
-use super::*;
+use cml_core_wasm::{impl_wasm_conversions, impl_wasm_list, Int};
 
-pub use cml_core::metadata::TransactionMetadatumLabel;
+pub use cml_chain::auxdata::TransactionMetadatumLabel;
 
-impl_wasm_conversions!(core::MetadatumMap, MetadatumMap);
+impl_wasm_conversions!(cml_chain::auxdata::MetadatumMap, MetadatumMap);
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct MetadatumList(Vec<core::TransactionMetadatum>);
+pub struct MetadatumList(Vec<cml_chain::auxdata::TransactionMetadatum>);
 
 #[wasm_bindgen]
 impl MetadatumList {
@@ -40,13 +40,13 @@ impl MetadatumList {
     }
 }
 
-impl From<Vec<core::TransactionMetadatum>> for MetadatumList {
-    fn from(native: Vec<core::TransactionMetadatum>) -> Self {
+impl From<Vec<cml_chain::auxdata::TransactionMetadatum>> for MetadatumList {
+    fn from(native: Vec<cml_chain::auxdata::TransactionMetadatum>) -> Self {
         Self(native)
     }
 }
 
-impl From<MetadatumList> for Vec<core::TransactionMetadatum> {
+impl From<MetadatumList> for Vec<cml_chain::auxdata::TransactionMetadatum> {
     fn from(wrapper: MetadatumList) -> Self {
         wrapper.0
     }
@@ -89,12 +89,12 @@ impl From<TransactionMetadatumLabels> for Vec<TransactionMetadatumLabel> {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct MetadatumMap(core::MetadatumMap);
+pub struct MetadatumMap(cml_chain::auxdata::MetadatumMap);
 
 #[wasm_bindgen]
 impl MetadatumMap {
     pub fn new() -> Self {
-        Self(core::MetadatumMap::new())
+        Self(cml_chain::auxdata::MetadatumMap::new())
     }
 
     pub fn len(&self) -> usize {
@@ -132,21 +132,21 @@ impl MetadatumMap {
 }
 
 impl_wasm_list!(
-    core::TransactionMetadatum,
+    cml_chain::auxdata::TransactionMetadatum,
     TransactionMetadatum,
     TransactionMetadatumList
 );
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct Metadata(core::Metadata);
+pub struct Metadata(cml_chain::auxdata::Metadata);
 
-impl_wasm_conversions!(core::Metadata, Metadata);
+impl_wasm_conversions!(cml_chain::auxdata::Metadata, Metadata);
 
 #[wasm_bindgen]
 impl Metadata {
     pub fn new() -> Self {
-        Self(core::Metadata::new())
+        Self(cml_chain::auxdata::Metadata::new())
     }
 
     /// How many metadatum labels there are.
@@ -178,8 +178,8 @@ impl Metadata {
     }
 }
 
-impl AsMut<core::Metadata> for Metadata {
-    fn as_mut(&mut self) -> &mut core::Metadata {
+impl AsMut<cml_chain::auxdata::Metadata> for Metadata {
+    fn as_mut(&mut self) -> &mut cml_chain::auxdata::Metadata {
         &mut self.0
     }
 }
@@ -195,7 +195,7 @@ pub enum TransactionMetadatumKind {
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-pub struct TransactionMetadatum(core::TransactionMetadatum);
+pub struct TransactionMetadatum(cml_chain::auxdata::TransactionMetadatum);
 
 #[wasm_bindgen]
 impl TransactionMetadatum {
@@ -226,91 +226,99 @@ impl TransactionMetadatum {
     }
 
     pub fn new_map(map: &MetadatumMap) -> Self {
-        Self(core::TransactionMetadatum::new_map(map.clone().into()))
+        Self(cml_chain::auxdata::TransactionMetadatum::new_map(
+            map.clone().into(),
+        ))
     }
 
     pub fn new_list(elements: &MetadatumList) -> Self {
-        Self(core::TransactionMetadatum::new_list(
+        Self(cml_chain::auxdata::TransactionMetadatum::new_list(
             elements.clone().into(),
         ))
     }
 
     pub fn new_int(int: &Int) -> Self {
-        Self(core::TransactionMetadatum::new_int(int.clone().into()))
+        Self(cml_chain::auxdata::TransactionMetadatum::new_int(
+            int.clone().into(),
+        ))
     }
 
     pub fn new_bytes(bytes: Vec<u8>) -> Result<TransactionMetadatum, JsError> {
-        core::TransactionMetadatum::new_bytes(bytes)
+        cml_chain::auxdata::TransactionMetadatum::new_bytes(bytes)
             .map(Into::into)
             .map_err(Into::into)
     }
 
     pub fn new_text(text: String) -> Result<TransactionMetadatum, JsError> {
-        core::TransactionMetadatum::new_text(text)
+        cml_chain::auxdata::TransactionMetadatum::new_text(text)
             .map(Into::into)
             .map_err(Into::into)
     }
 
     pub fn kind(&self) -> TransactionMetadatumKind {
         match &self.0 {
-            core::TransactionMetadatum::Map { .. } => TransactionMetadatumKind::Map,
-            core::TransactionMetadatum::List { .. } => TransactionMetadatumKind::List,
-            core::TransactionMetadatum::Int(_) => TransactionMetadatumKind::Int,
-            core::TransactionMetadatum::Bytes { .. } => TransactionMetadatumKind::Bytes,
-            core::TransactionMetadatum::Text { .. } => TransactionMetadatumKind::Text,
+            cml_chain::auxdata::TransactionMetadatum::Map { .. } => TransactionMetadatumKind::Map,
+            cml_chain::auxdata::TransactionMetadatum::List { .. } => TransactionMetadatumKind::List,
+            cml_chain::auxdata::TransactionMetadatum::Int(_) => TransactionMetadatumKind::Int,
+            cml_chain::auxdata::TransactionMetadatum::Bytes { .. } => {
+                TransactionMetadatumKind::Bytes
+            }
+            cml_chain::auxdata::TransactionMetadatum::Text { .. } => TransactionMetadatumKind::Text,
         }
     }
 
     pub fn as_map(&self) -> Option<MetadatumMap> {
         match &self.0 {
-            core::TransactionMetadatum::Map(map) => Some(map.clone().into()),
+            cml_chain::auxdata::TransactionMetadatum::Map(map) => Some(map.clone().into()),
             _ => None,
         }
     }
 
     pub fn as_list(&self) -> Option<MetadatumList> {
         match &self.0 {
-            core::TransactionMetadatum::List { elements, .. } => Some(elements.clone().into()),
+            cml_chain::auxdata::TransactionMetadatum::List { elements, .. } => {
+                Some(elements.clone().into())
+            }
             _ => None,
         }
     }
 
     pub fn as_int(&self) -> Option<Int> {
         match &self.0 {
-            core::TransactionMetadatum::Int(int) => Some(int.clone().into()),
+            cml_chain::auxdata::TransactionMetadatum::Int(int) => Some(int.clone().into()),
             _ => None,
         }
     }
 
     pub fn as_bytes(&self) -> Option<Vec<u8>> {
         match &self.0 {
-            core::TransactionMetadatum::Bytes { bytes, .. } => Some(bytes.clone()),
+            cml_chain::auxdata::TransactionMetadatum::Bytes { bytes, .. } => Some(bytes.clone()),
             _ => None,
         }
     }
 
     pub fn as_text(&self) -> Option<String> {
         match &self.0 {
-            core::TransactionMetadatum::Text { text, .. } => Some(text.clone()),
+            cml_chain::auxdata::TransactionMetadatum::Text { text, .. } => Some(text.clone()),
             _ => None,
         }
     }
 }
 
-impl From<core::TransactionMetadatum> for TransactionMetadatum {
-    fn from(native: core::TransactionMetadatum) -> Self {
+impl From<cml_chain::auxdata::TransactionMetadatum> for TransactionMetadatum {
+    fn from(native: cml_chain::auxdata::TransactionMetadatum) -> Self {
         Self(native)
     }
 }
 
-impl From<TransactionMetadatum> for core::TransactionMetadatum {
+impl From<TransactionMetadatum> for cml_chain::auxdata::TransactionMetadatum {
     fn from(wasm: TransactionMetadatum) -> Self {
         wasm.0
     }
 }
 
-impl AsRef<core::TransactionMetadatum> for TransactionMetadatum {
-    fn as_ref(&self) -> &core::TransactionMetadatum {
+impl AsRef<cml_chain::auxdata::TransactionMetadatum> for TransactionMetadatum {
+    fn as_ref(&self) -> &cml_chain::auxdata::TransactionMetadatum {
         &self.0
     }
 }
@@ -318,11 +326,11 @@ impl AsRef<core::TransactionMetadatum> for TransactionMetadatum {
 /// encodes arbitrary bytes into chunks of 64 bytes (the limit for bytes) as a list to be valid Metadata
 #[wasm_bindgen]
 pub fn encode_arbitrary_bytes_as_metadatum(bytes: &[u8]) -> TransactionMetadatum {
-    cml_core::metadata::encode_arbitrary_bytes_as_metadatum(bytes).into()
+    cml_chain::auxdata::encode_arbitrary_bytes_as_metadatum(bytes).into()
 }
 
 /// decodes from chunks of bytes in a list to a byte vector if that is the metadata format, otherwise returns None
 #[wasm_bindgen]
 pub fn decode_arbitrary_bytes_from_metadatum(metadata: &TransactionMetadatum) -> Option<Vec<u8>> {
-    cml_core::metadata::decode_arbitrary_bytes_from_metadatum(metadata.as_ref())
+    cml_chain::auxdata::decode_arbitrary_bytes_from_metadatum(metadata.as_ref())
 }

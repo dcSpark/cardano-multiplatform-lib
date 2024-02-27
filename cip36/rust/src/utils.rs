@@ -4,12 +4,15 @@ use crate::error::CIP36Error;
 
 pub use cml_core::{
     error::{DeserializeError, DeserializeFailure},
-    metadata::{Metadata, TransactionMetadatum},
     ordered_hash_map::OrderedHashMap,
     serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
 };
 
-pub use cml_chain::{address::Address, NetworkId};
+pub use cml_chain::{
+    address::Address,
+    auxdata::{Metadata, TransactionMetadatum},
+    NetworkId,
+};
 
 use std::convert::From;
 

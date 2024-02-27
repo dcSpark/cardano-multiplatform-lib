@@ -1,8 +1,9 @@
-use crate::error::{DeserializeError, DeserializeFailure};
-
-use crate::serialization::{fit_sz, Deserialize, LenEncoding, Serialize, StringEncoding};
-use crate::Int;
 use cbor_event::{de::Deserializer, se::Serializer};
+use cml_core::{
+    error::{DeserializeError, DeserializeFailure},
+    serialization::{fit_sz, Deserialize, LenEncoding, Serialize, StringEncoding},
+    Int,
+};
 use derivative::Derivative;
 
 use std::io::{BufRead, Seek, Write};

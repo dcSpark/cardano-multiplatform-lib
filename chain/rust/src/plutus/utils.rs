@@ -271,6 +271,19 @@ impl Deserialize for ConstrPlutusData {
 }
 
 impl CostModels {
+    pub const PLUTUS_V1_COUNT: usize = 166;
+    pub const PLUTUS_V2_COUNT: usize = 175;
+    pub const PLUTUS_V3_COUNT: usize = 179;
+
+    /// Total number of operations for the cost model of the given language
+    pub fn op_count(language: Language) -> usize {
+        match language {
+            Language::PlutusV1 => Self::PLUTUS_V1_COUNT,
+            Language::PlutusV2 => Self::PLUTUS_V2_COUNT,
+            Language::PlutusV3 => Self::PLUTUS_V3_COUNT,
+        }
+    }
+
     pub fn as_map(&self) -> BTreeMap<Language, &[Int]> {
         let mut map = BTreeMap::new();
         if let Some(v1_costs) = &self.plutus_v1 {

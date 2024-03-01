@@ -1,0 +1,20 @@
+[package]
+name = "cml-blockfrost"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+cml-chain = { path = "../../chain/rust", version = "5.1.0" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.57"
+thiserror = "1.0.37"
+
+# only used for direct_api
+blockfrost = { version = "1.0.1", optional = true }
+
+[features]
+# This allows directly hooking into the blockfrost-rust crate
+direct_api = ["blockfrost"]

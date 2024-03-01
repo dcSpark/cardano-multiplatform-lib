@@ -4,6 +4,7 @@
 // multiple of them including a utils module so we just import an arbitrary type.
 // We don't need to worry about cml_core_wasm and cml_crypto_wasm since they
 // will be exported by the other crates here.
+pub use cml_blockfrost_wasm::make_tx_builder_cfg;
 pub use cml_chain_wasm::AssetNameList;
 pub use cml_cip25_wasm::CIP25Metadata;
 pub use cml_cip36_wasm::CIP36DeregistrationCbor;

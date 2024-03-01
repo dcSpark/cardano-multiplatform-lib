@@ -1,0 +1,15 @@
+[package]
+name = "cml-blockfrost-wasm"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+cml-blockfrost = { path = "../rust", version = "0.1.0", direct_api = false }
+cml-chain = { path = "../../chain/rust", version = "5.1.0" }
+cml-chain-wasm = { path = "../../chain/wasm", version = "5.1.0" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.57"
+wasm-bindgen = { version = "0.2", features=["serde-serialize"] }

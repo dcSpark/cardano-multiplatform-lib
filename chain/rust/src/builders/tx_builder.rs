@@ -162,6 +162,7 @@ pub enum TxBuilderConfigField {
     ExUnitPrices,
     CollateralPercentage,
     MaxCollateralInputs,
+    CostModels,
 }
 
 #[derive(Debug, thiserror::Error)]

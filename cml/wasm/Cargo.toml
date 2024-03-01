@@ -13,6 +13,7 @@ readme = "../../README.md"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+cml-blockfrost-wasm = { path = "../../blockfrost/wasm", version = "0.1.0" }
 cml-chain-wasm = { path = "../../chain/wasm", version = "5.1.0" }
 cml-cip25-wasm = { path = "../../cip25/wasm", version = "5.1.0" }
 cml-cip36-wasm = { path = "../../cip36/wasm", version = "5.1.0" }

@@ -579,7 +579,15 @@ impl SubCoin {
         while (f * (denom as f32)).fract().abs() > f32::EPSILON {
             denom *= 10;
         }
-        Self::new((f * (denom as f32)).ceil() as u64, denom)
+        // we check against episilon to be sure we get all info
+        // but this could result in over-extending with respect to the original float
+        // so run it back after the fact.
+        let mut numerator = (f * (denom as f32)).ceil() as u64;
+        while numerator % 10 == 0 && denom % 10 == 0 {
+            numerator /= 10;
+            denom /= 10;
+        }
+        Self::new(numerator, denom)
     }
 }
 

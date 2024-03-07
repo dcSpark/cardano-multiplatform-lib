@@ -3,7 +3,7 @@ use crate::allegra::{
 };
 use crate::alonzo::{AlonzoCostmdls, AlonzoProtocolParamUpdate};
 use crate::babbage::{BabbageCostModels, BabbageProtocolParamUpdate, BabbageTransactionOutput};
-use crate::byron::block::{ByronBlockHeader, EbbHead};
+use crate::byron::block::{ByronBlockHeader, ByronEbBlock, ByronMainBlock, EbbHead};
 use crate::byron::transaction::ByronTxIn;
 use crate::mary::MaryTransactionOutput;
 use crate::shelley::{
@@ -67,8 +67,11 @@ impl MultiEraBlock {
             .unsigned_integer()
             .map_err(|e| DeserializeError::from(e).annotate("block_era_tag"))?;
         let block = match era {
-            1 => ByronBlock::deserialize(&mut raw)
-                .map(Self::Byron)
+            0 => ByronEbBlock::deserialize(&mut raw)
+                .map(|ebb| Self::Byron(ByronBlock::EpochBoundary(ebb)))
+                .map_err(|e| e.annotate("Byron EBB")),
+            1 => ByronMainBlock::deserialize(&mut raw)
+                .map(|mb| Self::Byron(ByronBlock::Main(mb)))
                 .map_err(|e| e.annotate("Byron")),
             2 => ShelleyBlock::deserialize(&mut raw)
                 .map(Self::Shelley)

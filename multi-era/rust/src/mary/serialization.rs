@@ -801,7 +801,7 @@ impl Deserialize for MaryTransactionBody {
                             if fee.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
                             }
-                            let (tmp_fee, tmp_fee_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into).map_err(|e: DeserializeError| e.annotate("fee"))?;
+                            let (tmp_fee, tmp_fee_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc))).map_err(|e: DeserializeError| e.annotate("fee"))?;
                             fee = Some(tmp_fee);
                             fee_encoding = tmp_fee_encoding;
                             fee_key_encoding = Some(key_enc);
@@ -813,7 +813,7 @@ impl Deserialize for MaryTransactionBody {
                             }
                             let (tmp_ttl, tmp_ttl_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("ttl"))?;
                             ttl = Some(tmp_ttl);
                             ttl_encoding = tmp_ttl_encoding;
@@ -904,7 +904,7 @@ impl Deserialize for MaryTransactionBody {
                             }
                             let (tmp_validity_interval_start, tmp_validity_interval_start_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("validity_interval_start"))?;
                             validity_interval_start = Some(tmp_validity_interval_start);
                             validity_interval_start_encoding = tmp_validity_interval_start_encoding;

@@ -328,12 +328,14 @@ impl Serialize for GovAction {
                 new_constitution.serialize(serializer, force_canonical)
             }
             GovAction::InfoAction {
-                i6_encoding,
+                info_action_encoding,
                 len_encoding,
             } => {
                 serializer.write_array_sz(len_encoding.to_len_sz(1, force_canonical))?;
-                serializer
-                    .write_unsigned_integer_sz(6u64, fit_sz(6u64, *i6_encoding, force_canonical))?;
+                serializer.write_unsigned_integer_sz(
+                    6u64,
+                    fit_sz(6u64, *info_action_encoding, force_canonical),
+                )?;
                 len_encoding.end(serializer, force_canonical)?;
                 Ok(serializer)
             }
@@ -346,11 +348,23 @@ impl Deserialize for GovAction {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            let deser_variant: Result<_, DeserializeError> =
-                ParameterChangeAction::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret =
+                    ParameterChangeAction::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(parameter_change_action) => {
                     return Ok(Self::ParameterChangeAction(parameter_change_action))
@@ -362,8 +376,24 @@ impl Deserialize for GovAction {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                HardForkInitiationAction::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = HardForkInitiationAction::deserialize_as_embedded_group(
+                    raw,
+                    &mut read_len,
+                    len,
+                );
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(hard_fork_initiation_action) => {
                     return Ok(Self::HardForkInitiationAction(hard_fork_initiation_action))
@@ -375,8 +405,24 @@ impl Deserialize for GovAction {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                TreasuryWithdrawalsAction::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = TreasuryWithdrawalsAction::deserialize_as_embedded_group(
+                    raw,
+                    &mut read_len,
+                    len,
+                );
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(treasury_withdrawals_action) => {
                     return Ok(Self::TreasuryWithdrawalsAction(treasury_withdrawals_action))
@@ -388,8 +434,20 @@ impl Deserialize for GovAction {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                NoConfidence::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = NoConfidence::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(no_confidence) => return Ok(Self::NoConfidence(no_confidence)),
                 Err(e) => {
@@ -399,8 +457,20 @@ impl Deserialize for GovAction {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                NewCommittee::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(4)?;
+                read_len.finish()?;
+                let ret = NewCommittee::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(new_committee) => return Ok(Self::NewCommittee(new_committee)),
                 Err(e) => {
@@ -410,8 +480,20 @@ impl Deserialize for GovAction {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                NewConstitution::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = NewConstitution::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(new_constitution) => return Ok(Self::NewConstitution(new_constitution)),
                 Err(e) => {
@@ -421,21 +503,32 @@ impl Deserialize for GovAction {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let (i6_value, i6_encoding) = raw.unsigned_integer_sz()?;
-                if i6_value != 6 {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(1)?;
+                read_len.finish()?;
+                let (info_action_value, info_action_encoding) = raw.unsigned_integer_sz()?;
+                if info_action_value != 6 {
                     return Err(DeserializeFailure::FixedValueMismatch {
-                        found: Key::Uint(i6_value),
+                        found: Key::Uint(info_action_value),
                         expected: Key::Uint(6),
                     }
                     .into());
                 }
-                Ok(Some(i6_encoding))
-            })(raw)
-            {
-                Ok(i6_encoding) => {
+                let ret = Ok(Some(info_action_encoding));
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
+            match deser_variant {
+                Ok(info_action_encoding) => {
                     return Ok(Self::InfoAction {
-                        i6_encoding,
+                        info_action_encoding,
                         len_encoding,
                     })
                 }
@@ -446,13 +539,6 @@ impl Deserialize for GovAction {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "GovAction",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),
@@ -524,8 +610,8 @@ impl Deserialize for GovActionId {
                 .map_err(|e: DeserializeError| e.annotate("transaction_id"))?;
             let (gov_action_index, gov_action_index_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("gov_action_index"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
@@ -1185,8 +1271,8 @@ impl Deserialize for ProposalProcedure {
         (|| -> Result<_, DeserializeError> {
             let (deposit, deposit_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("deposit"))?;
             let reward_account = RewardAccount::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("reward_account"))?;
@@ -1505,10 +1591,12 @@ impl Deserialize for Voter {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let _read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let index_0_encoding = (|| -> Result<_, DeserializeError> {
                     let (index_0_value, index_0_encoding) = raw.unsigned_integer_sz()?;
                     if index_0_value != 0 {
@@ -1543,8 +1631,8 @@ impl Deserialize for Voter {
                     index_0_encoding,
                     ed25519_key_hash_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("ConstitutionalCommitteeHotKeyHash"));
@@ -1553,7 +1641,10 @@ impl Deserialize for Voter {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let index_0_encoding = (|| -> Result<_, DeserializeError> {
                     let (index_0_value, index_0_encoding) = raw.unsigned_integer_sz()?;
                     if index_0_value != 1 {
@@ -1588,8 +1679,8 @@ impl Deserialize for Voter {
                     index_0_encoding,
                     script_hash_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("ConstitutionalCommitteeHotScriptHash"));
@@ -1598,7 +1689,10 @@ impl Deserialize for Voter {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let index_0_encoding = (|| -> Result<_, DeserializeError> {
                     let (index_0_value, index_0_encoding) = raw.unsigned_integer_sz()?;
                     if index_0_value != 2 {
@@ -1633,8 +1727,8 @@ impl Deserialize for Voter {
                     index_0_encoding,
                     ed25519_key_hash_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("DRepKeyHash"));
@@ -1643,7 +1737,10 @@ impl Deserialize for Voter {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let index_0_encoding = (|| -> Result<_, DeserializeError> {
                     let (index_0_value, index_0_encoding) = raw.unsigned_integer_sz()?;
                     if index_0_value != 3 {
@@ -1678,8 +1775,8 @@ impl Deserialize for Voter {
                     index_0_encoding,
                     script_hash_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("DRepScriptHash"));
@@ -1688,7 +1785,10 @@ impl Deserialize for Voter {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let index_0_encoding = (|| -> Result<_, DeserializeError> {
                     let (index_0_value, index_0_encoding) = raw.unsigned_integer_sz()?;
                     if index_0_value != 4 {
@@ -1723,8 +1823,8 @@ impl Deserialize for Voter {
                     index_0_encoding,
                     ed25519_key_hash_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("StakingPoolKeyHash"));
@@ -1733,13 +1833,6 @@ impl Deserialize for Voter {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "Voter",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),
@@ -1819,7 +1912,7 @@ impl Deserialize for VotingProcedure {
         (|| -> Result<_, DeserializeError> {
             let (vote, vote_encoding) = (|| -> Result<_, DeserializeError> {
                 let initial_position = raw.as_mut_ref().stream_position().unwrap();
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (no_value, no_encoding) = raw.unsigned_integer_sz()?;
                     if no_value != 0 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1829,15 +1922,15 @@ impl Deserialize for VotingProcedure {
                         .into());
                     }
                     Ok(Some(no_encoding))
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(vote_encoding) => return Ok((Vote::No, vote_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap(),
                 };
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (yes_value, yes_encoding) = raw.unsigned_integer_sz()?;
                     if yes_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1847,15 +1940,15 @@ impl Deserialize for VotingProcedure {
                         .into());
                     }
                     Ok(Some(yes_encoding))
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(vote_encoding) => return Ok((Vote::Yes, vote_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap(),
                 };
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (abstain_value, abstain_encoding) = raw.unsigned_integer_sz()?;
                     if abstain_value != 2 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1865,8 +1958,8 @@ impl Deserialize for VotingProcedure {
                         .into());
                     }
                     Ok(Some(abstain_encoding))
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(vote_encoding) => return Ok((Vote::Abstain, vote_encoding)),
                     Err(_) => raw
                         .as_mut_ref()

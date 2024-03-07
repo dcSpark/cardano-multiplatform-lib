@@ -134,7 +134,7 @@ impl Deserialize for CIP36DelegationDistribution {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut weighted_arr = Vec::new();
                 let len = raw.array_sz()?;
                 let delegations_encoding = len.into();
@@ -149,8 +149,8 @@ impl Deserialize for CIP36DelegationDistribution {
                     weighted_arr.push(CIP36Delegation::deserialize(raw)?);
                 }
                 Ok((weighted_arr, delegations_encoding))
-            })(raw)
-            {
+            })(raw);
+            match deser_variant {
                 Ok((delegations, delegations_encoding)) => {
                     return Ok(Self::Weighted {
                         delegations,

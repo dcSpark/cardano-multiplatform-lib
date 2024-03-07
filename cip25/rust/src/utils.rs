@@ -334,7 +334,7 @@ impl Deserialize for CIP25LabelMetadata {
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
 
             // Try parsing V1
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut label_metadata_v1_table = BTreeMap::new();
                 let mut label_metadata_v1_table_len = 0;
                 let label_metadata_v1_len = raw.map()?;
@@ -425,8 +425,8 @@ impl Deserialize for CIP25LabelMetadata {
                     }
                 }
                 Ok(label_metadata_v1_table)
-            })(raw)
-            {
+            })(raw);
+            match deser_variant {
                 Ok(label_metadata_v1) => {
                     // hand-edit: construct merged type
                     return Ok(Self {
@@ -441,7 +441,7 @@ impl Deserialize for CIP25LabelMetadata {
             };
 
             // Try paring V2
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let len = raw.map()?;
                 let mut read_len = CBORReadLen::new(match len {
                     cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, cbor_event::Sz::canonical(n)),
@@ -611,8 +611,8 @@ impl Deserialize for CIP25LabelMetadata {
                 // hand-edit: expression only here, no Self wrapper
                 Ok(data)
             })(raw)
-            .map_err(|e| e.annotate("LabelMetadataV2"))
-            {
+            .map_err(|e| e.annotate("LabelMetadataV2"));
+            match deser_variant {
                 Ok(label_metadata_v2) => {
                     // hand-edit: construct merged type
                     return Ok(Self {

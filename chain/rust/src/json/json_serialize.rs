@@ -123,7 +123,7 @@ impl Display for JsonParseError {
 impl std::error::Error for JsonParseError {}
 
 fn tokenize_string(string: &str) -> Vec<JsonToken> {
-    fn are_we_inside_string(tokens: &Vec<JsonToken>) -> bool {
+    fn are_we_inside_string(tokens: &[JsonToken]) -> bool {
         if tokens.is_empty() {
             return false;
         }

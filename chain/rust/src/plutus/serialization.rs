@@ -728,7 +728,7 @@ impl Deserialize for Redeemer {
         (|| -> Result<_, DeserializeError> {
             let (tag, tag_encoding) = (|| -> Result<_, DeserializeError> {
                 let initial_position = raw.as_mut_ref().stream_position().unwrap();
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (spend_value, spend_encoding) = raw.unsigned_integer_sz()?;
                     if spend_value != 0 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -738,15 +738,15 @@ impl Deserialize for Redeemer {
                         .into());
                     }
                     Ok(Some(spend_encoding))
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Spend, tag_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap(),
                 };
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (mint_value, mint_encoding) = raw.unsigned_integer_sz()?;
                     if mint_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -756,15 +756,15 @@ impl Deserialize for Redeemer {
                         .into());
                     }
                     Ok(Some(mint_encoding))
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Mint, tag_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap(),
                 };
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (cert_value, cert_encoding) = raw.unsigned_integer_sz()?;
                     if cert_value != 2 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -774,15 +774,15 @@ impl Deserialize for Redeemer {
                         .into());
                     }
                     Ok(Some(cert_encoding))
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Cert, tag_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap(),
                 };
-                match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                     let (reward_value, reward_encoding) = raw.unsigned_integer_sz()?;
                     if reward_value != 3 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -792,8 +792,8 @@ impl Deserialize for Redeemer {
                         .into());
                     }
                     Ok(Some(reward_encoding))
-                })(raw)
-                {
+                })(raw);
+                match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Reward, tag_encoding)),
                     Err(_) => raw
                         .as_mut_ref()
@@ -808,8 +808,8 @@ impl Deserialize for Redeemer {
             .map_err(|e| e.annotate("tag"))?;
             let (index, index_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("index"))?;
             let data =
                 PlutusData::deserialize(raw).map_err(|e: DeserializeError| e.annotate("data"))?;

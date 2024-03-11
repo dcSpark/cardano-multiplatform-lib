@@ -24,8 +24,7 @@ use cbor_encodings::{
     TransactionWitnessSetEncoding,
 };
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, Serialize, StringEncoding};
-use cml_crypto::blake2b256;
+use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 
 #[derive(
@@ -375,10 +374,6 @@ impl TransactionBody {
             donation: None,
             encodings: None,
         }
-    }
-
-    pub fn hash(&self) -> [u8; 32] {
-        blake2b256(&self.to_cbor_bytes())
     }
 }
 

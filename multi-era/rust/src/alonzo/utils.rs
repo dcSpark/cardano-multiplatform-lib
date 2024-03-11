@@ -3,7 +3,16 @@ use cml_chain::{
     transaction::TransactionWitnessSet,
 };
 
-use super::{AlonzoAuxiliaryData, AlonzoTransactionWitnessSet};
+use super::{AlonzoAuxiliaryData, AlonzoTransactionBody, AlonzoTransactionWitnessSet};
+
+use cml_core::serialization::Serialize;
+use cml_crypto::{blake2b256, TransactionHash};
+
+impl AlonzoTransactionBody {
+    pub fn hash(&self) -> TransactionHash {
+        blake2b256(&self.to_cbor_bytes()).into()
+    }
+}
 
 impl From<AlonzoAuxiliaryData> for AuxiliaryData {
     fn from(aux: AlonzoAuxiliaryData) -> Self {

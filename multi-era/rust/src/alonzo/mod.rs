@@ -24,8 +24,6 @@ use cml_chain::transaction::{AlonzoFormatTxOut, NativeScript, RequiredSigners, T
 use cml_chain::TransactionIndex;
 use cml_chain::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::Serialize;
-use cml_crypto::blake2b256;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -258,10 +256,6 @@ impl AlonzoTransactionBody {
             network_id: None,
             encodings: None,
         }
-    }
-
-    pub fn hash(&self) -> [u8; 32] {
-        blake2b256(&self.to_cbor_bytes())
     }
 }
 

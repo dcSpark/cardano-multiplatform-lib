@@ -790,7 +790,7 @@ impl MultiEraTransactionBody {
         }
     }
 
-    pub fn hash(&self) -> [u8; 32] {
+    pub fn hash(&self) -> TransactionHash {
         match self {
             MultiEraTransactionBody::Byron(tx) => tx.hash(),
             MultiEraTransactionBody::Shelley(tx) => tx.hash(),

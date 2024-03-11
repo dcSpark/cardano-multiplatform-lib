@@ -241,6 +241,11 @@ impl MultiEraBlock {
     pub fn hash(&self) -> [u8; 32] {
         let bytes = match self {
             Self::Byron(block) => {
+                // The hash for Byron is not calculated on header directly but instead
+                // on the following CBOR structure: [0, ebb_head // 1, byron_block_header]
+                // 0x82 is a canonical CBOR 2 element array
+                // 0x00 and 0x01 are the integers 0 and 1
+                // See: https://cardano-ledger.cardano.intersectmbo.org/cardano-ledger-byron/src/Cardano.Chain.Block.Header.html#wrapBoundaryBytes
                 let mut tagged_bytes = vec![0x82];
                 match block {
                     ByronBlock::EpochBoundary(ebb) => {

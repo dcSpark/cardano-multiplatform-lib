@@ -6,9 +6,17 @@ use crate::{
     transaction::{DatumOption, ScriptRef, TransactionOutput},
     Value,
 };
-use cml_crypto::{DatumHash, Ed25519KeyHash};
+use cml_crypto::{DatumHash, Ed25519KeyHash, TransactionHash};
 
-use super::{AlonzoFormatTxOut, ConwayFormatTxOut, NativeScript, TransactionWitnessSet};
+use super::{
+    AlonzoFormatTxOut, ConwayFormatTxOut, NativeScript, TransactionBody, TransactionWitnessSet,
+};
+
+impl TransactionBody {
+    pub fn hash(&self) -> TransactionHash {
+        crate::crypto::hash::hash_transaction(self)
+    }
+}
 
 impl TransactionOutput {
     pub fn new(

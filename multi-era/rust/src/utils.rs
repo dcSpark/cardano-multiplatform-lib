@@ -3,7 +3,7 @@ use crate::allegra::{
 };
 use crate::alonzo::{AlonzoCostmdls, AlonzoProtocolParamUpdate};
 use crate::babbage::{BabbageCostModels, BabbageProtocolParamUpdate, BabbageTransactionOutput};
-use crate::byron::block::{ByronBlockHeader, EbbHead};
+use crate::byron::block::{ByronBlockHeader, ByronEbBlock, ByronMainBlock, EbbHead};
 use crate::byron::transaction::ByronTxIn;
 use crate::mary::MaryTransactionOutput;
 use crate::shelley::{
@@ -67,8 +67,11 @@ impl MultiEraBlock {
             .unsigned_integer()
             .map_err(|e| DeserializeError::from(e).annotate("block_era_tag"))?;
         let block = match era {
-            1 => ByronBlock::deserialize(&mut raw)
-                .map(Self::Byron)
+            0 => ByronEbBlock::deserialize(&mut raw)
+                .map(|ebb| Self::Byron(ByronBlock::EpochBoundary(ebb)))
+                .map_err(|e| e.annotate("Byron EBB")),
+            1 => ByronMainBlock::deserialize(&mut raw)
+                .map(|mb| Self::Byron(ByronBlock::Main(mb)))
                 .map_err(|e| e.annotate("Byron")),
             2 => ShelleyBlock::deserialize(&mut raw)
                 .map(Self::Shelley)
@@ -238,6 +241,11 @@ impl MultiEraBlock {
     pub fn hash(&self) -> [u8; 32] {
         let bytes = match self {
             Self::Byron(block) => {
+                // The hash for Byron is not calculated on header directly but instead
+                // on the following CBOR structure: [0, ebb_head // 1, byron_block_header]
+                // 0x82 is a canonical CBOR 2 element array
+                // 0x00 and 0x01 are the integers 0 and 1
+                // See: https://cardano-ledger.cardano.intersectmbo.org/cardano-ledger-byron/src/Cardano.Chain.Block.Header.html#wrapBoundaryBytes
                 let mut tagged_bytes = vec![0x82];
                 match block {
                     ByronBlock::EpochBoundary(ebb) => {

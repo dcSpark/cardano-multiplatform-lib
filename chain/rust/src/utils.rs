@@ -11,7 +11,7 @@ use std::io::{BufRead, Seek, Write};
 use crate::{
     crypto::hash::{hash_script, ScriptHashNamespace},
     plutus::{Language, PlutusScript, PlutusV1Script, PlutusV2Script},
-    NativeScript, Script,
+    NativeScript, Script, SubCoin,
 };
 
 impl Script {
@@ -566,6 +566,28 @@ impl Deserialize for NetworkId {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let (network, encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
         Ok(Self { network, encoding })
+    }
+}
+
+impl SubCoin {
+    /// Converts base 10 floats to SubCoin.
+    /// This is the format used by blockfrost for ex units
+    /// Warning: If the passed in float was not meant to be base 10
+    /// this might result in a slightly inaccurate fraction.
+    pub fn from_base10_f32(f: f32) -> Self {
+        let mut denom = 1u64;
+        while (f * (denom as f32)).fract().abs() > f32::EPSILON {
+            denom *= 10;
+        }
+        // we check against episilon to be sure we get all info
+        // but this could result in over-extending with respect to the original float
+        // so run it back after the fact.
+        let mut numerator = (f * (denom as f32)).ceil() as u64;
+        while numerator % 10 == 0 && denom % 10 == 0 {
+            numerator /= 10;
+            denom /= 10;
+        }
+        Self::new(numerator, denom)
     }
 }
 

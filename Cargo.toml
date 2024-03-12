@@ -2,6 +2,8 @@
 
 # this is for the new crate structure. The legacy code (current CML) still resides in the `rust` directory.
 members = [
+    "blockfrost/rust",
+    "blockfrost/wasm",
     "chain/rust",
     "chain/wasm",
     "chain/wasm/json-gen",

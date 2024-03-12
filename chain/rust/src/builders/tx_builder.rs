@@ -162,6 +162,7 @@ pub enum TxBuilderConfigField {
     ExUnitPrices,
     CollateralPercentage,
     MaxCollateralInputs,
+    CostModels,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -243,17 +244,17 @@ pub enum CoinSelectionStrategyCIP2 {
 
 #[derive(Clone, Debug)]
 pub struct TransactionBuilderConfig {
-    fee_algo: LinearFee,
-    pool_deposit: u64,            // protocol parameter
-    key_deposit: u64,             // protocol parameter
-    max_value_size: u32,          // protocol parameter
-    max_tx_size: u32,             // protocol parameter
-    coins_per_utxo_byte: Coin,    // protocol parameter
-    ex_unit_prices: ExUnitPrices, // protocol parameter
-    cost_models: CostModels,      // protocol parameter
-    _collateral_percentage: u32,  // protocol parameter
-    max_collateral_inputs: u32,   // protocol parameter
-    prefer_pure_change: bool,
+    pub fee_algo: LinearFee,
+    pub pool_deposit: u64,            // protocol parameter
+    pub key_deposit: u64,             // protocol parameter
+    pub max_value_size: u32,          // protocol parameter
+    pub max_tx_size: u32,             // protocol parameter
+    pub coins_per_utxo_byte: Coin,    // protocol parameter
+    pub ex_unit_prices: ExUnitPrices, // protocol parameter
+    pub cost_models: CostModels,      // protocol parameter
+    _collateral_percentage: u32,      // protocol parameter
+    pub max_collateral_inputs: u32,   // protocol parameter
+    pub prefer_pure_change: bool,
 }
 
 #[derive(Clone, Debug, Default)]

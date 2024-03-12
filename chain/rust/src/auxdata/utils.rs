@@ -1,4 +1,4 @@
-use cml_core::metadata::Metadata;
+use crate::auxdata::metadata::Metadata;
 
 use crate::{
     plutus::{PlutusV1Script, PlutusV2Script},

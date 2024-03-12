@@ -105,9 +105,7 @@ pub enum Language {
     PlutusV3,
 }
 
-#[derive(
-    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
-)]
+#[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(
     Eq,
     PartialEq,
@@ -126,7 +124,6 @@ pub enum PlutusData {
             PartialOrd = "ignore",
             Hash = "ignore"
         )]
-        #[serde(skip)]
         list_encoding: LenEncoding,
     },
     Integer(BigInteger),
@@ -138,7 +135,6 @@ pub enum PlutusData {
             PartialOrd = "ignore",
             Hash = "ignore"
         )]
-        #[serde(skip)]
         bytes_encoding: StringEncoding,
     },
 }

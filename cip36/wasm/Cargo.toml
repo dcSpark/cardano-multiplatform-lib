@@ -17,6 +17,7 @@ crate-type = ["cdylib", "rlib"]
 cml-cip36 = { path = "../rust", version = "5.1.0" }
 cml-crypto = { path = "../../crypto/rust", version = "5.1.0" }
 cml-crypto-wasm = { path = "../../crypto/wasm", version = "5.1.0" }
+cml-chain = { path = "../../chain/rust", version = "5.1.0" }
 cml-chain-wasm = { path = "../../chain/wasm", version = "5.1.0" }
 cml-core = { path = "../../core/rust", version = "5.1.0" }
 cml-core-wasm = { path = "../../core/wasm", version = "5.1.0" }

@@ -1,8 +1,12 @@
-use crate::error::{DeserializeError, DeserializeFailure};
-
-use crate::serialization::{fit_sz, Deserialize, LenEncoding, Serialize, StringEncoding};
-use crate::Int;
+use crate::json::metadatums::{
+    decode_metadatum_to_json_value, encode_json_value_to_metadatum, MetadataJsonSchema,
+};
 use cbor_event::{de::Deserializer, se::Serializer};
+use cml_core::{
+    error::{DeserializeError, DeserializeFailure},
+    serialization::{fit_sz, Deserialize, LenEncoding, Serialize, StringEncoding},
+    Int,
+};
 use derivative::Derivative;
 
 use std::io::{BufRead, Seek, Write};
@@ -149,13 +153,10 @@ impl Deserialize for Metadata {
 
 /// Handles the extremely rare (2 total instances on mainnet) edge-case of in
 /// previous generations allowing duplicate metadatum keys.
-#[derive(
-    Clone, Debug, Default, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative,
-)]
+#[derive(Clone, Debug, Default, Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct MetadatumMap {
     pub entries: Vec<(TransactionMetadatum, TransactionMetadatum)>,
-    #[serde(skip)]
     #[derivative(
         PartialEq = "ignore",
         Ord = "ignore",
@@ -273,7 +274,7 @@ impl Deserialize for MetadatumMap {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, Derivative)]
+#[derive(Clone, Debug, Derivative)]
 #[derivative(
     Eq,
     PartialEq,
@@ -291,7 +292,6 @@ pub enum TransactionMetadatum {
             PartialOrd = "ignore",
             Hash = "ignore"
         )]
-        #[serde(skip)]
         elements_encoding: LenEncoding,
     },
     Int(Int),
@@ -303,7 +303,6 @@ pub enum TransactionMetadatum {
             PartialOrd = "ignore",
             Hash = "ignore"
         )]
-        #[serde(skip)]
         bytes_encoding: StringEncoding,
     },
     Text {
@@ -314,7 +313,6 @@ pub enum TransactionMetadatum {
             PartialOrd = "ignore",
             Hash = "ignore"
         )]
-        #[serde(skip)]
         text_encoding: StringEncoding,
     },
 }
@@ -398,6 +396,51 @@ impl TransactionMetadatum {
             Self::Text { text, .. } => Some(text),
             _ => None,
         }
+    }
+}
+
+impl serde::Serialize for TransactionMetadatum {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let json_value = decode_metadatum_to_json_value(self, MetadataJsonSchema::DetailedSchema)
+            .expect("DetailedSchema can represent everything");
+        serde_json::Value::from(json_value).serialize(serializer)
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for TransactionMetadatum {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let serde_json_value =
+            <serde_json::Value as serde::de::Deserialize>::deserialize(deserializer)?;
+        let json_value = crate::json::json_serialize::Value::from(serde_json_value);
+        encode_json_value_to_metadatum(json_value.clone(), MetadataJsonSchema::DetailedSchema)
+            .map_err(|_e| {
+                serde::de::Error::invalid_value(
+                    (&json_value).into(),
+                    &"invalid tx metadatum (cardano-node JSON format)",
+                )
+            })
+    }
+}
+
+impl schemars::JsonSchema for TransactionMetadatum {
+    fn schema_name() -> String {
+        String::from("TransactionMetadatum")
+    }
+
+    fn json_schema(_gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        schemars::schema::Schema::from(schemars::schema::SchemaObject::new_ref(
+            "TransactionMetadatum".to_owned(),
+        ))
+    }
+
+    fn is_referenceable() -> bool {
+        true
     }
 }
 
@@ -555,5 +598,13 @@ mod tests {
         let metadata = encode_arbitrary_bytes_as_metadatum(input_bytes.as_ref());
         let output_bytes = decode_arbitrary_bytes_from_metadatum(&metadata).expect("decode failed");
         assert_eq!(input_bytes, output_bytes);
+    }
+
+    #[test]
+    fn metadatum_default_json() {
+        let json_str = "{\"map\":[{\"k\":{\"list\":[{\"map\":[{\"k\":{\"int\":5},\"v\":{\"int\":-7}},{\"k\":{\"string\":\"hello\"},\"v\":{\"string\":\"world\"}}]},{\"bytes\":\"ff00ff00\"}]},\"v\":{\"int\":5}}]}";
+        let metadatum: TransactionMetadatum = serde_json::from_str(json_str).unwrap();
+        let roundtrip_str = serde_json::to_string(&metadatum).unwrap();
+        assert_eq!(json_str, roundtrip_str);
     }
 }

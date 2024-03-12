@@ -1876,9 +1876,6 @@ mod tests {
     use std::collections::BTreeMap;
     use std::ops::Deref;
 
-    use cml_core::metadata::{
-        Metadata, MetadatumMap, TransactionMetadatum, TransactionMetadatumLabel,
-    };
     use cml_core::Int;
     use cml_crypto::{
         Bip32PrivateKey, Bip32PublicKey, DatumHash, Deserialize, PrivateKey, RawBytesEncoding,
@@ -1886,6 +1883,7 @@ mod tests {
     };
 
     use crate::address::{Address, BaseAddress, EnterpriseAddress, Pointer, PointerAddress};
+    use crate::auxdata::{Metadata, MetadatumMap, TransactionMetadatum, TransactionMetadatumLabel};
     use crate::builders::witness_builder::{PartialPlutusWitness, PlutusScriptWitness};
     use crate::builders::{
         input_builder::SingleInputBuilder, mint_builder::SingleMintBuilder,

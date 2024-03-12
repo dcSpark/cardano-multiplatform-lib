@@ -539,6 +539,42 @@ impl Value {
     }
 }
 
+impl From<Value> for serde_json::Value {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Bool(b) => serde_json::Value::Bool(b),
+            Value::Null => serde_json::Value::Null,
+            Value::Number(n) => {
+                serde_json::Value::Number(serde_json::Number::from_str(&n.to_string()).unwrap())
+            }
+            Value::String(s) => serde_json::Value::String(s),
+            Value::Array(arr) => {
+                serde_json::Value::Array(arr.into_iter().map(|e| e.into()).collect())
+            }
+            Value::Object(obj) => {
+                serde_json::Value::Object(obj.into_iter().map(|(k, v)| (k, v.into())).collect())
+            }
+        }
+    }
+}
+
+impl From<serde_json::Value> for Value {
+    fn from(from: serde_json::Value) -> Self {
+        match from {
+            serde_json::Value::Bool(b) => Self::Bool(b),
+            serde_json::Value::Null => Self::Null,
+            serde_json::Value::Number(n) => {
+                Self::Number(BigInteger::from_str(&n.to_string()).unwrap())
+            }
+            serde_json::Value::String(s) => Self::String(s),
+            serde_json::Value::Array(arr) => Self::Array(arr.into_iter().map(Self::from).collect()),
+            serde_json::Value::Object(obj) => {
+                Self::Object(obj.into_iter().map(|(k, v)| (k, Self::from(v))).collect())
+            }
+        }
+    }
+}
+
 impl From<Vec<Value>> for Value {
     fn from(vec: Vec<Value>) -> Self {
         Value::Array(vec)
@@ -566,6 +602,30 @@ impl From<BigInteger> for Value {
 impl From<BTreeMap<String, Value>> for Value {
     fn from(from: BTreeMap<String, Value>) -> Self {
         Value::Object(from)
+    }
+}
+
+impl<'a> From<&'a Value> for serde::de::Unexpected<'a> {
+    fn from(from: &'a Value) -> Self {
+        match from {
+            Value::Array(_) => Self::Seq,
+            Value::String(s) => Self::Str(s),
+            Value::Bool(b) => Self::Bool(*b),
+            Value::Null => Self::Unit,
+            Value::Number(x) => {
+                if let Some(as_u64) = x.as_u64() {
+                    Self::Unsigned(as_u64)
+                } else if let Some(as_i64) = x.as_int().and_then(|i| {
+                    use std::convert::TryFrom;
+                    i64::try_from(i128::from(&i)).ok()
+                }) {
+                    Self::Signed(as_i64)
+                } else {
+                    Self::Other("Large int")
+                }
+            }
+            Value::Object(_) => Self::Map,
+        }
     }
 }
 

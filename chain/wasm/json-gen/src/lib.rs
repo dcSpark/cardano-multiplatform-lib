@@ -15,6 +15,29 @@ pub fn export_schemas() {
     if !schema_path.exists() {
         std::fs::create_dir(schema_path).unwrap();
     }
+    // copy over custom ones
+    for custom_schema in std::fs::read_dir(
+        std::path::Path::new("..")
+            .join("..")
+            .join("..")
+            .join("chain")
+            .join("wasm")
+            .join("json-gen")
+            .join("custom_schemas"),
+    )
+    .unwrap()
+    {
+        let old_path = custom_schema.unwrap().path();
+        //if let Some("json") = old_path.extension().and_then(|p| p.to_str()) {
+        let new_path = std::path::Path::new("schemas").join(old_path.file_name().unwrap());
+        println!(
+            "MOVING: {}\nTO: {}",
+            old_path.as_os_str().to_str().unwrap(),
+            new_path.as_os_str().to_str().unwrap()
+        );
+        std::fs::copy(old_path, new_path).unwrap();
+        //}
+    }
     // address
     gen_json_schema!(cml_chain::address::Address);
     gen_json_schema!(cml_chain::address::RewardAccount);
@@ -23,9 +46,7 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::assets::Value);
     // auxdata
     gen_json_schema!(cml_chain::auxdata::AuxiliaryData);
-    gen_json_schema!(cml_chain::auxdata::TransactionMetadatum);
     gen_json_schema!(cml_chain::auxdata::Metadata);
-    gen_json_schema!(cml_chain::auxdata::MetadatumMap);
     // block
     gen_json_schema!(cml_chain::block::Block);
     gen_json_schema!(cml_chain::block::Header);
@@ -93,12 +114,12 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::Value);
     gen_json_schema!(cml_chain::crypto::Vkeywitness);
     // plutus
-    gen_json_schema!(cml_chain::plutus::ConstrPlutusData);
+    //gen_json_schema!(cml_chain::plutus::ConstrPlutusData);
     gen_json_schema!(cml_chain::plutus::CostModels);
     gen_json_schema!(cml_chain::plutus::ExUnitPrices);
     gen_json_schema!(cml_chain::plutus::ExUnits);
-    gen_json_schema!(cml_chain::plutus::PlutusData);
-    gen_json_schema!(cml_chain::plutus::PlutusMap);
+    //gen_json_schema!(cml_chain::plutus::PlutusData);
+    //gen_json_schema!(cml_chain::plutus::PlutusMap);
     gen_json_schema!(cml_chain::plutus::PlutusV1Script);
     gen_json_schema!(cml_chain::plutus::PlutusV2Script);
     gen_json_schema!(cml_chain::plutus::Redeemer);

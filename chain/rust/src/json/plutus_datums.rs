@@ -333,3 +333,16 @@ pub fn decode_plutus_datum_to_json_value(
         _ => Ok(json_value),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::plutus::PlutusData;
+
+    #[test]
+    fn plutus_datum_json() {
+        let json = "{\"map\":[{\"k\":{\"int\":100},\"v\":{\"list\":[{\"map\":[{\"k\":{\"bytes\":\"78\"},\"v\":{\"bytes\":\"30\"}},{\"k\":{\"bytes\":\"79\"},\"v\":{\"int\":1}}]}]}},{\"k\":{\"bytes\":\"666f6f\"},\"v\":{\"bytes\":\"0000baadf00d0000cafed00d0000deadbeef0000\"}}]}";
+        // let datum = encode_json_str_to_plutus_datum(json, crate::json::plutus_datums::CardanoNodePlutusDatumSchema::DetailedSchema).unwrap();
+        let datum: PlutusData = serde_json::from_str(json).unwrap();
+        assert_eq!(json, serde_json::to_string(&datum).unwrap());
+    }
+}

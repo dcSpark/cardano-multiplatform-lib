@@ -1,0 +1,88 @@
+---
+sidebar_position: 1
+---
+
+# CBOR
+
+Cardano on-chain types are stored using [CBOR](https://www.rfc-editor.org/rfc/rfc7049), a data format similar to JSON but with many more features and in binary.
+
+## Tool Interoperability
+
+Due to CBOR's flexibility it is possible that one piece of CBOR can be represented in multiple ways in the binary encoding. This causes problems when using CBOR taken on-chain or from another tool and using it with another tool. Notably, one small difference in the binary encoding of CBOR could result in hashes being totally different. e.g. metadatum hashes or transaction hashes calculated in a dApp might be different than in the wallet causing the entire transaction to be rejected by the network.
+
+CML solves this by supporting automatically every single possible CBOR encoding variation. On-chain types created by deserializing from CBOR bytes will remember these details and re-serializing will use them and result in the same CBOR bytes, unlike some other tools.
+
+## Rust
+
+On-chan types in rust can (de)serialize to/from CBOR Via the `Serialize`/`Deserialize` and `ToBytes`/`FromBytes` traits located within the `cml_core::serialize` module.
+
+Most on-chain types implement the `Serialize` and `Deserialize` traits. These traits guarantee that all CBOR encoding details are preserved upon deserialization and upon serialization it is possible to choose between canonical CBOR encoding and arbitrary encodings (the original it was decoded from).
+
+Byron-era types do not implement `Serialize`/`Deserialize` and instead implement `ToBytes`/`FromBytes`. Byron on-chain types are always in canonical CBOR so this was not necessary.
+
+The types in the `cip25` module also do not support `Serialize`/`Deserialize` in favor of `ToBytes`/`FromBytes`. The underlying metadata on-chain does and you should use the types in`cml_core::metadata`
+
+```rust
+use cml_core::serialization::{Serialize, Deserialize};
+let canonical_cbor_hex = "825820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01";
+// these all represent the following CBOR:
+// [ ; array of 2 elements (transaction input struct)
+//    0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA, ; bytes (tx hash)
+//    1 ; unsigned integer (tx index)
+// ]
+let non_canonical_cbor = [
+    canonical_cbor_hex,
+    "825820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1a00000001",
+    "9f5f48aaaaaaaaaaaaaaaa48aaaaaaaaaaaaaaaa48aaaaaaaaaaaaaaaa48aaaaaaaaaaaaaaaaff01ff",
+    "9900025820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa190001",
+    "9b00000000000000025f41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aaff1b0000000000000001",
+];
+for orig_cbor_hex in non_canonical_cbor {
+    let tx_in = TransactionInput::from_cbor_bytes(&hex::decode(orig_cbor_hex).unwrap()).unwrap();
+    // serialize back to cbor bytes using the same cbor encoding details so it will match
+    // the format where it came from
+    assert_eq!(hex::encode(tx_in.to_cbor_bytes()), orig_cbor_hex);
+    // no matter how it was created it will represent the same data and can be encoded to
+    // canonical cbor bytes which will be the same as all of these are the same transaction input
+    assert_eq!(hex::encode(tx_in.to_canonical_cbor_bytes()), canonical_cbor_hex);
+}
+```
+
+## WASM
+
+All on-chain types have the traits directly exposed on each struct as the methods:
+* `.to_cbor_bytes()`
+* `.to_canonical_cbor_bytes()`
+* `.from_cbor_bytes()`
+* `.to_cbor_hex()`
+* `.to_canonical_cbor_hex()`
+* `.from_cbor_hex()`
+
+The hex ones are useful for working with CIP-30 (dApp connector).
+
+On post-Byron on-chain types this delegates to `Serialize`/`Deserialize` (see rust section) and preserve round-trip always. CIP25 and Byron types will always serialize to canonical CBOR. All on-chain data during the Byron era has to be canonical CBOR so this is not a big issue but is worth noting.
+
+```javascript
+let canonicalCborHex = "825820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01";
+// these all represent the following CBOR:
+// [ ; array of 2 elements (transaction input struct)
+//    0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA, ; bytes (tx hash)
+//    1 ; unsigned integer (tx index)
+// ]
+let nonCanonicalCbor = [
+    canonicalCborHex,
+    "825820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1a00000001",
+    "9f5f48aaaaaaaaaaaaaaaa48aaaaaaaaaaaaaaaa48aaaaaaaaaaaaaaaa48aaaaaaaaaaaaaaaaff01ff",
+    "9900025820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa190001",
+    "9b00000000000000025f41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aa41aaff1b0000000000000001",
+];
+for (let origCborHex of nonCanonicalCbor) {
+    let txIn = CML.TransactionInput.from_cbor_hex(orig_cbor_hex);
+    // serialize back to cbor bytes using the same cbor encoding details so it will match
+    // the format where it came from
+    console.assert(txIn.to_cbor_hex() == origCborHex);
+    // no matter how it was created it will represent the same data and can be encoded to
+    // canonical cbor bytes which will be the same as all of these are the same transaction input
+    console.assert(txIn.to_canonical_cbor_hex() == canonicalCborHex);
+}
+```

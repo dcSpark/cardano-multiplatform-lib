@@ -24,7 +24,12 @@ gov_action = [
   6
 ]
 
-parameter_change_action = (tag: 0, gov_action_id / null, protocol_param_update)
+parameter_change_action = (
+  tag: 0,
+  gov_action_id / null,
+  protocol_param_update,
+  policy_hash: script_hash / null,
+)
 
 hard_fork_initiation_action = (
   tag: 1
@@ -34,7 +39,8 @@ hard_fork_initiation_action = (
 
 treasury_withdrawals_action = (
   tag: 2,
-  withdrawal: { $reward_account => coin }
+  withdrawal: { $reward_account => coin },
+  policy_hash: script_hash / null,
 )
 
 no_confidence = (

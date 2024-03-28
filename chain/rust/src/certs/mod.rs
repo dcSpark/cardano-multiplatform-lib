@@ -344,13 +344,13 @@ impl DnsName {
     }
 
     pub fn new(inner: String) -> Result<Self, DeserializeError> {
-        if inner.len() > 64 {
+        if inner.len() > 128 {
             return Err(DeserializeError::new(
                 "DnsName",
                 DeserializeFailure::RangeCheck {
                     found: inner.len() as isize,
                     min: Some(0),
-                    max: Some(64),
+                    max: Some(128),
                 },
             ));
         }

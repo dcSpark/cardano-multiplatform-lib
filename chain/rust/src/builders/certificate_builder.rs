@@ -6,7 +6,7 @@ use super::witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet};
 
 use crate::{
     certs::{Certificate, StakeCredential},
-    transaction::RequiredSigners,
+    RequiredSigners,
 };
 
 use cml_crypto::{Ed25519KeyHash, ScriptHash};

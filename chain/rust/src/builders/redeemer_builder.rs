@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     address::RewardAddress,
-    plutus::{ExUnits, PlutusData, Redeemer, RedeemerTag},
+    plutus::{ExUnits, LegacyRedeemer, PlutusData, RedeemerTag, Redeemers},
     transaction::TransactionInput,
     PolicyId,
 };
@@ -22,8 +22,8 @@ impl RedeemerWitnessKey {
     }
 }
 
-impl From<&Redeemer> for RedeemerWitnessKey {
-    fn from(redeemer: &Redeemer) -> Self {
+impl From<&LegacyRedeemer> for RedeemerWitnessKey {
+    fn from(redeemer: &LegacyRedeemer) -> Self {
         Self {
             tag: redeemer.tag,
             index: redeemer.index,
@@ -31,7 +31,7 @@ impl From<&Redeemer> for RedeemerWitnessKey {
     }
 }
 
-/// Redeemer without the tag of index
+/// LegacyRedeemer without the tag of index
 /// This allows builder code to return partial redeemers
 /// and then later have them placed in the right context
 #[derive(Clone, Debug)]
@@ -142,6 +142,8 @@ impl RedeemerSetBuilder {
                     ex_units,
                 )));
             }
+            RedeemerTag::Proposing => todo!("https://github.com/dcSpark/cardano-multiplatform-lib/issues/323"),
+            RedeemerTag::Voting => todo!("https://github.com/dcSpark/cardano-multiplatform-lib/issues/323"),
         }
     }
 
@@ -214,7 +216,7 @@ impl RedeemerSetBuilder {
     pub fn build(
         &self,
         default_to_dummy_exunits: bool,
-    ) -> Result<Vec<Redeemer>, RedeemerBuilderError> {
+    ) -> Result<Redeemers, RedeemerBuilderError> {
         let mut redeemers = Vec::new();
         // Calling iter on a BTreeMap returns a list of sorted keys
         self.remove_placeholders_and_tag(
@@ -242,12 +244,12 @@ impl RedeemerSetBuilder {
             default_to_dummy_exunits,
         )?;
 
-        Ok(redeemers)
+        Ok(Redeemers::new_arr_legacy_redeemer(redeemers))
     }
 
     fn remove_placeholders_and_tag<'a, K: Debug + Clone>(
         &self,
-        redeemers: &mut Vec<Redeemer>,
+        redeemers: &mut Vec<LegacyRedeemer>,
         tag: RedeemerTag,
         entries: &mut dyn Iterator<Item = (&'a K, &'a Option<UntaggedRedeemerPlaceholder>)>,
         default_to_dummy_exunits: bool,
@@ -280,12 +282,12 @@ impl RedeemerSetBuilder {
     fn tag_redeemer(
         tag: RedeemerTag,
         untagged_redeemers: &[Option<UntaggedRedeemer>],
-    ) -> Vec<Redeemer> {
+    ) -> Vec<LegacyRedeemer> {
         let mut result = Vec::new();
 
         for (index, untagged_redeemer) in untagged_redeemers.iter().enumerate() {
             if let Some(untagged_redeemer) = untagged_redeemer {
-                result.push(Redeemer::new(
+                result.push(LegacyRedeemer::new(
                     tag,
                     index as u64,
                     untagged_redeemer.data.clone(),

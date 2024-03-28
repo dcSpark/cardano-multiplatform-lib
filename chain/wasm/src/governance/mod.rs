@@ -110,11 +110,13 @@ impl GovAction {
     pub fn new_parameter_change_action(
         gov_action_id: Option<GovActionId>,
         protocol_param_update: &ProtocolParamUpdate,
+        policy_hash: Option<ScriptHash>,
     ) -> Self {
         Self(
             cml_chain::governance::GovAction::new_parameter_change_action(
                 gov_action_id.map(Into::into),
                 protocol_param_update.clone().into(),
+                policy_hash.map(Into::into),
             ),
         )
     }
@@ -131,10 +133,14 @@ impl GovAction {
         )
     }
 
-    pub fn new_treasury_withdrawals_action(withdrawal: &MapRewardAccountToCoin) -> Self {
+    pub fn new_treasury_withdrawals_action(
+        withdrawal: &MapRewardAccountToCoin,
+        policy_hash: Option<ScriptHash>,
+    ) -> Self {
         Self(
             cml_chain::governance::GovAction::new_treasury_withdrawals_action(
                 withdrawal.clone().into(),
+                policy_hash.map(Into::into),
             ),
         )
     }
@@ -413,13 +419,19 @@ impl ParameterChangeAction {
         self.0.protocol_param_update.clone().into()
     }
 
+    pub fn policy_hash(&self) -> Option<ScriptHash> {
+        self.0.policy_hash.map(std::convert::Into::into)
+    }
+
     pub fn new(
         gov_action_id: Option<GovActionId>,
         protocol_param_update: &ProtocolParamUpdate,
+        policy_hash: Option<ScriptHash>,
     ) -> Self {
         Self(cml_chain::governance::ParameterChangeAction::new(
             gov_action_id.map(Into::into),
             protocol_param_update.clone().into(),
+            policy_hash.map(Into::into),
         ))
     }
 }
@@ -482,9 +494,14 @@ impl TreasuryWithdrawalsAction {
         self.0.withdrawal.clone().into()
     }
 
-    pub fn new(withdrawal: &MapRewardAccountToCoin) -> Self {
+    pub fn policy_hash(&self) -> Option<ScriptHash> {
+        self.0.policy_hash.map(std::convert::Into::into)
+    }
+
+    pub fn new(withdrawal: &MapRewardAccountToCoin, policy_hash: Option<ScriptHash>) -> Self {
         Self(cml_chain::governance::TreasuryWithdrawalsAction::new(
             withdrawal.clone().into(),
+            policy_hash.map(Into::into),
         ))
     }
 }

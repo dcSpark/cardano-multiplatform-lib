@@ -61,6 +61,7 @@ pub struct NoConfidenceEncoding {
 pub struct ParameterChangeActionEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
+    pub policy_hash_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -75,6 +76,7 @@ pub struct TreasuryWithdrawalsActionEncoding {
     pub tag_encoding: Option<cbor_event::Sz>,
     pub withdrawal_encoding: LenEncoding,
     pub withdrawal_value_encodings: BTreeMap<RewardAccount, Option<cbor_event::Sz>>,
+    pub policy_hash_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]

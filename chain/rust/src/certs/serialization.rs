@@ -1031,13 +1031,13 @@ impl Deserialize for DnsName {
         let (inner, inner_encoding) = raw
             .text_sz()
             .map(|(s, enc)| (s, StringEncoding::from(enc)))?;
-        if inner.len() > 64 {
+        if inner.len() > 128 {
             return Err(DeserializeError::new(
                 "DnsName",
                 DeserializeFailure::RangeCheck {
                     found: inner.len() as isize,
                     min: Some(0),
-                    max: Some(64),
+                    max: Some(128),
                 },
             ));
         }
@@ -1456,13 +1456,13 @@ impl DeserializeEmbeddedGroup for PoolParams {
                 .map_err(|e: DeserializeError| e.annotate("vrf_keyhash"))?;
             let (pledge, pledge_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("pledge"))?;
             let (cost, cost_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("cost"))?;
             let margin = UnitInterval::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("margin"))?;
@@ -1763,8 +1763,8 @@ impl DeserializeEmbeddedGroup for PoolRetirement {
                 .map_err(|e: DeserializeError| e.annotate("pool"))?;
             let (epoch, epoch_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("epoch"))?;
             Ok(PoolRetirement {
                 pool,
@@ -1878,8 +1878,8 @@ impl DeserializeEmbeddedGroup for RegCert {
                 .map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
             let (coin, coin_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("coin"))?;
             Ok(RegCert {
                 stake_credential,
@@ -1996,8 +1996,8 @@ impl DeserializeEmbeddedGroup for RegDrepCert {
                 .map_err(|e: DeserializeError| e.annotate("drep_credential"))?;
             let (coin, coin_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("coin"))?;
             let anchor = (|| -> Result<_, DeserializeError> {
                 Ok(match raw.cbor_type()? != cbor_event::Type::Special {
@@ -2835,8 +2835,8 @@ impl DeserializeEmbeddedGroup for StakeRegDelegCert {
                 .map_err(|e: DeserializeError| e.annotate("pool"))?;
             let (coin, coin_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("coin"))?;
             Ok(StakeRegDelegCert {
                 stake_credential,
@@ -3186,8 +3186,8 @@ impl DeserializeEmbeddedGroup for StakeVoteRegDelegCert {
                 DRep::deserialize(raw).map_err(|e: DeserializeError| e.annotate("d_rep"))?;
             let (coin, coin_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("coin"))?;
             Ok(StakeVoteRegDelegCert {
                 stake_credential,
@@ -3303,8 +3303,8 @@ impl DeserializeEmbeddedGroup for UnregCert {
                 .map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
             let (coin, coin_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("coin"))?;
             Ok(UnregCert {
                 stake_credential,
@@ -3417,8 +3417,8 @@ impl DeserializeEmbeddedGroup for UnregDrepCert {
                 .map_err(|e: DeserializeError| e.annotate("drep_credential"))?;
             let (coin, coin_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("coin"))?;
             Ok(UnregDrepCert {
                 drep_credential,

@@ -123,7 +123,7 @@ impl Serialize for PoolVotingThresholds {
                 .as_ref()
                 .map(|encs| encs.len_encoding)
                 .unwrap_or_default()
-                .to_len_sz(4, force_canonical),
+                .to_len_sz(5, force_canonical),
         )?;
         self.motion_no_confidence
             .serialize(serializer, force_canonical)?;
@@ -132,6 +132,8 @@ impl Serialize for PoolVotingThresholds {
         self.committee_no_confidence
             .serialize(serializer, force_canonical)?;
         self.hard_fork_initiation
+            .serialize(serializer, force_canonical)?;
+        self.security_relevant_parameter_voting_threshold
             .serialize(serializer, force_canonical)?;
         self.encodings
             .as_ref()
@@ -146,7 +148,7 @@ impl Deserialize for PoolVotingThresholds {
         let len = raw.array_sz()?;
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(4)?;
+        read_len.read_elems(5)?;
         read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let motion_no_confidence = UnitInterval::deserialize(raw)
@@ -157,6 +159,10 @@ impl Deserialize for PoolVotingThresholds {
                 .map_err(|e: DeserializeError| e.annotate("committee_no_confidence"))?;
             let hard_fork_initiation = UnitInterval::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("hard_fork_initiation"))?;
+            let security_relevant_parameter_voting_threshold = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| {
+                    e.annotate("security_relevant_parameter_voting_threshold")
+                })?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
                 cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -169,6 +175,7 @@ impl Deserialize for PoolVotingThresholds {
                 committee_normal,
                 committee_no_confidence,
                 hard_fork_initiation,
+                security_relevant_parameter_voting_threshold,
                 encodings: Some(PoolVotingThresholdsEncoding { len_encoding }),
             })
         })()
@@ -275,6 +282,9 @@ impl Serialize for ProtocolParamUpdate {
                     } + match &self.d_rep_inactivity_period {
                         Some(_) => 1,
                         None => 0,
+                    } + match &self.min_fee_ref_script_cost_per_byte {
+                        Some(_) => 1,
+                        None => 0,
                     },
                     force_canonical,
                 ),
@@ -372,13 +382,16 @@ impl Serialize for ProtocolParamUpdate {
                         } + match &self.d_rep_inactivity_period {
                             Some(_) => 1,
                             None => 0,
+                        } + match &self.min_fee_ref_script_cost_per_byte {
+                            Some(_) => 1,
+                            None => 0,
                         }
             })
             .map(|encs| encs.orig_deser_order.clone())
             .unwrap_or_else(|| {
                 vec![
                     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-                    22, 23, 24, 25, 26, 27, 28,
+                    22, 23, 24, 25, 26, 27, 28, 29,
                 ]
             });
         for field_index in deser_order {
@@ -1047,6 +1060,22 @@ impl Serialize for ProtocolParamUpdate {
                         )?;
                     }
                 }
+                29 => {
+                    if let Some(field) = &self.min_fee_ref_script_cost_per_byte {
+                        serializer.write_unsigned_integer_sz(
+                            33u64,
+                            fit_sz(
+                                33u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.min_fee_ref_script_cost_per_byte_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        field.serialize(serializer, force_canonical)?;
+                    }
+                }
                 _ => unreachable!(),
             };
         }
@@ -1143,6 +1172,8 @@ impl Deserialize for ProtocolParamUpdate {
             let mut d_rep_inactivity_period_encoding = None;
             let mut d_rep_inactivity_period_key_encoding = None;
             let mut d_rep_inactivity_period = None;
+            let mut min_fee_ref_script_cost_per_byte_key_encoding = None;
+            let mut min_fee_ref_script_cost_per_byte = None;
             let mut read = 0;
             while match len { cbor_event::LenSz::Len(n, _) => read < n, cbor_event::LenSz::Indefinite => true, } {
                 match raw.cbor_type()? {
@@ -1153,7 +1184,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_minfee_a, tmp_minfee_a_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("minfee_a"))?;
                             minfee_a = Some(tmp_minfee_a);
                             minfee_a_encoding = tmp_minfee_a_encoding;
@@ -1166,7 +1197,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_minfee_b, tmp_minfee_b_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("minfee_b"))?;
                             minfee_b = Some(tmp_minfee_b);
                             minfee_b_encoding = tmp_minfee_b_encoding;
@@ -1179,7 +1210,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_max_block_body_size, tmp_max_block_body_size_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("max_block_body_size"))?;
                             max_block_body_size = Some(tmp_max_block_body_size);
                             max_block_body_size_encoding = tmp_max_block_body_size_encoding;
@@ -1192,7 +1223,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_max_transaction_size, tmp_max_transaction_size_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("max_transaction_size"))?;
                             max_transaction_size = Some(tmp_max_transaction_size);
                             max_transaction_size_encoding = tmp_max_transaction_size_encoding;
@@ -1205,7 +1236,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_max_block_header_size, tmp_max_block_header_size_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("max_block_header_size"))?;
                             max_block_header_size = Some(tmp_max_block_header_size);
                             max_block_header_size_encoding = tmp_max_block_header_size_encoding;
@@ -1218,7 +1249,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_key_deposit, tmp_key_deposit_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("key_deposit"))?;
                             key_deposit = Some(tmp_key_deposit);
                             key_deposit_encoding = tmp_key_deposit_encoding;
@@ -1231,7 +1262,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_pool_deposit, tmp_pool_deposit_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("pool_deposit"))?;
                             pool_deposit = Some(tmp_pool_deposit);
                             pool_deposit_encoding = tmp_pool_deposit_encoding;
@@ -1244,7 +1275,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_maximum_epoch, tmp_maximum_epoch_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("maximum_epoch"))?;
                             maximum_epoch = Some(tmp_maximum_epoch);
                             maximum_epoch_encoding = tmp_maximum_epoch_encoding;
@@ -1257,7 +1288,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_n_opt, tmp_n_opt_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("n_opt"))?;
                             n_opt = Some(tmp_n_opt);
                             n_opt_encoding = tmp_n_opt_encoding;
@@ -1306,7 +1337,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_min_pool_cost, tmp_min_pool_cost_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("min_pool_cost"))?;
                             min_pool_cost = Some(tmp_min_pool_cost);
                             min_pool_cost_encoding = tmp_min_pool_cost_encoding;
@@ -1319,7 +1350,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_ada_per_utxo_byte, tmp_ada_per_utxo_byte_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("ada_per_utxo_byte"))?;
                             ada_per_utxo_byte = Some(tmp_ada_per_utxo_byte);
                             ada_per_utxo_byte_encoding = tmp_ada_per_utxo_byte_encoding;
@@ -1380,7 +1411,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_max_value_size, tmp_max_value_size_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("max_value_size"))?;
                             max_value_size = Some(tmp_max_value_size);
                             max_value_size_encoding = tmp_max_value_size_encoding;
@@ -1393,7 +1424,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_collateral_percentage, tmp_collateral_percentage_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("collateral_percentage"))?;
                             collateral_percentage = Some(tmp_collateral_percentage);
                             collateral_percentage_encoding = tmp_collateral_percentage_encoding;
@@ -1406,7 +1437,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_max_collateral_inputs, tmp_max_collateral_inputs_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("max_collateral_inputs"))?;
                             max_collateral_inputs = Some(tmp_max_collateral_inputs);
                             max_collateral_inputs_encoding = tmp_max_collateral_inputs_encoding;
@@ -1443,7 +1474,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_min_committee_size, tmp_min_committee_size_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("min_committee_size"))?;
                             min_committee_size = Some(tmp_min_committee_size);
                             min_committee_size_encoding = tmp_min_committee_size_encoding;
@@ -1456,7 +1487,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_committee_term_limit, tmp_committee_term_limit_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("committee_term_limit"))?;
                             committee_term_limit = Some(tmp_committee_term_limit);
                             committee_term_limit_encoding = tmp_committee_term_limit_encoding;
@@ -1469,7 +1500,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_governance_action_validity_period, tmp_governance_action_validity_period_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("governance_action_validity_period"))?;
                             governance_action_validity_period = Some(tmp_governance_action_validity_period);
                             governance_action_validity_period_encoding = tmp_governance_action_validity_period_encoding;
@@ -1482,7 +1513,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_governance_action_deposit, tmp_governance_action_deposit_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("governance_action_deposit"))?;
                             governance_action_deposit = Some(tmp_governance_action_deposit);
                             governance_action_deposit_encoding = tmp_governance_action_deposit_encoding;
@@ -1495,7 +1526,7 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_d_rep_deposit, tmp_d_rep_deposit_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("d_rep_deposit"))?;
                             d_rep_deposit = Some(tmp_d_rep_deposit);
                             d_rep_deposit_encoding = tmp_d_rep_deposit_encoding;
@@ -1508,12 +1539,24 @@ impl Deserialize for ProtocolParamUpdate {
                             }
                             let (tmp_d_rep_inactivity_period, tmp_d_rep_inactivity_period_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("d_rep_inactivity_period"))?;
                             d_rep_inactivity_period = Some(tmp_d_rep_inactivity_period);
                             d_rep_inactivity_period_encoding = tmp_d_rep_inactivity_period_encoding;
                             d_rep_inactivity_period_key_encoding = Some(key_enc);
                             orig_deser_order.push(28);
+                        },
+                        (33, key_enc) =>  {
+                            if min_fee_ref_script_cost_per_byte.is_some() {
+                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(33)).into());
+                            }
+                            let tmp_min_fee_ref_script_cost_per_byte = (|| -> Result<_, DeserializeError> {
+                                read_len.read_elems(1)?;
+                                Rational::deserialize(raw)
+                            })().map_err(|e| e.annotate("min_fee_ref_script_cost_per_byte"))?;
+                            min_fee_ref_script_cost_per_byte = Some(tmp_min_fee_ref_script_cost_per_byte);
+                            min_fee_ref_script_cost_per_byte_key_encoding = Some(key_enc);
+                            orig_deser_order.push(29);
                         },
                         (unknown_key, _enc) => return Err(DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()),
                     },
@@ -1560,6 +1603,7 @@ impl Deserialize for ProtocolParamUpdate {
                 governance_action_deposit,
                 d_rep_deposit,
                 d_rep_inactivity_period,
+                min_fee_ref_script_cost_per_byte,
                 encodings: Some(ProtocolParamUpdateEncoding {
                     len_encoding,
                     orig_deser_order,
@@ -1612,6 +1656,7 @@ impl Deserialize for ProtocolParamUpdate {
                     d_rep_deposit_encoding,
                     d_rep_inactivity_period_key_encoding,
                     d_rep_inactivity_period_encoding,
+                    min_fee_ref_script_cost_per_byte_key_encoding,
                 }),
             })
         })().map_err(|e| e.annotate("ProtocolParamUpdate"))
@@ -1692,13 +1737,13 @@ impl Deserialize for Rational {
         (|| -> Result<_, DeserializeError> {
             let (numerator, numerator_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("numerator"))?;
             let (denominator, denominator_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("denominator"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),

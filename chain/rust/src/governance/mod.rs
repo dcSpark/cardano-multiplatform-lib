@@ -99,10 +99,12 @@ impl GovAction {
     pub fn new_parameter_change_action(
         gov_action_id: Option<GovActionId>,
         protocol_param_update: ProtocolParamUpdate,
+        policy_hash: Option<ScriptHash>,
     ) -> Self {
         Self::ParameterChangeAction(ParameterChangeAction::new(
             gov_action_id,
             protocol_param_update,
+            policy_hash,
         ))
     }
 
@@ -115,8 +117,9 @@ impl GovAction {
 
     pub fn new_treasury_withdrawals_action(
         withdrawal: OrderedHashMap<RewardAccount, Coin>,
+        policy_hash: Option<ScriptHash>,
     ) -> Self {
-        Self::TreasuryWithdrawalsAction(TreasuryWithdrawalsAction::new(withdrawal))
+        Self::TreasuryWithdrawalsAction(TreasuryWithdrawalsAction::new(withdrawal, policy_hash))
     }
 
     pub fn new_no_confidence(action_id: Option<GovActionId>) -> Self {
@@ -253,6 +256,7 @@ impl NoConfidence {
 pub struct ParameterChangeAction {
     pub gov_action_id: Option<GovActionId>,
     pub protocol_param_update: ProtocolParamUpdate,
+    pub policy_hash: Option<ScriptHash>,
     #[serde(skip)]
     pub encodings: Option<ParameterChangeActionEncoding>,
 }
@@ -261,10 +265,12 @@ impl ParameterChangeAction {
     pub fn new(
         gov_action_id: Option<GovActionId>,
         protocol_param_update: ProtocolParamUpdate,
+        policy_hash: Option<ScriptHash>,
     ) -> Self {
         Self {
             gov_action_id,
             protocol_param_update,
+            policy_hash,
             encodings: None,
         }
     }
@@ -300,14 +306,19 @@ impl ProposalProcedure {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct TreasuryWithdrawalsAction {
     pub withdrawal: OrderedHashMap<RewardAccount, Coin>,
+    pub policy_hash: Option<ScriptHash>,
     #[serde(skip)]
     pub encodings: Option<TreasuryWithdrawalsActionEncoding>,
 }
 
 impl TreasuryWithdrawalsAction {
-    pub fn new(withdrawal: OrderedHashMap<RewardAccount, Coin>) -> Self {
+    pub fn new(
+        withdrawal: OrderedHashMap<RewardAccount, Coin>,
+        policy_hash: Option<ScriptHash>,
+    ) -> Self {
         Self {
             withdrawal,
+            policy_hash,
             encodings: None,
         }
     }

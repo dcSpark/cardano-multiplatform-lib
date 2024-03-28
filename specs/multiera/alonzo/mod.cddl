@@ -75,7 +75,7 @@ alonzo_transaction_witness_set = {
   ? 2: [* bootstrap_witness ],  ; @name bootstrap_witnesses
   ? 3: [* plutus_v1_script ],   ; @name plutus_v1_scripts
   ? 4: [* plutus_data ],        ; @name plutus_datums
-  ? 5: [* redeemer ],           ; @name redeemers
+  ? 5: [* alonzo_redeemer ],    ; @name redeemers
 }
 
 ; The keys to the cost model map are not present in the serialization.
@@ -95,4 +95,16 @@ alonzo_format_aux_data = #6.259({
 alonzo_auxiliary_data =
     shelley_format_aux_data     ; @name shelley
   / shelley_ma_format_aux_data  ; @name shelley_m_a
-  / alonzo_format_aux_data ; @name alonzo 
+  / alonzo_format_aux_data ; @name alonzo
+
+alonzo_redeemer = [
+  tag: alonzo_redeemer_tag,
+  index: uint,
+  data: plutus_data,
+  ex_units: ex_units
+]
+alonzo_redeemer_tag =
+    0 ; @name Spend
+  / 1 ; @name Mint
+  / 2 ; @name Cert
+  / 3 ; @name Reward

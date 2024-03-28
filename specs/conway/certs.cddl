@@ -104,7 +104,7 @@ pool_params = ( operator:       ed25519_key_hash
 
 ipv4 = bytes .size 4 ; @custom_json
 ipv6 = bytes .size 16 ; @custom_json
-dns_name = tstr .size (0..64)
+dns_name = tstr .size (0..128)
 
 single_host_addr = ( tag: 0
                    , port / null

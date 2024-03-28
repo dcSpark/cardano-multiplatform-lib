@@ -352,7 +352,7 @@ impl Deserialize for GovAction {
             let mut errs = Vec::new();
             let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
-                read_len.read_elems(3)?;
+                read_len.read_elems(4)?;
                 read_len.finish()?;
                 let ret =
                     ParameterChangeAction::deserialize_as_embedded_group(raw, &mut read_len, len);
@@ -407,7 +407,7 @@ impl Deserialize for GovAction {
             };
             let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
-                read_len.read_elems(2)?;
+                read_len.read_elems(3)?;
                 read_len.finish()?;
                 let ret = TreasuryWithdrawalsAction::deserialize_as_embedded_group(
                     raw,
@@ -1124,7 +1124,7 @@ impl Serialize for ParameterChangeAction {
                 .as_ref()
                 .map(|encs| encs.len_encoding)
                 .unwrap_or_default()
-                .to_len_sz(3, force_canonical),
+                .to_len_sz(4, force_canonical),
         )?;
         self.serialize_as_embedded_group(serializer, force_canonical)
     }
@@ -1153,6 +1153,17 @@ impl SerializeEmbeddedGroup for ParameterChangeAction {
         }?;
         self.protocol_param_update
             .serialize(serializer, force_canonical)?;
+        match &self.policy_hash {
+            Some(x) => serializer.write_bytes_sz(
+                x.to_raw_bytes(),
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.policy_hash_encoding.clone())
+                    .unwrap_or_default()
+                    .to_str_len_sz(x.to_raw_bytes().len() as u64, force_canonical),
+            ),
+            None => serializer.write_special(cbor_event::Special::Null),
+        }?;
         self.encodings
             .as_ref()
             .map(|encs| encs.len_encoding)
@@ -1165,7 +1176,7 @@ impl Deserialize for ParameterChangeAction {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(3)?;
+        read_len.read_elems(4)?;
         read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
@@ -1213,12 +1224,37 @@ impl DeserializeEmbeddedGroup for ParameterChangeAction {
             .map_err(|e| e.annotate("gov_action_id"))?;
             let protocol_param_update = ProtocolParamUpdate::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("protocol_param_update"))?;
+            let (policy_hash, policy_hash_encoding) = (|| -> Result<_, DeserializeError> {
+                Ok(match raw.cbor_type()? != cbor_event::Type::Special {
+                    true => Result::<_, DeserializeError>::Ok(
+                        raw.bytes_sz()
+                            .map_err(Into::<DeserializeError>::into)
+                            .and_then(|(bytes, enc)| {
+                                ScriptHash::from_raw_bytes(&bytes)
+                                    .map(|bytes| (bytes, StringEncoding::from(enc)))
+                                    .map_err(|e| {
+                                        DeserializeFailure::InvalidStructure(Box::new(e)).into()
+                                    })
+                            })?,
+                    )
+                    .map(|(x, policy_hash_encoding)| (Some(x), policy_hash_encoding))?,
+                    false => {
+                        if raw.special()? != cbor_event::Special::Null {
+                            return Err(DeserializeFailure::ExpectedNull.into());
+                        }
+                        (None, StringEncoding::default())
+                    }
+                })
+            })()
+            .map_err(|e| e.annotate("policy_hash"))?;
             Ok(ParameterChangeAction {
                 gov_action_id,
                 protocol_param_update,
+                policy_hash,
                 encodings: Some(ParameterChangeActionEncoding {
                     len_encoding,
                     tag_encoding,
+                    policy_hash_encoding,
                 }),
             })
         })()
@@ -1313,7 +1349,7 @@ impl Serialize for TreasuryWithdrawalsAction {
                 .as_ref()
                 .map(|encs| encs.len_encoding)
                 .unwrap_or_default()
-                .to_len_sz(2, force_canonical),
+                .to_len_sz(3, force_canonical),
         )?;
         self.serialize_as_embedded_group(serializer, force_canonical)
     }
@@ -1378,6 +1414,17 @@ impl SerializeEmbeddedGroup for TreasuryWithdrawalsAction {
             .map(|encs| encs.withdrawal_encoding)
             .unwrap_or_default()
             .end(serializer, force_canonical)?;
+        match &self.policy_hash {
+            Some(x) => serializer.write_bytes_sz(
+                x.to_raw_bytes(),
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.policy_hash_encoding.clone())
+                    .unwrap_or_default()
+                    .to_str_len_sz(x.to_raw_bytes().len() as u64, force_canonical),
+            ),
+            None => serializer.write_special(cbor_event::Special::Null),
+        }?;
         self.encodings
             .as_ref()
             .map(|encs| encs.len_encoding)
@@ -1390,7 +1437,7 @@ impl Deserialize for TreasuryWithdrawalsAction {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
+        read_len.read_elems(3)?;
         read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
@@ -1460,13 +1507,38 @@ impl DeserializeEmbeddedGroup for TreasuryWithdrawalsAction {
                     ))
                 })()
                 .map_err(|e| e.annotate("withdrawal"))?;
+            let (policy_hash, policy_hash_encoding) = (|| -> Result<_, DeserializeError> {
+                Ok(match raw.cbor_type()? != cbor_event::Type::Special {
+                    true => Result::<_, DeserializeError>::Ok(
+                        raw.bytes_sz()
+                            .map_err(Into::<DeserializeError>::into)
+                            .and_then(|(bytes, enc)| {
+                                ScriptHash::from_raw_bytes(&bytes)
+                                    .map(|bytes| (bytes, StringEncoding::from(enc)))
+                                    .map_err(|e| {
+                                        DeserializeFailure::InvalidStructure(Box::new(e)).into()
+                                    })
+                            })?,
+                    )
+                    .map(|(x, policy_hash_encoding)| (Some(x), policy_hash_encoding))?,
+                    false => {
+                        if raw.special()? != cbor_event::Special::Null {
+                            return Err(DeserializeFailure::ExpectedNull.into());
+                        }
+                        (None, StringEncoding::default())
+                    }
+                })
+            })()
+            .map_err(|e| e.annotate("policy_hash"))?;
             Ok(TreasuryWithdrawalsAction {
                 withdrawal,
+                policy_hash,
                 encodings: Some(TreasuryWithdrawalsActionEncoding {
                     len_encoding,
                     tag_encoding,
                     withdrawal_encoding,
                     withdrawal_value_encodings,
+                    policy_hash_encoding,
                 }),
             })
         })()

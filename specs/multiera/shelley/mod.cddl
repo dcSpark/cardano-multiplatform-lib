@@ -37,14 +37,47 @@ shelley_header_body = [
   protocol_version,
 ]
 
+shelley_pool_registration = (tag: 3, pool_params: shelley_pool_params)
+shelley_pool_params = ( operator:       ed25519_key_hash
+              , vrf_keyhash:    VRF_key_hash
+              , pledge:         coin
+              , cost:           coin
+              , margin:         unit_interval
+              , reward_account: reward_account
+              , pool_owners:    [* ed25519_key_hash]
+              , relays:         [* shelley_relay]
+              , pool_metadata:  pool_metadata / null
+              )
+
+shelley_dns_name = tstr .size (0..64)
+
+shelley_single_host_name = (
+  tag: 1,
+  port / null,
+  shelley_dns_name, ; An A or AAAA DNS record @name dns_name
+)
+shelley_multi_host_name = (
+  tag: 2,
+  shelley_dns_name, ; A SRV DNS record @name dns_name
+)
+
+shelley_relay = [
+  single_host_addr //
+  ; @name single_host_name
+  shelley_single_host_name //
+  ; @name multi_host_name
+  shelley_multi_host_name
+]
+
 shelley_certificate = [
-     stake_registration
-  // stake_deregistration
-  // stake_delegation
-  // pool_registration
-  // pool_retirement
-  // genesis_key_delegation
-  // shelley_move_instantaneous_rewards_cert
+  ; @name stake_registration
+  shelley_stake_registration //
+  stake_deregistration //
+  stake_delegation //
+  pool_registration //
+  pool_retirement //
+  genesis_key_delegation //
+  shelley_move_instantaneous_rewards_cert
 ]
 
 genesis_key_delegation = (tag: 5, genesis_hash, genesis_delegate_hash, VRF_key_hash)

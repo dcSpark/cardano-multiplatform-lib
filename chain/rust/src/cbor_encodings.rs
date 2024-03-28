@@ -66,6 +66,7 @@ pub struct ProtocolParamUpdateEncoding {
     pub d_rep_deposit_key_encoding: Option<cbor_event::Sz>,
     pub d_rep_inactivity_period_encoding: Option<cbor_event::Sz>,
     pub d_rep_inactivity_period_key_encoding: Option<cbor_event::Sz>,
+    pub min_fee_ref_script_cost_per_byte_key_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]

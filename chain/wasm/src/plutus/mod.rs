@@ -6,6 +6,7 @@ pub mod utils;
 use crate::utils::BigInteger;
 
 use super::{IntList, PlutusDataList, SubCoin};
+use crate::{LegacyRedeemerList, MapRedeemerKeyToRedeemerVal};
 pub use cml_chain::plutus::{Language, RedeemerTag};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 pub use utils::{ConstrPlutusData, PlutusMap};
@@ -96,6 +97,42 @@ impl ExUnits {
 
     pub fn new(mem: u64, steps: u64) -> Self {
         Self(cml_chain::plutus::ExUnits::new(mem, steps))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct LegacyRedeemer(cml_chain::plutus::LegacyRedeemer);
+
+impl_wasm_cbor_json_api!(LegacyRedeemer);
+
+impl_wasm_conversions!(cml_chain::plutus::LegacyRedeemer, LegacyRedeemer);
+
+#[wasm_bindgen]
+impl LegacyRedeemer {
+    pub fn tag(&self) -> RedeemerTag {
+        self.0.tag
+    }
+
+    pub fn index(&self) -> u64 {
+        self.0.index
+    }
+
+    pub fn data(&self) -> PlutusData {
+        self.0.data.clone().into()
+    }
+
+    pub fn ex_units(&self) -> ExUnits {
+        self.0.ex_units.clone().into()
+    }
+
+    pub fn new(tag: RedeemerTag, index: u64, data: &PlutusData, ex_units: &ExUnits) -> Self {
+        Self(cml_chain::plutus::LegacyRedeemer::new(
+            tag,
+            index,
+            data.clone().into(),
+            ex_units.clone().into(),
+        ))
     }
 }
 
@@ -237,14 +274,14 @@ impl PlutusV3Script {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Redeemer(cml_chain::plutus::Redeemer);
+pub struct RedeemerKey(cml_chain::plutus::RedeemerKey);
 
-impl_wasm_cbor_json_api!(Redeemer);
+impl_wasm_cbor_json_api!(RedeemerKey);
 
-impl_wasm_conversions!(cml_chain::plutus::Redeemer, Redeemer);
+impl_wasm_conversions!(cml_chain::plutus::RedeemerKey, RedeemerKey);
 
 #[wasm_bindgen]
-impl Redeemer {
+impl RedeemerKey {
     pub fn tag(&self) -> RedeemerTag {
         self.0.tag
     }
@@ -253,6 +290,21 @@ impl Redeemer {
         self.0.index
     }
 
+    pub fn new(tag: RedeemerTag, index: u64) -> Self {
+        Self(cml_chain::plutus::RedeemerKey::new(tag, index))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct RedeemerVal(cml_chain::plutus::RedeemerVal);
+
+impl_wasm_cbor_json_api!(RedeemerVal);
+
+impl_wasm_conversions!(cml_chain::plutus::RedeemerVal, RedeemerVal);
+
+#[wasm_bindgen]
+impl RedeemerVal {
     pub fn data(&self) -> PlutusData {
         self.0.data.clone().into()
     }
@@ -261,12 +313,74 @@ impl Redeemer {
         self.0.ex_units.clone().into()
     }
 
-    pub fn new(tag: RedeemerTag, index: u64, data: &PlutusData, ex_units: &ExUnits) -> Self {
-        Self(cml_chain::plutus::Redeemer::new(
-            tag,
-            index,
+    pub fn new(data: &PlutusData, ex_units: &ExUnits) -> Self {
+        Self(cml_chain::plutus::RedeemerVal::new(
             data.clone().into(),
             ex_units.clone().into(),
         ))
     }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct Redeemers(cml_chain::plutus::Redeemers);
+
+impl_wasm_cbor_json_api!(Redeemers);
+
+impl_wasm_conversions!(cml_chain::plutus::Redeemers, Redeemers);
+
+#[wasm_bindgen]
+impl Redeemers {
+    pub fn new_arr_legacy_redeemer(arr_legacy_redeemer: &LegacyRedeemerList) -> Self {
+        Self(cml_chain::plutus::Redeemers::new_arr_legacy_redeemer(
+            arr_legacy_redeemer.clone().into(),
+        ))
+    }
+
+    pub fn new_map_redeemer_key_to_redeemer_val(
+        map_redeemer_key_to_redeemer_val: &MapRedeemerKeyToRedeemerVal,
+    ) -> Self {
+        Self(
+            cml_chain::plutus::Redeemers::new_map_redeemer_key_to_redeemer_val(
+                map_redeemer_key_to_redeemer_val.clone().into(),
+            ),
+        )
+    }
+
+    pub fn kind(&self) -> RedeemersKind {
+        match &self.0 {
+            cml_chain::plutus::Redeemers::ArrLegacyRedeemer { .. } => {
+                RedeemersKind::ArrLegacyRedeemer
+            }
+            cml_chain::plutus::Redeemers::MapRedeemerKeyToRedeemerVal { .. } => {
+                RedeemersKind::MapRedeemerKeyToRedeemerVal
+            }
+        }
+    }
+
+    pub fn as_arr_legacy_redeemer(&self) -> Option<LegacyRedeemerList> {
+        match &self.0 {
+            cml_chain::plutus::Redeemers::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => Some(arr_legacy_redeemer.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_map_redeemer_key_to_redeemer_val(&self) -> Option<MapRedeemerKeyToRedeemerVal> {
+        match &self.0 {
+            cml_chain::plutus::Redeemers::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => Some(map_redeemer_key_to_redeemer_val.clone().into()),
+            _ => None,
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub enum RedeemersKind {
+    ArrLegacyRedeemer,
+    MapRedeemerKeyToRedeemerVal,
 }

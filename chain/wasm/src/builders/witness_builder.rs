@@ -2,10 +2,10 @@ use crate::{
     address::RewardAddress,
     byron::ByronAddress,
     crypto::{BootstrapWitness, Vkeywitness},
-    plutus::{utils::PlutusScript, PlutusData, Redeemer},
+    plutus::{utils::PlutusScript, LegacyRedeemer, PlutusData},
     transaction::TransactionWitnessSet,
-    Ed25519KeyHashList, NativeScriptList, PlutusDataList, PlutusV1ScriptList, PlutusV2ScriptList,
-    RedeemerList, Script,
+    Ed25519KeyHashList, LegacyRedeemerList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
+    PlutusV2ScriptList, Script,
 };
 use cml_core_wasm::impl_wasm_conversions;
 use cml_crypto_wasm::{DatumHash, Ed25519KeyHash, ScriptHash};
@@ -194,11 +194,11 @@ impl TransactionWitnessSetBuilder {
         self.0.get_plutus_datum().into()
     }
 
-    pub fn add_redeemer(&mut self, redeemer: &Redeemer) {
+    pub fn add_redeemer(&mut self, redeemer: &LegacyRedeemer) {
         self.0.add_redeemer(redeemer.clone().into());
     }
 
-    pub fn get_redeemer(&self) -> RedeemerList {
+    pub fn get_redeemer(&self) -> LegacyRedeemerList {
         self.0.get_redeemer().into()
     }
 

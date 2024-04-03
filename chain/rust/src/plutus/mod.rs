@@ -130,9 +130,7 @@ impl LegacyRedeemer {
     }
 }
 
-#[derive(
-    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
-)]
+#[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(
     Eq,
     PartialEq,

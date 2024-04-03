@@ -165,8 +165,8 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::plutus::ExUnits);
     gen_json_schema!(cml_chain::plutus::Language);
     gen_json_schema!(cml_chain::plutus::LegacyRedeemer);
-    gen_json_schema!(cml_chain::plutus::PlutusData);
-    gen_json_schema!(cml_chain::plutus::PlutusMap);
+    //gen_json_schema!(cml_chain::plutus::PlutusData);
+    //gen_json_schema!(cml_chain::plutus::PlutusMap);
     gen_json_schema!(cml_chain::plutus::PlutusV1Script);
     gen_json_schema!(cml_chain::plutus::PlutusV2Script);
     gen_json_schema!(cml_chain::plutus::PlutusV3Script);

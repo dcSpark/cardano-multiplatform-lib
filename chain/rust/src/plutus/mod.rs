@@ -151,7 +151,6 @@ pub enum PlutusData {
             PartialOrd = "ignore",
             Hash = "ignore"
         )]
-        #[serde(skip)]
         list_encoding: LenEncoding,
     },
     Integer(BigInteger),
@@ -163,7 +162,6 @@ pub enum PlutusData {
             PartialOrd = "ignore",
             Hash = "ignore"
         )]
-        #[serde(skip)]
         bytes_encoding: StringEncoding,
     },
 }

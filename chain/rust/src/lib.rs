@@ -40,7 +40,6 @@ pub use utils::{NetworkId, NonemptySet, Set};
 
 pub use cml_core::{
     error::{DeserializeError, DeserializeFailure},
-    metadata::{TransactionMetadatum, TransactionMetadatumLabel},
     ordered_hash_map::OrderedHashMap,
     serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
     CertificateIndex, Epoch, Int, Slot, TransactionIndex,

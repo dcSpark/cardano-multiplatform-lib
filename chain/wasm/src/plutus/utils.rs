@@ -3,7 +3,7 @@ use crate::{
     LegacyRedeemerList, PlutusDataList,
 };
 use cml_chain::plutus::Language;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
+use cml_core_wasm::{impl_wasm_cbor_api, impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::ScriptHash;
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
@@ -41,7 +41,7 @@ pub struct PlutusMap(cml_chain::plutus::PlutusMap);
 
 impl_wasm_conversions!(cml_chain::plutus::PlutusMap, PlutusMap);
 
-impl_wasm_cbor_json_api!(PlutusMap);
+impl_wasm_cbor_api!(PlutusMap);
 
 #[wasm_bindgen]
 impl PlutusMap {

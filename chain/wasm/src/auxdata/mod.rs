@@ -2,9 +2,13 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use super::{NativeScriptList, PlutusV1ScriptList, PlutusV2ScriptList, PlutusV3ScriptList};
-pub use cml_core_wasm::metadata::{Metadata, TransactionMetadatum, TransactionMetadatumLabel};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+
+pub mod metadata;
+pub mod utils;
+
+pub use metadata::*;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

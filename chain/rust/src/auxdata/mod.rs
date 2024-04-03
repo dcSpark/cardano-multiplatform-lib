@@ -2,6 +2,7 @@
 // https://github.com/dcSpark/cddl-codegen
 
 pub mod cbor_encodings;
+pub mod metadata;
 pub mod serialization;
 pub mod utils;
 
@@ -9,7 +10,7 @@ use crate::plutus::{PlutusV1Script, PlutusV2Script, PlutusV3Script};
 use crate::transaction::NativeScript;
 use cbor_encodings::{ConwayFormatAuxDataEncoding, ShelleyMaFormatAuxDataEncoding};
 
-pub use cml_core::metadata::*;
+pub use metadata::*;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AuxiliaryData {

@@ -1,10 +1,10 @@
 [package]
 name = "cml-cip25-json-schema-gen"
-version = "5.1.0"
+version = "5.2.0"
 edition = "2018"
 keywords = ["cardano"]
 
 [dependencies]
 serde_json = "1.0.57"
 schemars = "0.8.8"
-cml-cip25 = { path = "../../rust", version = "5.1.0" }
+cml-cip25 = { path = "../../rust", version = "5.2.0" }

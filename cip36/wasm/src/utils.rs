@@ -4,7 +4,7 @@ pub use cml_core::{
     serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
 };
 
-pub use cml_core_wasm::metadata::{Metadata, TransactionMetadatum};
+pub use cml_chain_wasm::auxdata::{Metadata, TransactionMetadatum};
 
 pub use cml_chain_wasm::{address::Address, NetworkId};
 use wasm_bindgen::JsError;
@@ -51,7 +51,7 @@ impl CIP36DeregistrationCbor {
     }
 
     pub fn try_into_metadata(&self) -> Result<Metadata, JsError> {
-        TryInto::<cml_core::metadata::Metadata>::try_into(&self.0)
+        TryInto::<cml_chain::auxdata::Metadata>::try_into(&self.0)
             .map(Into::into)
             .map_err(Into::into)
     }
@@ -154,7 +154,7 @@ impl CIP36RegistrationCbor {
     }
 
     pub fn try_into_metadata(&self) -> Result<Metadata, JsError> {
-        TryInto::<cml_core::metadata::Metadata>::try_into(&self.0)
+        TryInto::<cml_chain::auxdata::Metadata>::try_into(&self.0)
             .map(Into::into)
             .map_err(Into::into)
     }

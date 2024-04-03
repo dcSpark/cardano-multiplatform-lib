@@ -19,12 +19,14 @@ use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMaFormatAuxData}
 use cml_chain::crypto::{
     AuxiliaryDataHash, BootstrapWitness, GenesisHash, Nonce, ScriptDataHash, Vkeywitness,
 };
-use cml_chain::plutus::{ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, Redeemer};
-use cml_chain::transaction::{AlonzoFormatTxOut, NativeScript, RequiredSigners, TransactionInput};
+use cml_chain::plutus::{ExUnitPrices, ExUnits, PlutusData, PlutusV1Script};
+use cml_chain::transaction::{AlonzoFormatTxOut, NativeScript, TransactionInput};
 use cml_chain::TransactionIndex;
-use cml_chain::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
+use cml_chain::{Epoch, NetworkId, Rational, RequiredSigners, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use std::collections::BTreeMap;
+
+use self::cbor_encodings::AlonzoRedeemerEncoding;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AlonzoAuxiliaryData {
@@ -191,6 +193,48 @@ impl Default for AlonzoProtocolParamUpdate {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct AlonzoRedeemer {
+    pub tag: AlonzoRedeemerTag,
+    pub index: u64,
+    pub data: PlutusData,
+    pub ex_units: ExUnits,
+    #[serde(skip)]
+    pub encodings: Option<AlonzoRedeemerEncoding>,
+}
+
+impl AlonzoRedeemer {
+    pub fn new(tag: AlonzoRedeemerTag, index: u64, data: PlutusData, ex_units: ExUnits) -> Self {
+        Self {
+            tag,
+            index,
+            data,
+            ex_units,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(
+    Copy,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Clone,
+    Debug,
+    serde::Deserialize,
+    serde::Serialize,
+    schemars::JsonSchema,
+)]
+#[wasm_bindgen::prelude::wasm_bindgen]
+pub enum AlonzoRedeemerTag {
+    Spend,
+    Mint,
+    Cert,
+    Reward,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AlonzoTransaction {
     pub body: AlonzoTransactionBody,
     pub witness_set: AlonzoTransactionWitnessSet,
@@ -266,7 +310,7 @@ pub struct AlonzoTransactionWitnessSet {
     pub bootstrap_witnesses: Option<Vec<BootstrapWitness>>,
     pub plutus_v1_scripts: Option<Vec<PlutusV1Script>>,
     pub plutus_datums: Option<Vec<PlutusData>>,
-    pub redeemers: Option<Vec<Redeemer>>,
+    pub redeemers: Option<Vec<AlonzoRedeemer>>,
     #[serde(skip)]
     pub encodings: Option<AlonzoTransactionWitnessSetEncoding>,
 }

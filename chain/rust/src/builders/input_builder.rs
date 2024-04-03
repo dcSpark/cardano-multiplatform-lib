@@ -11,7 +11,7 @@ use crate::{
     crypto::hash::hash_plutus_data,
     plutus::PlutusData,
     transaction::{TransactionInput, TransactionOutput},
-    NativeScript, RequiredSigners
+    NativeScript, RequiredSigners,
 };
 
 #[derive(Debug, thiserror::Error)]

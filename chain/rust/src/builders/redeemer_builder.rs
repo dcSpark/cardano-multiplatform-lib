@@ -142,8 +142,12 @@ impl RedeemerSetBuilder {
                     ex_units,
                 )));
             }
-            RedeemerTag::Proposing => todo!("https://github.com/dcSpark/cardano-multiplatform-lib/issues/323"),
-            RedeemerTag::Voting => todo!("https://github.com/dcSpark/cardano-multiplatform-lib/issues/323"),
+            RedeemerTag::Proposing => {
+                todo!("https://github.com/dcSpark/cardano-multiplatform-lib/issues/323")
+            }
+            RedeemerTag::Voting => {
+                todo!("https://github.com/dcSpark/cardano-multiplatform-lib/issues/323")
+            }
         }
     }
 
@@ -213,10 +217,7 @@ impl RedeemerSetBuilder {
         }
     }
 
-    pub fn build(
-        &self,
-        default_to_dummy_exunits: bool,
-    ) -> Result<Redeemers, RedeemerBuilderError> {
+    pub fn build(&self, default_to_dummy_exunits: bool) -> Result<Redeemers, RedeemerBuilderError> {
         let mut redeemers = Vec::new();
         // Calling iter on a BTreeMap returns a list of sorted keys
         self.remove_placeholders_and_tag(
@@ -336,7 +337,7 @@ mod tests {
                 }
             };
             let missing_signers = vec![fake_raw_key_public(0).hash()];
-            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
+            InputAggregateWitnessData::PlutusScript(witness, missing_signers.into(), None)
         };
 
         let address = Address::from_bech32("addr1qxeqxcja25k8q05evyngf4f88xn89asl54x2zg3ephgj26ndyt5qk02xmmras5pe9jz2c7tc93wu4c96rqwvg6e2v50qlpmx70").unwrap();
@@ -373,7 +374,7 @@ mod tests {
             ExUnits::new(10, 10),
         );
 
-        let redeemers = builder.build(false).unwrap();
+        let redeemers = builder.build(false).unwrap().to_flat_format();
 
         assert_eq!(redeemers.len(), 1);
 

@@ -5,7 +5,12 @@ use std::{
 };
 
 use crate::{
-    byron::ByronAddress, certs::Credential, crypto::{hash::hash_plutus_data, BootstrapWitness, Vkey, Vkeywitness}, plutus::{LegacyRedeemer, PlutusData, PlutusScript, PlutusV1Script, PlutusV2Script, Redeemers}, transaction::TransactionWitnessSet, NativeScript, RequiredSigners, Script
+    byron::ByronAddress,
+    certs::Credential,
+    crypto::{hash::hash_plutus_data, BootstrapWitness, Vkey, Vkeywitness},
+    plutus::{LegacyRedeemer, PlutusData, PlutusScript, PlutusV1Script, PlutusV2Script, Redeemers},
+    transaction::TransactionWitnessSet,
+    NativeScript, RequiredSigners, Script,
 };
 use cml_crypto::{
     DatumHash, Ed25519KeyHash, Ed25519Signature, PublicKey, RawBytesEncoding, ScriptHash,
@@ -411,7 +416,8 @@ impl TransactionWitnessSetBuilder {
         }
 
         if !self.bootstraps.is_empty() {
-            result.bootstrap_witnesses = Some(self.bootstraps.into_values().collect::<Vec<_>>().into());
+            result.bootstrap_witnesses =
+                Some(self.bootstraps.into_values().collect::<Vec<_>>().into());
         }
 
         if !native_scripts.is_empty() {
@@ -431,7 +437,9 @@ impl TransactionWitnessSetBuilder {
         }
 
         if !self.redeemers.is_empty() {
-            result.redeemers = Some(Redeemers::new_arr_legacy_redeemer(self.redeemers.values().cloned().collect::<Vec<_>>()));
+            result.redeemers = Some(Redeemers::new_arr_legacy_redeemer(
+                self.redeemers.values().cloned().collect::<Vec<_>>(),
+            ));
         }
 
         result
@@ -624,7 +632,7 @@ mod tests {
                 }
             };
             let missing_signers = vec![fake_raw_key_public(0).hash()];
-            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
+            InputAggregateWitnessData::PlutusScript(witness, missing_signers.into(), None)
         };
 
         assert_eq!(required_wits.vkeys.len(), 0);
@@ -648,7 +656,7 @@ mod tests {
                 }
             };
             let missing_signers = vec![hash];
-            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
+            InputAggregateWitnessData::PlutusScript(witness, missing_signers.into(), None)
         };
 
         assert_eq!(required_wits.vkeys.len(), 1);

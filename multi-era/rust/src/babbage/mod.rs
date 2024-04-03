@@ -6,6 +6,7 @@ pub mod serialization;
 pub mod utils;
 
 use crate::allegra::AllegraCertificate;
+use crate::alonzo::AlonzoRedeemer;
 use crate::shelley::ProtocolVersionStruct;
 use cbor_encodings::{
     BabbageBlockEncoding, BabbageCostModelsEncoding, BabbageFormatAuxDataEncoding,
@@ -19,13 +20,9 @@ use cml_chain::block::Header;
 use cml_chain::crypto::{
     AuxiliaryDataHash, BootstrapWitness, GenesisHash, ScriptDataHash, Vkeywitness,
 };
-use cml_chain::plutus::{
-    ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, Redeemer,
-};
-use cml_chain::transaction::{
-    AlonzoFormatTxOut, DatumOption, NativeScript, RequiredSigners, TransactionInput,
-};
-use cml_chain::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
+use cml_chain::plutus::{ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script};
+use cml_chain::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, TransactionInput};
+use cml_chain::{Epoch, NetworkId, Rational, RequiredSigners, UnitInterval, Withdrawals};
 
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::LenEncoding;
@@ -380,7 +377,7 @@ pub struct BabbageTransactionWitnessSet {
     pub bootstrap_witnesses: Option<Vec<BootstrapWitness>>,
     pub plutus_v1_scripts: Option<Vec<PlutusV1Script>>,
     pub plutus_datums: Option<Vec<PlutusData>>,
-    pub redeemers: Option<Vec<Redeemer>>,
+    pub redeemers: Option<Vec<AlonzoRedeemer>>,
     pub plutus_v2_scripts: Option<Vec<PlutusV2Script>>,
     #[serde(skip)]
     pub encodings: Option<BabbageTransactionWitnessSetEncoding>,

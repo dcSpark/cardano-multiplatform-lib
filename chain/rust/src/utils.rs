@@ -594,12 +594,11 @@ impl<'de, T: serde::de::Deserialize<'de>> serde::de::Deserialize<'de> for Nonemp
     where
         D: serde::de::Deserializer<'de>,
     {
-        Vec::deserialize(deserializer)
-            .map(|elems| Self {
-                elems,
-                len_encoding: LenEncoding::default(),
-                tag_encoding: None,
-            })
+        Vec::deserialize(deserializer).map(|elems| Self {
+            elems,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+        })
     }
 }
 
@@ -678,7 +677,11 @@ impl<T: Deserialize> Deserialize for NonemptySet<T> {
             let (arr_len, tag_encoding) = if raw.cbor_type()? == cbor_event::Type::Tag {
                 let (tag, tag_encoding) = raw.tag_sz()?;
                 if tag != 258 {
-                    return Err(DeserializeFailure::TagMismatch { found: tag, expected: 258 }.into());
+                    return Err(DeserializeFailure::TagMismatch {
+                        found: tag,
+                        expected: 258,
+                    }
+                    .into());
                 }
                 (raw.array_sz()?, Some(tag_encoding))
             } else {
@@ -733,13 +736,12 @@ impl<'de, T: serde::de::Deserialize<'de>> serde::de::Deserialize<'de> for Nonemp
     where
         D: serde::de::Deserializer<'de>,
     {
-        Vec::deserialize(deserializer)
-            .map(|elems| Self {
-                elems,
-                len_encoding: LenEncoding::default(),
-                tag_encoding: None,
-                bytes_encodings: Vec::new(),
-            })
+        Vec::deserialize(deserializer).map(|elems| Self {
+            elems,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+            bytes_encodings: Vec::new(),
+        })
     }
 }
 
@@ -808,7 +810,8 @@ impl<T: RawBytesEncoding> Serialize for NonemptySetRawBytes<T> {
         for (i, elem) in self.elems.iter().enumerate() {
             serializer.write_bytes_sz(
                 elem.to_raw_bytes(),
-                self.bytes_encodings.get(i)
+                self.bytes_encodings
+                    .get(i)
                     .cloned()
                     .unwrap_or_default()
                     .to_str_len_sz(elem.to_raw_bytes().len() as u64, force_canonical),
@@ -826,7 +829,11 @@ impl<T: RawBytesEncoding> Deserialize for NonemptySetRawBytes<T> {
             let (arr_len, tag_encoding) = if raw.cbor_type()? == cbor_event::Type::Tag {
                 let (tag, tag_encoding) = raw.tag_sz()?;
                 if tag != 258 {
-                    return Err(DeserializeFailure::TagMismatch { found: tag, expected: 258 }.into());
+                    return Err(DeserializeFailure::TagMismatch {
+                        found: tag,
+                        expected: 258,
+                    }
+                    .into());
                 }
                 (raw.array_sz()?, Some(tag_encoding))
             } else {

@@ -73,5 +73,9 @@ pub fn get_deposit(
     pool_deposit: Coin, // // protocol parameter
     key_deposit: Coin,  // protocol parameter
 ) -> Result<Coin, ArithmeticError> {
-    internal_get_deposit(txbody.certs.as_ref().map(|certs| certs.as_ref()), pool_deposit, key_deposit)
+    internal_get_deposit(
+        txbody.certs.as_ref().map(|certs| certs.as_ref()),
+        pool_deposit,
+        key_deposit,
+    )
 }

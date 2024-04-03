@@ -5,7 +5,9 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use self::cbor_encodings::{LegacyRedeemerEncoding, PlutusV3ScriptEncoding, RedeemerKeyEncoding, RedeemerValEncoding};
+use self::cbor_encodings::{
+    LegacyRedeemerEncoding, PlutusV3ScriptEncoding, RedeemerKeyEncoding, RedeemerValEncoding,
+};
 
 use super::{Rational, SubCoin};
 use crate::utils::BigInteger;

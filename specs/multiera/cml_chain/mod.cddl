@@ -18,4 +18,5 @@ delta_coin = _CDDL_CODEGEN_EXTERN_TYPE_
 network_id = _CDDL_CODEGEN_EXTERN_TYPE_
 
 epoch = uint
+port = uint .le 65535
 withdrawals = { * reward_account => coin }

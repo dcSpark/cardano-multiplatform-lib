@@ -81,6 +81,13 @@ pub struct AlonzoProtocolParamUpdateEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
+pub struct AlonzoRedeemerEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+    pub index_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct AlonzoTransactionBodyEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,

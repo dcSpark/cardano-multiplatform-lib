@@ -9,7 +9,7 @@ use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::RawBytesEncoding;
-use std::io::{BufRead, Seek, Write};
+use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for BootstrapWitness {
     fn serialize<'se, W: Write>(
@@ -230,68 +230,96 @@ impl Deserialize for Nonce {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            match raw.cbor_type()? {
-                cbor_event::Type::UnsignedInteger => {
-                    let (identity_value, identity_encoding) = raw.unsigned_integer_sz()?;
-                    if identity_value != 0 {
-                        return Err(DeserializeFailure::FixedValueMismatch {
-                            found: Key::Uint(identity_value),
-                            expected: Key::Uint(0),
-                        }
-                        .into());
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let mut errs = Vec::new();
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(1)?;
+                read_len.finish()?;
+                let (identity_value, identity_encoding) = raw.unsigned_integer_sz()?;
+                if identity_value != 0 {
+                    return Err(DeserializeFailure::FixedValueMismatch {
+                        found: Key::Uint(identity_value),
+                        expected: Key::Uint(0),
                     }
-                    let identity_encoding = Some(identity_encoding);
-                    Ok(Self::Identity {
+                    .into());
+                }
+                let ret = Ok(Some(identity_encoding));
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
+            match deser_variant {
+                Ok(identity_encoding) => {
+                    return Ok(Self::Identity {
                         identity_encoding,
                         len_encoding,
                     })
                 }
-                cbor_event::Type::Array => {
-                    let mut read_len = CBORReadLen::new(len);
-                    read_len.read_elems(2)?;
-                    read_len.finish()?;
-                    let tag_encoding = (|| -> Result<_, DeserializeError> {
-                        let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
-                        if tag_value != 1 {
-                            return Err(DeserializeFailure::FixedValueMismatch {
-                                found: Key::Uint(tag_value),
-                                expected: Key::Uint(1),
-                            }
-                            .into());
-                        }
-                        Ok(Some(tag_encoding))
-                    })()
-                    .map_err(|e| e.annotate("tag"))?;
-                    let (hash, hash_encoding) = raw
-                        .bytes_sz()
-                        .map_err(Into::<DeserializeError>::into)
-                        .and_then(|(bytes, enc)| {
-                            NonceHash::from_raw_bytes(&bytes)
-                                .map(|bytes| (bytes, StringEncoding::from(enc)))
-                                .map_err(|e| {
-                                    DeserializeFailure::InvalidStructure(Box::new(e)).into()
-                                })
-                        })
-                        .map_err(|e: DeserializeError| e.annotate("hash"))?;
-                    match len {
-                        cbor_event::LenSz::Len(_, _) => (),
-                        cbor_event::LenSz::Indefinite => match raw.special()? {
-                            cbor_event::Special::Break => (),
-                            _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                        },
-                    }
-                    Ok(Self::Hash {
-                        hash,
-                        len_encoding,
-                        tag_encoding,
-                        hash_encoding,
-                    })
+                Err(e) => {
+                    errs.push(e.annotate("Identity"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
                 }
-                _ => Err(DeserializeError::new(
-                    "Nonce",
-                    DeserializeFailure::NoVariantMatched,
-                )),
-            }
+            };
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let tag_encoding = (|| -> Result<_, DeserializeError> {
+                    let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
+                    if tag_value != 1 {
+                        return Err(DeserializeFailure::FixedValueMismatch {
+                            found: Key::Uint(tag_value),
+                            expected: Key::Uint(1),
+                        }
+                        .into());
+                    }
+                    Ok(Some(tag_encoding))
+                })()
+                .map_err(|e| e.annotate("tag"))?;
+                let (hash, hash_encoding) = raw
+                    .bytes_sz()
+                    .map_err(Into::<DeserializeError>::into)
+                    .and_then(|(bytes, enc)| {
+                        NonceHash::from_raw_bytes(&bytes)
+                            .map(|bytes| (bytes, StringEncoding::from(enc)))
+                            .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
+                    })
+                    .map_err(|e: DeserializeError| e.annotate("hash"))?;
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                Ok(Self::Hash {
+                    hash,
+                    len_encoding,
+                    tag_encoding,
+                    hash_encoding,
+                })
+            })(raw);
+            match variant_deser {
+                Ok(variant) => return Ok(variant),
+                Err(e) => {
+                    errs.push(e.annotate("Hash"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            Err(DeserializeError::new(
+                "Nonce",
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
+            ))
         })()
         .map_err(|e| e.annotate("Nonce"))
     }

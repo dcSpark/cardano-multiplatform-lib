@@ -63,25 +63,22 @@ shelley_multi_host_name = (
 
 shelley_relay = [
   single_host_addr //
-  ; @name single_host_name
   shelley_single_host_name //
-  ; @name multi_host_name
   shelley_multi_host_name
 ]
 
 shelley_certificate = [
-  ; @name stake_registration
-  shelley_stake_registration //
+  stake_registration //
   stake_deregistration //
   stake_delegation //
-  pool_registration //
+  shelley_pool_registration //
   pool_retirement //
   genesis_key_delegation //
   shelley_move_instantaneous_rewards_cert
 ]
 
 genesis_key_delegation = (tag: 5, genesis_hash, genesis_delegate_hash, VRF_key_hash)
-shelley_move_instantaneous_rewards_cert = [tag: 6, shelley_move_instantaneous_reward]
+shelley_move_instantaneous_rewards_cert = (tag: 6, shelley_move_instantaneous_reward)
 
 shelley_transaction_body = {
     0 : [* transaction_input],           ; @name inputs

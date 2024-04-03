@@ -22,8 +22,8 @@ use crate::crypto::{BootstrapWitness, Vkeywitness};
 use crate::deposit::{internal_get_deposit, internal_get_implicit_input};
 use crate::fees::LinearFee;
 use crate::min_ada::min_ada_required;
-use crate::plutus::{PlutusData, Redeemers};
 use crate::plutus::{CostModels, ExUnits, Language};
+use crate::plutus::{PlutusData, Redeemers};
 use crate::transaction::{
     DatumOption, ScriptRef, Transaction, TransactionBody, TransactionInput, TransactionOutput,
     TransactionWitnessSet,
@@ -1210,7 +1210,11 @@ impl TransactionBuilder {
                         });
                     calc_script_data_hash(
                         &redeemers,
-                        &self.witness_builders.witness_set_builder.get_plutus_datum().into(),
+                        &self
+                            .witness_builders
+                            .witness_set_builder
+                            .get_plutus_datum()
+                            .into(),
                         &self.config.cost_models,
                         &languages.iter().copied().collect::<Vec<_>>(),
                         None,
@@ -1234,10 +1238,13 @@ impl TransactionBuilder {
             validity_interval_start: self.validity_start_interval,
             mint: self.mint.clone(),
             script_data_hash,
-            collateral_inputs: self
-                .collateral
-                .as_ref()
-                .map(|collateral| collateral.iter().map(|c| c.input.clone()).collect::<Vec<_>>().into()),
+            collateral_inputs: self.collateral.as_ref().map(|collateral| {
+                collateral
+                    .iter()
+                    .map(|c| c.input.clone())
+                    .collect::<Vec<_>>()
+                    .into()
+            }),
             required_signers: self
                 .required_signers
                 .as_ref()
@@ -1245,10 +1252,13 @@ impl TransactionBuilder {
             network_id: self.network_id,
             collateral_return: self.collateral_return.clone(),
             total_collateral: self.calc_collateral_total()?,
-            reference_inputs: self
-                .reference_inputs
-                .as_ref()
-                .map(|inputs| inputs.iter().map(|utxo| utxo.input.clone()).collect::<Vec<_>>().into()),
+            reference_inputs: self.reference_inputs.as_ref().map(|inputs| {
+                inputs
+                    .iter()
+                    .map(|utxo| utxo.input.clone())
+                    .collect::<Vec<_>>()
+                    .into()
+            }),
             voting_procedures: None,
             proposal_procedures: None,
             current_treasury_value: None,
@@ -4081,14 +4091,19 @@ mod tests {
 
         let mut witness_set = TransactionWitnessSet::new();
 
-        witness_set.vkeywitnesses = Some(vec![make_vkey_witness(
-            &hash_transaction(&body),
-            &PrivateKey::from_normal_bytes(
-                &hex::decode("c660e50315d76a53d80732efda7630cae8885dfb85c46378684b3c6103e1284a")
+        witness_set.vkeywitnesses = Some(
+            vec![make_vkey_witness(
+                &hash_transaction(&body),
+                &PrivateKey::from_normal_bytes(
+                    &hex::decode(
+                        "c660e50315d76a53d80732efda7630cae8885dfb85c46378684b3c6103e1284a",
+                    )
                     .unwrap(),
-            )
-            .unwrap(),
-        )]);
+                )
+                .unwrap(),
+            )]
+            .into(),
+        );
 
         let final_tx = Transaction::new(body, witness_set, true, None);
         let deser_t = Transaction::from_cbor_bytes(&final_tx.to_cbor_bytes()).unwrap();
@@ -5125,7 +5140,7 @@ mod tests {
                     ),
                     PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                required_signers,
+                required_signers.into(),
                 PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
@@ -5273,7 +5288,7 @@ mod tests {
                     ),
                     PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                required_signers,
+                required_signers.into(),
                 PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
@@ -5451,7 +5466,7 @@ mod tests {
                     ),
                     PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                required_signers,
+                required_signers.into(),
                 PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
@@ -5709,7 +5724,7 @@ mod tests {
                     PlutusScriptWitness::from(script_hash),
                     PlutusData::new_bytes(vec![]),
                 ),
-                vec![],
+                vec![].into(),
                 PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
             )
             .unwrap()

@@ -10,13 +10,15 @@ use crate::address::Address;
 use crate::assets::{Coin, Mint, PositiveCoin};
 use crate::auxdata::AuxiliaryData;
 use crate::crypto::{
-    AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash,
-    TransactionHash,
+    AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
 };
 use crate::governance::VotingProcedures;
 use crate::plutus::{PlutusData, Redeemers};
 use crate::{
-    NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetNativeScript, NonemptySetPlutusData, NonemptySetPlutusV1Script, NonemptySetPlutusV2Script, NonemptySetPlutusV3Script, NonemptySetProposalProcedure, NonemptySetTransactionInput, NonemptySetVkeywitness, RequiredSigners, Script, SetTransactionInput, Slot, Withdrawals
+    NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetNativeScript,
+    NonemptySetPlutusData, NonemptySetPlutusV1Script, NonemptySetPlutusV2Script,
+    NonemptySetPlutusV3Script, NonemptySetProposalProcedure, NonemptySetTransactionInput,
+    NonemptySetVkeywitness, RequiredSigners, Script, SetTransactionInput, Slot, Withdrawals,
 };
 use cbor_encodings::{
     AlonzoFormatTxOutEncoding, ConwayFormatTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
@@ -170,7 +172,6 @@ impl NativeScript {
         Self::ScriptInvalidHereafter(ScriptInvalidHereafter::new(after))
     }
 }
-
 
 #[derive(
     Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,

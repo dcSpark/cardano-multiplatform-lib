@@ -182,6 +182,10 @@ impl_wasm_list!(
     Ed25519KeyHashList
 );
 
+pub type SetCommitteeColdCredential = CommitteeColdCredentialList;
+
+pub type SetEd25519KeyHash = Ed25519KeyHashList;
+
 impl_wasm_list!(
     cml_chain::governance::GovActionId,
     GovActionId,

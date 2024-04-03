@@ -25,7 +25,9 @@ members = [
 # exclude old crate structure to avoid error in it
 exclude = [
     "rust",
-    "rust/json-gen"
+    "rust/json-gen",
+    "tools/metadata-cddl-checker",
+    "tools/plutus-datum-codegen"
 ]
 
 [profile.release]

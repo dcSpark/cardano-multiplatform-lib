@@ -565,39 +565,70 @@ impl Deserialize for PlutusMap {
 impl Redeemers {
     pub fn to_flat_format(self) -> Vec<LegacyRedeemer> {
         match self {
-            Self::ArrLegacyRedeemer { arr_legacy_redeemer, .. } => arr_legacy_redeemer,
-            Self::MapRedeemerKeyToRedeemerVal { map_redeemer_key_to_redeemer_val, .. } => map_redeemer_key_to_redeemer_val.iter().map(|(k, v)| LegacyRedeemer::new(
-                    k.tag,
-                    k.index,
-                    v.data.clone(),
-                    v.ex_units.clone(),
-                )).collect_vec(),
+            Self::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => arr_legacy_redeemer,
+            Self::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => map_redeemer_key_to_redeemer_val
+                .iter()
+                .map(|(k, v)| {
+                    LegacyRedeemer::new(k.tag, k.index, v.data.clone(), v.ex_units.clone())
+                })
+                .collect_vec(),
         }
     }
 
     pub fn to_map_format(self) -> OrderedHashMap<RedeemerKey, RedeemerVal> {
         match self {
-            Self::ArrLegacyRedeemer { arr_legacy_redeemer, .. } => arr_legacy_redeemer.into_iter().map(|r| (RedeemerKey::new(r.tag, r.index), RedeemerVal::new(r.data, r.ex_units))).collect(),
-            Self::MapRedeemerKeyToRedeemerVal { map_redeemer_key_to_redeemer_val, .. } => map_redeemer_key_to_redeemer_val,
+            Self::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => arr_legacy_redeemer
+                .into_iter()
+                .map(|r| {
+                    (
+                        RedeemerKey::new(r.tag, r.index),
+                        RedeemerVal::new(r.data, r.ex_units),
+                    )
+                })
+                .collect(),
+            Self::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => map_redeemer_key_to_redeemer_val,
         }
     }
 
     pub fn is_empty(&self) -> bool {
         match self {
-            Self::ArrLegacyRedeemer { arr_legacy_redeemer, .. } => arr_legacy_redeemer.is_empty(),
-            Self::MapRedeemerKeyToRedeemerVal { map_redeemer_key_to_redeemer_val, .. } => map_redeemer_key_to_redeemer_val.is_empty(),
+            Self::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => arr_legacy_redeemer.is_empty(),
+            Self::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => map_redeemer_key_to_redeemer_val.is_empty(),
         }
     }
 
     pub fn extend(&mut self, other: Self) {
         match self {
-            Self::ArrLegacyRedeemer { arr_legacy_redeemer, .. } => arr_legacy_redeemer.extend(other.to_flat_format()),
-            Self::MapRedeemerKeyToRedeemerVal { map_redeemer_key_to_redeemer_val, .. } => {
+            Self::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => arr_legacy_redeemer.extend(other.to_flat_format()),
+            Self::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => {
                 for (k, v) in other.to_map_format().take() {
                     map_redeemer_key_to_redeemer_val.insert(k, v);
                 }
-                
-            },
+            }
         }
     }
 }

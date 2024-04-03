@@ -3748,7 +3748,7 @@ impl Deserialize for BabbageTransactionBody {
                 mint: mint.map(Into::into),
                 script_data_hash,
                 collateral_inputs,
-                required_signers,
+                required_signers: required_signers.map(Into::into),
                 network_id,
                 collateral_return,
                 total_collateral,
@@ -4350,7 +4350,7 @@ impl Deserialize for BabbageTransactionWitnessSet {
                                             assert_eq!(raw.special()?, cbor_event::Special::Break);
                                             break;
                                         }
-                                        redeemers_arr.push(Redeemer::deserialize(raw)?);
+                                        redeemers_arr.push(AlonzoRedeemer::deserialize(raw)?);
                                     }
                                     Ok((redeemers_arr, redeemers_encoding))
                                 })()

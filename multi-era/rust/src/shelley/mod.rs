@@ -8,15 +8,17 @@ pub mod utils;
 use cbor_encodings::{
     MultisigAllEncoding, MultisigAnyEncoding, MultisigNOfKEncoding, MultisigPubkeyEncoding,
     ShelleyBlockEncoding, ShelleyHeaderBodyEncoding, ShelleyHeaderEncoding,
-    ShelleyProtocolParamUpdateEncoding, ShelleyTransactionBodyEncoding, ShelleyTransactionEncoding,
-    ShelleyTransactionOutputEncoding, ShelleyTransactionWitnessSetEncoding, ShelleyUpdateEncoding,
+    ShelleyMultiHostNameEncoding, ShelleyPoolRegistrationEncoding,
+    ShelleyProtocolParamUpdateEncoding, ShelleySingleHostNameEncoding,
+    ShelleyTransactionBodyEncoding, ShelleyTransactionEncoding, ShelleyTransactionOutputEncoding,
+    ShelleyTransactionWitnessSetEncoding, ShelleyUpdateEncoding,
 };
-use cml_chain::address::Address;
+use cml_chain::address::{Address, RewardAccount};
 use cml_chain::assets::Coin;
 use cml_chain::auxdata::Metadata;
 use cml_chain::block::{OperationalCert, ProtocolVersion};
 use cml_chain::certs::{
-    PoolParams, PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation,
+    Ipv4, Ipv6, PoolMetadata, PoolRetirement, SingleHostAddr, StakeCredential, StakeDelegation,
     StakeDeregistration, StakeRegistration,
 };
 use cml_chain::crypto::{
@@ -24,17 +26,19 @@ use cml_chain::crypto::{
     GenesisHash, KESSignature, Nonce, VRFCert, VRFVkey, Vkey, Vkeywitness,
 };
 use cml_chain::transaction::TransactionInput;
-use cml_chain::{Epoch, LenEncoding, Rational, UnitInterval, Withdrawals};
+use cml_chain::{Epoch, Port, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::TransactionIndex;
+use cml_core::{DeserializeError, DeserializeFailure, TransactionIndex};
 use cml_crypto::{GenesisDelegateHash, VRFKeyHash};
 use std::collections::BTreeMap;
+use std::convert::TryFrom;
 
 use crate::allegra::MIRPot;
 
 use self::cbor_encodings::{
-    GenesisKeyDelegationEncoding, ProtocolVersionStructEncoding,
+    GenesisKeyDelegationEncoding, ProtocolVersionStructEncoding, ShelleyDnsNameEncoding,
     ShelleyMoveInstantaneousRewardEncoding, ShelleyMoveInstantaneousRewardsCertEncoding,
+    ShelleyPoolParamsEncoding,
 };
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct GenesisKeyDelegation {
@@ -201,14 +205,10 @@ pub enum ShelleyCertificate {
     StakeRegistration(StakeRegistration),
     StakeDeregistration(StakeDeregistration),
     StakeDelegation(StakeDelegation),
-    PoolRegistration(PoolRegistration),
+    ShelleyPoolRegistration(ShelleyPoolRegistration),
     PoolRetirement(PoolRetirement),
     GenesisKeyDelegation(GenesisKeyDelegation),
-    ShelleyMoveInstantaneousRewardsCert {
-        shelley_move_instantaneous_rewards_cert: ShelleyMoveInstantaneousRewardsCert,
-        #[serde(skip)]
-        len_encoding: LenEncoding,
-    },
+    ShelleyMoveInstantaneousRewardsCert(ShelleyMoveInstantaneousRewardsCert),
 }
 
 impl ShelleyCertificate {
@@ -227,8 +227,8 @@ impl ShelleyCertificate {
         Self::StakeDelegation(StakeDelegation::new(stake_credential, ed25519_key_hash))
     }
 
-    pub fn new_pool_registration(pool_params: PoolParams) -> Self {
-        Self::PoolRegistration(PoolRegistration::new(pool_params))
+    pub fn new_shelley_pool_registration(pool_params: ShelleyPoolParams) -> Self {
+        Self::ShelleyPoolRegistration(ShelleyPoolRegistration::new(pool_params))
     }
 
     pub fn new_pool_retirement(ed25519_key_hash: Ed25519KeyHash, epoch: Epoch) -> Self {
@@ -250,12 +250,84 @@ impl ShelleyCertificate {
     pub fn new_shelley_move_instantaneous_rewards_cert(
         shelley_move_instantaneous_reward: ShelleyMoveInstantaneousReward,
     ) -> Self {
-        Self::ShelleyMoveInstantaneousRewardsCert {
-            shelley_move_instantaneous_rewards_cert: ShelleyMoveInstantaneousRewardsCert::new(
-                shelley_move_instantaneous_reward,
-            ),
-            len_encoding: LenEncoding::default(),
+        Self::ShelleyMoveInstantaneousRewardsCert(ShelleyMoveInstantaneousRewardsCert::new(
+            shelley_move_instantaneous_reward,
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ShelleyDnsName {
+    pub inner: String,
+    pub encodings: Option<ShelleyDnsNameEncoding>,
+}
+
+impl ShelleyDnsName {
+    pub fn get(&self) -> &String {
+        &self.inner
+    }
+
+    pub fn new(inner: String) -> Result<Self, DeserializeError> {
+        if inner.len() > 64 {
+            return Err(DeserializeError::new(
+                "ShelleyDnsName",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len() as isize,
+                    min: Some(0),
+                    max: Some(64),
+                },
+            ));
         }
+        Ok(Self {
+            inner,
+            encodings: None,
+        })
+    }
+}
+
+impl TryFrom<String> for ShelleyDnsName {
+    type Error = DeserializeError;
+
+    fn try_from(inner: String) -> Result<Self, Self::Error> {
+        ShelleyDnsName::new(inner)
+    }
+}
+
+impl serde::Serialize for ShelleyDnsName {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.inner.serialize(serializer)
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for ShelleyDnsName {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let inner = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        Self::new(inner.clone()).map_err(|_e| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(&inner),
+                &"invalid ShelleyDnsName",
+            )
+        })
+    }
+}
+
+impl schemars::JsonSchema for ShelleyDnsName {
+    fn schema_name() -> String {
+        String::from("ShelleyDnsName")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
     }
 }
 
@@ -359,6 +431,80 @@ impl ShelleyMoveInstantaneousRewardsCert {
     }
 }
 
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct ShelleyMultiHostName {
+    pub shelley_dns_name: ShelleyDnsName,
+    #[serde(skip)]
+    pub encodings: Option<ShelleyMultiHostNameEncoding>,
+}
+
+impl ShelleyMultiHostName {
+    pub fn new(shelley_dns_name: ShelleyDnsName) -> Self {
+        Self {
+            shelley_dns_name,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct ShelleyPoolParams {
+    pub operator: Ed25519KeyHash,
+    pub vrf_keyhash: VRFKeyHash,
+    pub pledge: Coin,
+    pub cost: Coin,
+    pub margin: UnitInterval,
+    pub reward_account: RewardAccount,
+    pub pool_owners: Vec<Ed25519KeyHash>,
+    pub relays: Vec<ShelleyRelay>,
+    pub pool_metadata: Option<PoolMetadata>,
+    #[serde(skip)]
+    pub encodings: Option<ShelleyPoolParamsEncoding>,
+}
+
+impl ShelleyPoolParams {
+    pub fn new(
+        operator: Ed25519KeyHash,
+        vrf_keyhash: VRFKeyHash,
+        pledge: Coin,
+        cost: Coin,
+        margin: UnitInterval,
+        reward_account: RewardAccount,
+        pool_owners: Vec<Ed25519KeyHash>,
+        relays: Vec<ShelleyRelay>,
+        pool_metadata: Option<PoolMetadata>,
+    ) -> Self {
+        Self {
+            operator,
+            vrf_keyhash,
+            pledge,
+            cost,
+            margin,
+            reward_account,
+            pool_owners,
+            relays,
+            pool_metadata,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct ShelleyPoolRegistration {
+    pub pool_params: ShelleyPoolParams,
+    #[serde(skip)]
+    pub encodings: Option<ShelleyPoolRegistrationEncoding>,
+}
+
+impl ShelleyPoolRegistration {
+    pub fn new(pool_params: ShelleyPoolParams) -> Self {
+        Self {
+            pool_params,
+            encodings: None,
+        }
+    }
+}
+
 pub type ShelleyProposedProtocolParameterUpdates =
     OrderedHashMap<GenesisHash, ShelleyProtocolParamUpdate>;
 
@@ -411,6 +557,52 @@ impl ShelleyProtocolParamUpdate {
 impl Default for ShelleyProtocolParamUpdate {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub enum ShelleyRelay {
+    SingleHostAddr(SingleHostAddr),
+    ShelleySingleHostName(ShelleySingleHostName),
+    ShelleyMultiHostName(ShelleyMultiHostName),
+}
+
+impl ShelleyRelay {
+    pub fn new_single_host_addr(
+        port: Option<Port>,
+        ipv4: Option<Ipv4>,
+        ipv6: Option<Ipv6>,
+    ) -> Self {
+        Self::SingleHostAddr(SingleHostAddr::new(port, ipv4, ipv6))
+    }
+
+    pub fn new_shelley_single_host_name(
+        port: Option<Port>,
+        shelley_dns_name: ShelleyDnsName,
+    ) -> Self {
+        Self::ShelleySingleHostName(ShelleySingleHostName::new(port, shelley_dns_name))
+    }
+
+    pub fn new_shelley_multi_host_name(shelley_dns_name: ShelleyDnsName) -> Self {
+        Self::ShelleyMultiHostName(ShelleyMultiHostName::new(shelley_dns_name))
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct ShelleySingleHostName {
+    pub port: Option<Port>,
+    pub shelley_dns_name: ShelleyDnsName,
+    #[serde(skip)]
+    pub encodings: Option<ShelleySingleHostNameEncoding>,
+}
+
+impl ShelleySingleHostName {
+    pub fn new(port: Option<Port>, shelley_dns_name: ShelleyDnsName) -> Self {
+        Self {
+            port,
+            shelley_dns_name,
+            encodings: None,
+        }
     }
 }
 
@@ -537,5 +729,11 @@ impl ShelleyUpdate {
             epoch,
             encodings: None,
         }
+    }
+}
+
+impl From<ShelleyDnsName> for String {
+    fn from(wrapper: ShelleyDnsName) -> Self {
+        wrapper.inner
     }
 }

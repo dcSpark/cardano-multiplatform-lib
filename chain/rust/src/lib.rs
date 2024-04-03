@@ -30,11 +30,11 @@ pub mod transaction;
 pub mod utils;
 
 pub use assets::{Coin, Value};
-use certs::Certificate;
+use certs::{Certificate, CommitteeColdCredential};
 use cml_crypto::Ed25519KeyHash;
 use crypto::{BootstrapWitness, Vkeywitness};
 use utils::NonemptySetRawBytes;
-pub use utils::{NonemptySet, Set, NetworkId};
+pub use utils::{NetworkId, NonemptySet, Set};
 
 //pub mod legacy_address;
 
@@ -59,7 +59,9 @@ use cbor_encodings::{
     RationalEncoding, UnitIntervalEncoding,
 };
 use governance::{ProposalProcedure, Voter};
-use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script};
+use plutus::{
+    CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script,
+};
 use transaction::{NativeScript, TransactionInput};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -109,8 +111,6 @@ impl DRepVotingThresholds {
 }
 
 pub type DeltaCoin = Int;
-
-pub type SetTransactionInput = Set<TransactionInput>;
 
 pub type NonemptySetBootstrapWitness = NonemptySet<BootstrapWitness>;
 
@@ -346,6 +346,11 @@ impl Script {
         }
     }
 }
+
+pub type SetCommitteeColdCredential = Set<CommitteeColdCredential>;
+pub type SetEd25519KeyHash = NonemptySetRawBytes<Ed25519KeyHash>;
+
+pub type SetTransactionInput = Set<TransactionInput>;
 
 pub type SubCoin = Rational;
 

@@ -9,7 +9,8 @@ use crate::{
     plutus::{CostModels, Language, PlutusData, Redeemers},
     transaction::{
         cbor_encodings::TransactionWitnessSetEncoding, TransactionBody, TransactionWitnessSet,
-    }, NonemptySetPlutusData,
+    },
+    NonemptySetPlutusData,
 };
 
 pub fn hash_auxiliary_data(auxiliary_data: &AuxiliaryData) -> AuxiliaryDataHash {

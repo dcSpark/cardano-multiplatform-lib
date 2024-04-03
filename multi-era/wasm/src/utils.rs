@@ -12,10 +12,9 @@ use cml_chain_wasm::{
     crypto::{GenesisHash, Nonce, VRFCert, Vkey},
     governance::VotingProcedures,
     plutus::{CostModels, ExUnitPrices, ExUnits},
-    transaction::RequiredSigners,
     DRepVotingThresholds, MapTransactionIndexToAuxiliaryData, NetworkId, PoolVotingThresholds,
-    ProposalProcedureList, Rational, TransactionInputList, TransactionWitnessSetList, UnitInterval,
-    Withdrawals,
+    ProposalProcedureList, Rational, RequiredSigners, TransactionInputList,
+    TransactionWitnessSetList, UnitInterval, Withdrawals,
 };
 use cml_core::{Epoch, TransactionIndex};
 use cml_core_wasm::{impl_wasm_conversions, impl_wasm_json_api, impl_wasm_list, impl_wasm_map};
@@ -620,13 +619,13 @@ impl MultiEraTransactionBody {
     pub fn collateral_inputs(&self) -> Option<TransactionInputList> {
         self.0
             .collateral_inputs()
-            .map(|inputs| inputs.clone().into())
+            .map(|inputs| inputs.to_vec().into())
     }
 
     pub fn required_signers(&self) -> Option<RequiredSigners> {
         self.0
             .required_signers()
-            .map(|signers| signers.clone().into())
+            .map(|signers| signers.to_vec().into())
     }
 
     pub fn network_id(&self) -> Option<NetworkId> {
@@ -644,7 +643,7 @@ impl MultiEraTransactionBody {
     pub fn reference_inputs(&self) -> Option<TransactionInputList> {
         self.0
             .reference_inputs()
-            .map(|inputs| inputs.clone().into())
+            .map(|inputs| inputs.to_vec().into())
     }
 
     pub fn voting_procedures(&self) -> Option<VotingProcedures> {
@@ -652,7 +651,7 @@ impl MultiEraTransactionBody {
     }
 
     pub fn proposal_procedures(&self) -> Option<ProposalProcedureList> {
-        self.0.proposal_procedures().map(|pps| pps.clone().into())
+        self.0.proposal_procedures().map(|pps| pps.to_vec().into())
     }
 
     pub fn current_treasury_value(&self) -> Option<Coin> {

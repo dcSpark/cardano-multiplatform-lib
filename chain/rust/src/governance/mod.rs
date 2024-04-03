@@ -9,12 +9,12 @@ use crate::assets::Coin;
 use crate::block::ProtocolVersion;
 use crate::certs::{CommitteeColdCredential, Url};
 use crate::crypto::{AnchorDocHash, Ed25519KeyHash, ScriptHash, TransactionHash};
-use crate::{Epoch, ProtocolParamUpdate, UnitInterval};
+use crate::{Epoch, ProtocolParamUpdate, SetCommitteeColdCredential, UnitInterval};
 use cbor_encodings::{
-    AnchorEncoding, CommitteeEncoding, ConstitutionEncoding, GovActionIdEncoding,
-    HardForkInitiationActionEncoding, NewCommitteeEncoding, NewConstitutionEncoding,
-    NoConfidenceEncoding, ParameterChangeActionEncoding, ProposalProcedureEncoding,
-    TreasuryWithdrawalsActionEncoding, VotingProcedureEncoding,
+    AnchorEncoding, ConstitutionEncoding, GovActionIdEncoding, HardForkInitiationActionEncoding,
+    NewConstitutionEncoding, NoConfidenceEncoding, ParameterChangeActionEncoding,
+    ProposalProcedureEncoding, TreasuryWithdrawalsActionEncoding, UpdateCommitteeEncoding,
+    VotingProcedureEncoding,
 };
 
 use cml_core::ordered_hash_map::OrderedHashMap;
@@ -34,27 +34,6 @@ impl Anchor {
         Self {
             anchor_url,
             anchor_doc_hash,
-            encodings: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Committee {
-    pub credentials: OrderedHashMap<CommitteeColdCredential, Epoch>,
-    pub unit_interval: UnitInterval,
-    #[serde(skip)]
-    pub encodings: Option<CommitteeEncoding>,
-}
-
-impl Committee {
-    pub fn new(
-        credentials: OrderedHashMap<CommitteeColdCredential, Epoch>,
-        unit_interval: UnitInterval,
-    ) -> Self {
-        Self {
-            credentials,
-            unit_interval,
             encodings: None,
         }
     }
@@ -85,7 +64,7 @@ pub enum GovAction {
     HardForkInitiationAction(HardForkInitiationAction),
     TreasuryWithdrawalsAction(TreasuryWithdrawalsAction),
     NoConfidence(NoConfidence),
-    NewCommittee(NewCommittee),
+    UpdateCommittee(UpdateCommittee),
     NewConstitution(NewConstitution),
     InfoAction {
         #[serde(skip)]
@@ -126,12 +105,18 @@ impl GovAction {
         Self::NoConfidence(NoConfidence::new(action_id))
     }
 
-    pub fn new_new_committee(
+    pub fn new_update_committee(
         action_id: Option<GovActionId>,
-        cold_credentials: Vec<CommitteeColdCredential>,
-        committee: Committee,
+        cold_credentials: SetCommitteeColdCredential,
+        credentials: OrderedHashMap<CommitteeColdCredential, Epoch>,
+        unit_interval: UnitInterval,
     ) -> Self {
-        Self::NewCommittee(NewCommittee::new(action_id, cold_credentials, committee))
+        Self::UpdateCommittee(UpdateCommittee::new(
+            action_id,
+            cold_credentials,
+            credentials,
+            unit_interval,
+        ))
     }
 
     pub fn new_new_constitution(
@@ -189,30 +174,6 @@ impl HardForkInitiationAction {
         Self {
             action_id,
             version,
-            encodings: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct NewCommittee {
-    pub action_id: Option<GovActionId>,
-    pub cold_credentials: Vec<CommitteeColdCredential>,
-    pub committee: Committee,
-    #[serde(skip)]
-    pub encodings: Option<NewCommitteeEncoding>,
-}
-
-impl NewCommittee {
-    pub fn new(
-        action_id: Option<GovActionId>,
-        cold_credentials: Vec<CommitteeColdCredential>,
-        committee: Committee,
-    ) -> Self {
-        Self {
-            action_id,
-            cold_credentials,
-            committee,
             encodings: None,
         }
     }
@@ -319,6 +280,33 @@ impl TreasuryWithdrawalsAction {
         Self {
             withdrawal,
             policy_hash,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct UpdateCommittee {
+    pub action_id: Option<GovActionId>,
+    pub cold_credentials: SetCommitteeColdCredential,
+    pub credentials: OrderedHashMap<CommitteeColdCredential, Epoch>,
+    pub unit_interval: UnitInterval,
+    #[serde(skip)]
+    pub encodings: Option<UpdateCommitteeEncoding>,
+}
+
+impl UpdateCommittee {
+    pub fn new(
+        action_id: Option<GovActionId>,
+        cold_credentials: SetCommitteeColdCredential,
+        credentials: OrderedHashMap<CommitteeColdCredential, Epoch>,
+        unit_interval: UnitInterval,
+    ) -> Self {
+        Self {
+            action_id,
+            cold_credentials,
+            credentials,
+            unit_interval,
             encodings: None,
         }
     }

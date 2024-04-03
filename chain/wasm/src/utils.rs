@@ -86,6 +86,8 @@ impl NetworkId {
     }
 }
 
+// we provide direct From/Into conversions between NonemptySet<T> and TList
+// to allow the auto-generated code to work directly without changes
 macro_rules! impl_wasm_conversions_into {
     ($rust:ty, $wasm:ty) => {
         impl From<$rust> for $wasm {
@@ -144,4 +146,9 @@ impl_wasm_conversions_into!(cml_chain::NonemptySetNativeScript, crate::NativeScr
 impl_wasm_conversions_into!(
     cml_chain::utils::NonemptySetRawBytes<cml_crypto::Ed25519KeyHash>,
     crate::Ed25519KeyHashList
+);
+
+impl_wasm_conversions_into!(
+    cml_chain::SetCommitteeColdCredential,
+    crate::CommitteeColdCredentialList
 );

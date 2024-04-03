@@ -1997,6 +1997,206 @@ impl Deserialize for AlonzoProtocolParamUpdate {
     }
 }
 
+impl Serialize for AlonzoRedeemer {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(4, force_canonical),
+        )?;
+        match &self.tag {
+            AlonzoRedeemerTag::Spend => serializer.write_unsigned_integer_sz(
+                0u64,
+                fit_sz(
+                    0u64,
+                    self.encodings
+                        .as_ref()
+                        .map(|encs| encs.tag_encoding)
+                        .unwrap_or_default(),
+                    force_canonical,
+                ),
+            ),
+            AlonzoRedeemerTag::Mint => serializer.write_unsigned_integer_sz(
+                1u64,
+                fit_sz(
+                    1u64,
+                    self.encodings
+                        .as_ref()
+                        .map(|encs| encs.tag_encoding)
+                        .unwrap_or_default(),
+                    force_canonical,
+                ),
+            ),
+            AlonzoRedeemerTag::Cert => serializer.write_unsigned_integer_sz(
+                2u64,
+                fit_sz(
+                    2u64,
+                    self.encodings
+                        .as_ref()
+                        .map(|encs| encs.tag_encoding)
+                        .unwrap_or_default(),
+                    force_canonical,
+                ),
+            ),
+            AlonzoRedeemerTag::Reward => serializer.write_unsigned_integer_sz(
+                3u64,
+                fit_sz(
+                    3u64,
+                    self.encodings
+                        .as_ref()
+                        .map(|encs| encs.tag_encoding)
+                        .unwrap_or_default(),
+                    force_canonical,
+                ),
+            ),
+        }?;
+        serializer.write_unsigned_integer_sz(
+            self.index,
+            fit_sz(
+                self.index,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.index_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )?;
+        self.data.serialize(serializer, force_canonical)?;
+        self.ex_units.serialize(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for AlonzoRedeemer {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let len_encoding: LenEncoding = len.into();
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(4)?;
+        read_len.finish()?;
+        (|| -> Result<_, DeserializeError> {
+            let (tag, tag_encoding) = (|| -> Result<_, DeserializeError> {
+                let initial_position = raw.as_mut_ref().stream_position().unwrap();
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                    let (spend_value, spend_encoding) = raw.unsigned_integer_sz()?;
+                    if spend_value != 0 {
+                        return Err(DeserializeFailure::FixedValueMismatch {
+                            found: Key::Uint(spend_value),
+                            expected: Key::Uint(0),
+                        }
+                        .into());
+                    }
+                    Ok(Some(spend_encoding))
+                })(raw);
+                match deser_variant {
+                    Ok(tag_encoding) => return Ok((AlonzoRedeemerTag::Spend, tag_encoding)),
+                    Err(_) => raw
+                        .as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap(),
+                };
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                    let (mint_value, mint_encoding) = raw.unsigned_integer_sz()?;
+                    if mint_value != 1 {
+                        return Err(DeserializeFailure::FixedValueMismatch {
+                            found: Key::Uint(mint_value),
+                            expected: Key::Uint(1),
+                        }
+                        .into());
+                    }
+                    Ok(Some(mint_encoding))
+                })(raw);
+                match deser_variant {
+                    Ok(tag_encoding) => return Ok((AlonzoRedeemerTag::Mint, tag_encoding)),
+                    Err(_) => raw
+                        .as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap(),
+                };
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                    let (cert_value, cert_encoding) = raw.unsigned_integer_sz()?;
+                    if cert_value != 2 {
+                        return Err(DeserializeFailure::FixedValueMismatch {
+                            found: Key::Uint(cert_value),
+                            expected: Key::Uint(2),
+                        }
+                        .into());
+                    }
+                    Ok(Some(cert_encoding))
+                })(raw);
+                match deser_variant {
+                    Ok(tag_encoding) => return Ok((AlonzoRedeemerTag::Cert, tag_encoding)),
+                    Err(_) => raw
+                        .as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap(),
+                };
+                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                    let (reward_value, reward_encoding) = raw.unsigned_integer_sz()?;
+                    if reward_value != 3 {
+                        return Err(DeserializeFailure::FixedValueMismatch {
+                            found: Key::Uint(reward_value),
+                            expected: Key::Uint(3),
+                        }
+                        .into());
+                    }
+                    Ok(Some(reward_encoding))
+                })(raw);
+                match deser_variant {
+                    Ok(tag_encoding) => return Ok((AlonzoRedeemerTag::Reward, tag_encoding)),
+                    Err(_) => raw
+                        .as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap(),
+                };
+                Err(DeserializeError::new(
+                    "AlonzoRedeemerTag",
+                    DeserializeFailure::NoVariantMatched,
+                ))
+            })()
+            .map_err(|e| e.annotate("tag"))?;
+            let (index, index_encoding) = raw
+                .unsigned_integer_sz()
+                .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
+                .map_err(|e: DeserializeError| e.annotate("index"))?;
+            let data =
+                PlutusData::deserialize(raw).map_err(|e: DeserializeError| e.annotate("data"))?;
+            let ex_units =
+                ExUnits::deserialize(raw).map_err(|e: DeserializeError| e.annotate("ex_units"))?;
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            Ok(AlonzoRedeemer {
+                tag,
+                index,
+                data,
+                ex_units,
+                encodings: Some(AlonzoRedeemerEncoding {
+                    len_encoding,
+                    tag_encoding,
+                    index_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("AlonzoRedeemer"))
+    }
+}
+
 impl Serialize for AlonzoTransaction {
     fn serialize<'se, W: Write>(
         &self,
@@ -3048,7 +3248,7 @@ impl Deserialize for AlonzoTransactionBody {
                 mint: mint.map(Into::into),
                 script_data_hash,
                 collateral_inputs,
-                required_signers,
+                required_signers: required_signers.map(Into::into),
                 network_id,
                 encodings: Some(AlonzoTransactionBodyEncoding {
                     len_encoding,
@@ -3548,7 +3748,7 @@ impl Deserialize for AlonzoTransactionWitnessSet {
                                             assert_eq!(raw.special()?, cbor_event::Special::Break);
                                             break;
                                         }
-                                        redeemers_arr.push(Redeemer::deserialize(raw)?);
+                                        redeemers_arr.push(AlonzoRedeemer::deserialize(raw)?);
                                     }
                                     Ok((redeemers_arr, redeemers_encoding))
                                 })()

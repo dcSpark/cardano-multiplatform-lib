@@ -3,8 +3,9 @@
 
 use crate::shelley::ProtocolVersionStruct;
 use crate::{
-    AllegraCertificateList, BabbageTransactionBodyList, BabbageTransactionOutputList,
-    BabbageTransactionWitnessSetList, GenesisHashList, MapTransactionIndexToBabbageAuxiliaryData,
+    AllegraCertificateList, AlonzoRedeemerList, BabbageTransactionBodyList,
+    BabbageTransactionOutputList, BabbageTransactionWitnessSetList, GenesisHashList,
+    MapTransactionIndexToBabbageAuxiliaryData,
 };
 use cml_chain_wasm::address::Address;
 use cml_chain_wasm::assets::{Coin, Mint, Value};
@@ -12,10 +13,10 @@ use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
 use cml_chain_wasm::block::Header;
 use cml_chain_wasm::crypto::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
 use cml_chain_wasm::plutus::{ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
-use cml_chain_wasm::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, RequiredSigners};
+use cml_chain_wasm::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript};
 use cml_chain_wasm::{
     BootstrapWitnessList, IntList, NativeScriptList, NetworkId, PlutusDataList, PlutusV1ScriptList,
-    PlutusV2ScriptList, RedeemerList, TransactionInputList, VkeywitnessList,
+    PlutusV2ScriptList, RequiredSigners, TransactionInputList, VkeywitnessList,
 };
 use cml_chain_wasm::{Epoch, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
@@ -943,11 +944,11 @@ impl BabbageTransactionWitnessSet {
         self.0.plutus_datums.clone().map(std::convert::Into::into)
     }
 
-    pub fn set_redeemers(&mut self, redeemers: &RedeemerList) {
+    pub fn set_redeemers(&mut self, redeemers: &AlonzoRedeemerList) {
         self.0.redeemers = Some(redeemers.clone().into())
     }
 
-    pub fn redeemers(&self) -> Option<RedeemerList> {
+    pub fn redeemers(&self) -> Option<AlonzoRedeemerList> {
         self.0.redeemers.clone().map(std::convert::Into::into)
     }
 

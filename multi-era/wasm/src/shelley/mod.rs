@@ -3,20 +3,22 @@
 
 use crate::{
     GenesisHashList, MapStakeCredentialToCoin, MapTransactionIndexToMetadata, MultisigScriptList,
-    ShelleyCertificateList, ShelleyTransactionBodyList, ShelleyTransactionOutputList,
-    ShelleyTransactionWitnessSetList,
+    ShelleyCertificateList, ShelleyRelayList, ShelleyTransactionBodyList,
+    ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
 };
-use cml_chain_wasm::address::Address;
+use cml_chain_wasm::address::{Address, RewardAccount};
 use cml_chain_wasm::assets::Coin;
 use cml_chain_wasm::auxdata::Metadata;
 use cml_chain_wasm::block::{OperationalCert, ProtocolVersion};
 use cml_chain_wasm::certs::{
-    PoolParams, PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation,
+    Ipv4, Ipv6, PoolMetadata, PoolRetirement, SingleHostAddr, StakeCredential, StakeDelegation,
     StakeDeregistration, StakeRegistration,
 };
 use cml_chain_wasm::crypto::{KESSignature, Nonce, VRFCert, Vkey};
-use cml_chain_wasm::{BootstrapWitnessList, TransactionInputList, VkeywitnessList};
-use cml_chain_wasm::{Epoch, Rational, UnitInterval, Withdrawals};
+use cml_chain_wasm::{
+    BootstrapWitnessList, Ed25519KeyHashList, TransactionInputList, VkeywitnessList,
+};
+use cml_chain_wasm::{Epoch, Port, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{
@@ -356,9 +358,9 @@ impl ShelleyCertificate {
         )
     }
 
-    pub fn new_pool_registration(pool_params: &PoolParams) -> Self {
+    pub fn new_shelley_pool_registration(pool_params: &ShelleyPoolParams) -> Self {
         Self(
-            cml_multi_era::shelley::ShelleyCertificate::new_pool_registration(
+            cml_multi_era::shelley::ShelleyCertificate::new_shelley_pool_registration(
                 pool_params.clone().into(),
             ),
         )
@@ -408,8 +410,8 @@ impl ShelleyCertificate {
             cml_multi_era::shelley::ShelleyCertificate::StakeDelegation(_) => {
                 ShelleyCertificateKind::StakeDelegation
             }
-            cml_multi_era::shelley::ShelleyCertificate::PoolRegistration(_) => {
-                ShelleyCertificateKind::PoolRegistration
+            cml_multi_era::shelley::ShelleyCertificate::ShelleyPoolRegistration(_) => {
+                ShelleyCertificateKind::ShelleyPoolRegistration
             }
             cml_multi_era::shelley::ShelleyCertificate::PoolRetirement(_) => {
                 ShelleyCertificateKind::PoolRetirement
@@ -417,9 +419,9 @@ impl ShelleyCertificate {
             cml_multi_era::shelley::ShelleyCertificate::GenesisKeyDelegation(_) => {
                 ShelleyCertificateKind::GenesisKeyDelegation
             }
-            cml_multi_era::shelley::ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert {
-                ..
-            } => ShelleyCertificateKind::ShelleyMoveInstantaneousRewardsCert,
+            cml_multi_era::shelley::ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert(_) => {
+                ShelleyCertificateKind::ShelleyMoveInstantaneousRewardsCert
+            }
         }
     }
 
@@ -450,11 +452,11 @@ impl ShelleyCertificate {
         }
     }
 
-    pub fn as_pool_registration(&self) -> Option<PoolRegistration> {
+    pub fn as_shelley_pool_registration(&self) -> Option<ShelleyPoolRegistration> {
         match &self.0 {
-            cml_multi_era::shelley::ShelleyCertificate::PoolRegistration(pool_registration) => {
-                Some(pool_registration.clone().into())
-            }
+            cml_multi_era::shelley::ShelleyCertificate::ShelleyPoolRegistration(
+                shelley_pool_registration,
+            ) => Some(shelley_pool_registration.clone().into()),
             _ => None,
         }
     }
@@ -481,10 +483,9 @@ impl ShelleyCertificate {
         &self,
     ) -> Option<ShelleyMoveInstantaneousRewardsCert> {
         match &self.0 {
-            cml_multi_era::shelley::ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert {
+            cml_multi_era::shelley::ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert(
                 shelley_move_instantaneous_rewards_cert,
-                ..
-            } => Some(shelley_move_instantaneous_rewards_cert.clone().into()),
+            ) => Some(shelley_move_instantaneous_rewards_cert.clone().into()),
             _ => None,
         }
     }
@@ -495,10 +496,25 @@ pub enum ShelleyCertificateKind {
     StakeRegistration,
     StakeDeregistration,
     StakeDelegation,
-    PoolRegistration,
+    ShelleyPoolRegistration,
     PoolRetirement,
     GenesisKeyDelegation,
     ShelleyMoveInstantaneousRewardsCert,
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct ShelleyDnsName(cml_multi_era::shelley::ShelleyDnsName);
+
+impl_wasm_cbor_json_api!(ShelleyDnsName);
+
+impl_wasm_conversions!(cml_multi_era::shelley::ShelleyDnsName, ShelleyDnsName);
+
+#[wasm_bindgen]
+impl ShelleyDnsName {
+    pub fn get(&self) -> String {
+        self.0.get().clone()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -664,6 +680,125 @@ impl ShelleyMoveInstantaneousRewardsCert {
                 shelley_move_instantaneous_reward.clone().into(),
             ),
         )
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct ShelleyMultiHostName(cml_multi_era::shelley::ShelleyMultiHostName);
+
+impl_wasm_cbor_json_api!(ShelleyMultiHostName);
+
+impl_wasm_conversions!(
+    cml_multi_era::shelley::ShelleyMultiHostName,
+    ShelleyMultiHostName
+);
+
+#[wasm_bindgen]
+impl ShelleyMultiHostName {
+    pub fn shelley_dns_name(&self) -> ShelleyDnsName {
+        self.0.shelley_dns_name.clone().into()
+    }
+
+    pub fn new(shelley_dns_name: &ShelleyDnsName) -> Self {
+        Self(cml_multi_era::shelley::ShelleyMultiHostName::new(
+            shelley_dns_name.clone().into(),
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct ShelleyPoolParams(cml_multi_era::shelley::ShelleyPoolParams);
+
+impl_wasm_cbor_json_api!(ShelleyPoolParams);
+
+impl_wasm_conversions!(cml_multi_era::shelley::ShelleyPoolParams, ShelleyPoolParams);
+
+#[wasm_bindgen]
+impl ShelleyPoolParams {
+    pub fn operator(&self) -> Ed25519KeyHash {
+        self.0.operator.into()
+    }
+
+    pub fn vrf_keyhash(&self) -> VRFKeyHash {
+        self.0.vrf_keyhash.into()
+    }
+
+    pub fn pledge(&self) -> Coin {
+        self.0.pledge
+    }
+
+    pub fn cost(&self) -> Coin {
+        self.0.cost
+    }
+
+    pub fn margin(&self) -> UnitInterval {
+        self.0.margin.clone().into()
+    }
+
+    pub fn reward_account(&self) -> RewardAccount {
+        self.0.reward_account.clone().into()
+    }
+
+    pub fn pool_owners(&self) -> Ed25519KeyHashList {
+        self.0.pool_owners.clone().into()
+    }
+
+    pub fn relays(&self) -> ShelleyRelayList {
+        self.0.relays.clone().into()
+    }
+
+    pub fn pool_metadata(&self) -> Option<PoolMetadata> {
+        self.0.pool_metadata.clone().map(std::convert::Into::into)
+    }
+
+    pub fn new(
+        operator: &Ed25519KeyHash,
+        vrf_keyhash: &VRFKeyHash,
+        pledge: Coin,
+        cost: Coin,
+        margin: &UnitInterval,
+        reward_account: &RewardAccount,
+        pool_owners: &Ed25519KeyHashList,
+        relays: &ShelleyRelayList,
+        pool_metadata: Option<PoolMetadata>,
+    ) -> Self {
+        Self(cml_multi_era::shelley::ShelleyPoolParams::new(
+            operator.clone().into(),
+            vrf_keyhash.clone().into(),
+            pledge,
+            cost,
+            margin.clone().into(),
+            reward_account.clone().into(),
+            pool_owners.clone().into(),
+            relays.clone().into(),
+            pool_metadata.map(Into::into),
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct ShelleyPoolRegistration(cml_multi_era::shelley::ShelleyPoolRegistration);
+
+impl_wasm_cbor_json_api!(ShelleyPoolRegistration);
+
+impl_wasm_conversions!(
+    cml_multi_era::shelley::ShelleyPoolRegistration,
+    ShelleyPoolRegistration
+);
+
+#[wasm_bindgen]
+impl ShelleyPoolRegistration {
+    pub fn pool_params(&self) -> ShelleyPoolParams {
+        self.0.pool_params.clone().into()
+    }
+
+    pub fn new(pool_params: &ShelleyPoolParams) -> Self {
+        Self(cml_multi_era::shelley::ShelleyPoolRegistration::new(
+            pool_params.clone().into(),
+        ))
     }
 }
 
@@ -862,6 +997,126 @@ impl ShelleyProtocolParamUpdate {
 
     pub fn new() -> Self {
         Self(cml_multi_era::shelley::ShelleyProtocolParamUpdate::new())
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct ShelleyRelay(cml_multi_era::shelley::ShelleyRelay);
+
+impl_wasm_cbor_json_api!(ShelleyRelay);
+
+impl_wasm_conversions!(cml_multi_era::shelley::ShelleyRelay, ShelleyRelay);
+
+#[wasm_bindgen]
+impl ShelleyRelay {
+    pub fn new_single_host_addr(
+        port: Option<Port>,
+        ipv4: Option<Ipv4>,
+        ipv6: Option<Ipv6>,
+    ) -> Self {
+        Self(cml_multi_era::shelley::ShelleyRelay::new_single_host_addr(
+            port,
+            ipv4.map(Into::into),
+            ipv6.map(Into::into),
+        ))
+    }
+
+    pub fn new_shelley_single_host_name(
+        port: Option<Port>,
+        shelley_dns_name: &ShelleyDnsName,
+    ) -> Self {
+        Self(
+            cml_multi_era::shelley::ShelleyRelay::new_shelley_single_host_name(
+                port,
+                shelley_dns_name.clone().into(),
+            ),
+        )
+    }
+
+    pub fn new_shelley_multi_host_name(shelley_dns_name: &ShelleyDnsName) -> Self {
+        Self(
+            cml_multi_era::shelley::ShelleyRelay::new_shelley_multi_host_name(
+                shelley_dns_name.clone().into(),
+            ),
+        )
+    }
+
+    pub fn kind(&self) -> ShelleyRelayKind {
+        match &self.0 {
+            cml_multi_era::shelley::ShelleyRelay::SingleHostAddr(_) => {
+                ShelleyRelayKind::SingleHostAddr
+            }
+            cml_multi_era::shelley::ShelleyRelay::ShelleySingleHostName(_) => {
+                ShelleyRelayKind::ShelleySingleHostName
+            }
+            cml_multi_era::shelley::ShelleyRelay::ShelleyMultiHostName(_) => {
+                ShelleyRelayKind::ShelleyMultiHostName
+            }
+        }
+    }
+
+    pub fn as_single_host_addr(&self) -> Option<SingleHostAddr> {
+        match &self.0 {
+            cml_multi_era::shelley::ShelleyRelay::SingleHostAddr(single_host_addr) => {
+                Some(single_host_addr.clone().into())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_shelley_single_host_name(&self) -> Option<ShelleySingleHostName> {
+        match &self.0 {
+            cml_multi_era::shelley::ShelleyRelay::ShelleySingleHostName(
+                shelley_single_host_name,
+            ) => Some(shelley_single_host_name.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_shelley_multi_host_name(&self) -> Option<ShelleyMultiHostName> {
+        match &self.0 {
+            cml_multi_era::shelley::ShelleyRelay::ShelleyMultiHostName(shelley_multi_host_name) => {
+                Some(shelley_multi_host_name.clone().into())
+            }
+            _ => None,
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub enum ShelleyRelayKind {
+    SingleHostAddr,
+    ShelleySingleHostName,
+    ShelleyMultiHostName,
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct ShelleySingleHostName(cml_multi_era::shelley::ShelleySingleHostName);
+
+impl_wasm_cbor_json_api!(ShelleySingleHostName);
+
+impl_wasm_conversions!(
+    cml_multi_era::shelley::ShelleySingleHostName,
+    ShelleySingleHostName
+);
+
+#[wasm_bindgen]
+impl ShelleySingleHostName {
+    pub fn port(&self) -> Option<Port> {
+        self.0.port
+    }
+
+    pub fn shelley_dns_name(&self) -> ShelleyDnsName {
+        self.0.shelley_dns_name.clone().into()
+    }
+
+    pub fn new(port: Option<Port>, shelley_dns_name: &ShelleyDnsName) -> Self {
+        Self(cml_multi_era::shelley::ShelleySingleHostName::new(
+            port,
+            shelley_dns_name.clone().into(),
+        ))
     }
 }
 

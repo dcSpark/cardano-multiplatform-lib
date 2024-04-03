@@ -13,13 +13,6 @@ pub struct AnchorEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct CommitteeEncoding {
-    pub len_encoding: LenEncoding,
-    pub credentials_encoding: LenEncoding,
-    pub credentials_value_encodings: BTreeMap<Credential, Option<cbor_event::Sz>>,
-}
-
-#[derive(Clone, Debug, Default)]
 pub struct ConstitutionEncoding {
     pub len_encoding: LenEncoding,
     pub script_hash_encoding: StringEncoding,
@@ -36,13 +29,6 @@ pub struct GovActionIdEncoding {
 pub struct HardForkInitiationActionEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct NewCommitteeEncoding {
-    pub len_encoding: LenEncoding,
-    pub tag_encoding: Option<cbor_event::Sz>,
-    pub cold_credentials_encoding: LenEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -77,6 +63,14 @@ pub struct TreasuryWithdrawalsActionEncoding {
     pub withdrawal_encoding: LenEncoding,
     pub withdrawal_value_encodings: BTreeMap<RewardAccount, Option<cbor_event::Sz>>,
     pub policy_hash_encoding: StringEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct UpdateCommitteeEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+    pub credentials_encoding: LenEncoding,
+    pub credentials_value_encodings: BTreeMap<Credential, Option<cbor_event::Sz>>,
 }
 
 #[derive(Clone, Debug, Default)]

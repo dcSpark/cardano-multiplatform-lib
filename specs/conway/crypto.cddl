@@ -44,7 +44,7 @@ nonce_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 
 nonce = [
   ; @name identity
-  identity: 0 //
+  tag: 0 //
   ; @name hash
   tag: 1, hash: nonce_hash
 ]

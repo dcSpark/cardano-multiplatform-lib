@@ -7,6 +7,7 @@ use cml_core::{
 use cml_crypto::{RawBytesEncoding, ScriptHash};
 use derivative::Derivative;
 use std::io::{BufRead, Seek, Write};
+use std::iter::IntoIterator;
 
 use crate::{
     crypto::hash::{hash_script, ScriptHashNamespace},
@@ -620,6 +621,33 @@ impl<T> AsRef<[T]> for NonemptySet<T> {
     }
 }
 
+impl<T> IntoIterator for NonemptySet<T> {
+    type Item = T;
+    type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a NonemptySet<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut NonemptySet<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.iter_mut()
+    }
+}
+
 impl<T> std::ops::Deref for NonemptySet<T> {
     type Target = Vec<T>;
 
@@ -760,6 +788,33 @@ impl<T: schemars::JsonSchema> schemars::JsonSchema for NonemptySetRawBytes<T> {
 impl<T> AsRef<[T]> for NonemptySetRawBytes<T> {
     fn as_ref(&self) -> &[T] {
         self.elems.as_ref()
+    }
+}
+
+impl<T> IntoIterator for NonemptySetRawBytes<T> {
+    type Item = T;
+    type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a NonemptySetRawBytes<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut NonemptySetRawBytes<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.iter_mut()
     }
 }
 

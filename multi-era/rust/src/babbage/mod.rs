@@ -9,9 +9,9 @@ use crate::allegra::AllegraCertificate;
 use crate::alonzo::AlonzoRedeemer;
 use crate::shelley::ProtocolVersionStruct;
 use cbor_encodings::{
-    BabbageBlockEncoding, BabbageCostModelsEncoding, BabbageFormatAuxDataEncoding,
-    BabbageFormatTxOutEncoding, BabbageProtocolParamUpdateEncoding, BabbageTransactionBodyEncoding,
-    BabbageTransactionEncoding, BabbageTransactionWitnessSetEncoding, BabbageUpdateEncoding,
+    BabbageBlockEncoding, BabbageFormatAuxDataEncoding, BabbageFormatTxOutEncoding,
+    BabbageProtocolParamUpdateEncoding, BabbageTransactionBodyEncoding, BabbageTransactionEncoding,
+    BabbageTransactionWitnessSetEncoding, BabbageUpdateEncoding,
 };
 use cml_chain::address::Address;
 use cml_chain::assets::{Coin, Mint, Value};
@@ -20,13 +20,15 @@ use cml_chain::block::Header;
 use cml_chain::crypto::{
     AuxiliaryDataHash, BootstrapWitness, GenesisHash, ScriptDataHash, Vkeywitness,
 };
-use cml_chain::plutus::{ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script};
+use cml_chain::plutus::{
+    CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script,
+};
 use cml_chain::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, TransactionInput};
 use cml_chain::{Epoch, NetworkId, Rational, RequiredSigners, UnitInterval, Withdrawals};
 
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::LenEncoding;
-use cml_core::{Int, TransactionIndex};
+use cml_core::TransactionIndex;
 
 use std::collections::BTreeMap;
 
@@ -81,29 +83,7 @@ impl BabbageBlock {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct BabbageCostModels {
-    pub plutus_v1: Option<Vec<Int>>,
-    pub plutus_v2: Option<Vec<Int>>,
-    #[serde(skip)]
-    pub encodings: Option<BabbageCostModelsEncoding>,
-}
-
-impl BabbageCostModels {
-    pub fn new() -> Self {
-        Self {
-            plutus_v1: None,
-            plutus_v2: None,
-            encodings: None,
-        }
-    }
-}
-
-impl Default for BabbageCostModels {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+pub type BabbageCostModels = CostModels;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct BabbageFormatAuxData {

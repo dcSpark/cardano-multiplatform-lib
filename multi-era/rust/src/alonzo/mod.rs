@@ -5,21 +5,19 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use cml_core::Int;
-
 use crate::allegra::AllegraCertificate;
 use crate::shelley::{ProtocolVersionStruct, ShelleyHeader};
 use cbor_encodings::{
-    AlonzoBlockEncoding, AlonzoCostmdlsEncoding, AlonzoFormatAuxDataEncoding,
-    AlonzoProtocolParamUpdateEncoding, AlonzoTransactionBodyEncoding, AlonzoTransactionEncoding,
-    AlonzoTransactionWitnessSetEncoding, AlonzoUpdateEncoding,
+    AlonzoBlockEncoding, AlonzoFormatAuxDataEncoding, AlonzoProtocolParamUpdateEncoding,
+    AlonzoTransactionBodyEncoding, AlonzoTransactionEncoding, AlonzoTransactionWitnessSetEncoding,
+    AlonzoUpdateEncoding,
 };
 use cml_chain::assets::{Coin, Mint};
 use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMaFormatAuxData};
 use cml_chain::crypto::{
     AuxiliaryDataHash, BootstrapWitness, GenesisHash, Nonce, ScriptDataHash, Vkeywitness,
 };
-use cml_chain::plutus::{ExUnitPrices, ExUnits, PlutusData, PlutusV1Script};
+use cml_chain::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script};
 use cml_chain::transaction::{AlonzoFormatTxOut, NativeScript, TransactionInput};
 use cml_chain::TransactionIndex;
 use cml_chain::{Epoch, NetworkId, Rational, RequiredSigners, UnitInterval, Withdrawals};
@@ -79,21 +77,7 @@ impl AlonzoBlock {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct AlonzoCostmdls {
-    pub plutus_v1: Vec<Int>,
-    #[serde(skip)]
-    pub encodings: Option<AlonzoCostmdlsEncoding>,
-}
-
-impl AlonzoCostmdls {
-    pub fn new(plutus_v1: Vec<Int>) -> Self {
-        Self {
-            plutus_v1,
-            encodings: None,
-        }
-    }
-}
+pub type AlonzoCostModels = CostModels;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AlonzoFormatAuxData {
@@ -143,7 +127,7 @@ pub struct AlonzoProtocolParamUpdate {
     pub protocol_version: Option<ProtocolVersionStruct>,
     pub min_pool_cost: Option<Coin>,
     pub ada_per_utxo_byte: Option<Coin>,
-    pub cost_models_for_script_languages: Option<AlonzoCostmdls>,
+    pub cost_models_for_script_languages: Option<AlonzoCostModels>,
     pub execution_costs: Option<ExUnitPrices>,
     pub max_tx_ex_units: Option<ExUnits>,
     pub max_block_ex_units: Option<ExUnits>,

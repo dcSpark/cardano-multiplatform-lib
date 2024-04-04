@@ -9,11 +9,11 @@ use crate::{
 use cml_chain_wasm::assets::{Coin, Mint};
 use cml_chain_wasm::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMaFormatAuxData};
 use cml_chain_wasm::crypto::Nonce;
-use cml_chain_wasm::plutus::{ExUnitPrices, ExUnits, PlutusData};
+use cml_chain_wasm::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData};
 use cml_chain_wasm::RequiredSigners;
 use cml_chain_wasm::TransactionIndex;
 use cml_chain_wasm::{
-    BootstrapWitnessList, IntList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
+    BootstrapWitnessList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
     TransactionInputList, VkeywitnessList,
 };
 use cml_chain_wasm::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
@@ -150,26 +150,7 @@ impl AlonzoBlock {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct AlonzoCostmdls(cml_multi_era::alonzo::AlonzoCostmdls);
-
-impl_wasm_cbor_json_api!(AlonzoCostmdls);
-
-impl_wasm_conversions!(cml_multi_era::alonzo::AlonzoCostmdls, AlonzoCostmdls);
-
-#[wasm_bindgen]
-impl AlonzoCostmdls {
-    pub fn plutus_v1(&self) -> IntList {
-        self.0.plutus_v1.clone().into()
-    }
-
-    pub fn new(plutus_v1: &IntList) -> Self {
-        Self(cml_multi_era::alonzo::AlonzoCostmdls::new(
-            plutus_v1.clone().into(),
-        ))
-    }
-}
+pub type AlonzoCostModels = CostModels;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -419,13 +400,13 @@ impl AlonzoProtocolParamUpdate {
 
     pub fn set_cost_models_for_script_languages(
         &mut self,
-        cost_models_for_script_languages: &AlonzoCostmdls,
+        cost_models_for_script_languages: &AlonzoCostModels,
     ) {
         self.0.cost_models_for_script_languages =
             Some(cost_models_for_script_languages.clone().into())
     }
 
-    pub fn cost_models_for_script_languages(&self) -> Option<AlonzoCostmdls> {
+    pub fn cost_models_for_script_languages(&self) -> Option<AlonzoCostModels> {
         self.0
             .cost_models_for_script_languages
             .clone()

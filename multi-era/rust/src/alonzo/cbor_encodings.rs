@@ -17,14 +17,6 @@ pub struct AlonzoBlockEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct AlonzoCostmdlsEncoding {
-    pub len_encoding: LenEncoding,
-    pub orig_deser_order: Vec<usize>,
-    pub plutus_v1_encoding: LenEncoding,
-    pub plutus_v1_key_encoding: Option<cbor_event::Sz>,
-}
-
-#[derive(Clone, Debug, Default)]
 pub struct AlonzoFormatAuxDataEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,

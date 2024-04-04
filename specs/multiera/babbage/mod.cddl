@@ -75,10 +75,11 @@ babbage_update = [
 babbage_proposed_protocol_parameter_updates =
   { * genesis_hash => babbage_protocol_param_update }
 
-babbage_cost_models = {
-  ? 0 : [ 166*166 int ], ; @name plutus_v1
-  ? 1 : [ 175*175 int ], ; @name plutus_v2
-}
+;babbage_cost_models = {
+;  ? 0 : [ 166*166 int ], ; @name plutus_v1
+;  ? 1 : [ 175*175 int ], ; @name plutus_v2
+;}
+babbage_cost_models = cost_models
 
 babbage_protocol_param_update = {
   ? 0:  uint,                ; @name minfee_a

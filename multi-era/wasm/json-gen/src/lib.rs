@@ -29,7 +29,6 @@ pub fn export_schemas() {
     // alonzo
     gen_json_schema!(cml_multi_era::alonzo::AlonzoAuxiliaryData);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoBlock);
-    gen_json_schema!(cml_multi_era::alonzo::AlonzoCostmdls);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoFormatAuxData);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoProtocolParamUpdate);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoRedeemer);
@@ -41,7 +40,6 @@ pub fn export_schemas() {
     // babbage
     gen_json_schema!(cml_multi_era::babbage::BabbageAuxiliaryData);
     gen_json_schema!(cml_multi_era::babbage::BabbageBlock);
-    gen_json_schema!(cml_multi_era::babbage::BabbageCostModels);
     gen_json_schema!(cml_multi_era::babbage::BabbageFormatAuxData);
     gen_json_schema!(cml_multi_era::babbage::BabbageFormatTxOut);
     gen_json_schema!(cml_multi_era::babbage::BabbageProtocolParamUpdate);

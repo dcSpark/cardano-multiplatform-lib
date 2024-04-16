@@ -161,9 +161,9 @@ impl_wasm_map!(
 
 impl_wasm_map!(
     cml_chain::TransactionIndex,
-    cml_core::metadata::Metadata,
+    cml_chain::auxdata::Metadata,
     TransactionIndex,
-    cml_core_wasm::metadata::Metadata,
+    cml_chain_wasm::auxdata::Metadata,
     Vec<TransactionIndex>,
     MapTransactionIndexToMetadata,
     true,

@@ -1,13 +1,14 @@
-use cml_chain_wasm::{assets::AssetName, PolicyId};
+use cml_chain_wasm::{
+    assets::AssetName,
+    auxdata::{Metadata, TransactionMetadatum},
+    PolicyId,
+};
 
 use crate::*;
 
 use wasm_bindgen::prelude::JsError;
 
-use cml_core_wasm::{
-    impl_wasm_json_api,
-    metadata::{Metadata, TransactionMetadatum},
-};
+use cml_core_wasm::impl_wasm_json_api;
 
 #[wasm_bindgen]
 impl CIP25Metadata {

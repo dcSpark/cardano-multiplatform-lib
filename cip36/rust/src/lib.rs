@@ -5,12 +5,11 @@
 
 pub use cml_core::{
     error::{DeserializeError, DeserializeFailure},
-    metadata::Metadata,
     ordered_hash_map::OrderedHashMap,
     serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
 };
 
-pub use cml_chain::{address::Address, NetworkId};
+pub use cml_chain::{address::Address, auxdata::Metadata, NetworkId};
 
 use std::convert::From;
 

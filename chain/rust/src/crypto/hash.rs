@@ -17,7 +17,7 @@ pub fn hash_auxiliary_data(auxiliary_data: &AuxiliaryData) -> AuxiliaryDataHash 
 }
 
 pub fn hash_transaction(tx_body: &TransactionBody) -> TransactionHash {
-    TransactionHash::from(blake2b256(tx_body.to_canonical_cbor_bytes().as_ref()))
+    TransactionHash::from(blake2b256(tx_body.to_cbor_bytes().as_ref()))
 }
 
 pub fn hash_plutus_data(plutus_data: &PlutusData) -> DatumHash {

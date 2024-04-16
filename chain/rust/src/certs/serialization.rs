@@ -174,11 +174,22 @@ impl Deserialize for Certificate {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
-            let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            let deser_variant: Result<_, DeserializeError> =
-                StakeRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = StakeRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(stake_registration) => return Ok(Self::StakeRegistration(stake_registration)),
                 Err(e) => {
@@ -188,8 +199,21 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                StakeDeregistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret =
+                    StakeDeregistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(stake_deregistration) => {
                     return Ok(Self::StakeDeregistration(stake_deregistration))
@@ -201,8 +225,20 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                StakeDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = StakeDelegation::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(stake_delegation) => return Ok(Self::StakeDelegation(stake_delegation)),
                 Err(e) => {
@@ -212,8 +248,20 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                PoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(10)?;
+                read_len.finish()?;
+                let ret = PoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(pool_registration) => return Ok(Self::PoolRegistration(pool_registration)),
                 Err(e) => {
@@ -223,8 +271,20 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                PoolRetirement::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = PoolRetirement::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(pool_retirement) => return Ok(Self::PoolRetirement(pool_retirement)),
                 Err(e) => {
@@ -234,8 +294,20 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                RegCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = RegCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(reg_cert) => return Ok(Self::RegCert(reg_cert)),
                 Err(e) => {
@@ -245,8 +317,20 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                UnregCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = UnregCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(unreg_cert) => return Ok(Self::UnregCert(unreg_cert)),
                 Err(e) => {
@@ -256,8 +340,20 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                VoteDelegCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = VoteDelegCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(vote_deleg_cert) => return Ok(Self::VoteDelegCert(vote_deleg_cert)),
                 Err(e) => {
@@ -267,8 +363,21 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                StakeVoteDelegCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(4)?;
+                read_len.finish()?;
+                let ret =
+                    StakeVoteDelegCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(stake_vote_deleg_cert) => {
                     return Ok(Self::StakeVoteDelegCert(stake_vote_deleg_cert))
@@ -280,8 +389,20 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                StakeRegDelegCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(4)?;
+                read_len.finish()?;
+                let ret = StakeRegDelegCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(stake_reg_deleg_cert) => {
                     return Ok(Self::StakeRegDelegCert(stake_reg_deleg_cert))
@@ -293,8 +414,20 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                VoteRegDelegCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(4)?;
+                read_len.finish()?;
+                let ret = VoteRegDelegCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(vote_reg_deleg_cert) => return Ok(Self::VoteRegDelegCert(vote_reg_deleg_cert)),
                 Err(e) => {
@@ -304,8 +437,21 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                StakeVoteRegDelegCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(5)?;
+                read_len.finish()?;
+                let ret =
+                    StakeVoteRegDelegCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(stake_vote_reg_deleg_cert) => {
                     return Ok(Self::StakeVoteRegDelegCert(stake_vote_reg_deleg_cert))
@@ -317,8 +463,21 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                AuthCommitteeHotCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret =
+                    AuthCommitteeHotCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(auth_committee_hot_cert) => {
                     return Ok(Self::AuthCommitteeHotCert(auth_committee_hot_cert))
@@ -330,8 +489,21 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                ResignCommitteeColdCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret =
+                    ResignCommitteeColdCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(resign_committee_cold_cert) => {
                     return Ok(Self::ResignCommitteeColdCert(resign_committee_cold_cert))
@@ -343,8 +515,20 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                RegDrepCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(4)?;
+                read_len.finish()?;
+                let ret = RegDrepCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(reg_drep_cert) => return Ok(Self::RegDrepCert(reg_drep_cert)),
                 Err(e) => {
@@ -354,8 +538,20 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                UnregDrepCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = UnregDrepCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(unreg_drep_cert) => return Ok(Self::UnregDrepCert(unreg_drep_cert)),
                 Err(e) => {
@@ -365,8 +561,20 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                UpdateDrepCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = UpdateDrepCert::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(update_drep_cert) => return Ok(Self::UpdateDrepCert(update_drep_cert)),
                 Err(e) => {
@@ -376,13 +584,6 @@ impl Deserialize for Certificate {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "Certificate",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),
@@ -444,10 +645,12 @@ impl Deserialize for Credential {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let _read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 0 {
@@ -482,8 +685,8 @@ impl Deserialize for Credential {
                     tag_encoding,
                     hash_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("PubKey"));
@@ -492,7 +695,10 @@ impl Deserialize for Credential {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 1 {
@@ -527,8 +733,8 @@ impl Deserialize for Credential {
                     tag_encoding,
                     hash_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("Script"));
@@ -537,13 +743,6 @@ impl Deserialize for Credential {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "Credential",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),
@@ -630,10 +829,12 @@ impl Deserialize for DRep {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let _read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let index_0_encoding = (|| -> Result<_, DeserializeError> {
                     let (index_0_value, index_0_encoding) = raw.unsigned_integer_sz()?;
                     if index_0_value != 0 {
@@ -668,8 +869,8 @@ impl Deserialize for DRep {
                     index_0_encoding,
                     pool_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("Key"));
@@ -678,7 +879,10 @@ impl Deserialize for DRep {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let index_0_encoding = (|| -> Result<_, DeserializeError> {
                     let (index_0_value, index_0_encoding) = raw.unsigned_integer_sz()?;
                     if index_0_value != 1 {
@@ -713,8 +917,8 @@ impl Deserialize for DRep {
                     index_0_encoding,
                     script_hash_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("Script"));
@@ -723,18 +927,29 @@ impl Deserialize for DRep {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let (i2_value, always_abstain_encoding) = raw.unsigned_integer_sz()?;
-                if i2_value != 2 {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(1)?;
+                read_len.finish()?;
+                let (always_abstain_value, always_abstain_encoding) = raw.unsigned_integer_sz()?;
+                if always_abstain_value != 2 {
                     return Err(DeserializeFailure::FixedValueMismatch {
-                        found: Key::Uint(i2_value),
+                        found: Key::Uint(always_abstain_value),
                         expected: Key::Uint(2),
                     }
                     .into());
                 }
-                Ok(Some(always_abstain_encoding))
-            })(raw)
-            {
+                let ret = Ok(Some(always_abstain_encoding));
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
+            match deser_variant {
                 Ok(always_abstain_encoding) => {
                     return Ok(Self::AlwaysAbstain {
                         always_abstain_encoding,
@@ -748,18 +963,30 @@ impl Deserialize for DRep {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let (i3_value, always_no_confidence_encoding) = raw.unsigned_integer_sz()?;
-                if i3_value != 3 {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(1)?;
+                read_len.finish()?;
+                let (always_no_confidence_value, always_no_confidence_encoding) =
+                    raw.unsigned_integer_sz()?;
+                if always_no_confidence_value != 3 {
                     return Err(DeserializeFailure::FixedValueMismatch {
-                        found: Key::Uint(i3_value),
+                        found: Key::Uint(always_no_confidence_value),
                         expected: Key::Uint(3),
                     }
                     .into());
                 }
-                Ok(Some(always_no_confidence_encoding))
-            })(raw)
-            {
+                let ret = Ok(Some(always_no_confidence_encoding));
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
+            match deser_variant {
                 Ok(always_no_confidence_encoding) => {
                     return Ok(Self::AlwaysNoConfidence {
                         always_no_confidence_encoding,
@@ -773,13 +1000,6 @@ impl Deserialize for DRep {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "DRep",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),
@@ -1830,11 +2050,22 @@ impl Deserialize for Relay {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
-            let mut read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            let deser_variant: Result<_, DeserializeError> =
-                SingleHostAddr::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(4)?;
+                read_len.finish()?;
+                let ret = SingleHostAddr::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(single_host_addr) => return Ok(Self::SingleHostAddr(single_host_addr)),
                 Err(e) => {
@@ -1844,8 +2075,20 @@ impl Deserialize for Relay {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                SingleHostName::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret = SingleHostName::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(single_host_name) => return Ok(Self::SingleHostName(single_host_name)),
                 Err(e) => {
@@ -1855,8 +2098,20 @@ impl Deserialize for Relay {
                         .unwrap();
                 }
             };
-            let deser_variant: Result<_, DeserializeError> =
-                MultiHostName::deserialize_as_embedded_group(raw, &mut read_len, len);
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret = MultiHostName::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
             match deser_variant {
                 Ok(multi_host_name) => return Ok(Self::MultiHostName(multi_host_name)),
                 Err(e) => {
@@ -1866,13 +2121,6 @@ impl Deserialize for Relay {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "Relay",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),

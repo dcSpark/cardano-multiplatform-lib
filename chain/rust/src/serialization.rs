@@ -1794,10 +1794,12 @@ impl Deserialize for Script {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let _read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 0 {
@@ -1824,8 +1826,8 @@ impl Deserialize for Script {
                     len_encoding,
                     tag_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("Native"));
@@ -1834,7 +1836,10 @@ impl Deserialize for Script {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 1 {
@@ -1861,8 +1866,8 @@ impl Deserialize for Script {
                     len_encoding,
                     tag_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("PlutusV1"));
@@ -1871,7 +1876,10 @@ impl Deserialize for Script {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 2 {
@@ -1898,8 +1906,8 @@ impl Deserialize for Script {
                     len_encoding,
                     tag_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("PlutusV2"));
@@ -1908,7 +1916,10 @@ impl Deserialize for Script {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 3 {
@@ -1935,8 +1946,8 @@ impl Deserialize for Script {
                     len_encoding,
                     tag_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("PlutusV3"));
@@ -1945,13 +1956,6 @@ impl Deserialize for Script {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "Script",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),
@@ -2035,13 +2039,13 @@ impl Deserialize for UnitInterval {
         (|| -> Result<_, DeserializeError> {
             let (start, start_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("start"))?;
             let (end, end_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("end"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),

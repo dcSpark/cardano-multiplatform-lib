@@ -1536,8 +1536,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("minfee_a"))?;
                             minfee_a = Some(tmp_minfee_a);
@@ -1553,8 +1553,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("minfee_b"))?;
                             minfee_b = Some(tmp_minfee_b);
@@ -1570,8 +1570,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_block_body_size"))?;
                             max_block_body_size = Some(tmp_max_block_body_size);
@@ -1587,8 +1587,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_transaction_size"))?;
                             max_transaction_size = Some(tmp_max_transaction_size);
@@ -1604,8 +1604,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_block_header_size"))?;
                             max_block_header_size = Some(tmp_max_block_header_size);
@@ -1621,8 +1621,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("key_deposit"))?;
                             key_deposit = Some(tmp_key_deposit);
@@ -1638,8 +1638,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("pool_deposit"))?;
                             pool_deposit = Some(tmp_pool_deposit);
@@ -1655,8 +1655,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("maximum_epoch"))?;
                             maximum_epoch = Some(tmp_maximum_epoch);
@@ -1672,8 +1672,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("n_opt"))?;
                             n_opt = Some(tmp_n_opt);
@@ -1768,8 +1768,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("min_pool_cost"))?;
                             min_pool_cost = Some(tmp_min_pool_cost);
@@ -1785,8 +1785,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("ada_per_utxo_byte"))?;
                             ada_per_utxo_byte = Some(tmp_ada_per_utxo_byte);
@@ -1856,8 +1856,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_value_size"))?;
                             max_value_size = Some(tmp_max_value_size);
@@ -1873,8 +1873,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("collateral_percentage"))?;
                             collateral_percentage = Some(tmp_collateral_percentage);
@@ -1890,8 +1890,8 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_collateral_inputs"))?;
                             max_collateral_inputs = Some(tmp_max_collateral_inputs);
@@ -2765,7 +2765,7 @@ impl Deserialize for AlonzoTransactionBody {
                             if fee.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
                             }
-                            let (tmp_fee, tmp_fee_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into).map_err(|e: DeserializeError| e.annotate("fee"))?;
+                            let (tmp_fee, tmp_fee_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc))).map_err(|e: DeserializeError| e.annotate("fee"))?;
                             fee = Some(tmp_fee);
                             fee_encoding = tmp_fee_encoding;
                             fee_key_encoding = Some(key_enc);
@@ -2777,7 +2777,7 @@ impl Deserialize for AlonzoTransactionBody {
                             }
                             let (tmp_ttl, tmp_ttl_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("ttl"))?;
                             ttl = Some(tmp_ttl);
                             ttl_encoding = tmp_ttl_encoding;
@@ -2868,7 +2868,7 @@ impl Deserialize for AlonzoTransactionBody {
                             }
                             let (tmp_validity_interval_start, tmp_validity_interval_start_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("validity_interval_start"))?;
                             validity_interval_start = Some(tmp_validity_interval_start);
                             validity_interval_start_encoding = tmp_validity_interval_start_encoding;
@@ -3762,8 +3762,8 @@ impl Deserialize for AlonzoUpdate {
             .map_err(|e| e.annotate("proposed_protocol_parameter_updates"))?;
             let (epoch, epoch_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("epoch"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),

@@ -1,6 +1,6 @@
 [package]
 name = "cml-cip25"
-version = "5.1.0"
+version = "5.2.0"
 edition = "2018"
 authors = ["dcSpark"]
 license = "MIT"
@@ -14,9 +14,9 @@ keywords = ["cardano", "cip25"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-chain = { "path" = "../../chain/rust", version = "5.1.0" }
-cml-core = { "path" = "../../core/rust", version = "5.1.0" }
-cml-crypto = { "path" = "../../crypto/rust", version = "5.1.0" }
+cml-chain = { "path" = "../../chain/rust", version = "5.2.0" }
+cml-core = { "path" = "../../core/rust", version = "5.2.0" }
+cml-crypto = { "path" = "../../crypto/rust", version = "5.2.0" }
 cbor_event = "2.2.0"
 hex = "0.4.0"
 schemars = "0.8.8"

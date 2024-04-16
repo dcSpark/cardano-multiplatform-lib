@@ -1,14 +1,12 @@
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
+    auxdata::{MetadatumMap, TransactionMetadatum},
     json::json_serialize::{JsonParseError, Value as JSONValue},
     utils::BigInteger,
 };
 
-use cml_core::{
-    metadata::{MetadatumMap, TransactionMetadatum},
-    DeserializeError, Int,
-};
+use cml_core::{DeserializeError, Int};
 
 use std::collections::BTreeMap;
 use std::convert::TryFrom;

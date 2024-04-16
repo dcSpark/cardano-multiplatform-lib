@@ -89,7 +89,7 @@ pub enum GovAction {
     NewConstitution(NewConstitution),
     InfoAction {
         #[serde(skip)]
-        i6_encoding: Option<cbor_event::Sz>,
+        info_action_encoding: Option<cbor_event::Sz>,
         #[serde(skip)]
         len_encoding: LenEncoding,
     },
@@ -140,7 +140,7 @@ impl GovAction {
 
     pub fn new_info_action() -> Self {
         Self::InfoAction {
-            i6_encoding: None,
+            info_action_encoding: None,
             len_encoding: LenEncoding::default(),
         }
     }

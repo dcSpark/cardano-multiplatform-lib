@@ -13,14 +13,14 @@ use cml_chain_wasm::block::Header;
 use cml_chain_wasm::crypto::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
 use cml_chain_wasm::plutus::{ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
 use cml_chain_wasm::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, RequiredSigners};
+use cml_chain_wasm::{auxdata::Metadata, Epoch, Rational, UnitInterval, Withdrawals};
 use cml_chain_wasm::{
     BootstrapWitnessList, IntList, NativeScriptList, NetworkId, PlutusDataList, PlutusV1ScriptList,
     PlutusV2ScriptList, RedeemerList, TransactionInputList, VkeywitnessList,
 };
-use cml_chain_wasm::{Epoch, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::TransactionIndex;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, metadata::Metadata};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 #[derive(Clone, Debug)]

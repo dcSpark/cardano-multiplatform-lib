@@ -1932,8 +1932,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("minfee_a"))?;
                             minfee_a = Some(tmp_minfee_a);
@@ -1949,8 +1949,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("minfee_b"))?;
                             minfee_b = Some(tmp_minfee_b);
@@ -1966,8 +1966,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_block_body_size"))?;
                             max_block_body_size = Some(tmp_max_block_body_size);
@@ -1983,8 +1983,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_transaction_size"))?;
                             max_transaction_size = Some(tmp_max_transaction_size);
@@ -2000,8 +2000,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_block_header_size"))?;
                             max_block_header_size = Some(tmp_max_block_header_size);
@@ -2017,8 +2017,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("key_deposit"))?;
                             key_deposit = Some(tmp_key_deposit);
@@ -2034,8 +2034,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("pool_deposit"))?;
                             pool_deposit = Some(tmp_pool_deposit);
@@ -2051,8 +2051,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("maximum_epoch"))?;
                             maximum_epoch = Some(tmp_maximum_epoch);
@@ -2068,8 +2068,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("n_opt"))?;
                             n_opt = Some(tmp_n_opt);
@@ -2137,8 +2137,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("min_pool_cost"))?;
                             min_pool_cost = Some(tmp_min_pool_cost);
@@ -2154,8 +2154,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("ada_per_utxo_byte"))?;
                             ada_per_utxo_byte = Some(tmp_ada_per_utxo_byte);
@@ -2225,8 +2225,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_value_size"))?;
                             max_value_size = Some(tmp_max_value_size);
@@ -2242,8 +2242,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("collateral_percentage"))?;
                             collateral_percentage = Some(tmp_collateral_percentage);
@@ -2259,8 +2259,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_collateral_inputs"))?;
                             max_collateral_inputs = Some(tmp_max_collateral_inputs);
@@ -2420,10 +2420,12 @@ impl Deserialize for BabbageScript {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let _read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 0 {
@@ -2450,8 +2452,8 @@ impl Deserialize for BabbageScript {
                     len_encoding,
                     tag_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("Native"));
@@ -2460,7 +2462,10 @@ impl Deserialize for BabbageScript {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 1 {
@@ -2487,8 +2492,8 @@ impl Deserialize for BabbageScript {
                     len_encoding,
                     tag_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("PlutusV1"));
@@ -2497,7 +2502,10 @@ impl Deserialize for BabbageScript {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 2 {
@@ -2524,8 +2532,8 @@ impl Deserialize for BabbageScript {
                     len_encoding,
                     tag_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("PlutusV2"));
@@ -2534,13 +2542,6 @@ impl Deserialize for BabbageScript {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "BabbageScript",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),
@@ -3416,7 +3417,7 @@ impl Deserialize for BabbageTransactionBody {
                             if fee.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
                             }
-                            let (tmp_fee, tmp_fee_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into).map_err(|e: DeserializeError| e.annotate("fee"))?;
+                            let (tmp_fee, tmp_fee_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc))).map_err(|e: DeserializeError| e.annotate("fee"))?;
                             fee = Some(tmp_fee);
                             fee_encoding = tmp_fee_encoding;
                             fee_key_encoding = Some(key_enc);
@@ -3428,7 +3429,7 @@ impl Deserialize for BabbageTransactionBody {
                             }
                             let (tmp_ttl, tmp_ttl_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("ttl"))?;
                             ttl = Some(tmp_ttl);
                             ttl_encoding = tmp_ttl_encoding;
@@ -3519,7 +3520,7 @@ impl Deserialize for BabbageTransactionBody {
                             }
                             let (tmp_validity_interval_start, tmp_validity_interval_start_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("validity_interval_start"))?;
                             validity_interval_start = Some(tmp_validity_interval_start);
                             validity_interval_start_encoding = tmp_validity_interval_start_encoding;
@@ -3677,7 +3678,7 @@ impl Deserialize for BabbageTransactionBody {
                             }
                             let (tmp_total_collateral, tmp_total_collateral_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("total_collateral"))?;
                             total_collateral = Some(tmp_total_collateral);
                             total_collateral_encoding = tmp_total_collateral_encoding;
@@ -4568,8 +4569,8 @@ impl Deserialize for BabbageUpdate {
                 .map_err(|e| e.annotate("updates"))?;
             let (epoch, epoch_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("epoch"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),

@@ -13,7 +13,6 @@
 pub use error::*;
 
 pub mod error;
-pub mod metadata;
 pub mod network;
 pub mod ordered_hash_map;
 pub mod serialization;

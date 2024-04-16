@@ -80,7 +80,7 @@ impl Deserialize for CIP25FilesDetails {
                             read_len.read_elems(1)?;
                             // we still need to read the data to move on to the CBOR after it
                             let _other_metadatum =
-                                cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         }
                     },
                     CBORType::Special => match len {
@@ -97,9 +97,9 @@ impl Deserialize for CIP25FilesDetails {
                         read_len.read_elems(1)?;
                         // we still need to read the data to move on to the CBOR after it
                         let _other_key =
-                            cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                            cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         let _other_value =
-                            cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                            cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                     }
                 }
                 read += 1;
@@ -185,7 +185,7 @@ impl Deserialize for CIP25Metadata {
                             read_len.read_elems(1)?;
                             // we still need to read the data to move on to the CBOR after it
                             let _other_metadatum =
-                                cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         }
                     },
                     CBORType::Special => match len {
@@ -362,7 +362,7 @@ impl Deserialize for CIP25MetadataDetails {
                             read_len.read_elems(1)?;
                             // we still need to read the data to move on to the CBOR after it
                             let _other_metadatum =
-                                cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         }
                     },
                     CBORType::Special => match len {
@@ -379,9 +379,9 @@ impl Deserialize for CIP25MetadataDetails {
                         read_len.read_elems(1)?;
                         // we still need to read the data to move on to the CBOR after it
                         let _other_key =
-                            cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                            cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         let _other_value =
-                            cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                            cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                     }
                 }
                 read += 1;

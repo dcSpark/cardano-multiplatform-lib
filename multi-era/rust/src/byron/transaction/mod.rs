@@ -2,12 +2,11 @@
 // https://github.com/dcSpark/cddl-codegen
 
 pub mod serialization;
+pub mod utils;
 
 use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronTxId};
 
 use cml_chain::byron::ByronTxOut;
-use cml_core::serialization::ToBytes;
-use cml_crypto::blake2b256;
 use std::collections::BTreeMap;
 
 use super::ByronAny;
@@ -121,10 +120,6 @@ impl ByronTx {
             outputs,
             attrs,
         }
-    }
-
-    pub fn hash(&self) -> [u8; 32] {
-        blake2b256(&self.to_bytes())
     }
 }
 

@@ -23,15 +23,14 @@ stake_deregistration = (tag: 1, stake_credential)
 stake_delegation = (
     tag: 2,
     stake_credential,
-    ed25519_key_hash ; @name pool
+    pool: ed25519_key_hash
 )
 
 ; POOL
 pool_registration = (tag: 3, pool_params)
-pool_retirement = (tag: 4, ed25519_key_hash, epoch)
 pool_retirement = (
     tag: 4,
-    ed25519_key_hash, ; @name pool
+    pool: ed25519_key_hash,
     epoch
 )
 
@@ -43,10 +42,26 @@ pool_retirement = (
 reg_cert = (tag: 7, stake_credential, coin)
 unreg_cert = (tag: 8, stake_credential, coin)
 vote_deleg_cert = (tag: 9, stake_credential, d_rep)
-stake_vote_deleg_cert = (tag: 10, stake_credential, ed25519_key_hash, d_rep)
-stake_reg_deleg_cert = (tag: 11, stake_credential, ed25519_key_hash, coin)
+stake_vote_deleg_cert = (
+  tag: 10,
+  stake_credential,
+  pool: ed25519_key_hash,
+  d_rep
+)
+stake_reg_deleg_cert = (
+  tag: 11,
+  stake_credential,
+  pool: ed25519_key_hash,
+  coin
+)
 vote_reg_deleg_cert = (tag: 12, stake_credential, d_rep, coin)
-stake_vote_reg_deleg_cert = (tag: 13, stake_credential, ed25519_key_hash, d_rep, coin)
+stake_vote_reg_deleg_cert = (
+  tag: 13,
+  stake_credential,
+  pool: ed25519_key_hash,
+  d_rep,
+  coin
+)
 
 ; GOVCERT
 auth_committee_hot_cert = (14, committee_cold_credential, committee_hot_credential)
@@ -57,7 +72,7 @@ update_drep_cert = (18, drep_credential, anchor / null)
 
 d_rep = [
   ; @name key
-  0, ed25519_key_hash //
+  0, pool: ed25519_key_hash //
   ; @name script
   1, script_hash //
   ; @name always_abstain

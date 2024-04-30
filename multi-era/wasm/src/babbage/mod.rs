@@ -731,13 +731,18 @@ impl BabbageTransactionBody {
     }
 
     pub fn set_mint(&mut self, mint: &Mint) {
-        self.0.mint = Some(cml_multi_era::babbage::utils::BabbageMint::from(
-            Into::<cml_chain::assets::Mint>::into(mint.clone())
-        ))
+        self.0.mint = Some(cml_multi_era::babbage::utils::BabbageMint::from(Into::<
+            cml_chain::assets::Mint,
+        >::into(
+            mint.clone(),
+        )))
     }
 
     pub fn mint(&self) -> Option<Mint> {
-        self.0.mint.as_ref().map(|mint|  mint.to_mint().to_owned().into())
+        self.0
+            .mint
+            .as_ref()
+            .map(|mint| mint.to_mint().to_owned().into())
     }
 
     pub fn set_script_data_hash(&mut self, script_data_hash: &ScriptDataHash) {

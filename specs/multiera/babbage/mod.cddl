@@ -116,4 +116,6 @@ babbage_auxiliary_data =
     shelley_format_aux_data     ; @name shelley
   / shelley_ma_format_aux_data  ; @name shelley_m_a
   / babbage_format_aux_data     ; @name babbage 
+
+; babbage mint has duplicate keys so it needs its own special hand-written struct
 babbage_mint = _CDDL_CODEGEN_EXTERN_TYPE_

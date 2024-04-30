@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::allegra::{
     AllegraCertificate, MIRAction, MoveInstantaneousReward, MoveInstantaneousRewardsCert,
 };
@@ -646,15 +648,15 @@ impl MultiEraTransactionBody {
         }
     }
 
-    pub fn mint(&self) -> Option<&Mint> {
+    pub fn mint(&self) -> Option<Cow<Mint>> {
         match self {
             Self::Byron(_tx) => None,
             Self::Shelley(_tx) => None,
             Self::Allegra(_tx) => None,
-            Self::Mary(tx) => tx.mint.as_ref(),
-            Self::Alonzo(tx) => tx.mint.as_ref(),
-            Self::Babbage(tx) => tx.mint.as_ref(),
-            Self::Conway(tx) => tx.mint.as_ref(),
+            Self::Mary(tx) => tx.mint.as_ref().map(Cow::Borrowed),
+            Self::Alonzo(tx) => tx.mint.as_ref().map(Cow::Borrowed),
+            Self::Babbage(tx) => tx.mint.as_ref().map(|m| Cow::Owned(m.to_mint())),
+            Self::Conway(tx) => tx.mint.as_ref().map(Cow::Borrowed),
         }
     }
 

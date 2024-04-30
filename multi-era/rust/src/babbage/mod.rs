@@ -13,7 +13,7 @@ use cbor_encodings::{
     BabbageTransactionEncoding, BabbageTransactionWitnessSetEncoding, BabbageUpdateEncoding,
 };
 use cml_chain::address::Address;
-use cml_chain::assets::{Coin, Mint, Value};
+use cml_chain::assets::{Coin, Value};
 use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMaFormatAuxData};
 use cml_chain::block::Header;
 use cml_chain::crypto::{
@@ -32,6 +32,8 @@ use cml_core::serialization::LenEncoding;
 use cml_core::{Int, TransactionIndex};
 
 use std::collections::BTreeMap;
+
+use self::utils::BabbageMint;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum BabbageAuxiliaryData {
@@ -316,7 +318,7 @@ pub struct BabbageTransactionBody {
     pub update: Option<BabbageUpdate>,
     pub auxiliary_data_hash: Option<AuxiliaryDataHash>,
     pub validity_interval_start: Option<u64>,
-    pub mint: Option<Mint>,
+    pub mint: Option<BabbageMint>,
     pub script_data_hash: Option<ScriptDataHash>,
     pub collateral_inputs: Option<Vec<TransactionInput>>,
     pub required_signers: Option<RequiredSigners>,

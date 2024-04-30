@@ -610,7 +610,7 @@ impl MultiEraTransactionBody {
     }
 
     pub fn mint(&self) -> Option<Mint> {
-        self.0.mint().map(|m| m.clone().into())
+        self.0.mint().map(|m| m.into_owned().into())
     }
 
     pub fn script_data_hash(&self) -> Option<ScriptDataHash> {

@@ -1,7 +1,7 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_chain::{address::RewardAccount, assets::AssetName, PolicyId};
+use cml_chain::address::RewardAccount;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use cml_crypto::GenesisHash;
 use std::collections::BTreeMap;
@@ -117,10 +117,6 @@ pub struct BabbageTransactionBodyEncoding {
     pub auxiliary_data_hash_key_encoding: Option<cbor_event::Sz>,
     pub validity_interval_start_encoding: Option<cbor_event::Sz>,
     pub validity_interval_start_key_encoding: Option<cbor_event::Sz>,
-    pub mint_encoding: LenEncoding,
-    pub mint_key_encodings: BTreeMap<PolicyId, StringEncoding>,
-    pub mint_value_encodings:
-        BTreeMap<PolicyId, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
     pub mint_key_encoding: Option<cbor_event::Sz>,
     pub script_data_hash_encoding: StringEncoding,
     pub script_data_hash_key_encoding: Option<cbor_event::Sz>,

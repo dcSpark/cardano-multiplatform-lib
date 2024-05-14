@@ -1,9 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 
-use cli::Cli;
-use clap::Parser;
 use cddl::{ast::*, token::*};
+use clap::Parser;
+use cli::Cli;
 
 use utils::*;
 
@@ -11,7 +11,11 @@ mod cli;
 mod dep_graph;
 mod utils;
 
-fn verify_group(types: &BTreeMap<&str, BTreeSet<PlutusType>>, group: &Group, is_map: bool) -> Result<(), String> {
+fn verify_group(
+    types: &BTreeMap<&str, BTreeSet<PlutusType>>,
+    group: &Group,
+    is_map: bool,
+) -> Result<(), String> {
     for group_choice in group.group_choices.iter() {
         for (entry, _comma) in group_choice.group_entries.iter() {
             verify_group_entry(types, &entry, is_map).map_err(|e| format!("{}: {}", entry, e))?;
@@ -53,70 +57,45 @@ fn create_base_idents<'a>() -> BTreeMap<&'a str, BTreeSet<PlutusType>> {
 fn verify_ident(ident: &Identifier, is_key: bool) -> Result<(), String> {
     match ident.ident {
         // this can refer to valid standard prelude types
-        "uint"       |
-        "int"        |
-        "nint"       |
-        "text"       |
-        "tstr"       |
-        "bytes"      |
-        "bstr"       => Ok(()),
+        "uint" | "int" | "nint" | "text" | "tstr" | "bytes" | "bstr" => Ok(()),
         // these are non-standard types referring to the cddl-codgen tool
-        "u32"        |
-        "i32"        |
-        "u64"        |
-        "i64"        => Ok(()),
+        "u32" | "i32" | "u64" | "i64" => Ok(()),
         // or invalid standard prelude types
-        "bool"       |
-        "float"      |
-        "float16"    |
-        "float32"    |
-        "float64"    |
-        "float16-32" |
-        "float32-64" |
-        "tdate"      |
-        "time"       |
-        "number"     |
-        "biguint"    |
-        "bignint"    |
-        "bigint"     |
-        "integer"    |
-        "unsigned"   |
-        "decfrac"    |
-        "bigfloat"   |
-        "eb64url"    |
-        "eb64legacy" |
-        "eb16"       |
-        "encoded-cbor" |
-        "uri"        |
-        "b64url"     |
-        "b64legacy"  |
-        "regexp"     |
-        "mime-message" |
-        "cbor-any"   |
-        "null"       |
-        "nil"        |
-        "undefined"  |
-        "true"       |
-        "false" => Err(format!("invalid standard prelude type: {}", ident)),
+        "bool" | "float" | "float16" | "float32" | "float64" | "float16-32" | "float32-64"
+        | "tdate" | "time" | "number" | "biguint" | "bignint" | "bigint" | "integer"
+        | "unsigned" | "decfrac" | "bigfloat" | "eb64url" | "eb64legacy" | "eb16"
+        | "encoded-cbor" | "uri" | "b64url" | "b64legacy" | "regexp" | "mime-message"
+        | "cbor-any" | "null" | "nil" | "undefined" | "true" | "false" => {
+            Err(format!("invalid standard prelude type: {}", ident))
+        }
         // refers to user-defined type
-        other => if is_key {
-            verify_len(other.len())
-        } else {
-            // always okay since verified before
-            Ok(())
+        other => {
+            if is_key {
+                verify_len(other.len())
+            } else {
+                // always okay since verified before
+                Ok(())
+            }
         }
     }
 }
 
-fn verify_tagged_type(types: &BTreeMap<&str, BTreeSet<PlutusType>>, tag: &Option<usize>, t: &Type) -> Result<PlutusType, String> {
+fn verify_tagged_type(
+    types: &BTreeMap<&str, BTreeSet<PlutusType>>,
+    tag: &Option<usize>,
+    t: &Type,
+) -> Result<PlutusType, String> {
     // tagged could ONLY mean tagged plutus constructor OR big integer!
     if *tag == Some(102) {
-        if let Type2::Array{ group, .. } = &t.type_choices[0].type1.type2 {
+        if let Type2::Array { group, .. } = &t.type_choices[0].type1.type2 {
             assert_eq!(group.group_choices.len(), 1);
             let entries = &group.group_choices[0].group_entries;
             assert_eq!(entries.len(), 2);
             match (&entries[0].0, &entries[1].0) {
-                (GroupEntry::ValueMemberKey{ ge: ge1, .. }, GroupEntry::ValueMemberKey{ ge: ge2, .. }) => {
+                (
+                    GroupEntry::ValueMemberKey { ge: ge1, .. },
+                    GroupEntry::ValueMemberKey { ge: ge2, .. },
+                ) => {
                     println!("matched");
                     println!("[0] = {:?}\n", ge1.entry_type);
                     println!("[1] = {:?}\n", ge2.entry_type);
@@ -127,20 +106,23 @@ fn verify_tagged_type(types: &BTreeMap<&str, BTreeSet<PlutusType>>, tag: &Option
                             Type2::Typename { ident, .. } => {
                                 // TODO: check aliases
                                 assert_eq!(ident.to_string(), "uint");
-                            },
+                            }
                             _ => panic!("expected uint for const data discrim, found {:?}", tc),
                         }
                     }
                     // check other field is a list of datums
                     verify_datum_list(types, &ge2.entry_type)?;
-                },
+                }
                 _ => panic!(),
             }
             Ok(PlutusType::Ctor)
         } else {
             Err(format!("102-tag must be 2-elem array (plutus tagged ctor)"))
         }
-    } else if tag.map(|tag| (tag >= 121 && tag <= 127) || (tag >= 1280 && tag <= 1400)).unwrap_or(false) {
+    } else if tag
+        .map(|tag| (tag >= 121 && tag <= 127) || (tag >= 1280 && tag <= 1400))
+        .unwrap_or(false)
+    {
         verify_datum_list(types, t).map(|()| PlutusType::Ctor)
     } else if *tag == Some(2) || *tag == Some(3) {
         // can only be bigint (bytes)
@@ -154,31 +136,39 @@ fn verify_tagged_type(types: &BTreeMap<&str, BTreeSet<PlutusType>>, tag: &Option
 fn verify_bytes(types: &BTreeMap<&str, BTreeSet<PlutusType>>, t: &Type) -> Result<(), String> {
     for tc in &t.type_choices {
         match &tc.type1.type2 {
-            Type2::UTF8ByteString{ value, .. } => verify_len(value.len()),
-            Type2::B16ByteString{ value, .. } => verify_len(value.len()),
-            Type2::B64ByteString{ value, .. } => verify_len(value.len()),
-            Type2::Typename{ ident, .. } => {
+            Type2::UTF8ByteString { value, .. } => verify_len(value.len()),
+            Type2::B16ByteString { value, .. } => verify_len(value.len()),
+            Type2::B64ByteString { value, .. } => verify_len(value.len()),
+            Type2::Typename { ident, .. } => {
                 let plutus_types = types.get(ident.ident).expect("Entered in first phase");
                 if plutus_types.len() == 1 && plutus_types.contains(&PlutusType::Bytes) {
                     Ok(())
                 } else {
-                    Err(format!("Tag 2/3 (bigint) types must be ONLY bytes. Found: {plutus_types:?}"))
+                    Err(format!(
+                        "Tag 2/3 (bigint) types must be ONLY bytes. Found: {plutus_types:?}"
+                    ))
                 }
-            },
+            }
             other => Err(format!("Expected bytes, found: {:?}", other)),
         }?;
     }
     Ok(())
 }
 
-fn verify_group_entry(types: &BTreeMap<&str, BTreeSet<PlutusType>>, entry: &GroupEntry, is_map: bool) -> Result<(), String> {
+fn verify_group_entry(
+    types: &BTreeMap<&str, BTreeSet<PlutusType>>,
+    entry: &GroupEntry,
+    is_map: bool,
+) -> Result<(), String> {
     match entry {
         GroupEntry::ValueMemberKey { ge, .. } => {
             // keys are only serialized in cddl maps, not array structs
             if is_map {
                 match &ge.member_key {
                     Some(key) => match key {
-                        MemberKey::Type1 { t1, .. } => verify_type2(types, &t1.type2).map(|_| ())?,
+                        MemberKey::Type1 { t1, .. } => {
+                            verify_type2(types, &t1.type2).map(|_| ())?
+                        }
                         MemberKey::Bareword { ident, .. } => verify_ident(&ident, true)?,
                         MemberKey::Value { value, .. } => match value {
                             Value::BYTE(bv) => match bv {
@@ -194,16 +184,18 @@ fn verify_group_entry(types: &BTreeMap<&str, BTreeSet<PlutusType>>, entry: &Grou
                                 // nothing to verify here
                             }
                             _ => return Err(format!("invalid key: {:?}", key)),
-                        }
+                        },
                         MemberKey::NonMemberKey { .. } => {
                             panic!("Please open a github issue with repro steps (non-member key)")
                         }
                     },
-                    None => panic!("Please open a github issue with repro steps (member key without key)"),
+                    None => panic!(
+                        "Please open a github issue with repro steps (member key without key)"
+                    ),
                 }
             }
             verify_type(types, &ge.entry_type).map(|_| ())
-        },
+        }
         // verify type referred to here where it's defined instead
         GroupEntry::TypeGroupname { ge, .. } => verify_ident(&ge.name, false),
         GroupEntry::InlineGroup { group, .. } => verify_group(types, &group, true),
@@ -220,7 +212,10 @@ fn verify_len(len: usize) -> Result<(), String> {
     }
 }
 
-fn verify_type<'a>(types: &BTreeMap<&str, BTreeSet<PlutusType>>, ty: &'a Type) -> Result<BTreeSet<PlutusType>, String> {
+fn verify_type<'a>(
+    types: &BTreeMap<&str, BTreeSet<PlutusType>>,
+    ty: &'a Type,
+) -> Result<BTreeSet<PlutusType>, String> {
     let mut plutus_types = BTreeSet::new();
     for type_choice in ty.type_choices.iter() {
         plutus_types.extend(verify_type2(types, &type_choice.type1.type2)?);
@@ -228,18 +223,35 @@ fn verify_type<'a>(types: &BTreeMap<&str, BTreeSet<PlutusType>>, ty: &'a Type) -
     Ok(plutus_types)
 }
 
-fn verify_type2(types: &BTreeMap<&str, BTreeSet<PlutusType>>, type2: &Type2) -> Result<BTreeSet<PlutusType>, String> {
+fn verify_type2(
+    types: &BTreeMap<&str, BTreeSet<PlutusType>>,
+    type2: &Type2,
+) -> Result<BTreeSet<PlutusType>, String> {
     match type2 {
         Type2::UintValue { .. } => Ok([PlutusType::Int].into()),
         Type2::IntValue { .. } => Ok([PlutusType::Int].into()),
         Type2::TextValue { .. } => Err("Text not allowed. Please use utf8_bytes.".to_owned()),
-        Type2::UTF8ByteString { value, .. } => verify_len(value.len()).map(|()| [PlutusType::Bytes].into()),
-        Type2::B16ByteString { value, .. } => verify_len(value.len()).map(|()| [PlutusType::Bytes].into()),
-        Type2::B64ByteString { value, .. } => verify_len(value.len()).map(|()| [PlutusType::Bytes].into()),
-        Type2::Typename { ident, .. } => verify_ident(&ident, false)
-            .and_then(|()| types.get(ident.ident).cloned().ok_or_else(|| format!("Type alias not found: {}", ident.ident))),
-        Type2::Map { group, .. } => verify_group(types, group, true).map(|()| [PlutusType::Map].into()),
-        Type2::Array { group, .. } => verify_group(types, group, false).map(|()| [PlutusType::Array].into()),
+        Type2::UTF8ByteString { value, .. } => {
+            verify_len(value.len()).map(|()| [PlutusType::Bytes].into())
+        }
+        Type2::B16ByteString { value, .. } => {
+            verify_len(value.len()).map(|()| [PlutusType::Bytes].into())
+        }
+        Type2::B64ByteString { value, .. } => {
+            verify_len(value.len()).map(|()| [PlutusType::Bytes].into())
+        }
+        Type2::Typename { ident, .. } => verify_ident(&ident, false).and_then(|()| {
+            types
+                .get(ident.ident)
+                .cloned()
+                .ok_or_else(|| format!("Type alias not found: {}", ident.ident))
+        }),
+        Type2::Map { group, .. } => {
+            verify_group(types, group, true).map(|()| [PlutusType::Map].into())
+        }
+        Type2::Array { group, .. } => {
+            verify_group(types, group, false).map(|()| [PlutusType::Array].into())
+        }
         Type2::TaggedData { tag, t, .. } => verify_tagged_type(types, tag, t).map(|t| [t].into()),
         unsupported => Err(format!("Invalid (not plutus datum) type: {}", unsupported)),
     }
@@ -250,41 +262,47 @@ fn verify_datum_list(types: &BTreeMap<&str, BTreeSet<PlutusType>>, t: &Type) -> 
         return Err(format!("Datum list empty: {:?}", t));
     }
     for tc in &t.type_choices {
-        if let Type2::Array{ group, .. } = &t.type_choices[0].type1.type2 {
+        if let Type2::Array { group, .. } = &t.type_choices[0].type1.type2 {
             for gc in group.group_choices.iter() {
                 for ge in gc.group_entries.iter() {
                     verify_group_entry(types, &ge.0, false)?;
                 }
             }
         } else {
-            return Err(format!("Datum list not array, found: {:?}", tc))
+            return Err(format!("Datum list not array, found: {:?}", tc));
         }
     }
     Ok(())
 }
 
-fn verify_rule<'a>(types: &mut BTreeMap<&'a str, BTreeSet<PlutusType>>, cddl_rule: &'a Rule) -> Result<(), String> {
+fn verify_rule<'a>(
+    types: &mut BTreeMap<&'a str, BTreeSet<PlutusType>>,
+    cddl_rule: &'a Rule,
+) -> Result<(), String> {
     match cddl_rule {
-        Rule::Type{ rule, .. } => {
+        Rule::Type { rule, .. } => {
             types.insert(rule.name.ident, verify_type(types, &rule.value)?);
-        },
-        Rule::Group{ rule, .. } => {
+        }
+        Rule::Group { rule, .. } => {
             match &rule.entry {
-                GroupEntry::InlineGroup{ group, .. } => {
+                GroupEntry::InlineGroup { group, .. } => {
                     // TODO: be less strict on array type keys for plain groups but this is probably ok
                     verify_group(types, &group, true)?;
-                },
+                }
                 x => panic!("Group rule with non-inline group? {:?}", x),
             }
-        },
+        }
     }
     Ok(())
 }
 
 fn verify(cddl: &CDDL) -> Result<(), Box<dyn std::error::Error>> {
     let mut types = create_base_idents();
-    for cddl_rule in dep_graph::topological_rule_order(cddl.rules.iter().collect::<Vec<_>>().as_slice()) {
-        verify_rule(&mut types, cddl_rule).map_err(|e| format!("type {} not valid metadata: {}", cddl_rule.name(), e))?;
+    for cddl_rule in
+        dep_graph::topological_rule_order(cddl.rules.iter().collect::<Vec<_>>().as_slice())
+    {
+        verify_rule(&mut types, cddl_rule)
+            .map_err(|e| format!("type {} not valid metadata: {}", cddl_rule.name(), e))?;
     }
     Ok(())
 }
@@ -292,14 +310,13 @@ fn verify(cddl: &CDDL) -> Result<(), Box<dyn std::error::Error>> {
 fn is_struct(t: &Type) -> bool {
     if t.type_choices.len() == 1 {
         match &t.type_choices[0].type1.type2 {
-            Type2::Map { group, .. } |
-            Type2::Array { group, .. } => {
+            Type2::Map { group, .. } | Type2::Array { group, .. } => {
                 if group.group_choices.len() == 1 {
                     group.group_choices[0].group_entries.len() > 1
                 } else {
                     true
                 }
-            },
+            }
             Type2::TaggedData { t, .. } => is_struct(t),
             _ => false,
         }
@@ -316,9 +333,9 @@ fn generate_utils(cddl: &CDDL) -> Result<codegen::Scope, Box<dyn std::error::Err
         .push_import("cml_core::serialization", "Serialize", None)
         .push_import("cml_core::serialization", "Deserialize", None);
     for cddl_rule in &cddl.rules {
-        let is_struct =  match cddl_rule {
-            Rule::Type{ rule, .. } => is_struct(&rule.value),
-            Rule::Group{ .. } => true,
+        let is_struct = match cddl_rule {
+            Rule::Type { rule, .. } => is_struct(&rule.value),
+            Rule::Group { .. } => true,
         };
         if is_struct {
             let rust_rule_name = convert_to_camel_case(&cddl_rule.name());
@@ -335,8 +352,7 @@ fn generate_utils(cddl: &CDDL) -> Result<codegen::Scope, Box<dyn std::error::Err
             utils.push_impl(try_from);
             let mut from = codegen::Impl::new("PlutusData");
             // TODO: if we look into the structure we could avoid the bytes interace
-            from
-                .impl_trait(format!("From<&{}>", rust_rule_name))
+            from.impl_trait(format!("From<&{}>", rust_rule_name))
                 .new_fn("from")
                 .arg("datum", format!("&{}", rust_rule_name))
                 .ret("Self")
@@ -347,7 +363,10 @@ fn generate_utils(cddl: &CDDL) -> Result<codegen::Scope, Box<dyn std::error::Err
     Ok(utils)
 }
 
-fn generate_wasm_utils(cli: &Cli, cddl: &CDDL) -> Result<codegen::Scope, Box<dyn std::error::Error>> {
+fn generate_wasm_utils(
+    cli: &Cli,
+    cddl: &CDDL,
+) -> Result<codegen::Scope, Box<dyn std::error::Error>> {
     let mut utils = codegen::Scope::new();
     utils
         .push_import("std::convert", "TryFrom", None)
@@ -356,9 +375,9 @@ fn generate_wasm_utils(cli: &Cli, cddl: &CDDL) -> Result<codegen::Scope, Box<dyn
         .push_import("cml_core::serialization", "Deserialize", None)
         .push_import("wasm_bindgen", "JsError", None);
     for cddl_rule in &cddl.rules {
-        let is_struct =  match cddl_rule {
-            Rule::Type{ rule, .. } => is_struct(&rule.value),
-            Rule::Group{ .. } => true,
+        let is_struct = match cddl_rule {
+            Rule::Type { rule, .. } => is_struct(&rule.value),
+            Rule::Group { .. } => true,
         };
         if is_struct {
             let rust_rule_name = convert_to_camel_case(&cddl_rule.name());
@@ -373,7 +392,8 @@ fn generate_wasm_utils(cli: &Cli, cddl: &CDDL) -> Result<codegen::Scope, Box<dyn
                 .line(format!(
                     "{}::{}::try_from(datum.as_ref()).map(Into::into).map_err(Into::into)",
                     cli.lib_name_code(),
-                    rust_rule_name));
+                    rust_rule_name
+                ));
             util_impl.push_fn(from_datum);
 
             let mut to_datum = codegen::Function::new("to_datum");
@@ -391,26 +411,43 @@ fn generate_wasm_utils(cli: &Cli, cddl: &CDDL) -> Result<codegen::Scope, Box<dyn
     Ok(utils)
 }
 
-
 fn run_cddl_codegen(cli: &Cli) -> Result<(), String> {
     let mut cddl_codegen_run = if cli.cddl_codegen.is_dir() {
         let mut run = std::process::Command::new("cargo");
-            run.current_dir(&cli.cddl_codegen);
-        run
-            .arg("run")
+        run.current_dir(&cli.cddl_codegen);
+        run.arg("run")
             .arg("--")
-            .arg(format!("--input={}", cli.input.canonicalize().unwrap().to_str().unwrap()))
-            .arg(format!("--output={}", cli.output.canonicalize().unwrap().to_str().unwrap()));
+            .arg(format!(
+                "--input={}",
+                cli.input.canonicalize().unwrap().to_str().unwrap()
+            ))
+            .arg(format!(
+                "--output={}",
+                cli.output.canonicalize().unwrap().to_str().unwrap()
+            ));
         if let Some(static_dir_override) = cli.static_dir.as_ref() {
-            run.arg(format!("--static-dir={}", static_dir_override.canonicalize().unwrap().to_str().unwrap()));
+            run.arg(format!(
+                "--static-dir={}",
+                static_dir_override
+                    .canonicalize()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            ));
         }
         run
     } else {
         let mut run = std::process::Command::new(&cli.cddl_codegen);
-        run
-            .arg(format!("--input={}", cli.input.to_str().unwrap()))
-            .arg(format!("--output={}",cli.output.to_str().unwrap()))
-            .arg(format!("--static-dir={}", cli.static_dir.as_ref().expect("--static-dir is mandatory when --cddl-codegen is an executable").to_str().unwrap()));
+        run.arg(format!("--input={}", cli.input.to_str().unwrap()))
+            .arg(format!("--output={}", cli.output.to_str().unwrap()))
+            .arg(format!(
+                "--static-dir={}",
+                cli.static_dir
+                    .as_ref()
+                    .expect("--static-dir is mandatory when --cddl-codegen is an executable")
+                    .to_str()
+                    .unwrap()
+            ));
         run
     };
     cddl_codegen_run.arg(format!("--lib-name={}", cli.lib_name));
@@ -431,16 +468,23 @@ fn run_cddl_codegen(cli: &Cli) -> Result<(), String> {
     cddl_codegen_run.arg(format!("--package-json={}", cli.package_json));
     let cddl_codegen_run_result = cddl_codegen_run.output().unwrap();
     if !cddl_codegen_run_result.status.success() {
-        return Err(format!("cddl-codegen failed:\n{}", String::from_utf8(cddl_codegen_run_result.stderr).unwrap()));
+        return Err(format!(
+            "cddl-codegen failed:\n{}",
+            String::from_utf8(cddl_codegen_run_result.stderr).unwrap()
+        ));
     }
-    println!("{}", String::from_utf8(cddl_codegen_run_result.stdout).unwrap());
+    println!(
+        "{}",
+        String::from_utf8(cddl_codegen_run_result.stdout).unwrap()
+    );
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    let cddl_in = std::fs::read_to_string(&cli.input).expect("input.cddl file not present or could not be opened");
+    let cddl_in = std::fs::read_to_string(&cli.input)
+        .expect("input.cddl file not present or could not be opened");
     let cddl = cddl::parser::cddl_from_str(&cddl_in, true)?;
     // check that the input cddl is 100% a subset of the plutus datum CDDL
     verify(&cddl)?;
@@ -450,7 +494,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // generate utilty functions
     let utils = generate_utils(&cddl)?;
-    std::fs::write(cli.output.join("rust").join("src").join("utils.rs"), utils.to_string())?;
+    std::fs::write(
+        cli.output.join("rust").join("src").join("utils.rs"),
+        utils.to_string(),
+    )?;
     let mut rust_lib = std::fs::OpenOptions::new()
         .append(true)
         .open(cli.output.join("rust").join("src").join("lib.rs"))
@@ -458,7 +505,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     rust_lib.write("pub mod utils;".as_bytes())?;
     if cli.wasm {
         let wasm_utils = generate_wasm_utils(&cli, &cddl)?;
-        std::fs::write(cli.output.join("wasm").join("src").join("utils.rs"), wasm_utils.to_string())?;
+        std::fs::write(
+            cli.output.join("wasm").join("src").join("utils.rs"),
+            wasm_utils.to_string(),
+        )?;
         let mut wasm_lib = std::fs::OpenOptions::new()
             .append(true)
             .open(cli.output.join("wasm").join("src").join("lib.rs"))

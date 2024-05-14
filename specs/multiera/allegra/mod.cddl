@@ -22,15 +22,15 @@ move_instantaneous_reward = [
 ]
 move_instantaneous_rewards_cert = (tag: 6, move_instantaneous_reward)
 
-allegra_certificate =
-  [ stake_registration
-  // stake_deregistration
-  // stake_delegation
-  // pool_registration
-  // pool_retirement
-  // genesis_key_delegation
-  // move_instantaneous_rewards_cert
-  ]
+allegra_certificate = [
+  stake_registration //
+  stake_deregistration //
+  stake_delegation //
+  shelley_pool_registration //
+  pool_retirement //
+  genesis_key_delegation //
+  move_instantaneous_rewards_cert
+]
 
 allegra_transaction = [
   body: allegra_transaction_body,

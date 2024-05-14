@@ -28,6 +28,13 @@ pub struct ExUnitsEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
+pub struct LegacyRedeemerEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+    pub index_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct PlutusV1ScriptEncoding {
     pub inner_encoding: StringEncoding,
 }
@@ -43,8 +50,13 @@ pub struct PlutusV3ScriptEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct RedeemerEncoding {
+pub struct RedeemerKeyEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
     pub index_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct RedeemerValEncoding {
+    pub len_encoding: LenEncoding,
 }

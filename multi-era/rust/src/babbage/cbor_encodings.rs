@@ -1,7 +1,7 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_chain::{address::RewardAccount, assets::AssetName, PolicyId};
+use cml_chain::address::RewardAccount;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use cml_crypto::GenesisHash;
 use std::collections::BTreeMap;
@@ -15,16 +15,6 @@ pub struct BabbageBlockEncoding {
     pub auxiliary_data_set_key_encodings: BTreeMap<u16, Option<cbor_event::Sz>>,
     pub invalid_transactions_encoding: LenEncoding,
     pub invalid_transactions_elem_encodings: Vec<Option<cbor_event::Sz>>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct BabbageCostModelsEncoding {
-    pub len_encoding: LenEncoding,
-    pub orig_deser_order: Vec<usize>,
-    pub plutus_v1_encoding: LenEncoding,
-    pub plutus_v1_key_encoding: Option<cbor_event::Sz>,
-    pub plutus_v2_encoding: LenEncoding,
-    pub plutus_v2_key_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -117,10 +107,6 @@ pub struct BabbageTransactionBodyEncoding {
     pub auxiliary_data_hash_key_encoding: Option<cbor_event::Sz>,
     pub validity_interval_start_encoding: Option<cbor_event::Sz>,
     pub validity_interval_start_key_encoding: Option<cbor_event::Sz>,
-    pub mint_encoding: LenEncoding,
-    pub mint_key_encodings: BTreeMap<PolicyId, StringEncoding>,
-    pub mint_value_encodings:
-        BTreeMap<PolicyId, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
     pub mint_key_encoding: Option<cbor_event::Sz>,
     pub script_data_hash_encoding: StringEncoding,
     pub script_data_hash_key_encoding: Option<cbor_event::Sz>,

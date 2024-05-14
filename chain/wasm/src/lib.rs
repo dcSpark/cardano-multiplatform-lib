@@ -41,8 +41,8 @@ use cml_crypto_wasm::{Ed25519KeyHash, ScriptHash};
 use crypto::{BootstrapWitness, Vkeywitness};
 use governance::{GovActionId, Voter};
 use plutus::{
-    CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script,
-    Redeemer,
+    CostModels, ExUnitPrices, ExUnits, LegacyRedeemer, PlutusData, PlutusV1Script, PlutusV2Script,
+    PlutusV3Script,
 };
 use transaction::{
     NativeScript, TransactionBody, TransactionInput, TransactionOutput, TransactionWitnessSet,
@@ -51,116 +51,51 @@ pub use utils::NetworkId;
 
 use crate::certs::CommitteeColdCredential;
 use crate::governance::{ProposalProcedure, VotingProcedure};
+use crate::plutus::{RedeemerKey, RedeemerVal};
+
+pub type SetTransactionInput = TransactionInputList;
+
+pub type NonemptySetBootstrapWitness = BootstrapWitnessList;
+
+pub type NonemptySetCertificate = CertificateList;
+
+pub type NonemptySetNativeScript = NativeScriptList;
+
+pub type NonemptySetPlutusData = PlutusDataList;
+
+pub type NonemptySetPlutusV1Script = PlutusV1ScriptList;
+
+pub type NonemptySetPlutusV2Script = PlutusV2ScriptList;
+
+pub type NonemptySetPlutusV3Script = PlutusV3ScriptList;
+
+pub type NonemptySetProposalProcedure = ProposalProcedureList;
+
+pub type NonemptySetTransactionInput = TransactionInputList;
+
+pub type NonemptySetVkeywitness = VkeywitnessList;
+
+pub type RequiredSigners = Ed25519KeyHashList;
 
 //extern crate serde_wasm_bindgen;
 // Code below here was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct AssetNameList(Vec<cml_chain::assets::AssetName>);
+impl_wasm_list!(cml_chain::assets::AssetName, AssetName, AssetNameList);
 
-impl_wasm_conversions!(Vec<cml_chain::assets::AssetName>, AssetNameList);
-
-#[wasm_bindgen]
-impl AssetNameList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> AssetName {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &AssetName) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct BootstrapWitnessList(Vec<cml_chain::crypto::BootstrapWitness>);
-
-impl_wasm_conversions!(
-    Vec<cml_chain::crypto::BootstrapWitness>,
+impl_wasm_list!(
+    cml_chain::crypto::BootstrapWitness,
+    BootstrapWitness,
     BootstrapWitnessList
 );
 
-#[wasm_bindgen]
-impl BootstrapWitnessList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
+impl_wasm_list!(cml_chain::certs::Certificate, Certificate, CertificateList);
 
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> BootstrapWitness {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &BootstrapWitness) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct CertificateList(Vec<cml_chain::certs::Certificate>);
-
-impl_wasm_conversions!(Vec<cml_chain::certs::Certificate>, CertificateList);
-
-#[wasm_bindgen]
-impl CertificateList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> Certificate {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &Certificate) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct CommitteeColdCredentialList(Vec<cml_chain::certs::CommitteeColdCredential>);
-
-impl_wasm_conversions!(
-    Vec<cml_chain::certs::CommitteeColdCredential>,
+impl_wasm_list!(
+    cml_chain::certs::CommitteeColdCredential,
+    CommitteeColdCredential,
     CommitteeColdCredentialList
 );
-
-#[wasm_bindgen]
-impl CommitteeColdCredentialList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> CommitteeColdCredential {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &CommitteeColdCredential) {
-        self.0.push(elem.clone().into());
-    }
-}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -241,80 +176,29 @@ impl DRepVotingThresholds {
 
 pub type DeltaCoin = Int;
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct Ed25519KeyHashList(Vec<cml_chain::crypto::Ed25519KeyHash>);
+impl_wasm_list!(
+    cml_chain::crypto::Ed25519KeyHash,
+    Ed25519KeyHash,
+    Ed25519KeyHashList
+);
 
-impl_wasm_conversions!(Vec<cml_chain::crypto::Ed25519KeyHash>, Ed25519KeyHashList);
+pub type SetCommitteeColdCredential = CommitteeColdCredentialList;
 
-#[wasm_bindgen]
-impl Ed25519KeyHashList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
+pub type SetEd25519KeyHash = Ed25519KeyHashList;
 
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
+impl_wasm_list!(
+    cml_chain::governance::GovActionId,
+    GovActionId,
+    GovActionIdList
+);
 
-    pub fn get(&self, index: usize) -> Ed25519KeyHash {
-        self.0[index].into()
-    }
+impl_wasm_list!(cml_chain::Int, Int, IntList);
 
-    pub fn add(&mut self, elem: &Ed25519KeyHash) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct GovActionIdList(Vec<cml_chain::governance::GovActionId>);
-
-impl_wasm_conversions!(Vec<cml_chain::governance::GovActionId>, GovActionIdList);
-
-#[wasm_bindgen]
-impl GovActionIdList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> GovActionId {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &GovActionId) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct IntList(Vec<cml_chain::Int>);
-
-impl_wasm_conversions!(Vec<cml_chain::Int>, IntList);
-
-#[wasm_bindgen]
-impl IntList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> Int {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &Int) {
-        self.0.push(elem.clone().into());
-    }
-}
+impl_wasm_list!(
+    cml_chain::plutus::LegacyRedeemer,
+    LegacyRedeemer,
+    LegacyRedeemerList
+);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -479,6 +363,39 @@ impl MapPlutusDataToPlutusData {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+pub struct MapRedeemerKeyToRedeemerVal(
+    OrderedHashMap<cml_chain::plutus::RedeemerKey, cml_chain::plutus::RedeemerVal>,
+);
+
+impl_wasm_conversions!(OrderedHashMap<cml_chain::plutus::RedeemerKey, cml_chain::plutus::RedeemerVal>, MapRedeemerKeyToRedeemerVal);
+
+#[wasm_bindgen]
+impl MapRedeemerKeyToRedeemerVal {
+    pub fn new() -> Self {
+        Self(OrderedHashMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn insert(&mut self, key: &RedeemerKey, value: &RedeemerVal) -> Option<RedeemerVal> {
+        self.0
+            .insert(key.clone().into(), value.clone().into())
+            .map(Into::into)
+    }
+
+    pub fn get(&self, key: &RedeemerKey) -> Option<RedeemerVal> {
+        self.0.get(key.as_ref()).map(|v| v.clone().into())
+    }
+
+    pub fn keys(&self) -> RedeemerKeyList {
+        RedeemerKeyList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
 pub struct MapRewardAccountToCoin(
     OrderedHashMap<cml_chain::address::RewardAccount, cml_chain::assets::Coin>,
 );
@@ -620,134 +537,35 @@ impl MapTransactionMetadatumToTransactionMetadatum {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct NativeScriptList(Vec<cml_chain::transaction::NativeScript>);
-
-impl_wasm_conversions!(Vec<cml_chain::transaction::NativeScript>, NativeScriptList);
-
-#[wasm_bindgen]
-impl NativeScriptList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> NativeScript {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &NativeScript) {
-        self.0.push(elem.clone().into());
-    }
-}
+impl_wasm_list!(
+    cml_chain::transaction::NativeScript,
+    NativeScript,
+    NativeScriptList
+);
 
 impl_wasm_list!(cml_chain::plutus::PlutusData, PlutusData, PlutusDataList);
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct PlutusV1ScriptList(Vec<cml_chain::plutus::PlutusV1Script>);
+impl_wasm_list!(
+    cml_chain::plutus::PlutusV1Script,
+    PlutusV1Script,
+    PlutusV1ScriptList
+);
 
-impl_wasm_conversions!(Vec<cml_chain::plutus::PlutusV1Script>, PlutusV1ScriptList);
+impl_wasm_list!(
+    cml_chain::plutus::PlutusV2Script,
+    PlutusV2Script,
+    PlutusV2ScriptList
+);
 
-#[wasm_bindgen]
-impl PlutusV1ScriptList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> PlutusV1Script {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &PlutusV1Script) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct PlutusV2ScriptList(Vec<cml_chain::plutus::PlutusV2Script>);
-
-impl_wasm_conversions!(Vec<cml_chain::plutus::PlutusV2Script>, PlutusV2ScriptList);
-
-#[wasm_bindgen]
-impl PlutusV2ScriptList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> PlutusV2Script {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &PlutusV2Script) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct PlutusV3ScriptList(Vec<cml_chain::plutus::PlutusV3Script>);
-
-impl_wasm_conversions!(Vec<cml_chain::plutus::PlutusV3Script>, PlutusV3ScriptList);
-
-#[wasm_bindgen]
-impl PlutusV3ScriptList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> PlutusV3Script {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &PlutusV3Script) {
-        self.0.push(elem.clone().into());
-    }
-}
+impl_wasm_list!(
+    cml_chain::plutus::PlutusV3Script,
+    PlutusV3Script,
+    PlutusV3ScriptList
+);
 
 pub type PolicyId = ScriptHash;
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct PolicyIdList(Vec<cml_chain::PolicyId>);
-
-impl_wasm_conversions!(Vec<cml_chain::PolicyId>, PolicyIdList);
-
-#[wasm_bindgen]
-impl PolicyIdList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> PolicyId {
-        self.0[index].into()
-    }
-
-    pub fn add(&mut self, elem: &PolicyId) {
-        self.0.push(elem.clone().into());
-    }
-}
+impl_wasm_list!(cml_chain::PolicyId, PolicyId, PolicyIdList);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -775,50 +593,37 @@ impl PoolVotingThresholds {
         self.0.hard_fork_initiation.clone().into()
     }
 
+    pub fn security_relevant_parameter_voting_threshold(&self) -> UnitInterval {
+        self.0
+            .security_relevant_parameter_voting_threshold
+            .clone()
+            .into()
+    }
+
     pub fn new(
         motion_no_confidence: &UnitInterval,
         committee_normal: &UnitInterval,
         committee_no_confidence: &UnitInterval,
         hard_fork_initiation: &UnitInterval,
+        security_relevant_parameter_voting_threshold: &UnitInterval,
     ) -> Self {
         Self(cml_chain::PoolVotingThresholds::new(
             motion_no_confidence.clone().into(),
             committee_normal.clone().into(),
             committee_no_confidence.clone().into(),
             hard_fork_initiation.clone().into(),
+            security_relevant_parameter_voting_threshold.clone().into(),
         ))
     }
 }
 
 pub type Port = u16;
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct ProposalProcedureList(Vec<cml_chain::governance::ProposalProcedure>);
-
-impl_wasm_conversions!(
-    Vec<cml_chain::governance::ProposalProcedure>,
+impl_wasm_list!(
+    cml_chain::governance::ProposalProcedure,
+    ProposalProcedure,
     ProposalProcedureList
 );
-
-#[wasm_bindgen]
-impl ProposalProcedureList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> ProposalProcedure {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &ProposalProcedure) {
-        self.0.push(elem.clone().into());
-    }
-}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -830,19 +635,19 @@ impl_wasm_conversions!(cml_chain::ProtocolParamUpdate, ProtocolParamUpdate);
 
 #[wasm_bindgen]
 impl ProtocolParamUpdate {
-    pub fn set_minfee_a(&mut self, minfee_a: u64) {
+    pub fn set_minfee_a(&mut self, minfee_a: Coin) {
         self.0.minfee_a = Some(minfee_a)
     }
 
-    pub fn minfee_a(&self) -> Option<u64> {
+    pub fn minfee_a(&self) -> Option<Coin> {
         self.0.minfee_a
     }
 
-    pub fn set_minfee_b(&mut self, minfee_b: u64) {
+    pub fn set_minfee_b(&mut self, minfee_b: Coin) {
         self.0.minfee_b = Some(minfee_b)
     }
 
-    pub fn minfee_b(&self) -> Option<u64> {
+    pub fn minfee_b(&self) -> Option<Coin> {
         self.0.minfee_b
     }
 
@@ -1044,11 +849,11 @@ impl ProtocolParamUpdate {
         self.0.min_committee_size
     }
 
-    pub fn set_committee_term_limit(&mut self, committee_term_limit: u64) {
+    pub fn set_committee_term_limit(&mut self, committee_term_limit: Epoch) {
         self.0.committee_term_limit = Some(committee_term_limit)
     }
 
-    pub fn committee_term_limit(&self) -> Option<u64> {
+    pub fn committee_term_limit(&self) -> Option<Epoch> {
         self.0.committee_term_limit
     }
 
@@ -1087,6 +892,21 @@ impl ProtocolParamUpdate {
         self.0.d_rep_inactivity_period
     }
 
+    pub fn set_min_fee_ref_script_cost_per_byte(
+        &mut self,
+        min_fee_ref_script_cost_per_byte: &Rational,
+    ) {
+        self.0.min_fee_ref_script_cost_per_byte =
+            Some(min_fee_ref_script_cost_per_byte.clone().into())
+    }
+
+    pub fn min_fee_ref_script_cost_per_byte(&self) -> Option<Rational> {
+        self.0
+            .min_fee_ref_script_cost_per_byte
+            .clone()
+            .map(std::convert::Into::into)
+    }
+
     pub fn new() -> Self {
         Self(cml_chain::ProtocolParamUpdate::new())
     }
@@ -1115,80 +935,15 @@ impl Rational {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct RedeemerList(Vec<cml_chain::plutus::Redeemer>);
+impl_wasm_list!(cml_chain::plutus::RedeemerKey, RedeemerKey, RedeemerKeyList);
 
-impl_wasm_conversions!(Vec<cml_chain::plutus::Redeemer>, RedeemerList);
+impl_wasm_list!(cml_chain::certs::Relay, Relay, RelayList);
 
-#[wasm_bindgen]
-impl RedeemerList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> Redeemer {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &Redeemer) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct RelayList(Vec<cml_chain::certs::Relay>);
-
-impl_wasm_conversions!(Vec<cml_chain::certs::Relay>, RelayList);
-
-#[wasm_bindgen]
-impl RelayList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> Relay {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &Relay) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct RewardAccountList(Vec<cml_chain::address::RewardAccount>);
-
-impl_wasm_conversions!(Vec<cml_chain::address::RewardAccount>, RewardAccountList);
-
-#[wasm_bindgen]
-impl RewardAccountList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> RewardAccount {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &RewardAccount) {
-        self.0.push(elem.clone().into());
-    }
-}
+impl_wasm_list!(
+    cml_chain::address::RewardAccount,
+    RewardAccount,
+    RewardAccountList
+);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -1264,146 +1019,39 @@ pub enum ScriptKind {
 
 pub type Slot = u64;
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct StakeCredentialList(Vec<cml_chain::certs::StakeCredential>);
-
-impl_wasm_conversions!(Vec<cml_chain::certs::StakeCredential>, StakeCredentialList);
-
-#[wasm_bindgen]
-impl StakeCredentialList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> StakeCredential {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &StakeCredential) {
-        self.0.push(elem.clone().into());
-    }
-}
+impl_wasm_list!(
+    cml_chain::certs::StakeCredential,
+    StakeCredential,
+    StakeCredentialList
+);
 
 pub type SubCoin = Rational;
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct TransactionBodyList(Vec<cml_chain::transaction::TransactionBody>);
-
-impl_wasm_conversions!(
-    Vec<cml_chain::transaction::TransactionBody>,
+impl_wasm_list!(
+    cml_chain::transaction::TransactionBody,
+    TransactionBody,
     TransactionBodyList
 );
 
-#[wasm_bindgen]
-impl TransactionBodyList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> TransactionBody {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &TransactionBody) {
-        self.0.push(elem.clone().into());
-    }
-}
-
 pub type TransactionIndex = u16;
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct TransactionInputList(Vec<cml_chain::transaction::TransactionInput>);
-
-impl_wasm_conversions!(
-    Vec<cml_chain::transaction::TransactionInput>,
+impl_wasm_list!(
+    cml_chain::transaction::TransactionInput,
+    TransactionInput,
     TransactionInputList
 );
 
-#[wasm_bindgen]
-impl TransactionInputList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> TransactionInput {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &TransactionInput) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct TransactionOutputList(Vec<cml_chain::transaction::TransactionOutput>);
-
-impl_wasm_conversions!(
-    Vec<cml_chain::transaction::TransactionOutput>,
+impl_wasm_list!(
+    cml_chain::transaction::TransactionOutput,
+    TransactionOutput,
     TransactionOutputList
 );
 
-#[wasm_bindgen]
-impl TransactionOutputList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> TransactionOutput {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &TransactionOutput) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct TransactionWitnessSetList(Vec<cml_chain::transaction::TransactionWitnessSet>);
-
-impl_wasm_conversions!(
-    Vec<cml_chain::transaction::TransactionWitnessSet>,
+impl_wasm_list!(
+    cml_chain::transaction::TransactionWitnessSet,
+    TransactionWitnessSet,
     TransactionWitnessSetList
 );
-
-#[wasm_bindgen]
-impl TransactionWitnessSetList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> TransactionWitnessSet {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &TransactionWitnessSet) {
-        self.0.push(elem.clone().into());
-    }
-}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -1428,54 +1076,8 @@ impl UnitInterval {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct VkeywitnessList(Vec<cml_chain::crypto::Vkeywitness>);
+impl_wasm_list!(cml_chain::crypto::Vkeywitness, Vkeywitness, VkeywitnessList);
 
-impl_wasm_conversions!(Vec<cml_chain::crypto::Vkeywitness>, VkeywitnessList);
-
-#[wasm_bindgen]
-impl VkeywitnessList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> Vkeywitness {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &Vkeywitness) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct VoterList(Vec<cml_chain::governance::Voter>);
-
-impl_wasm_conversions!(Vec<cml_chain::governance::Voter>, VoterList);
-
-#[wasm_bindgen]
-impl VoterList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> Voter {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &Voter) {
-        self.0.push(elem.clone().into());
-    }
-}
+impl_wasm_list!(cml_chain::governance::Voter, Voter, VoterList);
 
 pub type Withdrawals = MapRewardAccountToCoin;

@@ -26,6 +26,7 @@ members = [
 exclude = [
     "rust",
     "rust/json-gen",
+    "tools/metadata-cddl-checker",
     "tools/plutus-datum-codegen"
 ]
 

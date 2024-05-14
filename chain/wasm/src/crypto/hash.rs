@@ -2,13 +2,15 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 use crate::{
     auxdata::AuxiliaryData,
-    plutus::{CostModels, PlutusData},
+    plutus::{CostModels, PlutusData, Redeemers},
     transaction::{TransactionBody, TransactionWitnessSet},
     utils::LanguageList,
-    PlutusDataList, RedeemerList,
+    PlutusDataList,
 };
 
 use cml_crypto_wasm::{AuxiliaryDataHash, DatumHash, ScriptDataHash, TransactionHash};
+
+use cml_chain::NonemptySet;
 
 #[wasm_bindgen]
 pub fn hash_auxiliary_data(auxiliary_data: &AuxiliaryData) -> AuxiliaryDataHash {
@@ -37,15 +39,16 @@ pub fn hash_plutus_data(plutus_data: &PlutusData) -> DatumHash {
 /// please use calc_script_data_hash_from_witness()
 #[wasm_bindgen]
 pub fn hash_script_data(
-    redeemers: &RedeemerList,
+    redeemers: &Redeemers,
     cost_models: &CostModels,
     datums: Option<PlutusDataList>,
     //    encoding: Option<TransactionWitnessSetEncoding>,
 ) -> ScriptDataHash {
+    let datums = datums.map(|datums| NonemptySet::from(Into::<Vec<_>>::into(datums)));
     cml_chain::crypto::hash::hash_script_data(
         redeemers.as_ref(),
         cost_models.as_ref(),
-        datums.as_ref().map(AsRef::as_ref),
+        datums.as_ref(),
         None,
     )
     .into()
@@ -63,7 +66,7 @@ pub fn hash_script_data(
 /// please use calc_script_data_hash_from_witness()
 #[wasm_bindgen]
 pub fn calc_script_data_hash(
-    redeemers: &RedeemerList,
+    redeemers: &Redeemers,
     datums: &PlutusDataList,
     cost_models: &CostModels,
     used_langs: &LanguageList,
@@ -71,7 +74,7 @@ pub fn calc_script_data_hash(
 ) -> Result<Option<ScriptDataHash>, JsError> {
     cml_chain::crypto::hash::calc_script_data_hash(
         redeemers.as_ref(),
-        datums.as_ref(),
+        &NonemptySet::from(Into::<Vec<_>>::into(datums.clone())),
         cost_models.as_ref(),
         used_langs.as_ref(),
         None,

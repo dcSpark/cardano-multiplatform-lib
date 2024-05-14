@@ -1,7 +1,7 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use super::{Coin, Ed25519KeyHashList, Epoch, Port, RelayList, UnitInterval};
+use super::{Coin, Epoch, Port, RelayList, SetEd25519KeyHash, UnitInterval};
 use crate::address::RewardAccount;
 use crate::governance::Anchor;
 
@@ -165,10 +165,12 @@ impl Certificate {
 
     pub fn new_resign_committee_cold_cert(
         committee_cold_credential: &CommitteeColdCredential,
+        anchor: Option<Anchor>,
     ) -> Self {
         Self(
             cml_chain::certs::Certificate::new_resign_committee_cold_cert(
                 committee_cold_credential.clone().into(),
+                anchor.map(Into::into),
             ),
         )
     }
@@ -648,7 +650,7 @@ impl PoolParams {
         self.0.reward_account.clone().into()
     }
 
-    pub fn pool_owners(&self) -> Ed25519KeyHashList {
+    pub fn pool_owners(&self) -> SetEd25519KeyHash {
         self.0.pool_owners.clone().into()
     }
 
@@ -667,7 +669,7 @@ impl PoolParams {
         cost: Coin,
         margin: &UnitInterval,
         reward_account: &RewardAccount,
-        pool_owners: &Ed25519KeyHashList,
+        pool_owners: &SetEd25519KeyHash,
         relays: &RelayList,
         pool_metadata: Option<PoolMetadata>,
     ) -> Self {
@@ -884,9 +886,17 @@ impl ResignCommitteeColdCert {
         self.0.committee_cold_credential.clone().into()
     }
 
-    pub fn new(committee_cold_credential: &CommitteeColdCredential) -> Self {
+    pub fn anchor(&self) -> Option<Anchor> {
+        self.0.anchor.clone().map(std::convert::Into::into)
+    }
+
+    pub fn new(
+        committee_cold_credential: &CommitteeColdCredential,
+        anchor: Option<Anchor>,
+    ) -> Self {
         Self(cml_chain::certs::ResignCommitteeColdCert::new(
             committee_cold_credential.clone().into(),
+            anchor.map(Into::into),
         ))
     }
 }

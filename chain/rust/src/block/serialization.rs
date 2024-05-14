@@ -391,13 +391,13 @@ impl Deserialize for HeaderBody {
         (|| -> Result<_, DeserializeError> {
             let (block_number, block_number_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("block_number"))?;
             let (slot, slot_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("slot"))?;
             let (prev_hash, prev_hash_encoding) = (|| -> Result<_, DeserializeError> {
                 Ok(match raw.cbor_type()? != cbor_event::Type::Special {
@@ -444,8 +444,8 @@ impl Deserialize for HeaderBody {
                 .map_err(|e: DeserializeError| e.annotate("vrf_result"))?;
             let (block_body_size, block_body_size_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("block_body_size"))?;
             let (block_body_hash, block_body_hash_encoding) = raw
                 .bytes_sz()
@@ -600,13 +600,13 @@ impl DeserializeEmbeddedGroup for OperationalCert {
                 .map_err(|e: DeserializeError| e.annotate("hot_vkey"))?;
             let (sequence_number, sequence_number_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("sequence_number"))?;
             let (kes_period, kes_period_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("kes_period"))?;
             let (sigma, sigma_encoding) = raw
                 .bytes_sz()
@@ -716,13 +716,13 @@ impl DeserializeEmbeddedGroup for ProtocolVersion {
         (|| -> Result<_, DeserializeError> {
             let (major, major_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("major"))?;
             let (minor, minor_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("minor"))?;
             Ok(ProtocolVersion {
                 major,

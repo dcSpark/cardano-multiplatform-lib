@@ -30,7 +30,11 @@ pub mod transaction;
 pub mod utils;
 
 pub use assets::{Coin, Value};
-pub use utils::NetworkId;
+use certs::{Certificate, CommitteeColdCredential};
+use cml_crypto::Ed25519KeyHash;
+use crypto::{BootstrapWitness, Vkeywitness};
+use utils::NonemptySetRawBytes;
+pub use utils::{NetworkId, NonemptySet, Set};
 
 //pub mod legacy_address;
 
@@ -53,9 +57,11 @@ use cbor_encodings::{
     DRepVotingThresholdsEncoding, PoolVotingThresholdsEncoding, ProtocolParamUpdateEncoding,
     RationalEncoding, UnitIntervalEncoding,
 };
-use governance::Voter;
-use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script, PlutusV3Script};
-use transaction::NativeScript;
+use governance::{ProposalProcedure, Voter};
+use plutus::{
+    CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script,
+};
+use transaction::{NativeScript, TransactionInput};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct DRepVotingThresholds {
@@ -105,9 +111,31 @@ impl DRepVotingThresholds {
 
 pub type DeltaCoin = Int;
 
+pub type NonemptySetBootstrapWitness = NonemptySet<BootstrapWitness>;
+
+pub type NonemptySetCertificate = NonemptySet<Certificate>;
+
+pub type NonemptySetNativeScript = NonemptySet<NativeScript>;
+
+pub type NonemptySetPlutusData = NonemptySet<PlutusData>;
+
+pub type NonemptySetPlutusV1Script = NonemptySet<PlutusV1Script>;
+
+pub type NonemptySetPlutusV2Script = NonemptySet<PlutusV2Script>;
+
+pub type NonemptySetPlutusV3Script = NonemptySet<PlutusV3Script>;
+
+pub type NonemptySetProposalProcedure = NonemptySet<ProposalProcedure>;
+
+pub type NonemptySetTransactionInput = NonemptySet<TransactionInput>;
+
+pub type NonemptySetVkeywitness = NonemptySet<Vkeywitness>;
+
 pub type PolicyId = cml_crypto::ScriptHash;
 
 pub type PolicyIdList = Vec<PolicyId>;
+
+pub type RequiredSigners = NonemptySetRawBytes<Ed25519KeyHash>;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct PoolVotingThresholds {
@@ -115,6 +143,7 @@ pub struct PoolVotingThresholds {
     pub committee_normal: UnitInterval,
     pub committee_no_confidence: UnitInterval,
     pub hard_fork_initiation: UnitInterval,
+    pub security_relevant_parameter_voting_threshold: UnitInterval,
     #[serde(skip)]
     pub encodings: Option<PoolVotingThresholdsEncoding>,
 }
@@ -125,12 +154,14 @@ impl PoolVotingThresholds {
         committee_normal: UnitInterval,
         committee_no_confidence: UnitInterval,
         hard_fork_initiation: UnitInterval,
+        security_relevant_parameter_voting_threshold: UnitInterval,
     ) -> Self {
         Self {
             motion_no_confidence,
             committee_normal,
             committee_no_confidence,
             hard_fork_initiation,
+            security_relevant_parameter_voting_threshold,
             encodings: None,
         }
     }
@@ -140,8 +171,8 @@ pub type Port = u16;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ProtocolParamUpdate {
-    pub minfee_a: Option<u64>,
-    pub minfee_b: Option<u64>,
+    pub minfee_a: Option<Coin>,
+    pub minfee_b: Option<Coin>,
     pub max_block_body_size: Option<u64>,
     pub max_transaction_size: Option<u64>,
     pub max_block_header_size: Option<u64>,
@@ -164,11 +195,12 @@ pub struct ProtocolParamUpdate {
     pub pool_voting_thresholds: Option<PoolVotingThresholds>,
     pub d_rep_voting_thresholds: Option<DRepVotingThresholds>,
     pub min_committee_size: Option<u64>,
-    pub committee_term_limit: Option<u64>,
+    pub committee_term_limit: Option<Epoch>,
     pub governance_action_validity_period: Option<Epoch>,
     pub governance_action_deposit: Option<Coin>,
     pub d_rep_deposit: Option<Coin>,
     pub d_rep_inactivity_period: Option<Epoch>,
+    pub min_fee_ref_script_cost_per_byte: Option<Rational>,
     #[serde(skip)]
     pub encodings: Option<ProtocolParamUpdateEncoding>,
 }
@@ -205,6 +237,7 @@ impl ProtocolParamUpdate {
             governance_action_deposit: None,
             d_rep_deposit: None,
             d_rep_inactivity_period: None,
+            min_fee_ref_script_cost_per_byte: None,
             encodings: None,
         }
     }
@@ -312,6 +345,11 @@ impl Script {
         }
     }
 }
+
+pub type SetCommitteeColdCredential = Set<CommitteeColdCredential>;
+pub type SetEd25519KeyHash = NonemptySetRawBytes<Ed25519KeyHash>;
+
+pub type SetTransactionInput = Set<TransactionInput>;
 
 pub type SubCoin = Rational;
 

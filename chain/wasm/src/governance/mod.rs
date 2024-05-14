@@ -7,9 +7,8 @@ use crate::block::ProtocolVersion;
 use crate::certs::Url;
 use crate::crypto::{AnchorDocHash, Ed25519KeyHash, ScriptHash, TransactionHash};
 use crate::{
-    CommitteeColdCredentialList, MapCommitteeColdCredentialToEpoch,
-    MapGovActionIdToVotingProcedure, MapRewardAccountToCoin, ProtocolParamUpdate, UnitInterval,
-    VoterList,
+    MapCommitteeColdCredentialToEpoch, MapGovActionIdToVotingProcedure, MapRewardAccountToCoin,
+    ProtocolParamUpdate, SetCommitteeColdCredential, UnitInterval, VoterList,
 };
 pub use cml_chain::governance::Vote;
 use cml_core::ordered_hash_map::OrderedHashMap;
@@ -38,35 +37,6 @@ impl Anchor {
         Self(cml_chain::governance::Anchor::new(
             anchor_url.clone().into(),
             anchor_doc_hash.clone().into(),
-        ))
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct Committee(cml_chain::governance::Committee);
-
-impl_wasm_cbor_json_api!(Committee);
-
-impl_wasm_conversions!(cml_chain::governance::Committee, Committee);
-
-#[wasm_bindgen]
-impl Committee {
-    pub fn credentials(&self) -> MapCommitteeColdCredentialToEpoch {
-        self.0.credentials.clone().into()
-    }
-
-    pub fn unit_interval(&self) -> UnitInterval {
-        self.0.unit_interval.clone().into()
-    }
-
-    pub fn new(
-        credentials: &MapCommitteeColdCredentialToEpoch,
-        unit_interval: &UnitInterval,
-    ) -> Self {
-        Self(cml_chain::governance::Committee::new(
-            credentials.clone().into(),
-            unit_interval.clone().into(),
         ))
     }
 }
@@ -110,11 +80,13 @@ impl GovAction {
     pub fn new_parameter_change_action(
         gov_action_id: Option<GovActionId>,
         protocol_param_update: &ProtocolParamUpdate,
+        policy_hash: Option<ScriptHash>,
     ) -> Self {
         Self(
             cml_chain::governance::GovAction::new_parameter_change_action(
                 gov_action_id.map(Into::into),
                 protocol_param_update.clone().into(),
+                policy_hash.map(Into::into),
             ),
         )
     }
@@ -131,10 +103,14 @@ impl GovAction {
         )
     }
 
-    pub fn new_treasury_withdrawals_action(withdrawal: &MapRewardAccountToCoin) -> Self {
+    pub fn new_treasury_withdrawals_action(
+        withdrawal: &MapRewardAccountToCoin,
+        policy_hash: Option<ScriptHash>,
+    ) -> Self {
         Self(
             cml_chain::governance::GovAction::new_treasury_withdrawals_action(
                 withdrawal.clone().into(),
+                policy_hash.map(Into::into),
             ),
         )
     }
@@ -145,15 +121,17 @@ impl GovAction {
         ))
     }
 
-    pub fn new_new_committee(
+    pub fn new_update_committee(
         action_id: Option<GovActionId>,
-        cold_credentials: &CommitteeColdCredentialList,
-        committee: &Committee,
+        cold_credentials: &SetCommitteeColdCredential,
+        credentials: &MapCommitteeColdCredentialToEpoch,
+        unit_interval: &UnitInterval,
     ) -> Self {
-        Self(cml_chain::governance::GovAction::new_new_committee(
+        Self(cml_chain::governance::GovAction::new_update_committee(
             action_id.map(Into::into),
             cold_credentials.clone().into(),
-            committee.clone().into(),
+            credentials.clone().into(),
+            unit_interval.clone().into(),
         ))
     }
 
@@ -183,7 +161,7 @@ impl GovAction {
                 GovActionKind::TreasuryWithdrawalsAction
             }
             cml_chain::governance::GovAction::NoConfidence(_) => GovActionKind::NoConfidence,
-            cml_chain::governance::GovAction::NewCommittee(_) => GovActionKind::NewCommittee,
+            cml_chain::governance::GovAction::UpdateCommittee(_) => GovActionKind::UpdateCommittee,
             cml_chain::governance::GovAction::NewConstitution(_) => GovActionKind::NewConstitution,
             cml_chain::governance::GovAction::InfoAction { .. } => GovActionKind::InfoAction,
         }
@@ -225,10 +203,10 @@ impl GovAction {
         }
     }
 
-    pub fn as_new_committee(&self) -> Option<NewCommittee> {
+    pub fn as_update_committee(&self) -> Option<UpdateCommittee> {
         match &self.0 {
-            cml_chain::governance::GovAction::NewCommittee(new_committee) => {
-                Some(new_committee.clone().into())
+            cml_chain::governance::GovAction::UpdateCommittee(update_committee) => {
+                Some(update_committee.clone().into())
             }
             _ => None,
         }
@@ -276,7 +254,7 @@ pub enum GovActionKind {
     HardForkInitiationAction,
     TreasuryWithdrawalsAction,
     NoConfidence,
-    NewCommittee,
+    UpdateCommittee,
     NewConstitution,
     InfoAction,
 }
@@ -306,41 +284,6 @@ impl HardForkInitiationAction {
         Self(cml_chain::governance::HardForkInitiationAction::new(
             action_id.map(Into::into),
             version.clone().into(),
-        ))
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct NewCommittee(cml_chain::governance::NewCommittee);
-
-impl_wasm_cbor_json_api!(NewCommittee);
-
-impl_wasm_conversions!(cml_chain::governance::NewCommittee, NewCommittee);
-
-#[wasm_bindgen]
-impl NewCommittee {
-    pub fn action_id(&self) -> Option<GovActionId> {
-        self.0.action_id.clone().map(std::convert::Into::into)
-    }
-
-    pub fn cold_credentials(&self) -> CommitteeColdCredentialList {
-        self.0.cold_credentials.clone().into()
-    }
-
-    pub fn committee(&self) -> Committee {
-        self.0.committee.clone().into()
-    }
-
-    pub fn new(
-        action_id: Option<GovActionId>,
-        cold_credentials: &CommitteeColdCredentialList,
-        committee: &Committee,
-    ) -> Self {
-        Self(cml_chain::governance::NewCommittee::new(
-            action_id.map(Into::into),
-            cold_credentials.clone().into(),
-            committee.clone().into(),
         ))
     }
 }
@@ -413,13 +356,19 @@ impl ParameterChangeAction {
         self.0.protocol_param_update.clone().into()
     }
 
+    pub fn policy_hash(&self) -> Option<ScriptHash> {
+        self.0.policy_hash.map(std::convert::Into::into)
+    }
+
     pub fn new(
         gov_action_id: Option<GovActionId>,
         protocol_param_update: &ProtocolParamUpdate,
+        policy_hash: Option<ScriptHash>,
     ) -> Self {
         Self(cml_chain::governance::ParameterChangeAction::new(
             gov_action_id.map(Into::into),
             protocol_param_update.clone().into(),
+            policy_hash.map(Into::into),
         ))
     }
 }
@@ -482,9 +431,55 @@ impl TreasuryWithdrawalsAction {
         self.0.withdrawal.clone().into()
     }
 
-    pub fn new(withdrawal: &MapRewardAccountToCoin) -> Self {
+    pub fn policy_hash(&self) -> Option<ScriptHash> {
+        self.0.policy_hash.map(std::convert::Into::into)
+    }
+
+    pub fn new(withdrawal: &MapRewardAccountToCoin, policy_hash: Option<ScriptHash>) -> Self {
         Self(cml_chain::governance::TreasuryWithdrawalsAction::new(
             withdrawal.clone().into(),
+            policy_hash.map(Into::into),
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct UpdateCommittee(cml_chain::governance::UpdateCommittee);
+
+impl_wasm_cbor_json_api!(UpdateCommittee);
+
+impl_wasm_conversions!(cml_chain::governance::UpdateCommittee, UpdateCommittee);
+
+#[wasm_bindgen]
+impl UpdateCommittee {
+    pub fn action_id(&self) -> Option<GovActionId> {
+        self.0.action_id.clone().map(std::convert::Into::into)
+    }
+
+    pub fn cold_credentials(&self) -> SetCommitteeColdCredential {
+        self.0.cold_credentials.clone().into()
+    }
+
+    pub fn credentials(&self) -> MapCommitteeColdCredentialToEpoch {
+        self.0.credentials.clone().into()
+    }
+
+    pub fn unit_interval(&self) -> UnitInterval {
+        self.0.unit_interval.clone().into()
+    }
+
+    pub fn new(
+        action_id: Option<GovActionId>,
+        cold_credentials: &SetCommitteeColdCredential,
+        credentials: &MapCommitteeColdCredentialToEpoch,
+        unit_interval: &UnitInterval,
+    ) -> Self {
+        Self(cml_chain::governance::UpdateCommittee::new(
+            action_id.map(Into::into),
+            cold_credentials.clone().into(),
+            credentials.clone().into(),
+            unit_interval.clone().into(),
         ))
     }
 }

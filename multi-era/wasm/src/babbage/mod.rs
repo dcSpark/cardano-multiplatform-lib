@@ -3,20 +3,21 @@
 
 use crate::shelley::ProtocolVersionStruct;
 use crate::{
-    AllegraCertificateList, BabbageTransactionBodyList, BabbageTransactionOutputList,
-    BabbageTransactionWitnessSetList, GenesisHashList, MapTransactionIndexToBabbageAuxiliaryData,
+    AllegraCertificateList, AlonzoRedeemerList, BabbageTransactionBodyList,
+    BabbageTransactionOutputList, BabbageTransactionWitnessSetList, GenesisHashList,
+    MapTransactionIndexToBabbageAuxiliaryData,
 };
 use cml_chain_wasm::address::Address;
 use cml_chain_wasm::assets::{Coin, Mint, Value};
 use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
 use cml_chain_wasm::block::Header;
 use cml_chain_wasm::crypto::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
-use cml_chain_wasm::plutus::{ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
-use cml_chain_wasm::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, RequiredSigners};
+use cml_chain_wasm::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
+use cml_chain_wasm::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript};
 use cml_chain_wasm::{auxdata::Metadata, Epoch, Rational, UnitInterval, Withdrawals};
 use cml_chain_wasm::{
-    BootstrapWitnessList, IntList, NativeScriptList, NetworkId, PlutusDataList, PlutusV1ScriptList,
-    PlutusV2ScriptList, RedeemerList, TransactionInputList, VkeywitnessList,
+    BootstrapWitnessList, NativeScriptList, NetworkId, PlutusDataList, PlutusV1ScriptList,
+    PlutusV2ScriptList, RequiredSigners, TransactionInputList, VkeywitnessList,
 };
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::TransactionIndex;
@@ -152,36 +153,7 @@ impl BabbageBlock {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct BabbageCostModels(cml_multi_era::babbage::BabbageCostModels);
-
-impl_wasm_cbor_json_api!(BabbageCostModels);
-
-impl_wasm_conversions!(cml_multi_era::babbage::BabbageCostModels, BabbageCostModels);
-
-#[wasm_bindgen]
-impl BabbageCostModels {
-    pub fn set_plutus_v1(&mut self, plutus_v1: &IntList) {
-        self.0.plutus_v1 = Some(plutus_v1.clone().into())
-    }
-
-    pub fn plutus_v1(&self) -> Option<IntList> {
-        self.0.plutus_v1.clone().map(std::convert::Into::into)
-    }
-
-    pub fn set_plutus_v2(&mut self, plutus_v2: &IntList) {
-        self.0.plutus_v2 = Some(plutus_v2.clone().into())
-    }
-
-    pub fn plutus_v2(&self) -> Option<IntList> {
-        self.0.plutus_v2.clone().map(std::convert::Into::into)
-    }
-
-    pub fn new() -> Self {
-        Self(cml_multi_era::babbage::BabbageCostModels::new())
-    }
-}
+pub type BabbageCostModels = CostModels;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -731,11 +703,18 @@ impl BabbageTransactionBody {
     }
 
     pub fn set_mint(&mut self, mint: &Mint) {
-        self.0.mint = Some(mint.clone().into())
+        self.0.mint = Some(cml_multi_era::babbage::utils::BabbageMint::from(Into::<
+            cml_chain::assets::Mint,
+        >::into(
+            mint.clone(),
+        )))
     }
 
     pub fn mint(&self) -> Option<Mint> {
-        self.0.mint.clone().map(std::convert::Into::into)
+        self.0
+            .mint
+            .as_ref()
+            .map(|mint| mint.to_mint().to_owned().into())
     }
 
     pub fn set_script_data_hash(&mut self, script_data_hash: &ScriptDataHash) {
@@ -943,11 +922,11 @@ impl BabbageTransactionWitnessSet {
         self.0.plutus_datums.clone().map(std::convert::Into::into)
     }
 
-    pub fn set_redeemers(&mut self, redeemers: &RedeemerList) {
+    pub fn set_redeemers(&mut self, redeemers: &AlonzoRedeemerList) {
         self.0.redeemers = Some(redeemers.clone().into())
     }
 
-    pub fn redeemers(&self) -> Option<RedeemerList> {
+    pub fn redeemers(&self) -> Option<AlonzoRedeemerList> {
         self.0.redeemers.clone().map(std::convert::Into::into)
     }
 

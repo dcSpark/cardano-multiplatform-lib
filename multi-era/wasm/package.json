@@ -1,6 +1,6 @@
 {
   "name": "cardano-multiplatform-multiera-lib",
-  "version": "5.2.0",
+  "version": "5.3.1",
   "description": "Multiplatform SDK for on-chain Cardano blochain types of all eras (Byron, Shelley, etc)",
   "keywords": [
     "cardano"

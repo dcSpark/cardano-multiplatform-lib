@@ -8,9 +8,9 @@ use crate::{
     byron::ByronAddress,
     certs::Credential,
     crypto::{hash::hash_plutus_data, BootstrapWitness, Vkey, Vkeywitness},
-    plutus::{PlutusData, PlutusScript, PlutusV1Script, PlutusV2Script, Redeemer},
-    transaction::{RequiredSigners, TransactionWitnessSet},
-    NativeScript, Script,
+    plutus::{LegacyRedeemer, PlutusData, PlutusScript, PlutusV1Script, PlutusV2Script, Redeemers},
+    transaction::TransactionWitnessSet,
+    NativeScript, RequiredSigners, Script,
 };
 use cml_crypto::{
     DatumHash, Ed25519KeyHash, Ed25519Signature, PublicKey, RawBytesEncoding, ScriptHash,
@@ -24,7 +24,7 @@ pub enum WitnessBuilderError {
     MissingWitnesses(RequiredWitnessSet),
     #[error("Missing ExUnit: {0}")]
     MissingExUnit(#[from] MissingExunitError),
-    #[error("Redeemer build failed: {0}")]
+    #[error("LegacyRedeemer build failed: {0}")]
     RedeemBuildFailed(#[from] RedeemerBuilderError),
 }
 
@@ -160,7 +160,7 @@ impl RequiredWitnessSet {
         self.plutus_data.insert(plutus_datum);
     }
 
-    // pub fn add_redeemer(&mut self, redeemer: &Redeemer) {
+    // pub fn add_redeemer(&mut self, redeemer: &LegacyRedeemer) {
     //     self.add_redeemer_tag(&RedeemerWitnessKey::new(&redeemer.tag(), &redeemer.index()));
     // }
     pub fn add_redeemer_tag(&mut self, redeemer: RedeemerWitnessKey) {
@@ -241,7 +241,7 @@ pub struct TransactionWitnessSetBuilder {
     pub bootstraps: HashMap<Vkey, BootstrapWitness>,
     pub scripts: HashMap<ScriptHash, Script>,
     pub plutus_data: LinkedHashMap<DatumHash, PlutusData>,
-    pub redeemers: LinkedHashMap<RedeemerWitnessKey, Redeemer>,
+    pub redeemers: LinkedHashMap<RedeemerWitnessKey, LegacyRedeemer>,
 
     /// witnesses that need to be added for the build function to succeed
     /// this allows checking that witnesses are present at build time (instead of when submitting to a node)
@@ -329,12 +329,12 @@ impl TransactionWitnessSetBuilder {
         self.plutus_data.values().cloned().collect()
     }
 
-    pub fn add_redeemer(&mut self, redeemer: Redeemer) {
+    pub fn add_redeemer(&mut self, redeemer: LegacyRedeemer) {
         self.redeemers
             .insert(RedeemerWitnessKey::from(&redeemer), redeemer);
     }
 
-    pub fn get_redeemer(&self) -> Vec<Redeemer> {
+    pub fn get_redeemer(&self) -> Vec<LegacyRedeemer> {
         self.redeemers.values().cloned().collect()
     }
 
@@ -349,32 +349,32 @@ impl TransactionWitnessSetBuilder {
 
     pub fn add_existing(&mut self, wit_set: TransactionWitnessSet) {
         if let Some(vkeys) = wit_set.vkeywitnesses {
-            vkeys.into_iter().for_each(|vkey| {
-                self.add_vkey(vkey);
+            vkeys.iter().for_each(|vkey| {
+                self.add_vkey(vkey.clone());
             });
         }
         if let Some(bootstraps) = wit_set.bootstrap_witnesses {
-            bootstraps.into_iter().for_each(|bootstrap| {
-                self.add_bootstrap(bootstrap);
+            bootstraps.iter().for_each(|bootstrap| {
+                self.add_bootstrap(bootstrap.clone());
             });
         }
         if let Some(native_scripts) = wit_set.native_scripts {
-            native_scripts.into_iter().for_each(|native_script| {
-                self.add_script(native_script.into());
+            native_scripts.iter().for_each(|native_script| {
+                self.add_script(native_script.clone().into());
             });
         }
         if let Some(plutus_scripts) = wit_set.plutus_v1_scripts {
-            plutus_scripts.into_iter().for_each(|plutus_script| {
-                self.add_script(plutus_script.into());
+            plutus_scripts.iter().for_each(|plutus_script| {
+                self.add_script(plutus_script.clone().into());
             });
         }
         if let Some(plutus_scripts) = wit_set.plutus_v2_scripts {
-            plutus_scripts.into_iter().for_each(|plutus_script| {
-                self.add_script(plutus_script.into());
+            plutus_scripts.iter().for_each(|plutus_script| {
+                self.add_script(plutus_script.clone().into());
             });
         }
         if let Some(redeemers) = wit_set.redeemers {
-            redeemers.into_iter().for_each(|redeemer| {
+            redeemers.to_flat_format().into_iter().for_each(|redeemer| {
                 self.add_redeemer(redeemer);
             });
         }
@@ -412,31 +412,34 @@ impl TransactionWitnessSetBuilder {
         let plutus_datums = self.get_plutus_datum();
 
         if !self.vkeys.is_empty() {
-            result.vkeywitnesses = Some(self.vkeys.into_values().collect());
+            result.vkeywitnesses = Some(self.vkeys.into_values().collect::<Vec<_>>().into());
         }
 
         if !self.bootstraps.is_empty() {
-            result.bootstrap_witnesses = Some(self.bootstraps.into_values().collect());
+            result.bootstrap_witnesses =
+                Some(self.bootstraps.into_values().collect::<Vec<_>>().into());
         }
 
         if !native_scripts.is_empty() {
-            result.native_scripts = Some(native_scripts);
+            result.native_scripts = Some(native_scripts.into());
         }
 
         if !plutus_v1_scripts.is_empty() {
-            result.plutus_v1_scripts = Some(plutus_v1_scripts);
+            result.plutus_v1_scripts = Some(plutus_v1_scripts.into());
         }
 
         if !plutus_v2_scripts.is_empty() {
-            result.plutus_v2_scripts = Some(plutus_v2_scripts);
+            result.plutus_v2_scripts = Some(plutus_v2_scripts.into());
         }
 
         if !self.plutus_data.is_empty() {
-            result.plutus_datums = Some(plutus_datums);
+            result.plutus_datums = Some(plutus_datums.into());
         }
 
         if !self.redeemers.is_empty() {
-            result.redeemers = Some(self.redeemers.values().cloned().collect());
+            result.redeemers = Some(Redeemers::new_arr_legacy_redeemer(
+                self.redeemers.values().cloned().collect::<Vec<_>>(),
+            ));
         }
 
         result
@@ -629,7 +632,7 @@ mod tests {
                 }
             };
             let missing_signers = vec![fake_raw_key_public(0).hash()];
-            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
+            InputAggregateWitnessData::PlutusScript(witness, missing_signers.into(), None)
         };
 
         assert_eq!(required_wits.vkeys.len(), 0);
@@ -653,7 +656,7 @@ mod tests {
                 }
             };
             let missing_signers = vec![hash];
-            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
+            InputAggregateWitnessData::PlutusScript(witness, missing_signers.into(), None)
         };
 
         assert_eq!(required_wits.vkeys.len(), 1);

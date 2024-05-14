@@ -1,6 +1,6 @@
 plutus_data = _CDDL_CODEGEN_EXTERN_TYPE_
-redeemer = _CDDL_CODEGEN_EXTERN_TYPE_
 ex_units = _CDDL_CODEGEN_EXTERN_TYPE_
 ex_unit_prices = _CDDL_CODEGEN_EXTERN_TYPE_
 plutus_v1_script = _CDDL_CODEGEN_EXTERN_TYPE_
 plutus_v2_script = _CDDL_CODEGEN_EXTERN_TYPE_
+cost_models = _CDDL_CODEGEN_EXTERN_TYPE_

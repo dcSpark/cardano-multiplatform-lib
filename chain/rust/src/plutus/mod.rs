@@ -5,15 +5,18 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use self::cbor_encodings::PlutusV3ScriptEncoding;
+use self::cbor_encodings::{
+    LegacyRedeemerEncoding, PlutusV3ScriptEncoding, RedeemerKeyEncoding, RedeemerValEncoding,
+};
 
 use super::{Rational, SubCoin};
 use crate::utils::BigInteger;
 use cbor_encodings::{
     CostModelsEncoding, ExUnitPricesEncoding, ExUnitsEncoding, PlutusV1ScriptEncoding,
-    PlutusV2ScriptEncoding, RedeemerEncoding,
+    PlutusV2ScriptEncoding,
 };
 
+use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, Serialize, StringEncoding};
 use cml_core::Int;
 use cml_crypto::{blake2b256, DatumHash};
@@ -105,6 +108,28 @@ pub enum Language {
     PlutusV3,
 }
 
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct LegacyRedeemer {
+    pub tag: RedeemerTag,
+    pub index: u64,
+    pub data: PlutusData,
+    pub ex_units: ExUnits,
+    #[serde(skip)]
+    pub encodings: Option<LegacyRedeemerEncoding>,
+}
+
+impl LegacyRedeemer {
+    pub fn new(tag: RedeemerTag, index: u64, data: PlutusData, ex_units: ExUnits) -> Self {
+        Self {
+            tag,
+            index,
+            data,
+            ex_units,
+            encodings: None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(
     Eq,
@@ -172,10 +197,15 @@ impl PlutusData {
 }
 
 #[derive(Clone, Debug, derivative::Derivative)]
-#[derivative(Hash, PartialEq, Eq)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PlutusV1Script {
     pub inner: Vec<u8>,
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     pub encodings: Option<PlutusV1ScriptEncoding>,
 }
 
@@ -240,10 +270,15 @@ impl schemars::JsonSchema for PlutusV1Script {
 }
 
 #[derive(Clone, Debug, derivative::Derivative)]
-#[derivative(Hash, PartialEq, Eq)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PlutusV2Script {
     pub inner: Vec<u8>,
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     pub encodings: Option<PlutusV2ScriptEncoding>,
 }
 
@@ -308,10 +343,15 @@ impl schemars::JsonSchema for PlutusV2Script {
 }
 
 #[derive(Clone, Debug, derivative::Derivative)]
-#[derivative(Hash, PartialEq, Eq)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PlutusV3Script {
     pub inner: Vec<u8>,
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     pub encodings: Option<PlutusV3ScriptEncoding>,
 }
 
@@ -375,23 +415,28 @@ impl schemars::JsonSchema for PlutusV3Script {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Redeemer {
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct RedeemerKey {
     pub tag: RedeemerTag,
     pub index: u64,
-    pub data: PlutusData,
-    pub ex_units: ExUnits,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
-    pub encodings: Option<RedeemerEncoding>,
+    pub encodings: Option<RedeemerKeyEncoding>,
 }
 
-impl Redeemer {
-    pub fn new(tag: RedeemerTag, index: u64, data: PlutusData, ex_units: ExUnits) -> Self {
+impl RedeemerKey {
+    pub fn new(tag: RedeemerTag, index: u64) -> Self {
         Self {
             tag,
             index,
-            data,
-            ex_units,
             encodings: None,
         }
     }
@@ -416,4 +461,56 @@ pub enum RedeemerTag {
     Mint,
     Cert,
     Reward,
+    Voting,
+    Proposing,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct RedeemerVal {
+    pub data: PlutusData,
+    pub ex_units: ExUnits,
+    #[serde(skip)]
+    pub encodings: Option<RedeemerValEncoding>,
+}
+
+impl RedeemerVal {
+    pub fn new(data: PlutusData, ex_units: ExUnits) -> Self {
+        Self {
+            data,
+            ex_units,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub enum Redeemers {
+    ArrLegacyRedeemer {
+        arr_legacy_redeemer: Vec<LegacyRedeemer>,
+        #[serde(skip)]
+        arr_legacy_redeemer_encoding: LenEncoding,
+    },
+    MapRedeemerKeyToRedeemerVal {
+        map_redeemer_key_to_redeemer_val: OrderedHashMap<RedeemerKey, RedeemerVal>,
+        #[serde(skip)]
+        map_redeemer_key_to_redeemer_val_encoding: LenEncoding,
+    },
+}
+
+impl Redeemers {
+    pub fn new_arr_legacy_redeemer(arr_legacy_redeemer: Vec<LegacyRedeemer>) -> Self {
+        Self::ArrLegacyRedeemer {
+            arr_legacy_redeemer,
+            arr_legacy_redeemer_encoding: LenEncoding::default(),
+        }
+    }
+
+    pub fn new_map_redeemer_key_to_redeemer_val(
+        map_redeemer_key_to_redeemer_val: OrderedHashMap<RedeemerKey, RedeemerVal>,
+    ) -> Self {
+        Self::MapRedeemerKeyToRedeemerVal {
+            map_redeemer_key_to_redeemer_val,
+            map_redeemer_key_to_redeemer_val_encoding: LenEncoding::default(),
+        }
+    }
 }

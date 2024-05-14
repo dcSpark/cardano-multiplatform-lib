@@ -1,4 +1,4 @@
-use super::{CostModels, Language, Redeemer};
+use super::{CostModels, Language, LegacyRedeemer, RedeemerKey, RedeemerVal, Redeemers};
 use super::{ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script};
 use crate::crypto::hash::{hash_script, ScriptHashNamespace};
 use crate::json::plutus_datums::{
@@ -7,9 +7,11 @@ use crate::json::plutus_datums::{
 };
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
+use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::*;
 use cml_core::{error::*, Int};
 use cml_crypto::ScriptHash;
+use itertools::Itertools;
 use std::collections::BTreeMap;
 use std::io::{BufRead, Seek, Write};
 
@@ -479,7 +481,7 @@ impl ExUnits {
     }
 }
 
-pub fn compute_total_ex_units(redeemers: &[Redeemer]) -> Result<ExUnits, ArithmeticError> {
+pub fn compute_total_ex_units(redeemers: &[LegacyRedeemer]) -> Result<ExUnits, ArithmeticError> {
     let mut sum = ExUnits::new(0, 0);
     for redeemer in redeemers {
         sum = sum.checked_add(&redeemer.ex_units)?;
@@ -601,6 +603,77 @@ impl Deserialize for PlutusMap {
             Ok(Self { entries, encoding })
         })()
         .map_err(|e| e.annotate("PlutusMap"))
+    }
+}
+
+impl Redeemers {
+    pub fn to_flat_format(self) -> Vec<LegacyRedeemer> {
+        match self {
+            Self::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => arr_legacy_redeemer,
+            Self::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => map_redeemer_key_to_redeemer_val
+                .iter()
+                .map(|(k, v)| {
+                    LegacyRedeemer::new(k.tag, k.index, v.data.clone(), v.ex_units.clone())
+                })
+                .collect_vec(),
+        }
+    }
+
+    pub fn to_map_format(self) -> OrderedHashMap<RedeemerKey, RedeemerVal> {
+        match self {
+            Self::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => arr_legacy_redeemer
+                .into_iter()
+                .map(|r| {
+                    (
+                        RedeemerKey::new(r.tag, r.index),
+                        RedeemerVal::new(r.data, r.ex_units),
+                    )
+                })
+                .collect(),
+            Self::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => map_redeemer_key_to_redeemer_val,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => arr_legacy_redeemer.is_empty(),
+            Self::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => map_redeemer_key_to_redeemer_val.is_empty(),
+        }
+    }
+
+    pub fn extend(&mut self, other: Self) {
+        match self {
+            Self::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => arr_legacy_redeemer.extend(other.to_flat_format()),
+            Self::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => {
+                for (k, v) in other.to_map_format().take() {
+                    map_redeemer_key_to_redeemer_val.insert(k, v);
+                }
+            }
+        }
     }
 }
 

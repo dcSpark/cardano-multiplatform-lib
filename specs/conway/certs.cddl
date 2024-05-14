@@ -65,7 +65,7 @@ stake_vote_reg_deleg_cert = (
 
 ; GOVCERT
 auth_committee_hot_cert = (14, committee_cold_credential, committee_hot_credential)
-resign_committee_cold_cert = (15, committee_cold_credential)
+resign_committee_cold_cert = (15, committee_cold_credential, anchor / null)
 reg_drep_cert = (16, drep_credential, coin, anchor / null)
 unreg_drep_cert = (17, drep_credential, coin)
 update_drep_cert = (18, drep_credential, anchor / null)
@@ -97,14 +97,14 @@ pool_params = ( operator:       ed25519_key_hash
               , cost:           coin
               , margin:         unit_interval
               , reward_account: reward_account
-              , pool_owners:    [* ed25519_key_hash]
+              , pool_owners:    set<ed25519_key_hash>
               , relays:         [* relay]
               , pool_metadata:  pool_metadata / null
               )
 
 ipv4 = bytes .size 4 ; @custom_json
 ipv6 = bytes .size 16 ; @custom_json
-dns_name = tstr .size (0..64)
+dns_name = tstr .size (0..128)
 
 single_host_addr = ( tag: 0
                    , port / null
@@ -125,7 +125,7 @@ relay =
   ]
 
 pool_metadata = [url, pool_metadata_hash]
-url = tstr .size (0..64)
+url = tstr .size (0..128)
 
 
 credential = [

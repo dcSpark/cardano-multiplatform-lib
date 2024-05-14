@@ -5,12 +5,13 @@ use crate::address::Address;
 use crate::assets::{Coin, Mint, PositiveCoin, Value};
 use crate::auxdata::AuxiliaryData;
 use crate::governance::VotingProcedures;
-use crate::plutus::PlutusData;
-use crate::Script;
+use crate::plutus::{PlutusData, Redeemers};
 use crate::{
-    BootstrapWitnessList, CertificateList, NativeScriptList, NetworkId, PlutusDataList,
-    PlutusV1ScriptList, PlutusV2ScriptList, PlutusV3ScriptList, ProposalProcedureList,
-    RedeemerList, Slot, TransactionInputList, TransactionOutputList, VkeywitnessList, Withdrawals,
+    NativeScriptList, NetworkId, NonemptySetBootstrapWitness, NonemptySetCertificate,
+    NonemptySetNativeScript, NonemptySetPlutusData, NonemptySetPlutusV1Script,
+    NonemptySetPlutusV2Script, NonemptySetPlutusV3Script, NonemptySetProposalProcedure,
+    NonemptySetTransactionInput, NonemptySetVkeywitness, RequiredSigners, Script,
+    SetTransactionInput, Slot, TransactionOutputList, Withdrawals,
 };
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{
@@ -276,31 +277,6 @@ pub enum NativeScriptKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct RequiredSigners(Vec<cml_chain::crypto::Ed25519KeyHash>);
-
-impl_wasm_conversions!(Vec<cml_chain::crypto::Ed25519KeyHash>, RequiredSigners);
-
-#[wasm_bindgen]
-impl RequiredSigners {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> Ed25519KeyHash {
-        self.0[index].into()
-    }
-
-    pub fn add(&mut self, elem: &Ed25519KeyHash) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
 pub struct ScriptAll(cml_chain::transaction::ScriptAll);
 
 impl_wasm_cbor_json_api!(ScriptAll);
@@ -485,7 +461,7 @@ impl_wasm_conversions!(cml_chain::transaction::TransactionBody, TransactionBody)
 
 #[wasm_bindgen]
 impl TransactionBody {
-    pub fn inputs(&self) -> TransactionInputList {
+    pub fn inputs(&self) -> SetTransactionInput {
         self.0.inputs.clone().into()
     }
 
@@ -505,11 +481,11 @@ impl TransactionBody {
         self.0.ttl
     }
 
-    pub fn set_certs(&mut self, certs: &CertificateList) {
+    pub fn set_certs(&mut self, certs: &NonemptySetCertificate) {
         self.0.certs = Some(certs.clone().into())
     }
 
-    pub fn certs(&self) -> Option<CertificateList> {
+    pub fn certs(&self) -> Option<NonemptySetCertificate> {
         self.0.certs.clone().map(std::convert::Into::into)
     }
 
@@ -553,11 +529,11 @@ impl TransactionBody {
         self.0.script_data_hash.map(std::convert::Into::into)
     }
 
-    pub fn set_collateral_inputs(&mut self, collateral_inputs: &TransactionInputList) {
+    pub fn set_collateral_inputs(&mut self, collateral_inputs: &NonemptySetTransactionInput) {
         self.0.collateral_inputs = Some(collateral_inputs.clone().into())
     }
 
-    pub fn collateral_inputs(&self) -> Option<TransactionInputList> {
+    pub fn collateral_inputs(&self) -> Option<NonemptySetTransactionInput> {
         self.0
             .collateral_inputs
             .clone()
@@ -602,11 +578,11 @@ impl TransactionBody {
         self.0.total_collateral
     }
 
-    pub fn set_reference_inputs(&mut self, reference_inputs: &TransactionInputList) {
+    pub fn set_reference_inputs(&mut self, reference_inputs: &NonemptySetTransactionInput) {
         self.0.reference_inputs = Some(reference_inputs.clone().into())
     }
 
-    pub fn reference_inputs(&self) -> Option<TransactionInputList> {
+    pub fn reference_inputs(&self) -> Option<NonemptySetTransactionInput> {
         self.0
             .reference_inputs
             .clone()
@@ -624,11 +600,11 @@ impl TransactionBody {
             .map(std::convert::Into::into)
     }
 
-    pub fn set_proposal_procedures(&mut self, proposal_procedures: &ProposalProcedureList) {
+    pub fn set_proposal_procedures(&mut self, proposal_procedures: &NonemptySetProposalProcedure) {
         self.0.proposal_procedures = Some(proposal_procedures.clone().into())
     }
 
-    pub fn proposal_procedures(&self) -> Option<ProposalProcedureList> {
+    pub fn proposal_procedures(&self) -> Option<NonemptySetProposalProcedure> {
         self.0
             .proposal_procedures
             .clone()
@@ -651,7 +627,7 @@ impl TransactionBody {
         self.0.donation
     }
 
-    pub fn new(inputs: &TransactionInputList, outputs: &TransactionOutputList, fee: Coin) -> Self {
+    pub fn new(inputs: &SetTransactionInput, outputs: &TransactionOutputList, fee: Coin) -> Self {
         Self(cml_chain::transaction::TransactionBody::new(
             inputs.clone().into(),
             outputs.clone().into(),
@@ -761,76 +737,76 @@ impl_wasm_conversions!(
 
 #[wasm_bindgen]
 impl TransactionWitnessSet {
-    pub fn set_vkeywitnesses(&mut self, vkeywitnesses: &VkeywitnessList) {
+    pub fn set_vkeywitnesses(&mut self, vkeywitnesses: &NonemptySetVkeywitness) {
         self.0.vkeywitnesses = Some(vkeywitnesses.clone().into())
     }
 
-    pub fn vkeywitnesses(&self) -> Option<VkeywitnessList> {
+    pub fn vkeywitnesses(&self) -> Option<NonemptySetVkeywitness> {
         self.0.vkeywitnesses.clone().map(std::convert::Into::into)
     }
 
-    pub fn set_native_scripts(&mut self, native_scripts: &NativeScriptList) {
+    pub fn set_native_scripts(&mut self, native_scripts: &NonemptySetNativeScript) {
         self.0.native_scripts = Some(native_scripts.clone().into())
     }
 
-    pub fn native_scripts(&self) -> Option<NativeScriptList> {
+    pub fn native_scripts(&self) -> Option<NonemptySetNativeScript> {
         self.0.native_scripts.clone().map(std::convert::Into::into)
     }
 
-    pub fn set_bootstrap_witnesses(&mut self, bootstrap_witnesses: &BootstrapWitnessList) {
+    pub fn set_bootstrap_witnesses(&mut self, bootstrap_witnesses: &NonemptySetBootstrapWitness) {
         self.0.bootstrap_witnesses = Some(bootstrap_witnesses.clone().into())
     }
 
-    pub fn bootstrap_witnesses(&self) -> Option<BootstrapWitnessList> {
+    pub fn bootstrap_witnesses(&self) -> Option<NonemptySetBootstrapWitness> {
         self.0
             .bootstrap_witnesses
             .clone()
             .map(std::convert::Into::into)
     }
 
-    pub fn set_plutus_v1_scripts(&mut self, plutus_v1_scripts: &PlutusV1ScriptList) {
+    pub fn set_plutus_v1_scripts(&mut self, plutus_v1_scripts: &NonemptySetPlutusV1Script) {
         self.0.plutus_v1_scripts = Some(plutus_v1_scripts.clone().into())
     }
 
-    pub fn plutus_v1_scripts(&self) -> Option<PlutusV1ScriptList> {
+    pub fn plutus_v1_scripts(&self) -> Option<NonemptySetPlutusV1Script> {
         self.0
             .plutus_v1_scripts
             .clone()
             .map(std::convert::Into::into)
     }
 
-    pub fn set_plutus_datums(&mut self, plutus_datums: &PlutusDataList) {
+    pub fn set_plutus_datums(&mut self, plutus_datums: &NonemptySetPlutusData) {
         self.0.plutus_datums = Some(plutus_datums.clone().into())
     }
 
-    pub fn plutus_datums(&self) -> Option<PlutusDataList> {
+    pub fn plutus_datums(&self) -> Option<NonemptySetPlutusData> {
         self.0.plutus_datums.clone().map(std::convert::Into::into)
     }
 
-    pub fn set_redeemers(&mut self, redeemers: &RedeemerList) {
+    pub fn set_redeemers(&mut self, redeemers: &Redeemers) {
         self.0.redeemers = Some(redeemers.clone().into())
     }
 
-    pub fn redeemers(&self) -> Option<RedeemerList> {
+    pub fn redeemers(&self) -> Option<Redeemers> {
         self.0.redeemers.clone().map(std::convert::Into::into)
     }
 
-    pub fn set_plutus_v2_scripts(&mut self, plutus_v2_scripts: &PlutusV2ScriptList) {
+    pub fn set_plutus_v2_scripts(&mut self, plutus_v2_scripts: &NonemptySetPlutusV2Script) {
         self.0.plutus_v2_scripts = Some(plutus_v2_scripts.clone().into())
     }
 
-    pub fn plutus_v2_scripts(&self) -> Option<PlutusV2ScriptList> {
+    pub fn plutus_v2_scripts(&self) -> Option<NonemptySetPlutusV2Script> {
         self.0
             .plutus_v2_scripts
             .clone()
             .map(std::convert::Into::into)
     }
 
-    pub fn set_plutus_v3_scripts(&mut self, plutus_v3_scripts: &PlutusV3ScriptList) {
+    pub fn set_plutus_v3_scripts(&mut self, plutus_v3_scripts: &NonemptySetPlutusV3Script) {
         self.0.plutus_v3_scripts = Some(plutus_v3_scripts.clone().into())
     }
 
-    pub fn plutus_v3_scripts(&self) -> Option<PlutusV3ScriptList> {
+    pub fn plutus_v3_scripts(&self) -> Option<NonemptySetPlutusV3Script> {
         self.0
             .plutus_v3_scripts
             .clone()

@@ -1,12 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::io::Write;
 
 use cli::Cli;
 use clap::Parser;
-
 use cddl::{ast::*, token::*};
+
+use utils::*;
 
 mod cli;
 mod dep_graph;
+mod utils;
 
 fn verify_group(types: &BTreeMap<&str, BTreeSet<PlutusType>>, group: &Group, is_map: bool) -> Result<(), String> {
     for group_choice in group.group_choices.iter() {
@@ -229,14 +232,14 @@ fn verify_type2(types: &BTreeMap<&str, BTreeSet<PlutusType>>, type2: &Type2) -> 
     match type2 {
         Type2::UintValue { .. } => Ok([PlutusType::Int].into()),
         Type2::IntValue { .. } => Ok([PlutusType::Int].into()),
-        Type2::TextValue { value, .. } => verify_len(value.len()).map(|()| [PlutusType::Int].into()),
-        Type2::UTF8ByteString { value, .. } => verify_len(value.len()).map(|()| [PlutusType::Int].into()),
-        Type2::B16ByteString { value, .. } => verify_len(value.len()).map(|()| [PlutusType::Int].into()),
-        Type2::B64ByteString { value, .. } => verify_len(value.len()).map(|()| [PlutusType::Int].into()),
+        Type2::TextValue { .. } => Err("Text not allowed. Please use utf8_bytes.".to_owned()),
+        Type2::UTF8ByteString { value, .. } => verify_len(value.len()).map(|()| [PlutusType::Bytes].into()),
+        Type2::B16ByteString { value, .. } => verify_len(value.len()).map(|()| [PlutusType::Bytes].into()),
+        Type2::B64ByteString { value, .. } => verify_len(value.len()).map(|()| [PlutusType::Bytes].into()),
         Type2::Typename { ident, .. } => verify_ident(&ident, false)
             .and_then(|()| types.get(ident.ident).cloned().ok_or_else(|| format!("Type alias not found: {}", ident.ident))),
-        Type2::Map { group, .. } => verify_group(types, group, true).map(|()| [PlutusType::Int].into()),
-        Type2::Array { group, .. } => verify_group(types, group, false).map(|()| [PlutusType::Int].into()),
+        Type2::Map { group, .. } => verify_group(types, group, true).map(|()| [PlutusType::Map].into()),
+        Type2::Array { group, .. } => verify_group(types, group, false).map(|()| [PlutusType::Array].into()),
         Type2::TaggedData { tag, t, .. } => verify_tagged_type(types, tag, t).map(|t| [t].into()),
         unsupported => Err(format!("Invalid (not plutus datum) type: {}", unsupported)),
     }
@@ -278,7 +281,7 @@ fn verify_rule<'a>(types: &mut BTreeMap<&'a str, BTreeSet<PlutusType>>, cddl_rul
     Ok(())
 }
 
-fn verify(cli: &Cli, cddl: &CDDL) -> Result<(), Box<dyn std::error::Error>> {
+fn verify(cddl: &CDDL) -> Result<(), Box<dyn std::error::Error>> {
     let mut types = create_base_idents();
     for cddl_rule in dep_graph::topological_rule_order(cddl.rules.iter().collect::<Vec<_>>().as_slice()) {
         verify_rule(&mut types, cddl_rule).map_err(|e| format!("type {} not valid metadata: {}", cddl_rule.name(), e))?;
@@ -286,98 +289,201 @@ fn verify(cli: &Cli, cddl: &CDDL) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn is_struct(t: &Type) -> bool {
+    if t.type_choices.len() == 1 {
+        match &t.type_choices[0].type1.type2 {
+            Type2::Map { group, .. } |
+            Type2::Array { group, .. } => {
+                if group.group_choices.len() == 1 {
+                    group.group_choices[0].group_entries.len() > 1
+                } else {
+                    true
+                }
+            },
+            Type2::TaggedData { t, .. } => is_struct(t),
+            _ => false,
+        }
+    } else {
+        true
+    }
+}
+
 fn generate_utils(cddl: &CDDL) -> Result<codegen::Scope, Box<dyn std::error::Error>> {
     let mut utils = codegen::Scope::new();
+    utils
+        .push_import("std::convert", "TryFrom", None)
+        .push_import("cml_chain::plutus", "PlutusData", None)
+        .push_import("cml_core::serialization", "Serialize", None)
+        .push_import("cml_core::serialization", "Deserialize", None);
     for cddl_rule in &cddl.rules {
-        let mut try_from = codegen::Impl::new(cddl_rule.name());
-        // TODO: if we look into the structure we could avoid the bytes interace
-        try_from
-            .impl_trait("TryFrom<&PlutusData>")
-            .new_fn("try_from")
-            .arg("datum", "&PlutusData")
-            .ret("Result<Self, Self::Err>")
-            .line("Self::from_cbor_bytes(&datum.to_cbor_bytes())");
-        utils.push_impl(try_from);
-        let mut try_from = codegen::Impl::new("PlutusData");
-        // TODO: if we look into the structure we could avoid the bytes interace
-        try_from
-            .impl_trait(format!("From<&{}>", cddl_rule.name()))
-            .new_fn("try_from")
-            .arg("datum", format!("&{}", cddl_rule.name()))
-            .ret("Self")
-            .line("Self::from_cbor_bytes(&datum.to_cbor_bytes()).unwrap()");
-        utils.push_impl(try_from);
+        let is_struct =  match cddl_rule {
+            Rule::Type{ rule, .. } => is_struct(&rule.value),
+            Rule::Group{ .. } => true,
+        };
+        if is_struct {
+            let rust_rule_name = convert_to_camel_case(&cddl_rule.name());
+            utils.push_import("super", &rust_rule_name, None);
+            let mut try_from = codegen::Impl::new(&rust_rule_name);
+            // TODO: if we look into the structure we could avoid the bytes interace
+            try_from
+                .impl_trait("TryFrom<&PlutusData>")
+                .associate_type("Error", "cml_core::DeserializeError")
+                .new_fn("try_from")
+                .arg("datum", "&PlutusData")
+                .ret("Result<Self, Self::Error>")
+                .line("Self::from_cbor_bytes(&datum.to_cbor_bytes())");
+            utils.push_impl(try_from);
+            let mut from = codegen::Impl::new("PlutusData");
+            // TODO: if we look into the structure we could avoid the bytes interace
+            from
+                .impl_trait(format!("From<&{}>", rust_rule_name))
+                .new_fn("from")
+                .arg("datum", format!("&{}", rust_rule_name))
+                .ret("Self")
+                .line("Self::from_cbor_bytes(&datum.to_cbor_bytes()).unwrap()");
+            utils.push_impl(from);
+        }
+    }
+    Ok(utils)
+}
+
+fn generate_wasm_utils(cli: &Cli, cddl: &CDDL) -> Result<codegen::Scope, Box<dyn std::error::Error>> {
+    let mut utils = codegen::Scope::new();
+    utils
+        .push_import("std::convert", "TryFrom", None)
+        .push_import("cml_chain_wasm::plutus", "PlutusData", None)
+        .push_import("cml_core::serialization", "Serialize", None)
+        .push_import("cml_core::serialization", "Deserialize", None)
+        .push_import("wasm_bindgen", "JsError", None);
+    for cddl_rule in &cddl.rules {
+        let is_struct =  match cddl_rule {
+            Rule::Type{ rule, .. } => is_struct(&rule.value),
+            Rule::Group{ .. } => true,
+        };
+        if is_struct {
+            let rust_rule_name = convert_to_camel_case(&cddl_rule.name());
+            utils.push_import("super", &rust_rule_name, None);
+            let mut util_impl = codegen::Impl::new(&rust_rule_name);
+
+            let mut from_datum = codegen::Function::new("try_from_datum");
+            from_datum
+                .vis("pub")
+                .arg("datum", "&PlutusData")
+                .ret("Result<Self, JsError>")
+                .line(format!(
+                    "{}::{}::try_from(datum.as_ref()).map(Into::into).map_err(Into::into)",
+                    cli.lib_name_code(),
+                    rust_rule_name));
+            util_impl.push_fn(from_datum);
+
+            let mut to_datum = codegen::Function::new("to_datum");
+            to_datum
+                .vis("pub")
+                .arg_ref_self()
+                .ret("PlutusData")
+                // we must use cml_chain's since JsError doesn't implement Debug thus no expect()/unwrap()
+                .line("cml_chain::plutus::PlutusData::from_cbor_bytes(&self.to_cbor_bytes()).unwrap().into()");
+            util_impl.push_fn(to_datum);
+
+            utils.push_impl(util_impl);
+        }
     }
     Ok(utils)
 }
 
 
 fn run_cddl_codegen(cli: &Cli) -> Result<(), String> {
-    let mut cddl_codegen_run = std::process::Command::new(&cli.cddl_codegen);
-    cddl_codegen_run.arg(format!("--input={}", cli.input.to_str().unwrap()));
-    cddl_codegen_run.arg(format!("--output={}",cli.output.to_str().unwrap()));
+    let mut cddl_codegen_run = if cli.cddl_codegen.is_dir() {
+        let mut run = std::process::Command::new("cargo");
+            run.current_dir(&cli.cddl_codegen);
+        run
+            .arg("run")
+            .arg("--")
+            .arg(format!("--input={}", cli.input.canonicalize().unwrap().to_str().unwrap()))
+            .arg(format!("--output={}", cli.output.canonicalize().unwrap().to_str().unwrap()));
+        if let Some(static_dir_override) = cli.static_dir.as_ref() {
+            run.arg(format!("--static-dir={}", static_dir_override.canonicalize().unwrap().to_str().unwrap()));
+        }
+        run
+    } else {
+        let mut run = std::process::Command::new(&cli.cddl_codegen);
+        run
+            .arg(format!("--input={}", cli.input.to_str().unwrap()))
+            .arg(format!("--output={}",cli.output.to_str().unwrap()))
+            .arg(format!("--static-dir={}", cli.static_dir.as_ref().expect("--static-dir is mandatory when --cddl-codegen is an executable").to_str().unwrap()));
+        run
+    };
     cddl_codegen_run.arg(format!("--lib-name={}", cli.lib_name));
+    // hard-coded ones to interface with CML
     cddl_codegen_run.arg("--preserve-encodings=true");
     cddl_codegen_run.arg("--canonical-form=true");
-    cddl_codegen_run.arg("--json-serde-derives=true");
-    cddl_codegen_run.arg("--json-schema-export=true");
     cddl_codegen_run.arg("--common-import-override=cml_core");
-    cddl_codegen_run.arg("--wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api");
+    if cli.json_serde_derives {
+        cddl_codegen_run.arg("--wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api");
+    } else {
+        cddl_codegen_run.arg("--wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_api");
+    }
     cddl_codegen_run.arg("--wasm-conversions-macro=cml_core_wasm::impl_wasm_conversions");
+    // user-passable optional ones
+    cddl_codegen_run.arg(format!("--wasm={}", cli.wasm));
+    cddl_codegen_run.arg(format!("--json-serde-derives={}", cli.json_serde_derives));
+    cddl_codegen_run.arg(format!("--json-schema-export={}", cli.json_schema_export));
+    cddl_codegen_run.arg(format!("--package-json={}", cli.package_json));
     let cddl_codegen_run_result = cddl_codegen_run.output().unwrap();
     if !cddl_codegen_run_result.status.success() {
-        return Err(format!("{}", String::from_utf8(cddl_codegen_run_result.stderr).unwrap()));
+        return Err(format!("cddl-codegen failed:\n{}", String::from_utf8(cddl_codegen_run_result.stderr).unwrap()));
     }
-    // let mut lib_rs = std::fs::OpenOptions::new()
-    //     .append(true)
-    //     .open(cli.output.join("rust/src/lib.rs"))
-    //     .unwrap();
-    // some external files/tests pasted in might need this
-    // lib_rs
-    //     .write_all("\nuse serialization::*;\n".as_bytes())
-    //     .unwrap();
-    // copy external file in too (if needed) too
-    // if let Some(external_rust_file_path) = external_rust_file_path {
-    //     let extern_rs = std::fs::read_to_string(external_rust_file_path).unwrap();
-    //     lib_rs.write_all("\n\n".as_bytes()).unwrap();
-    //     lib_rs.write_all(extern_rs.as_bytes()).unwrap();
-    // }
-    // let deser_test_rs = std::fs::read_to_string(
-    //     std::path::PathBuf::from_str("tests")
-    //         .unwrap()
-    //         .join("deser_test"),
-    // )
-    // .unwrap();
-    // lib_rs.write_all("\n\n".as_bytes()).unwrap();
-    // lib_rs.write_all(deser_test_rs.as_bytes()).unwrap();
-    // let test_rs = std::fs::read_to_string(test_path.join("tests.rs")).unwrap();
-    // lib_rs.write_all("\n\n".as_bytes()).unwrap();
-    // lib_rs.write_all(test_rs.as_bytes()).unwrap();
-    // std::mem::drop(lib_rs);
-    // // add extra deps used within tests
-    // let mut cargo_toml = std::fs::OpenOptions::new()
-    //     .append(true)
-    //     .open(test_path.join(format!("{export_path}/rust/Cargo.toml")))
-    //     .unwrap();
-    // for dep in test_deps {
-    //     cargo_toml.write_all(dep.as_bytes()).unwrap();
-    // }
-    // std::mem::drop(cargo_toml);
+    println!("{}", String::from_utf8(cddl_codegen_run_result.stdout).unwrap());
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    let cddl_in = std::fs::read_to_string("input.cddl").expect("input.cddl file not present or could not be opened");
+    let cddl_in = std::fs::read_to_string(&cli.input).expect("input.cddl file not present or could not be opened");
     let cddl = cddl::parser::cddl_from_str(&cddl_in, true)?;
     // check that the input cddl is 100% a subset of the plutus datum CDDL
-    verify(&cli, &cddl)?;
+    verify(&cddl)?;
+
     // run and export code via cddl-codegen to output folder
     run_cddl_codegen(&cli)?;
+
     // generate utilty functions
     let utils = generate_utils(&cddl)?;
-    std::fs::write(cli.output.join("src").join("utils.rs"), utils.to_string())?;
+    std::fs::write(cli.output.join("rust").join("src").join("utils.rs"), utils.to_string())?;
+    let mut rust_lib = std::fs::OpenOptions::new()
+        .append(true)
+        .open(cli.output.join("rust").join("src").join("lib.rs"))
+        .unwrap();
+    rust_lib.write("pub mod utils;".as_bytes())?;
+    if cli.wasm {
+        let wasm_utils = generate_wasm_utils(&cli, &cddl)?;
+        std::fs::write(cli.output.join("wasm").join("src").join("utils.rs"), wasm_utils.to_string())?;
+        let mut wasm_lib = std::fs::OpenOptions::new()
+            .append(true)
+            .open(cli.output.join("wasm").join("src").join("lib.rs"))
+            .unwrap();
+        wasm_lib.write("pub mod utils;".as_bytes())?;
+    }
 
+    // hook into CML
+    let mut rust_cargo = std::fs::OpenOptions::new()
+        .append(true)
+        .open(cli.output.join("rust").join("Cargo.toml"))
+        .unwrap();
+    rust_cargo.write("cml-core = \"5.3.1\"\n".as_bytes())?;
+    rust_cargo.write("cml-chain = \"5.3.1\"\n".as_bytes())?;
+    if cli.wasm {
+        let mut wasm_cargo = std::fs::OpenOptions::new()
+            .append(true)
+            .open(cli.output.join("wasm").join("Cargo.toml"))
+            .unwrap();
+        wasm_cargo.write("cml-core = \"5.3.1\"\n".as_bytes())?;
+        wasm_cargo.write("cml-core-wasm = \"5.3.1\"\n".as_bytes())?;
+        wasm_cargo.write("cml-chain = \"5.3.1\"\n".as_bytes())?;
+        wasm_cargo.write("cml-chain-wasm = \"5.3.1\"\n".as_bytes())?;
+        // needed for cml-core's cbor/json macros
+        wasm_cargo.write("hex = \"0.4.3\"\n".as_bytes())?;
+    }
     Ok(())
 }

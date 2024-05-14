@@ -1,0 +1,1 @@
+cargo run -- --input=input.cddl --output=EXPORT --cddl-codegen=../../../cddl-codegen --lib-name=plutus-datum-test

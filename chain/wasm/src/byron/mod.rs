@@ -14,7 +14,7 @@ pub use self::utils::{AddressId, ByronScript, ProtocolMagic, StakeholderId};
 pub use cml_chain::byron::ByronAddrType;
 use cml_core_wasm::{impl_wasm_cbor_event_serialize_api, impl_wasm_conversions};
 use cml_crypto_wasm::{Bip32PublicKey, PublicKey};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

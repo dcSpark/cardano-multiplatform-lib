@@ -3,7 +3,7 @@
 
 use crate::byron::{ByronPubKey, ByronSignature, EpochId};
 use cml_core_wasm::{impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

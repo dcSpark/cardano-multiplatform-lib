@@ -11,6 +11,25 @@ mod cli;
 mod dep_graph;
 mod utils;
 
+const MERGED_INPUT_FILE: &str = "merged_input.cddl";
+
+#[derive(Debug, Clone)]
+struct Error(String);
+
+impl From<String> for Error {
+    fn from(s: String) -> Self {
+        Self(s)
+    }
+}
+
+impl std::error::Error for Error {}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 fn verify_group(
     types: &BTreeMap<&str, BTreeSet<PlutusType>>,
     group: &Group,
@@ -18,7 +37,7 @@ fn verify_group(
 ) -> Result<(), String> {
     for group_choice in group.group_choices.iter() {
         for (entry, _comma) in group_choice.group_entries.iter() {
-            verify_group_entry(types, &entry, is_map).map_err(|e| format!("{}: {}", entry, e))?;
+            verify_group_entry(types, entry, is_map).map_err(|e| format!("{}: {}", entry, e))?;
         }
     }
     Ok(())
@@ -33,10 +52,6 @@ enum PlutusType {
     Ctor,
 }
 
-// fn ident_to_type(ident: &Identifier) -> Result<PlutusType, String> {
-
-// }
-
 fn create_base_idents<'a>() -> BTreeMap<&'a str, BTreeSet<PlutusType>> {
     BTreeMap::from([
         ("uint", BTreeSet::from([PlutusType::Int])),
@@ -46,20 +61,26 @@ fn create_base_idents<'a>() -> BTreeMap<&'a str, BTreeSet<PlutusType>> {
         ("i32", BTreeSet::from([PlutusType::Int])),
         ("u64", BTreeSet::from([PlutusType::Int])),
         ("i64", BTreeSet::from([PlutusType::Int])),
-        // TODO: would be nice to use @custom_serialize to use text
-        ("text", BTreeSet::from([PlutusType::Bytes])),
-        ("tstr", BTreeSet::from([PlutusType::Bytes])),
-        ("bytes", BTreeSet::from([PlutusType::Bytes])),
-        ("bstr", BTreeSet::from([PlutusType::Bytes])),
+        // prelude too
+        ("bounded_bytes", BTreeSet::from([PlutusType::Bytes])),
+        ("utf8_text", BTreeSet::from([PlutusType::Bytes])),
     ])
 }
 
 fn verify_ident(ident: &Identifier, is_key: bool) -> Result<(), String> {
     match ident.ident {
         // this can refer to valid standard prelude types
-        "uint" | "int" | "nint" | "text" | "tstr" | "bytes" | "bstr" => Ok(()),
+        "uint" | "int" | "nint" => Ok(()),
         // these are non-standard types referring to the cddl-codgen tool
         "u32" | "i32" | "u64" | "i64" => Ok(()),
+        "bytes" | "bstr" => Err(format!(
+            "arbitrary bytes not valid: {}. use bounded_bytes instead",
+            ident
+        )),
+        "text" | "tstr" => Err(format!(
+            "text not valid datum: {}. use utf8_bytes instead",
+            ident
+        )),
         // or invalid standard prelude types
         "bool" | "float" | "float16" | "float32" | "float64" | "float16-32" | "float32-64"
         | "tdate" | "time" | "number" | "biguint" | "bignint" | "bigint" | "integer"
@@ -96,9 +117,6 @@ fn verify_tagged_type(
                     GroupEntry::ValueMemberKey { ge: ge1, .. },
                     GroupEntry::ValueMemberKey { ge: ge2, .. },
                 ) => {
-                    println!("matched");
-                    println!("[0] = {:?}\n", ge1.entry_type);
-                    println!("[1] = {:?}\n", ge2.entry_type);
                     // check first field is uint
                     for tc in &ge1.entry_type.type_choices {
                         match &tc.type1.type2 {
@@ -117,10 +135,10 @@ fn verify_tagged_type(
             }
             Ok(PlutusType::Ctor)
         } else {
-            Err(format!("102-tag must be 2-elem array (plutus tagged ctor)"))
+            Err("102-tag must be 2-elem array (plutus tagged ctor)".to_owned())
         }
     } else if tag
-        .map(|tag| (tag >= 121 && tag <= 127) || (tag >= 1280 && tag <= 1400))
+        .map(|tag| (121..=127).contains(&tag) || (1280..=1400).contains(&tag))
         .unwrap_or(false)
     {
         verify_datum_list(types, t).map(|()| PlutusType::Ctor)
@@ -169,7 +187,7 @@ fn verify_group_entry(
                         MemberKey::Type1 { t1, .. } => {
                             verify_type2(types, &t1.type2).map(|_| ())?
                         }
-                        MemberKey::Bareword { ident, .. } => verify_ident(&ident, true)?,
+                        MemberKey::Bareword { ident, .. } => verify_ident(ident, true)?,
                         MemberKey::Value { value, .. } => match value {
                             Value::BYTE(bv) => match bv {
                                 // TODO: technically can be longer but must be chunked
@@ -198,7 +216,7 @@ fn verify_group_entry(
         }
         // verify type referred to here where it's defined instead
         GroupEntry::TypeGroupname { ge, .. } => verify_ident(&ge.name, false),
-        GroupEntry::InlineGroup { group, .. } => verify_group(types, &group, true),
+        GroupEntry::InlineGroup { group, .. } => verify_group(types, group, true),
     }
 }
 
@@ -212,9 +230,9 @@ fn verify_len(len: usize) -> Result<(), String> {
     }
 }
 
-fn verify_type<'a>(
+fn verify_type(
     types: &BTreeMap<&str, BTreeSet<PlutusType>>,
-    ty: &'a Type,
+    ty: &Type,
 ) -> Result<BTreeSet<PlutusType>, String> {
     let mut plutus_types = BTreeSet::new();
     for type_choice in ty.type_choices.iter() {
@@ -240,7 +258,7 @@ fn verify_type2(
         Type2::B64ByteString { value, .. } => {
             verify_len(value.len()).map(|()| [PlutusType::Bytes].into())
         }
-        Type2::Typename { ident, .. } => verify_ident(&ident, false).and_then(|()| {
+        Type2::Typename { ident, .. } => verify_ident(ident, false).and_then(|()| {
             types
                 .get(ident.ident)
                 .cloned()
@@ -287,7 +305,7 @@ fn verify_rule<'a>(
             match &rule.entry {
                 GroupEntry::InlineGroup { group, .. } => {
                     // TODO: be less strict on array type keys for plain groups but this is probably ok
-                    verify_group(types, &group, true)?;
+                    verify_group(types, group, true)?;
                 }
                 x => panic!("Group rule with non-inline group? {:?}", x),
             }
@@ -301,8 +319,13 @@ fn verify(cddl: &CDDL) -> Result<(), Box<dyn std::error::Error>> {
     for cddl_rule in
         dep_graph::topological_rule_order(cddl.rules.iter().collect::<Vec<_>>().as_slice())
     {
-        verify_rule(&mut types, cddl_rule)
-            .map_err(|e| format!("type {} not valid metadata: {}", cddl_rule.name(), e))?;
+        let debug = format!("{cddl_rule:?}");
+        let custom_serialize = debug.contains("@custom_serialize");
+        let custom_deserialize = debug.contains("@custom_deserialize");
+        if !custom_serialize && !custom_deserialize {
+            verify_rule(&mut types, cddl_rule)
+                .map_err(|e| format!("type {} not valid plutus datum: {}", cddl_rule.name(), e))?;
+        }
     }
     Ok(())
 }
@@ -325,13 +348,17 @@ fn is_struct(t: &Type) -> bool {
     }
 }
 
-fn generate_utils(cddl: &CDDL) -> Result<codegen::Scope, Box<dyn std::error::Error>> {
+fn generate_utils(
+    cddl: &CDDL,
+    export_utf8_utils: bool,
+) -> Result<codegen::Scope, Box<dyn std::error::Error>> {
     let mut utils = codegen::Scope::new();
     utils
         .push_import("std::convert", "TryFrom", None)
         .push_import("cml_chain::plutus", "PlutusData", None)
         .push_import("cml_core::serialization", "Serialize", None)
-        .push_import("cml_core::serialization", "Deserialize", None);
+        .push_import("cml_core::serialization", "Deserialize", None)
+        .push_import("cml_core", "DeserializeError", None);
     for cddl_rule in &cddl.rules {
         let is_struct = match cddl_rule {
             Rule::Type { rule, .. } => is_struct(&rule.value),
@@ -344,7 +371,7 @@ fn generate_utils(cddl: &CDDL) -> Result<codegen::Scope, Box<dyn std::error::Err
             // TODO: if we look into the structure we could avoid the bytes interace
             try_from
                 .impl_trait("TryFrom<&PlutusData>")
-                .associate_type("Error", "cml_core::DeserializeError")
+                .associate_type("Error", "DeserializeError")
                 .new_fn("try_from")
                 .arg("datum", "&PlutusData")
                 .ret("Result<Self, Self::Error>")
@@ -359,6 +386,38 @@ fn generate_utils(cddl: &CDDL) -> Result<codegen::Scope, Box<dyn std::error::Err
                 .line("Self::from_cbor_bytes(&datum.to_cbor_bytes()).unwrap()");
             utils.push_impl(from);
         }
+    }
+    if export_utf8_utils {
+        let mut serialize_utf8_bytes = codegen::Function::new("serialize_utf8_bytes");
+        serialize_utf8_bytes
+            .vis("pub")
+            .generic("'se")
+            .generic("W: Write")
+            .arg("serializer", "&'se mut Serializer<W>")
+            .arg("text", "&str")
+            .arg("enc", "StringEncoding")
+            .arg("force_canonical", "bool")
+            .ret("cbor_event::Result<&'se mut Serializer<W>>")
+            .line("serializer.write_bytes_sz(text.as_bytes(), enc.to_str_len_sz(text.len() as u64, force_canonical))");
+        let mut deserialize_utf8_bytes = codegen::Function::new("deserialize_utf8_bytes");
+        deserialize_utf8_bytes
+            .vis("pub")
+            .generic("R: BufRead + Seek")
+            .arg("raw", "&mut cbor_event::de::Deserializer<R>")
+            .ret("Result<(String, StringEncoding), DeserializeError>")
+            .line("let (bytes, enc) = raw.bytes_sz()?;")
+            .line("let text = String::from_utf8(bytes).map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?;")
+            .line("Ok((text, enc.into()))");
+        utils
+            .push_import("cml_core", "DeserializeFailure", None)
+            .push_import("cml_core::serialization", "StringEncoding", None)
+            .push_import("cbor_event::se", "Serializer", None)
+            .push_import("cbor_event::de", "Deserializer", None)
+            .push_import("std::io", "BufRead", None)
+            .push_import("std::io", "Seek", None)
+            .push_import("std::io", "Write", None)
+            .push_fn(serialize_utf8_bytes)
+            .push_fn(deserialize_utf8_bytes);
     }
     Ok(utils)
 }
@@ -411,20 +470,14 @@ fn generate_wasm_utils(
     Ok(utils)
 }
 
-fn run_cddl_codegen(cli: &Cli) -> Result<(), String> {
+fn run_cddl_codegen(cli: &Cli) -> Result<(), Box<dyn std::error::Error>> {
     let mut cddl_codegen_run = if cli.cddl_codegen.is_dir() {
         let mut run = std::process::Command::new("cargo");
         run.current_dir(&cli.cddl_codegen);
-        run.arg("run")
-            .arg("--")
-            .arg(format!(
-                "--input={}",
-                cli.input.canonicalize().unwrap().to_str().unwrap()
-            ))
-            .arg(format!(
-                "--output={}",
-                cli.output.canonicalize().unwrap().to_str().unwrap()
-            ));
+        run.arg("run").arg("--").arg(format!(
+            "--output={}",
+            cli.output.canonicalize().unwrap().to_str().unwrap()
+        ));
         if let Some(static_dir_override) = cli.static_dir.as_ref() {
             run.arg(format!(
                 "--static-dir={}",
@@ -438,8 +491,7 @@ fn run_cddl_codegen(cli: &Cli) -> Result<(), String> {
         run
     } else {
         let mut run = std::process::Command::new(&cli.cddl_codegen);
-        run.arg(format!("--input={}", cli.input.to_str().unwrap()))
-            .arg(format!("--output={}", cli.output.to_str().unwrap()))
+        run.arg(format!("--output={}", cli.output.to_str().unwrap()))
             .arg(format!(
                 "--static-dir={}",
                 cli.static_dir
@@ -450,11 +502,21 @@ fn run_cddl_codegen(cli: &Cli) -> Result<(), String> {
             ));
         run
     };
-    cddl_codegen_run.arg(format!("--lib-name={}", cli.lib_name));
+    cddl_codegen_run
+        .arg(format!(
+            "--input={}",
+            std::path::Path::new(MERGED_INPUT_FILE)
+                .canonicalize()
+                .unwrap()
+                .to_str()
+                .unwrap()
+        ))
+        .arg(format!("--lib-name={}", cli.lib_name));
     // hard-coded ones to interface with CML
-    cddl_codegen_run.arg("--preserve-encodings=true");
-    cddl_codegen_run.arg("--canonical-form=true");
-    cddl_codegen_run.arg("--common-import-override=cml_core");
+    cddl_codegen_run
+        .arg("--preserve-encodings=true")
+        .arg("--canonical-form=true")
+        .arg("--common-import-override=cml_core");
     if cli.json_serde_derives {
         cddl_codegen_run.arg("--wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api");
     } else {
@@ -462,16 +524,18 @@ fn run_cddl_codegen(cli: &Cli) -> Result<(), String> {
     }
     cddl_codegen_run.arg("--wasm-conversions-macro=cml_core_wasm::impl_wasm_conversions");
     // user-passable optional ones
-    cddl_codegen_run.arg(format!("--wasm={}", cli.wasm));
-    cddl_codegen_run.arg(format!("--json-serde-derives={}", cli.json_serde_derives));
-    cddl_codegen_run.arg(format!("--json-schema-export={}", cli.json_schema_export));
-    cddl_codegen_run.arg(format!("--package-json={}", cli.package_json));
+    cddl_codegen_run
+        .arg(format!("--wasm={}", cli.wasm))
+        .arg(format!("--json-serde-derives={}", cli.json_serde_derives))
+        .arg(format!("--json-schema-export={}", cli.json_schema_export))
+        .arg(format!("--package-json={}", cli.package_json));
     let cddl_codegen_run_result = cddl_codegen_run.output().unwrap();
     if !cddl_codegen_run_result.status.success() {
         return Err(format!(
             "cddl-codegen failed:\n{}",
             String::from_utf8(cddl_codegen_run_result.stderr).unwrap()
-        ));
+        )
+        .into());
     }
     println!(
         "{}",
@@ -483,9 +547,16 @@ fn run_cddl_codegen(cli: &Cli) -> Result<(), String> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    let cddl_in = std::fs::read_to_string(&cli.input)
-        .expect("input.cddl file not present or could not be opened");
-    let cddl = cddl::parser::cddl_from_str(&cddl_in, true)?;
+    // we merge the input into one file which is okay since we use @no_alias so there's nothing to remove
+    // this avoids having an empty prelude module
+    assert!(!cli.input.is_dir());
+    let cddl_in = std::fs::read_to_string(&cli.input)?;
+    let prelude_in = std::fs::read_to_string(std::path::Path::new("prelude.cddl"))?;
+    let merged_input = format!("{cddl_in}\n{prelude_in}");
+    // save it for cddl-codegen too
+    std::fs::write(std::path::Path::new(MERGED_INPUT_FILE), &merged_input)?;
+
+    let cddl = cddl::parser::cddl_from_str(&merged_input, true)?;
     // check that the input cddl is 100% a subset of the plutus datum CDDL
     verify(&cddl)?;
 
@@ -493,7 +564,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     run_cddl_codegen(&cli)?;
 
     // generate utilty functions
-    let utils = generate_utils(&cddl)?;
+    let export_utf8_utils = cddl_in.contains("utf8_text");
+    let utils = generate_utils(&cddl, export_utf8_utils)?;
     std::fs::write(
         cli.output.join("rust").join("src").join("utils.rs"),
         utils.to_string(),
@@ -502,7 +574,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .append(true)
         .open(cli.output.join("rust").join("src").join("lib.rs"))
         .unwrap();
-    rust_lib.write("pub mod utils;".as_bytes())?;
+    rust_lib.write_all("pub mod utils;".as_bytes())?;
     if cli.wasm {
         let wasm_utils = generate_wasm_utils(&cli, &cddl)?;
         std::fs::write(
@@ -513,7 +585,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .append(true)
             .open(cli.output.join("wasm").join("src").join("lib.rs"))
             .unwrap();
-        wasm_lib.write("pub mod utils;".as_bytes())?;
+        wasm_lib.write_all("pub mod utils;".as_bytes())?;
     }
 
     // hook into CML
@@ -521,19 +593,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .append(true)
         .open(cli.output.join("rust").join("Cargo.toml"))
         .unwrap();
-    rust_cargo.write("cml-core = \"5.3.1\"\n".as_bytes())?;
-    rust_cargo.write("cml-chain = \"5.3.1\"\n".as_bytes())?;
+    rust_cargo.write_all("cml-core = \"5.3.1\"\n".as_bytes())?;
+    rust_cargo.write_all("cml-chain = \"5.3.1\"\n".as_bytes())?;
     if cli.wasm {
         let mut wasm_cargo = std::fs::OpenOptions::new()
             .append(true)
             .open(cli.output.join("wasm").join("Cargo.toml"))
             .unwrap();
-        wasm_cargo.write("cml-core = \"5.3.1\"\n".as_bytes())?;
-        wasm_cargo.write("cml-core-wasm = \"5.3.1\"\n".as_bytes())?;
-        wasm_cargo.write("cml-chain = \"5.3.1\"\n".as_bytes())?;
-        wasm_cargo.write("cml-chain-wasm = \"5.3.1\"\n".as_bytes())?;
+        wasm_cargo.write_all("cml-core = \"5.3.1\"\n".as_bytes())?;
+        wasm_cargo.write_all("cml-core-wasm = \"5.3.1\"\n".as_bytes())?;
+        wasm_cargo.write_all("cml-chain = \"5.3.1\"\n".as_bytes())?;
+        wasm_cargo.write_all("cml-chain-wasm = \"5.3.1\"\n".as_bytes())?;
         // needed for cml-core's cbor/json macros
-        wasm_cargo.write("hex = \"0.4.3\"\n".as_bytes())?;
+        wasm_cargo.write_all("hex = \"0.4.3\"\n".as_bytes())?;
     }
     Ok(())
 }

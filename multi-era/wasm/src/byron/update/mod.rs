@@ -9,7 +9,7 @@ use crate::byron::{
 use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronUpdateId, EpochId};
 use cml_chain_wasm::utils::BigInteger;
 use cml_core_wasm::{impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

@@ -21,7 +21,7 @@ use cml_core_wasm::{impl_wasm_conversions, impl_wasm_json_api, impl_wasm_list, i
 use cml_crypto_wasm::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, ScriptDataHash, TransactionHash, VRFVkey,
 };
-use wasm_bindgen::{prelude::wasm_bindgen, JsError, JsValue};
+use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 
 use crate::{
     allegra::MoveInstantaneousRewardsCert, shelley::GenesisKeyDelegation,

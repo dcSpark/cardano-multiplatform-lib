@@ -23,15 +23,14 @@ stake_deregistration = (tag: 1, stake_credential)
 stake_delegation = (
     tag: 2,
     stake_credential,
-    ed25519_key_hash ; @name pool
+    pool: ed25519_key_hash
 )
 
 ; POOL
 pool_registration = (tag: 3, pool_params)
-pool_retirement = (tag: 4, ed25519_key_hash, epoch)
 pool_retirement = (
     tag: 4,
-    ed25519_key_hash, ; @name pool
+    pool: ed25519_key_hash,
     epoch
 )
 
@@ -43,21 +42,37 @@ pool_retirement = (
 reg_cert = (tag: 7, stake_credential, coin)
 unreg_cert = (tag: 8, stake_credential, coin)
 vote_deleg_cert = (tag: 9, stake_credential, d_rep)
-stake_vote_deleg_cert = (tag: 10, stake_credential, ed25519_key_hash, d_rep)
-stake_reg_deleg_cert = (tag: 11, stake_credential, ed25519_key_hash, coin)
+stake_vote_deleg_cert = (
+  tag: 10,
+  stake_credential,
+  pool: ed25519_key_hash,
+  d_rep
+)
+stake_reg_deleg_cert = (
+  tag: 11,
+  stake_credential,
+  pool: ed25519_key_hash,
+  coin
+)
 vote_reg_deleg_cert = (tag: 12, stake_credential, d_rep, coin)
-stake_vote_reg_deleg_cert = (tag: 13, stake_credential, ed25519_key_hash, d_rep, coin)
+stake_vote_reg_deleg_cert = (
+  tag: 13,
+  stake_credential,
+  pool: ed25519_key_hash,
+  d_rep,
+  coin
+)
 
 ; GOVCERT
 auth_committee_hot_cert = (14, committee_cold_credential, committee_hot_credential)
-resign_committee_cold_cert = (15, committee_cold_credential)
+resign_committee_cold_cert = (15, committee_cold_credential, anchor / null)
 reg_drep_cert = (16, drep_credential, coin, anchor / null)
 unreg_drep_cert = (17, drep_credential, coin)
 update_drep_cert = (18, drep_credential, anchor / null)
 
 d_rep = [
   ; @name key
-  0, ed25519_key_hash //
+  0, pool: ed25519_key_hash //
   ; @name script
   1, script_hash //
   ; @name always_abstain
@@ -82,14 +97,14 @@ pool_params = ( operator:       ed25519_key_hash
               , cost:           coin
               , margin:         unit_interval
               , reward_account: reward_account
-              , pool_owners:    [* ed25519_key_hash]
+              , pool_owners:    set<ed25519_key_hash>
               , relays:         [* relay]
               , pool_metadata:  pool_metadata / null
               )
 
 ipv4 = bytes .size 4 ; @custom_json
 ipv6 = bytes .size 16 ; @custom_json
-dns_name = tstr .size (0..64)
+dns_name = tstr .size (0..128)
 
 single_host_addr = ( tag: 0
                    , port / null
@@ -110,7 +125,7 @@ relay =
   ]
 
 pool_metadata = [url, pool_metadata_hash]
-url = tstr .size (0..64)
+url = tstr .size (0..128)
 
 
 credential = [

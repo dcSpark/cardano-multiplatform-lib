@@ -3,7 +3,12 @@ const json2ts = require('json-schema-to-typescript');
 const path = require('path');
 
 const schemasDir = path.join('json-gen', 'schemas');
-const schemaFiles = fs.readdirSync(schemasDir).filter(file => path.extname(file) === '.json');
+// we don't filter .json anymore to get around not being able to name the custom ones .json
+// Note: the reason we can't seem to be able to do that is if we use e.g.:
+//      schemars::schema::Schema::from(schemars::schema::SchemaObject::new_ref("PlutusData".to_owned()))
+// it will not be able to find it as PlutusData.json, and if we add .json to the above
+// it will not have the correct name.
+const schemaFiles = fs.readdirSync(schemasDir)/*.filter(file => path.extname(file) === '.json')*/;
 
 function replaceRef(obj) {
   if (obj['$ref'] != null && typeof obj['$ref'] === 'string' && obj['$ref'].startsWith('#/definitions/')) {

@@ -26,7 +26,8 @@ use crate::{
         AllegraTransactionWitnessSet,
     },
     alonzo::{
-        AlonzoAuxiliaryData, AlonzoBlock, AlonzoTransactionBody, AlonzoTransactionWitnessSet,
+        AlonzoAuxiliaryData, AlonzoBlock, AlonzoRedeemer, AlonzoTransactionBody,
+        AlonzoTransactionWitnessSet,
     },
     babbage::{
         BabbageAuxiliaryData, BabbageBlock, BabbageTransactionBody, BabbageTransactionOutput,
@@ -35,7 +36,7 @@ use crate::{
     byron::{block::ByronBlock, transaction::ByronTx},
     mary::{MaryBlock, MaryTransactionBody, MaryTransactionOutput},
     shelley::{
-        MultisigScript, ShelleyBlock, ShelleyCertificate, ShelleyTransactionBody,
+        MultisigScript, ShelleyBlock, ShelleyCertificate, ShelleyRelay, ShelleyTransactionBody,
         ShelleyTransactionOutput, ShelleyTransactionWitnessSet,
     },
 };
@@ -67,6 +68,12 @@ impl_wasm_list!(
     cml_multi_era::allegra::AllegraTransactionWitnessSet,
     AllegraTransactionWitnessSet,
     AllegraTransactionWitnessSetList
+);
+
+impl_wasm_list!(
+    cml_multi_era::alonzo::AlonzoRedeemer,
+    AlonzoRedeemer,
+    AlonzoRedeemerList
 );
 
 impl_wasm_list!(
@@ -161,9 +168,9 @@ impl_wasm_map!(
 
 impl_wasm_map!(
     cml_chain::TransactionIndex,
-    cml_core::metadata::Metadata,
+    cml_chain::auxdata::Metadata,
     TransactionIndex,
-    cml_core_wasm::metadata::Metadata,
+    cml_chain_wasm::auxdata::Metadata,
     Vec<TransactionIndex>,
     MapTransactionIndexToMetadata,
     true,
@@ -461,6 +468,12 @@ impl_wasm_list!(
     cml_multi_era::shelley::ShelleyCertificate,
     ShelleyCertificate,
     ShelleyCertificateList
+);
+
+impl_wasm_list!(
+    cml_multi_era::shelley::ShelleyRelay,
+    ShelleyRelay,
+    ShelleyRelayList
 );
 
 impl_wasm_list!(

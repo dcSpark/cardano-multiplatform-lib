@@ -49,6 +49,7 @@ impl Serialize for BootstrapWitness {
                 .to_str_len_sz(self.chain_code.len() as u64, force_canonical),
         )?;
         let mut attributes_inner_se = Serializer::new_vec();
+        // Manual edit: This is from Byron, thus uses cbor_event::Serialize
         cbor_event::Serialize::serialize(&self.attributes, &mut attributes_inner_se)?;
         let attributes_bytes = attributes_inner_se.finalize();
         serializer.write_bytes_sz(
@@ -95,8 +96,20 @@ impl Deserialize for BootstrapWitness {
                 .map_err(|e: DeserializeError| e.annotate("signature"))?;
             let (chain_code, chain_code_encoding) = raw
                 .bytes_sz()
-                .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map_err(Into::<DeserializeError>::into)
+                .and_then(|(bytes, enc)| {
+                    if bytes.len() < 32 || bytes.len() > 32 {
+                        Err(DeserializeFailure::RangeCheck {
+                            found: bytes.len() as isize,
+                            min: Some(32),
+                            max: Some(32),
+                        }
+                        .into())
+                    } else {
+                        Ok((bytes, StringEncoding::from(enc)))
+                    }
+                })
                 .map_err(|e: DeserializeError| e.annotate("chain_code"))?;
             let (attributes, attributes_bytes_encoding) = (|| -> Result<_, DeserializeError> {
                 let (attributes_bytes, attributes_bytes_encoding) = raw.bytes_sz()?;
@@ -217,9 +230,12 @@ impl Deserialize for Nonce {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let _read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let mut errs = Vec::new();
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(1)?;
+                read_len.finish()?;
                 let (identity_value, identity_encoding) = raw.unsigned_integer_sz()?;
                 if identity_value != 0 {
                     return Err(DeserializeFailure::FixedValueMismatch {
@@ -228,21 +244,34 @@ impl Deserialize for Nonce {
                     }
                     .into());
                 }
-                Ok(Some(identity_encoding))
-            })(raw)
-            {
+                let ret = Ok(Some(identity_encoding));
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
+            match deser_variant {
                 Ok(identity_encoding) => {
                     return Ok(Self::Identity {
                         identity_encoding,
                         len_encoding,
                     })
                 }
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("Identity"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 1 {
@@ -277,24 +306,19 @@ impl Deserialize for Nonce {
                     tag_encoding,
                     hash_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
+                Err(e) => {
+                    errs.push(e.annotate("Hash"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "Nonce",
-                DeserializeFailure::NoVariantMatched,
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
             ))
         })()
         .map_err(|e| e.annotate("Nonce"))
@@ -348,13 +372,25 @@ impl Deserialize for VRFCert {
         (|| -> Result<_, DeserializeError> {
             let (output, output_encoding) = raw
                 .bytes_sz()
-                .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))
                 .map_err(|e: DeserializeError| e.annotate("output"))?;
             let (proof, proof_encoding) = raw
                 .bytes_sz()
-                .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map_err(Into::<DeserializeError>::into)
+                .and_then(|(bytes, enc)| {
+                    if bytes.len() < 80 || bytes.len() > 80 {
+                        Err(DeserializeFailure::RangeCheck {
+                            found: bytes.len() as isize,
+                            min: Some(80),
+                            max: Some(80),
+                        }
+                        .into())
+                    } else {
+                        Ok((bytes, StringEncoding::from(enc)))
+                    }
+                })
                 .map_err(|e: DeserializeError| e.annotate("proof"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),

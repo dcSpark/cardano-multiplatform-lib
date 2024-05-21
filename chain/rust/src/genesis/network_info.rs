@@ -1,6 +1,9 @@
 use crate::{byron::ProtocolMagic, plutus::CostModels};
 use cml_core::{
-    network::{BYRON_MAINNET_NETWORK_MAGIC, BYRON_TESTNET_NETWORK_MAGIC},
+    network::{
+        BYRON_MAINNET_NETWORK_MAGIC, BYRON_TESTNET_NETWORK_MAGIC, PREPROD_NETWORK_MAGIC,
+        PREVIEW_NETWORK_MAGIC, SANCHO_TESTNET_NETWORK_MAGIC,
+    },
     Int,
 };
 
@@ -16,23 +19,48 @@ impl NetworkInfo {
             protocol_magic,
         }
     }
+
     pub fn network_id(&self) -> u8 {
         self.network_id
     }
+
     pub fn protocol_magic(&self) -> ProtocolMagic {
         self.protocol_magic
     }
 
-    pub fn testnet() -> NetworkInfo {
-        NetworkInfo {
+    /// This is the old testnet - most likely you want to use preview()/preprod()
+    pub fn testnet() -> Self {
+        Self {
             network_id: 0b0000,
             protocol_magic: ProtocolMagic::from(BYRON_TESTNET_NETWORK_MAGIC),
         }
     }
-    pub fn mainnet() -> NetworkInfo {
-        NetworkInfo {
+
+    pub fn mainnet() -> Self {
+        Self {
             network_id: 0b0001,
             protocol_magic: ProtocolMagic::from(BYRON_MAINNET_NETWORK_MAGIC),
+        }
+    }
+
+    pub fn preview() -> Self {
+        Self {
+            network_id: 0b0000,
+            protocol_magic: ProtocolMagic::from(PREVIEW_NETWORK_MAGIC),
+        }
+    }
+
+    pub fn preprod() -> Self {
+        Self {
+            network_id: 0b0000,
+            protocol_magic: ProtocolMagic::from(PREPROD_NETWORK_MAGIC),
+        }
+    }
+
+    pub fn sancho_testnet() -> Self {
+        Self {
+            network_id: 0b0000,
+            protocol_magic: ProtocolMagic::from(SANCHO_TESTNET_NETWORK_MAGIC),
         }
     }
 }

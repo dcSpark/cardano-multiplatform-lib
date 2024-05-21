@@ -10,8 +10,8 @@ use crate::{
     certs::StakeCredential,
     crypto::hash::hash_plutus_data,
     plutus::PlutusData,
-    transaction::{RequiredSigners, TransactionInput, TransactionOutput},
-    NativeScript,
+    transaction::{TransactionInput, TransactionOutput},
+    NativeScript, RequiredSigners,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -140,6 +140,7 @@ impl SingleInputBuilder {
     ) -> Result<InputBuilderResult, InputBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
         required_signers
+            .as_ref()
             .iter()
             .for_each(|required_signer| required_wits.add_vkey_key_hash(*required_signer));
         input_required_wits(&self.utxo_info, &mut required_wits);

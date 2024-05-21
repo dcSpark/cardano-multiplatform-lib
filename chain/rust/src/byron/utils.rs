@@ -154,14 +154,16 @@ impl AddressContent {
 
         // mainnet is implied if omitted
         let protocol_magic = self.byron_protocol_magic();
-        match protocol_magic {
-            magic if magic == NetworkInfo::mainnet().protocol_magic() => {
-                Ok(NetworkInfo::mainnet().network_id())
-            }
-            magic if magic == NetworkInfo::testnet().protocol_magic() => {
-                Ok(NetworkInfo::testnet().network_id())
-            }
-            _ => Err(ByronAddressError::UnknownNetwork(protocol_magic)),
+        if protocol_magic == NetworkInfo::mainnet().protocol_magic() {
+            Ok(NetworkInfo::mainnet().network_id())
+        } else if protocol_magic == NetworkInfo::testnet().protocol_magic()
+            || protocol_magic == NetworkInfo::preprod().protocol_magic()
+            || protocol_magic == NetworkInfo::preview().protocol_magic()
+            || protocol_magic == NetworkInfo::sancho_testnet().protocol_magic()
+        {
+            Ok(NetworkInfo::testnet().network_id())
+        } else {
+            Err(ByronAddressError::UnknownNetwork(protocol_magic))
         }
     }
 

@@ -6,7 +6,8 @@ pub mod serialization;
 pub mod utils;
 
 use crate::shelley::{
-    GenesisKeyDelegation, ShelleyHeader, ShelleyTransactionOutput, ShelleyUpdate,
+    GenesisKeyDelegation, ShelleyHeader, ShelleyPoolParams, ShelleyPoolRegistration,
+    ShelleyTransactionOutput, ShelleyUpdate,
 };
 use cbor_encodings::{
     AllegraBlockEncoding, AllegraTransactionBodyEncoding, AllegraTransactionEncoding,
@@ -15,17 +16,15 @@ use cbor_encodings::{
 use cml_chain::assets::Coin;
 use cml_chain::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
 use cml_chain::certs::{
-    PoolParams, PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation,
-    StakeDeregistration, StakeRegistration,
+    PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration, StakeRegistration,
 };
 use cml_chain::crypto::{AuxiliaryDataHash, BootstrapWitness, Vkeywitness};
 use cml_chain::transaction::{NativeScript, TransactionInput};
 use cml_chain::Withdrawals;
 use cml_chain::{DeltaCoin, LenEncoding, TransactionIndex};
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::Serialize;
 use cml_core::Epoch;
-use cml_crypto::{blake2b256, Ed25519KeyHash, GenesisDelegateHash, GenesisHash, VRFKeyHash};
+use cml_crypto::{Ed25519KeyHash, GenesisDelegateHash, GenesisHash, VRFKeyHash};
 use std::collections::BTreeMap;
 
 use self::cbor_encodings::{MoveInstantaneousRewardEncoding, MoveInstantaneousRewardsCertEncoding};
@@ -79,7 +78,7 @@ pub enum AllegraCertificate {
     StakeRegistration(StakeRegistration),
     StakeDeregistration(StakeDeregistration),
     StakeDelegation(StakeDelegation),
-    PoolRegistration(PoolRegistration),
+    ShelleyPoolRegistration(ShelleyPoolRegistration),
     PoolRetirement(PoolRetirement),
     GenesisKeyDelegation(GenesisKeyDelegation),
     MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCert),
@@ -101,8 +100,8 @@ impl AllegraCertificate {
         Self::StakeDelegation(StakeDelegation::new(stake_credential, ed25519_key_hash))
     }
 
-    pub fn new_pool_registration(pool_params: PoolParams) -> Self {
-        Self::PoolRegistration(PoolRegistration::new(pool_params))
+    pub fn new_shelley_pool_registration(pool_params: ShelleyPoolParams) -> Self {
+        Self::ShelleyPoolRegistration(ShelleyPoolRegistration::new(pool_params))
     }
 
     pub fn new_pool_retirement(ed25519_key_hash: Ed25519KeyHash, epoch: Epoch) -> Self {
@@ -187,10 +186,6 @@ impl AllegraTransactionBody {
             validity_interval_start: None,
             encodings: None,
         }
-    }
-
-    pub fn hash(&self) -> [u8; 32] {
-        blake2b256(&self.to_cbor_bytes())
     }
 }
 

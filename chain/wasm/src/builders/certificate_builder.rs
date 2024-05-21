@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 use super::witness_builder::NativeScriptWitnessInfo;
 
-use crate::{certs::Certificate, transaction::RequiredSigners};
+use crate::{certs::Certificate, RequiredSigners};
 
 #[wasm_bindgen]
 #[derive(Clone)]

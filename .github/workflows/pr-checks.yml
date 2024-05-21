@@ -13,9 +13,9 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: 'recursive'
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v4
         with:
-          node-version: '12.18.1'
+          node-version: 'lts/iron'
       - name: Cache node modules
         uses: actions/cache@v1
         with:

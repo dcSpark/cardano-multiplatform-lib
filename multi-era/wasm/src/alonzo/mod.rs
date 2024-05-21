@@ -3,23 +3,24 @@
 
 use crate::shelley::{ProtocolVersionStruct, ShelleyHeader};
 use crate::{
-    AllegraCertificateList, AlonzoFormatTxOutList, AlonzoTransactionBodyList,
+    AllegraCertificateList, AlonzoFormatTxOutList, AlonzoRedeemerList, AlonzoTransactionBodyList,
     AlonzoTransactionWitnessSetList, GenesisHashList, MapTransactionIndexToAlonzoAuxiliaryData,
 };
 use cml_chain_wasm::assets::{Coin, Mint};
 use cml_chain_wasm::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMaFormatAuxData};
 use cml_chain_wasm::crypto::Nonce;
-use cml_chain_wasm::plutus::{ExUnitPrices, ExUnits};
-use cml_chain_wasm::transaction::RequiredSigners;
+use cml_chain_wasm::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData};
+use cml_chain_wasm::RequiredSigners;
 use cml_chain_wasm::TransactionIndex;
 use cml_chain_wasm::{
-    BootstrapWitnessList, IntList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
-    RedeemerList, TransactionInputList, VkeywitnessList,
+    BootstrapWitnessList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
+    TransactionInputList, VkeywitnessList,
 };
 use cml_chain_wasm::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
+use cml_multi_era::alonzo::AlonzoRedeemerTag;
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
 #[derive(Clone, Debug)]
@@ -149,26 +150,7 @@ impl AlonzoBlock {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct AlonzoCostmdls(cml_multi_era::alonzo::AlonzoCostmdls);
-
-impl_wasm_cbor_json_api!(AlonzoCostmdls);
-
-impl_wasm_conversions!(cml_multi_era::alonzo::AlonzoCostmdls, AlonzoCostmdls);
-
-#[wasm_bindgen]
-impl AlonzoCostmdls {
-    pub fn plutus_v1(&self) -> IntList {
-        self.0.plutus_v1.clone().into()
-    }
-
-    pub fn new(plutus_v1: &IntList) -> Self {
-        Self(cml_multi_era::alonzo::AlonzoCostmdls::new(
-            plutus_v1.clone().into(),
-        ))
-    }
-}
+pub type AlonzoCostModels = CostModels;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -418,13 +400,13 @@ impl AlonzoProtocolParamUpdate {
 
     pub fn set_cost_models_for_script_languages(
         &mut self,
-        cost_models_for_script_languages: &AlonzoCostmdls,
+        cost_models_for_script_languages: &AlonzoCostModels,
     ) {
         self.0.cost_models_for_script_languages =
             Some(cost_models_for_script_languages.clone().into())
     }
 
-    pub fn cost_models_for_script_languages(&self) -> Option<AlonzoCostmdls> {
+    pub fn cost_models_for_script_languages(&self) -> Option<AlonzoCostModels> {
         self.0
             .cost_models_for_script_languages
             .clone()
@@ -484,6 +466,42 @@ impl AlonzoProtocolParamUpdate {
 
     pub fn new() -> Self {
         Self(cml_multi_era::alonzo::AlonzoProtocolParamUpdate::new())
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct AlonzoRedeemer(cml_multi_era::alonzo::AlonzoRedeemer);
+
+impl_wasm_cbor_json_api!(AlonzoRedeemer);
+
+impl_wasm_conversions!(cml_multi_era::alonzo::AlonzoRedeemer, AlonzoRedeemer);
+
+#[wasm_bindgen]
+impl AlonzoRedeemer {
+    pub fn tag(&self) -> AlonzoRedeemerTag {
+        self.0.tag
+    }
+
+    pub fn index(&self) -> u64 {
+        self.0.index
+    }
+
+    pub fn data(&self) -> PlutusData {
+        self.0.data.clone().into()
+    }
+
+    pub fn ex_units(&self) -> ExUnits {
+        self.0.ex_units.clone().into()
+    }
+
+    pub fn new(tag: AlonzoRedeemerTag, index: u64, data: &PlutusData, ex_units: &ExUnits) -> Self {
+        Self(cml_multi_era::alonzo::AlonzoRedeemer::new(
+            tag,
+            index,
+            data.clone().into(),
+            ex_units.clone().into(),
+        ))
     }
 }
 
@@ -715,11 +733,11 @@ impl AlonzoTransactionWitnessSet {
         self.0.plutus_datums.clone().map(std::convert::Into::into)
     }
 
-    pub fn set_redeemers(&mut self, redeemers: &RedeemerList) {
+    pub fn set_redeemers(&mut self, redeemers: &AlonzoRedeemerList) {
         self.0.redeemers = Some(redeemers.clone().into())
     }
 
-    pub fn redeemers(&self) -> Option<RedeemerList> {
+    pub fn redeemers(&self) -> Option<AlonzoRedeemerList> {
         self.0.redeemers.clone().map(std::convert::Into::into)
     }
 

@@ -4,8 +4,8 @@ use crate::builders::{
 };
 use crate::{
     plutus::PlutusData,
-    transaction::{RequiredSigners, TransactionInput, TransactionOutput},
-    NativeScript,
+    transaction::{TransactionInput, TransactionOutput},
+    NativeScript, RequiredSigners,
 };
 use cml_core_wasm::impl_wasm_conversions;
 use wasm_bindgen::prelude::{wasm_bindgen, JsError};

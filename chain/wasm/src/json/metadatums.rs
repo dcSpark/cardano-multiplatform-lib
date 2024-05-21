@@ -1,5 +1,5 @@
+use crate::auxdata::TransactionMetadatum;
 pub use cml_chain::json::metadatums::MetadataJsonSchema;
-use cml_core_wasm::metadata::TransactionMetadatum;
 use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 /// Converts JSON to Metadata according to MetadataJsonSchema

@@ -5,7 +5,7 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use super::{Coin, Epoch, Port, UnitInterval};
+use super::{Coin, Epoch, Port, SetEd25519KeyHash, UnitInterval};
 use crate::address::RewardAccount;
 use crate::crypto::{Ed25519KeyHash, PoolMetadataHash, ScriptHash, VRFKeyHash};
 use crate::governance::Anchor;
@@ -152,8 +152,12 @@ impl Certificate {
 
     pub fn new_resign_committee_cold_cert(
         committee_cold_credential: CommitteeColdCredential,
+        anchor: Option<Anchor>,
     ) -> Self {
-        Self::ResignCommitteeColdCert(ResignCommitteeColdCert::new(committee_cold_credential))
+        Self::ResignCommitteeColdCert(ResignCommitteeColdCert::new(
+            committee_cold_credential,
+            anchor,
+        ))
     }
 
     pub fn new_reg_drep_cert(
@@ -344,13 +348,13 @@ impl DnsName {
     }
 
     pub fn new(inner: String) -> Result<Self, DeserializeError> {
-        if inner.len() > 64 {
+        if inner.len() > 128 {
             return Err(DeserializeError::new(
                 "DnsName",
                 DeserializeFailure::RangeCheck {
                     found: inner.len() as isize,
                     min: Some(0),
-                    max: Some(64),
+                    max: Some(128),
                 },
             ));
         }
@@ -534,7 +538,7 @@ pub struct PoolParams {
     pub cost: Coin,
     pub margin: UnitInterval,
     pub reward_account: RewardAccount,
-    pub pool_owners: Vec<Ed25519KeyHash>,
+    pub pool_owners: SetEd25519KeyHash,
     pub relays: Vec<Relay>,
     pub pool_metadata: Option<PoolMetadata>,
     #[serde(skip)]
@@ -550,7 +554,7 @@ impl PoolParams {
         cost: Coin,
         margin: UnitInterval,
         reward_account: RewardAccount,
-        pool_owners: Vec<Ed25519KeyHash>,
+        pool_owners: SetEd25519KeyHash,
         relays: Vec<Relay>,
         pool_metadata: Option<PoolMetadata>,
     ) -> Self {
@@ -669,14 +673,16 @@ impl Relay {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ResignCommitteeColdCert {
     pub committee_cold_credential: CommitteeColdCredential,
+    pub anchor: Option<Anchor>,
     #[serde(skip)]
     pub encodings: Option<ResignCommitteeColdCertEncoding>,
 }
 
 impl ResignCommitteeColdCert {
-    pub fn new(committee_cold_credential: CommitteeColdCredential) -> Self {
+    pub fn new(committee_cold_credential: CommitteeColdCredential, anchor: Option<Anchor>) -> Self {
         Self {
             committee_cold_credential,
+            anchor,
             encodings: None,
         }
     }
@@ -917,13 +923,13 @@ impl Url {
     }
 
     pub fn new(inner: String) -> Result<Self, DeserializeError> {
-        if inner.len() > 64 {
+        if inner.len() > 128 {
             return Err(DeserializeError::new(
                 "Url",
                 DeserializeFailure::RangeCheck {
                     found: inner.len() as isize,
                     min: Some(0),
-                    max: Some(64),
+                    max: Some(128),
                 },
             ));
         }

@@ -6,8 +6,6 @@ use super::*;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_chain::address::RewardAccount;
-use cml_chain::assets::AssetName;
-use cml_chain::PolicyId;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::Ed25519KeyHash;
@@ -295,239 +293,6 @@ impl Deserialize for BabbageBlock {
                 }),
             })
         })().map_err(|e| e.annotate("BabbageBlock"))
-    }
-}
-
-impl Serialize for BabbageCostModels {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_map_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.len_encoding)
-                .unwrap_or_default()
-                .to_len_sz(
-                    match &self.plutus_v1 {
-                        Some(_) => 1,
-                        None => 0,
-                    } + match &self.plutus_v2 {
-                        Some(_) => 1,
-                        None => 0,
-                    },
-                    force_canonical,
-                ),
-        )?;
-        let deser_order = self
-            .encodings
-            .as_ref()
-            .filter(|encs| {
-                !force_canonical
-                    && encs.orig_deser_order.len()
-                        == match &self.plutus_v1 {
-                            Some(_) => 1,
-                            None => 0,
-                        } + match &self.plutus_v2 {
-                            Some(_) => 1,
-                            None => 0,
-                        }
-            })
-            .map(|encs| encs.orig_deser_order.clone())
-            .unwrap_or_else(|| vec![0, 1]);
-        for field_index in deser_order {
-            match field_index {
-                0 => {
-                    if let Some(field) = &self.plutus_v1 {
-                        serializer.write_unsigned_integer_sz(
-                            0u64,
-                            fit_sz(
-                                0u64,
-                                self.encodings
-                                    .as_ref()
-                                    .map(|encs| encs.plutus_v1_key_encoding)
-                                    .unwrap_or_default(),
-                                force_canonical,
-                            ),
-                        )?;
-                        serializer.write_array_sz(
-                            self.encodings
-                                .as_ref()
-                                .map(|encs| encs.plutus_v1_encoding)
-                                .unwrap_or_default()
-                                .to_len_sz(field.len() as u64, force_canonical),
-                        )?;
-                        for element in field.iter() {
-                            element.serialize(serializer, force_canonical)?;
-                        }
-                        self.encodings
-                            .as_ref()
-                            .map(|encs| encs.plutus_v1_encoding)
-                            .unwrap_or_default()
-                            .end(serializer, force_canonical)?;
-                    }
-                }
-                1 => {
-                    if let Some(field) = &self.plutus_v2 {
-                        serializer.write_unsigned_integer_sz(
-                            1u64,
-                            fit_sz(
-                                1u64,
-                                self.encodings
-                                    .as_ref()
-                                    .map(|encs| encs.plutus_v2_key_encoding)
-                                    .unwrap_or_default(),
-                                force_canonical,
-                            ),
-                        )?;
-                        serializer.write_array_sz(
-                            self.encodings
-                                .as_ref()
-                                .map(|encs| encs.plutus_v2_encoding)
-                                .unwrap_or_default()
-                                .to_len_sz(field.len() as u64, force_canonical),
-                        )?;
-                        for element in field.iter() {
-                            element.serialize(serializer, force_canonical)?;
-                        }
-                        self.encodings
-                            .as_ref()
-                            .map(|encs| encs.plutus_v2_encoding)
-                            .unwrap_or_default()
-                            .end(serializer, force_canonical)?;
-                    }
-                }
-                _ => unreachable!(),
-            };
-        }
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
-    }
-}
-
-impl Deserialize for BabbageCostModels {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        (|| -> Result<_, DeserializeError> {
-            let mut orig_deser_order = Vec::new();
-            let mut plutus_v1_encoding = LenEncoding::default();
-            let mut plutus_v1_key_encoding = None;
-            let mut plutus_v1 = None;
-            let mut plutus_v2_encoding = LenEncoding::default();
-            let mut plutus_v2_key_encoding = None;
-            let mut plutus_v2 = None;
-            let mut read = 0;
-            while match len {
-                cbor_event::LenSz::Len(n, _) => read < n,
-                cbor_event::LenSz::Indefinite => true,
-            } {
-                match raw.cbor_type()? {
-                    cbor_event::Type::UnsignedInteger => match raw.unsigned_integer_sz()? {
-                        (0, key_enc) => {
-                            if plutus_v1.is_some() {
-                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(0)).into());
-                            }
-                            let (tmp_plutus_v1, tmp_plutus_v1_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    let mut plutus_v1_arr = Vec::new();
-                                    let len = raw.array_sz()?;
-                                    let plutus_v1_encoding = len.into();
-                                    while match len {
-                                        cbor_event::LenSz::Len(n, _) => {
-                                            (plutus_v1_arr.len() as u64) < n
-                                        }
-                                        cbor_event::LenSz::Indefinite => true,
-                                    } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                            break;
-                                        }
-                                        plutus_v1_arr.push(Int::deserialize(raw)?);
-                                    }
-                                    Ok((plutus_v1_arr, plutus_v1_encoding))
-                                })()
-                                .map_err(|e| e.annotate("plutus_v1"))?;
-                            plutus_v1 = Some(tmp_plutus_v1);
-                            plutus_v1_encoding = tmp_plutus_v1_encoding;
-                            plutus_v1_key_encoding = Some(key_enc);
-                            orig_deser_order.push(0);
-                        }
-                        (1, key_enc) => {
-                            if plutus_v2.is_some() {
-                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(1)).into());
-                            }
-                            let (tmp_plutus_v2, tmp_plutus_v2_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    let mut plutus_v2_arr = Vec::new();
-                                    let len = raw.array_sz()?;
-                                    let plutus_v2_encoding = len.into();
-                                    while match len {
-                                        cbor_event::LenSz::Len(n, _) => {
-                                            (plutus_v2_arr.len() as u64) < n
-                                        }
-                                        cbor_event::LenSz::Indefinite => true,
-                                    } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                            break;
-                                        }
-                                        plutus_v2_arr.push(Int::deserialize(raw)?);
-                                    }
-                                    Ok((plutus_v2_arr, plutus_v2_encoding))
-                                })()
-                                .map_err(|e| e.annotate("plutus_v2"))?;
-                            plutus_v2 = Some(tmp_plutus_v2);
-                            plutus_v2_encoding = tmp_plutus_v2_encoding;
-                            plutus_v2_key_encoding = Some(key_enc);
-                            orig_deser_order.push(1);
-                        }
-                        (unknown_key, _enc) => {
-                            return Err(
-                                DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            )
-                        }
-                    },
-                    cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
-                    }
-                    cbor_event::Type::Special => match len {
-                        cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
-                        }
-                        cbor_event::LenSz::Indefinite => match raw.special()? {
-                            cbor_event::Special::Break => break,
-                            _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                        },
-                    },
-                    other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
-                    }
-                }
-                read += 1;
-            }
-            read_len.finish()?;
-            Ok(Self {
-                plutus_v1,
-                plutus_v2,
-                encodings: Some(BabbageCostModelsEncoding {
-                    len_encoding,
-                    orig_deser_order,
-                    plutus_v1_key_encoding,
-                    plutus_v1_encoding,
-                    plutus_v2_key_encoding,
-                    plutus_v2_encoding,
-                }),
-            })
-        })()
-        .map_err(|e| e.annotate("BabbageCostModels"))
     }
 }
 
@@ -1932,8 +1697,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("minfee_a"))?;
                             minfee_a = Some(tmp_minfee_a);
@@ -1949,8 +1714,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("minfee_b"))?;
                             minfee_b = Some(tmp_minfee_b);
@@ -1966,8 +1731,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_block_body_size"))?;
                             max_block_body_size = Some(tmp_max_block_body_size);
@@ -1983,8 +1748,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_transaction_size"))?;
                             max_transaction_size = Some(tmp_max_transaction_size);
@@ -2000,8 +1765,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_block_header_size"))?;
                             max_block_header_size = Some(tmp_max_block_header_size);
@@ -2017,8 +1782,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("key_deposit"))?;
                             key_deposit = Some(tmp_key_deposit);
@@ -2034,8 +1799,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("pool_deposit"))?;
                             pool_deposit = Some(tmp_pool_deposit);
@@ -2051,8 +1816,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("maximum_epoch"))?;
                             maximum_epoch = Some(tmp_maximum_epoch);
@@ -2068,8 +1833,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("n_opt"))?;
                             n_opt = Some(tmp_n_opt);
@@ -2137,8 +1902,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("min_pool_cost"))?;
                             min_pool_cost = Some(tmp_min_pool_cost);
@@ -2154,8 +1919,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("ada_per_utxo_byte"))?;
                             ada_per_utxo_byte = Some(tmp_ada_per_utxo_byte);
@@ -2225,8 +1990,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_value_size"))?;
                             max_value_size = Some(tmp_max_value_size);
@@ -2242,8 +2007,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("collateral_percentage"))?;
                             collateral_percentage = Some(tmp_collateral_percentage);
@@ -2259,8 +2024,8 @@ impl Deserialize for BabbageProtocolParamUpdate {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("max_collateral_inputs"))?;
                             max_collateral_inputs = Some(tmp_max_collateral_inputs);
@@ -2420,10 +2185,12 @@ impl Deserialize for BabbageScript {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let _read_len = CBORReadLen::new(len);
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 0 {
@@ -2450,8 +2217,8 @@ impl Deserialize for BabbageScript {
                     len_encoding,
                     tag_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("Native"));
@@ -2460,7 +2227,10 @@ impl Deserialize for BabbageScript {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 1 {
@@ -2487,8 +2257,8 @@ impl Deserialize for BabbageScript {
                     len_encoding,
                     tag_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("PlutusV1"));
@@ -2497,7 +2267,10 @@ impl Deserialize for BabbageScript {
                         .unwrap();
                 }
             };
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
                 let tag_encoding = (|| -> Result<_, DeserializeError> {
                     let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
                     if tag_value != 2 {
@@ -2524,8 +2297,8 @@ impl Deserialize for BabbageScript {
                     len_encoding,
                     tag_encoding,
                 })
-            })(raw)
-            {
+            })(raw);
+            match variant_deser {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("PlutusV2"));
@@ -2534,13 +2307,6 @@ impl Deserialize for BabbageScript {
                         .unwrap();
                 }
             };
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Err(DeserializeError::new(
                 "BabbageScript",
                 DeserializeFailure::NoVariantMatchedWithCauses(errs),
@@ -3010,104 +2776,7 @@ impl Serialize for BabbageTransactionBody {
                                 force_canonical,
                             ),
                         )?;
-                        serializer.write_map_sz(
-                            self.encodings
-                                .as_ref()
-                                .map(|encs| encs.mint_encoding)
-                                .unwrap_or_default()
-                                .to_len_sz(field.len() as u64, force_canonical),
-                        )?;
-                        let mut key_order = field
-                            .iter()
-                            .map(|(k, v)| {
-                                let mut buf = cbor_event::se::Serializer::new_vec();
-                                let mint_key_encoding = self
-                                    .encodings
-                                    .as_ref()
-                                    .and_then(|encs| encs.mint_key_encodings.get(k))
-                                    .cloned()
-                                    .unwrap_or_default();
-                                buf.write_bytes_sz(
-                                    k.to_raw_bytes(),
-                                    mint_key_encoding.to_str_len_sz(
-                                        k.to_raw_bytes().len() as u64,
-                                        force_canonical,
-                                    ),
-                                )?;
-                                Ok((buf.finalize(), k, v))
-                            })
-                            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
-                        if force_canonical {
-                            key_order.sort_by(
-                                |(lhs_bytes, _, _), (rhs_bytes, _, _)| match lhs_bytes
-                                    .len()
-                                    .cmp(&rhs_bytes.len())
-                                {
-                                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                                    diff_ord => diff_ord,
-                                },
-                            );
-                        }
-                        for (key_bytes, key, value) in key_order {
-                            serializer.write_raw_bytes(&key_bytes)?;
-                            let (mint_value_encoding, mint_value_value_encodings) = self
-                                .encodings
-                                .as_ref()
-                                .and_then(|encs| encs.mint_value_encodings.get(key))
-                                .cloned()
-                                .unwrap_or_else(|| (LenEncoding::default(), BTreeMap::new()));
-                            serializer.write_map_sz(
-                                mint_value_encoding.to_len_sz(value.len() as u64, force_canonical),
-                            )?;
-                            let mut key_order = value
-                                .iter()
-                                .map(|(k, v)| {
-                                    let mut buf = cbor_event::se::Serializer::new_vec();
-                                    k.serialize(&mut buf, force_canonical)?;
-                                    Ok((buf.finalize(), k, v))
-                                })
-                                .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
-                            if force_canonical {
-                                key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
-                                    match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                                        std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                                        diff_ord => diff_ord,
-                                    }
-                                });
-                            }
-                            for (key_bytes, key, value) in key_order {
-                                serializer.write_raw_bytes(&key_bytes)?;
-                                let mint_value_value_encoding = mint_value_value_encodings
-                                    .get(key)
-                                    .cloned()
-                                    .unwrap_or_default();
-                                if *value >= 0 {
-                                    serializer.write_unsigned_integer_sz(
-                                        *value as u64,
-                                        fit_sz(
-                                            *value as u64,
-                                            mint_value_value_encoding,
-                                            force_canonical,
-                                        ),
-                                    )?;
-                                } else {
-                                    serializer.write_negative_integer_sz(
-                                        *value as i128,
-                                        fit_sz(
-                                            (*value + 1).unsigned_abs(),
-                                            mint_value_value_encoding,
-                                            force_canonical,
-                                        ),
-                                    )?;
-                                }
-                            }
-                            mint_value_encoding.end(serializer, force_canonical)?;
-                        }
-                        self.encodings
-                            .as_ref()
-                            .map(|encs| encs.mint_encoding)
-                            .unwrap_or_default()
-                            .end(serializer, force_canonical)?;
+                        field.serialize(serializer, force_canonical)?;
                     }
                 }
                 10 => {
@@ -3339,9 +3008,6 @@ impl Deserialize for BabbageTransactionBody {
             let mut validity_interval_start_encoding = None;
             let mut validity_interval_start_key_encoding = None;
             let mut validity_interval_start = None;
-            let mut mint_encoding = LenEncoding::default();
-            let mut mint_key_encodings = BTreeMap::new();
-            let mut mint_value_encodings = BTreeMap::new();
             let mut mint_key_encoding = None;
             let mut mint = None;
             let mut script_data_hash_encoding = StringEncoding::default();
@@ -3416,7 +3082,7 @@ impl Deserialize for BabbageTransactionBody {
                             if fee.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
                             }
-                            let (tmp_fee, tmp_fee_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into).map_err(|e: DeserializeError| e.annotate("fee"))?;
+                            let (tmp_fee, tmp_fee_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc))).map_err(|e: DeserializeError| e.annotate("fee"))?;
                             fee = Some(tmp_fee);
                             fee_encoding = tmp_fee_encoding;
                             fee_key_encoding = Some(key_enc);
@@ -3428,7 +3094,7 @@ impl Deserialize for BabbageTransactionBody {
                             }
                             let (tmp_ttl, tmp_ttl_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("ttl"))?;
                             ttl = Some(tmp_ttl);
                             ttl_encoding = tmp_ttl_encoding;
@@ -3519,7 +3185,7 @@ impl Deserialize for BabbageTransactionBody {
                             }
                             let (tmp_validity_interval_start, tmp_validity_interval_start_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("validity_interval_start"))?;
                             validity_interval_start = Some(tmp_validity_interval_start);
                             validity_interval_start_encoding = tmp_validity_interval_start_encoding;
@@ -3530,57 +3196,11 @@ impl Deserialize for BabbageTransactionBody {
                             if mint.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(9)).into());
                             }
-                            let (tmp_mint, tmp_mint_encoding, tmp_mint_key_encodings, tmp_mint_value_encodings) = (|| -> Result<_, DeserializeError> {
+                            let tmp_mint = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                let mut mint_table = OrderedHashMap::new();
-                                let mint_len = raw.map_sz()?;
-                                let mint_encoding = mint_len.into();
-                                let mut mint_key_encodings = BTreeMap::new();
-                                let mut mint_value_encodings = BTreeMap::new();
-                                while match mint_len { cbor_event::LenSz::Len(n, _) => (mint_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                        break;
-                                    }
-                                    let (mint_key, mint_key_encoding) = raw.bytes_sz().map_err(Into::<DeserializeError>::into).and_then(|(bytes, enc)| PolicyId::from_raw_bytes(&bytes).map(|bytes| (bytes, StringEncoding::from(enc))).map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into()))?;
-                                    let mut mint_value_table = OrderedHashMap::new();
-                                    let mint_value_len = raw.map_sz()?;
-                                    let mint_value_encoding = mint_value_len.into();
-                                    let mut mint_value_value_encodings = BTreeMap::new();
-                                    while match mint_value_len { cbor_event::LenSz::Len(n, _) => (mint_value_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                            break;
-                                        }
-                                        let mint_value_key = AssetName::deserialize(raw)?;
-                                        let (mint_value_value, mint_value_value_encoding) = match raw.cbor_type()? {
-                                            cbor_event::Type::UnsignedInteger => {
-                                                let (x, enc) = raw.unsigned_integer_sz()?;
-                                                (x as i64, Some(enc))
-                                            },
-                                            _ => {
-                                                let (x, enc) = raw.negative_integer_sz()?;
-                                                (x as i64, Some(enc))
-                                            },
-                                        };
-                                        if mint_value_table.insert(mint_value_key.clone(), mint_value_value).is_some() {
-                                            return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
-                                        }
-                                        mint_value_value_encodings.insert(mint_value_key, mint_value_value_encoding);
-                                    }
-                                    let (mint_value, mint_value_encoding, mint_value_value_encodings) = (mint_value_table, mint_value_encoding, mint_value_value_encodings);
-                                    if mint_table.insert(mint_key, mint_value).is_some() {
-                                        return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
-                                    }
-                                    mint_key_encodings.insert(mint_key, mint_key_encoding);
-                                    mint_value_encodings.insert(mint_key, (mint_value_encoding, mint_value_value_encodings));
-                                }
-                                Ok((mint_table, mint_encoding, mint_key_encodings, mint_value_encodings))
+                                BabbageMint::deserialize(raw)
                             })().map_err(|e| e.annotate("mint"))?;
                             mint = Some(tmp_mint);
-                            mint_encoding = tmp_mint_encoding;
-                            mint_key_encodings = tmp_mint_key_encodings;
-                            mint_value_encodings = tmp_mint_value_encodings;
                             mint_key_encoding = Some(key_enc);
                             orig_deser_order.push(9);
                         },
@@ -3677,7 +3297,7 @@ impl Deserialize for BabbageTransactionBody {
                             }
                             let (tmp_total_collateral, tmp_total_collateral_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc))).map_err(Into::<DeserializeError>::into)
+                                raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).map(|(x, enc)| (x, Some(enc)))
                             })().map_err(|e| e.annotate("total_collateral"))?;
                             total_collateral = Some(tmp_total_collateral);
                             total_collateral_encoding = tmp_total_collateral_encoding;
@@ -3744,10 +3364,10 @@ impl Deserialize for BabbageTransactionBody {
                 update,
                 auxiliary_data_hash,
                 validity_interval_start,
-                mint: mint.map(Into::into),
+                mint,
                 script_data_hash,
                 collateral_inputs,
-                required_signers,
+                required_signers: required_signers.map(Into::into),
                 network_id,
                 collateral_return,
                 total_collateral,
@@ -3774,9 +3394,6 @@ impl Deserialize for BabbageTransactionBody {
                     validity_interval_start_key_encoding,
                     validity_interval_start_encoding,
                     mint_key_encoding,
-                    mint_encoding,
-                    mint_key_encodings,
-                    mint_value_encodings,
                     script_data_hash_key_encoding,
                     script_data_hash_encoding,
                     collateral_inputs_key_encoding,
@@ -4349,7 +3966,7 @@ impl Deserialize for BabbageTransactionWitnessSet {
                                             assert_eq!(raw.special()?, cbor_event::Special::Break);
                                             break;
                                         }
-                                        redeemers_arr.push(Redeemer::deserialize(raw)?);
+                                        redeemers_arr.push(AlonzoRedeemer::deserialize(raw)?);
                                     }
                                     Ok((redeemers_arr, redeemers_encoding))
                                 })()
@@ -4568,8 +4185,8 @@ impl Deserialize for BabbageUpdate {
                 .map_err(|e| e.annotate("updates"))?;
             let (epoch, epoch_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("epoch"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),

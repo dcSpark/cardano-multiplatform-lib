@@ -1,13 +1,68 @@
-use super::{CostModels, Language, Redeemer};
+use super::{CostModels, Language, LegacyRedeemer, RedeemerKey, RedeemerVal, Redeemers};
 use super::{ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script};
 use crate::crypto::hash::{hash_script, ScriptHashNamespace};
+use crate::json::plutus_datums::{
+    decode_plutus_datum_to_json_value, encode_json_value_to_plutus_datum,
+    CardanoNodePlutusDatumSchema,
+};
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
+use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::*;
 use cml_core::{error::*, Int};
 use cml_crypto::ScriptHash;
+use itertools::Itertools;
 use std::collections::BTreeMap;
 use std::io::{BufRead, Seek, Write};
+
+impl serde::Serialize for PlutusData {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let json_value =
+            decode_plutus_datum_to_json_value(self, CardanoNodePlutusDatumSchema::DetailedSchema)
+                .expect("DetailedSchema can represent everything");
+        serde_json::Value::from(json_value).serialize(serializer)
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for PlutusData {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let serde_json_value =
+            <serde_json::Value as serde::de::Deserialize>::deserialize(deserializer)?;
+        let json_value = crate::json::json_serialize::Value::from(serde_json_value);
+        encode_json_value_to_plutus_datum(
+            json_value.clone(),
+            CardanoNodePlutusDatumSchema::DetailedSchema,
+        )
+        .map_err(|_e| {
+            serde::de::Error::invalid_value(
+                (&json_value).into(),
+                &"invalid plutus datum (cardano-node JSON format)",
+            )
+        })
+    }
+}
+
+impl schemars::JsonSchema for PlutusData {
+    fn schema_name() -> String {
+        String::from("PlutusData")
+    }
+
+    fn json_schema(_gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        schemars::schema::Schema::from(schemars::schema::SchemaObject::new_ref(
+            "PlutusData".to_owned(),
+        ))
+    }
+
+    fn is_referenceable() -> bool {
+        true
+    }
+}
 
 #[derive(
     Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
@@ -426,7 +481,7 @@ impl ExUnits {
     }
 }
 
-pub fn compute_total_ex_units(redeemers: &[Redeemer]) -> Result<ExUnits, ArithmeticError> {
+pub fn compute_total_ex_units(redeemers: &[LegacyRedeemer]) -> Result<ExUnits, ArithmeticError> {
     let mut sum = ExUnits::new(0, 0);
     for redeemer in redeemers {
         sum = sum.checked_add(&redeemer.ex_units)?;
@@ -434,15 +489,7 @@ pub fn compute_total_ex_units(redeemers: &[Redeemer]) -> Result<ExUnits, Arithme
     Ok(sum)
 }
 
-#[derive(
-    Clone,
-    Debug,
-    Default,
-    serde::Deserialize,
-    serde::Serialize,
-    schemars::JsonSchema,
-    derivative::Derivative,
-)]
+#[derive(Clone, Debug, Default, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PlutusMap {
     // possibly duplicates (very rare - only found on testnet)
@@ -453,7 +500,6 @@ pub struct PlutusMap {
         PartialOrd = "ignore",
         Hash = "ignore"
     )]
-    #[serde(skip)]
     pub encoding: LenEncoding,
 }
 
@@ -557,6 +603,77 @@ impl Deserialize for PlutusMap {
             Ok(Self { entries, encoding })
         })()
         .map_err(|e| e.annotate("PlutusMap"))
+    }
+}
+
+impl Redeemers {
+    pub fn to_flat_format(self) -> Vec<LegacyRedeemer> {
+        match self {
+            Self::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => arr_legacy_redeemer,
+            Self::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => map_redeemer_key_to_redeemer_val
+                .iter()
+                .map(|(k, v)| {
+                    LegacyRedeemer::new(k.tag, k.index, v.data.clone(), v.ex_units.clone())
+                })
+                .collect_vec(),
+        }
+    }
+
+    pub fn to_map_format(self) -> OrderedHashMap<RedeemerKey, RedeemerVal> {
+        match self {
+            Self::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => arr_legacy_redeemer
+                .into_iter()
+                .map(|r| {
+                    (
+                        RedeemerKey::new(r.tag, r.index),
+                        RedeemerVal::new(r.data, r.ex_units),
+                    )
+                })
+                .collect(),
+            Self::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => map_redeemer_key_to_redeemer_val,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => arr_legacy_redeemer.is_empty(),
+            Self::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => map_redeemer_key_to_redeemer_val.is_empty(),
+        }
+    }
+
+    pub fn extend(&mut self, other: Self) {
+        match self {
+            Self::ArrLegacyRedeemer {
+                arr_legacy_redeemer,
+                ..
+            } => arr_legacy_redeemer.extend(other.to_flat_format()),
+            Self::MapRedeemerKeyToRedeemerVal {
+                map_redeemer_key_to_redeemer_val,
+                ..
+            } => {
+                for (k, v) in other.to_map_format().take() {
+                    map_redeemer_key_to_redeemer_val.insert(k, v);
+                }
+            }
+        }
     }
 }
 

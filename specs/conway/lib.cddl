@@ -28,8 +28,8 @@ withdrawals = { * reward_account => coin }
 
 
 protocol_param_update = {
-  ? 0:  uint,                    ; @name minfee_a
-  ? 1:  uint,                    ; @name minfee_b
+  ? 0:  coin,                    ; @name minfee_a
+  ? 1:  coin,                    ; @name minfee_b
   ? 2:  uint,                    ; @name max_block_body_size
   ? 3:  uint,                    ; @name max_transaction_size
   ? 4:  uint,                    ; @name max_block_header_size
@@ -52,18 +52,20 @@ protocol_param_update = {
   ? 25: pool_voting_thresholds,  ; @name pool_voting_thresholds
   ? 26: d_rep_voting_thresholds, ; @name d_rep_voting_thresholds
   ? 27: uint,                    ; @name min_committee_size
-  ? 28: uint,                    ; @name committee_term_limit
+  ? 28: epoch,                   ; @name committee_term_limit
   ? 29: epoch,                   ; @name governance_action_validity_period
   ? 30: coin,                    ; @name governance_action_deposit
   ? 31: coin,                    ; @name d_rep_deposit
   ? 32: epoch,                   ; @name d_rep_inactivity_period
+  ? 33: rational,                ; @name min_fee_ref_script_cost_per_byte
 }
 
 pool_voting_thresholds = [
   motion_no_confidence: unit_interval,
   committee_normal: unit_interval, 
   committee_no_confidence: unit_interval, 
-  hard_fork_initiation: unit_interval, 
+  hard_fork_initiation: unit_interval,
+  security_relevant_parameter_voting_threshold: unit_interval,
 ]
 
 d_rep_voting_thresholds = [
@@ -91,3 +93,6 @@ policy_id = script_hash
 ; but then hand-coded to add functionality/check bounds more
 network_id = uint ; @newtype
 ; _CDDL_CODEGEN_EXTERN_TYPE_
+
+set<T> = _CDDL_CODEGEN_EXTERN_TYPE_
+nonempty_set<T> = _CDDL_CODEGEN_EXTERN_TYPE_

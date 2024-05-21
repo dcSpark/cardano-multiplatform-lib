@@ -1,12 +1,12 @@
 use std::{collections::BTreeMap, convert::TryFrom, string::FromUtf8Error};
 
 use cbor_event::{de::Deserializer, se::Serializer};
-pub use cml_chain::{assets::AssetName, PolicyId};
-pub use cml_core::{
-    error::*,
-    metadata::{Metadata, TransactionMetadatum},
-    serialization::*,
+pub use cml_chain::{
+    assets::AssetName,
+    auxdata::{Metadata, TransactionMetadatum},
+    PolicyId,
 };
+pub use cml_core::{error::*, serialization::*};
 use cml_crypto::RawBytesEncoding;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
@@ -334,7 +334,7 @@ impl Deserialize for CIP25LabelMetadata {
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
 
             // Try parsing V1
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut label_metadata_v1_table = BTreeMap::new();
                 let mut label_metadata_v1_table_len = 0;
                 let label_metadata_v1_len = raw.map()?;
@@ -387,11 +387,11 @@ impl Deserialize for CIP25LabelMetadata {
                                     _other_type => {
                                         // we still need to read the data to move on to the CBOR after it
                                         let _other_key =
-                                            cml_core::metadata::TransactionMetadatum::deserialize(
+                                            cml_chain::auxdata::TransactionMetadatum::deserialize(
                                                 raw,
                                             )?;
                                         let _other_value =
-                                            cml_core::metadata::TransactionMetadatum::deserialize(
+                                            cml_chain::auxdata::TransactionMetadatum::deserialize(
                                                 raw,
                                             )?;
                                         label_metadata_v1_value_table_len += 1;
@@ -417,16 +417,16 @@ impl Deserialize for CIP25LabelMetadata {
                         _other_type => {
                             // we still need to read the data to move on to the CBOR after it
                             let _other_key =
-                                cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                             let _other_value =
-                                cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                             label_metadata_v1_table_len += 1;
                         }
                     }
                 }
                 Ok(label_metadata_v1_table)
-            })(raw)
-            {
+            })(raw);
+            match deser_variant {
                 Ok(label_metadata_v1) => {
                     // hand-edit: construct merged type
                     return Ok(Self {
@@ -441,7 +441,7 @@ impl Deserialize for CIP25LabelMetadata {
             };
 
             // Try paring V2
-            match (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let len = raw.map()?;
                 let mut read_len = CBORReadLen::new(match len {
                     cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, cbor_event::Sz::canonical(n)),
@@ -512,8 +512,8 @@ impl Deserialize for CIP25LabelMetadata {
                                                             },
                                                             _other_type => {
                                                                 // we still need to read the data to move on to the CBOR after it
-                                                                let _other_key = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
-                                                                let _other_value = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                                                let _other_key = cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
+                                                                let _other_value = cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                                                                 data_value_table_len += 1;
                                                             },
                                                         }
@@ -536,8 +536,8 @@ impl Deserialize for CIP25LabelMetadata {
                                                 },
                                                 _other_type => {
                                                     // we still need to read the data to move on to the CBOR after it
-                                                    let _other_key = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
-                                                    let _other_value = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                                    let _other_key = cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
+                                                    let _other_value = cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                                                     data_table_len += 1;
                                                 },
                                             }
@@ -571,7 +571,7 @@ impl Deserialize for CIP25LabelMetadata {
                                 // CIP-25 allows permissive parsing
                                 read_len.read_elems(1)?;
                                 // we still need to read the data to move on to the CBOR after it
-                                let _other_metadatum = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                                let _other_metadatum = cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                             }
                         },
                         cbor_event::Type::Special => match len {
@@ -587,8 +587,8 @@ impl Deserialize for CIP25LabelMetadata {
                             // CIP-25 allows permissive parsing
                             read_len.read_elems(1)?;
                             // we still need to read the data to move on to the CBOR after it
-                            let _other_key = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
-                            let _other_value = cml_core::metadata::TransactionMetadatum::deserialize(raw)?;
+                            let _other_key = cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
+                            let _other_value = cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         }
                     }
                     read += 1;
@@ -611,8 +611,8 @@ impl Deserialize for CIP25LabelMetadata {
                 // hand-edit: expression only here, no Self wrapper
                 Ok(data)
             })(raw)
-            .map_err(|e| e.annotate("LabelMetadataV2"))
-            {
+            .map_err(|e| e.annotate("LabelMetadataV2"));
+            match deser_variant {
                 Ok(label_metadata_v2) => {
                     // hand-edit: construct merged type
                     return Ok(Self {

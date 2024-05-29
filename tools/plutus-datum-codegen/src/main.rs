@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
+use std::path::Path;
 
 use cddl::{ast::*, token::*};
 use clap::Parser;
@@ -11,7 +12,9 @@ mod cli;
 mod dep_graph;
 mod utils;
 
-const MERGED_INPUT_FILE: &str = "merged_input.cddl";
+const MERGED_INPUT_DIR: &str = "MERGED_INPUT_DIR";
+const CDDL_CODEGEN_EXTERN_MARKER: &str = "_CDDL_CODEGEN_EXTERN_TYPE_";
+const CDDL_CODEGEN_RAW_BYTES_MARKER: &str = "_CDDL_CODEGEN_RAW_BYTES_TYPE_";
 
 #[derive(Debug, Clone)]
 struct Error(String);
@@ -258,12 +261,24 @@ fn verify_type2(
         Type2::B64ByteString { value, .. } => {
             verify_len(value.len()).map(|()| [PlutusType::Bytes].into())
         }
-        Type2::Typename { ident, .. } => verify_ident(ident, false).and_then(|()| {
-            types
-                .get(ident.ident)
-                .cloned()
-                .ok_or_else(|| format!("Type alias not found: {}", ident.ident))
-        }),
+        Type2::Typename { ident, .. } => match ident.ident {
+            CDDL_CODEGEN_RAW_BYTES_MARKER => Ok([PlutusType::Bytes].into()),
+            // we can't know what this is
+            CDDL_CODEGEN_EXTERN_MARKER => Ok([
+                PlutusType::Bytes,
+                PlutusType::Map,
+                PlutusType::Array,
+                PlutusType::Ctor,
+                PlutusType::Int,
+            ]
+            .into()),
+            _ => verify_ident(ident, false).and_then(|()| {
+                types
+                    .get(ident.ident)
+                    .cloned()
+                    .ok_or_else(|| format!("Type alias not found: {}", ident.ident))
+            }),
+        },
         Type2::Map { group, .. } => {
             verify_group(types, group, true).map(|()| [PlutusType::Map].into())
         }
@@ -351,6 +366,7 @@ fn is_struct(t: &Type) -> bool {
 fn generate_utils(
     cddl: &CDDL,
     export_utf8_utils: bool,
+    user_input_str_stripped: &str,
 ) -> Result<codegen::Scope, Box<dyn std::error::Error>> {
     let mut utils = codegen::Scope::new();
     utils
@@ -364,7 +380,8 @@ fn generate_utils(
             Rule::Type { rule, .. } => is_struct(&rule.value),
             Rule::Group { .. } => true,
         };
-        if is_struct {
+        let is_user_defined = user_input_str_stripped.contains(&format!("{}=", cddl_rule.name()));
+        if is_struct && is_user_defined {
             let rust_rule_name = convert_to_camel_case(&cddl_rule.name());
             utils.push_import("super", &rust_rule_name, None);
             let mut try_from = codegen::Impl::new(&rust_rule_name);
@@ -425,6 +442,7 @@ fn generate_utils(
 fn generate_wasm_utils(
     cli: &Cli,
     cddl: &CDDL,
+    user_input_str_stripped: &str,
 ) -> Result<codegen::Scope, Box<dyn std::error::Error>> {
     let mut utils = codegen::Scope::new();
     utils
@@ -438,7 +456,8 @@ fn generate_wasm_utils(
             Rule::Type { rule, .. } => is_struct(&rule.value),
             Rule::Group { .. } => true,
         };
-        if is_struct {
+        let is_user_defined = user_input_str_stripped.contains(&format!("{}=", cddl_rule.name()));
+        if is_struct && is_user_defined {
             let rust_rule_name = convert_to_camel_case(&cddl_rule.name());
             utils.push_import("super", &rust_rule_name, None);
             let mut util_impl = codegen::Impl::new(&rust_rule_name);
@@ -474,6 +493,8 @@ fn run_cddl_codegen(cli: &Cli) -> Result<(), Box<dyn std::error::Error>> {
     let mut cddl_codegen_run = if cli.cddl_codegen.is_dir() {
         let mut run = std::process::Command::new("cargo");
         run.current_dir(&cli.cddl_codegen);
+        // we must create it or else cli.output.canonicalize() will fail
+        std::fs::create_dir_all(&cli.output)?;
         run.arg("run").arg("--").arg(format!(
             "--output={}",
             cli.output.canonicalize().unwrap().to_str().unwrap()
@@ -505,7 +526,7 @@ fn run_cddl_codegen(cli: &Cli) -> Result<(), Box<dyn std::error::Error>> {
     cddl_codegen_run
         .arg(format!(
             "--input={}",
-            std::path::Path::new(MERGED_INPUT_FILE)
+            Path::new(MERGED_INPUT_DIR)
                 .canonicalize()
                 .unwrap()
                 .to_str()
@@ -545,27 +566,84 @@ fn run_cddl_codegen(cli: &Cli) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use std::fmt::Write;
+
     let cli = Cli::parse();
 
-    // we merge the input into one file which is okay since we use @no_alias so there's nothing to remove
-    // this avoids having an empty prelude module
-    assert!(!cli.input.is_dir());
-    let cddl_in = std::fs::read_to_string(&cli.input)?;
-    let prelude_in = std::fs::read_to_string(std::path::Path::new("prelude.cddl"))?;
-    let merged_input = format!("{cddl_in}\n{prelude_in}");
-    // save it for cddl-codegen too
-    std::fs::write(std::path::Path::new(MERGED_INPUT_FILE), &merged_input)?;
+    // merge user's input with the tool's prelude
+    let merged_input_dir = Path::new(MERGED_INPUT_DIR);
+    let prelude_dir = Path::new("prelude");
+    utils::copy_dir_all(prelude_dir, merged_input_dir)?;
+    let mut prelude_input_map = Vec::new();
+    utils::read_dir_to_string_map(&mut prelude_input_map, prelude_dir)?;
+    let user_input_map = if cli.input.is_dir() {
+        utils::copy_dir_all(&cli.input, merged_input_dir)?;
+        let mut input_map = Vec::new();
+        utils::read_dir_to_string_map(&mut input_map, &cli.input)?;
+        input_map
+    } else {
+        std::fs::copy(&cli.input, merged_input_dir.join("lib.cddl"))?;
+        let input_str = std::fs::read_to_string(&cli.input)?;
+        vec![(Path::new("lib.cddl").to_path_buf(), input_str)]
+    };
 
-    let cddl = cddl::parser::cddl_from_str(&merged_input, true)?;
+    // we need to parse the entire CDDL with the prelude/etc because
+    // the cddl lib does not support incomplete CDDL definitions
+    // we also need to declare these two idents.
+    // these are inserted normally by cddl-codegen but we need them here too
+    // so that the verification code that only uses cddl can parse.
+    // We can't do it in the prelude.cddl or there will be duplicates in cddl-codegen's run
+    let mut merged_input_str =
+        "_CDDL_CODEGEN_EXTERN_TYPE_ = [0]\n\n_CDDL_CODEGEN_RAW_BYTES_TYPE_ = [1]\n\n".to_owned();
+    for (_path, prelude_file_str) in prelude_input_map.iter() {
+        write!(merged_input_str, "{}\n\n", prelude_file_str)?;
+    }
+    for (_path, user_file_str) in user_input_map.iter() {
+        write!(merged_input_str, "{}\n\n", user_file_str)?;
+    }
+    let merged_cddl = cddl::parser::cddl_from_str(&merged_input_str, true)?;
+    // we then need to filter out which definitions are from which
     // check that the input cddl is 100% a subset of the plutus datum CDDL
-    verify(&cddl)?;
+    verify(&merged_cddl)?;
 
     // run and export code via cddl-codegen to output folder
     run_cddl_codegen(&cli)?;
 
+    // we might need to import RawBytesEncoding from cml_crypto
+    // a better solution long-term might be to refactor CML and place it in cml_core::serialization
+    fn prepend_import_raw_bytes_encoding(dir: impl AsRef<Path>) -> std::io::Result<()> {
+        for entry_res in std::fs::read_dir(&dir)? {
+            let entry = entry_res?;
+            if entry.file_type()?.is_dir() {
+                prepend_import_raw_bytes_encoding(entry.path())?;
+            } else if entry.path().as_path().ends_with("serialization.rs") {
+                let mut serialization_rs = std::fs::OpenOptions::new()
+                    .append(true)
+                    .open(entry.path().as_path())
+                    .unwrap();
+                serialization_rs.write_all("use cml_crypto::RawBytesEncoding;\n".as_bytes())?;
+            }
+        }
+        Ok(())
+    }
+    prepend_import_raw_bytes_encoding(cli.output.join("rust").join("src"))?;
+
     // generate utilty functions
-    let export_utf8_utils = cddl_in.contains("utf8_text");
-    let utils = generate_utils(&cddl, export_utf8_utils)?;
+    let export_utf8_utils = user_input_map
+        .iter()
+        .any(|(_path, file_str)| file_str.contains("utf8_text"));
+    // to check for assignment (to verify which types are user-defined)
+    // we process the user input by striping whitespace and also sockets
+    let stripped_user_input_str = user_input_map
+        .iter()
+        .map(|(_path, file_str)| {
+            file_str
+                .chars()
+                .filter(|c| !c.is_whitespace() && *c != '/')
+                .collect::<String>()
+        })
+        .collect::<String>();
+    let utils = generate_utils(&merged_cddl, export_utf8_utils, &stripped_user_input_str)?;
     std::fs::write(
         cli.output.join("rust").join("src").join("utils.rs"),
         utils.to_string(),
@@ -574,9 +652,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .append(true)
         .open(cli.output.join("rust").join("src").join("lib.rs"))
         .unwrap();
-    rust_lib.write_all("pub mod utils;".as_bytes())?;
+    rust_lib.write_all("pub mod utils;\n".as_bytes())?;
     if cli.wasm {
-        let wasm_utils = generate_wasm_utils(&cli, &cddl)?;
+        // we need to change all imports from cml_chain to cml_chain_wasm
+        fn swap_to_wasm_imports(dir: impl AsRef<Path>) -> std::io::Result<()> {
+            for entry_res in std::fs::read_dir(&dir)? {
+                let entry = entry_res?;
+                if entry.file_type()?.is_dir() {
+                    swap_to_wasm_imports(entry.path())?;
+                } else {
+                    let orig = std::fs::read_to_string(entry.path().as_path())?;
+                    std::fs::write(
+                        entry.path().as_path(),
+                        orig.replace("use cml_chain::", "use cml_chain_wasm::"),
+                    )?;
+                }
+            }
+            Ok(())
+        }
+        swap_to_wasm_imports(cli.output.join("wasm").join("src"))?;
+
+        // utils
+        let wasm_utils = generate_wasm_utils(&cli, &merged_cddl, &stripped_user_input_str)?;
         std::fs::write(
             cli.output.join("wasm").join("src").join("utils.rs"),
             wasm_utils.to_string(),
@@ -585,7 +682,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .append(true)
             .open(cli.output.join("wasm").join("src").join("lib.rs"))
             .unwrap();
-        wasm_lib.write_all("pub mod utils;".as_bytes())?;
+        wasm_lib.write_all("pub mod utils;\n".as_bytes())?;
     }
 
     // hook into CML
@@ -595,6 +692,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
     rust_cargo.write_all("cml-core = \"5.3.1\"\n".as_bytes())?;
     rust_cargo.write_all("cml-chain = \"5.3.1\"\n".as_bytes())?;
+    rust_cargo.write_all("cml-crypto = \"5.3.1\"\n".as_bytes())?;
     if cli.wasm {
         let mut wasm_cargo = std::fs::OpenOptions::new()
             .append(true)

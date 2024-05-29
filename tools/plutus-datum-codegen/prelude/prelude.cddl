@@ -1,0 +1,5 @@
+; plutus-specific types
+
+utf8_text = text ; @custom_serialize crate::utils::serialize_utf8_bytes @custom_deserialize crate::utils::deserialize_utf8_bytes @no_alias
+
+bounded_bytes = bytes ; @custom_serialize cml_chain::utils::write_bounded_bytes @custom_deserialize cml_chain::utils::read_bounded_bytes @no_alias

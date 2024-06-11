@@ -4,6 +4,7 @@ use crate::{
     utils::LanguageList,
     Ed25519KeyHashList, NativeScript, Value,
 };
+use cml_core::Slot;
 use cml_crypto_wasm::{DatumHash, ScriptHash};
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -67,6 +68,61 @@ impl NativeScript {
 
     pub fn hash(&self) -> ScriptHash {
         self.0.hash().into()
+    }
+
+    pub fn verify(
+        &self,
+        lower_bound: Option<Slot>,
+        upper_bound: Option<Slot>,
+        key_hashes: &Ed25519KeyHashList,
+    ) -> bool {
+        fn verify_helper(
+            script: &cml_chain::transaction::NativeScript,
+            lower_bound: Option<Slot>,
+            upper_bound: Option<Slot>,
+            key_hashes: &Ed25519KeyHashList,
+        ) -> bool {
+            match &script {
+                cml_chain::transaction::NativeScript::ScriptPubkey(pub_key) => {
+                    key_hashes.0.contains(&pub_key.ed25519_key_hash)
+                }
+                cml_chain::transaction::NativeScript::ScriptAll(script_all) => {
+                    script_all.native_scripts.iter().all(|sub_script| {
+                        verify_helper(sub_script, lower_bound, upper_bound, key_hashes)
+                    })
+                }
+                cml_chain::transaction::NativeScript::ScriptAny(script_any) => {
+                    script_any.native_scripts.iter().any(|sub_script| {
+                        verify_helper(sub_script, lower_bound, upper_bound, key_hashes)
+                    })
+                }
+                cml_chain::transaction::NativeScript::ScriptNOfK(script_atleast) => {
+                    script_atleast
+                        .native_scripts
+                        .iter()
+                        .map(|sub_script| {
+                            verify_helper(sub_script, lower_bound, upper_bound, key_hashes)
+                        })
+                        .filter(|r| *r)
+                        .count()
+                        >= script_atleast.n as usize
+                }
+                cml_chain::transaction::NativeScript::ScriptInvalidBefore(timelock_start) => {
+                    match lower_bound {
+                        Some(tx_slot) => tx_slot >= timelock_start.before,
+                        _ => false,
+                    }
+                }
+                cml_chain::transaction::NativeScript::ScriptInvalidHereafter(timelock_expiry) => {
+                    match upper_bound {
+                        Some(tx_slot) => tx_slot < timelock_expiry.after,
+                        _ => false,
+                    }
+                }
+            }
+        }
+
+        verify_helper(&self.0, lower_bound, upper_bound, key_hashes)
     }
 }
 

@@ -90,7 +90,7 @@ impl NativeScript {
             }
         }
 
-        verify_helper(&self, lower_bound, upper_bound, key_hashes)
+        verify_helper(self, lower_bound, upper_bound, key_hashes)
     }
 }
 

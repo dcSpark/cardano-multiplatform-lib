@@ -7,11 +7,11 @@ use crate::auxdata::AuxiliaryData;
 use crate::governance::VotingProcedures;
 use crate::plutus::{PlutusData, Redeemers};
 use crate::{
-    Ed25519KeyHashList, NativeScriptList, NetworkId, NonemptySetBootstrapWitness,
-    NonemptySetCertificate, NonemptySetNativeScript, NonemptySetPlutusData,
-    NonemptySetPlutusV1Script, NonemptySetPlutusV2Script, NonemptySetPlutusV3Script,
-    NonemptySetProposalProcedure, NonemptySetTransactionInput, NonemptySetVkeywitness,
-    RequiredSigners, Script, SetTransactionInput, Slot, TransactionOutputList, Withdrawals,
+    NativeScriptList, NetworkId, NonemptySetBootstrapWitness, NonemptySetCertificate,
+    NonemptySetNativeScript, NonemptySetPlutusData, NonemptySetPlutusV1Script,
+    NonemptySetPlutusV2Script, NonemptySetPlutusV3Script, NonemptySetProposalProcedure,
+    NonemptySetTransactionInput, NonemptySetVkeywitness, RequiredSigners, Script,
+    SetTransactionInput, Slot, TransactionOutputList, Withdrawals,
 };
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{

@@ -18,7 +18,6 @@ use cml_crypto_wasm::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
 };
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
-
 pub mod utils;
 
 #[derive(Clone, Debug)]

@@ -275,7 +275,7 @@ impl TransactionWitnessSetBuilder {
     pub fn get_native_script(&self) -> Vec<NativeScript> {
         self.scripts
             .iter()
-            .filter(|entry| self.required_wits.script_refs.get(entry.0).is_none())
+            .filter(|entry| !self.required_wits.script_refs.contains(entry.0))
             .fold(
                 Vec::<NativeScript>::new(),
                 |mut acc, script| match &script.1 {
@@ -291,7 +291,7 @@ impl TransactionWitnessSetBuilder {
     pub fn get_plutus_v1_script(&self) -> Vec<PlutusV1Script> {
         self.scripts
             .iter()
-            .filter(|entry| self.required_wits.script_refs.get(entry.0).is_none())
+            .filter(|entry| !self.required_wits.script_refs.contains(entry.0))
             .fold(
                 Vec::<PlutusV1Script>::new(),
                 |mut acc, script| match &script.1 {
@@ -307,7 +307,7 @@ impl TransactionWitnessSetBuilder {
     pub fn get_plutus_v2_script(&self) -> Vec<PlutusV2Script> {
         self.scripts
             .iter()
-            .filter(|entry| self.required_wits.script_refs.get(entry.0).is_none())
+            .filter(|entry| !self.required_wits.script_refs.contains(entry.0))
             .fold(
                 Vec::<PlutusV2Script>::new(),
                 |mut acc, script| match &script.1 {

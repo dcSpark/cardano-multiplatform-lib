@@ -2,9 +2,9 @@ use cbor_event::{de::Deserializer, se::Serializer, Sz};
 use cml_core::{
     error::{DeserializeError, DeserializeFailure},
     serialization::{fit_sz, sz_max, Deserialize, LenEncoding, Serialize},
-    Int,
+    Int, Slot,
 };
-use cml_crypto::{RawBytesEncoding, ScriptHash};
+use cml_crypto::{Ed25519KeyHash, RawBytesEncoding, ScriptHash};
 use derivative::Derivative;
 use std::io::{BufRead, Seek, Write};
 use std::iter::IntoIterator;
@@ -40,6 +40,57 @@ impl Script {
 impl NativeScript {
     pub fn hash(&self) -> ScriptHash {
         hash_script(ScriptHashNamespace::NativeScript, &self.to_cbor_bytes())
+    }
+
+    pub fn verify(
+        &self,
+        lower_bound: Option<Slot>,
+        upper_bound: Option<Slot>,
+        key_hashes: &Vec<Ed25519KeyHash>,
+    ) -> bool {
+        fn verify_helper(
+            script: &NativeScript,
+            lower_bound: Option<Slot>,
+            upper_bound: Option<Slot>,
+            key_hashes: &Vec<Ed25519KeyHash>,
+        ) -> bool {
+            match &script {
+                NativeScript::ScriptPubkey(pub_key) => {
+                    key_hashes.contains(&pub_key.ed25519_key_hash)
+                }
+                NativeScript::ScriptAll(script_all) => {
+                    script_all.native_scripts.iter().all(|sub_script| {
+                        verify_helper(sub_script, lower_bound, upper_bound, key_hashes)
+                    })
+                }
+                NativeScript::ScriptAny(script_any) => {
+                    script_any.native_scripts.iter().any(|sub_script| {
+                        verify_helper(sub_script, lower_bound, upper_bound, key_hashes)
+                    })
+                }
+                NativeScript::ScriptNOfK(script_atleast) => {
+                    script_atleast
+                        .native_scripts
+                        .iter()
+                        .map(|sub_script| {
+                            verify_helper(sub_script, lower_bound, upper_bound, key_hashes)
+                        })
+                        .filter(|r| *r)
+                        .count()
+                        >= script_atleast.n as usize
+                }
+                NativeScript::ScriptInvalidBefore(timelock_start) => match lower_bound {
+                    Some(tx_slot) => tx_slot >= timelock_start.before,
+                    _ => false,
+                },
+                NativeScript::ScriptInvalidHereafter(timelock_expiry) => match upper_bound {
+                    Some(tx_slot) => tx_slot < timelock_expiry.after,
+                    _ => false,
+                },
+            }
+        }
+
+        verify_helper(self, lower_bound, upper_bound, key_hashes)
     }
 }
 

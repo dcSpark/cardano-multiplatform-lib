@@ -209,61 +209,6 @@ impl NativeScript {
         }
     }
 
-    pub fn verify(
-        &self,
-        lower_bound: Option<Slot>,
-        upper_bound: Option<Slot>,
-        key_hashes: &Ed25519KeyHashList,
-    ) -> bool {
-        fn verify_helper(
-            script: &cml_chain::transaction::NativeScript,
-            lower_bound: Option<Slot>,
-            upper_bound: Option<Slot>,
-            key_hashes: &Ed25519KeyHashList,
-        ) -> bool {
-            match &script {
-                cml_chain::transaction::NativeScript::ScriptPubkey(pub_key) => {
-                    key_hashes.0.contains(&pub_key.ed25519_key_hash)
-                }
-                cml_chain::transaction::NativeScript::ScriptAll(script_all) => {
-                    script_all.native_scripts.iter().all(|sub_script| {
-                        verify_helper(sub_script, lower_bound, upper_bound, key_hashes)
-                    })
-                }
-                cml_chain::transaction::NativeScript::ScriptAny(script_any) => {
-                    script_any.native_scripts.iter().any(|sub_script| {
-                        verify_helper(sub_script, lower_bound, upper_bound, key_hashes)
-                    })
-                }
-                cml_chain::transaction::NativeScript::ScriptNOfK(script_atleast) => {
-                    script_atleast
-                        .native_scripts
-                        .iter()
-                        .map(|sub_script| {
-                            verify_helper(sub_script, lower_bound, upper_bound, key_hashes)
-                        })
-                        .filter(|r| *r)
-                        .count()
-                        >= script_atleast.n as usize
-                }
-                cml_chain::transaction::NativeScript::ScriptInvalidHereafter(timelock_start) => {
-                    match lower_bound {
-                        Some(tx_slot) => tx_slot >= timelock_start.after,
-                        _ => false,
-                    }
-                }
-                cml_chain::transaction::NativeScript::ScriptInvalidBefore(timelock_expiry) => {
-                    match upper_bound {
-                        Some(tx_slot) => tx_slot < timelock_expiry.before,
-                        _ => false,
-                    }
-                }
-            }
-        }
-
-        verify_helper(&self.0, lower_bound, upper_bound, key_hashes)
-    }
-
     pub fn as_script_pubkey(&self) -> Option<ScriptPubkey> {
         match &self.0 {
             cml_chain::transaction::NativeScript::ScriptPubkey(script_pubkey) => {

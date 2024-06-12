@@ -24,7 +24,7 @@ schemars = "0.8.8"
 bech32 = "0.7.2"
 hex = "0.4.0"
 itertools = "0.10.1"
-getrandom = { version = "0.2.3", features = ["js"] }
+getrandom = { version = "0.2.3" }
 rand = "0.8.5"
 fraction = "0.10.0"
 base64 = "0.13"
@@ -50,7 +50,7 @@ cfg-if = "1"
 
 # wasm
 #[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies]
-wasm-bindgen = { version = "=0.2.83", features = ["serde-serialize"] }
+wasm-bindgen = { version = "=0.2.87" }
 #rand_os = { version = "0.1", features = ["wasm-bindgen"] }
 #js-sys = "=0.3.59"
 

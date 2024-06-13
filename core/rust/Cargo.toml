@@ -24,7 +24,7 @@ schemars = "0.8.8"
 bech32 = "0.7.2"
 hex = "0.4.0"
 itertools = "0.10.1"
-getrandom = { version = "0.2.3" }
+getrandom = { version = "0.2.3", features = ["js"] }
 rand = "0.8.5"
 fraction = "0.10.0"
 base64 = "0.13"

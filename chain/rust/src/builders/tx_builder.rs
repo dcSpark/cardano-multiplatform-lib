@@ -363,7 +363,7 @@ impl TransactionBuilderConfigBuilder {
             cost_models: if self.cost_models.is_some() {
                 self.cost_models.unwrap()
             } else {
-                CostModels::new()
+                CostModels::default()
             },
             _collateral_percentage: self.collateral_percentage.ok_or(
                 TxBuilderError::UninitializedField(TxBuilderConfigField::CollateralPercentage),

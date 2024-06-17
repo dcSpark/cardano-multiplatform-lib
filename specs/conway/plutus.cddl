@@ -67,8 +67,9 @@ language = 0 ; @name plutus_v1
          / 1 ; @name plutus_v2
          / 2 ; @name plutus_v3
 
-cost_models = {
-  ? 0 : [ 166*166 int ], ; @name plutus_v1
-  ? 1 : [ 175*175 int ], ; @name plutus_v2
-  ? 2 : [ 233*233 int ], ; @name plutus_v3
-}
+cost_models = { * uint => [* int64] } ; @newtype
+;cost_models = {
+;  ? 0 : [ 166*166 int ], ; @name plutus_v1
+;  ? 1 : [ 175*175 int ], ; @name plutus_v2
+;  ? 2 : [ 233*233 int ], ; @name plutus_v3
+;}

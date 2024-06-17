@@ -7,9 +7,9 @@ use crate::json::plutus_datums::{
 };
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
+use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::*;
-use cml_core::error::*;
 use cml_crypto::ScriptHash;
 use itertools::Itertools;
 use std::convert::{TryFrom, TryInto};
@@ -369,7 +369,7 @@ impl CostModels {
                     }
                     cost_model_serializer.write_special(cbor_event::Special::Break)?;
                     serializer.write_bytes(cost_model_serializer.finalize())?;
-                },
+                }
                 _ => {
                     // For PlutusV2 (language id 1), the language view is the following:
                     //    * the value of costmdls map at key 1 is encoded as an definite length list.
@@ -387,19 +387,10 @@ impl CostModels {
                             serializer.write_negative_integer(*cost)?;
                         }
                     }
-                },
+                }
             }
         }
         Ok(serializer.finalize())
-    }
-}
-
-impl Default for CostModels {
-    fn default() -> Self {
-        CostModels {
-            inner: OrderedHashMap::default(),
-            encodings: None,
-        }
     }
 }
 
@@ -516,7 +507,8 @@ impl TryFrom<u64> for Language {
                 found: language as usize,
                 min: 0,
                 max: 2,
-            }.into())
+            }
+            .into()),
         }
     }
 }
@@ -721,12 +713,11 @@ impl Redeemers {
 
 #[cfg(test)]
 mod tests {
-    use crate::plutus::CostModels;
-    use cml_core::Int;
+    use crate::plutus::{CostModels, Language};
 
     #[test]
     pub fn test_cost_model() {
-        let arr = vec![
+        let v1_costs = vec![
             197209, 0, 1, 1, 396231, 621, 0, 1, 150000, 1000, 0, 1, 150000, 32, 2477736, 29175, 4,
             29773, 100, 29773, 100, 29773, 100, 29773, 100, 29773, 100, 29773, 100, 100, 100,
             29773, 100, 150000, 32, 150000, 32, 150000, 32, 150000, 1000, 0, 1, 150000, 32, 150000,
@@ -739,8 +730,8 @@ mod tests {
             1, 150000, 32, 197209, 0, 1, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000,
             32, 150000, 32, 150000, 32, 3345831, 1, 1,
         ];
-        let mut cms = CostModels::new();
-        cms.plutus_v1 = Some(arr.iter().map(|&i| Int::new_uint(i)).collect());
+        let mut cms = CostModels::default();
+        cms.inner.insert(Language::PlutusV1.into(), v1_costs);
         assert_eq!(
             hex::encode(cms.language_views_encoding().unwrap()),
             "a141005901d59f1a000302590001011a00060bc719026d00011a000249f01903e800011a000249f018201a0025cea81971f70419744d186419744d186419744d186419744d186419744d186419744d18641864186419744d18641a000249f018201a000249f018201a000249f018201a000249f01903e800011a000249f018201a000249f01903e800081a000242201a00067e2318760001011a000249f01903e800081a000249f01a0001b79818f7011a000249f0192710011a0002155e19052e011903e81a000249f01903e8011a000249f018201a000249f018201a000249f0182001011a000249f0011a000249f0041a000194af18f8011a000194af18f8011a0002377c190556011a0002bdea1901f1011a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000242201a00067e23187600010119f04c192bd200011a000249f018201a000242201a00067e2318760001011a000242201a00067e2318760001011a0025cea81971f704001a000141bb041a000249f019138800011a000249f018201a000302590001011a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a00330da70101ff"

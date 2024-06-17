@@ -720,13 +720,12 @@ impl TransactionBuilder {
 
                 match &script_witness.script {
                     PlutusScriptWitness::Ref(ref_script) => {
-                        if self
+                        if !self
                             .witness_builders
                             .witness_set_builder
                             .required_wits
                             .script_refs
-                            .get(ref_script)
-                            .is_none()
+                            .contains(ref_script)
                         {
                             Err(TxBuilderError::RefScriptNotFound(
                                 *ref_script,

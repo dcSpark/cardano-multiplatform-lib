@@ -22,7 +22,7 @@ use cml_crypto::{blake2b256, DatumHash};
 
 pub use utils::{ConstrPlutusData, PlutusMap, PlutusScript};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct CostModels {
     pub inner: OrderedHashMap<u64, Vec<i64>>,
     pub encodings: Option<CostModelsEncoding>,
@@ -39,7 +39,7 @@ impl CostModels {
 
 impl From<OrderedHashMap<u64, Vec<i64>>> for CostModels {
     fn from(inner: OrderedHashMap<u64, Vec<i64>>) -> Self {
-        CostModels::new(inner.clone().into())
+        CostModels::new(inner.clone())
     }
 }
 
@@ -51,17 +51,20 @@ impl From<CostModels> for OrderedHashMap<u64, Vec<i64>> {
 
 impl serde::Serialize for CostModels {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer,
+    where
+        S: serde::Serializer,
     {
         self.inner.serialize(serializer)
     }
 }
 
-impl<'de> serde :: de :: Deserialize < 'de > for CostModels {
+impl<'de> serde::de::Deserialize<'de> for CostModels {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D: serde :: de :: Deserializer < 'de >,
+    where
+        D: serde::de::Deserializer<'de>,
     {
-        let inner = <OrderedHashMap<u64, Vec<i64>> as serde::de::Deserialize>::deserialize(deserializer)?;
+        let inner =
+            <OrderedHashMap<u64, Vec<i64>> as serde::de::Deserialize>::deserialize(deserializer)?;
         Ok(Self::new(inner))
     }
 }

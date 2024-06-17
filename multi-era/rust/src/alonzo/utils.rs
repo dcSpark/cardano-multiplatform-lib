@@ -25,9 +25,9 @@ impl From<AlonzoAuxiliaryData> for AuxiliaryData {
             AlonzoAuxiliaryData::ShelleyMA(md) => AuxiliaryData::new_shelley_m_a(md.clone()),
             AlonzoAuxiliaryData::Alonzo(md) => AuxiliaryData::new_conway({
                 let mut conway = ConwayFormatAuxData::new();
-                conway.metadata = md.metadata.clone();
-                conway.native_scripts = md.native_scripts.clone();
-                conway.plutus_v1_scripts = md.plutus_v1_scripts.clone();
+                conway.metadata.clone_from(&md.metadata);
+                conway.native_scripts.clone_from(&md.native_scripts);
+                conway.plutus_v1_scripts.clone_from(&md.plutus_v1_scripts);
                 conway
             }),
         }

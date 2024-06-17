@@ -74,7 +74,7 @@ impl Serialize for CostModels {
                     serializer.write_negative_integer_sz(
                         *element as i128,
                         fit_sz(
-                            (*element + 1).abs() as u64,
+                            (*element + 1).unsigned_abs(),
                             inner_value_elem_encoding,
                             force_canonical,
                         ),
@@ -139,7 +139,7 @@ impl Deserialize for CostModels {
                 inner_value_elem_encodings,
             );
             if inner_table.insert(inner_key, inner_value).is_some() {
-                return Err(DeserializeFailure::DuplicateKey(Key::Uint(inner_key.into())).into());
+                return Err(DeserializeFailure::DuplicateKey(Key::Uint(inner_key)).into());
             }
             inner_key_encodings.insert(inner_key, inner_key_encoding);
             inner_value_encodings.insert(

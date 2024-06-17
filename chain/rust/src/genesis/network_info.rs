@@ -1,9 +1,10 @@
-use crate::{byron::ProtocolMagic, plutus::{CostModels, Language}};
-use cml_core::{
-    network::{
-        BYRON_MAINNET_NETWORK_MAGIC, BYRON_TESTNET_NETWORK_MAGIC, PREPROD_NETWORK_MAGIC,
-        PREVIEW_NETWORK_MAGIC, SANCHO_TESTNET_NETWORK_MAGIC,
-    },
+use crate::{
+    byron::ProtocolMagic,
+    plutus::{CostModels, Language},
+};
+use cml_core::network::{
+    BYRON_MAINNET_NETWORK_MAGIC, BYRON_TESTNET_NETWORK_MAGIC, PREPROD_NETWORK_MAGIC,
+    PREVIEW_NETWORK_MAGIC, SANCHO_TESTNET_NETWORK_MAGIC,
 };
 
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -81,9 +82,6 @@ pub fn plutus_alonzo_cost_models() -> CostModels {
     ];
 
     let mut res = CostModels::default();
-    res.inner.insert(
-        Language::PlutusV1 as u64,
-        ops
-    );
+    res.inner.insert(Language::PlutusV1 as u64, ops);
     res
 }

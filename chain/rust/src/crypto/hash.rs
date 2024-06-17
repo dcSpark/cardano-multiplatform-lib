@@ -91,9 +91,10 @@ pub fn calc_script_data_hash(
         let mut required_costmdls = CostModels::default();
         for lang in used_langs {
             required_costmdls.inner.insert(
-                *lang as u64, 
+                *lang as u64,
                 cost_models
-                    .inner.get(&(*lang).into())
+                    .inner
+                    .get(&(*lang).into())
                     .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
                     .clone(),
             );

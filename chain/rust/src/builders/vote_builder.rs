@@ -28,9 +28,9 @@ pub enum VoteBuilderError {
 
 #[derive(Clone, Debug, Default)]
 pub struct VoteBuilderResult {
-    votes: VotingProcedures,
-    required_wits: RequiredWitnessSet,
-    aggregate_witnesses: Vec<InputAggregateWitnessData>,
+    pub votes: VotingProcedures,
+    pub required_wits: RequiredWitnessSet,
+    pub aggregate_witnesses: Vec<InputAggregateWitnessData>,
 }
 
 #[derive(Clone, Debug)]

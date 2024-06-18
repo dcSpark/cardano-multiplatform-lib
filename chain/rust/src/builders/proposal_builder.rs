@@ -25,9 +25,9 @@ pub enum ProposalBuilderError {
 
 #[derive(Clone, Debug, Default)]
 pub struct ProposalBuilderResult {
-    proposals: Vec<ProposalProcedure>,
-    required_wits: RequiredWitnessSet,
-    aggregate_witnesses: Vec<InputAggregateWitnessData>,
+    pub proposals: Vec<ProposalProcedure>,
+    pub required_wits: RequiredWitnessSet,
+    pub aggregate_witnesses: Vec<InputAggregateWitnessData>,
 }
 
 #[derive(Clone, Debug)]

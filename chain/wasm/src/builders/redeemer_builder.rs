@@ -1,6 +1,7 @@
 use super::{
     certificate_builder::CertificateBuilderResult, input_builder::InputBuilderResult,
-    mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
+    mint_builder::MintBuilderResult, proposal_builder::ProposalBuilderResult,
+    vote_builder::VoteBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
 };
 use crate::plutus::{ExUnits, LegacyRedeemer, PlutusData, RedeemerTag, Redeemers};
 use cml_core_wasm::impl_wasm_conversions;
@@ -90,6 +91,14 @@ impl RedeemerSetBuilder {
 
     pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
         self.0.add_cert(result.as_ref());
+    }
+
+    pub fn add_proposal(&mut self, result: &ProposalBuilderResult) {
+        self.0.add_proposal(result.as_ref());
+    }
+
+    pub fn add_vote(&mut self, result: &VoteBuilderResult) {
+        self.0.add_vote(result.as_ref());
     }
 
     pub fn build(&self, default_to_dummy_exunits: bool) -> Result<Redeemers, JsError> {

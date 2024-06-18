@@ -18,34 +18,68 @@ use cbor_encodings::{
 
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, Serialize, StringEncoding};
-use cml_core::Int;
 use cml_crypto::{blake2b256, DatumHash};
 
 pub use utils::{ConstrPlutusData, PlutusMap, PlutusScript};
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Default)]
 pub struct CostModels {
-    pub plutus_v1: Option<Vec<Int>>,
-    pub plutus_v2: Option<Vec<Int>>,
-    pub plutus_v3: Option<Vec<Int>>,
-    #[serde(skip)]
+    pub inner: OrderedHashMap<u64, Vec<i64>>,
     pub encodings: Option<CostModelsEncoding>,
 }
 
 impl CostModels {
-    pub fn new() -> Self {
+    pub fn new(inner: OrderedHashMap<u64, Vec<i64>>) -> Self {
         Self {
-            plutus_v1: None,
-            plutus_v2: None,
-            plutus_v3: None,
+            inner,
             encodings: None,
         }
     }
 }
 
-impl Default for CostModels {
-    fn default() -> Self {
-        Self::new()
+impl From<OrderedHashMap<u64, Vec<i64>>> for CostModels {
+    fn from(inner: OrderedHashMap<u64, Vec<i64>>) -> Self {
+        CostModels::new(inner.clone())
+    }
+}
+
+impl From<CostModels> for OrderedHashMap<u64, Vec<i64>> {
+    fn from(wrapper: CostModels) -> Self {
+        wrapper.inner
+    }
+}
+
+impl serde::Serialize for CostModels {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.inner.serialize(serializer)
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for CostModels {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let inner =
+            <OrderedHashMap<u64, Vec<i64>> as serde::de::Deserialize>::deserialize(deserializer)?;
+        Ok(Self::new(inner))
+    }
+}
+
+impl schemars::JsonSchema for CostModels {
+    fn schema_name() -> String {
+        String::from("CostModels")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        OrderedHashMap::<u64, Vec<i64>>::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        OrderedHashMap::<u64, Vec<i64>>::is_referenceable()
     }
 }
 

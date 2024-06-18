@@ -88,37 +88,16 @@ pub fn calc_script_data_hash(
     encoding: Option<&TransactionWitnessSetEncoding>,
 ) -> Result<Option<ScriptDataHash>, ScriptDataHashError> {
     if !redeemers.is_empty() || !datums.is_empty() {
-        let mut required_costmdls = CostModels::new();
+        let mut required_costmdls = CostModels::default();
         for lang in used_langs {
-            match lang {
-                Language::PlutusV1 => {
-                    required_costmdls.plutus_v1 = Some(
-                        cost_models
-                            .plutus_v1
-                            .as_ref()
-                            .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
-                            .clone(),
-                    );
-                }
-                Language::PlutusV2 => {
-                    required_costmdls.plutus_v2 = Some(
-                        cost_models
-                            .plutus_v2
-                            .as_ref()
-                            .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
-                            .clone(),
-                    );
-                }
-                Language::PlutusV3 => {
-                    required_costmdls.plutus_v3 = Some(
-                        cost_models
-                            .plutus_v3
-                            .as_ref()
-                            .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
-                            .clone(),
-                    );
-                }
-            }
+            required_costmdls.inner.insert(
+                *lang as u64,
+                cost_models
+                    .inner
+                    .get(&(*lang).into())
+                    .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
+                    .clone(),
+            );
         }
 
         Ok(Some(hash_script_data(

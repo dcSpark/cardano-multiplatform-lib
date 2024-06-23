@@ -10,7 +10,7 @@ const pathToRepo = path.join(__dirname, '..', crateName, 'wasm');
 const oldPkg = require(`${pathToRepo}/publish/package.json`);
 
 const packageNameRoot = hyphenRepoName.split("-wasm")[0];
-oldPkg.name = '@dcspark/' + packageNameRoot + buildType;
+oldPkg.name = '@anastasia-labs/' + packageNameRoot + buildType;
 if (buildType === '-browser' || buildType === '-asmjs') {
   // due to a bug in wasm-pack, this file is missing from browser builds
   const missingFile = `${underscoreRepoName}_bg.js`;
@@ -29,9 +29,9 @@ if (buildType === '-asmjs') {
 
 oldPkg.repository = {
   type: "git",
-  url: "git+https://github.com/dcSpark/cardano-multiplatform-lib.git"
+  url: "git+https://github.com/Anastasia-Labs/cardano-multiplatform-lib.git"
 };
-oldPkg.author = "dcSpark";
+oldPkg.author = "Anastasia-Labs";
 oldPkg.license = "MIT";
 console.log(oldPkg);
 fs.writeFileSync(`${pathToRepo}/publish/package.json`, JSON.stringify(oldPkg, null, 2));

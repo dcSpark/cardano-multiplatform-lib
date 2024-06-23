@@ -1,6 +1,6 @@
 [package]
 name = "cardano-multiplatform-lib"
-version = "5.3.1"
+version = "5.3.1-2"
 edition = "2018"
 keywords = ["cardano"]
 license = "MIT"
@@ -13,11 +13,11 @@ readme = "../../README.md"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-chain-wasm = { path = "../../chain/wasm", version = "5.3.1" }
-cml-cip25-wasm = { path = "../../cip25/wasm", version = "5.3.1" }
-cml-cip36-wasm = { path = "../../cip36/wasm", version = "5.3.1" }
-cml-crypto-wasm = { path = "../../crypto/wasm", version = "5.3.1" }
-cml-core-wasm = { path = "../../core/wasm", version = "5.3.1" }
+cml-chain-wasm = { path = "../../chain/wasm", version = "5.3.1-2" }
+cml-cip25-wasm = { path = "../../cip25/wasm", version = "5.3.1-2" }
+cml-cip36-wasm = { path = "../../cip36/wasm", version = "5.3.1-2" }
+cml-crypto-wasm = { path = "../../crypto/wasm", version = "5.3.1-2" }
+cml-core-wasm = { path = "../../core/wasm", version = "5.3.1-2" }
 cbor_event = "2.4.0"
 hex = "0.4.0"
 linked-hash-map = "0.5.3"

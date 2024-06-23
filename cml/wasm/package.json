@@ -1,6 +1,6 @@
 {
   "name": "cardano-multiplatform-lib",
-  "version": "5.3.1",
+  "version": "5.3.1-2-1",
   "description": "Cardano Multiplatform SDK for core Cardano blockchain functionality",
   "keywords": [
     "cardano"
@@ -29,11 +29,11 @@
       "pre-push": "npm run rust:test && npm run rust:build-nodejs"
     }
   },
-  "author": "dcSpark",
+  "author": "Anastasia-Labs",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dcSpark/cardano-multiplatform-lib.git"
+    "url": "git+https://github.com/Anastasia-Labs/cardano-multiplatform-lib.git"
   },
   "devDependencies": {
     "husky": "4.2.5",

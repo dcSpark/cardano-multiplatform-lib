@@ -22,7 +22,10 @@ pub fn internal_get_implicit_input(
             .try_fold(0u64, |acc, cert| match cert {
                 Certificate::PoolRetirement(_cert) => acc.checked_add(pool_deposit),
                 Certificate::StakeDeregistration(_cert) => acc.checked_add(key_deposit),
-                Certificate::UnregCert(_cert) => acc.checked_add(key_deposit),
+                Certificate::UnregCert(cert) => acc.checked_add(cert.coin),
+                Certificate::UnregDrepCert(cert) => acc.checked_add(cert.coin),
+                // TODO: is this the case?
+                Certificate::ResignCommitteeColdCert(_cert) => acc.checked_add(key_deposit),
                 _ => Some(acc),
             })
             .ok_or(ArithmeticError::IntegerOverflow)?,
@@ -46,8 +49,11 @@ pub fn internal_get_deposit(
             .try_fold(0u64, |acc, cert| match cert {
                 Certificate::PoolRegistration(_cert) => acc.checked_add(pool_deposit),
                 Certificate::StakeRegistration(_cert) => acc.checked_add(key_deposit),
-                Certificate::RegCert(_cert) => acc.checked_add(key_deposit),
-                Certificate::StakeRegDelegCert(_cert) => acc.checked_add(key_deposit),
+                Certificate::RegCert(cert) => acc.checked_add(cert.coin),
+                Certificate::StakeRegDelegCert(cert) => acc.checked_add(cert.coin),
+                Certificate::RegDrepCert(cert) => acc.checked_add(cert.coin),
+                Certificate::VoteRegDelegCert(cert) => acc.checked_add(cert.coin),
+                Certificate::StakeVoteRegDelegCert(cert) => acc.checked_add(cert.coin),
                 _ => Some(acc),
             })
             .ok_or(ArithmeticError::IntegerOverflow)?,

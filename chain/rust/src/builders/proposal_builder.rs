@@ -13,12 +13,10 @@ use super::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProposalBuilderError {
-    #[error("Voter is script. Call with_plutus_vote() instead.")]
+    #[error("Proposal uses script. Call with_plutus_proposal() instead.")]
     ProposalIsScript,
-    #[error("Voter is key hash. Call with_vote() instead.")]
+    #[error("Proposal uses key hash. Call with_proposal() instead.")]
     ProposalIsKeyHash,
-    #[error("Vote already exists")]
-    VoteAlreayExists,
     #[error("Missing the following witnesses for the input: {0:?}")]
     MissingWitnesses(Box<RequiredWitnessSet>),
 }
@@ -48,7 +46,7 @@ impl ProposalBuilder {
         }
     }
 
-    pub fn with_vote(mut self, proposal: ProposalProcedure) -> Result<Self, ProposalBuilderError> {
+    pub fn with_proposal(mut self, proposal: ProposalProcedure) -> Result<Self, ProposalBuilderError> {
         if proposal.gov_action.script_hash().is_some() {
             return Err(ProposalBuilderError::ProposalIsScript);
         }
@@ -58,7 +56,7 @@ impl ProposalBuilder {
         Ok(self)
     }
 
-    pub fn with_native_script_vote(
+    pub fn with_native_script_proposal(
         mut self,
         proposal: ProposalProcedure,
         native_script: NativeScript,
@@ -89,26 +87,26 @@ impl ProposalBuilder {
         Ok(self)
     }
 
-    pub fn with_plutus_vote(
+    pub fn with_plutus_proposal(
         self,
         proposal: ProposalProcedure,
         partial_witness: PartialPlutusWitness,
         required_signers: RequiredSigners,
         datum: PlutusData,
     ) -> Result<Self, ProposalBuilderError> {
-        self.with_plutus_vote_impl(proposal, partial_witness, required_signers, Some(datum))
+        self.with_plutus_proposal_impl(proposal, partial_witness, required_signers, Some(datum))
     }
 
-    pub fn with_plutus_vote_inline_datum(
+    pub fn with_plutus_proposal_inline_datum(
         self,
         proposal: ProposalProcedure,
         partial_witness: PartialPlutusWitness,
         required_signers: RequiredSigners,
     ) -> Result<Self, ProposalBuilderError> {
-        self.with_plutus_vote_impl(proposal, partial_witness, required_signers, None)
+        self.with_plutus_proposal_impl(proposal, partial_witness, required_signers, None)
     }
 
-    fn with_plutus_vote_impl(
+    fn with_plutus_proposal_impl(
         mut self,
         proposal: ProposalProcedure,
         partial_witness: PartialPlutusWitness,

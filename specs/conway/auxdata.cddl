@@ -12,7 +12,7 @@
 metadata = _CDDL_CODEGEN_EXTERN_TYPE_
 
 shelley_format_aux_data = metadata
-shelley_ma_format_aux_data = [ transaction_metadata: metadata ; Shelley-ma
+shelley_MA_format_aux_data = [ transaction_metadata: metadata ; Shelley-ma
     , auxiliary_scripts: [ * native_script ]
     ]
 
@@ -26,5 +26,5 @@ conway_format_aux_data = #6.259({
 
 auxiliary_data =
   shelley_format_aux_data ; @name shelley
-  / shelley_ma_format_aux_data ; @name shelley_m_a
+  / shelley_MA_format_aux_data ; @name shelley_MA
   / conway_format_aux_data ; @name conway

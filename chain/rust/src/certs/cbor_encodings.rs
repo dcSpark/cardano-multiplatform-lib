@@ -10,7 +10,7 @@ pub struct AuthCommitteeHotCertEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct DnsNameEncoding {
+pub struct DNSNameEncoding {
     pub inner_encoding: StringEncoding,
 }
 
@@ -64,14 +64,14 @@ pub struct PoolRetirementEncoding {
 pub struct RegCertEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
-    pub coin_encoding: Option<cbor_event::Sz>,
+    pub deposit_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct RegDrepCertEncoding {
     pub len_encoding: LenEncoding,
     pub index_0_encoding: Option<cbor_event::Sz>,
-    pub coin_encoding: Option<cbor_event::Sz>,
+    pub deposit_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -112,7 +112,7 @@ pub struct StakeRegDelegCertEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
     pub pool_encoding: StringEncoding,
-    pub coin_encoding: Option<cbor_event::Sz>,
+    pub deposit_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -133,21 +133,21 @@ pub struct StakeVoteRegDelegCertEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
     pub pool_encoding: StringEncoding,
-    pub coin_encoding: Option<cbor_event::Sz>,
+    pub deposit_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct UnregCertEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
-    pub coin_encoding: Option<cbor_event::Sz>,
+    pub deposit_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct UnregDrepCertEncoding {
     pub len_encoding: LenEncoding,
     pub index_0_encoding: Option<cbor_event::Sz>,
-    pub coin_encoding: Option<cbor_event::Sz>,
+    pub deposit_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -171,5 +171,5 @@ pub struct VoteDelegCertEncoding {
 pub struct VoteRegDelegCertEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
-    pub coin_encoding: Option<cbor_event::Sz>,
+    pub deposit_encoding: Option<cbor_event::Sz>,
 }

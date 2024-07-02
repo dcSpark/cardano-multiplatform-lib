@@ -78,14 +78,14 @@ impl_wasm_conversions!(cml_chain::governance::GovAction, GovAction);
 #[wasm_bindgen]
 impl GovAction {
     pub fn new_parameter_change_action(
-        gov_action_id: Option<GovActionId>,
-        protocol_param_update: &ProtocolParamUpdate,
+        action_id: Option<GovActionId>,
+        update: &ProtocolParamUpdate,
         policy_hash: Option<ScriptHash>,
     ) -> Self {
         Self(
             cml_chain::governance::GovAction::new_parameter_change_action(
-                gov_action_id.map(Into::into),
-                protocol_param_update.clone().into(),
+                action_id.map(Into::into),
+                update.clone().into(),
                 policy_hash.map(Into::into),
             ),
         )
@@ -348,26 +348,26 @@ impl_wasm_conversions!(
 
 #[wasm_bindgen]
 impl ParameterChangeAction {
-    pub fn gov_action_id(&self) -> Option<GovActionId> {
-        self.0.gov_action_id.clone().map(std::convert::Into::into)
+    pub fn action_id(&self) -> Option<GovActionId> {
+        self.0.action_id.clone().map(std::convert::Into::into)
     }
 
-    pub fn protocol_param_update(&self) -> ProtocolParamUpdate {
-        self.0.protocol_param_update.clone().into()
+    pub fn update(&self) -> ProtocolParamUpdate {
+        self.0.update.clone().into()
     }
 
     pub fn policy_hash(&self) -> Option<ScriptHash> {
-        self.0.policy_hash.map(std::convert::Into::into)
+        self.0.policy_hash.clone().map(std::convert::Into::into)
     }
 
     pub fn new(
-        gov_action_id: Option<GovActionId>,
-        protocol_param_update: &ProtocolParamUpdate,
+        action_id: Option<GovActionId>,
+        update: &ProtocolParamUpdate,
         policy_hash: Option<ScriptHash>,
     ) -> Self {
         Self(cml_chain::governance::ParameterChangeAction::new(
-            gov_action_id.map(Into::into),
-            protocol_param_update.clone().into(),
+            action_id.map(Into::into),
+            update.clone().into(),
             policy_hash.map(Into::into),
         ))
     }

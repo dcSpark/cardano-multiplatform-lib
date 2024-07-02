@@ -49,16 +49,16 @@ shelley_pool_params = ( operator:       ed25519_key_hash
               , pool_metadata:  pool_metadata / null
               )
 
-shelley_dns_name = tstr .size (0..64)
+shelley_DNS_name = tstr .size (0..64)
 
 shelley_single_host_name = (
   tag: 1,
   port / null,
-  shelley_dns_name, ; An A or AAAA DNS record @name dns_name
+  shelley_DNS_name, ; @doc An A or AAAA DNS record @name dns_name
 )
 shelley_multi_host_name = (
   tag: 2,
-  shelley_dns_name, ; A SRV DNS record @name dns_name
+  shelley_DNS_name, ; @doc A SRV DNS record @name dns_name
 )
 
 shelley_relay = [

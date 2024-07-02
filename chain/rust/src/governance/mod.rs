@@ -76,15 +76,11 @@ pub enum GovAction {
 
 impl GovAction {
     pub fn new_parameter_change_action(
-        gov_action_id: Option<GovActionId>,
-        protocol_param_update: ProtocolParamUpdate,
+        action_id: Option<GovActionId>,
+        update: ProtocolParamUpdate,
         policy_hash: Option<ScriptHash>,
     ) -> Self {
-        Self::ParameterChangeAction(ParameterChangeAction::new(
-            gov_action_id,
-            protocol_param_update,
-            policy_hash,
-        ))
+        Self::ParameterChangeAction(ParameterChangeAction::new(action_id, update, policy_hash))
     }
 
     pub fn new_hard_fork_initiation_action(
@@ -215,8 +211,8 @@ impl NoConfidence {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ParameterChangeAction {
-    pub gov_action_id: Option<GovActionId>,
-    pub protocol_param_update: ProtocolParamUpdate,
+    pub action_id: Option<GovActionId>,
+    pub update: ProtocolParamUpdate,
     pub policy_hash: Option<ScriptHash>,
     #[serde(skip)]
     pub encodings: Option<ParameterChangeActionEncoding>,
@@ -224,13 +220,13 @@ pub struct ParameterChangeAction {
 
 impl ParameterChangeAction {
     pub fn new(
-        gov_action_id: Option<GovActionId>,
-        protocol_param_update: ProtocolParamUpdate,
+        action_id: Option<GovActionId>,
+        update: ProtocolParamUpdate,
         policy_hash: Option<ScriptHash>,
     ) -> Self {
         Self {
-            gov_action_id,
-            protocol_param_update,
+            action_id,
+            update,
             policy_hash,
             encodings: None,
         }

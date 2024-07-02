@@ -26,8 +26,8 @@ gov_action = [
 
 parameter_change_action = (
   tag: 0,
-  gov_action_id / null,
-  protocol_param_update,
+  action_id: gov_action_id / null,
+  update: protocol_param_update,
   policy_hash: script_hash / null,
 )
 

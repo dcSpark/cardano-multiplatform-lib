@@ -869,12 +869,11 @@ impl SerializeEmbeddedGroup for ParameterChangeAction {
                 force_canonical,
             ),
         )?;
-        match &self.gov_action_id {
+        match &self.action_id {
             Some(x) => x.serialize(serializer, force_canonical),
             None => serializer.write_special(cbor_event::Special::Null),
         }?;
-        self.protocol_param_update
-            .serialize(serializer, force_canonical)?;
+        self.update.serialize(serializer, force_canonical)?;
         match &self.policy_hash {
             Some(x) => serializer.write_bytes_sz(
                 x.to_raw_bytes(),
@@ -932,7 +931,7 @@ impl DeserializeEmbeddedGroup for ParameterChangeAction {
                 Ok(Some(tag_encoding))
             })()
             .map_err(|e| e.annotate("tag"))?;
-            let gov_action_id = (|| -> Result<_, DeserializeError> {
+            let action_id = (|| -> Result<_, DeserializeError> {
                 Ok(match raw.cbor_type()? != cbor_event::Type::Special {
                     true => Some(GovActionId::deserialize(raw)?),
                     false => {
@@ -943,9 +942,9 @@ impl DeserializeEmbeddedGroup for ParameterChangeAction {
                     }
                 })
             })()
-            .map_err(|e| e.annotate("gov_action_id"))?;
-            let protocol_param_update = ProtocolParamUpdate::deserialize(raw)
-                .map_err(|e: DeserializeError| e.annotate("protocol_param_update"))?;
+            .map_err(|e| e.annotate("action_id"))?;
+            let update = ProtocolParamUpdate::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("update"))?;
             let (policy_hash, policy_hash_encoding) = (|| -> Result<_, DeserializeError> {
                 Ok(match raw.cbor_type()? != cbor_event::Type::Special {
                     true => Result::<_, DeserializeError>::Ok(
@@ -970,8 +969,8 @@ impl DeserializeEmbeddedGroup for ParameterChangeAction {
             })()
             .map_err(|e| e.annotate("policy_hash"))?;
             Ok(ParameterChangeAction {
-                gov_action_id,
-                protocol_param_update,
+                action_id,
+                update,
                 policy_hash,
                 encodings: Some(ParameterChangeActionEncoding {
                     len_encoding,

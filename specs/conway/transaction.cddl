@@ -149,18 +149,16 @@ transaction_witness_set = {
   ? 7: nonempty_set<plutus_v3_script>,  ; @name plutus_v3_scripts
 }
 
-native_script =
-  [ script_pubkey
-  // script_all
-  // script_any
-  // script_n_of_k
-  // script_invalid_before
-     ; Timelock validity intervals are half-open intervals [a, b).
-     ; This field specifies the left (included) endpoint a.
-  // script_invalid_hereafter
-     ; Timelock validity intervals are half-open intervals [a, b).
-     ; This field specifies the right (excluded) endpoint b.
-  ]
+native_script = [
+  script_pubkey //
+  script_all //
+  script_any //
+  script_n_of_k //
+  ; @doc Timelock validity intervals are half-open intervals [a, b). This field specifies the left (included) endpoint a.
+  script_invalid_before //
+  ; @doc Timelock validity intervals are half-open intervals [a, b). This field specifies the right (excluded) endpoint b.
+  script_invalid_hereafter
+]
 
 script_pubkey = (tag: 0, ed25519_key_hash)
 script_all = (tag: 1, [ * native_script ])

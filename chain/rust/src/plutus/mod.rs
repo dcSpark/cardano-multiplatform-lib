@@ -244,10 +244,6 @@ pub struct PlutusV1Script {
 }
 
 impl PlutusV1Script {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
     pub fn new(inner: Vec<u8>) -> Self {
         Self {
             inner,
@@ -317,10 +313,6 @@ pub struct PlutusV2Script {
 }
 
 impl PlutusV2Script {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
     pub fn new(inner: Vec<u8>) -> Self {
         Self {
             inner,
@@ -390,10 +382,6 @@ pub struct PlutusV3Script {
 }
 
 impl PlutusV3Script {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
     pub fn new(inner: Vec<u8>) -> Self {
         Self {
             inner,

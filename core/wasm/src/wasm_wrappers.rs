@@ -550,3 +550,46 @@ macro_rules! impl_wasm_json_api {
         }
     };
 }
+
+#[macro_export]
+macro_rules! impl_raw_bytes_api {
+    ($rust:ty, $wasm:ident) => {
+        #[wasm_bindgen]
+        impl $wasm {
+            /**
+             * Direct raw bytes without any CBOR structure
+             */
+            pub fn to_raw_bytes(&self) -> Vec<u8> {
+                use cml_core_wasm::RawBytesEncoding;
+                self.0.to_raw_bytes().to_vec()
+            }
+
+            /**
+             * Parse from the direct raw bytes, without any CBOR structure
+             */
+            pub fn from_raw_bytes(bytes: &[u8]) -> Result<$wasm, wasm_bindgen::JsError> {
+                use cml_core_wasm::RawBytesEncoding;
+                <$rust>::from_raw_bytes(bytes).map(Self).map_err(Into::into)
+            }
+
+            /**
+             * Direct raw bytes without any CBOR structure, as a hex-encoded string
+             */
+            pub fn to_hex(&self) -> String {
+                use cml_core_wasm::RawBytesEncoding;
+                self.0.to_raw_hex()
+            }
+
+            /**
+             * Parse from a hex string of the direct raw bytes, without any CBOR structure
+             */
+            pub fn from_hex(input: &str) -> Result<$wasm, wasm_bindgen::JsError> {
+                use cml_core_wasm::RawBytesEncoding;
+                <$rust>::from_raw_hex(input)
+                    .map(Into::into)
+                    .map(Self)
+                    .map_err(Into::into)
+            }
+        }
+    };
+}

@@ -51,7 +51,17 @@ impl<'a> TryInto<&'a str> for &'a AssetName {
     type Error = std::str::Utf8Error;
 
     fn try_into(self) -> Result<&'a str, Self::Error> {
-        std::str::from_utf8(self.get())
+        std::str::from_utf8(self.to_raw_bytes())
+    }
+}
+
+impl RawBytesEncoding for AssetName {
+    fn to_raw_bytes(&self) -> &[u8] {
+        self.inner.as_ref()
+    }
+
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
+        Self::new(bytes.to_vec())
     }
 }
 
@@ -71,7 +81,7 @@ impl<T: std::fmt::Debug> std::fmt::Debug for AssetBundle<T> {
         for (pid, assets) in self.0.iter() {
             let pid_hex = hex::encode(pid.to_raw_bytes());
             for (an, val) in assets.iter() {
-                let an_hex = hex::encode(an.get());
+                let an_hex = hex::encode(an.to_raw_bytes());
                 let an_name = if an_hex.len() > 8 {
                     format!(
                         "{}..{}",

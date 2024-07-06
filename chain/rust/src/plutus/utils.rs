@@ -452,19 +452,49 @@ impl From<PlutusV3Script> for PlutusScript {
 
 impl PlutusV1Script {
     pub fn hash(&self) -> ScriptHash {
-        hash_script(ScriptHashNamespace::PlutusV1, self.get())
+        hash_script(ScriptHashNamespace::PlutusV1, self.to_raw_bytes())
     }
 }
 
 impl PlutusV2Script {
     pub fn hash(&self) -> ScriptHash {
-        hash_script(ScriptHashNamespace::PlutusV2, self.get())
+        hash_script(ScriptHashNamespace::PlutusV2, self.to_raw_bytes())
     }
 }
 
 impl PlutusV3Script {
     pub fn hash(&self) -> ScriptHash {
-        hash_script(ScriptHashNamespace::PlutusV3, self.get())
+        hash_script(ScriptHashNamespace::PlutusV3, self.to_raw_bytes())
+    }
+}
+
+impl RawBytesEncoding for PlutusV1Script {
+    fn to_raw_bytes(&self) -> &[u8] {
+        self.inner.as_ref()
+    }
+
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
+        Ok(Self::new(bytes.to_vec()))
+    }
+}
+
+impl RawBytesEncoding for PlutusV2Script {
+    fn to_raw_bytes(&self) -> &[u8] {
+        self.inner.as_ref()
+    }
+
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
+        Ok(Self::new(bytes.to_vec()))
+    }
+}
+
+impl RawBytesEncoding for PlutusV3Script {
+    fn to_raw_bytes(&self) -> &[u8] {
+        self.inner.as_ref()
+    }
+
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
+        Ok(Self::new(bytes.to_vec()))
     }
 }
 

@@ -12,6 +12,7 @@ use cml_core::error::*;
 
 use std::convert::TryFrom;
 
+/// Use TryFrom<&str> / TryInto<&str> for utf8 text conversion and RawBytesEncoding for direct bytes access
 #[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct AssetName {
@@ -26,10 +27,6 @@ pub struct AssetName {
 }
 
 impl AssetName {
-    pub fn get(&self) -> &Vec<u8> {
-        &self.inner
-    }
-
     pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
         if inner.len() > 32 {
             return Err(DeserializeError::new(

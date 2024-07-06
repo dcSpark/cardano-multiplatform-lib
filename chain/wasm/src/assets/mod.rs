@@ -18,10 +18,3 @@ pub struct AssetName(cml_chain::assets::AssetName);
 impl_wasm_cbor_json_api!(AssetName);
 
 impl_wasm_conversions!(cml_chain::assets::AssetName, AssetName);
-
-#[wasm_bindgen]
-impl AssetName {
-    pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
-    }
-}

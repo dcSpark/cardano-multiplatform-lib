@@ -2,6 +2,9 @@ use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
 use cml_core::serialization::{Deserialize, Serialize};
 
+// re-export to make macros easier to use
+pub use cml_core::serialization::RawBytesEncoding;
+
 #[macro_use]
 pub mod wasm_wrappers;
 

@@ -15,7 +15,7 @@ impl From<AllegraAuxiliaryData> for AuxiliaryData {
     fn from(aux: AllegraAuxiliaryData) -> Self {
         match aux {
             AllegraAuxiliaryData::Shelley(md) => AuxiliaryData::new_shelley(md),
-            AllegraAuxiliaryData::ShelleyMA(md) => AuxiliaryData::new_shelley_m_a(md),
+            AllegraAuxiliaryData::ShelleyMA(md) => AuxiliaryData::new_shelley_ma(md),
         }
     }
 }

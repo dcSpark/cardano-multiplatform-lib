@@ -15,7 +15,7 @@ use cbor_encodings::{
 };
 use cml_chain::address::Address;
 use cml_chain::assets::{Coin, Value};
-use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMaFormatAuxData};
+use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain::block::Header;
 use cml_chain::crypto::{
     AuxiliaryDataHash, BootstrapWitness, GenesisHash, ScriptDataHash, Vkeywitness,
@@ -37,7 +37,7 @@ use self::utils::BabbageMint;
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum BabbageAuxiliaryData {
     Shelley(ShelleyFormatAuxData),
-    ShelleyMA(ShelleyMaFormatAuxData),
+    ShelleyMA(ShelleyMAFormatAuxData),
     Babbage(BabbageFormatAuxData),
 }
 
@@ -46,8 +46,8 @@ impl BabbageAuxiliaryData {
         Self::Shelley(shelley)
     }
 
-    pub fn new_shelley_m_a(shelley_m_a: ShelleyMaFormatAuxData) -> Self {
-        Self::ShelleyMA(shelley_m_a)
+    pub fn new_shelley_ma(shelley_ma: ShelleyMAFormatAuxData) -> Self {
+        Self::ShelleyMA(shelley_ma)
     }
 
     pub fn new_babbage(babbage: BabbageFormatAuxData) -> Self {

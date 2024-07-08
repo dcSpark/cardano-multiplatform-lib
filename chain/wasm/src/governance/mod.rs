@@ -357,7 +357,7 @@ impl ParameterChangeAction {
     }
 
     pub fn policy_hash(&self) -> Option<ScriptHash> {
-        self.0.policy_hash.clone().map(std::convert::Into::into)
+        self.0.policy_hash.map(std::convert::Into::into)
     }
 
     pub fn new(

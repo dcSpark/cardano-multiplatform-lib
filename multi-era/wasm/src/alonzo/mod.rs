@@ -7,7 +7,7 @@ use crate::{
     AlonzoTransactionWitnessSetList, GenesisHashList, MapTransactionIndexToAlonzoAuxiliaryData,
 };
 use cml_chain_wasm::assets::{Coin, Mint};
-use cml_chain_wasm::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMaFormatAuxData};
+use cml_chain_wasm::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain_wasm::crypto::Nonce;
 use cml_chain_wasm::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData};
 use cml_chain_wasm::RequiredSigners;
@@ -42,9 +42,9 @@ impl AlonzoAuxiliaryData {
         ))
     }
 
-    pub fn new_shelley_m_a(shelley_m_a: &ShelleyMaFormatAuxData) -> Self {
-        Self(cml_multi_era::alonzo::AlonzoAuxiliaryData::new_shelley_m_a(
-            shelley_m_a.clone().into(),
+    pub fn new_shelley_ma(shelley_ma: &ShelleyMAFormatAuxData) -> Self {
+        Self(cml_multi_era::alonzo::AlonzoAuxiliaryData::new_shelley_ma(
+            shelley_ma.clone().into(),
         ))
     }
 
@@ -77,10 +77,10 @@ impl AlonzoAuxiliaryData {
         }
     }
 
-    pub fn as_shelley_m_a(&self) -> Option<ShelleyMaFormatAuxData> {
+    pub fn as_shelley_ma(&self) -> Option<ShelleyMAFormatAuxData> {
         match &self.0 {
-            cml_multi_era::alonzo::AlonzoAuxiliaryData::ShelleyMA(shelley_m_a) => {
-                Some(shelley_m_a.clone().into())
+            cml_multi_era::alonzo::AlonzoAuxiliaryData::ShelleyMA(shelley_ma) => {
+                Some(shelley_ma.clone().into())
             }
             _ => None,
         }

@@ -190,7 +190,7 @@ pub fn add_cert_vkeys(
             StakeCredential::PubKey { hash, .. } => {
                 vkeys.insert(*hash);
             }
-        }
+        },
         Certificate::UnregDrepCert(cert) => match &cert.drep_credential {
             StakeCredential::Script { hash, .. } => {
                 return Err(CertBuilderError::ExpectedKeyHash(*hash))

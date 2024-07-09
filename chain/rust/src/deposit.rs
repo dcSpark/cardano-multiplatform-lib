@@ -1,6 +1,9 @@
 use cml_core::ArithmeticError;
 
-use crate::{certs::Certificate, transaction::TransactionBody, Coin, Value, Withdrawals};
+use crate::{
+    certs::Certificate, governance::ProposalProcedure, transaction::TransactionBody, Coin, Value,
+    Withdrawals,
+};
 
 pub fn internal_get_implicit_input(
     withdrawals: Option<&Withdrawals>,
@@ -39,6 +42,7 @@ pub fn internal_get_implicit_input(
 
 pub fn internal_get_deposit(
     certs: Option<&[Certificate]>,
+    proposals: Option<&[ProposalProcedure]>,
     pool_deposit: Coin, // // protocol parameter
     key_deposit: Coin,  // protocol parameter
 ) -> Result<Coin, ArithmeticError> {
@@ -58,7 +62,16 @@ pub fn internal_get_deposit(
             })
             .ok_or(ArithmeticError::IntegerOverflow)?,
     };
-    Ok(certificate_refund)
+    let proposal_refund = match proposals {
+        None => 0,
+        Some(proposals) => proposals
+            .iter()
+            .try_fold(0u64, |acc, proposal| acc.checked_add(proposal.deposit))
+            .ok_or(ArithmeticError::IntegerOverflow)?,
+    };
+    certificate_refund
+        .checked_add(proposal_refund)
+        .ok_or(ArithmeticError::IntegerOverflow)
 }
 
 pub fn get_implicit_input(
@@ -81,6 +94,10 @@ pub fn get_deposit(
 ) -> Result<Coin, ArithmeticError> {
     internal_get_deposit(
         txbody.certs.as_ref().map(|certs| certs.as_ref()),
+        txbody
+            .proposal_procedures
+            .as_ref()
+            .map(|proposals| proposals.as_ref()),
         pool_deposit,
         key_deposit,
     )

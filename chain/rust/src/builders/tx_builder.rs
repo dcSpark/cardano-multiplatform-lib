@@ -1185,6 +1185,7 @@ impl TransactionBuilder {
     pub fn get_deposit(&self) -> Result<Coin, TxBuilderError> {
         internal_get_deposit(
             self.certs.as_deref(),
+            self.proposals.as_deref(),
             self.config.pool_deposit,
             self.config.key_deposit,
         )

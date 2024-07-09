@@ -148,14 +148,14 @@ impl RedeemerSetBuilder {
                 )));
             }
             RedeemerTag::Proposing => {
-                let entry = self.proposals.iter_mut().nth(key.index as usize).unwrap();
+                let entry = self.proposals.get_mut(key.index as usize).unwrap();
                 *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
                     entry.as_ref().unwrap().data().clone(),
                     ex_units,
                 )));
             }
             RedeemerTag::Voting => {
-                let entry = self.votes.iter_mut().nth(key.index as usize).unwrap();
+                let entry = self.votes.get_mut(key.index as usize).unwrap();
                 *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
                     entry.as_ref().unwrap().data().clone(),
                     ex_units,

@@ -46,7 +46,10 @@ impl ProposalBuilder {
         }
     }
 
-    pub fn with_proposal(mut self, proposal: ProposalProcedure) -> Result<Self, ProposalBuilderError> {
+    pub fn with_proposal(
+        mut self,
+        proposal: ProposalProcedure,
+    ) -> Result<Self, ProposalBuilderError> {
         if proposal.gov_action.script_hash().is_some() {
             return Err(ProposalBuilderError::ProposalIsScript);
         }

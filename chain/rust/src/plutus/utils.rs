@@ -7,12 +7,12 @@ use crate::json::plutus_datums::{
 };
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
+use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::*;
-use cml_core::{error::*, Int};
 use cml_crypto::ScriptHash;
 use itertools::Itertools;
-use std::collections::BTreeMap;
+use std::convert::{TryFrom, TryInto};
 use std::io::{BufRead, Seek, Write};
 
 impl serde::Serialize for PlutusData {
@@ -326,17 +326,6 @@ impl Deserialize for ConstrPlutusData {
 }
 
 impl CostModels {
-    pub fn as_map(&self) -> BTreeMap<Language, &[Int]> {
-        let mut map = BTreeMap::new();
-        if let Some(v1_costs) = &self.plutus_v1 {
-            map.insert(Language::PlutusV1, &v1_costs[..]);
-        }
-        if let Some(v2_costs) = &self.plutus_v2 {
-            map.insert(Language::PlutusV1, &v2_costs[..]);
-        }
-        map
-    }
-
     pub(crate) fn language_views_encoding(&self) -> Result<Vec<u8>, cbor_event::Error> {
         // ; language views CDDL:
         // ; { * language => script_integrity_data }
@@ -354,49 +343,66 @@ impl CostModels {
         let mut serializer = Serializer::new_vec();
         // as canonical encodings are used, we odn't need to check the keys' bytes encodings
         // and can order this statically.
-        serializer.write_map(cbor_event::Len::Len(
-            if self.plutus_v1.is_some() { 1 } else { 0 }
-                + if self.plutus_v2.is_some() { 1 } else { 0 },
-        ))?;
-        if let Some(v1_costs) = &self.plutus_v1 {
-            // For PlutusV1 (language id 0), the language view is the following:
-            //   * the value of costmdls map at key 0 is encoded as an indefinite length
-            //     list and the result is encoded as a bytestring. (our apologies)
-            //   * the language ID tag is also encoded twice. first as a uint then as
-            //     a bytestring. (our apologies)
-            let v1_key_canonical_bytes = [0];
-            serializer.write_bytes(v1_key_canonical_bytes)?;
-            // Due to a bug in the cardano-node input-output-hk/cardano-ledger-specs/issues/2512
-            // we must use indefinite length serialization in this inner bytestring to match it
-            let mut cost_model_serializer = Serializer::new_vec();
-            cost_model_serializer.write_array(cbor_event::Len::Indefinite)?;
-            for cost in v1_costs {
-                cost.serialize(&mut cost_model_serializer, true)?;
-            }
-            cost_model_serializer.write_special(cbor_event::Special::Break)?;
-            serializer.write_bytes(cost_model_serializer.finalize())?;
-        }
-        if let Some(v2_costs) = &self.plutus_v2 {
-            // For PlutusV2 (language id 1), the language view is the following:
-            //    * the value of costmdls map at key 1 is encoded as an definite length list.
-            let v2_key = 1;
-            serializer.write_unsigned_integer(v2_key)?;
-            serializer.write_array(cbor_event::Len::Len(v2_costs.len() as u64))?;
-            for cost in v2_costs {
-                cost.serialize(&mut serializer, true)?;
-            }
-        }
-        if let Some(v3_costs) = &self.plutus_v3 {
-            // For PlutusV3 (language id 2), the language view is the following:
-            //   * the value of costmdls map at key 2 is encoded as a definite length list.
-            let v3_key = 2;
-            serializer.write_unsigned_integer(v3_key)?;
-            serializer.write_array(cbor_event::Len::Len(v3_costs.len() as u64))?;
-            for cost in v3_costs {
-                cost.serialize(&mut serializer, true)?;
+        // Due to PlutusV1 bug we can't re-use the generated serialization code
+        // as it requires it to be encoded as CBOR bytes in CBOR
+        serializer.write_map(cbor_event::Len::Len(self.inner.len() as u64))?;
+        for (language, costs) in self.inner.iter() {
+            match (*language).try_into() {
+                Ok(Language::PlutusV1) => {
+                    // For PlutusV1 (language id 0), the language view is the following:
+                    //   * the value of costmdls map at key 0 is encoded as an indefinite length
+                    //     list and the result is encoded as a bytestring. (our apologies)
+                    //   * the language ID tag is also encoded twice. first as a uint then as
+                    //     a bytestring. (our apologies)
+                    let v1_key_canonical_bytes = [0];
+                    serializer.write_bytes(v1_key_canonical_bytes)?;
+                    // Due to a bug in the cardano-node input-output-hk/cardano-ledger-specs/issues/2512
+                    // we must use indefinite length serialization in this inner bytestring to match it
+                    let mut cost_model_serializer = Serializer::new_vec();
+                    cost_model_serializer.write_array(cbor_event::Len::Indefinite)?;
+                    for cost in costs {
+                        if *cost >= 0 {
+                            cost_model_serializer.write_unsigned_integer(cost.unsigned_abs())?;
+                        } else {
+                            cost_model_serializer.write_negative_integer(*cost)?;
+                        }
+                    }
+                    cost_model_serializer.write_special(cbor_event::Special::Break)?;
+                    serializer.write_bytes(cost_model_serializer.finalize())?;
+                }
+                _ => {
+                    // For PlutusV2 (language id 1), the language view is the following:
+                    //    * the value of costmdls map at key 1 is encoded as an definite length list.
+                    // For PlutusV3 (language id 2), the language view is the following:
+                    //   * the value of costmdls map at key 2 is encoded as a definite length list.
+                    //
+                    // We will assume all other languages also follow this and that the non-canonical
+                    // encoding is just a bug pertaining to Plutus V1
+                    serializer.write_unsigned_integer(*language)?;
+                    serializer.write_array(cbor_event::Len::Len(costs.len() as u64))?;
+                    for cost in costs {
+                        if *cost >= 0 {
+                            serializer.write_unsigned_integer(cost.unsigned_abs())?;
+                        } else {
+                            serializer.write_negative_integer(*cost)?;
+                        }
+                    }
+                }
             }
         }
         Ok(serializer.finalize())
+    }
+}
+
+impl AsRef<OrderedHashMap<u64, Vec<i64>>> for CostModels {
+    fn as_ref(&self) -> &OrderedHashMap<u64, Vec<i64>> {
+        &self.inner
+    }
+}
+
+impl AsMut<OrderedHashMap<u64, Vec<i64>>> for CostModels {
+    fn as_mut(&mut self) -> &mut OrderedHashMap<u64, Vec<i64>> {
+        &mut self.inner
     }
 }
 
@@ -487,6 +493,34 @@ pub fn compute_total_ex_units(redeemers: &[LegacyRedeemer]) -> Result<ExUnits, A
         sum = sum.checked_add(&redeemer.ex_units)?;
     }
     Ok(sum)
+}
+
+impl TryFrom<u64> for Language {
+    type Error = DeserializeError;
+
+    fn try_from(language: u64) -> Result<Self, Self::Error> {
+        match language {
+            0 => Ok(Language::PlutusV1),
+            1 => Ok(Language::PlutusV2),
+            2 => Ok(Language::PlutusV3),
+            _ => Err(DeserializeFailure::OutOfRange {
+                found: language as usize,
+                min: 0,
+                max: 2,
+            }
+            .into()),
+        }
+    }
+}
+
+impl From<Language> for u64 {
+    fn from(language: Language) -> u64 {
+        match language {
+            Language::PlutusV1 => 0,
+            Language::PlutusV2 => 1,
+            Language::PlutusV3 => 2,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, derivative::Derivative)]
@@ -679,12 +713,11 @@ impl Redeemers {
 
 #[cfg(test)]
 mod tests {
-    use crate::plutus::CostModels;
-    use cml_core::Int;
+    use crate::plutus::{CostModels, Language};
 
     #[test]
     pub fn test_cost_model() {
-        let arr = vec![
+        let v1_costs = vec![
             197209, 0, 1, 1, 396231, 621, 0, 1, 150000, 1000, 0, 1, 150000, 32, 2477736, 29175, 4,
             29773, 100, 29773, 100, 29773, 100, 29773, 100, 29773, 100, 29773, 100, 100, 100,
             29773, 100, 150000, 32, 150000, 32, 150000, 32, 150000, 1000, 0, 1, 150000, 32, 150000,
@@ -697,8 +730,8 @@ mod tests {
             1, 150000, 32, 197209, 0, 1, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000,
             32, 150000, 32, 150000, 32, 3345831, 1, 1,
         ];
-        let mut cms = CostModels::new();
-        cms.plutus_v1 = Some(arr.iter().map(|&i| Int::new_uint(i)).collect());
+        let mut cms = CostModels::default();
+        cms.inner.insert(Language::PlutusV1.into(), v1_costs);
         assert_eq!(
             hex::encode(cms.language_views_encoding().unwrap()),
             "a141005901d59f1a000302590001011a00060bc719026d00011a000249f01903e800011a000249f018201a0025cea81971f70419744d186419744d186419744d186419744d186419744d186419744d18641864186419744d18641a000249f018201a000249f018201a000249f018201a000249f01903e800011a000249f018201a000249f01903e800081a000242201a00067e2318760001011a000249f01903e800081a000249f01a0001b79818f7011a000249f0192710011a0002155e19052e011903e81a000249f01903e8011a000249f018201a000249f018201a000249f0182001011a000249f0011a000249f0041a000194af18f8011a000194af18f8011a0002377c190556011a0002bdea1901f1011a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000242201a00067e23187600010119f04c192bd200011a000249f018201a000242201a00067e2318760001011a000242201a00067e2318760001011a0025cea81971f704001a000141bb041a000249f019138800011a000249f018201a000302590001011a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a00330da70101ff"

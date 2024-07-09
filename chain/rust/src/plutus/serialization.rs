@@ -7,6 +7,7 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
+use std::collections::BTreeMap;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 // PlutusData::Bytes uses this specific encoding:
@@ -21,139 +22,70 @@ impl Serialize for CostModels {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
-                .map(|encs| encs.len_encoding)
+                .map(|encs| encs.inner_encoding)
                 .unwrap_or_default()
-                .to_len_sz(
-                    match &self.plutus_v1 {
-                        Some(_) => 1,
-                        None => 0,
-                    } + match &self.plutus_v2 {
-                        Some(_) => 1,
-                        None => 0,
-                    } + match &self.plutus_v3 {
-                        Some(_) => 1,
-                        None => 0,
-                    },
-                    force_canonical,
-                ),
+                .to_len_sz(self.inner.len() as u64, force_canonical),
         )?;
-        let deser_order = self
-            .encodings
-            .as_ref()
-            .filter(|encs| {
-                !force_canonical
-                    && encs.orig_deser_order.len()
-                        == match &self.plutus_v1 {
-                            Some(_) => 1,
-                            None => 0,
-                        } + match &self.plutus_v2 {
-                            Some(_) => 1,
-                            None => 0,
-                        } + match &self.plutus_v3 {
-                            Some(_) => 1,
-                            None => 0,
-                        }
+        let mut key_order = self
+            .inner
+            .iter()
+            .map(|(k, v)| {
+                let mut buf = cbor_event::se::Serializer::new_vec();
+                let inner_key_encoding = self
+                    .encodings
+                    .as_ref()
+                    .and_then(|encs| encs.inner_key_encodings.get(k))
+                    .cloned()
+                    .unwrap_or_default();
+                buf.write_unsigned_integer_sz(*k, fit_sz(*k, inner_key_encoding, force_canonical))?;
+                Ok((buf.finalize(), k, v))
             })
-            .map(|encs| encs.orig_deser_order.clone())
-            .unwrap_or_else(|| vec![0, 1, 2]);
-        for field_index in deser_order {
-            match field_index {
-                0 => {
-                    if let Some(field) = &self.plutus_v1 {
-                        serializer.write_unsigned_integer_sz(
-                            0u64,
-                            fit_sz(
-                                0u64,
-                                self.encodings
-                                    .as_ref()
-                                    .map(|encs| encs.plutus_v1_key_encoding)
-                                    .unwrap_or_default(),
-                                force_canonical,
-                            ),
-                        )?;
-                        serializer.write_array_sz(
-                            self.encodings
-                                .as_ref()
-                                .map(|encs| encs.plutus_v1_encoding)
-                                .unwrap_or_default()
-                                .to_len_sz(field.len() as u64, force_canonical),
-                        )?;
-                        for element in field.iter() {
-                            element.serialize(serializer, force_canonical)?;
-                        }
-                        self.encodings
-                            .as_ref()
-                            .map(|encs| encs.plutus_v1_encoding)
-                            .unwrap_or_default()
-                            .end(serializer, force_canonical)?;
-                    }
+            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
+        if force_canonical {
+            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
+                match lhs_bytes.len().cmp(&rhs_bytes.len()) {
+                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                    diff_ord => diff_ord,
                 }
-                1 => {
-                    if let Some(field) = &self.plutus_v2 {
-                        serializer.write_unsigned_integer_sz(
-                            1u64,
-                            fit_sz(
-                                1u64,
-                                self.encodings
-                                    .as_ref()
-                                    .map(|encs| encs.plutus_v2_key_encoding)
-                                    .unwrap_or_default(),
-                                force_canonical,
-                            ),
-                        )?;
-                        serializer.write_array_sz(
-                            self.encodings
-                                .as_ref()
-                                .map(|encs| encs.plutus_v2_encoding)
-                                .unwrap_or_default()
-                                .to_len_sz(field.len() as u64, force_canonical),
-                        )?;
-                        for element in field.iter() {
-                            element.serialize(serializer, force_canonical)?;
-                        }
-                        self.encodings
-                            .as_ref()
-                            .map(|encs| encs.plutus_v2_encoding)
-                            .unwrap_or_default()
-                            .end(serializer, force_canonical)?;
-                    }
+            });
+        }
+        for (key_bytes, key, value) in key_order {
+            serializer.write_raw_bytes(&key_bytes)?;
+            let (inner_value_encoding, inner_value_elem_encodings) = self
+                .encodings
+                .as_ref()
+                .and_then(|encs| encs.inner_value_encodings.get(key))
+                .cloned()
+                .unwrap_or_else(|| (LenEncoding::default(), Vec::new()));
+            serializer.write_array_sz(
+                inner_value_encoding.to_len_sz(value.len() as u64, force_canonical),
+            )?;
+            for (i, element) in value.iter().enumerate() {
+                let inner_value_elem_encoding = inner_value_elem_encodings
+                    .get(i)
+                    .cloned()
+                    .unwrap_or_default();
+                if *element >= 0 {
+                    serializer.write_unsigned_integer_sz(
+                        *element as u64,
+                        fit_sz(*element as u64, inner_value_elem_encoding, force_canonical),
+                    )?;
+                } else {
+                    serializer.write_negative_integer_sz(
+                        *element as i128,
+                        fit_sz(
+                            (*element + 1).unsigned_abs(),
+                            inner_value_elem_encoding,
+                            force_canonical,
+                        ),
+                    )?;
                 }
-                2 => {
-                    if let Some(field) = &self.plutus_v3 {
-                        serializer.write_unsigned_integer_sz(
-                            2u64,
-                            fit_sz(
-                                2u64,
-                                self.encodings
-                                    .as_ref()
-                                    .map(|encs| encs.plutus_v3_key_encoding)
-                                    .unwrap_or_default(),
-                                force_canonical,
-                            ),
-                        )?;
-                        serializer.write_array_sz(
-                            self.encodings
-                                .as_ref()
-                                .map(|encs| encs.plutus_v3_encoding)
-                                .unwrap_or_default()
-                                .to_len_sz(field.len() as u64, force_canonical),
-                        )?;
-                        for element in field.iter() {
-                            element.serialize(serializer, force_canonical)?;
-                        }
-                        self.encodings
-                            .as_ref()
-                            .map(|encs| encs.plutus_v3_encoding)
-                            .unwrap_or_default()
-                            .end(serializer, force_canonical)?;
-                    }
-                }
-                _ => unreachable!(),
-            };
+            }
+            inner_value_encoding.end(serializer, force_canonical)?;
         }
         self.encodings
             .as_ref()
-            .map(|encs| encs.len_encoding)
+            .map(|encs| encs.inner_encoding)
             .unwrap_or_default()
             .end(serializer, force_canonical)
     }
@@ -161,159 +93,74 @@ impl Serialize for CostModels {
 
 impl Deserialize for CostModels {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        (|| -> Result<_, DeserializeError> {
-            let mut orig_deser_order = Vec::new();
-            let mut plutus_v1_encoding = LenEncoding::default();
-            let mut plutus_v1_key_encoding = None;
-            let mut plutus_v1 = None;
-            let mut plutus_v2_encoding = LenEncoding::default();
-            let mut plutus_v2_key_encoding = None;
-            let mut plutus_v2 = None;
-            let mut plutus_v3_encoding = LenEncoding::default();
-            let mut plutus_v3_key_encoding = None;
-            let mut plutus_v3 = None;
-            let mut read = 0;
+        let mut inner_table = OrderedHashMap::new();
+        let inner_len = raw.map_sz()?;
+        let inner_encoding = inner_len.into();
+        let mut inner_key_encodings = BTreeMap::new();
+        let mut inner_value_encodings = BTreeMap::new();
+        while match inner_len {
+            cbor_event::LenSz::Len(n, _) => (inner_table.len() as u64) < n,
+            cbor_event::LenSz::Indefinite => true,
+        } {
+            if raw.cbor_type()? == cbor_event::Type::Special {
+                assert_eq!(raw.special()?, cbor_event::Special::Break);
+                break;
+            }
+            let (inner_key, inner_key_encoding) =
+                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
+            let mut inner_value_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_value_encoding = len.into();
+            let mut inner_value_elem_encodings = Vec::new();
             while match len {
-                cbor_event::LenSz::Len(n, _) => read < n,
+                cbor_event::LenSz::Len(n, _) => (inner_value_arr.len() as u64) < n,
                 cbor_event::LenSz::Indefinite => true,
             } {
-                match raw.cbor_type()? {
-                    cbor_event::Type::UnsignedInteger => match raw.unsigned_integer_sz()? {
-                        (0, key_enc) => {
-                            if plutus_v1.is_some() {
-                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(0)).into());
-                            }
-                            let (tmp_plutus_v1, tmp_plutus_v1_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    let mut plutus_v1_arr = Vec::new();
-                                    let len = raw.array_sz()?;
-                                    let plutus_v1_encoding = len.into();
-                                    while match len {
-                                        cbor_event::LenSz::Len(n, _) => {
-                                            (plutus_v1_arr.len() as u64) < n
-                                        }
-                                        cbor_event::LenSz::Indefinite => true,
-                                    } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                            break;
-                                        }
-                                        plutus_v1_arr.push(Int::deserialize(raw)?);
-                                    }
-                                    Ok((plutus_v1_arr, plutus_v1_encoding))
-                                })()
-                                .map_err(|e| e.annotate("plutus_v1"))?;
-                            plutus_v1 = Some(tmp_plutus_v1);
-                            plutus_v1_encoding = tmp_plutus_v1_encoding;
-                            plutus_v1_key_encoding = Some(key_enc);
-                            orig_deser_order.push(0);
-                        }
-                        (1, key_enc) => {
-                            if plutus_v2.is_some() {
-                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(1)).into());
-                            }
-                            let (tmp_plutus_v2, tmp_plutus_v2_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    let mut plutus_v2_arr = Vec::new();
-                                    let len = raw.array_sz()?;
-                                    let plutus_v2_encoding = len.into();
-                                    while match len {
-                                        cbor_event::LenSz::Len(n, _) => {
-                                            (plutus_v2_arr.len() as u64) < n
-                                        }
-                                        cbor_event::LenSz::Indefinite => true,
-                                    } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                            break;
-                                        }
-                                        plutus_v2_arr.push(Int::deserialize(raw)?);
-                                    }
-                                    Ok((plutus_v2_arr, plutus_v2_encoding))
-                                })()
-                                .map_err(|e| e.annotate("plutus_v2"))?;
-                            plutus_v2 = Some(tmp_plutus_v2);
-                            plutus_v2_encoding = tmp_plutus_v2_encoding;
-                            plutus_v2_key_encoding = Some(key_enc);
-                            orig_deser_order.push(1);
-                        }
-                        (2, key_enc) => {
-                            if plutus_v3.is_some() {
-                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
-                            }
-                            let (tmp_plutus_v3, tmp_plutus_v3_encoding) =
-                                (|| -> Result<_, DeserializeError> {
-                                    read_len.read_elems(1)?;
-                                    let mut plutus_v3_arr = Vec::new();
-                                    let len = raw.array_sz()?;
-                                    let plutus_v3_encoding = len.into();
-                                    while match len {
-                                        cbor_event::LenSz::Len(n, _) => {
-                                            (plutus_v3_arr.len() as u64) < n
-                                        }
-                                        cbor_event::LenSz::Indefinite => true,
-                                    } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                            break;
-                                        }
-                                        plutus_v3_arr.push(Int::deserialize(raw)?);
-                                    }
-                                    Ok((plutus_v3_arr, plutus_v3_encoding))
-                                })()
-                                .map_err(|e| e.annotate("plutus_v3"))?;
-                            plutus_v3 = Some(tmp_plutus_v3);
-                            plutus_v3_encoding = tmp_plutus_v3_encoding;
-                            plutus_v3_key_encoding = Some(key_enc);
-                            orig_deser_order.push(2);
-                        }
-                        (unknown_key, _enc) => {
-                            return Err(
-                                DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            )
-                        }
-                    },
-                    cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
-                    }
-                    cbor_event::Type::Special => match len {
-                        cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
-                        }
-                        cbor_event::LenSz::Indefinite => match raw.special()? {
-                            cbor_event::Special::Break => break,
-                            _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                        },
-                    },
-                    other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
-                    }
+                if raw.cbor_type()? == cbor_event::Type::Special {
+                    assert_eq!(raw.special()?, cbor_event::Special::Break);
+                    break;
                 }
-                read += 1;
+                let (inner_value_elem, inner_value_elem_encoding) = match raw.cbor_type()? {
+                    cbor_event::Type::UnsignedInteger => {
+                        let (x, enc) = raw.unsigned_integer_sz()?;
+                        (x as i64, Some(enc))
+                    }
+                    _ => {
+                        let (x, enc) = raw.negative_integer_sz()?;
+                        (x as i64, Some(enc))
+                    }
+                };
+                inner_value_arr.push(inner_value_elem);
+                inner_value_elem_encodings.push(inner_value_elem_encoding);
             }
-            read_len.finish()?;
-            Ok(Self {
-                plutus_v1,
-                plutus_v2,
-                plutus_v3,
-                encodings: Some(CostModelsEncoding {
-                    len_encoding,
-                    orig_deser_order,
-                    plutus_v1_key_encoding,
-                    plutus_v1_encoding,
-                    plutus_v2_key_encoding,
-                    plutus_v2_encoding,
-                    plutus_v3_key_encoding,
-                    plutus_v3_encoding,
-                }),
-            })
-        })()
-        .map_err(|e| e.annotate("CostModels"))
+            let (inner_value, inner_value_encoding, inner_value_elem_encodings) = (
+                inner_value_arr,
+                inner_value_encoding,
+                inner_value_elem_encodings,
+            );
+            if inner_table.insert(inner_key, inner_value).is_some() {
+                return Err(DeserializeFailure::DuplicateKey(Key::Uint(inner_key)).into());
+            }
+            inner_key_encodings.insert(inner_key, inner_key_encoding);
+            inner_value_encodings.insert(
+                inner_key,
+                (inner_value_encoding, inner_value_elem_encodings),
+            );
+        }
+        let (inner, inner_encoding, inner_key_encodings, inner_value_encodings) = (
+            inner_table,
+            inner_encoding,
+            inner_key_encodings,
+            inner_value_encodings,
+        );
+        Ok(Self {
+            inner,
+            encodings: Some(CostModelsEncoding {
+                inner_encoding,
+                inner_key_encodings,
+                inner_value_encodings,
+            }),
+        })
     }
 }
 

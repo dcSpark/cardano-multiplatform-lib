@@ -533,7 +533,7 @@ impl DRep {
 
     pub fn as_script(&self) -> Option<ScriptHash> {
         match &self.0 {
-            cml_chain::certs::DRep::Script { script_hash, .. } => Some(script_hash.clone().into()),
+            cml_chain::certs::DRep::Script { script_hash, .. } => Some((*script_hash).into()),
             _ => None,
         }
     }

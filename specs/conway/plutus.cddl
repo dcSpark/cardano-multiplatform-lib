@@ -14,9 +14,14 @@ plutus_v1_script = bytes ; @newtype
 plutus_v2_script = bytes ; @newtype
 plutus_v3_script = bytes ; @newtype
 
+; original def:
+; { * plutus_data => plutus_data }
+; we hand-code it to handle duplicates
+plutus_map = _CDDL_CODEGEN_EXTERN_TYPE_
+
 plutus_data =
     constr_plutus_data
-  / { * plutus_data => plutus_data } ; @name map
+  / plutus_map ; @name map
   / [ * plutus_data ] ; @name list
   / big_integer ; @name integer
   / bounded_bytes ; @name bytes
@@ -45,9 +50,9 @@ legacy_redeemer = [ tag: redeemer_tag, index: uint, data: plutus_data, ex_units:
 ; Flat Array support is included for backwards compatibility and will be removed in the next era.
 ; It is recommended for tools to adopt using a Map instead of Array going forward.
 redeemers =
-  ; @name LegacyFlatFormat
+  ; @name LegacyFlatFormat @doc This format will be deprecated in the next era
   [ + legacy_redeemer ] /
-  ; @name MapFormat
+  ; @name MapFormat @doc New map format. Use this when possibe.
   { + redeemer_key => redeemer_val }
 
 redeemer_tag =

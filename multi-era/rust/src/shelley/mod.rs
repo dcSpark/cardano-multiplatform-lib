@@ -36,7 +36,7 @@ use std::convert::TryFrom;
 use crate::allegra::MIRPot;
 
 use self::cbor_encodings::{
-    GenesisKeyDelegationEncoding, ProtocolVersionStructEncoding, ShelleyDnsNameEncoding,
+    GenesisKeyDelegationEncoding, ProtocolVersionStructEncoding, ShelleyDNSNameEncoding,
     ShelleyMoveInstantaneousRewardEncoding, ShelleyMoveInstantaneousRewardsCertEncoding,
     ShelleyPoolParamsEncoding,
 };
@@ -44,7 +44,7 @@ use self::cbor_encodings::{
 pub struct GenesisKeyDelegation {
     pub genesis_hash: GenesisHash,
     pub genesis_delegate_hash: GenesisDelegateHash,
-    pub v_r_f_key_hash: VRFKeyHash,
+    pub vrf_key_hash: VRFKeyHash,
     #[serde(skip)]
     pub encodings: Option<GenesisKeyDelegationEncoding>,
 }
@@ -53,12 +53,12 @@ impl GenesisKeyDelegation {
     pub fn new(
         genesis_hash: GenesisHash,
         genesis_delegate_hash: GenesisDelegateHash,
-        v_r_f_key_hash: VRFKeyHash,
+        vrf_key_hash: VRFKeyHash,
     ) -> Self {
         Self {
             genesis_hash,
             genesis_delegate_hash,
-            v_r_f_key_hash,
+            vrf_key_hash,
             encodings: None,
         }
     }
@@ -238,12 +238,12 @@ impl ShelleyCertificate {
     pub fn new_genesis_key_delegation(
         genesis_hash: GenesisHash,
         genesis_delegate_hash: GenesisDelegateHash,
-        v_r_f_key_hash: VRFKeyHash,
+        vrf_key_hash: VRFKeyHash,
     ) -> Self {
         Self::GenesisKeyDelegation(GenesisKeyDelegation::new(
             genesis_hash,
             genesis_delegate_hash,
-            v_r_f_key_hash,
+            vrf_key_hash,
         ))
     }
 
@@ -257,12 +257,12 @@ impl ShelleyCertificate {
 }
 
 #[derive(Clone, Debug)]
-pub struct ShelleyDnsName {
+pub struct ShelleyDNSName {
     pub inner: String,
-    pub encodings: Option<ShelleyDnsNameEncoding>,
+    pub encodings: Option<ShelleyDNSNameEncoding>,
 }
 
-impl ShelleyDnsName {
+impl ShelleyDNSName {
     pub fn get(&self) -> &String {
         &self.inner
     }
@@ -270,7 +270,7 @@ impl ShelleyDnsName {
     pub fn new(inner: String) -> Result<Self, DeserializeError> {
         if inner.len() > 64 {
             return Err(DeserializeError::new(
-                "ShelleyDnsName",
+                "ShelleyDNSName",
                 DeserializeFailure::RangeCheck {
                     found: inner.len() as isize,
                     min: Some(0),
@@ -285,15 +285,15 @@ impl ShelleyDnsName {
     }
 }
 
-impl TryFrom<String> for ShelleyDnsName {
+impl TryFrom<String> for ShelleyDNSName {
     type Error = DeserializeError;
 
     fn try_from(inner: String) -> Result<Self, Self::Error> {
-        ShelleyDnsName::new(inner)
+        ShelleyDNSName::new(inner)
     }
 }
 
-impl serde::Serialize for ShelleyDnsName {
+impl serde::Serialize for ShelleyDNSName {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -302,7 +302,7 @@ impl serde::Serialize for ShelleyDnsName {
     }
 }
 
-impl<'de> serde::de::Deserialize<'de> for ShelleyDnsName {
+impl<'de> serde::de::Deserialize<'de> for ShelleyDNSName {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::de::Deserializer<'de>,
@@ -311,15 +311,15 @@ impl<'de> serde::de::Deserialize<'de> for ShelleyDnsName {
         Self::new(inner.clone()).map_err(|_e| {
             serde::de::Error::invalid_value(
                 serde::de::Unexpected::Str(&inner),
-                &"invalid ShelleyDnsName",
+                &"invalid ShelleyDNSName",
             )
         })
     }
 }
 
-impl schemars::JsonSchema for ShelleyDnsName {
+impl schemars::JsonSchema for ShelleyDNSName {
     fn schema_name() -> String {
-        String::from("ShelleyDnsName")
+        String::from("ShelleyDNSName")
     }
 
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
@@ -355,7 +355,7 @@ pub struct ShelleyHeaderBody {
     pub slot: u64,
     pub prev_hash: Option<BlockHeaderHash>,
     pub issuer_vkey: Vkey,
-    pub v_r_f_vkey: VRFVkey,
+    pub vrf_vkey: VRFVkey,
     pub nonce_vrf: VRFCert,
     pub leader_vrf: VRFCert,
     pub block_body_size: u64,
@@ -372,7 +372,7 @@ impl ShelleyHeaderBody {
         slot: u64,
         prev_hash: Option<BlockHeaderHash>,
         issuer_vkey: Vkey,
-        v_r_f_vkey: VRFVkey,
+        vrf_vkey: VRFVkey,
         nonce_vrf: VRFCert,
         leader_vrf: VRFCert,
         block_body_size: u64,
@@ -385,7 +385,7 @@ impl ShelleyHeaderBody {
             slot,
             prev_hash,
             issuer_vkey,
-            v_r_f_vkey,
+            vrf_vkey,
             nonce_vrf,
             leader_vrf,
             block_body_size,
@@ -433,13 +433,15 @@ impl ShelleyMoveInstantaneousRewardsCert {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ShelleyMultiHostName {
-    pub shelley_dns_name: ShelleyDnsName,
+    /// A SRV DNS record
+    pub shelley_dns_name: ShelleyDNSName,
     #[serde(skip)]
     pub encodings: Option<ShelleyMultiHostNameEncoding>,
 }
 
 impl ShelleyMultiHostName {
-    pub fn new(shelley_dns_name: ShelleyDnsName) -> Self {
+    /// * `shelley_dns_name` - A SRV DNS record
+    pub fn new(shelley_dns_name: ShelleyDNSName) -> Self {
         Self {
             shelley_dns_name,
             encodings: None,
@@ -578,12 +580,12 @@ impl ShelleyRelay {
 
     pub fn new_shelley_single_host_name(
         port: Option<Port>,
-        shelley_dns_name: ShelleyDnsName,
+        shelley_dns_name: ShelleyDNSName,
     ) -> Self {
         Self::ShelleySingleHostName(ShelleySingleHostName::new(port, shelley_dns_name))
     }
 
-    pub fn new_shelley_multi_host_name(shelley_dns_name: ShelleyDnsName) -> Self {
+    pub fn new_shelley_multi_host_name(shelley_dns_name: ShelleyDNSName) -> Self {
         Self::ShelleyMultiHostName(ShelleyMultiHostName::new(shelley_dns_name))
     }
 }
@@ -591,13 +593,15 @@ impl ShelleyRelay {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ShelleySingleHostName {
     pub port: Option<Port>,
-    pub shelley_dns_name: ShelleyDnsName,
+    /// An A or AAAA DNS record
+    pub shelley_dns_name: ShelleyDNSName,
     #[serde(skip)]
     pub encodings: Option<ShelleySingleHostNameEncoding>,
 }
 
 impl ShelleySingleHostName {
-    pub fn new(port: Option<Port>, shelley_dns_name: ShelleyDnsName) -> Self {
+    /// * `shelley_dns_name` - An A or AAAA DNS record
+    pub fn new(port: Option<Port>, shelley_dns_name: ShelleyDNSName) -> Self {
         Self {
             port,
             shelley_dns_name,
@@ -732,8 +736,8 @@ impl ShelleyUpdate {
     }
 }
 
-impl From<ShelleyDnsName> for String {
-    fn from(wrapper: ShelleyDnsName) -> Self {
+impl From<ShelleyDNSName> for String {
+    fn from(wrapper: ShelleyDNSName) -> Self {
         wrapper.inner
     }
 }

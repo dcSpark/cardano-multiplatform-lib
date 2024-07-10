@@ -63,7 +63,7 @@ impl From<BabbageAuxiliaryData> for AuxiliaryData {
     fn from(aux: BabbageAuxiliaryData) -> Self {
         match aux {
             BabbageAuxiliaryData::Shelley(md) => AuxiliaryData::new_shelley(md.clone()),
-            BabbageAuxiliaryData::ShelleyMA(md) => AuxiliaryData::new_shelley_m_a(md.clone()),
+            BabbageAuxiliaryData::ShelleyMA(md) => AuxiliaryData::new_shelley_ma(md.clone()),
             BabbageAuxiliaryData::Babbage(md) => AuxiliaryData::new_conway({
                 let mut conway = ConwayFormatAuxData::new();
                 conway.metadata.clone_from(&md.metadata);

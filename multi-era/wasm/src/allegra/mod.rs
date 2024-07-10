@@ -9,7 +9,7 @@ use crate::{
     MapTransactionIndexToAllegraAuxiliaryData, ShelleyTransactionOutputList,
 };
 use cml_chain_wasm::assets::Coin;
-use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
+use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain_wasm::certs::StakeCredential;
 use cml_chain_wasm::certs::{
     PoolRetirement, StakeDelegation, StakeDeregistration, StakeRegistration,
@@ -44,11 +44,9 @@ impl AllegraAuxiliaryData {
         ))
     }
 
-    pub fn new_shelley_m_a(shelley_m_a: &ShelleyMaFormatAuxData) -> Self {
+    pub fn new_shelley_ma(shelley_ma: &ShelleyMAFormatAuxData) -> Self {
         Self(
-            cml_multi_era::allegra::AllegraAuxiliaryData::new_shelley_m_a(
-                shelley_m_a.clone().into(),
-            ),
+            cml_multi_era::allegra::AllegraAuxiliaryData::new_shelley_ma(shelley_ma.clone().into()),
         )
     }
 
@@ -72,10 +70,10 @@ impl AllegraAuxiliaryData {
         }
     }
 
-    pub fn as_shelley_m_a(&self) -> Option<ShelleyMaFormatAuxData> {
+    pub fn as_shelley_ma(&self) -> Option<ShelleyMAFormatAuxData> {
         match &self.0 {
-            cml_multi_era::allegra::AllegraAuxiliaryData::ShelleyMA(shelley_m_a) => {
-                Some(shelley_m_a.clone().into())
+            cml_multi_era::allegra::AllegraAuxiliaryData::ShelleyMA(shelley_ma) => {
+                Some(shelley_ma.clone().into())
             }
             _ => None,
         }
@@ -190,13 +188,13 @@ impl AllegraCertificate {
     pub fn new_genesis_key_delegation(
         genesis_hash: &GenesisHash,
         genesis_delegate_hash: &GenesisDelegateHash,
-        v_r_f_key_hash: &VRFKeyHash,
+        vrf_key_hash: &VRFKeyHash,
     ) -> Self {
         Self(
             cml_multi_era::allegra::AllegraCertificate::new_genesis_key_delegation(
                 genesis_hash.clone().into(),
                 genesis_delegate_hash.clone().into(),
-                v_r_f_key_hash.clone().into(),
+                vrf_key_hash.clone().into(),
             ),
         )
     }

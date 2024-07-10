@@ -10,7 +10,7 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_chain::address::RewardAccount;
 use cml_chain::auxdata::ShelleyFormatAuxData;
-use cml_chain::auxdata::ShelleyMaFormatAuxData;
+use cml_chain::auxdata::ShelleyMAFormatAuxData;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::RawBytesEncoding;
@@ -26,8 +26,8 @@ impl Serialize for AllegraAuxiliaryData {
             AllegraAuxiliaryData::Shelley(shelley) => {
                 shelley.serialize(serializer, force_canonical)
             }
-            AllegraAuxiliaryData::ShelleyMA(shelley_m_a) => {
-                shelley_m_a.serialize(serializer, force_canonical)
+            AllegraAuxiliaryData::ShelleyMA(shelley_ma) => {
+                shelley_ma.serialize(serializer, force_canonical)
             }
         }
     }
@@ -49,9 +49,9 @@ impl Deserialize for AllegraAuxiliaryData {
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
-                ShelleyMaFormatAuxData::deserialize(raw);
+                ShelleyMAFormatAuxData::deserialize(raw);
             match deser_variant {
-                Ok(shelley_m_a) => return Ok(Self::ShelleyMA(shelley_m_a)),
+                Ok(shelley_ma) => return Ok(Self::ShelleyMA(shelley_ma)),
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMA"));
                     raw.as_mut_ref()

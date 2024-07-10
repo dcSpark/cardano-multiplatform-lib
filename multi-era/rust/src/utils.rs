@@ -343,7 +343,7 @@ impl MultiEraBlockHeader {
         match self {
             Self::ByronEB(_) => None,
             Self::Byron(_) => None,
-            Self::Shelley(header) => Some(&header.body.v_r_f_vkey),
+            Self::Shelley(header) => Some(&header.body.vrf_vkey),
             Self::Babbage(header) => Some(&header.header_body.vrf_vkey),
         }
     }

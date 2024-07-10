@@ -70,8 +70,8 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::certs::AuthCommitteeHotCert);
     gen_json_schema!(cml_chain::certs::Certificate);
     gen_json_schema!(cml_chain::certs::Credential);
+    gen_json_schema!(cml_chain::certs::DNSName);
     gen_json_schema!(cml_chain::certs::DRep);
-    gen_json_schema!(cml_chain::certs::DnsName);
     gen_json_schema!(cml_chain::certs::Ipv4);
     gen_json_schema!(cml_chain::certs::Ipv6);
     gen_json_schema!(cml_chain::certs::MultiHostName);

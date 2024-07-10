@@ -5,7 +5,7 @@ use crate::{
     transaction::NativeScript,
 };
 
-use super::{AuxiliaryData, ConwayFormatAuxData, ShelleyMaFormatAuxData};
+use super::{AuxiliaryData, ConwayFormatAuxData, ShelleyMAFormatAuxData};
 
 impl AuxiliaryData {
     pub fn new() -> Self {
@@ -81,7 +81,7 @@ impl AuxiliaryData {
     pub fn add_native_scripts(&mut self, scripts: Vec<NativeScript>) {
         match self {
             Self::Shelley(shelley) => {
-                *self = Self::ShelleyMA(ShelleyMaFormatAuxData::new(shelley.clone(), scripts));
+                *self = Self::ShelleyMA(ShelleyMAFormatAuxData::new(shelley.clone(), scripts));
             }
             Self::ShelleyMA(shelley_ma) => {
                 shelley_ma.auxiliary_scripts.extend(scripts);

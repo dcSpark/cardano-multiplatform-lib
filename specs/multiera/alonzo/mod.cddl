@@ -95,7 +95,7 @@ alonzo_format_aux_data = #6.259({
 
 alonzo_auxiliary_data =
     shelley_format_aux_data     ; @name shelley
-  / shelley_ma_format_aux_data  ; @name shelley_m_a
+  / shelley_MA_format_aux_data  ; @name shelley_MA
   / alonzo_format_aux_data ; @name alonzo
 
 alonzo_redeemer = [

@@ -14,7 +14,7 @@ use cbor_encodings::{
     AllegraTransactionWitnessSetEncoding,
 };
 use cml_chain::assets::Coin;
-use cml_chain::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
+use cml_chain::auxdata::{ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain::certs::{
     PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration, StakeRegistration,
 };
@@ -32,7 +32,7 @@ use self::cbor_encodings::{MoveInstantaneousRewardEncoding, MoveInstantaneousRew
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AllegraAuxiliaryData {
     Shelley(ShelleyFormatAuxData),
-    ShelleyMA(ShelleyMaFormatAuxData),
+    ShelleyMA(ShelleyMAFormatAuxData),
 }
 
 impl AllegraAuxiliaryData {
@@ -40,8 +40,8 @@ impl AllegraAuxiliaryData {
         Self::Shelley(shelley)
     }
 
-    pub fn new_shelley_m_a(shelley_m_a: ShelleyMaFormatAuxData) -> Self {
-        Self::ShelleyMA(shelley_m_a)
+    pub fn new_shelley_ma(shelley_ma: ShelleyMAFormatAuxData) -> Self {
+        Self::ShelleyMA(shelley_ma)
     }
 }
 
@@ -111,12 +111,12 @@ impl AllegraCertificate {
     pub fn new_genesis_key_delegation(
         genesis_hash: GenesisHash,
         genesis_delegate_hash: GenesisDelegateHash,
-        v_r_f_key_hash: VRFKeyHash,
+        vrf_key_hash: VRFKeyHash,
     ) -> Self {
         Self::GenesisKeyDelegation(GenesisKeyDelegation::new(
             genesis_hash,
             genesis_delegate_hash,
-            v_r_f_key_hash,
+            vrf_key_hash,
         ))
     }
 

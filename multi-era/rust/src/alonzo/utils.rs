@@ -22,7 +22,7 @@ impl From<AlonzoAuxiliaryData> for AuxiliaryData {
     fn from(aux: AlonzoAuxiliaryData) -> Self {
         match aux {
             AlonzoAuxiliaryData::Shelley(md) => AuxiliaryData::new_shelley(md.clone()),
-            AlonzoAuxiliaryData::ShelleyMA(md) => AuxiliaryData::new_shelley_m_a(md.clone()),
+            AlonzoAuxiliaryData::ShelleyMA(md) => AuxiliaryData::new_shelley_ma(md.clone()),
             AlonzoAuxiliaryData::Alonzo(md) => AuxiliaryData::new_conway({
                 let mut conway = ConwayFormatAuxData::new();
                 conway.metadata.clone_from(&md.metadata);

@@ -40,6 +40,14 @@ impl TransactionUnspentOutput {
         )
         .into()
     }
+
+    pub fn input(&self) -> TransactionInput {
+        self.0.input.clone().into()
+    }
+
+    pub fn output(&self) -> TransactionOutput {
+        self.0.output.clone().into()
+    }
 }
 
 #[wasm_bindgen]

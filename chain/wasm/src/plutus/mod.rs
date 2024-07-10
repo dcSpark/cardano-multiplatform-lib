@@ -224,13 +224,6 @@ impl_wasm_cbor_json_api!(PlutusV1Script);
 
 impl_wasm_conversions!(cml_chain::plutus::PlutusV1Script, PlutusV1Script);
 
-#[wasm_bindgen]
-impl PlutusV1Script {
-    pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PlutusV2Script(cml_chain::plutus::PlutusV2Script);
@@ -239,13 +232,6 @@ impl_wasm_cbor_json_api!(PlutusV2Script);
 
 impl_wasm_conversions!(cml_chain::plutus::PlutusV2Script, PlutusV2Script);
 
-#[wasm_bindgen]
-impl PlutusV2Script {
-    pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PlutusV3Script(cml_chain::plutus::PlutusV3Script);
@@ -253,13 +239,6 @@ pub struct PlutusV3Script(cml_chain::plutus::PlutusV3Script);
 impl_wasm_cbor_json_api!(PlutusV3Script);
 
 impl_wasm_conversions!(cml_chain::plutus::PlutusV3Script, PlutusV3Script);
-
-#[wasm_bindgen]
-impl PlutusV3Script {
-    pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
-    }
-}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

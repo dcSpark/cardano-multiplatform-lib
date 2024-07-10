@@ -3,7 +3,9 @@ use crate::{
     LegacyRedeemerList, PlutusDataList,
 };
 use cml_chain::plutus::Language;
-use cml_core_wasm::{impl_wasm_cbor_api, impl_wasm_cbor_json_api, impl_wasm_conversions};
+use cml_core_wasm::{
+    impl_raw_bytes_api, impl_wasm_cbor_api, impl_wasm_cbor_json_api, impl_wasm_conversions,
+};
 use cml_crypto_wasm::ScriptHash;
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
@@ -151,6 +153,19 @@ impl PlutusV2Script {
         self.0.hash().into()
     }
 }
+
+#[wasm_bindgen]
+impl PlutusV3Script {
+    pub fn hash(&self) -> ScriptHash {
+        self.0.hash().into()
+    }
+}
+
+impl_raw_bytes_api!(cml_chain::plutus::PlutusV1Script, PlutusV1Script);
+
+impl_raw_bytes_api!(cml_chain::plutus::PlutusV2Script, PlutusV2Script);
+
+impl_raw_bytes_api!(cml_chain::plutus::PlutusV3Script, PlutusV3Script);
 
 #[wasm_bindgen]
 impl Redeemers {

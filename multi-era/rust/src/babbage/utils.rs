@@ -194,7 +194,8 @@ impl Serialize for BabbageMint {
                 .map(|(i, _)| i)
                 .collect::<Vec<usize>>();
             if force_canonical {
-                inner_key_order.sort_by(|i, j| assets[*i].0.get().cmp(assets[*j].0.get()));
+                inner_key_order
+                    .sort_by(|i, j| assets[*i].0.to_raw_bytes().cmp(assets[*j].0.to_raw_bytes()));
             }
 
             for (j, (asset_name, coin)) in inner_key_order.into_iter().zip(assets.iter()) {

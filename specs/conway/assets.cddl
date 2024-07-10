@@ -4,7 +4,7 @@ coin = uint
 ; but possibly it could be its own type with bounds checking (!=0)
 positive_coin = coin
 
-asset_name = bytes .size (0..32)
+asset_name = bytes .size (0..32) ; @doc Use TryFrom<&str> / TryInto<&str> for utf8 text conversion and RawBytesEncoding for direct bytes access
 
 ; these two are technically hand-written but we keep them here so that other code can
 ; continue thinking they're maps and handle them like so (encoding details, etc)

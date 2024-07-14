@@ -7,7 +7,9 @@ use cml_core::network::{
     PREVIEW_NETWORK_MAGIC, SANCHO_TESTNET_NETWORK_MAGIC,
 };
 
-#[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct NetworkInfo {
     network_id: u8,
     protocol_magic: ProtocolMagic,

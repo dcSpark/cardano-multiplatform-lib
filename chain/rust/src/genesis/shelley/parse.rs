@@ -1,12 +1,23 @@
-use cml_crypto::{CryptoError, Ed25519KeyHash, VRFKeyHash, PoolMetadataHash, chain_crypto::Blake2b256, TransactionHash};
+use cml_crypto::{
+    chain_crypto::Blake2b256, CryptoError, Ed25519KeyHash, PoolMetadataHash, TransactionHash,
+    VRFKeyHash,
+};
 use serde_json;
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::str::FromStr;
 
-use crate::{address::{Address, RewardAccount}, certs::{PoolParams, StakeCredential, Relay, Ipv4, Ipv6, PoolMetadata, Url}, UnitInterval, block::ProtocolVersion};
+use crate::{
+    address::{Address, RewardAccount},
+    block::ProtocolVersion,
+    certs::{Ipv4, Ipv6, PoolMetadata, PoolParams, Relay, StakeCredential, Url},
+    UnitInterval,
+};
 
-use super::{config, raw::{self}};
+use super::{
+    config,
+    raw::{self},
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum GenesisJSONError {
@@ -22,15 +33,16 @@ pub enum GenesisJSONError {
     ParseNetwork(String),
 }
 
-pub fn parse_genesis_data<R: Read>(json: R) -> Result<config::ShelleyGenesisData, GenesisJSONError> {
+pub fn parse_genesis_data<R: Read>(
+    json: R,
+) -> Result<config::ShelleyGenesisData, GenesisJSONError> {
     let data_value: serde_json::Value = serde_json::from_reader(json)?;
-    let data: raw::ShelleyGenesisData = serde_json::from_value(data_value.clone())?;
+    let data: raw::ShelleyGenesisData = serde_json::from_value(data_value)?;
 
     let mut initial_funds = BTreeMap::new();
     for (addr_hex, balance) in &data.initialFunds {
         initial_funds.insert(
-            Address::from_hex(addr_hex)
-                .map_err(CryptoError::from)?,
+            Address::from_hex(addr_hex).map_err(CryptoError::from)?,
             *balance,
         );
     }
@@ -48,11 +60,11 @@ pub fn parse_genesis_data<R: Read>(json: R) -> Result<config::ShelleyGenesisData
             for (pool_id, params) in &raw.pools {
                 let ration = fraction::Fraction::from_str(&params.margin).unwrap();
                 let mut owners = Vec::<Ed25519KeyHash>::new();
-                for owner in & params.owners {
+                for owner in &params.owners {
                     owners.push(Ed25519KeyHash::from_hex(owner)?);
                 }
                 let mut relays = Vec::<Relay>::new();
-                for relay in & params.relays {
+                for relay in &params.relays {
                     if let Some((key, value)) = relay.iter().next() {
                         match key.as_str() {
                             "single host address" => {
@@ -73,7 +85,6 @@ pub fn parse_genesis_data<R: Read>(json: R) -> Result<config::ShelleyGenesisData
                             _ => panic!("Only single host address relays are supported in cardano-node Relay JSON parsing")
                         }
                     }
-                    
                 }
                 let pool_metadata = match params.metadata.as_ref() {
                     Some(metadata) => Some(PoolMetadata::new(
@@ -87,43 +98,35 @@ pub fn parse_genesis_data<R: Read>(json: R) -> Result<config::ShelleyGenesisData
                     VRFKeyHash::from_hex(&params.vrf)?,
                     params.pledge,
                     params.cost,
-                    UnitInterval::new(
-                        *ration.numer().unwrap(),
-                        *ration.denom().unwrap()
-                    ),
+                    UnitInterval::new(*ration.numer().unwrap(), *ration.denom().unwrap()),
                     RewardAccount::new(
                         match data.networkId.as_str() {
                             "Mainnet" => crate::NetworkId::mainnet().network as u8,
                             "Testnet" => crate::NetworkId::testnet().network as u8,
                             val => return Err(GenesisJSONError::ParseNetwork(val.to_string())),
                         },
-                        StakeCredential::new_pub_key(Ed25519KeyHash::from_hex(&params.rewardAccount.credential.keyHash)?)
+                        StakeCredential::new_pub_key(Ed25519KeyHash::from_hex(
+                            &params.rewardAccount.credential.keyHash,
+                        )?),
                     ),
                     owners.into(),
                     relays,
-                    pool_metadata
+                    pool_metadata,
                 );
-                pools.insert(
-                    Ed25519KeyHash::from_hex(pool_id)?,
-                    parsed_params
-                );
+                pools.insert(Ed25519KeyHash::from_hex(pool_id)?, parsed_params);
             }
             // 2) Get initial delegations
             let mut stake: BTreeMap<Ed25519KeyHash, Ed25519KeyHash> = BTreeMap::new();
             for (staking_key, pool_id) in &raw.stake {
                 stake.insert(
                     Ed25519KeyHash::from_hex(staking_key)?,
-                    Ed25519KeyHash::from_hex(pool_id)?
+                    Ed25519KeyHash::from_hex(pool_id)?,
                 );
             }
-            Some(config::ShelleyGenesisStaking {
-                stake,
-                pools,
-            })
-        },
+            Some(config::ShelleyGenesisStaking { stake, pools })
+        }
         _ => None,
     };
-
 
     let mut gen_delegs = BTreeMap::new();
     for (key, val) in data.genDelegs.iter() {
@@ -132,7 +135,7 @@ pub fn parse_genesis_data<R: Read>(json: R) -> Result<config::ShelleyGenesisData
             config::ShelleyGenesisDelegations {
                 delegate: Ed25519KeyHash::from_hex(&val.delegate)?,
                 vrf: VRFKeyHash::from_hex(&val.vrf)?,
-            }
+            },
         );
     }
     Ok(config::ShelleyGenesisData {
@@ -146,10 +149,13 @@ pub fn parse_genesis_data<R: Read>(json: R) -> Result<config::ShelleyGenesisData
         network_magic: data.networkMagic,
         protocol_params: config::ShelleyGenesisProtocolParameters {
             a0: fraction::Fraction::from_str(&data.protocolParams.a0).unwrap(),
-            decentralisation_param: fraction::Fraction::from_str(&data.protocolParams.decentralisationParam).unwrap(),
+            decentralisation_param: fraction::Fraction::from_str(
+                &data.protocolParams.decentralisationParam,
+            )
+            .unwrap(),
             e_max: data.protocolParams.eMax,
             extra_entropy: config::ShelleyGenesisExtraEntropy {
-                tag: data.protocolParams.extraEntropy.tag
+                tag: data.protocolParams.extraEntropy.tag,
             },
             key_deposit: data.protocolParams.keyDeposit,
             max_block_body_size: data.protocolParams.maxBlockBodySize,
@@ -161,7 +167,10 @@ pub fn parse_genesis_data<R: Read>(json: R) -> Result<config::ShelleyGenesisData
             min_utxo_value: data.protocolParams.minUTxOValue,
             n_opt: data.protocolParams.nOpt,
             pool_deposit: data.protocolParams.poolDeposit,
-            protocol_version: ProtocolVersion::new(data.protocolParams.protocolVersion.major, data.protocolParams.protocolVersion.minor),
+            protocol_version: ProtocolVersion::new(
+                data.protocolParams.protocolVersion.major,
+                data.protocolParams.protocolVersion.minor,
+            ),
             rho: fraction::Fraction::from_str(&data.protocolParams.rho).unwrap(),
             tau: fraction::Fraction::from_str(&data.protocolParams.tau).unwrap(),
         },
@@ -174,9 +183,7 @@ pub fn parse_genesis_data<R: Read>(json: R) -> Result<config::ShelleyGenesisData
     })
 }
 
-pub fn redeem_address_to_txid(
-    pubkey: &Address,
-) -> TransactionHash {
+pub fn redeem_address_to_txid(pubkey: &Address) -> TransactionHash {
     let txid = Blake2b256::new(&pubkey.to_raw_bytes());
     TransactionHash::from(*txid.as_hash_bytes())
 }
@@ -186,9 +193,7 @@ mod test {
     use super::*;
 
     fn get_test_genesis_data() -> &'static str {
-        include_str!(
-            "./test_data/test.json"
-        )
+        include_str!("./test_data/test.json")
     }
 
     #[test]
@@ -204,10 +209,7 @@ mod test {
 
     #[test]
     fn parse_test_genesis_files() {
-
-        let genesis_data =
-            super::parse_genesis_data(get_test_genesis_data().as_bytes())
-                .unwrap();
+        let genesis_data = super::parse_genesis_data(get_test_genesis_data().as_bytes()).unwrap();
 
         assert_eq!(genesis_data.epoch_length, 432000u64);
         assert_eq!(genesis_data.network_id, 0);
@@ -221,7 +223,7 @@ mod test {
                     == "605276322ac7882434173dcc6441905f6737689bd309b68ad8b3614fd8")
                 .unwrap()
                 .1,
-                3000000000000000u64
+            3000000000000000u64
         );
     }
 }

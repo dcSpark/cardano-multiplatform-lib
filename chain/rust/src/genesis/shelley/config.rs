@@ -1,12 +1,8 @@
-use std::{
-    collections::BTreeMap,
-};
 use cml_crypto::{Ed25519KeyHash, VRFKeyHash};
 use fraction::Fraction;
+use std::collections::BTreeMap;
 
-use crate::{
-    Coin, address::Address, block::ProtocolVersion,
-};
+use crate::{address::Address, block::ProtocolVersion, Coin};
 
 /// A subset of the Shelley genesis data. The genesis data is a JSON file
 /// is something completely different from a epoch genesis block and the Byron genesis block
@@ -17,7 +13,7 @@ pub struct ShelleyGenesisData {
     pub gen_delegs: BTreeMap<Ed25519KeyHash, ShelleyGenesisDelegations>,
     pub initial_funds: BTreeMap<Address, Coin>,
     pub max_kes_evolutions: u64,
-    pub max_lovelace_supply: u64,
+    pub max_lovelace_supply: Coin,
     pub network_id: u64,
     pub network_magic: u64,
     pub protocol_params: ShelleyGenesisProtocolParameters,
@@ -48,21 +44,20 @@ pub struct ShelleyGenesisProtocolParameters {
     pub decentralisation_param: Fraction,
     pub e_max: u64,
     pub extra_entropy: ShelleyGenesisExtraEntropy,
-    pub key_deposit: u64,
+    pub key_deposit: Coin,
     pub max_block_body_size: u64,
     pub max_block_header_size: u64,
     pub max_tx_size: u64,
-    pub min_fee_a: u64,
-    pub min_fee_b: u64,
-    pub min_pool_cost: u64,
-    pub min_utxo_value: u64,
+    pub min_fee_a: Coin,
+    pub min_fee_b: Coin,
+    pub min_pool_cost: Coin,
+    pub min_utxo_value: Coin,
     pub n_opt: u64,
-    pub pool_deposit: u64,
+    pub pool_deposit: Coin,
     pub protocol_version: ProtocolVersion,
     pub rho: Fraction,
     pub tau: Fraction,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct ShelleyGenesisExtraEntropy {

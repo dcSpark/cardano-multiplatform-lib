@@ -1,6 +1,7 @@
+use crate::assets::Coin;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use serde_aux::prelude::*;
+use std::collections::HashMap;
 
 /// Parsing of the JSON representation of the Shelley genesis block
 /// Note: for a lot of these fields, I didn't check what the max valid size is in the Haskell code
@@ -14,9 +15,9 @@ pub struct ShelleyGenesisData {
     pub activeSlotsCoeff: String,
     pub epochLength: u64,
     pub genDelegs: HashMap<String, ShelleyGenesisDelegations>,
-    pub initialFunds: HashMap<String, u64>,
+    pub initialFunds: HashMap<String, Coin>,
     pub maxKESEvolutions: u64,
-    pub maxLovelaceSupply: u64,
+    pub maxLovelaceSupply: Coin,
     pub networkId: String,
     pub networkMagic: u64,
     pub protocolParams: ShelleyGenesisProtocolParameters,
@@ -46,16 +47,16 @@ pub struct ShelleyGenesisProtocolParameters {
     pub decentralisationParam: String,
     pub eMax: u64,
     pub extraEntropy: ShelleyGenesisExtraEntropy,
-    pub keyDeposit: u64,
+    pub keyDeposit: Coin,
     pub maxBlockBodySize: u64,
     pub maxBlockHeaderSize: u64,
     pub maxTxSize: u64,
-    pub minFeeA: u64,
-    pub minFeeB: u64,
-    pub minPoolCost: u64,
-    pub minUTxOValue: u64,
+    pub minFeeA: Coin,
+    pub minFeeB: Coin,
+    pub minPoolCost: Coin,
+    pub minUTxOValue: Coin,
     pub nOpt: u64,
-    pub poolDeposit: u64,
+    pub poolDeposit: Coin,
     pub protocolVersion: ShelleyGenesisProtocolVersion,
     // convert lossless JSON floats to string to avoid lossy Rust f64
     #[serde(deserialize_with = "deserialize_string_from_number")]
@@ -88,13 +89,13 @@ pub struct ShelleyGenesisStaking {
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ShelleyGenesisPool {
-    pub cost: u64,
+    pub cost: Coin,
     // convert lossless JSON floats to string to avoid lossy Rust f64
     #[serde(deserialize_with = "deserialize_string_from_number")]
     pub margin: String,
     pub metadata: Option<ShelleyGenesisPoolMetadata>,
     pub owners: Vec<String>,
-    pub pledge: u64,
+    pub pledge: Coin,
     pub publicKey: String,
     pub relays: Vec<RelayTypeMap>,
     pub rewardAccount: ShelleyGenesisRewardAccount,
@@ -113,7 +114,7 @@ type RelayTypeMap = HashMap<String, ShelleyGenesisPoolSingleHotsRelay>;
 pub struct ShelleyGenesisPoolSingleHotsRelay {
     pub IPv6: Option<String>,
     pub port: Option<u16>,
-    pub IPv4: Option<String>
+    pub IPv4: Option<String>,
 }
 
 #[allow(non_snake_case)]
@@ -126,12 +127,13 @@ pub struct ShelleyGenesisPoolMetadata {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ShelleyGenesisRewardAccount {
     pub network: String,
-    pub credential: ShelleyGenesisCredential
+    pub credential: ShelleyGenesisCredential,
 }
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ShelleyGenesisCredential {
     // for some reason there actually is a space in the JSON key emitted by the Haskell node
-    #[serde(rename = "key hash")]
+    // both key hash and keyHash are accepted
+    #[serde(alias = "key hash")]
     pub keyHash: String,
 }

@@ -6,6 +6,9 @@ use crate::{
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
+#[cfg(not(feature = "used_from_wasm"))]
+use noop_proc_macro::wasm_bindgen;
+#[cfg(feature = "used_from_wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
 /// JSON <-> PlutusData conversion schemas.

@@ -14,13 +14,13 @@ keywords = ["cardano"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-chain = { path = "../../chain/rust", version = "5.3.1" }
+cml-chain = { path = "../../chain/rust", version = "5.3.1", features = ["used_from_wasm"] }
 cml-chain-wasm = { path = "../../chain/wasm", version = "5.3.1" }
 cml-crypto = { path = "../../crypto/rust", version = "5.3.1" }
 cml-crypto-wasm = { path = "../../crypto/wasm", version = "5.3.1" }
 cml-core = { path = "../../core/rust", version = "5.3.1" }
 cml-core-wasm = { path = "../../core/wasm", version = "5.3.1" }
-cml-multi-era = { path = "../rust", version = "5.3.1" }
+cml-multi-era = { path = "../rust", version = "5.3.1", features = ["used_from_wasm"] }
 cbor_event = "2.4.0"
 hex = "0.4.0"
 linked-hash-map = "0.5.3"

@@ -3,7 +3,6 @@ use noop_proc_macro::wasm_bindgen;
 #[cfg(feature = "used_from_wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
-
 use std::io::{BufRead, Write};
 
 use cml_crypto::{chain_crypto::hash::Blake2b224, Bip32PublicKey, PublicKey};

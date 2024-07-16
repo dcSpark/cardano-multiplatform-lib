@@ -1,6 +1,6 @@
+use cml_core::DeserializeError;
 use cml_crypto::{
-    chain_crypto::Blake2b256, CryptoError, Ed25519KeyHash, PoolMetadataHash, TransactionHash,
-    VRFKeyHash,
+    chain_crypto::Blake2b256, Ed25519KeyHash, PoolMetadataHash, TransactionHash, VRFKeyHash,
 };
 use serde_json;
 use std::collections::BTreeMap;
@@ -23,8 +23,8 @@ use super::{
 pub enum GenesisJSONError {
     #[error("JSON: {0:?}")]
     Serde(#[from] serde_json::Error),
-    #[error("Crypto: {0:?}")]
-    CryptoError(#[from] CryptoError),
+    #[error("Deserialize: {0:?}")]
+    Deserialize(#[from] DeserializeError),
     #[error("ParseInt: {0:?}")]
     ParseInt(#[from] std::num::ParseIntError),
     #[error("ParseIP: {0:?}")]
@@ -41,10 +41,7 @@ pub fn parse_genesis_data<R: Read>(
 
     let mut initial_funds = BTreeMap::new();
     for (addr_hex, balance) in &data.initialFunds {
-        initial_funds.insert(
-            Address::from_hex(addr_hex).map_err(CryptoError::from)?,
-            *balance,
-        );
+        initial_funds.insert(Address::from_hex(addr_hex)?, *balance);
     }
 
     let network_id = match data.networkId.as_str() {

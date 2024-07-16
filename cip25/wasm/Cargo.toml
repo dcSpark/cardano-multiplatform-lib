@@ -15,7 +15,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 cbor_event = "2.2.0"
-cml-chain = { path = "../../chain/rust", version = "5.3.1" }
+cml-chain = { path = "../../chain/rust", version = "5.3.1", features = ["used_from_wasm"] }
 cml-chain-wasm = { path = "../../chain/wasm", version = "5.3.1" }
 cml-core = { path = "../../core/rust", version = "5.3.1" }
 cml-core-wasm = { path = "../../core/wasm", version = "5.3.1" }

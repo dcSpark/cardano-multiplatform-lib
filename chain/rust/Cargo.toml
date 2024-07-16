@@ -13,6 +13,9 @@ keywords = ["cardano"]
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+used_from_wasm = ["wasm-bindgen"]
+
 [dependencies]
 cml-core = { "path" = "../../core/rust", version = "5.3.1" }
 cml-crypto = { "path" = "../../crypto/rust", version = "5.3.1" }
@@ -32,29 +35,15 @@ fraction = "0.10.0"
 base64 = "0.21.5"
 num-bigint = "0.4.0"
 num-integer = "0.1.45"
-#rand_os = "0.1"
 thiserror = "1.0.37"
 num = "0.4"
 unicode-segmentation = "1.10.1"
-# These can be removed if we make wasm bindings for ALL functionality here.
-# This was not done right now as there is a lot of existing legacy code e.g.
-# for Byron that might need to be used from WASM and might not.
-# We can remove this dependency when that is decided.
-#
-# The other use-case here is enums. Without this two enums would need to be defined
-# despite wasm_bindgen supporting C-style enums (with non-negative values) 100%
-# This could possibly be resolved with macros but maybe not.
 
 # non-wasm
-#[target.'cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))'.dependencies]
-#rand_os = "0.1"
-#noop_proc_macro = "0.3.0"
+noop_proc_macro = { version = "0.3.0", optional = false }
 
 # wasm
-#[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies]
-wasm-bindgen = { version = "0.2.87" }
-#rand_os = { version = "0.1", features = ["wasm-bindgen"] }
-#js-sys = "=0.3.59"
+wasm-bindgen = { version = "0.2.87", optional = true }
 
 
 [dev-dependencies]

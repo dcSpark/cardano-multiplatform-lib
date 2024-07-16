@@ -5,6 +5,11 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
+#[cfg(not(feature = "used_from_wasm"))]
+use noop_proc_macro::wasm_bindgen;
+#[cfg(feature = "used_from_wasm")]
+use wasm_bindgen::prelude::wasm_bindgen;
+
 use self::cbor_encodings::{
     LegacyRedeemerEncoding, PlutusV3ScriptEncoding, RedeemerKeyEncoding, RedeemerValEncoding,
 };
@@ -135,7 +140,7 @@ impl ExUnits {
     serde::Serialize,
     schemars::JsonSchema,
 )]
-#[wasm_bindgen::prelude::wasm_bindgen]
+#[wasm_bindgen]
 pub enum Language {
     PlutusV1,
     PlutusV2,
@@ -477,7 +482,7 @@ impl RedeemerKey {
     serde::Serialize,
     schemars::JsonSchema,
 )]
-#[wasm_bindgen::prelude::wasm_bindgen]
+#[wasm_bindgen]
 pub enum RedeemerTag {
     Spend,
     Mint,

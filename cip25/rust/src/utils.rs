@@ -7,7 +7,6 @@ pub use cml_chain::{
     PolicyId,
 };
 pub use cml_core::{error::*, serialization::*};
-use cml_crypto::RawBytesEncoding;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 use crate::{CIP25ChunkableString, CIP25Metadata, CIP25MetadataDetails, CIP25String64};
@@ -251,7 +250,7 @@ impl CIP25LabelMetadata {
         details: CIP25MetadataDetails,
     ) -> Result<Option<CIP25MetadataDetails>, CIP25Error> {
         if self.version == CIP25Version::V1 {
-            if let Err(e) = String::from_utf8(asset_name.get().clone()) {
+            if let Err(e) = String::from_utf8(asset_name.to_raw_bytes().to_vec()) {
                 return Err(CIP25Error::Version1NonStringAsset(asset_name, e));
             }
         }
@@ -296,7 +295,8 @@ impl cbor_event::se::Serialize for CIP25LabelMetadata {
                     for (asset_name, details) in assets.iter() {
                         // hand-edit: write as string
                         // note: this invariant is checked during setting and data is private
-                        let asset_name_str = String::from_utf8(asset_name.get().clone()).unwrap();
+                        let asset_name_str =
+                            String::from_utf8(asset_name.to_raw_bytes().to_vec()).unwrap();
                         serializer.write_text(asset_name_str)?;
                         details.serialize(serializer)?;
                     }
@@ -313,7 +313,7 @@ impl cbor_event::se::Serialize for CIP25LabelMetadata {
                     serializer.write_map(cbor_event::Len::Len(assets.len() as u64))?;
                     for (asset_name, details) in assets.iter() {
                         // hand-edit: write bytes
-                        serializer.write_bytes(asset_name.get())?;
+                        serializer.write_bytes(asset_name.to_raw_bytes())?;
 
                         details.serialize(serializer)?;
                     }

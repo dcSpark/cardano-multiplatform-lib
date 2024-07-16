@@ -49,19 +49,19 @@ impl GenesisKeyDelegation {
         self.0.genesis_delegate_hash.into()
     }
 
-    pub fn v_r_f_key_hash(&self) -> VRFKeyHash {
-        self.0.v_r_f_key_hash.into()
+    pub fn vrf_key_hash(&self) -> VRFKeyHash {
+        self.0.vrf_key_hash.into()
     }
 
     pub fn new(
         genesis_hash: &GenesisHash,
         genesis_delegate_hash: &GenesisDelegateHash,
-        v_r_f_key_hash: &VRFKeyHash,
+        vrf_key_hash: &VRFKeyHash,
     ) -> Self {
         Self(cml_multi_era::shelley::GenesisKeyDelegation::new(
             genesis_hash.clone().into(),
             genesis_delegate_hash.clone().into(),
-            v_r_f_key_hash.clone().into(),
+            vrf_key_hash.clone().into(),
         ))
     }
 }
@@ -378,13 +378,13 @@ impl ShelleyCertificate {
     pub fn new_genesis_key_delegation(
         genesis_hash: &GenesisHash,
         genesis_delegate_hash: &GenesisDelegateHash,
-        v_r_f_key_hash: &VRFKeyHash,
+        vrf_key_hash: &VRFKeyHash,
     ) -> Self {
         Self(
             cml_multi_era::shelley::ShelleyCertificate::new_genesis_key_delegation(
                 genesis_hash.clone().into(),
                 genesis_delegate_hash.clone().into(),
-                v_r_f_key_hash.clone().into(),
+                vrf_key_hash.clone().into(),
             ),
         )
     }
@@ -504,14 +504,14 @@ pub enum ShelleyCertificateKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyDnsName(cml_multi_era::shelley::ShelleyDnsName);
+pub struct ShelleyDNSName(cml_multi_era::shelley::ShelleyDNSName);
 
-impl_wasm_cbor_json_api!(ShelleyDnsName);
+impl_wasm_cbor_json_api!(ShelleyDNSName);
 
-impl_wasm_conversions!(cml_multi_era::shelley::ShelleyDnsName, ShelleyDnsName);
+impl_wasm_conversions!(cml_multi_era::shelley::ShelleyDNSName, ShelleyDNSName);
 
 #[wasm_bindgen]
-impl ShelleyDnsName {
+impl ShelleyDNSName {
     pub fn get(&self) -> String {
         self.0.get().clone()
     }
@@ -569,8 +569,8 @@ impl ShelleyHeaderBody {
         self.0.issuer_vkey.clone().into()
     }
 
-    pub fn v_r_f_vkey(&self) -> VRFVkey {
-        self.0.v_r_f_vkey.into()
+    pub fn vrf_vkey(&self) -> VRFVkey {
+        self.0.vrf_vkey.into()
     }
 
     pub fn nonce_vrf(&self) -> VRFCert {
@@ -602,7 +602,7 @@ impl ShelleyHeaderBody {
         slot: u64,
         prev_hash: Option<BlockHeaderHash>,
         issuer_vkey: &Vkey,
-        v_r_f_vkey: &VRFVkey,
+        vrf_vkey: &VRFVkey,
         nonce_vrf: &VRFCert,
         leader_vrf: &VRFCert,
         block_body_size: u64,
@@ -615,7 +615,7 @@ impl ShelleyHeaderBody {
             slot,
             prev_hash.map(Into::into),
             issuer_vkey.clone().into(),
-            v_r_f_vkey.clone().into(),
+            vrf_vkey.clone().into(),
             nonce_vrf.clone().into(),
             leader_vrf.clone().into(),
             block_body_size,
@@ -696,11 +696,12 @@ impl_wasm_conversions!(
 
 #[wasm_bindgen]
 impl ShelleyMultiHostName {
-    pub fn shelley_dns_name(&self) -> ShelleyDnsName {
+    pub fn shelley_dns_name(&self) -> ShelleyDNSName {
         self.0.shelley_dns_name.clone().into()
     }
 
-    pub fn new(shelley_dns_name: &ShelleyDnsName) -> Self {
+    /// * `shelley_dns_name` - A SRV DNS record
+    pub fn new(shelley_dns_name: &ShelleyDNSName) -> Self {
         Self(cml_multi_era::shelley::ShelleyMultiHostName::new(
             shelley_dns_name.clone().into(),
         ))
@@ -1024,7 +1025,7 @@ impl ShelleyRelay {
 
     pub fn new_shelley_single_host_name(
         port: Option<Port>,
-        shelley_dns_name: &ShelleyDnsName,
+        shelley_dns_name: &ShelleyDNSName,
     ) -> Self {
         Self(
             cml_multi_era::shelley::ShelleyRelay::new_shelley_single_host_name(
@@ -1034,7 +1035,7 @@ impl ShelleyRelay {
         )
     }
 
-    pub fn new_shelley_multi_host_name(shelley_dns_name: &ShelleyDnsName) -> Self {
+    pub fn new_shelley_multi_host_name(shelley_dns_name: &ShelleyDNSName) -> Self {
         Self(
             cml_multi_era::shelley::ShelleyRelay::new_shelley_multi_host_name(
                 shelley_dns_name.clone().into(),
@@ -1108,11 +1109,12 @@ impl ShelleySingleHostName {
         self.0.port
     }
 
-    pub fn shelley_dns_name(&self) -> ShelleyDnsName {
+    pub fn shelley_dns_name(&self) -> ShelleyDNSName {
         self.0.shelley_dns_name.clone().into()
     }
 
-    pub fn new(port: Option<Port>, shelley_dns_name: &ShelleyDnsName) -> Self {
+    /// * `shelley_dns_name` - An A or AAAA DNS record
+    pub fn new(port: Option<Port>, shelley_dns_name: &ShelleyDNSName) -> Self {
         Self(cml_multi_era::shelley::ShelleySingleHostName::new(
             port,
             shelley_dns_name.clone().into(),

@@ -1,5 +1,5 @@
 use cml_chain::{
-    certs::{DnsName, PoolParams, PoolRegistration, Relay},
+    certs::{DNSName, PoolParams, PoolRegistration, Relay},
     transaction::{NativeScript, TransactionWitnessSet},
 };
 
@@ -91,10 +91,10 @@ impl From<ShelleyRelay> for Relay {
             }
             ShelleyRelay::ShelleySingleHostName(host) => Self::new_single_host_name(
                 host.port,
-                DnsName::new(host.shelley_dns_name.inner).unwrap(),
+                DNSName::new(host.shelley_dns_name.inner).unwrap(),
             ),
             ShelleyRelay::ShelleyMultiHostName(host) => {
-                Self::new_multi_host_name(DnsName::new(host.shelley_dns_name.inner).unwrap())
+                Self::new_multi_host_name(DNSName::new(host.shelley_dns_name.inner).unwrap())
             }
         }
     }

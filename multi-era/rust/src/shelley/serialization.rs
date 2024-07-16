@@ -72,13 +72,13 @@ impl SerializeEmbeddedGroup for GenesisKeyDelegation {
                 ),
         )?;
         serializer.write_bytes_sz(
-            self.v_r_f_key_hash.to_raw_bytes(),
+            self.vrf_key_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
-                .map(|encs| encs.v_r_f_key_hash_encoding.clone())
+                .map(|encs| encs.vrf_key_hash_encoding.clone())
                 .unwrap_or_default()
                 .to_str_len_sz(
-                    self.v_r_f_key_hash.to_raw_bytes().len() as u64,
+                    self.vrf_key_hash.to_raw_bytes().len() as u64,
                     force_canonical,
                 ),
         )?;
@@ -146,7 +146,7 @@ impl DeserializeEmbeddedGroup for GenesisKeyDelegation {
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
                 .map_err(|e: DeserializeError| e.annotate("genesis_delegate_hash"))?;
-            let (v_r_f_key_hash, v_r_f_key_hash_encoding) = raw
+            let (vrf_key_hash, vrf_key_hash_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|(bytes, enc)| {
@@ -154,17 +154,17 @@ impl DeserializeEmbeddedGroup for GenesisKeyDelegation {
                         .map(|bytes| (bytes, StringEncoding::from(enc)))
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
-                .map_err(|e: DeserializeError| e.annotate("v_r_f_key_hash"))?;
+                .map_err(|e: DeserializeError| e.annotate("vrf_key_hash"))?;
             Ok(GenesisKeyDelegation {
                 genesis_hash,
                 genesis_delegate_hash,
-                v_r_f_key_hash,
+                vrf_key_hash,
                 encodings: Some(GenesisKeyDelegationEncoding {
                     len_encoding,
                     tag_encoding,
                     genesis_hash_encoding,
                     genesis_delegate_hash_encoding,
-                    v_r_f_key_hash_encoding,
+                    vrf_key_hash_encoding,
                 }),
             })
         })()
@@ -1305,7 +1305,7 @@ impl Deserialize for ShelleyCertificate {
     }
 }
 
-impl Serialize for ShelleyDnsName {
+impl Serialize for ShelleyDNSName {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -1322,14 +1322,14 @@ impl Serialize for ShelleyDnsName {
     }
 }
 
-impl Deserialize for ShelleyDnsName {
+impl Deserialize for ShelleyDNSName {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let (inner, inner_encoding) = raw
             .text_sz()
             .map(|(s, enc)| (s, StringEncoding::from(enc)))?;
         if inner.len() > 64 {
             return Err(DeserializeError::new(
-                "ShelleyDnsName",
+                "ShelleyDNSName",
                 DeserializeFailure::RangeCheck {
                     found: inner.len() as isize,
                     min: Some(0),
@@ -1339,7 +1339,7 @@ impl Deserialize for ShelleyDnsName {
         }
         Ok(Self {
             inner,
-            encodings: Some(ShelleyDnsNameEncoding { inner_encoding }),
+            encodings: Some(ShelleyDNSNameEncoding { inner_encoding }),
         })
     }
 }
@@ -1454,12 +1454,12 @@ impl Serialize for ShelleyHeaderBody {
                 ),
         )?;
         serializer.write_bytes_sz(
-            self.v_r_f_vkey.to_raw_bytes(),
+            self.vrf_vkey.to_raw_bytes(),
             self.encodings
                 .as_ref()
-                .map(|encs| encs.v_r_f_vkey_encoding.clone())
+                .map(|encs| encs.vrf_vkey_encoding.clone())
                 .unwrap_or_default()
-                .to_str_len_sz(self.v_r_f_vkey.to_raw_bytes().len() as u64, force_canonical),
+                .to_str_len_sz(self.vrf_vkey.to_raw_bytes().len() as u64, force_canonical),
         )?;
         self.nonce_vrf.serialize(serializer, force_canonical)?;
         self.leader_vrf.serialize(serializer, force_canonical)?;
@@ -1547,7 +1547,7 @@ impl Deserialize for ShelleyHeaderBody {
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
                 .map_err(|e: DeserializeError| e.annotate("issuer_vkey"))?;
-            let (v_r_f_vkey, v_r_f_vkey_encoding) = raw
+            let (vrf_vkey, vrf_vkey_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|(bytes, enc)| {
@@ -1555,7 +1555,7 @@ impl Deserialize for ShelleyHeaderBody {
                         .map(|bytes| (bytes, StringEncoding::from(enc)))
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
-                .map_err(|e: DeserializeError| e.annotate("v_r_f_vkey"))?;
+                .map_err(|e: DeserializeError| e.annotate("vrf_vkey"))?;
             let nonce_vrf =
                 VRFCert::deserialize(raw).map_err(|e: DeserializeError| e.annotate("nonce_vrf"))?;
             let leader_vrf = VRFCert::deserialize(raw)
@@ -1592,7 +1592,7 @@ impl Deserialize for ShelleyHeaderBody {
                 slot,
                 prev_hash,
                 issuer_vkey,
-                v_r_f_vkey,
+                vrf_vkey,
                 nonce_vrf,
                 leader_vrf,
                 block_body_size,
@@ -1605,7 +1605,7 @@ impl Deserialize for ShelleyHeaderBody {
                     slot_encoding,
                     prev_hash_encoding,
                     issuer_vkey_encoding,
-                    v_r_f_vkey_encoding,
+                    vrf_vkey_encoding,
                     block_body_size_encoding,
                     block_body_hash_encoding,
                 }),
@@ -1997,7 +1997,7 @@ impl DeserializeEmbeddedGroup for ShelleyMultiHostName {
                 Ok(Some(tag_encoding))
             })()
             .map_err(|e| e.annotate("tag"))?;
-            let shelley_dns_name = ShelleyDnsName::deserialize(raw)
+            let shelley_dns_name = ShelleyDNSName::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("shelley_dns_name"))?;
             Ok(ShelleyMultiHostName {
                 shelley_dns_name,
@@ -3468,8 +3468,8 @@ impl DeserializeEmbeddedGroup for ShelleySingleHostName {
                 })
             })()
             .map_err(|e| e.annotate("port"))?;
-            let shelley_dns_name = ShelleyDnsName::deserialize(raw)
-                .map_err(|e: DeserializeError| e.annotate("shelley_dns_name"))?;
+            let shelley_dns_name = ShelleyDNSName::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("shelley__dns_name"))?;
             Ok(ShelleySingleHostName {
                 port,
                 shelley_dns_name,

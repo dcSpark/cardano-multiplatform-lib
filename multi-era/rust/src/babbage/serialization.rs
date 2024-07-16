@@ -22,8 +22,8 @@ impl Serialize for BabbageAuxiliaryData {
             BabbageAuxiliaryData::Shelley(shelley) => {
                 shelley.serialize(serializer, force_canonical)
             }
-            BabbageAuxiliaryData::ShelleyMA(shelley_m_a) => {
-                shelley_m_a.serialize(serializer, force_canonical)
+            BabbageAuxiliaryData::ShelleyMA(shelley_ma) => {
+                shelley_ma.serialize(serializer, force_canonical)
             }
             BabbageAuxiliaryData::Babbage(babbage) => {
                 babbage.serialize(serializer, force_canonical)
@@ -48,7 +48,7 @@ impl Deserialize for BabbageAuxiliaryData {
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
-                ShelleyMaFormatAuxData::deserialize(raw);
+                ShelleyMAFormatAuxData::deserialize(raw);
             match deser_variant {
                 Ok(shelley_m_a) => return Ok(Self::ShelleyMA(shelley_m_a)),
                 Err(e) => {

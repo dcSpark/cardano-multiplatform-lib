@@ -2,7 +2,7 @@
 use crate::chain_crypto::bech32::Bech32;
 pub use cml_core::{
     error::{DeserializeError, DeserializeFailure},
-    serialization::{Deserialize, Serialize, StringEncoding},
+    serialization::{Deserialize, RawBytesEncoding, Serialize, StringEncoding},
 };
 use cryptoxide::blake2b::Blake2b;
 pub use derivative::Derivative;
@@ -21,26 +21,6 @@ pub mod typed_bytes;
 // used in chain_core / chain_crypto
 #[macro_use]
 extern crate cfg_if;
-
-pub trait RawBytesEncoding {
-    fn to_raw_bytes(&self) -> &[u8];
-
-    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError>
-    where
-        Self: Sized;
-
-    fn to_raw_hex(&self) -> String {
-        hex::encode(self.to_raw_bytes())
-    }
-
-    fn from_raw_hex(hex_str: &str) -> Result<Self, CryptoError>
-    where
-        Self: Sized,
-    {
-        let bytes = hex::decode(hex_str)?;
-        Self::from_raw_bytes(bytes.as_ref())
-    }
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum CryptoError {
@@ -124,7 +104,7 @@ impl Bip32PrivateKey {
         buf[0..64].clone_from_slice(&bytes[0..64]);
         buf[64..96].clone_from_slice(&bytes[96..128]);
 
-        Bip32PrivateKey::from_raw_bytes(&buf)
+        Bip32PrivateKey::from_raw_bytes(&buf).map_err(Into::into)
     }
     /// see from_128_xprv
     pub fn to_128_xprv(&self) -> Vec<u8> {
@@ -181,9 +161,9 @@ impl RawBytesEncoding for Bip32PrivateKey {
         self.0.as_ref()
     }
 
-    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
         chain_crypto::SecretKey::<chain_crypto::Ed25519Bip32>::from_binary(bytes)
-            .map_err(Into::into)
+            .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
             .map(Bip32PrivateKey)
     }
 }
@@ -248,9 +228,9 @@ impl RawBytesEncoding for Bip32PublicKey {
         self.0.as_ref()
     }
 
-    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
         chain_crypto::PublicKey::<chain_crypto::Ed25519Bip32>::from_binary(bytes)
-            .map_err(Into::into)
+            .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
             .map(Bip32PublicKey)
     }
 }
@@ -339,8 +319,10 @@ impl RawBytesEncoding for PrivateKey {
         }
     }
 
-    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
-        Self::from_normal_bytes(bytes).or_else(|_| Self::from_extended_bytes(bytes))
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
+        Self::from_normal_bytes(bytes)
+            .or_else(|_| Self::from_extended_bytes(bytes))
+            .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
     }
 }
 
@@ -387,9 +369,9 @@ impl RawBytesEncoding for PublicKey {
         self.0.as_ref()
     }
 
-    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
+    fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
         chain_crypto::PublicKey::from_binary(bytes)
-            .map_err(Into::into)
+            .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
             .map(PublicKey)
     }
 }
@@ -429,10 +411,10 @@ macro_rules! impl_signature {
                 self.0.as_ref()
             }
 
-            fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
+            fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
                 chain_crypto::Signature::from_binary(bytes.as_ref())
                     .map(Self)
-                    .map_err(Into::into)
+                    .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
             }
         }
 
@@ -528,8 +510,10 @@ macro_rules! impl_hash_type {
                 hex::encode(&self.0.as_ref())
             }
 
-            pub fn from_hex(input: &str) -> Result<Self, CryptoError> {
-                let hex_bytes = hex::decode(input)?;
+            pub fn from_hex(input: &str) -> Result<Self, DeserializeError> {
+                let hex_bytes = hex::decode(input).map_err(|e| {
+                    DeserializeError::from(DeserializeFailure::InvalidStructure(Box::new(e)))
+                })?;
                 Self::from_raw_bytes(&hex_bytes)
             }
         }
@@ -557,7 +541,7 @@ macro_rules! impl_hash_type {
                 self.0.as_ref()
             }
 
-            fn from_raw_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
+            fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
                 use std::convert::TryInto;
                 match bytes.len() {
                     $byte_count => Ok($name(bytes[..$byte_count].try_into().unwrap())),
@@ -570,8 +554,7 @@ macro_rules! impl_hash_type {
                         Err(DeserializeError::new(
                             stringify!($name),
                             DeserializeFailure::CBOR(cbor_error),
-                        )
-                        .into())
+                        ))
                     }
                 }
             }
@@ -652,10 +635,10 @@ impl RawBytesEncoding for LegacyDaedalusPrivateKey {
         self.0.as_ref()
     }
 
-    fn from_raw_bytes(bytes: &[u8]) -> Result<LegacyDaedalusPrivateKey, CryptoError> {
+    fn from_raw_bytes(bytes: &[u8]) -> Result<LegacyDaedalusPrivateKey, DeserializeError> {
         chain_crypto::SecretKey::<chain_crypto::LegacyDaedalus>::from_binary(bytes)
             .map(LegacyDaedalusPrivateKey)
-            .map_err(|e| e.into())
+            .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
     }
 }
 

@@ -5,12 +5,25 @@ pub mod utils;
 
 use crate::utils::BigInteger;
 
-use super::{IntList, PlutusDataList, SubCoin};
+use super::{PlutusDataList, SubCoin};
 use crate::{LegacyRedeemerList, MapRedeemerKeyToRedeemerVal};
 pub use cml_chain::plutus::{Language, RedeemerTag};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_map};
 pub use utils::{ConstrPlutusData, PlutusMap};
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+
+impl_wasm_map!(
+    u64,
+    Vec<i64>,
+    u64,
+    Vec<i64>,
+    Vec<u64>,
+    MapU64ToArrI64,
+    true,
+    true,
+    true,
+    false
+);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -22,32 +35,8 @@ impl_wasm_conversions!(cml_chain::plutus::CostModels, CostModels);
 
 #[wasm_bindgen]
 impl CostModels {
-    pub fn set_plutus_v1(&mut self, plutus_v1: &IntList) {
-        self.0.plutus_v1 = Some(plutus_v1.clone().into())
-    }
-
-    pub fn plutus_v1(&self) -> Option<IntList> {
-        self.0.plutus_v1.clone().map(std::convert::Into::into)
-    }
-
-    pub fn set_plutus_v2(&mut self, plutus_v2: &IntList) {
-        self.0.plutus_v2 = Some(plutus_v2.clone().into())
-    }
-
-    pub fn plutus_v2(&self) -> Option<IntList> {
-        self.0.plutus_v2.clone().map(std::convert::Into::into)
-    }
-
-    pub fn set_plutus_v3(&mut self, plutus_v3: &IntList) {
-        self.0.plutus_v3 = Some(plutus_v3.clone().into())
-    }
-
-    pub fn plutus_v3(&self) -> Option<IntList> {
-        self.0.plutus_v3.clone().map(std::convert::Into::into)
-    }
-
-    pub fn new() -> Self {
-        Self(cml_chain::plutus::CostModels::new())
+    pub fn inner(&self) -> MapU64ToArrI64 {
+        self.0.inner.clone().into()
     }
 }
 
@@ -235,13 +224,6 @@ impl_wasm_cbor_json_api!(PlutusV1Script);
 
 impl_wasm_conversions!(cml_chain::plutus::PlutusV1Script, PlutusV1Script);
 
-#[wasm_bindgen]
-impl PlutusV1Script {
-    pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PlutusV2Script(cml_chain::plutus::PlutusV2Script);
@@ -250,13 +232,6 @@ impl_wasm_cbor_json_api!(PlutusV2Script);
 
 impl_wasm_conversions!(cml_chain::plutus::PlutusV2Script, PlutusV2Script);
 
-#[wasm_bindgen]
-impl PlutusV2Script {
-    pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PlutusV3Script(cml_chain::plutus::PlutusV3Script);
@@ -264,13 +239,6 @@ pub struct PlutusV3Script(cml_chain::plutus::PlutusV3Script);
 impl_wasm_cbor_json_api!(PlutusV3Script);
 
 impl_wasm_conversions!(cml_chain::plutus::PlutusV3Script, PlutusV3Script);
-
-#[wasm_bindgen]
-impl PlutusV3Script {
-    pub fn get(&self) -> Vec<u8> {
-        self.0.get().clone()
-    }
-}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

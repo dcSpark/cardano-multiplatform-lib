@@ -3,6 +3,7 @@ use base64::{
     Engine,
 };
 use cbor_event::cbor;
+use cml_core::DeserializeError;
 use cml_crypto::{CryptoError, RawBytesEncoding};
 use serde_json;
 use std::collections::BTreeMap;
@@ -29,6 +30,8 @@ pub enum GenesisJSONError {
     Serde(#[from] serde_json::Error),
     #[error("Crypto: {0:?}")]
     CryptoError(#[from] CryptoError),
+    #[error("Deserialize: {0:?}")]
+    DeserializeError(#[from] DeserializeError),
     #[error("Base64: {0:?}")]
     Base64(#[from] base64::DecodeError),
     #[error("ParseInt: {0:?}")]

@@ -1,5 +1,7 @@
-//#[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
-//use noop_proc_macro::wasm_bindgen;
+#[cfg(not(feature = "used_from_wasm"))]
+use noop_proc_macro::wasm_bindgen;
+#[cfg(feature = "used_from_wasm")]
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use std::io::{BufRead, Write};
 
@@ -76,7 +78,7 @@ impl Default for AddrAttributes {
     serde::Serialize,
     schemars::JsonSchema,
 )]
-#[wasm_bindgen::prelude::wasm_bindgen]
+#[wasm_bindgen]
 pub enum ByronAddrType {
     PublicKey = 0,
     Script = 1,

@@ -143,7 +143,9 @@ pub enum NativeScript {
     ScriptAll(ScriptAll),
     ScriptAny(ScriptAny),
     ScriptNOfK(ScriptNOfK),
+    /// Timelock validity intervals are half-open intervals [a, b). This field specifies the left (included) endpoint a.
     ScriptInvalidBefore(ScriptInvalidBefore),
+    /// Timelock validity intervals are half-open intervals [a, b). This field specifies the right (excluded) endpoint b.
     ScriptInvalidHereafter(ScriptInvalidHereafter),
 }
 
@@ -164,10 +166,12 @@ impl NativeScript {
         Self::ScriptNOfK(ScriptNOfK::new(n, native_scripts))
     }
 
+    /// Timelock validity intervals are half-open intervals [a, b). This field specifies the left (included) endpoint a.
     pub fn new_script_invalid_before(before: Slot) -> Self {
         Self::ScriptInvalidBefore(ScriptInvalidBefore::new(before))
     }
 
+    /// Timelock validity intervals are half-open intervals [a, b). This field specifies the right (excluded) endpoint b.
     pub fn new_script_invalid_hereafter(after: Slot) -> Self {
         Self::ScriptInvalidHereafter(ScriptInvalidHereafter::new(after))
     }

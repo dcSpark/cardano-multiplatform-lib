@@ -9,7 +9,7 @@ use crate::{
 };
 use cml_chain_wasm::address::Address;
 use cml_chain_wasm::assets::{Coin, Mint, Value};
-use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
+use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain_wasm::block::Header;
 use cml_chain_wasm::crypto::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
 use cml_chain_wasm::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
@@ -43,11 +43,9 @@ impl BabbageAuxiliaryData {
         ))
     }
 
-    pub fn new_shelley_m_a(shelley_m_a: &ShelleyMaFormatAuxData) -> Self {
+    pub fn new_shelley_ma(shelley_ma: &ShelleyMAFormatAuxData) -> Self {
         Self(
-            cml_multi_era::babbage::BabbageAuxiliaryData::new_shelley_m_a(
-                shelley_m_a.clone().into(),
-            ),
+            cml_multi_era::babbage::BabbageAuxiliaryData::new_shelley_ma(shelley_ma.clone().into()),
         )
     }
 
@@ -80,10 +78,10 @@ impl BabbageAuxiliaryData {
         }
     }
 
-    pub fn as_shelley_m_a(&self) -> Option<ShelleyMaFormatAuxData> {
+    pub fn as_shelley_ma(&self) -> Option<ShelleyMAFormatAuxData> {
         match &self.0 {
-            cml_multi_era::babbage::BabbageAuxiliaryData::ShelleyMA(shelley_m_a) => {
-                Some(shelley_m_a.clone().into())
+            cml_multi_era::babbage::BabbageAuxiliaryData::ShelleyMA(shelley_ma) => {
+                Some(shelley_ma.clone().into())
             }
             _ => None,
         }
@@ -703,6 +701,7 @@ impl BabbageTransactionBody {
     }
 
     pub fn set_mint(&mut self, mint: &Mint) {
+        // hand-edit
         self.0.mint = Some(cml_multi_era::babbage::utils::BabbageMint::from(Into::<
             cml_chain::assets::Mint,
         >::into(
@@ -711,6 +710,7 @@ impl BabbageTransactionBody {
     }
 
     pub fn mint(&self) -> Option<Mint> {
+        // hand-edit
         self.0
             .mint
             .as_ref()

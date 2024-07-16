@@ -752,6 +752,45 @@ impl Deserialize for Credential {
     }
 }
 
+impl Serialize for DNSName {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_text_sz(
+            &self.inner,
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding.clone())
+                .unwrap_or_default()
+                .to_str_len_sz(self.inner.len() as u64, force_canonical),
+        )
+    }
+}
+
+impl Deserialize for DNSName {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let (inner, inner_encoding) = raw
+            .text_sz()
+            .map(|(s, enc)| (s, StringEncoding::from(enc)))?;
+        if inner.len() > 128 {
+            return Err(DeserializeError::new(
+                "DNSName",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len() as isize,
+                    min: Some(0),
+                    max: Some(128),
+                },
+            ));
+        }
+        Ok(Self {
+            inner,
+            encodings: Some(DNSNameEncoding { inner_encoding }),
+        })
+    }
+}
+
 impl Serialize for DRep {
     fn serialize<'se, W: Write>(
         &self,
@@ -1009,45 +1048,6 @@ impl Deserialize for DRep {
     }
 }
 
-impl Serialize for DnsName {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_text_sz(
-            &self.inner,
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.inner_encoding.clone())
-                .unwrap_or_default()
-                .to_str_len_sz(self.inner.len() as u64, force_canonical),
-        )
-    }
-}
-
-impl Deserialize for DnsName {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw
-            .text_sz()
-            .map(|(s, enc)| (s, StringEncoding::from(enc)))?;
-        if inner.len() > 128 {
-            return Err(DeserializeError::new(
-                "DnsName",
-                DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
-                    min: Some(0),
-                    max: Some(128),
-                },
-            ));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(DnsNameEncoding { inner_encoding }),
-        })
-    }
-}
-
 impl Serialize for Ipv4 {
     fn serialize<'se, W: Write>(
         &self,
@@ -1208,7 +1208,7 @@ impl DeserializeEmbeddedGroup for MultiHostName {
             })()
             .map_err(|e| e.annotate("tag"))?;
             let dns_name =
-                DnsName::deserialize(raw).map_err(|e: DeserializeError| e.annotate("dns_name"))?;
+                DNSName::deserialize(raw).map_err(|e: DeserializeError| e.annotate("dns_name"))?;
             Ok(MultiHostName {
                 dns_name,
                 encodings: Some(MultiHostNameEncoding {
@@ -1760,12 +1760,12 @@ impl SerializeEmbeddedGroup for RegCert {
         self.stake_credential
             .serialize(serializer, force_canonical)?;
         serializer.write_unsigned_integer_sz(
-            self.coin,
+            self.deposit,
             fit_sz(
-                self.coin,
+                self.deposit,
                 self.encodings
                     .as_ref()
-                    .map(|encs| encs.coin_encoding)
+                    .map(|encs| encs.deposit_encoding)
                     .unwrap_or_default(),
                 force_canonical,
             ),
@@ -1818,18 +1818,18 @@ impl DeserializeEmbeddedGroup for RegCert {
             .map_err(|e| e.annotate("tag"))?;
             let stake_credential = Credential::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
-            let (coin, coin_encoding) = raw
+            let (deposit, deposit_encoding) = raw
                 .unsigned_integer_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .map(|(x, enc)| (x, Some(enc)))
-                .map_err(|e: DeserializeError| e.annotate("coin"))?;
+                .map_err(|e: DeserializeError| e.annotate("deposit"))?;
             Ok(RegCert {
                 stake_credential,
-                coin,
+                deposit,
                 encodings: Some(RegCertEncoding {
                     len_encoding,
                     tag_encoding,
-                    coin_encoding,
+                    deposit_encoding,
                 }),
             })
         })()
@@ -1874,12 +1874,12 @@ impl SerializeEmbeddedGroup for RegDrepCert {
         self.drep_credential
             .serialize(serializer, force_canonical)?;
         serializer.write_unsigned_integer_sz(
-            self.coin,
+            self.deposit,
             fit_sz(
-                self.coin,
+                self.deposit,
                 self.encodings
                     .as_ref()
-                    .map(|encs| encs.coin_encoding)
+                    .map(|encs| encs.deposit_encoding)
                     .unwrap_or_default(),
                 force_canonical,
             ),
@@ -1936,11 +1936,11 @@ impl DeserializeEmbeddedGroup for RegDrepCert {
             .map_err(|e| e.annotate("index_0"))?;
             let drep_credential = Credential::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("drep_credential"))?;
-            let (coin, coin_encoding) = raw
+            let (deposit, deposit_encoding) = raw
                 .unsigned_integer_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .map(|(x, enc)| (x, Some(enc)))
-                .map_err(|e: DeserializeError| e.annotate("coin"))?;
+                .map_err(|e: DeserializeError| e.annotate("deposit"))?;
             let anchor = (|| -> Result<_, DeserializeError> {
                 Ok(match raw.cbor_type()? != cbor_event::Type::Special {
                     true => Some(Anchor::deserialize(raw)?),
@@ -1955,12 +1955,12 @@ impl DeserializeEmbeddedGroup for RegDrepCert {
             .map_err(|e| e.annotate("anchor"))?;
             Ok(RegDrepCert {
                 drep_credential,
-                coin,
+                deposit,
                 anchor,
                 encodings: Some(RegDrepCertEncoding {
                     len_encoding,
                     index_0_encoding,
-                    coin_encoding,
+                    deposit_encoding,
                 }),
             })
         })()
@@ -2454,7 +2454,7 @@ impl DeserializeEmbeddedGroup for SingleHostName {
             })()
             .map_err(|e| e.annotate("port"))?;
             let dns_name =
-                DnsName::deserialize(raw).map_err(|e: DeserializeError| e.annotate("dns_name"))?;
+                DNSName::deserialize(raw).map_err(|e: DeserializeError| e.annotate("dns_name"))?;
             Ok(SingleHostName {
                 port,
                 dns_name,
@@ -2725,12 +2725,12 @@ impl SerializeEmbeddedGroup for StakeRegDelegCert {
                 .to_str_len_sz(self.pool.to_raw_bytes().len() as u64, force_canonical),
         )?;
         serializer.write_unsigned_integer_sz(
-            self.coin,
+            self.deposit,
             fit_sz(
-                self.coin,
+                self.deposit,
                 self.encodings
                     .as_ref()
-                    .map(|encs| encs.coin_encoding)
+                    .map(|encs| encs.deposit_encoding)
                     .unwrap_or_default(),
                 force_canonical,
             ),
@@ -2792,20 +2792,20 @@ impl DeserializeEmbeddedGroup for StakeRegDelegCert {
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
                 .map_err(|e: DeserializeError| e.annotate("pool"))?;
-            let (coin, coin_encoding) = raw
+            let (deposit, deposit_encoding) = raw
                 .unsigned_integer_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .map(|(x, enc)| (x, Some(enc)))
-                .map_err(|e: DeserializeError| e.annotate("coin"))?;
+                .map_err(|e: DeserializeError| e.annotate("deposit"))?;
             Ok(StakeRegDelegCert {
                 stake_credential,
                 pool,
-                coin,
+                deposit,
                 encodings: Some(StakeRegDelegCertEncoding {
                     len_encoding,
                     tag_encoding,
                     pool_encoding,
-                    coin_encoding,
+                    deposit_encoding,
                 }),
             })
         })()
@@ -3074,12 +3074,12 @@ impl SerializeEmbeddedGroup for StakeVoteRegDelegCert {
         )?;
         self.d_rep.serialize(serializer, force_canonical)?;
         serializer.write_unsigned_integer_sz(
-            self.coin,
+            self.deposit,
             fit_sz(
-                self.coin,
+                self.deposit,
                 self.encodings
                     .as_ref()
-                    .map(|encs| encs.coin_encoding)
+                    .map(|encs| encs.deposit_encoding)
                     .unwrap_or_default(),
                 force_canonical,
             ),
@@ -3143,21 +3143,21 @@ impl DeserializeEmbeddedGroup for StakeVoteRegDelegCert {
                 .map_err(|e: DeserializeError| e.annotate("pool"))?;
             let d_rep =
                 DRep::deserialize(raw).map_err(|e: DeserializeError| e.annotate("d_rep"))?;
-            let (coin, coin_encoding) = raw
+            let (deposit, deposit_encoding) = raw
                 .unsigned_integer_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .map(|(x, enc)| (x, Some(enc)))
-                .map_err(|e: DeserializeError| e.annotate("coin"))?;
+                .map_err(|e: DeserializeError| e.annotate("deposit"))?;
             Ok(StakeVoteRegDelegCert {
                 stake_credential,
                 pool,
                 d_rep,
-                coin,
+                deposit,
                 encodings: Some(StakeVoteRegDelegCertEncoding {
                     len_encoding,
                     tag_encoding,
                     pool_encoding,
-                    coin_encoding,
+                    deposit_encoding,
                 }),
             })
         })()
@@ -3202,12 +3202,12 @@ impl SerializeEmbeddedGroup for UnregCert {
         self.stake_credential
             .serialize(serializer, force_canonical)?;
         serializer.write_unsigned_integer_sz(
-            self.coin,
+            self.deposit,
             fit_sz(
-                self.coin,
+                self.deposit,
                 self.encodings
                     .as_ref()
-                    .map(|encs| encs.coin_encoding)
+                    .map(|encs| encs.deposit_encoding)
                     .unwrap_or_default(),
                 force_canonical,
             ),
@@ -3260,18 +3260,18 @@ impl DeserializeEmbeddedGroup for UnregCert {
             .map_err(|e| e.annotate("tag"))?;
             let stake_credential = Credential::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
-            let (coin, coin_encoding) = raw
+            let (deposit, deposit_encoding) = raw
                 .unsigned_integer_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .map(|(x, enc)| (x, Some(enc)))
-                .map_err(|e: DeserializeError| e.annotate("coin"))?;
+                .map_err(|e: DeserializeError| e.annotate("deposit"))?;
             Ok(UnregCert {
                 stake_credential,
-                coin,
+                deposit,
                 encodings: Some(UnregCertEncoding {
                     len_encoding,
                     tag_encoding,
-                    coin_encoding,
+                    deposit_encoding,
                 }),
             })
         })()
@@ -3316,12 +3316,12 @@ impl SerializeEmbeddedGroup for UnregDrepCert {
         self.drep_credential
             .serialize(serializer, force_canonical)?;
         serializer.write_unsigned_integer_sz(
-            self.coin,
+            self.deposit,
             fit_sz(
-                self.coin,
+                self.deposit,
                 self.encodings
                     .as_ref()
-                    .map(|encs| encs.coin_encoding)
+                    .map(|encs| encs.deposit_encoding)
                     .unwrap_or_default(),
                 force_canonical,
             ),
@@ -3374,18 +3374,18 @@ impl DeserializeEmbeddedGroup for UnregDrepCert {
             .map_err(|e| e.annotate("index_0"))?;
             let drep_credential = Credential::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("drep_credential"))?;
-            let (coin, coin_encoding) = raw
+            let (deposit, deposit_encoding) = raw
                 .unsigned_integer_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .map(|(x, enc)| (x, Some(enc)))
-                .map_err(|e: DeserializeError| e.annotate("coin"))?;
+                .map_err(|e: DeserializeError| e.annotate("deposit"))?;
             Ok(UnregDrepCert {
                 drep_credential,
-                coin,
+                deposit,
                 encodings: Some(UnregDrepCertEncoding {
                     len_encoding,
                     index_0_encoding,
-                    coin_encoding,
+                    deposit_encoding,
                 }),
             })
         })()
@@ -3683,12 +3683,12 @@ impl SerializeEmbeddedGroup for VoteRegDelegCert {
             .serialize(serializer, force_canonical)?;
         self.d_rep.serialize(serializer, force_canonical)?;
         serializer.write_unsigned_integer_sz(
-            self.coin,
+            self.deposit,
             fit_sz(
-                self.coin,
+                self.deposit,
                 self.encodings
                     .as_ref()
-                    .map(|encs| encs.coin_encoding)
+                    .map(|encs| encs.deposit_encoding)
                     .unwrap_or_default(),
                 force_canonical,
             ),
@@ -3743,19 +3743,19 @@ impl DeserializeEmbeddedGroup for VoteRegDelegCert {
                 .map_err(|e: DeserializeError| e.annotate("stake_credential"))?;
             let d_rep =
                 DRep::deserialize(raw).map_err(|e: DeserializeError| e.annotate("d_rep"))?;
-            let (coin, coin_encoding) = raw
+            let (deposit, deposit_encoding) = raw
                 .unsigned_integer_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .map(|(x, enc)| (x, Some(enc)))
-                .map_err(|e: DeserializeError| e.annotate("coin"))?;
+                .map_err(|e: DeserializeError| e.annotate("deposit"))?;
             Ok(VoteRegDelegCert {
                 stake_credential,
                 d_rep,
-                coin,
+                deposit,
                 encodings: Some(VoteRegDelegCertEncoding {
                     len_encoding,
                     tag_encoding,
-                    coin_encoding,
+                    deposit_encoding,
                 }),
             })
         })()

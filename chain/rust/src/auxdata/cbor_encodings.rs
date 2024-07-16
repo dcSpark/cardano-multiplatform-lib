@@ -20,7 +20,7 @@ pub struct ConwayFormatAuxDataEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ShelleyMaFormatAuxDataEncoding {
+pub struct ShelleyMAFormatAuxDataEncoding {
     pub len_encoding: LenEncoding,
     pub auxiliary_scripts_encoding: LenEncoding,
 }

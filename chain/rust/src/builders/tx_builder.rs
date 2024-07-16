@@ -2,9 +2,11 @@ use super::certificate_builder::*;
 use super::input_builder::InputBuilderResult;
 use super::mint_builder::MintBuilderResult;
 use super::output_builder::{OutputBuilderError, SingleOutputBuilderResult};
+use super::proposal_builder::ProposalBuilderResult;
 use super::redeemer_builder::RedeemerBuilderError;
 use super::redeemer_builder::RedeemerSetBuilder;
 use super::redeemer_builder::RedeemerWitnessKey;
+use super::vote_builder::VoteBuilderResult;
 use super::withdrawal_builder::WithdrawalBuilderResult;
 use super::witness_builder::merge_fake_witness;
 use super::witness_builder::PlutusScriptWitness;
@@ -21,6 +23,7 @@ use crate::crypto::hash::{calc_script_data_hash, hash_auxiliary_data, ScriptData
 use crate::crypto::{BootstrapWitness, Vkeywitness};
 use crate::deposit::{internal_get_deposit, internal_get_implicit_input};
 use crate::fees::LinearFee;
+use crate::governance::{ProposalProcedure, VotingProcedures};
 use crate::min_ada::min_ada_required;
 use crate::plutus::{CostModels, ExUnits, Language};
 use crate::plutus::{PlutusData, Redeemers};
@@ -41,7 +44,9 @@ use std::convert::TryInto;
 use std::io::{BufRead, Seek, Write};
 use std::ops::DerefMut;
 
-// for enums:
+#[cfg(not(feature = "used_from_wasm"))]
+use noop_proc_macro::wasm_bindgen;
+#[cfg(feature = "used_from_wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
 /**
@@ -363,7 +368,7 @@ impl TransactionBuilderConfigBuilder {
             cost_models: if self.cost_models.is_some() {
                 self.cost_models.unwrap()
             } else {
-                CostModels::new()
+                CostModels::default()
             },
             _collateral_percentage: self.collateral_percentage.ok_or(
                 TxBuilderError::UninitializedField(TxBuilderConfigField::CollateralPercentage),
@@ -385,6 +390,8 @@ pub struct TransactionBuilder {
     ttl: Option<Slot>, // absolute slot number
     certs: Option<Vec<Certificate>>,
     withdrawals: Option<Withdrawals>,
+    proposals: Option<Vec<ProposalProcedure>>,
+    votes: Option<VotingProcedures>,
     auxiliary_data: Option<AuxiliaryData>,
     validity_start_interval: Option<Slot>,
     mint: Option<Mint>,
@@ -720,13 +727,12 @@ impl TransactionBuilder {
 
                 match &script_witness.script {
                     PlutusScriptWitness::Ref(ref_script) => {
-                        if self
+                        if !self
                             .witness_builders
                             .witness_set_builder
                             .required_wits
                             .script_refs
-                            .get(ref_script)
-                            .is_none()
+                            .contains(ref_script)
                         {
                             Err(TxBuilderError::RefScriptNotFound(
                                 *ref_script,
@@ -877,6 +883,60 @@ impl TransactionBuilder {
             .add_required_wits(result.required_wits);
     }
 
+    pub fn add_proposal(&mut self, mut result: ProposalBuilderResult) {
+        self.witness_builders
+            .redeemer_set_builder
+            .add_proposal(&result);
+        if self.proposals.is_none() {
+            self.proposals = Some(Vec::new());
+        }
+        self.proposals
+            .as_mut()
+            .unwrap()
+            .append(&mut result.proposals);
+        for data in result.aggregate_witnesses {
+            self.witness_builders
+                .witness_set_builder
+                .add_input_aggregate_real_witness_data(&data);
+            self.witness_builders
+                .fake_required_witnesses
+                .add_input_aggregate_fake_witness_data(&data);
+            if let InputAggregateWitnessData::PlutusScript(_, required_signers, _) = data {
+                required_signers
+                    .iter()
+                    .for_each(|signer| self.add_required_signer(*signer));
+            }
+        }
+        self.witness_builders
+            .witness_set_builder
+            .add_required_wits(result.required_wits);
+    }
+
+    pub fn add_vote(&mut self, result: VoteBuilderResult) {
+        self.witness_builders.redeemer_set_builder.add_vote(&result);
+        if let Some(votes) = self.votes.as_mut() {
+            votes.extend(result.votes.take());
+        } else {
+            self.votes = Some(result.votes);
+        }
+        for data in result.aggregate_witnesses {
+            self.witness_builders
+                .witness_set_builder
+                .add_input_aggregate_real_witness_data(&data);
+            self.witness_builders
+                .fake_required_witnesses
+                .add_input_aggregate_fake_witness_data(&data);
+            if let InputAggregateWitnessData::PlutusScript(_, required_signers, _) = data {
+                required_signers
+                    .iter()
+                    .for_each(|signer| self.add_required_signer(*signer));
+            }
+        }
+        self.witness_builders
+            .witness_set_builder
+            .add_required_wits(result.required_wits);
+    }
+
     pub fn get_withdrawals(&self) -> Option<Withdrawals> {
         self.withdrawals.clone()
     }
@@ -978,6 +1038,8 @@ impl TransactionBuilder {
             ttl: None,
             certs: None,
             withdrawals: None,
+            proposals: None,
+            votes: None,
             auxiliary_data: None,
             validity_start_interval: None,
             mint: None,
@@ -1125,6 +1187,7 @@ impl TransactionBuilder {
     pub fn get_deposit(&self) -> Result<Coin, TxBuilderError> {
         internal_get_deposit(
             self.certs.as_deref(),
+            self.proposals.as_deref(),
             self.config.pool_deposit,
             self.config.key_deposit,
         )
@@ -1259,8 +1322,11 @@ impl TransactionBuilder {
                     .collect::<Vec<_>>()
                     .into()
             }),
-            voting_procedures: None,
-            proposal_procedures: None,
+            voting_procedures: self.votes.clone(),
+            proposal_procedures: self
+                .proposals
+                .as_ref()
+                .map(|proposals| proposals.clone().into()),
             current_treasury_value: None,
             donation: None,
             encodings: None,

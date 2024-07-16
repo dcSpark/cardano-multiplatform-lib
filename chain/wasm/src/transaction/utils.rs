@@ -4,6 +4,7 @@ use crate::{
     utils::LanguageList,
     Ed25519KeyHashList, NativeScript, Value,
 };
+use cml_core::Slot;
 use cml_crypto_wasm::{DatumHash, ScriptHash};
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -67,6 +68,15 @@ impl NativeScript {
 
     pub fn hash(&self) -> ScriptHash {
         self.0.hash().into()
+    }
+
+    pub fn verify(
+        &self,
+        lower_bound: Option<Slot>,
+        upper_bound: Option<Slot>,
+        key_hashes: &Ed25519KeyHashList,
+    ) -> bool {
+        self.0.verify(lower_bound, upper_bound, key_hashes.as_ref())
     }
 }
 

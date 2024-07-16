@@ -11,7 +11,7 @@ pub struct GenesisKeyDelegationEncoding {
     pub tag_encoding: Option<cbor_event::Sz>,
     pub genesis_hash_encoding: StringEncoding,
     pub genesis_delegate_hash_encoding: StringEncoding,
-    pub v_r_f_key_hash_encoding: StringEncoding,
+    pub vrf_key_hash_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -58,7 +58,7 @@ pub struct ShelleyBlockEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ShelleyDnsNameEncoding {
+pub struct ShelleyDNSNameEncoding {
     pub inner_encoding: StringEncoding,
 }
 
@@ -69,7 +69,7 @@ pub struct ShelleyHeaderBodyEncoding {
     pub slot_encoding: Option<cbor_event::Sz>,
     pub prev_hash_encoding: StringEncoding,
     pub issuer_vkey_encoding: StringEncoding,
-    pub v_r_f_vkey_encoding: StringEncoding,
+    pub vrf_vkey_encoding: StringEncoding,
     pub block_body_size_encoding: Option<cbor_event::Sz>,
     pub block_body_hash_encoding: StringEncoding,
 }

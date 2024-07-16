@@ -1,6 +1,7 @@
 use super::{
     certificate_builder::CertificateBuilderResult, input_builder::InputBuilderResult,
-    mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
+    mint_builder::MintBuilderResult, proposal_builder::ProposalBuilderResult,
+    vote_builder::VoteBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
 };
 use crate::{
     address::RewardAddress,
@@ -97,6 +98,10 @@ pub struct RedeemerSetBuilder {
     // certificates in the DCert list are indexed in the order in which they arranged in the (full, unfiltered)
     // list of certificates inside the transaction
     cert: Vec<Option<UntaggedRedeemerPlaceholder>>,
+
+    proposals: Vec<Option<UntaggedRedeemerPlaceholder>>,
+
+    votes: Vec<Option<UntaggedRedeemerPlaceholder>>,
 }
 
 impl RedeemerSetBuilder {
@@ -143,10 +148,18 @@ impl RedeemerSetBuilder {
                 )));
             }
             RedeemerTag::Proposing => {
-                todo!("https://github.com/dcSpark/cardano-multiplatform-lib/issues/323")
+                let entry = self.proposals.get_mut(key.index as usize).unwrap();
+                *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
+                    entry.as_ref().unwrap().data().clone(),
+                    ex_units,
+                )));
             }
             RedeemerTag::Voting => {
-                todo!("https://github.com/dcSpark/cardano-multiplatform-lib/issues/323")
+                let entry = self.votes.get_mut(key.index as usize).unwrap();
+                *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
+                    entry.as_ref().unwrap().data().clone(),
+                    ex_units,
+                )));
             }
         }
     }
@@ -217,6 +230,28 @@ impl RedeemerSetBuilder {
         }
     }
 
+    pub fn add_proposal(&mut self, result: &ProposalBuilderResult) {
+        for aggregate_witness in &result.aggregate_witnesses {
+            if let Some(data) = aggregate_witness.redeemer_plutus_data() {
+                self.proposals
+                    .push(Some(UntaggedRedeemerPlaceholder::JustData(data.clone())));
+            } else {
+                self.proposals.push(None);
+            }
+        }
+    }
+
+    pub fn add_vote(&mut self, result: &VoteBuilderResult) {
+        for aggregate_witness in &result.aggregate_witnesses {
+            if let Some(data) = aggregate_witness.redeemer_plutus_data() {
+                self.votes
+                    .push(Some(UntaggedRedeemerPlaceholder::JustData(data.clone())));
+            } else {
+                self.votes.push(None);
+            }
+        }
+    }
+
     pub fn build(&self, default_to_dummy_exunits: bool) -> Result<Redeemers, RedeemerBuilderError> {
         let mut redeemers = Vec::new();
         // Calling iter on a BTreeMap returns a list of sorted keys
@@ -242,6 +277,18 @@ impl RedeemerSetBuilder {
             &mut redeemers,
             RedeemerTag::Cert,
             &mut self.cert.iter().map(|entry| (&(), entry)),
+            default_to_dummy_exunits,
+        )?;
+        self.remove_placeholders_and_tag(
+            &mut redeemers,
+            RedeemerTag::Proposing,
+            &mut self.proposals.iter().map(|entry| (&(), entry)),
+            default_to_dummy_exunits,
+        )?;
+        self.remove_placeholders_and_tag(
+            &mut redeemers,
+            RedeemerTag::Voting,
+            &mut self.votes.iter().map(|entry| (&(), entry)),
             default_to_dummy_exunits,
         )?;
 

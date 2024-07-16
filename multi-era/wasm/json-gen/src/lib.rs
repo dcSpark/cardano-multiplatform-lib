@@ -135,7 +135,7 @@ pub fn export_schemas() {
     gen_json_schema!(cml_multi_era::shelley::MultisigScript);
     gen_json_schema!(cml_multi_era::shelley::ShelleyBlock);
     gen_json_schema!(cml_multi_era::shelley::ShelleyCertificate);
-    gen_json_schema!(cml_multi_era::shelley::ShelleyDnsName);
+    gen_json_schema!(cml_multi_era::shelley::ShelleyDNSName);
     gen_json_schema!(cml_multi_era::shelley::ShelleyHeader);
     gen_json_schema!(cml_multi_era::shelley::ShelleyHeaderBody);
     gen_json_schema!(cml_multi_era::shelley::ShelleyMoveInstantaneousReward);

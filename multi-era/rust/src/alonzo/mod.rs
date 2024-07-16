@@ -5,6 +5,11 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
+#[cfg(not(feature = "used_from_wasm"))]
+use noop_proc_macro::wasm_bindgen;
+#[cfg(feature = "used_from_wasm")]
+use wasm_bindgen::prelude::wasm_bindgen;
+
 use crate::allegra::AllegraCertificate;
 use crate::shelley::{ProtocolVersionStruct, ShelleyHeader};
 use cbor_encodings::{
@@ -13,7 +18,7 @@ use cbor_encodings::{
     AlonzoUpdateEncoding,
 };
 use cml_chain::assets::{Coin, Mint};
-use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMaFormatAuxData};
+use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain::crypto::{
     AuxiliaryDataHash, BootstrapWitness, GenesisHash, Nonce, ScriptDataHash, Vkeywitness,
 };
@@ -29,7 +34,7 @@ use self::cbor_encodings::AlonzoRedeemerEncoding;
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AlonzoAuxiliaryData {
     Shelley(ShelleyFormatAuxData),
-    ShelleyMA(ShelleyMaFormatAuxData),
+    ShelleyMA(ShelleyMAFormatAuxData),
     Alonzo(AlonzoFormatAuxData),
 }
 
@@ -38,8 +43,8 @@ impl AlonzoAuxiliaryData {
         Self::Shelley(shelley)
     }
 
-    pub fn new_shelley_m_a(shelley_m_a: ShelleyMaFormatAuxData) -> Self {
-        Self::ShelleyMA(shelley_m_a)
+    pub fn new_shelley_ma(shelley_ma: ShelleyMAFormatAuxData) -> Self {
+        Self::ShelleyMA(shelley_ma)
     }
 
     pub fn new_alonzo(alonzo: AlonzoFormatAuxData) -> Self {
@@ -210,7 +215,7 @@ impl AlonzoRedeemer {
     serde::Serialize,
     schemars::JsonSchema,
 )]
-#[wasm_bindgen::prelude::wasm_bindgen]
+#[wasm_bindgen]
 pub enum AlonzoRedeemerTag {
     Spend,
     Mint,

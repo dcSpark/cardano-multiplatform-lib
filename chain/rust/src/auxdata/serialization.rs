@@ -19,8 +19,8 @@ impl Serialize for AuxiliaryData {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
             AuxiliaryData::Shelley(shelley) => shelley.serialize(serializer, force_canonical),
-            AuxiliaryData::ShelleyMA(shelley_m_a) => {
-                shelley_m_a.serialize(serializer, force_canonical)
+            AuxiliaryData::ShelleyMA(shelley_ma) => {
+                shelley_ma.serialize(serializer, force_canonical)
             }
             AuxiliaryData::Conway(conway) => conway.serialize(serializer, force_canonical),
         }
@@ -43,9 +43,9 @@ impl Deserialize for AuxiliaryData {
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
-                ShelleyMaFormatAuxData::deserialize(raw);
+                ShelleyMAFormatAuxData::deserialize(raw);
             match deser_variant {
-                Ok(shelley_m_a) => return Ok(Self::ShelleyMA(shelley_m_a)),
+                Ok(shelley_ma) => return Ok(Self::ShelleyMA(shelley_ma)),
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMA"));
                     raw.as_mut_ref()
@@ -513,7 +513,7 @@ impl Deserialize for ConwayFormatAuxData {
     }
 }
 
-impl Serialize for ShelleyMaFormatAuxData {
+impl Serialize for ShelleyMAFormatAuxData {
     fn serialize<'se, W: Write>(
         &self,
         serializer: &'se mut Serializer<W>,
@@ -551,7 +551,7 @@ impl Serialize for ShelleyMaFormatAuxData {
     }
 }
 
-impl Deserialize for ShelleyMaFormatAuxData {
+impl Deserialize for ShelleyMAFormatAuxData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array_sz()?;
         let len_encoding: LenEncoding = len.into();
@@ -586,15 +586,15 @@ impl Deserialize for ShelleyMaFormatAuxData {
                     _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                 },
             }
-            Ok(ShelleyMaFormatAuxData {
+            Ok(ShelleyMAFormatAuxData {
                 transaction_metadata,
                 auxiliary_scripts,
-                encodings: Some(ShelleyMaFormatAuxDataEncoding {
+                encodings: Some(ShelleyMAFormatAuxDataEncoding {
                     len_encoding,
                     auxiliary_scripts_encoding,
                 }),
             })
         })()
-        .map_err(|e| e.annotate("ShelleyMaFormatAuxData"))
+        .map_err(|e| e.annotate("ShelleyMAFormatAuxData"))
     }
 }

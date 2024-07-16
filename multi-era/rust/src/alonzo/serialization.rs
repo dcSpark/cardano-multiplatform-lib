@@ -47,7 +47,7 @@ impl Deserialize for AlonzoAuxiliaryData {
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
-                ShelleyMaFormatAuxData::deserialize(raw);
+                ShelleyMAFormatAuxData::deserialize(raw);
             match deser_variant {
                 Ok(shelley_m_a) => return Ok(Self::ShelleyMA(shelley_m_a)),
                 Err(e) => {

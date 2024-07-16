@@ -18,7 +18,6 @@ use cml_crypto_wasm::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
 };
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
-
 pub mod utils;
 
 #[derive(Clone, Debug)]
@@ -187,10 +186,12 @@ impl NativeScript {
         ))
     }
 
+    /// Timelock validity intervals are half-open intervals [a, b). This field specifies the left (included) endpoint a.
     pub fn new_script_invalid_before(before: Slot) -> Self {
         Self(cml_chain::transaction::NativeScript::new_script_invalid_before(before))
     }
 
+    /// Timelock validity intervals are half-open intervals [a, b). This field specifies the right (excluded) endpoint b.
     pub fn new_script_invalid_hereafter(after: Slot) -> Self {
         Self(cml_chain::transaction::NativeScript::new_script_invalid_hereafter(after))
     }

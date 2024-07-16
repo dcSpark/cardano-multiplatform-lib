@@ -51,7 +51,7 @@ allegra_transaction_witness_set = {
 
 allegra_auxiliary_data =
     shelley_format_aux_data ; @name shelley
-  / shelley_ma_format_aux_data ; @name shelley_m_a
+  / shelley_MA_format_aux_data ; @name shelley_MA
 
 ; allegra differences
 allegra_transaction_body = {

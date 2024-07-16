@@ -115,7 +115,7 @@ babbage_format_aux_data = #6.259({
 
 babbage_auxiliary_data =
     shelley_format_aux_data     ; @name shelley
-  / shelley_ma_format_aux_data  ; @name shelley_m_a
+  / shelley_MA_format_aux_data  ; @name shelley_MA
   / babbage_format_aux_data     ; @name babbage 
 
 ; babbage mint has duplicate keys so it needs its own special hand-written struct

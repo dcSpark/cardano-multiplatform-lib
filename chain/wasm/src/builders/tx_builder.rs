@@ -10,7 +10,8 @@ use crate::{
     builders::{
         certificate_builder::CertificateBuilderResult, input_builder::InputBuilderResult,
         mint_builder::MintBuilderResult, output_builder::SingleOutputBuilderResult,
-        redeemer_builder::RedeemerWitnessKey, withdrawal_builder::WithdrawalBuilderResult,
+        proposal_builder::ProposalBuilderResult, redeemer_builder::RedeemerWitnessKey,
+        vote_builder::VoteBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
         witness_builder::TransactionWitnessSetBuilder,
     },
     crypto::{BootstrapWitness, Vkeywitness},
@@ -209,6 +210,14 @@ impl TransactionBuilder {
 
     pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
         self.0.add_cert(result.clone().into())
+    }
+
+    pub fn add_proposal(&mut self, result: ProposalBuilderResult) {
+        self.0.add_proposal(result.clone().into())
+    }
+
+    pub fn add_vote(&mut self, result: VoteBuilderResult) {
+        self.0.add_vote(result.clone().into())
     }
 
     pub fn get_withdrawals(&self) -> Option<Withdrawals> {

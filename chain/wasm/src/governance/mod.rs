@@ -15,6 +15,8 @@ use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
 
+pub mod utils;
+
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct Anchor(cml_chain::governance::Anchor);

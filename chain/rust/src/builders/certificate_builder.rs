@@ -183,9 +183,14 @@ pub fn add_cert_vkeys(
                 vkeys.insert(*hash);
             }
         },
-        Certificate::RegDrepCert(_cert) => {
-            // does not need a witness
-        }
+        Certificate::RegDrepCert(cert) => match &cert.drep_credential {
+            StakeCredential::Script { hash, .. } => {
+                return Err(CertBuilderError::ExpectedKeyHash(*hash))
+            }
+            StakeCredential::PubKey { hash, .. } => {
+                vkeys.insert(*hash);
+            }
+        },
         Certificate::UnregDrepCert(cert) => match &cert.drep_credential {
             StakeCredential::Script { hash, .. } => {
                 return Err(CertBuilderError::ExpectedKeyHash(*hash))

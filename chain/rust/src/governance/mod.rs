@@ -3,6 +3,7 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
+pub mod utils;
 
 use crate::address::RewardAccount;
 use crate::assets::Coin;

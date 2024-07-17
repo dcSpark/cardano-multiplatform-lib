@@ -38,6 +38,8 @@ num-integer = "0.1.45"
 thiserror = "1.0.37"
 num = "0.4"
 unicode-segmentation = "1.10.1"
+serde-aux = "4.5.0"
+chrono = "0.4.38"
 
 # non-wasm
 noop_proc_macro = { version = "0.3.0", optional = false }

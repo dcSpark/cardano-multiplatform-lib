@@ -5,18 +5,21 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use super::{NetworkId, Slot, Value, Withdrawals};
+use super::{NetworkId, Value};
 use crate::address::Address;
 use crate::assets::{Coin, Mint, PositiveCoin};
 use crate::auxdata::AuxiliaryData;
-use crate::certs::Certificate;
 use crate::crypto::{
-    AuxiliaryDataHash, BootstrapWitness, DatumHash, Ed25519KeyHash, ScriptDataHash,
-    TransactionHash, Vkeywitness,
+    AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
 };
-use crate::governance::{ProposalProcedure, VotingProcedures};
-use crate::plutus::{PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script, Redeemer};
-use crate::Script;
+use crate::governance::VotingProcedures;
+use crate::plutus::{PlutusData, Redeemers};
+use crate::{
+    NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetNativeScript,
+    NonemptySetPlutusData, NonemptySetPlutusV1Script, NonemptySetPlutusV2Script,
+    NonemptySetPlutusV3Script, NonemptySetProposalProcedure, NonemptySetTransactionInput,
+    NonemptySetVkeywitness, RequiredSigners, Script, SetTransactionInput, Slot, Withdrawals,
+};
 use cbor_encodings::{
     AlonzoFormatTxOutEncoding, ConwayFormatTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
     ScriptInvalidBeforeEncoding, ScriptInvalidHereafterEncoding, ScriptNOfKEncoding,
@@ -140,7 +143,9 @@ pub enum NativeScript {
     ScriptAll(ScriptAll),
     ScriptAny(ScriptAny),
     ScriptNOfK(ScriptNOfK),
+    /// Timelock validity intervals are half-open intervals [a, b). This field specifies the left (included) endpoint a.
     ScriptInvalidBefore(ScriptInvalidBefore),
+    /// Timelock validity intervals are half-open intervals [a, b). This field specifies the right (excluded) endpoint b.
     ScriptInvalidHereafter(ScriptInvalidHereafter),
 }
 
@@ -161,16 +166,16 @@ impl NativeScript {
         Self::ScriptNOfK(ScriptNOfK::new(n, native_scripts))
     }
 
+    /// Timelock validity intervals are half-open intervals [a, b). This field specifies the left (included) endpoint a.
     pub fn new_script_invalid_before(before: Slot) -> Self {
         Self::ScriptInvalidBefore(ScriptInvalidBefore::new(before))
     }
 
+    /// Timelock validity intervals are half-open intervals [a, b). This field specifies the right (excluded) endpoint b.
     pub fn new_script_invalid_hereafter(after: Slot) -> Self {
         Self::ScriptInvalidHereafter(ScriptInvalidHereafter::new(after))
     }
 }
-
-pub type RequiredSigners = Vec<Ed25519KeyHash>;
 
 #[derive(
     Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
@@ -325,24 +330,24 @@ impl Transaction {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct TransactionBody {
-    pub inputs: Vec<TransactionInput>,
+    pub inputs: SetTransactionInput,
     pub outputs: Vec<TransactionOutput>,
     pub fee: Coin,
     pub ttl: Option<u64>,
-    pub certs: Option<Vec<Certificate>>,
+    pub certs: Option<NonemptySetCertificate>,
     pub withdrawals: Option<Withdrawals>,
     pub auxiliary_data_hash: Option<AuxiliaryDataHash>,
     pub validity_interval_start: Option<u64>,
     pub mint: Option<Mint>,
     pub script_data_hash: Option<ScriptDataHash>,
-    pub collateral_inputs: Option<Vec<TransactionInput>>,
+    pub collateral_inputs: Option<NonemptySetTransactionInput>,
     pub required_signers: Option<RequiredSigners>,
     pub network_id: Option<NetworkId>,
     pub collateral_return: Option<TransactionOutput>,
     pub total_collateral: Option<Coin>,
-    pub reference_inputs: Option<Vec<TransactionInput>>,
+    pub reference_inputs: Option<NonemptySetTransactionInput>,
     pub voting_procedures: Option<VotingProcedures>,
-    pub proposal_procedures: Option<Vec<ProposalProcedure>>,
+    pub proposal_procedures: Option<NonemptySetProposalProcedure>,
     pub current_treasury_value: Option<Coin>,
     pub donation: Option<PositiveCoin>,
     #[serde(skip)]
@@ -350,7 +355,7 @@ pub struct TransactionBody {
 }
 
 impl TransactionBody {
-    pub fn new(inputs: Vec<TransactionInput>, outputs: Vec<TransactionOutput>, fee: Coin) -> Self {
+    pub fn new(inputs: SetTransactionInput, outputs: Vec<TransactionOutput>, fee: Coin) -> Self {
         Self {
             inputs,
             outputs,
@@ -424,14 +429,14 @@ impl TransactionOutput {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct TransactionWitnessSet {
-    pub vkeywitnesses: Option<Vec<Vkeywitness>>,
-    pub native_scripts: Option<Vec<NativeScript>>,
-    pub bootstrap_witnesses: Option<Vec<BootstrapWitness>>,
-    pub plutus_v1_scripts: Option<Vec<PlutusV1Script>>,
-    pub plutus_datums: Option<Vec<PlutusData>>,
-    pub redeemers: Option<Vec<Redeemer>>,
-    pub plutus_v2_scripts: Option<Vec<PlutusV2Script>>,
-    pub plutus_v3_scripts: Option<Vec<PlutusV3Script>>,
+    pub vkeywitnesses: Option<NonemptySetVkeywitness>,
+    pub native_scripts: Option<NonemptySetNativeScript>,
+    pub bootstrap_witnesses: Option<NonemptySetBootstrapWitness>,
+    pub plutus_v1_scripts: Option<NonemptySetPlutusV1Script>,
+    pub plutus_datums: Option<NonemptySetPlutusData>,
+    pub redeemers: Option<Redeemers>,
+    pub plutus_v2_scripts: Option<NonemptySetPlutusV2Script>,
+    pub plutus_v3_scripts: Option<NonemptySetPlutusV3Script>,
     #[serde(skip)]
     pub encodings: Option<TransactionWitnessSetEncoding>,
 }

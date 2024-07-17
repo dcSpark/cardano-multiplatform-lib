@@ -1,7 +1,7 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use super::{Coin, Ed25519KeyHashList, Epoch, Port, RelayList, UnitInterval};
+use super::{Coin, Epoch, Port, RelayList, SetEd25519KeyHash, UnitInterval};
 use crate::address::RewardAccount;
 use crate::governance::Anchor;
 
@@ -48,18 +48,21 @@ impl_wasm_conversions!(cml_chain::certs::Certificate, Certificate);
 
 #[wasm_bindgen]
 impl Certificate {
+    /// Will be deprecated in the next era. Use RegCert instead which takes an explicit deposit amount, as that can change.
     pub fn new_stake_registration(stake_credential: &StakeCredential) -> Self {
         Self(cml_chain::certs::Certificate::new_stake_registration(
             stake_credential.clone().into(),
         ))
     }
 
+    /// Will be deprecated in the next era. Use UnregCert instead which takes an explicit deposit amount, as that can change.
     pub fn new_stake_deregistration(stake_credential: &StakeCredential) -> Self {
         Self(cml_chain::certs::Certificate::new_stake_deregistration(
             stake_credential.clone().into(),
         ))
     }
 
+    /// Delegate to a take pool only
     pub fn new_stake_delegation(stake_credential: &StakeCredential, pool: &Ed25519KeyHash) -> Self {
         Self(cml_chain::certs::Certificate::new_stake_delegation(
             stake_credential.clone().into(),
@@ -80,20 +83,23 @@ impl Certificate {
         ))
     }
 
-    pub fn new_reg_cert(stake_credential: &StakeCredential, coin: Coin) -> Self {
+    /// Registers a stake credential.
+    pub fn new_reg_cert(stake_credential: &StakeCredential, deposit: Coin) -> Self {
         Self(cml_chain::certs::Certificate::new_reg_cert(
             stake_credential.clone().into(),
-            coin,
+            deposit,
         ))
     }
 
-    pub fn new_unreg_cert(stake_credential: &StakeCredential, coin: Coin) -> Self {
+    /// Unregisters a stake credential.
+    pub fn new_unreg_cert(stake_credential: &StakeCredential, deposit: Coin) -> Self {
         Self(cml_chain::certs::Certificate::new_unreg_cert(
             stake_credential.clone().into(),
-            coin,
+            deposit,
         ))
     }
 
+    /// Delegate to a DRep for voting only
     pub fn new_vote_deleg_cert(stake_credential: &StakeCredential, d_rep: &DRep) -> Self {
         Self(cml_chain::certs::Certificate::new_vote_deleg_cert(
             stake_credential.clone().into(),
@@ -101,6 +107,7 @@ impl Certificate {
         ))
     }
 
+    /// Delegate to a stake pool and a DRep
     pub fn new_stake_vote_deleg_cert(
         stake_credential: &StakeCredential,
         pool: &Ed25519KeyHash,
@@ -113,42 +120,45 @@ impl Certificate {
         ))
     }
 
+    /// Register a stake credential and delegate to a pool in a single cert
     pub fn new_stake_reg_deleg_cert(
         stake_credential: &StakeCredential,
         pool: &Ed25519KeyHash,
-        coin: Coin,
+        deposit: Coin,
     ) -> Self {
         Self(cml_chain::certs::Certificate::new_stake_reg_deleg_cert(
             stake_credential.clone().into(),
             pool.clone().into(),
-            coin,
+            deposit,
         ))
     }
 
+    /// Register a stake credential and delegate to a DRep in a single cert
     pub fn new_vote_reg_deleg_cert(
         stake_credential: &StakeCredential,
         d_rep: &DRep,
-        coin: Coin,
+        deposit: Coin,
     ) -> Self {
         Self(cml_chain::certs::Certificate::new_vote_reg_deleg_cert(
             stake_credential.clone().into(),
             d_rep.clone().into(),
-            coin,
+            deposit,
         ))
     }
 
+    /// Register a stake credential and delegate to a pool and a DRep in a single cert
     pub fn new_stake_vote_reg_deleg_cert(
         stake_credential: &StakeCredential,
         pool: &Ed25519KeyHash,
         d_rep: &DRep,
-        coin: Coin,
+        deposit: Coin,
     ) -> Self {
         Self(
             cml_chain::certs::Certificate::new_stake_vote_reg_deleg_cert(
                 stake_credential.clone().into(),
                 pool.clone().into(),
                 d_rep.clone().into(),
-                coin,
+                deposit,
             ),
         )
     }
@@ -165,30 +175,32 @@ impl Certificate {
 
     pub fn new_resign_committee_cold_cert(
         committee_cold_credential: &CommitteeColdCredential,
+        anchor: Option<Anchor>,
     ) -> Self {
         Self(
             cml_chain::certs::Certificate::new_resign_committee_cold_cert(
                 committee_cold_credential.clone().into(),
+                anchor.map(Into::into),
             ),
         )
     }
 
     pub fn new_reg_drep_cert(
         drep_credential: &DrepCredential,
-        coin: Coin,
+        deposit: Coin,
         anchor: Option<Anchor>,
     ) -> Self {
         Self(cml_chain::certs::Certificate::new_reg_drep_cert(
             drep_credential.clone().into(),
-            coin,
+            deposit,
             anchor.map(Into::into),
         ))
     }
 
-    pub fn new_unreg_drep_cert(drep_credential: &DrepCredential, coin: Coin) -> Self {
+    pub fn new_unreg_drep_cert(drep_credential: &DrepCredential, deposit: Coin) -> Self {
         Self(cml_chain::certs::Certificate::new_unreg_drep_cert(
             drep_credential.clone().into(),
-            coin,
+            deposit,
         ))
     }
 
@@ -462,6 +474,21 @@ pub enum CredentialKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+pub struct DNSName(cml_chain::certs::DNSName);
+
+impl_wasm_cbor_json_api!(DNSName);
+
+impl_wasm_conversions!(cml_chain::certs::DNSName, DNSName);
+
+#[wasm_bindgen]
+impl DNSName {
+    pub fn get(&self) -> String {
+        self.0.get().clone()
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
 pub struct DRep(cml_chain::certs::DRep);
 
 impl_wasm_cbor_json_api!(DRep);
@@ -520,21 +547,6 @@ pub enum DRepKind {
     AlwaysNoConfidence,
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct DnsName(cml_chain::certs::DnsName);
-
-impl_wasm_cbor_json_api!(DnsName);
-
-impl_wasm_conversions!(cml_chain::certs::DnsName, DnsName);
-
-#[wasm_bindgen]
-impl DnsName {
-    pub fn get(&self) -> String {
-        self.0.get().clone()
-    }
-}
-
 pub type DrepCredential = Credential;
 
 #[derive(Clone, Debug)]
@@ -577,11 +589,12 @@ impl_wasm_conversions!(cml_chain::certs::MultiHostName, MultiHostName);
 
 #[wasm_bindgen]
 impl MultiHostName {
-    pub fn dns_name(&self) -> DnsName {
+    pub fn dns_name(&self) -> DNSName {
         self.0.dns_name.clone().into()
     }
 
-    pub fn new(dns_name: &DnsName) -> Self {
+    /// * `dns_name` - A SRV DNS record
+    pub fn new(dns_name: &DNSName) -> Self {
         Self(cml_chain::certs::MultiHostName::new(
             dns_name.clone().into(),
         ))
@@ -648,7 +661,7 @@ impl PoolParams {
         self.0.reward_account.clone().into()
     }
 
-    pub fn pool_owners(&self) -> Ed25519KeyHashList {
+    pub fn pool_owners(&self) -> SetEd25519KeyHash {
         self.0.pool_owners.clone().into()
     }
 
@@ -667,7 +680,7 @@ impl PoolParams {
         cost: Coin,
         margin: &UnitInterval,
         reward_account: &RewardAccount,
-        pool_owners: &Ed25519KeyHashList,
+        pool_owners: &SetEd25519KeyHash,
         relays: &RelayList,
         pool_metadata: Option<PoolMetadata>,
     ) -> Self {
@@ -746,14 +759,14 @@ impl RegCert {
         self.0.stake_credential.clone().into()
     }
 
-    pub fn coin(&self) -> Coin {
-        self.0.coin
+    pub fn deposit(&self) -> Coin {
+        self.0.deposit
     }
 
-    pub fn new(stake_credential: &StakeCredential, coin: Coin) -> Self {
+    pub fn new(stake_credential: &StakeCredential, deposit: Coin) -> Self {
         Self(cml_chain::certs::RegCert::new(
             stake_credential.clone().into(),
-            coin,
+            deposit,
         ))
     }
 }
@@ -772,18 +785,18 @@ impl RegDrepCert {
         self.0.drep_credential.clone().into()
     }
 
-    pub fn coin(&self) -> Coin {
-        self.0.coin
+    pub fn deposit(&self) -> Coin {
+        self.0.deposit
     }
 
     pub fn anchor(&self) -> Option<Anchor> {
         self.0.anchor.clone().map(std::convert::Into::into)
     }
 
-    pub fn new(drep_credential: &DrepCredential, coin: Coin, anchor: Option<Anchor>) -> Self {
+    pub fn new(drep_credential: &DrepCredential, deposit: Coin, anchor: Option<Anchor>) -> Self {
         Self(cml_chain::certs::RegDrepCert::new(
             drep_credential.clone().into(),
-            coin,
+            deposit,
             anchor.map(Into::into),
         ))
     }
@@ -811,14 +824,14 @@ impl Relay {
         ))
     }
 
-    pub fn new_single_host_name(port: Option<Port>, dns_name: &DnsName) -> Self {
+    pub fn new_single_host_name(port: Option<Port>, dns_name: &DNSName) -> Self {
         Self(cml_chain::certs::Relay::new_single_host_name(
             port,
             dns_name.clone().into(),
         ))
     }
 
-    pub fn new_multi_host_name(dns_name: &DnsName) -> Self {
+    pub fn new_multi_host_name(dns_name: &DNSName) -> Self {
         Self(cml_chain::certs::Relay::new_multi_host_name(
             dns_name.clone().into(),
         ))
@@ -884,9 +897,17 @@ impl ResignCommitteeColdCert {
         self.0.committee_cold_credential.clone().into()
     }
 
-    pub fn new(committee_cold_credential: &CommitteeColdCredential) -> Self {
+    pub fn anchor(&self) -> Option<Anchor> {
+        self.0.anchor.clone().map(std::convert::Into::into)
+    }
+
+    pub fn new(
+        committee_cold_credential: &CommitteeColdCredential,
+        anchor: Option<Anchor>,
+    ) -> Self {
         Self(cml_chain::certs::ResignCommitteeColdCert::new(
             committee_cold_credential.clone().into(),
+            anchor.map(Into::into),
         ))
     }
 }
@@ -936,11 +957,12 @@ impl SingleHostName {
         self.0.port
     }
 
-    pub fn dns_name(&self) -> DnsName {
+    pub fn dns_name(&self) -> DNSName {
         self.0.dns_name.clone().into()
     }
 
-    pub fn new(port: Option<Port>, dns_name: &DnsName) -> Self {
+    /// * `dns_name` - An A or AAAA DNS record
+    pub fn new(port: Option<Port>, dns_name: &DNSName) -> Self {
         Self(cml_chain::certs::SingleHostName::new(
             port,
             dns_name.clone().into(),
@@ -1015,15 +1037,15 @@ impl StakeRegDelegCert {
         self.0.pool.into()
     }
 
-    pub fn coin(&self) -> Coin {
-        self.0.coin
+    pub fn deposit(&self) -> Coin {
+        self.0.deposit
     }
 
-    pub fn new(stake_credential: &StakeCredential, pool: &Ed25519KeyHash, coin: Coin) -> Self {
+    pub fn new(stake_credential: &StakeCredential, pool: &Ed25519KeyHash, deposit: Coin) -> Self {
         Self(cml_chain::certs::StakeRegDelegCert::new(
             stake_credential.clone().into(),
             pool.clone().into(),
-            coin,
+            deposit,
         ))
     }
 }
@@ -1105,21 +1127,21 @@ impl StakeVoteRegDelegCert {
         self.0.d_rep.clone().into()
     }
 
-    pub fn coin(&self) -> Coin {
-        self.0.coin
+    pub fn deposit(&self) -> Coin {
+        self.0.deposit
     }
 
     pub fn new(
         stake_credential: &StakeCredential,
         pool: &Ed25519KeyHash,
         d_rep: &DRep,
-        coin: Coin,
+        deposit: Coin,
     ) -> Self {
         Self(cml_chain::certs::StakeVoteRegDelegCert::new(
             stake_credential.clone().into(),
             pool.clone().into(),
             d_rep.clone().into(),
-            coin,
+            deposit,
         ))
     }
 }
@@ -1138,14 +1160,14 @@ impl UnregCert {
         self.0.stake_credential.clone().into()
     }
 
-    pub fn coin(&self) -> Coin {
-        self.0.coin
+    pub fn deposit(&self) -> Coin {
+        self.0.deposit
     }
 
-    pub fn new(stake_credential: &StakeCredential, coin: Coin) -> Self {
+    pub fn new(stake_credential: &StakeCredential, deposit: Coin) -> Self {
         Self(cml_chain::certs::UnregCert::new(
             stake_credential.clone().into(),
-            coin,
+            deposit,
         ))
     }
 }
@@ -1164,14 +1186,14 @@ impl UnregDrepCert {
         self.0.drep_credential.clone().into()
     }
 
-    pub fn coin(&self) -> Coin {
-        self.0.coin
+    pub fn deposit(&self) -> Coin {
+        self.0.deposit
     }
 
-    pub fn new(drep_credential: &DrepCredential, coin: Coin) -> Self {
+    pub fn new(drep_credential: &DrepCredential, deposit: Coin) -> Self {
         Self(cml_chain::certs::UnregDrepCert::new(
             drep_credential.clone().into(),
-            coin,
+            deposit,
         ))
     }
 }
@@ -1261,15 +1283,15 @@ impl VoteRegDelegCert {
         self.0.d_rep.clone().into()
     }
 
-    pub fn coin(&self) -> Coin {
-        self.0.coin
+    pub fn deposit(&self) -> Coin {
+        self.0.deposit
     }
 
-    pub fn new(stake_credential: &StakeCredential, d_rep: &DRep, coin: Coin) -> Self {
+    pub fn new(stake_credential: &StakeCredential, d_rep: &DRep, deposit: Coin) -> Self {
         Self(cml_chain::certs::VoteRegDelegCert::new(
             stake_credential.clone().into(),
             d_rep.clone().into(),
-            coin,
+            deposit,
         ))
     }
 }

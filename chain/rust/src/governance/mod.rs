@@ -3,18 +3,24 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
+pub mod utils;
+
+#[cfg(not(feature = "used_from_wasm"))]
+use noop_proc_macro::wasm_bindgen;
+#[cfg(feature = "used_from_wasm")]
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::address::RewardAccount;
 use crate::assets::Coin;
 use crate::block::ProtocolVersion;
 use crate::certs::{CommitteeColdCredential, Url};
 use crate::crypto::{AnchorDocHash, Ed25519KeyHash, ScriptHash, TransactionHash};
-use crate::{Epoch, ProtocolParamUpdate, UnitInterval};
+use crate::{Epoch, ProtocolParamUpdate, SetCommitteeColdCredential, UnitInterval};
 use cbor_encodings::{
-    AnchorEncoding, CommitteeEncoding, ConstitutionEncoding, GovActionIdEncoding,
-    HardForkInitiationActionEncoding, NewCommitteeEncoding, NewConstitutionEncoding,
-    NoConfidenceEncoding, ParameterChangeActionEncoding, ProposalProcedureEncoding,
-    TreasuryWithdrawalsActionEncoding, VotingProcedureEncoding,
+    AnchorEncoding, ConstitutionEncoding, GovActionIdEncoding, HardForkInitiationActionEncoding,
+    NewConstitutionEncoding, NoConfidenceEncoding, ParameterChangeActionEncoding,
+    ProposalProcedureEncoding, TreasuryWithdrawalsActionEncoding, UpdateCommitteeEncoding,
+    VotingProcedureEncoding,
 };
 
 use cml_core::ordered_hash_map::OrderedHashMap;
@@ -34,27 +40,6 @@ impl Anchor {
         Self {
             anchor_url,
             anchor_doc_hash,
-            encodings: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct Committee {
-    pub credentials: OrderedHashMap<CommitteeColdCredential, Epoch>,
-    pub unit_interval: UnitInterval,
-    #[serde(skip)]
-    pub encodings: Option<CommitteeEncoding>,
-}
-
-impl Committee {
-    pub fn new(
-        credentials: OrderedHashMap<CommitteeColdCredential, Epoch>,
-        unit_interval: UnitInterval,
-    ) -> Self {
-        Self {
-            credentials,
-            unit_interval,
             encodings: None,
         }
     }
@@ -85,7 +70,7 @@ pub enum GovAction {
     HardForkInitiationAction(HardForkInitiationAction),
     TreasuryWithdrawalsAction(TreasuryWithdrawalsAction),
     NoConfidence(NoConfidence),
-    NewCommittee(NewCommittee),
+    UpdateCommittee(UpdateCommittee),
     NewConstitution(NewConstitution),
     InfoAction {
         #[serde(skip)]
@@ -97,13 +82,11 @@ pub enum GovAction {
 
 impl GovAction {
     pub fn new_parameter_change_action(
-        gov_action_id: Option<GovActionId>,
-        protocol_param_update: ProtocolParamUpdate,
+        action_id: Option<GovActionId>,
+        update: ProtocolParamUpdate,
+        policy_hash: Option<ScriptHash>,
     ) -> Self {
-        Self::ParameterChangeAction(ParameterChangeAction::new(
-            gov_action_id,
-            protocol_param_update,
-        ))
+        Self::ParameterChangeAction(ParameterChangeAction::new(action_id, update, policy_hash))
     }
 
     pub fn new_hard_fork_initiation_action(
@@ -115,20 +98,27 @@ impl GovAction {
 
     pub fn new_treasury_withdrawals_action(
         withdrawal: OrderedHashMap<RewardAccount, Coin>,
+        policy_hash: Option<ScriptHash>,
     ) -> Self {
-        Self::TreasuryWithdrawalsAction(TreasuryWithdrawalsAction::new(withdrawal))
+        Self::TreasuryWithdrawalsAction(TreasuryWithdrawalsAction::new(withdrawal, policy_hash))
     }
 
     pub fn new_no_confidence(action_id: Option<GovActionId>) -> Self {
         Self::NoConfidence(NoConfidence::new(action_id))
     }
 
-    pub fn new_new_committee(
+    pub fn new_update_committee(
         action_id: Option<GovActionId>,
-        cold_credentials: Vec<CommitteeColdCredential>,
-        committee: Committee,
+        cold_credentials: SetCommitteeColdCredential,
+        credentials: OrderedHashMap<CommitteeColdCredential, Epoch>,
+        unit_interval: UnitInterval,
     ) -> Self {
-        Self::NewCommittee(NewCommittee::new(action_id, cold_credentials, committee))
+        Self::UpdateCommittee(UpdateCommittee::new(
+            action_id,
+            cold_credentials,
+            credentials,
+            unit_interval,
+        ))
     }
 
     pub fn new_new_constitution(
@@ -192,30 +182,6 @@ impl HardForkInitiationAction {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct NewCommittee {
-    pub action_id: Option<GovActionId>,
-    pub cold_credentials: Vec<CommitteeColdCredential>,
-    pub committee: Committee,
-    #[serde(skip)]
-    pub encodings: Option<NewCommitteeEncoding>,
-}
-
-impl NewCommittee {
-    pub fn new(
-        action_id: Option<GovActionId>,
-        cold_credentials: Vec<CommitteeColdCredential>,
-        committee: Committee,
-    ) -> Self {
-        Self {
-            action_id,
-            cold_credentials,
-            committee,
-            encodings: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct NewConstitution {
     pub action_id: Option<GovActionId>,
     pub constitution: Constitution,
@@ -251,20 +217,23 @@ impl NoConfidence {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ParameterChangeAction {
-    pub gov_action_id: Option<GovActionId>,
-    pub protocol_param_update: ProtocolParamUpdate,
+    pub action_id: Option<GovActionId>,
+    pub update: ProtocolParamUpdate,
+    pub policy_hash: Option<ScriptHash>,
     #[serde(skip)]
     pub encodings: Option<ParameterChangeActionEncoding>,
 }
 
 impl ParameterChangeAction {
     pub fn new(
-        gov_action_id: Option<GovActionId>,
-        protocol_param_update: ProtocolParamUpdate,
+        action_id: Option<GovActionId>,
+        update: ProtocolParamUpdate,
+        policy_hash: Option<ScriptHash>,
     ) -> Self {
         Self {
-            gov_action_id,
-            protocol_param_update,
+            action_id,
+            update,
+            policy_hash,
             encodings: None,
         }
     }
@@ -300,14 +269,46 @@ impl ProposalProcedure {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct TreasuryWithdrawalsAction {
     pub withdrawal: OrderedHashMap<RewardAccount, Coin>,
+    pub policy_hash: Option<ScriptHash>,
     #[serde(skip)]
     pub encodings: Option<TreasuryWithdrawalsActionEncoding>,
 }
 
 impl TreasuryWithdrawalsAction {
-    pub fn new(withdrawal: OrderedHashMap<RewardAccount, Coin>) -> Self {
+    pub fn new(
+        withdrawal: OrderedHashMap<RewardAccount, Coin>,
+        policy_hash: Option<ScriptHash>,
+    ) -> Self {
         Self {
             withdrawal,
+            policy_hash,
+            encodings: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+pub struct UpdateCommittee {
+    pub action_id: Option<GovActionId>,
+    pub cold_credentials: SetCommitteeColdCredential,
+    pub credentials: OrderedHashMap<CommitteeColdCredential, Epoch>,
+    pub unit_interval: UnitInterval,
+    #[serde(skip)]
+    pub encodings: Option<UpdateCommitteeEncoding>,
+}
+
+impl UpdateCommittee {
+    pub fn new(
+        action_id: Option<GovActionId>,
+        cold_credentials: SetCommitteeColdCredential,
+        credentials: OrderedHashMap<CommitteeColdCredential, Epoch>,
+        unit_interval: UnitInterval,
+    ) -> Self {
+        Self {
+            action_id,
+            cold_credentials,
+            credentials,
+            unit_interval,
             encodings: None,
         }
     }
@@ -325,7 +326,7 @@ impl TreasuryWithdrawalsAction {
     serde::Serialize,
     schemars::JsonSchema,
 )]
-#[wasm_bindgen::prelude::wasm_bindgen]
+#[wasm_bindgen]
 pub enum Vote {
     No,
     Yes,

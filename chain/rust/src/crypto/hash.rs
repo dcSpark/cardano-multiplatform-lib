@@ -6,10 +6,11 @@ use cml_crypto::{
 
 use crate::{
     auxdata::AuxiliaryData,
-    plutus::{CostModels, Language, PlutusData, Redeemer},
+    plutus::{CostModels, Language, PlutusData, Redeemers},
     transaction::{
         cbor_encodings::TransactionWitnessSetEncoding, TransactionBody, TransactionWitnessSet,
     },
+    NonemptySetPlutusData,
 };
 
 pub fn hash_auxiliary_data(auxiliary_data: &AuxiliaryData) -> AuxiliaryDataHash {
@@ -30,10 +31,11 @@ pub fn hash_plutus_data(plutus_data: &PlutusData) -> DatumHash {
 /// Most users will not directly need this as when using the builders
 /// it will be invoked for you.
 pub fn hash_script_data(
-    redeemers: &[Redeemer],
+    redeemers: &Redeemers,
     cost_models: &CostModels,
-    datums: Option<&[PlutusData]>,
-    encoding: Option<&TransactionWitnessSetEncoding>,
+    datums: Option<&NonemptySetPlutusData>,
+    // this will be used again after Conway so we keep it here to avoid double breaking changes
+    _encoding: Option<&TransactionWitnessSetEncoding>,
 ) -> ScriptDataHash {
     let mut buf = cbor_event::se::Serializer::new_vec();
     match datums {
@@ -45,23 +47,7 @@ pub fn hash_script_data(
             ; corresponding to a CBOR empty list and an empty map (our apologies).
             */
             buf.write_raw_bytes(&[0x80]).unwrap();
-            buf.write_array_sz(
-                encoding
-                    .as_ref()
-                    .map(|encs| encs.plutus_datums_encoding)
-                    .unwrap_or_default()
-                    .to_len_sz(datums.len() as u64, false),
-            )
-            .unwrap();
-            for datum in datums {
-                datum.serialize(&mut buf, false).unwrap();
-            }
-            encoding
-                .as_ref()
-                .map(|encs| encs.plutus_datums_encoding)
-                .unwrap_or_default()
-                .end(&mut buf, false)
-                .unwrap();
+            datums.serialize(&mut buf, false).unwrap();
             buf.write_raw_bytes(&[0xA0]).unwrap();
         }
         _ => {
@@ -72,41 +58,9 @@ pub fn hash_script_data(
             ; Similarly for the datums, if present. If no datums are provided, the middle
             ; field is an empty string.
             */
-            buf.write_array_sz(
-                encoding
-                    .as_ref()
-                    .map(|encs| encs.redeemers_encoding)
-                    .unwrap_or_default()
-                    .to_len_sz(redeemers.len() as u64, false),
-            )
-            .unwrap();
-            for redeemer in redeemers {
-                redeemer.serialize(&mut buf, false).unwrap();
-            }
-            encoding
-                .as_ref()
-                .map(|encs| encs.redeemers_encoding)
-                .unwrap_or_default()
-                .end(&mut buf, false)
-                .unwrap();
+            redeemers.serialize(&mut buf, false).unwrap();
             if let Some(datums) = datums {
-                buf.write_array_sz(
-                    encoding
-                        .as_ref()
-                        .map(|encs| encs.plutus_datums_encoding)
-                        .unwrap_or_default()
-                        .to_len_sz(datums.len() as u64, false),
-                )
-                .unwrap();
-                for datum in datums {
-                    datum.serialize(&mut buf, false).unwrap();
-                }
-                encoding
-                    .as_ref()
-                    .map(|encs| encs.plutus_datums_encoding)
-                    .unwrap_or_default()
-                    .end(&mut buf, false)
-                    .unwrap();
+                datums.serialize(&mut buf, false).unwrap();
             }
             buf.write_raw_bytes(&cost_models.language_views_encoding().unwrap())
                 .unwrap();
@@ -127,44 +81,23 @@ pub enum ScriptDataHashError {
 /// Most users will not directly need this as when using the builders
 /// it will be invoked for you.
 pub fn calc_script_data_hash(
-    redeemers: &[Redeemer],
-    datums: &[PlutusData],
+    redeemers: &Redeemers,
+    datums: &NonemptySetPlutusData,
     cost_models: &CostModels,
     used_langs: &[Language],
     encoding: Option<&TransactionWitnessSetEncoding>,
 ) -> Result<Option<ScriptDataHash>, ScriptDataHashError> {
     if !redeemers.is_empty() || !datums.is_empty() {
-        let mut required_costmdls = CostModels::new();
+        let mut required_costmdls = CostModels::default();
         for lang in used_langs {
-            match lang {
-                Language::PlutusV1 => {
-                    required_costmdls.plutus_v1 = Some(
-                        cost_models
-                            .plutus_v1
-                            .as_ref()
-                            .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
-                            .clone(),
-                    );
-                }
-                Language::PlutusV2 => {
-                    required_costmdls.plutus_v2 = Some(
-                        cost_models
-                            .plutus_v2
-                            .as_ref()
-                            .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
-                            .clone(),
-                    );
-                }
-                Language::PlutusV3 => {
-                    required_costmdls.plutus_v3 = Some(
-                        cost_models
-                            .plutus_v3
-                            .as_ref()
-                            .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
-                            .clone(),
-                    );
-                }
-            }
+            required_costmdls.inner.insert(
+                *lang as u64,
+                cost_models
+                    .inner
+                    .get(&(*lang).into())
+                    .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
+                    .clone(),
+            );
         }
 
         Ok(Some(hash_script_data(

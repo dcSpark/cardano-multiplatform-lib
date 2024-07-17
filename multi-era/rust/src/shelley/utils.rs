@@ -1,6 +1,12 @@
-use cml_chain::transaction::{NativeScript, TransactionWitnessSet};
+use cml_chain::{
+    certs::{DNSName, PoolParams, PoolRegistration, Relay},
+    transaction::{NativeScript, TransactionWitnessSet},
+};
 
-use super::{MultisigScript, ShelleyTransactionBody, ShelleyTransactionWitnessSet};
+use super::{
+    MultisigScript, ShelleyPoolRegistration, ShelleyRelay, ShelleyTransactionBody,
+    ShelleyTransactionWitnessSet,
+};
 
 use cml_core::serialization::Serialize;
 use cml_crypto::{blake2b256, TransactionHash};
@@ -14,11 +20,15 @@ impl ShelleyTransactionBody {
 impl From<ShelleyTransactionWitnessSet> for TransactionWitnessSet {
     fn from(wits: ShelleyTransactionWitnessSet) -> Self {
         let mut new_wits = TransactionWitnessSet::new();
-        new_wits.vkeywitnesses = wits.vkeywitnesses;
-        new_wits.native_scripts = wits
-            .native_scripts
-            .map(|native_scripts| native_scripts.into_iter().map(NativeScript::from).collect());
-        new_wits.bootstrap_witnesses = wits.bootstrap_witnesses;
+        new_wits.vkeywitnesses = wits.vkeywitnesses.map(Into::into);
+        new_wits.native_scripts = wits.native_scripts.map(|native_scripts| {
+            native_scripts
+                .into_iter()
+                .map(NativeScript::from)
+                .collect::<Vec<_>>()
+                .into()
+        });
+        new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.map(Into::into);
         new_wits
     }
 }
@@ -48,6 +58,44 @@ impl From<MultisigScript> for NativeScript {
                     .map(NativeScript::from)
                     .collect(),
             ),
+        }
+    }
+}
+
+impl From<ShelleyPoolRegistration> for PoolRegistration {
+    fn from(pool_reg: ShelleyPoolRegistration) -> Self {
+        Self::new(PoolParams::new(
+            pool_reg.pool_params.operator,
+            pool_reg.pool_params.vrf_keyhash,
+            pool_reg.pool_params.pledge,
+            pool_reg.pool_params.cost,
+            pool_reg.pool_params.margin,
+            pool_reg.pool_params.reward_account,
+            pool_reg.pool_params.pool_owners.into(),
+            pool_reg
+                .pool_params
+                .relays
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            pool_reg.pool_params.pool_metadata,
+        ))
+    }
+}
+
+impl From<ShelleyRelay> for Relay {
+    fn from(relay: ShelleyRelay) -> Self {
+        match relay {
+            ShelleyRelay::SingleHostAddr(host) => {
+                Self::new_single_host_addr(host.port, host.ipv4, host.ipv6)
+            }
+            ShelleyRelay::ShelleySingleHostName(host) => Self::new_single_host_name(
+                host.port,
+                DNSName::new(host.shelley_dns_name.inner).unwrap(),
+            ),
+            ShelleyRelay::ShelleyMultiHostName(host) => {
+                Self::new_multi_host_name(DNSName::new(host.shelley_dns_name.inner).unwrap())
+            }
         }
     }
 }

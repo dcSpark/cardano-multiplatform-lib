@@ -2,17 +2,13 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use cml_core::serialization::{LenEncoding, StringEncoding};
+use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct CostModelsEncoding {
-    pub len_encoding: LenEncoding,
-    pub orig_deser_order: Vec<usize>,
-    pub plutus_v1_encoding: LenEncoding,
-    pub plutus_v1_key_encoding: Option<cbor_event::Sz>,
-    pub plutus_v2_encoding: LenEncoding,
-    pub plutus_v2_key_encoding: Option<cbor_event::Sz>,
-    pub plutus_v3_encoding: LenEncoding,
-    pub plutus_v3_key_encoding: Option<cbor_event::Sz>,
+    pub inner_encoding: LenEncoding,
+    pub inner_key_encodings: BTreeMap<u64, Option<cbor_event::Sz>>,
+    pub inner_value_encodings: BTreeMap<u64, (LenEncoding, Vec<Option<cbor_event::Sz>>)>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -25,6 +21,13 @@ pub struct ExUnitsEncoding {
     pub len_encoding: LenEncoding,
     pub mem_encoding: Option<cbor_event::Sz>,
     pub steps_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct LegacyRedeemerEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+    pub index_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -43,8 +46,13 @@ pub struct PlutusV3ScriptEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct RedeemerEncoding {
+pub struct RedeemerKeyEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
     pub index_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct RedeemerValEncoding {
+    pub len_encoding: LenEncoding,
 }

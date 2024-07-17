@@ -18,22 +18,43 @@ pub fn export_schemas() {
     // allegra
     gen_json_schema!(cml_multi_era::allegra::AllegraAuxiliaryData);
     gen_json_schema!(cml_multi_era::allegra::AllegraBlock);
+    gen_json_schema!(cml_multi_era::allegra::AllegraCertificate);
+    gen_json_schema!(cml_multi_era::allegra::AllegraTransaction);
     gen_json_schema!(cml_multi_era::allegra::AllegraTransactionBody);
     gen_json_schema!(cml_multi_era::allegra::AllegraTransactionWitnessSet);
+    gen_json_schema!(cml_multi_era::allegra::MIRAction);
+    gen_json_schema!(cml_multi_era::allegra::MIRPot);
+    gen_json_schema!(cml_multi_era::allegra::MoveInstantaneousReward);
+    gen_json_schema!(cml_multi_era::allegra::MoveInstantaneousRewardsCert);
     // alonzo
     gen_json_schema!(cml_multi_era::alonzo::AlonzoAuxiliaryData);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoBlock);
-    gen_json_schema!(cml_multi_era::alonzo::AlonzoCostmdls);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoFormatAuxData);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoProtocolParamUpdate);
+    gen_json_schema!(cml_multi_era::alonzo::AlonzoRedeemer);
+    gen_json_schema!(cml_multi_era::alonzo::AlonzoRedeemerTag);
+    gen_json_schema!(cml_multi_era::alonzo::AlonzoTransaction);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoTransactionBody);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoTransactionWitnessSet);
     gen_json_schema!(cml_multi_era::alonzo::AlonzoUpdate);
+    // babbage
+    gen_json_schema!(cml_multi_era::babbage::BabbageAuxiliaryData);
+    gen_json_schema!(cml_multi_era::babbage::BabbageBlock);
+    gen_json_schema!(cml_multi_era::babbage::BabbageFormatAuxData);
+    gen_json_schema!(cml_multi_era::babbage::BabbageFormatTxOut);
+    gen_json_schema!(cml_multi_era::babbage::BabbageProtocolParamUpdate);
+    gen_json_schema!(cml_multi_era::babbage::BabbageScript);
+    gen_json_schema!(cml_multi_era::babbage::BabbageTransaction);
+    gen_json_schema!(cml_multi_era::babbage::BabbageTransactionBody);
+    gen_json_schema!(cml_multi_era::babbage::BabbageTransactionOutput);
+    gen_json_schema!(cml_multi_era::babbage::BabbageTransactionWitnessSet);
+    gen_json_schema!(cml_multi_era::babbage::BabbageUpdate);
     // byron
     gen_json_schema!(cml_multi_era::byron::Blake2b256);
     gen_json_schema!(cml_multi_era::byron::ByronSlotId);
     // byron::block
     gen_json_schema!(cml_multi_era::byron::block::BlockHeaderExtraData);
+    gen_json_schema!(cml_multi_era::byron::block::ByronBlock);
     gen_json_schema!(cml_multi_era::byron::block::ByronBlockBody);
     gen_json_schema!(cml_multi_era::byron::block::ByronBlockConsensusData);
     gen_json_schema!(cml_multi_era::byron::block::ByronBlockHeader);
@@ -99,10 +120,13 @@ pub fn export_schemas() {
     gen_json_schema!(cml_multi_era::byron::update::SoftForkRule);
     gen_json_schema!(cml_multi_era::byron::update::StdFeePolicy);
     // lib
-    gen_json_schema!(cml_multi_era::byron::block::ByronBlock);
+    gen_json_schema!(cml_multi_era::MultiEraBlock);
+    gen_json_schema!(cml_multi_era::MultiEraTransactionBody);
     // mary
     gen_json_schema!(cml_multi_era::mary::MaryBlock);
+    gen_json_schema!(cml_multi_era::mary::MaryTransaction);
     gen_json_schema!(cml_multi_era::mary::MaryTransactionBody);
+    gen_json_schema!(cml_multi_era::mary::MaryTransactionOutput);
     // shelley
     gen_json_schema!(cml_multi_era::shelley::MultisigAll);
     gen_json_schema!(cml_multi_era::shelley::MultisigAny);
@@ -111,11 +135,18 @@ pub fn export_schemas() {
     gen_json_schema!(cml_multi_era::shelley::MultisigScript);
     gen_json_schema!(cml_multi_era::shelley::ShelleyBlock);
     gen_json_schema!(cml_multi_era::shelley::ShelleyCertificate);
+    gen_json_schema!(cml_multi_era::shelley::ShelleyDNSName);
     gen_json_schema!(cml_multi_era::shelley::ShelleyHeader);
     gen_json_schema!(cml_multi_era::shelley::ShelleyHeaderBody);
     gen_json_schema!(cml_multi_era::shelley::ShelleyMoveInstantaneousReward);
     gen_json_schema!(cml_multi_era::shelley::ShelleyMoveInstantaneousRewardsCert);
+    gen_json_schema!(cml_multi_era::shelley::ShelleyMultiHostName);
+    gen_json_schema!(cml_multi_era::shelley::ShelleyPoolParams);
+    gen_json_schema!(cml_multi_era::shelley::ShelleyPoolRegistration);
     gen_json_schema!(cml_multi_era::shelley::ShelleyProtocolParamUpdate);
+    gen_json_schema!(cml_multi_era::shelley::ShelleyRelay);
+    gen_json_schema!(cml_multi_era::shelley::ShelleySingleHostName);
+    gen_json_schema!(cml_multi_era::shelley::ShelleyTransaction);
     gen_json_schema!(cml_multi_era::shelley::ShelleyTransactionBody);
     gen_json_schema!(cml_multi_era::shelley::ShelleyTransactionOutput);
     gen_json_schema!(cml_multi_era::shelley::ShelleyTransactionWitnessSet);

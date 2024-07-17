@@ -1,11 +1,9 @@
 use super::{
     certificate_builder::CertificateBuilderResult, input_builder::InputBuilderResult,
-    mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
+    mint_builder::MintBuilderResult, proposal_builder::ProposalBuilderResult,
+    vote_builder::VoteBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
 };
-use crate::{
-    plutus::{ExUnits, PlutusData, Redeemer, RedeemerTag},
-    RedeemerList,
-};
+use crate::plutus::{ExUnits, LegacyRedeemer, PlutusData, RedeemerTag, Redeemers};
 use cml_core_wasm::impl_wasm_conversions;
 use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
@@ -24,7 +22,7 @@ impl RedeemerWitnessKey {
         cml_chain::builders::redeemer_builder::RedeemerWitnessKey::new(tag, index).into()
     }
 
-    pub fn from_redeemer(redeemer: &Redeemer) -> Self {
+    pub fn from_redeemer(redeemer: &LegacyRedeemer) -> Self {
         cml_chain::builders::redeemer_builder::RedeemerWitnessKey::from(redeemer.as_ref()).into()
     }
 }
@@ -95,7 +93,15 @@ impl RedeemerSetBuilder {
         self.0.add_cert(result.as_ref());
     }
 
-    pub fn build(&self, default_to_dummy_exunits: bool) -> Result<RedeemerList, JsError> {
+    pub fn add_proposal(&mut self, result: &ProposalBuilderResult) {
+        self.0.add_proposal(result.as_ref());
+    }
+
+    pub fn add_vote(&mut self, result: &VoteBuilderResult) {
+        self.0.add_vote(result.as_ref());
+    }
+
+    pub fn build(&self, default_to_dummy_exunits: bool) -> Result<Redeemers, JsError> {
         self.0
             .build(default_to_dummy_exunits)
             .map(Into::into)

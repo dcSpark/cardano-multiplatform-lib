@@ -11,7 +11,7 @@ pub struct GenesisKeyDelegationEncoding {
     pub tag_encoding: Option<cbor_event::Sz>,
     pub genesis_hash_encoding: StringEncoding,
     pub genesis_delegate_hash_encoding: StringEncoding,
-    pub v_r_f_key_hash_encoding: StringEncoding,
+    pub vrf_key_hash_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -58,13 +58,18 @@ pub struct ShelleyBlockEncoding {
 }
 
 #[derive(Clone, Debug, Default)]
+pub struct ShelleyDNSNameEncoding {
+    pub inner_encoding: StringEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct ShelleyHeaderBodyEncoding {
     pub len_encoding: LenEncoding,
     pub block_number_encoding: Option<cbor_event::Sz>,
     pub slot_encoding: Option<cbor_event::Sz>,
     pub prev_hash_encoding: StringEncoding,
     pub issuer_vkey_encoding: StringEncoding,
-    pub v_r_f_vkey_encoding: StringEncoding,
+    pub vrf_vkey_encoding: StringEncoding,
     pub block_body_size_encoding: Option<cbor_event::Sz>,
     pub block_body_hash_encoding: StringEncoding,
 }
@@ -84,6 +89,30 @@ pub struct ShelleyMoveInstantaneousRewardEncoding {
 
 #[derive(Clone, Debug, Default)]
 pub struct ShelleyMoveInstantaneousRewardsCertEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ShelleyMultiHostNameEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ShelleyPoolParamsEncoding {
+    pub len_encoding: LenEncoding,
+    pub operator_encoding: StringEncoding,
+    pub vrf_keyhash_encoding: StringEncoding,
+    pub pledge_encoding: Option<cbor_event::Sz>,
+    pub cost_encoding: Option<cbor_event::Sz>,
+    pub pool_owners_encoding: LenEncoding,
+    pub pool_owners_elem_encodings: Vec<StringEncoding>,
+    pub relays_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ShelleyPoolRegistrationEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
 }
@@ -118,6 +147,13 @@ pub struct ShelleyProtocolParamUpdateEncoding {
     pub protocol_version_key_encoding: Option<cbor_event::Sz>,
     pub min_utxo_value_encoding: Option<cbor_event::Sz>,
     pub min_utxo_value_key_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ShelleySingleHostNameEncoding {
+    pub len_encoding: LenEncoding,
+    pub tag_encoding: Option<cbor_event::Sz>,
+    pub port_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]

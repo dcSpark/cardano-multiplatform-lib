@@ -22,15 +22,15 @@ move_instantaneous_reward = [
 ]
 move_instantaneous_rewards_cert = (tag: 6, move_instantaneous_reward)
 
-allegra_certificate =
-  [ stake_registration
-  // stake_deregistration
-  // stake_delegation
-  // pool_registration
-  // pool_retirement
-  // genesis_key_delegation
-  // move_instantaneous_rewards_cert
-  ]
+allegra_certificate = [
+  stake_registration //
+  stake_deregistration //
+  stake_delegation //
+  shelley_pool_registration //
+  pool_retirement //
+  genesis_key_delegation //
+  move_instantaneous_rewards_cert
+]
 
 allegra_transaction = [
   body: allegra_transaction_body,
@@ -51,7 +51,7 @@ allegra_transaction_witness_set = {
 
 allegra_auxiliary_data =
     shelley_format_aux_data ; @name shelley
-  / shelley_ma_format_aux_data ; @name shelley_m_a
+  / shelley_MA_format_aux_data ; @name shelley_MA
 
 ; allegra differences
 allegra_transaction_body = {

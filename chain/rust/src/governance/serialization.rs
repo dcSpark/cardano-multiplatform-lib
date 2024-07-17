@@ -85,137 +85,6 @@ impl Deserialize for Anchor {
     }
 }
 
-impl Serialize for Committee {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.len_encoding)
-                .unwrap_or_default()
-                .to_len_sz(2, force_canonical),
-        )?;
-        serializer.write_map_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.credentials_encoding)
-                .unwrap_or_default()
-                .to_len_sz(self.credentials.len() as u64, force_canonical),
-        )?;
-        let mut key_order = self
-            .credentials
-            .iter()
-            .map(|(k, v)| {
-                let mut buf = cbor_event::se::Serializer::new_vec();
-                k.serialize(&mut buf, force_canonical)?;
-                Ok((buf.finalize(), k, v))
-            })
-            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
-        if force_canonical {
-            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
-                match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                    diff_ord => diff_ord,
-                }
-            });
-        }
-        for (key_bytes, key, value) in key_order {
-            serializer.write_raw_bytes(&key_bytes)?;
-            let credentials_value_encoding = self
-                .encodings
-                .as_ref()
-                .and_then(|encs| encs.credentials_value_encodings.get(key))
-                .cloned()
-                .unwrap_or_default();
-            serializer.write_unsigned_integer_sz(
-                *value,
-                fit_sz(*value, credentials_value_encoding, force_canonical),
-            )?;
-        }
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.credentials_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)?;
-        self.unit_interval.serialize(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
-    }
-}
-
-impl Deserialize for Committee {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
-        (|| -> Result<_, DeserializeError> {
-            let (credentials, credentials_encoding, credentials_value_encodings) =
-                (|| -> Result<_, DeserializeError> {
-                    let mut credentials_table = OrderedHashMap::new();
-                    let credentials_len = raw.map_sz()?;
-                    let credentials_encoding = credentials_len.into();
-                    let mut credentials_value_encodings = BTreeMap::new();
-                    while match credentials_len {
-                        cbor_event::LenSz::Len(n, _) => (credentials_table.len() as u64) < n,
-                        cbor_event::LenSz::Indefinite => true,
-                    } {
-                        if raw.cbor_type()? == cbor_event::Type::Special {
-                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                            break;
-                        }
-                        let credentials_key = Credential::deserialize(raw)?;
-                        let (credentials_value, credentials_value_encoding) =
-                            raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
-                        if credentials_table
-                            .insert(credentials_key.clone(), credentials_value)
-                            .is_some()
-                        {
-                            return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
-                                "some complicated/unsupported type",
-                            )))
-                            .into());
-                        }
-                        credentials_value_encodings
-                            .insert(credentials_key, credentials_value_encoding);
-                    }
-                    Ok((
-                        credentials_table,
-                        credentials_encoding,
-                        credentials_value_encodings,
-                    ))
-                })()
-                .map_err(|e| e.annotate("credentials"))?;
-            let unit_interval = UnitInterval::deserialize(raw)
-                .map_err(|e: DeserializeError| e.annotate("unit_interval"))?;
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
-            Ok(Committee {
-                credentials,
-                unit_interval,
-                encodings: Some(CommitteeEncoding {
-                    len_encoding,
-                    credentials_encoding,
-                    credentials_value_encodings,
-                }),
-            })
-        })()
-        .map_err(|e| e.annotate("Committee"))
-    }
-}
-
 impl Serialize for Constitution {
     fn serialize<'se, W: Write>(
         &self,
@@ -321,8 +190,8 @@ impl Serialize for GovAction {
             GovAction::NoConfidence(no_confidence) => {
                 no_confidence.serialize(serializer, force_canonical)
             }
-            GovAction::NewCommittee(new_committee) => {
-                new_committee.serialize(serializer, force_canonical)
+            GovAction::UpdateCommittee(update_committee) => {
+                update_committee.serialize(serializer, force_canonical)
             }
             GovAction::NewConstitution(new_constitution) => {
                 new_constitution.serialize(serializer, force_canonical)
@@ -352,7 +221,7 @@ impl Deserialize for GovAction {
             let mut errs = Vec::new();
             let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
-                read_len.read_elems(3)?;
+                read_len.read_elems(4)?;
                 read_len.finish()?;
                 let ret =
                     ParameterChangeAction::deserialize_as_embedded_group(raw, &mut read_len, len);
@@ -407,7 +276,7 @@ impl Deserialize for GovAction {
             };
             let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
-                read_len.read_elems(2)?;
+                read_len.read_elems(3)?;
                 read_len.finish()?;
                 let ret = TreasuryWithdrawalsAction::deserialize_as_embedded_group(
                     raw,
@@ -459,9 +328,9 @@ impl Deserialize for GovAction {
             };
             let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
-                read_len.read_elems(4)?;
+                read_len.read_elems(5)?;
                 read_len.finish()?;
-                let ret = NewCommittee::deserialize_as_embedded_group(raw, &mut read_len, len);
+                let ret = UpdateCommittee::deserialize_as_embedded_group(raw, &mut read_len, len);
                 match len {
                     cbor_event::LenSz::Len(_, _) => (),
                     cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -472,9 +341,9 @@ impl Deserialize for GovAction {
                 ret
             })(raw);
             match deser_variant {
-                Ok(new_committee) => return Ok(Self::NewCommittee(new_committee)),
+                Ok(update_committee) => return Ok(Self::UpdateCommittee(update_committee)),
                 Err(e) => {
-                    errs.push(e.annotate("NewCommittee"));
+                    errs.push(e.annotate("UpdateCommittee"));
                     raw.as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap();
@@ -746,153 +615,6 @@ impl DeserializeEmbeddedGroup for HardForkInitiationAction {
     }
 }
 
-impl Serialize for NewCommittee {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_array_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.len_encoding)
-                .unwrap_or_default()
-                .to_len_sz(4, force_canonical),
-        )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
-    }
-}
-
-impl SerializeEmbeddedGroup for NewCommittee {
-    fn serialize_as_embedded_group<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_unsigned_integer_sz(
-            4u64,
-            fit_sz(
-                4u64,
-                self.encodings
-                    .as_ref()
-                    .map(|encs| encs.tag_encoding)
-                    .unwrap_or_default(),
-                force_canonical,
-            ),
-        )?;
-        match &self.action_id {
-            Some(x) => x.serialize(serializer, force_canonical),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
-        serializer.write_array_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.cold_credentials_encoding)
-                .unwrap_or_default()
-                .to_len_sz(self.cold_credentials.len() as u64, force_canonical),
-        )?;
-        for element in self.cold_credentials.iter() {
-            element.serialize(serializer, force_canonical)?;
-        }
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.cold_credentials_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)?;
-        self.committee.serialize(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
-    }
-}
-
-impl Deserialize for NewCommittee {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(4)?;
-        read_len.finish()?;
-        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
-        match len {
-            cbor_event::LenSz::Len(_, _) => (),
-            cbor_event::LenSz::Indefinite => match raw.special()? {
-                cbor_event::Special::Break => (),
-                _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-            },
-        }
-        ret
-    }
-}
-
-impl DeserializeEmbeddedGroup for NewCommittee {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
-        _read_len: &mut CBORReadLen,
-        len: cbor_event::LenSz,
-    ) -> Result<Self, DeserializeError> {
-        let len_encoding = len.into();
-        (|| -> Result<_, DeserializeError> {
-            let tag_encoding = (|| -> Result<_, DeserializeError> {
-                let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
-                if tag_value != 4 {
-                    return Err(DeserializeFailure::FixedValueMismatch {
-                        found: Key::Uint(tag_value),
-                        expected: Key::Uint(4),
-                    }
-                    .into());
-                }
-                Ok(Some(tag_encoding))
-            })()
-            .map_err(|e| e.annotate("tag"))?;
-            let action_id = (|| -> Result<_, DeserializeError> {
-                Ok(match raw.cbor_type()? != cbor_event::Type::Special {
-                    true => Some(GovActionId::deserialize(raw)?),
-                    false => {
-                        if raw.special()? != cbor_event::Special::Null {
-                            return Err(DeserializeFailure::ExpectedNull.into());
-                        }
-                        None
-                    }
-                })
-            })()
-            .map_err(|e| e.annotate("action_id"))?;
-            let (cold_credentials, cold_credentials_encoding) =
-                (|| -> Result<_, DeserializeError> {
-                    let mut cold_credentials_arr = Vec::new();
-                    let len = raw.array_sz()?;
-                    let cold_credentials_encoding = len.into();
-                    while match len {
-                        cbor_event::LenSz::Len(n, _) => (cold_credentials_arr.len() as u64) < n,
-                        cbor_event::LenSz::Indefinite => true,
-                    } {
-                        if raw.cbor_type()? == cbor_event::Type::Special {
-                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                            break;
-                        }
-                        cold_credentials_arr.push(Credential::deserialize(raw)?);
-                    }
-                    Ok((cold_credentials_arr, cold_credentials_encoding))
-                })()
-                .map_err(|e| e.annotate("cold_credentials"))?;
-            let committee = Committee::deserialize(raw)
-                .map_err(|e: DeserializeError| e.annotate("committee"))?;
-            Ok(NewCommittee {
-                action_id,
-                cold_credentials,
-                committee,
-                encodings: Some(NewCommitteeEncoding {
-                    len_encoding,
-                    tag_encoding,
-                    cold_credentials_encoding,
-                }),
-            })
-        })()
-        .map_err(|e| e.annotate("NewCommittee"))
-    }
-}
-
 impl Serialize for NewConstitution {
     fn serialize<'se, W: Write>(
         &self,
@@ -1124,7 +846,7 @@ impl Serialize for ParameterChangeAction {
                 .as_ref()
                 .map(|encs| encs.len_encoding)
                 .unwrap_or_default()
-                .to_len_sz(3, force_canonical),
+                .to_len_sz(4, force_canonical),
         )?;
         self.serialize_as_embedded_group(serializer, force_canonical)
     }
@@ -1147,12 +869,22 @@ impl SerializeEmbeddedGroup for ParameterChangeAction {
                 force_canonical,
             ),
         )?;
-        match &self.gov_action_id {
+        match &self.action_id {
             Some(x) => x.serialize(serializer, force_canonical),
             None => serializer.write_special(cbor_event::Special::Null),
         }?;
-        self.protocol_param_update
-            .serialize(serializer, force_canonical)?;
+        self.update.serialize(serializer, force_canonical)?;
+        match &self.policy_hash {
+            Some(x) => serializer.write_bytes_sz(
+                x.to_raw_bytes(),
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.policy_hash_encoding.clone())
+                    .unwrap_or_default()
+                    .to_str_len_sz(x.to_raw_bytes().len() as u64, force_canonical),
+            ),
+            None => serializer.write_special(cbor_event::Special::Null),
+        }?;
         self.encodings
             .as_ref()
             .map(|encs| encs.len_encoding)
@@ -1165,7 +897,7 @@ impl Deserialize for ParameterChangeAction {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(3)?;
+        read_len.read_elems(4)?;
         read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
@@ -1199,7 +931,7 @@ impl DeserializeEmbeddedGroup for ParameterChangeAction {
                 Ok(Some(tag_encoding))
             })()
             .map_err(|e| e.annotate("tag"))?;
-            let gov_action_id = (|| -> Result<_, DeserializeError> {
+            let action_id = (|| -> Result<_, DeserializeError> {
                 Ok(match raw.cbor_type()? != cbor_event::Type::Special {
                     true => Some(GovActionId::deserialize(raw)?),
                     false => {
@@ -1210,15 +942,40 @@ impl DeserializeEmbeddedGroup for ParameterChangeAction {
                     }
                 })
             })()
-            .map_err(|e| e.annotate("gov_action_id"))?;
-            let protocol_param_update = ProtocolParamUpdate::deserialize(raw)
-                .map_err(|e: DeserializeError| e.annotate("protocol_param_update"))?;
+            .map_err(|e| e.annotate("action_id"))?;
+            let update = ProtocolParamUpdate::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("update"))?;
+            let (policy_hash, policy_hash_encoding) = (|| -> Result<_, DeserializeError> {
+                Ok(match raw.cbor_type()? != cbor_event::Type::Special {
+                    true => Result::<_, DeserializeError>::Ok(
+                        raw.bytes_sz()
+                            .map_err(Into::<DeserializeError>::into)
+                            .and_then(|(bytes, enc)| {
+                                ScriptHash::from_raw_bytes(&bytes)
+                                    .map(|bytes| (bytes, StringEncoding::from(enc)))
+                                    .map_err(|e| {
+                                        DeserializeFailure::InvalidStructure(Box::new(e)).into()
+                                    })
+                            })?,
+                    )
+                    .map(|(x, policy_hash_encoding)| (Some(x), policy_hash_encoding))?,
+                    false => {
+                        if raw.special()? != cbor_event::Special::Null {
+                            return Err(DeserializeFailure::ExpectedNull.into());
+                        }
+                        (None, StringEncoding::default())
+                    }
+                })
+            })()
+            .map_err(|e| e.annotate("policy_hash"))?;
             Ok(ParameterChangeAction {
-                gov_action_id,
-                protocol_param_update,
+                action_id,
+                update,
+                policy_hash,
                 encodings: Some(ParameterChangeActionEncoding {
                     len_encoding,
                     tag_encoding,
+                    policy_hash_encoding,
                 }),
             })
         })()
@@ -1313,7 +1070,7 @@ impl Serialize for TreasuryWithdrawalsAction {
                 .as_ref()
                 .map(|encs| encs.len_encoding)
                 .unwrap_or_default()
-                .to_len_sz(2, force_canonical),
+                .to_len_sz(3, force_canonical),
         )?;
         self.serialize_as_embedded_group(serializer, force_canonical)
     }
@@ -1378,6 +1135,17 @@ impl SerializeEmbeddedGroup for TreasuryWithdrawalsAction {
             .map(|encs| encs.withdrawal_encoding)
             .unwrap_or_default()
             .end(serializer, force_canonical)?;
+        match &self.policy_hash {
+            Some(x) => serializer.write_bytes_sz(
+                x.to_raw_bytes(),
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.policy_hash_encoding.clone())
+                    .unwrap_or_default()
+                    .to_str_len_sz(x.to_raw_bytes().len() as u64, force_canonical),
+            ),
+            None => serializer.write_special(cbor_event::Special::Null),
+        }?;
         self.encodings
             .as_ref()
             .map(|encs| encs.len_encoding)
@@ -1390,7 +1158,7 @@ impl Deserialize for TreasuryWithdrawalsAction {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
+        read_len.read_elems(3)?;
         read_len.finish()?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
         match len {
@@ -1460,17 +1228,240 @@ impl DeserializeEmbeddedGroup for TreasuryWithdrawalsAction {
                     ))
                 })()
                 .map_err(|e| e.annotate("withdrawal"))?;
+            let (policy_hash, policy_hash_encoding) = (|| -> Result<_, DeserializeError> {
+                Ok(match raw.cbor_type()? != cbor_event::Type::Special {
+                    true => Result::<_, DeserializeError>::Ok(
+                        raw.bytes_sz()
+                            .map_err(Into::<DeserializeError>::into)
+                            .and_then(|(bytes, enc)| {
+                                ScriptHash::from_raw_bytes(&bytes)
+                                    .map(|bytes| (bytes, StringEncoding::from(enc)))
+                                    .map_err(|e| {
+                                        DeserializeFailure::InvalidStructure(Box::new(e)).into()
+                                    })
+                            })?,
+                    )
+                    .map(|(x, policy_hash_encoding)| (Some(x), policy_hash_encoding))?,
+                    false => {
+                        if raw.special()? != cbor_event::Special::Null {
+                            return Err(DeserializeFailure::ExpectedNull.into());
+                        }
+                        (None, StringEncoding::default())
+                    }
+                })
+            })()
+            .map_err(|e| e.annotate("policy_hash"))?;
             Ok(TreasuryWithdrawalsAction {
                 withdrawal,
+                policy_hash,
                 encodings: Some(TreasuryWithdrawalsActionEncoding {
                     len_encoding,
                     tag_encoding,
                     withdrawal_encoding,
                     withdrawal_value_encodings,
+                    policy_hash_encoding,
                 }),
             })
         })()
         .map_err(|e| e.annotate("TreasuryWithdrawalsAction"))
+    }
+}
+
+impl Serialize for UpdateCommittee {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(5, force_canonical),
+        )?;
+        self.serialize_as_embedded_group(serializer, force_canonical)
+    }
+}
+
+impl SerializeEmbeddedGroup for UpdateCommittee {
+    fn serialize_as_embedded_group<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer_sz(
+            4u64,
+            fit_sz(
+                4u64,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.tag_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )?;
+        match &self.action_id {
+            Some(x) => x.serialize(serializer, force_canonical),
+            None => serializer.write_special(cbor_event::Special::Null),
+        }?;
+        self.cold_credentials
+            .serialize(serializer, force_canonical)?;
+        serializer.write_map_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.credentials_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.credentials.len() as u64, force_canonical),
+        )?;
+        let mut key_order = self
+            .credentials
+            .iter()
+            .map(|(k, v)| {
+                let mut buf = cbor_event::se::Serializer::new_vec();
+                k.serialize(&mut buf, force_canonical)?;
+                Ok((buf.finalize(), k, v))
+            })
+            .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
+        if force_canonical {
+            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
+                match lhs_bytes.len().cmp(&rhs_bytes.len()) {
+                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                    diff_ord => diff_ord,
+                }
+            });
+        }
+        for (key_bytes, key, value) in key_order {
+            serializer.write_raw_bytes(&key_bytes)?;
+            let credentials_value_encoding = self
+                .encodings
+                .as_ref()
+                .and_then(|encs| encs.credentials_value_encodings.get(key))
+                .cloned()
+                .unwrap_or_default();
+            serializer.write_unsigned_integer_sz(
+                *value,
+                fit_sz(*value, credentials_value_encoding, force_canonical),
+            )?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.credentials_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)?;
+        self.unit_interval.serialize(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for UpdateCommittee {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(5)?;
+        read_len.finish()?;
+        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+        match len {
+            cbor_event::LenSz::Len(_, _) => (),
+            cbor_event::LenSz::Indefinite => match raw.special()? {
+                cbor_event::Special::Break => (),
+                _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+            },
+        }
+        ret
+    }
+}
+
+impl DeserializeEmbeddedGroup for UpdateCommittee {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(
+        raw: &mut Deserializer<R>,
+        _read_len: &mut CBORReadLen,
+        len: cbor_event::LenSz,
+    ) -> Result<Self, DeserializeError> {
+        let len_encoding = len.into();
+        (|| -> Result<_, DeserializeError> {
+            let tag_encoding = (|| -> Result<_, DeserializeError> {
+                let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
+                if tag_value != 4 {
+                    return Err(DeserializeFailure::FixedValueMismatch {
+                        found: Key::Uint(tag_value),
+                        expected: Key::Uint(4),
+                    }
+                    .into());
+                }
+                Ok(Some(tag_encoding))
+            })()
+            .map_err(|e| e.annotate("tag"))?;
+            let action_id = (|| -> Result<_, DeserializeError> {
+                Ok(match raw.cbor_type()? != cbor_event::Type::Special {
+                    true => Some(GovActionId::deserialize(raw)?),
+                    false => {
+                        if raw.special()? != cbor_event::Special::Null {
+                            return Err(DeserializeFailure::ExpectedNull.into());
+                        }
+                        None
+                    }
+                })
+            })()
+            .map_err(|e| e.annotate("action_id"))?;
+            let cold_credentials = SetCommitteeColdCredential::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("cold_credentials"))?;
+            let (credentials, credentials_encoding, credentials_value_encodings) =
+                (|| -> Result<_, DeserializeError> {
+                    let mut credentials_table = OrderedHashMap::new();
+                    let credentials_len = raw.map_sz()?;
+                    let credentials_encoding = credentials_len.into();
+                    let mut credentials_value_encodings = BTreeMap::new();
+                    while match credentials_len {
+                        cbor_event::LenSz::Len(n, _) => (credentials_table.len() as u64) < n,
+                        cbor_event::LenSz::Indefinite => true,
+                    } {
+                        if raw.cbor_type()? == cbor_event::Type::Special {
+                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                            break;
+                        }
+                        let credentials_key = Credential::deserialize(raw)?;
+                        let (credentials_value, credentials_value_encoding) =
+                            raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
+                        if credentials_table
+                            .insert(credentials_key.clone(), credentials_value)
+                            .is_some()
+                        {
+                            return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
+                                "some complicated/unsupported type",
+                            )))
+                            .into());
+                        }
+                        credentials_value_encodings
+                            .insert(credentials_key, credentials_value_encoding);
+                    }
+                    Ok((
+                        credentials_table,
+                        credentials_encoding,
+                        credentials_value_encodings,
+                    ))
+                })()
+                .map_err(|e| e.annotate("credentials"))?;
+            let unit_interval = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("unit_interval"))?;
+            Ok(UpdateCommittee {
+                action_id,
+                cold_credentials,
+                credentials,
+                unit_interval,
+                encodings: Some(UpdateCommitteeEncoding {
+                    len_encoding,
+                    tag_encoding,
+                    credentials_encoding,
+                    credentials_value_encodings,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("UpdateCommittee"))
     }
 }
 

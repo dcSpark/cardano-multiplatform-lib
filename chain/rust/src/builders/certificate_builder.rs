@@ -6,7 +6,7 @@ use super::witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet};
 
 use crate::{
     certs::{Certificate, StakeCredential},
-    transaction::RequiredSigners,
+    RequiredSigners,
 };
 
 use cml_crypto::{Ed25519KeyHash, ScriptHash};
@@ -35,7 +35,7 @@ pub fn cert_required_wits(cert: &Certificate, required_witnesses: &mut RequiredW
             required_witnesses.add_from_credential(cert.stake_credential.clone());
         }
         Certificate::PoolRegistration(cert) => {
-            for owner in &cert.pool_params.pool_owners {
+            for owner in cert.pool_params.pool_owners.as_ref() {
                 required_witnesses.add_vkey_key_hash(*owner);
             }
             required_witnesses.add_vkey_key_hash(cert.pool_params.operator);
@@ -108,7 +108,7 @@ pub fn add_cert_vkeys(
             }
         },
         Certificate::PoolRegistration(cert) => {
-            for owner in &cert.pool_params.pool_owners {
+            for owner in cert.pool_params.pool_owners.as_ref() {
                 vkeys.insert(*owner);
             }
             vkeys.insert(cert.pool_params.operator);
@@ -183,9 +183,14 @@ pub fn add_cert_vkeys(
                 vkeys.insert(*hash);
             }
         },
-        Certificate::RegDrepCert(_cert) => {
-            // does not need a witness
-        }
+        Certificate::RegDrepCert(cert) => match &cert.drep_credential {
+            StakeCredential::Script { hash, .. } => {
+                return Err(CertBuilderError::ExpectedKeyHash(*hash))
+            }
+            StakeCredential::PubKey { hash, .. } => {
+                vkeys.insert(*hash);
+            }
+        },
         Certificate::UnregDrepCert(cert) => match &cert.drep_credential {
             StakeCredential::Script { hash, .. } => {
                 return Err(CertBuilderError::ExpectedKeyHash(*hash))

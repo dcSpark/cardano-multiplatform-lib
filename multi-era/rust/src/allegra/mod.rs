@@ -5,18 +5,23 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
+#[cfg(not(feature = "used_from_wasm"))]
+use noop_proc_macro::wasm_bindgen;
+#[cfg(feature = "used_from_wasm")]
+use wasm_bindgen::prelude::wasm_bindgen;
+
 use crate::shelley::{
-    GenesisKeyDelegation, ShelleyHeader, ShelleyTransactionOutput, ShelleyUpdate,
+    GenesisKeyDelegation, ShelleyHeader, ShelleyPoolParams, ShelleyPoolRegistration,
+    ShelleyTransactionOutput, ShelleyUpdate,
 };
 use cbor_encodings::{
     AllegraBlockEncoding, AllegraTransactionBodyEncoding, AllegraTransactionEncoding,
     AllegraTransactionWitnessSetEncoding,
 };
 use cml_chain::assets::Coin;
-use cml_chain::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
+use cml_chain::auxdata::{ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain::certs::{
-    PoolParams, PoolRegistration, PoolRetirement, StakeCredential, StakeDelegation,
-    StakeDeregistration, StakeRegistration,
+    PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration, StakeRegistration,
 };
 use cml_chain::crypto::{AuxiliaryDataHash, BootstrapWitness, Vkeywitness};
 use cml_chain::transaction::{NativeScript, TransactionInput};
@@ -32,7 +37,7 @@ use self::cbor_encodings::{MoveInstantaneousRewardEncoding, MoveInstantaneousRew
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AllegraAuxiliaryData {
     Shelley(ShelleyFormatAuxData),
-    ShelleyMA(ShelleyMaFormatAuxData),
+    ShelleyMA(ShelleyMAFormatAuxData),
 }
 
 impl AllegraAuxiliaryData {
@@ -40,8 +45,8 @@ impl AllegraAuxiliaryData {
         Self::Shelley(shelley)
     }
 
-    pub fn new_shelley_m_a(shelley_m_a: ShelleyMaFormatAuxData) -> Self {
-        Self::ShelleyMA(shelley_m_a)
+    pub fn new_shelley_ma(shelley_ma: ShelleyMAFormatAuxData) -> Self {
+        Self::ShelleyMA(shelley_ma)
     }
 }
 
@@ -78,7 +83,7 @@ pub enum AllegraCertificate {
     StakeRegistration(StakeRegistration),
     StakeDeregistration(StakeDeregistration),
     StakeDelegation(StakeDelegation),
-    PoolRegistration(PoolRegistration),
+    ShelleyPoolRegistration(ShelleyPoolRegistration),
     PoolRetirement(PoolRetirement),
     GenesisKeyDelegation(GenesisKeyDelegation),
     MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCert),
@@ -100,8 +105,8 @@ impl AllegraCertificate {
         Self::StakeDelegation(StakeDelegation::new(stake_credential, ed25519_key_hash))
     }
 
-    pub fn new_pool_registration(pool_params: PoolParams) -> Self {
-        Self::PoolRegistration(PoolRegistration::new(pool_params))
+    pub fn new_shelley_pool_registration(pool_params: ShelleyPoolParams) -> Self {
+        Self::ShelleyPoolRegistration(ShelleyPoolRegistration::new(pool_params))
     }
 
     pub fn new_pool_retirement(ed25519_key_hash: Ed25519KeyHash, epoch: Epoch) -> Self {
@@ -111,12 +116,12 @@ impl AllegraCertificate {
     pub fn new_genesis_key_delegation(
         genesis_hash: GenesisHash,
         genesis_delegate_hash: GenesisDelegateHash,
-        v_r_f_key_hash: VRFKeyHash,
+        vrf_key_hash: VRFKeyHash,
     ) -> Self {
         Self::GenesisKeyDelegation(GenesisKeyDelegation::new(
             genesis_hash,
             genesis_delegate_hash,
-            v_r_f_key_hash,
+            vrf_key_hash,
         ))
     }
 
@@ -259,7 +264,7 @@ impl MIRAction {
     serde::Serialize,
     schemars::JsonSchema,
 )]
-#[wasm_bindgen::prelude::wasm_bindgen]
+#[wasm_bindgen]
 pub enum MIRPot {
     Reserve,
     Treasury,

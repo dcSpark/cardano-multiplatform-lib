@@ -1,10 +1,11 @@
 use super::{
     certificate_builder::CertificateBuilderResult, input_builder::InputBuilderResult,
-    mint_builder::MintBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
+    mint_builder::MintBuilderResult, proposal_builder::ProposalBuilderResult,
+    vote_builder::VoteBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
 };
 use crate::{
     address::RewardAddress,
-    plutus::{ExUnits, PlutusData, Redeemer, RedeemerTag},
+    plutus::{ExUnits, LegacyRedeemer, PlutusData, RedeemerTag, Redeemers},
     transaction::TransactionInput,
     PolicyId,
 };
@@ -22,8 +23,8 @@ impl RedeemerWitnessKey {
     }
 }
 
-impl From<&Redeemer> for RedeemerWitnessKey {
-    fn from(redeemer: &Redeemer) -> Self {
+impl From<&LegacyRedeemer> for RedeemerWitnessKey {
+    fn from(redeemer: &LegacyRedeemer) -> Self {
         Self {
             tag: redeemer.tag,
             index: redeemer.index,
@@ -31,7 +32,7 @@ impl From<&Redeemer> for RedeemerWitnessKey {
     }
 }
 
-/// Redeemer without the tag of index
+/// LegacyRedeemer without the tag of index
 /// This allows builder code to return partial redeemers
 /// and then later have them placed in the right context
 #[derive(Clone, Debug)]
@@ -97,6 +98,10 @@ pub struct RedeemerSetBuilder {
     // certificates in the DCert list are indexed in the order in which they arranged in the (full, unfiltered)
     // list of certificates inside the transaction
     cert: Vec<Option<UntaggedRedeemerPlaceholder>>,
+
+    proposals: Vec<Option<UntaggedRedeemerPlaceholder>>,
+
+    votes: Vec<Option<UntaggedRedeemerPlaceholder>>,
 }
 
 impl RedeemerSetBuilder {
@@ -137,6 +142,20 @@ impl RedeemerSetBuilder {
             }
             RedeemerTag::Reward => {
                 let entry = self.reward.iter_mut().nth(key.index as usize).unwrap().1;
+                *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
+                    entry.as_ref().unwrap().data().clone(),
+                    ex_units,
+                )));
+            }
+            RedeemerTag::Proposing => {
+                let entry = self.proposals.get_mut(key.index as usize).unwrap();
+                *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
+                    entry.as_ref().unwrap().data().clone(),
+                    ex_units,
+                )));
+            }
+            RedeemerTag::Voting => {
+                let entry = self.votes.get_mut(key.index as usize).unwrap();
                 *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
                     entry.as_ref().unwrap().data().clone(),
                     ex_units,
@@ -211,10 +230,29 @@ impl RedeemerSetBuilder {
         }
     }
 
-    pub fn build(
-        &self,
-        default_to_dummy_exunits: bool,
-    ) -> Result<Vec<Redeemer>, RedeemerBuilderError> {
+    pub fn add_proposal(&mut self, result: &ProposalBuilderResult) {
+        for aggregate_witness in &result.aggregate_witnesses {
+            if let Some(data) = aggregate_witness.redeemer_plutus_data() {
+                self.proposals
+                    .push(Some(UntaggedRedeemerPlaceholder::JustData(data.clone())));
+            } else {
+                self.proposals.push(None);
+            }
+        }
+    }
+
+    pub fn add_vote(&mut self, result: &VoteBuilderResult) {
+        for aggregate_witness in &result.aggregate_witnesses {
+            if let Some(data) = aggregate_witness.redeemer_plutus_data() {
+                self.votes
+                    .push(Some(UntaggedRedeemerPlaceholder::JustData(data.clone())));
+            } else {
+                self.votes.push(None);
+            }
+        }
+    }
+
+    pub fn build(&self, default_to_dummy_exunits: bool) -> Result<Redeemers, RedeemerBuilderError> {
         let mut redeemers = Vec::new();
         // Calling iter on a BTreeMap returns a list of sorted keys
         self.remove_placeholders_and_tag(
@@ -241,13 +279,25 @@ impl RedeemerSetBuilder {
             &mut self.cert.iter().map(|entry| (&(), entry)),
             default_to_dummy_exunits,
         )?;
+        self.remove_placeholders_and_tag(
+            &mut redeemers,
+            RedeemerTag::Proposing,
+            &mut self.proposals.iter().map(|entry| (&(), entry)),
+            default_to_dummy_exunits,
+        )?;
+        self.remove_placeholders_and_tag(
+            &mut redeemers,
+            RedeemerTag::Voting,
+            &mut self.votes.iter().map(|entry| (&(), entry)),
+            default_to_dummy_exunits,
+        )?;
 
-        Ok(redeemers)
+        Ok(Redeemers::new_arr_legacy_redeemer(redeemers))
     }
 
     fn remove_placeholders_and_tag<'a, K: Debug + Clone>(
         &self,
-        redeemers: &mut Vec<Redeemer>,
+        redeemers: &mut Vec<LegacyRedeemer>,
         tag: RedeemerTag,
         entries: &mut dyn Iterator<Item = (&'a K, &'a Option<UntaggedRedeemerPlaceholder>)>,
         default_to_dummy_exunits: bool,
@@ -280,12 +330,12 @@ impl RedeemerSetBuilder {
     fn tag_redeemer(
         tag: RedeemerTag,
         untagged_redeemers: &[Option<UntaggedRedeemer>],
-    ) -> Vec<Redeemer> {
+    ) -> Vec<LegacyRedeemer> {
         let mut result = Vec::new();
 
         for (index, untagged_redeemer) in untagged_redeemers.iter().enumerate() {
             if let Some(untagged_redeemer) = untagged_redeemer {
-                result.push(Redeemer::new(
+                result.push(LegacyRedeemer::new(
                     tag,
                     index as u64,
                     untagged_redeemer.data.clone(),
@@ -334,7 +384,7 @@ mod tests {
                 }
             };
             let missing_signers = vec![fake_raw_key_public(0).hash()];
-            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
+            InputAggregateWitnessData::PlutusScript(witness, missing_signers.into(), None)
         };
 
         let address = Address::from_bech32("addr1qxeqxcja25k8q05evyngf4f88xn89asl54x2zg3ephgj26ndyt5qk02xmmras5pe9jz2c7tc93wu4c96rqwvg6e2v50qlpmx70").unwrap();
@@ -371,7 +421,7 @@ mod tests {
             ExUnits::new(10, 10),
         );
 
-        let redeemers = builder.build(false).unwrap();
+        let redeemers = builder.build(false).unwrap().to_flat_format();
 
         assert_eq!(redeemers.len(), 1);
 

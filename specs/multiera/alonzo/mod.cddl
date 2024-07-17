@@ -60,7 +60,7 @@ alonzo_protocol_param_update = {
   ? 14: protocol_version_struct, ; @name protocol_version
   ? 16: coin,               ; @name min_pool_cost
   ? 17: coin,               ; @name ada_per_utxo_byte
-  ? 18: alonzo_costmdls,    ; @name cost_models_for_script_languages
+  ? 18: alonzo_cost_models, ; @name cost_models_for_script_languages
   ? 19: ex_unit_prices,     ; @name execution_costs
   ? 20: ex_units,           ; @name max_tx_ex_units
   ? 21: ex_units,           ; @name max_block_ex_units
@@ -75,16 +75,17 @@ alonzo_transaction_witness_set = {
   ? 2: [* bootstrap_witness ],  ; @name bootstrap_witnesses
   ? 3: [* plutus_v1_script ],   ; @name plutus_v1_scripts
   ? 4: [* plutus_data ],        ; @name plutus_datums
-  ? 5: [* redeemer ],           ; @name redeemers
+  ? 5: [* alonzo_redeemer ],    ; @name redeemers
 }
 
 ; The keys to the cost model map are not present in the serialization.
 ; The values in the serialization are assumed to be ordered
 ; lexicographically by their correpsonding key value.
 ; The key values are listed in sorted_cost_model_keys.txt.
-alonzo_costmdls = {
-  0 : [ 166*166 int ], ; @name plutus_v1
-}
+;alonzo_costmdls = {
+;  0 : [ 166*166 int ], ; @name plutus_v1
+;}
+alonzo_cost_models = cost_models
 
 alonzo_format_aux_data = #6.259({
   ? 0 => metadata,               ; @name metadata        
@@ -94,5 +95,17 @@ alonzo_format_aux_data = #6.259({
 
 alonzo_auxiliary_data =
     shelley_format_aux_data     ; @name shelley
-  / shelley_ma_format_aux_data  ; @name shelley_m_a
-  / alonzo_format_aux_data ; @name alonzo 
+  / shelley_MA_format_aux_data  ; @name shelley_MA
+  / alonzo_format_aux_data ; @name alonzo
+
+alonzo_redeemer = [
+  tag: alonzo_redeemer_tag,
+  index: uint,
+  data: plutus_data,
+  ex_units: ex_units
+]
+alonzo_redeemer_tag =
+    0 ; @name Spend
+  / 1 ; @name Mint
+  / 2 ; @name Cert
+  / 3 ; @name Reward

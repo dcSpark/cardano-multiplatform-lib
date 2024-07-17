@@ -1,6 +1,8 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+use crate::shelley::ShelleyPoolRegistration;
+
 use super::cbor_encodings::*;
 use super::*;
 use cbor_event;
@@ -8,7 +10,7 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_chain::address::RewardAccount;
 use cml_chain::auxdata::ShelleyFormatAuxData;
-use cml_chain::auxdata::ShelleyMaFormatAuxData;
+use cml_chain::auxdata::ShelleyMAFormatAuxData;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::RawBytesEncoding;
@@ -24,8 +26,8 @@ impl Serialize for AllegraAuxiliaryData {
             AllegraAuxiliaryData::Shelley(shelley) => {
                 shelley.serialize(serializer, force_canonical)
             }
-            AllegraAuxiliaryData::ShelleyMA(shelley_m_a) => {
-                shelley_m_a.serialize(serializer, force_canonical)
+            AllegraAuxiliaryData::ShelleyMA(shelley_ma) => {
+                shelley_ma.serialize(serializer, force_canonical)
             }
         }
     }
@@ -47,9 +49,9 @@ impl Deserialize for AllegraAuxiliaryData {
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
-                ShelleyMaFormatAuxData::deserialize(raw);
+                ShelleyMAFormatAuxData::deserialize(raw);
             match deser_variant {
-                Ok(shelley_m_a) => return Ok(Self::ShelleyMA(shelley_m_a)),
+                Ok(shelley_ma) => return Ok(Self::ShelleyMA(shelley_ma)),
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMA"));
                     raw.as_mut_ref()
@@ -254,8 +256,8 @@ impl Serialize for AllegraCertificate {
             AllegraCertificate::StakeDelegation(stake_delegation) => {
                 stake_delegation.serialize(serializer, force_canonical)
             }
-            AllegraCertificate::PoolRegistration(pool_registration) => {
-                pool_registration.serialize(serializer, force_canonical)
+            AllegraCertificate::ShelleyPoolRegistration(shelley_pool_registration) => {
+                shelley_pool_registration.serialize(serializer, force_canonical)
             }
             AllegraCertificate::PoolRetirement(pool_retirement) => {
                 pool_retirement.serialize(serializer, force_canonical)
@@ -352,7 +354,8 @@ impl Deserialize for AllegraCertificate {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(10)?;
                 read_len.finish()?;
-                let ret = PoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+                let ret =
+                    ShelleyPoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
                 match len {
                     cbor_event::LenSz::Len(_, _) => (),
                     cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -363,9 +366,11 @@ impl Deserialize for AllegraCertificate {
                 ret
             })(raw);
             match deser_variant {
-                Ok(pool_registration) => return Ok(Self::PoolRegistration(pool_registration)),
+                Ok(shelley_pool_registration) => {
+                    return Ok(Self::ShelleyPoolRegistration(shelley_pool_registration))
+                }
                 Err(e) => {
-                    errs.push(e.annotate("PoolRegistration"));
+                    errs.push(e.annotate("ShelleyPoolRegistration"));
                     raw.as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap();

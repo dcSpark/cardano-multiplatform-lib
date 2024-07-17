@@ -5,12 +5,12 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use super::{Coin, Epoch, Port, UnitInterval};
+use super::{Coin, Epoch, Port, SetEd25519KeyHash, UnitInterval};
 use crate::address::RewardAccount;
 use crate::crypto::{Ed25519KeyHash, PoolMetadataHash, ScriptHash, VRFKeyHash};
 use crate::governance::Anchor;
 use cbor_encodings::{
-    AuthCommitteeHotCertEncoding, DnsNameEncoding, Ipv4Encoding, Ipv6Encoding,
+    AuthCommitteeHotCertEncoding, DNSNameEncoding, Ipv4Encoding, Ipv6Encoding,
     MultiHostNameEncoding, PoolMetadataEncoding, PoolParamsEncoding, PoolRegistrationEncoding,
     PoolRetirementEncoding, RegCertEncoding, RegDrepCertEncoding, ResignCommitteeColdCertEncoding,
     SingleHostAddrEncoding, SingleHostNameEncoding, StakeDelegationEncoding,
@@ -50,17 +50,27 @@ impl AuthCommitteeHotCert {
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum Certificate {
+    /// Will be deprecated in the next era. Use RegCert instead which takes an explicit deposit amount, as that can change.
     StakeRegistration(StakeRegistration),
+    /// Will be deprecated in the next era. Use UnregCert instead which takes an explicit deposit amount, as that can change.
     StakeDeregistration(StakeDeregistration),
+    /// Delegate to a take pool only
     StakeDelegation(StakeDelegation),
     PoolRegistration(PoolRegistration),
     PoolRetirement(PoolRetirement),
+    /// Registers a stake credential.
     RegCert(RegCert),
+    /// Unregisters a stake credential.
     UnregCert(UnregCert),
+    /// Delegate to a DRep for voting only
     VoteDelegCert(VoteDelegCert),
+    /// Delegate to a stake pool and a DRep
     StakeVoteDelegCert(StakeVoteDelegCert),
+    /// Register a stake credential and delegate to a pool in a single cert
     StakeRegDelegCert(StakeRegDelegCert),
+    /// Register a stake credential and delegate to a DRep in a single cert
     VoteRegDelegCert(VoteRegDelegCert),
+    /// Register a stake credential and delegate to a pool and a DRep in a single cert
     StakeVoteRegDelegCert(StakeVoteRegDelegCert),
     AuthCommitteeHotCert(AuthCommitteeHotCert),
     ResignCommitteeColdCert(ResignCommitteeColdCert),
@@ -70,14 +80,17 @@ pub enum Certificate {
 }
 
 impl Certificate {
+    /// Will be deprecated in the next era. Use RegCert instead which takes an explicit deposit amount, as that can change.
     pub fn new_stake_registration(stake_credential: StakeCredential) -> Self {
         Self::StakeRegistration(StakeRegistration::new(stake_credential))
     }
 
+    /// Will be deprecated in the next era. Use UnregCert instead which takes an explicit deposit amount, as that can change.
     pub fn new_stake_deregistration(stake_credential: StakeCredential) -> Self {
         Self::StakeDeregistration(StakeDeregistration::new(stake_credential))
     }
 
+    /// Delegate to a take pool only
     pub fn new_stake_delegation(stake_credential: StakeCredential, pool: Ed25519KeyHash) -> Self {
         Self::StakeDelegation(StakeDelegation::new(stake_credential, pool))
     }
@@ -90,18 +103,22 @@ impl Certificate {
         Self::PoolRetirement(PoolRetirement::new(pool, epoch))
     }
 
-    pub fn new_reg_cert(stake_credential: StakeCredential, coin: Coin) -> Self {
-        Self::RegCert(RegCert::new(stake_credential, coin))
+    /// Registers a stake credential.
+    pub fn new_reg_cert(stake_credential: StakeCredential, deposit: Coin) -> Self {
+        Self::RegCert(RegCert::new(stake_credential, deposit))
     }
 
-    pub fn new_unreg_cert(stake_credential: StakeCredential, coin: Coin) -> Self {
-        Self::UnregCert(UnregCert::new(stake_credential, coin))
+    /// Unregisters a stake credential.
+    pub fn new_unreg_cert(stake_credential: StakeCredential, deposit: Coin) -> Self {
+        Self::UnregCert(UnregCert::new(stake_credential, deposit))
     }
 
+    /// Delegate to a DRep for voting only
     pub fn new_vote_deleg_cert(stake_credential: StakeCredential, d_rep: DRep) -> Self {
         Self::VoteDelegCert(VoteDelegCert::new(stake_credential, d_rep))
     }
 
+    /// Delegate to a stake pool and a DRep
     pub fn new_stake_vote_deleg_cert(
         stake_credential: StakeCredential,
         pool: Ed25519KeyHash,
@@ -110,33 +127,36 @@ impl Certificate {
         Self::StakeVoteDelegCert(StakeVoteDelegCert::new(stake_credential, pool, d_rep))
     }
 
+    /// Register a stake credential and delegate to a pool in a single cert
     pub fn new_stake_reg_deleg_cert(
         stake_credential: StakeCredential,
         pool: Ed25519KeyHash,
-        coin: Coin,
+        deposit: Coin,
     ) -> Self {
-        Self::StakeRegDelegCert(StakeRegDelegCert::new(stake_credential, pool, coin))
+        Self::StakeRegDelegCert(StakeRegDelegCert::new(stake_credential, pool, deposit))
     }
 
+    /// Register a stake credential and delegate to a DRep in a single cert
     pub fn new_vote_reg_deleg_cert(
         stake_credential: StakeCredential,
         d_rep: DRep,
-        coin: Coin,
+        deposit: Coin,
     ) -> Self {
-        Self::VoteRegDelegCert(VoteRegDelegCert::new(stake_credential, d_rep, coin))
+        Self::VoteRegDelegCert(VoteRegDelegCert::new(stake_credential, d_rep, deposit))
     }
 
+    /// Register a stake credential and delegate to a pool and a DRep in a single cert
     pub fn new_stake_vote_reg_deleg_cert(
         stake_credential: StakeCredential,
         pool: Ed25519KeyHash,
         d_rep: DRep,
-        coin: Coin,
+        deposit: Coin,
     ) -> Self {
         Self::StakeVoteRegDelegCert(StakeVoteRegDelegCert::new(
             stake_credential,
             pool,
             d_rep,
-            coin,
+            deposit,
         ))
     }
 
@@ -152,20 +172,24 @@ impl Certificate {
 
     pub fn new_resign_committee_cold_cert(
         committee_cold_credential: CommitteeColdCredential,
+        anchor: Option<Anchor>,
     ) -> Self {
-        Self::ResignCommitteeColdCert(ResignCommitteeColdCert::new(committee_cold_credential))
+        Self::ResignCommitteeColdCert(ResignCommitteeColdCert::new(
+            committee_cold_credential,
+            anchor,
+        ))
     }
 
     pub fn new_reg_drep_cert(
         drep_credential: DrepCredential,
-        coin: Coin,
+        deposit: Coin,
         anchor: Option<Anchor>,
     ) -> Self {
-        Self::RegDrepCert(RegDrepCert::new(drep_credential, coin, anchor))
+        Self::RegDrepCert(RegDrepCert::new(drep_credential, deposit, anchor))
     }
 
-    pub fn new_unreg_drep_cert(drep_credential: DrepCredential, coin: Coin) -> Self {
-        Self::UnregDrepCert(UnregDrepCert::new(drep_credential, coin))
+    pub fn new_unreg_drep_cert(drep_credential: DrepCredential, deposit: Coin) -> Self {
+        Self::UnregDrepCert(UnregDrepCert::new(drep_credential, deposit))
     }
 
     pub fn new_update_drep_cert(drep_credential: DrepCredential, anchor: Option<Anchor>) -> Self {
@@ -264,6 +288,78 @@ impl Credential {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct DNSName {
+    pub inner: String,
+    pub encodings: Option<DNSNameEncoding>,
+}
+
+impl DNSName {
+    pub fn get(&self) -> &String {
+        &self.inner
+    }
+
+    pub fn new(inner: String) -> Result<Self, DeserializeError> {
+        if inner.len() > 128 {
+            return Err(DeserializeError::new(
+                "DNSName",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len() as isize,
+                    min: Some(0),
+                    max: Some(128),
+                },
+            ));
+        }
+        Ok(Self {
+            inner,
+            encodings: None,
+        })
+    }
+}
+
+impl TryFrom<String> for DNSName {
+    type Error = DeserializeError;
+
+    fn try_from(inner: String) -> Result<Self, Self::Error> {
+        DNSName::new(inner)
+    }
+}
+
+impl serde::Serialize for DNSName {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.inner.serialize(serializer)
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for DNSName {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let inner = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        Self::new(inner.clone()).map_err(|_e| {
+            serde::de::Error::invalid_value(serde::de::Unexpected::Str(&inner), &"invalid DNSName")
+        })
+    }
+}
+
+impl schemars::JsonSchema for DNSName {
+    fn schema_name() -> String {
+        String::from("DNSName")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        String::is_referenceable()
+    }
+}
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum DRep {
     Key {
@@ -329,78 +425,6 @@ impl DRep {
             always_no_confidence_encoding: None,
             len_encoding: LenEncoding::default(),
         }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct DnsName {
-    pub inner: String,
-    pub encodings: Option<DnsNameEncoding>,
-}
-
-impl DnsName {
-    pub fn get(&self) -> &String {
-        &self.inner
-    }
-
-    pub fn new(inner: String) -> Result<Self, DeserializeError> {
-        if inner.len() > 64 {
-            return Err(DeserializeError::new(
-                "DnsName",
-                DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
-                    min: Some(0),
-                    max: Some(64),
-                },
-            ));
-        }
-        Ok(Self {
-            inner,
-            encodings: None,
-        })
-    }
-}
-
-impl TryFrom<String> for DnsName {
-    type Error = DeserializeError;
-
-    fn try_from(inner: String) -> Result<Self, Self::Error> {
-        DnsName::new(inner)
-    }
-}
-
-impl serde::Serialize for DnsName {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.inner.serialize(serializer)
-    }
-}
-
-impl<'de> serde::de::Deserialize<'de> for DnsName {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::de::Deserializer<'de>,
-    {
-        let inner = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        Self::new(inner.clone()).map_err(|_e| {
-            serde::de::Error::invalid_value(serde::de::Unexpected::Str(&inner), &"invalid DnsName")
-        })
-    }
-}
-
-impl schemars::JsonSchema for DnsName {
-    fn schema_name() -> String {
-        String::from("DnsName")
-    }
-
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
-    }
-
-    fn is_referenceable() -> bool {
-        String::is_referenceable()
     }
 }
 
@@ -494,13 +518,15 @@ impl From<Ipv6> for Vec<u8> {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct MultiHostName {
-    pub dns_name: DnsName,
+    /// A SRV DNS record
+    pub dns_name: DNSName,
     #[serde(skip)]
     pub encodings: Option<MultiHostNameEncoding>,
 }
 
 impl MultiHostName {
-    pub fn new(dns_name: DnsName) -> Self {
+    /// * `dns_name` - A SRV DNS record
+    pub fn new(dns_name: DNSName) -> Self {
         Self {
             dns_name,
             encodings: None,
@@ -534,7 +560,7 @@ pub struct PoolParams {
     pub cost: Coin,
     pub margin: UnitInterval,
     pub reward_account: RewardAccount,
-    pub pool_owners: Vec<Ed25519KeyHash>,
+    pub pool_owners: SetEd25519KeyHash,
     pub relays: Vec<Relay>,
     pub pool_metadata: Option<PoolMetadata>,
     #[serde(skip)]
@@ -550,7 +576,7 @@ impl PoolParams {
         cost: Coin,
         margin: UnitInterval,
         reward_account: RewardAccount,
-        pool_owners: Vec<Ed25519KeyHash>,
+        pool_owners: SetEd25519KeyHash,
         relays: Vec<Relay>,
         pool_metadata: Option<PoolMetadata>,
     ) -> Self {
@@ -606,16 +632,16 @@ impl PoolRetirement {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct RegCert {
     pub stake_credential: StakeCredential,
-    pub coin: Coin,
+    pub deposit: Coin,
     #[serde(skip)]
     pub encodings: Option<RegCertEncoding>,
 }
 
 impl RegCert {
-    pub fn new(stake_credential: StakeCredential, coin: Coin) -> Self {
+    pub fn new(stake_credential: StakeCredential, deposit: Coin) -> Self {
         Self {
             stake_credential,
-            coin,
+            deposit,
             encodings: None,
         }
     }
@@ -624,17 +650,17 @@ impl RegCert {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct RegDrepCert {
     pub drep_credential: DrepCredential,
-    pub coin: Coin,
+    pub deposit: Coin,
     pub anchor: Option<Anchor>,
     #[serde(skip)]
     pub encodings: Option<RegDrepCertEncoding>,
 }
 
 impl RegDrepCert {
-    pub fn new(drep_credential: DrepCredential, coin: Coin, anchor: Option<Anchor>) -> Self {
+    pub fn new(drep_credential: DrepCredential, deposit: Coin, anchor: Option<Anchor>) -> Self {
         Self {
             drep_credential,
-            coin,
+            deposit,
             anchor,
             encodings: None,
         }
@@ -657,11 +683,11 @@ impl Relay {
         Self::SingleHostAddr(SingleHostAddr::new(port, ipv4, ipv6))
     }
 
-    pub fn new_single_host_name(port: Option<Port>, dns_name: DnsName) -> Self {
+    pub fn new_single_host_name(port: Option<Port>, dns_name: DNSName) -> Self {
         Self::SingleHostName(SingleHostName::new(port, dns_name))
     }
 
-    pub fn new_multi_host_name(dns_name: DnsName) -> Self {
+    pub fn new_multi_host_name(dns_name: DNSName) -> Self {
         Self::MultiHostName(MultiHostName::new(dns_name))
     }
 }
@@ -669,14 +695,16 @@ impl Relay {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct ResignCommitteeColdCert {
     pub committee_cold_credential: CommitteeColdCredential,
+    pub anchor: Option<Anchor>,
     #[serde(skip)]
     pub encodings: Option<ResignCommitteeColdCertEncoding>,
 }
 
 impl ResignCommitteeColdCert {
-    pub fn new(committee_cold_credential: CommitteeColdCredential) -> Self {
+    pub fn new(committee_cold_credential: CommitteeColdCredential, anchor: Option<Anchor>) -> Self {
         Self {
             committee_cold_credential,
+            anchor,
             encodings: None,
         }
     }
@@ -705,13 +733,15 @@ impl SingleHostAddr {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct SingleHostName {
     pub port: Option<Port>,
-    pub dns_name: DnsName,
+    /// An A or AAAA DNS record
+    pub dns_name: DNSName,
     #[serde(skip)]
     pub encodings: Option<SingleHostNameEncoding>,
 }
 
 impl SingleHostName {
-    pub fn new(port: Option<Port>, dns_name: DnsName) -> Self {
+    /// * `dns_name` - An A or AAAA DNS record
+    pub fn new(port: Option<Port>, dns_name: DNSName) -> Self {
         Self {
             port,
             dns_name,
@@ -760,17 +790,17 @@ impl StakeDeregistration {
 pub struct StakeRegDelegCert {
     pub stake_credential: StakeCredential,
     pub pool: Ed25519KeyHash,
-    pub coin: Coin,
+    pub deposit: Coin,
     #[serde(skip)]
     pub encodings: Option<StakeRegDelegCertEncoding>,
 }
 
 impl StakeRegDelegCert {
-    pub fn new(stake_credential: StakeCredential, pool: Ed25519KeyHash, coin: Coin) -> Self {
+    pub fn new(stake_credential: StakeCredential, pool: Ed25519KeyHash, deposit: Coin) -> Self {
         Self {
             stake_credential,
             pool,
-            coin,
+            deposit,
             encodings: None,
         }
     }
@@ -817,7 +847,7 @@ pub struct StakeVoteRegDelegCert {
     pub stake_credential: StakeCredential,
     pub pool: Ed25519KeyHash,
     pub d_rep: DRep,
-    pub coin: Coin,
+    pub deposit: Coin,
     #[serde(skip)]
     pub encodings: Option<StakeVoteRegDelegCertEncoding>,
 }
@@ -827,20 +857,20 @@ impl StakeVoteRegDelegCert {
         stake_credential: StakeCredential,
         pool: Ed25519KeyHash,
         d_rep: DRep,
-        coin: Coin,
+        deposit: Coin,
     ) -> Self {
         Self {
             stake_credential,
             pool,
             d_rep,
-            coin,
+            deposit,
             encodings: None,
         }
     }
 }
 
-impl From<DnsName> for String {
-    fn from(wrapper: DnsName) -> Self {
+impl From<DNSName> for String {
+    fn from(wrapper: DNSName) -> Self {
         wrapper.inner
     }
 }
@@ -854,16 +884,16 @@ impl From<Url> for String {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct UnregCert {
     pub stake_credential: StakeCredential,
-    pub coin: Coin,
+    pub deposit: Coin,
     #[serde(skip)]
     pub encodings: Option<UnregCertEncoding>,
 }
 
 impl UnregCert {
-    pub fn new(stake_credential: StakeCredential, coin: Coin) -> Self {
+    pub fn new(stake_credential: StakeCredential, deposit: Coin) -> Self {
         Self {
             stake_credential,
-            coin,
+            deposit,
             encodings: None,
         }
     }
@@ -872,16 +902,16 @@ impl UnregCert {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct UnregDrepCert {
     pub drep_credential: DrepCredential,
-    pub coin: Coin,
+    pub deposit: Coin,
     #[serde(skip)]
     pub encodings: Option<UnregDrepCertEncoding>,
 }
 
 impl UnregDrepCert {
-    pub fn new(drep_credential: DrepCredential, coin: Coin) -> Self {
+    pub fn new(drep_credential: DrepCredential, deposit: Coin) -> Self {
         Self {
             drep_credential,
-            coin,
+            deposit,
             encodings: None,
         }
     }
@@ -917,13 +947,13 @@ impl Url {
     }
 
     pub fn new(inner: String) -> Result<Self, DeserializeError> {
-        if inner.len() > 64 {
+        if inner.len() > 128 {
             return Err(DeserializeError::new(
                 "Url",
                 DeserializeFailure::RangeCheck {
                     found: inner.len() as isize,
                     min: Some(0),
-                    max: Some(64),
+                    max: Some(128),
                 },
             ));
         }
@@ -999,17 +1029,17 @@ impl VoteDelegCert {
 pub struct VoteRegDelegCert {
     pub stake_credential: StakeCredential,
     pub d_rep: DRep,
-    pub coin: Coin,
+    pub deposit: Coin,
     #[serde(skip)]
     pub encodings: Option<VoteRegDelegCertEncoding>,
 }
 
 impl VoteRegDelegCert {
-    pub fn new(stake_credential: StakeCredential, d_rep: DRep, coin: Coin) -> Self {
+    pub fn new(stake_credential: StakeCredential, d_rep: DRep, deposit: Coin) -> Self {
         Self {
             stake_credential,
             d_rep,
-            coin,
+            deposit,
             encodings: None,
         }
     }

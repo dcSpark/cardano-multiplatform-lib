@@ -7,7 +7,9 @@ use schemars::JsonSchema;
 use std::convert::{TryFrom, TryInto};
 use std::io::{BufRead, Write};
 
-// for enums
+#[cfg(not(feature = "used_from_wasm"))]
+use noop_proc_macro::wasm_bindgen;
+#[cfg(feature = "used_from_wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use cml_crypto::{Ed25519KeyHash, ScriptHash};

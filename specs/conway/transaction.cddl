@@ -8,29 +8,29 @@ transaction =
   ]
 
 transaction_body = {
-     0 : [* transaction_input],  ; @name inputs
-     1 : [* transaction_output], ; @name outputs
-     2 : coin,                   ; @name fee
-   ? 3 : uint,                   ; @name ttl
-   ? 4 : [* certificate],        ; @name certs
-   ? 5 : withdrawals,            ; @name withdrawals
-   ? 7 : auxiliary_data_hash,    ; @name auxiliary_data_hash
-   ? 8 : uint,                   ; @name validity_interval_start
-   ? 9 : mint,                   ; @name mint
-  ? 11 : script_data_hash,       ; @name script_data_hash
-  ? 13 : [* transaction_input],  ; @name collateral_inputs
-  ? 14 : required_signers,       ; @name required_signers
-  ? 15 : network_id,             ; @name network_id
-  ? 16 : transaction_output,     ; @name collateral_return
-  ? 17 : coin,                   ; @name total_collateral
-  ? 18 : [* transaction_input],  ; @name reference_inputs
-  ? 19 : voting_procedures,      ; @name voting_procedures
-  ? 20 : [* proposal_procedure], ; @name proposal_procedures
-  ? 21 : coin,                   ; @name current_treasury_value
-  ? 22 : positive_coin,          ; @name donation
+     0 : set<transaction_input>,           ; @name inputs
+     1 : [* transaction_output],           ; @name outputs
+     2 : coin,                             ; @name fee
+  ?  3 : uint,                             ; @name ttl
+  ?  4 : nonempty_set<certificate>,        ; @name certs
+  ?  5 : withdrawals,                      ; @name withdrawals
+  ?  7 : auxiliary_data_hash,              ; @name auxiliary_data_hash
+  ?  8 : uint,                             ; @name validity_interval_start
+  ?  9 : mint,                             ; @name mint
+  ? 11 : script_data_hash,                 ; @name script_data_hash
+  ? 13 : nonempty_set<transaction_input>,  ; @name collateral_inputs
+  ? 14 : required_signers,                 ; @name required_signers
+  ? 15 : network_id,                       ; @name network_id
+  ? 16 : transaction_output,               ; @name collateral_return
+  ? 17 : coin,                             ; @name total_collateral
+  ? 18 : nonempty_set<transaction_input>,  ; @name reference_inputs
+  ? 19 : voting_procedures,                ; @name voting_procedures
+  ? 20 : nonempty_set<proposal_procedure>, ; @name proposal_procedures
+  ? 21 : coin,                             ; @name current_treasury_value
+  ? 22 : positive_coin,                    ; @name donation
 }
 
-required_signers = [* ed25519_key_hash]
+required_signers = nonempty_set<ed25519_key_hash>
 
 transaction_input = [ transaction_id : transaction_hash
                     , index : uint
@@ -135,32 +135,30 @@ script = [
   tag: 2, script: plutus_v2_script //
   ; @name plutus_v3
   tag: 3, script: plutus_v3_script
-]
+] ; @used_as_key
 
 
 transaction_witness_set = {
-  ? 0: [* vkeywitness ],       ; @name vkeywitnesses
-  ? 1: [* native_script ],     ; @name native_scripts
-  ? 2: [* bootstrap_witness ], ; @name bootstrap_witnesses
-  ? 3: [* plutus_v1_script ],  ; @name plutus_v1_scripts
-  ? 4: [* plutus_data ],       ; @name plutus_datums
-  ? 5: [* redeemer ],          ; @name redeemers
-  ? 6: [* plutus_v2_script ],  ; @name plutus_v2_scripts
-  ? 7: [* plutus_v3_script ],  ; @name plutus_v3_scripts
+  ? 0: nonempty_set<vkeywitness>,       ; @name vkeywitnesses
+  ? 1: nonempty_set<native_script>,     ; @name native_scripts
+  ? 2: nonempty_set<bootstrap_witness>, ; @name bootstrap_witnesses
+  ? 3: nonempty_set<plutus_v1_script>,  ; @name plutus_v1_scripts
+  ? 4: nonempty_set<plutus_data>,       ; @name plutus_datums
+  ? 5: redeemers,                       ; @name redeemers
+  ? 6: nonempty_set<plutus_v2_script>,  ; @name plutus_v2_scripts
+  ? 7: nonempty_set<plutus_v3_script>,  ; @name plutus_v3_scripts
 }
 
-native_script =
-  [ script_pubkey
-  // script_all
-  // script_any
-  // script_n_of_k
-  // script_invalid_before
-     ; Timelock validity intervals are half-open intervals [a, b).
-     ; This field specifies the left (included) endpoint a.
-  // script_invalid_hereafter
-     ; Timelock validity intervals are half-open intervals [a, b).
-     ; This field specifies the right (excluded) endpoint b.
-  ]
+native_script = [
+  script_pubkey //
+  script_all //
+  script_any //
+  script_n_of_k //
+  ; @doc Timelock validity intervals are half-open intervals [a, b). This field specifies the left (included) endpoint a.
+  script_invalid_before //
+  ; @doc Timelock validity intervals are half-open intervals [a, b). This field specifies the right (excluded) endpoint b.
+  script_invalid_hereafter
+]
 
 script_pubkey = (tag: 0, ed25519_key_hash)
 script_all = (tag: 1, [ * native_script ])

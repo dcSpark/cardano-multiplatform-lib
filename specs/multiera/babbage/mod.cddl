@@ -16,7 +16,7 @@ babbage_transaction_witness_set = {
   ? 2: [* bootstrap_witness ], ; @name bootstrap_witnesses
   ? 3: [* plutus_v1_script ],  ; @name plutus_v1_scripts
   ? 4: [* plutus_data ],       ; @name plutus_datums
-  ? 5: [* redeemer ],          ; @name redeemers
+  ? 5: [* alonzo_redeemer ],   ; @name redeemers
   ? 6: [* plutus_v2_script ],  ; @name plutus_v2_scripts
 }
 
@@ -57,7 +57,7 @@ babbage_transaction_body = {
    ? 6 : babbage_update,                  ; @name update
    ? 7 : auxiliary_data_hash,             ; @name auxiliary_data_hash
    ? 8 : uint,                            ; @name validity_interval_start
-   ? 9 : mint,                            ; @name mint
+   ? 9 : babbage_mint,                    ; @name mint
   ? 11 : script_data_hash,                ; @name script_data_hash
   ? 13 : [* transaction_input],           ; @name collateral_inputs
   ? 14 : required_signers,                ; @name required_signers
@@ -75,10 +75,11 @@ babbage_update = [
 babbage_proposed_protocol_parameter_updates =
   { * genesis_hash => babbage_protocol_param_update }
 
-babbage_cost_models = {
-  ? 0 : [ 166*166 int ], ; @name plutus_v1
-  ? 1 : [ 175*175 int ], ; @name plutus_v2
-}
+;babbage_cost_models = {
+;  ? 0 : [ 166*166 int ], ; @name plutus_v1
+;  ? 1 : [ 175*175 int ], ; @name plutus_v2
+;}
+babbage_cost_models = cost_models
 
 babbage_protocol_param_update = {
   ? 0:  uint,                ; @name minfee_a
@@ -114,5 +115,8 @@ babbage_format_aux_data = #6.259({
 
 babbage_auxiliary_data =
     shelley_format_aux_data     ; @name shelley
-  / shelley_ma_format_aux_data  ; @name shelley_m_a
+  / shelley_MA_format_aux_data  ; @name shelley_MA
   / babbage_format_aux_data     ; @name babbage 
+
+; babbage mint has duplicate keys so it needs its own special hand-written struct
+babbage_mint = _CDDL_CODEGEN_EXTERN_TYPE_

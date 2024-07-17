@@ -3,7 +3,7 @@ use crate::builders::witness_builder::{NativeScriptWitnessInfo, PartialPlutusWit
 use cml_core_wasm::impl_wasm_conversions;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::{transaction::RequiredSigners, AssetName, MapAssetNameToNonZeroInt64, NativeScript};
+use crate::{AssetName, MapAssetNameToNonZeroInt64, NativeScript, RequiredSigners};
 
 #[wasm_bindgen]
 #[derive(Clone)]

@@ -2,6 +2,7 @@ use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusW
 
 use super::{
     tx_builder::TransactionUnspentOutput,
+    utils::required_wits_from_required_signers,
     witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet},
 };
 
@@ -10,8 +11,8 @@ use crate::{
     certs::StakeCredential,
     crypto::hash::hash_plutus_data,
     plutus::PlutusData,
-    transaction::{RequiredSigners, TransactionInput, TransactionOutput},
-    NativeScript,
+    transaction::{TransactionInput, TransactionOutput},
+    NativeScript, RequiredSigners,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -138,10 +139,7 @@ impl SingleInputBuilder {
         required_signers: RequiredSigners,
         datum: Option<PlutusData>,
     ) -> Result<InputBuilderResult, InputBuilderError> {
-        let mut required_wits = RequiredWitnessSet::default();
-        required_signers
-            .iter()
-            .for_each(|required_signer| required_wits.add_vkey_key_hash(*required_signer));
+        let mut required_wits = required_wits_from_required_signers(&required_signers);
         input_required_wits(&self.utxo_info, &mut required_wits);
         let mut required_wits_left = required_wits.clone();
 

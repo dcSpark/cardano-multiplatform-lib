@@ -1,16 +1,18 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::shelley::{GenesisKeyDelegation, ShelleyHeader, ShelleyUpdate};
+use crate::shelley::{
+    GenesisKeyDelegation, ShelleyHeader, ShelleyPoolParams, ShelleyPoolRegistration, ShelleyUpdate,
+};
 use crate::{
     AllegraCertificateList, AllegraTransactionBodyList, AllegraTransactionWitnessSetList,
     MapTransactionIndexToAllegraAuxiliaryData, ShelleyTransactionOutputList,
 };
 use cml_chain_wasm::assets::Coin;
-use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMaFormatAuxData};
-use cml_chain_wasm::certs::{PoolParams, StakeCredential};
+use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMAFormatAuxData};
+use cml_chain_wasm::certs::StakeCredential;
 use cml_chain_wasm::certs::{
-    PoolRegistration, PoolRetirement, StakeDelegation, StakeDeregistration, StakeRegistration,
+    PoolRetirement, StakeDelegation, StakeDeregistration, StakeRegistration,
 };
 use cml_chain_wasm::Epoch;
 use cml_chain_wasm::{
@@ -42,11 +44,9 @@ impl AllegraAuxiliaryData {
         ))
     }
 
-    pub fn new_shelley_m_a(shelley_m_a: &ShelleyMaFormatAuxData) -> Self {
+    pub fn new_shelley_ma(shelley_ma: &ShelleyMAFormatAuxData) -> Self {
         Self(
-            cml_multi_era::allegra::AllegraAuxiliaryData::new_shelley_m_a(
-                shelley_m_a.clone().into(),
-            ),
+            cml_multi_era::allegra::AllegraAuxiliaryData::new_shelley_ma(shelley_ma.clone().into()),
         )
     }
 
@@ -70,10 +70,10 @@ impl AllegraAuxiliaryData {
         }
     }
 
-    pub fn as_shelley_m_a(&self) -> Option<ShelleyMaFormatAuxData> {
+    pub fn as_shelley_ma(&self) -> Option<ShelleyMAFormatAuxData> {
         match &self.0 {
-            cml_multi_era::allegra::AllegraAuxiliaryData::ShelleyMA(shelley_m_a) => {
-                Some(shelley_m_a.clone().into())
+            cml_multi_era::allegra::AllegraAuxiliaryData::ShelleyMA(shelley_ma) => {
+                Some(shelley_ma.clone().into())
             }
             _ => None,
         }
@@ -168,9 +168,9 @@ impl AllegraCertificate {
         )
     }
 
-    pub fn new_pool_registration(pool_params: &PoolParams) -> Self {
+    pub fn new_shelley_pool_registration(pool_params: &ShelleyPoolParams) -> Self {
         Self(
-            cml_multi_era::allegra::AllegraCertificate::new_pool_registration(
+            cml_multi_era::allegra::AllegraCertificate::new_shelley_pool_registration(
                 pool_params.clone().into(),
             ),
         )
@@ -188,13 +188,13 @@ impl AllegraCertificate {
     pub fn new_genesis_key_delegation(
         genesis_hash: &GenesisHash,
         genesis_delegate_hash: &GenesisDelegateHash,
-        v_r_f_key_hash: &VRFKeyHash,
+        vrf_key_hash: &VRFKeyHash,
     ) -> Self {
         Self(
             cml_multi_era::allegra::AllegraCertificate::new_genesis_key_delegation(
                 genesis_hash.clone().into(),
                 genesis_delegate_hash.clone().into(),
-                v_r_f_key_hash.clone().into(),
+                vrf_key_hash.clone().into(),
             ),
         )
     }
@@ -220,8 +220,8 @@ impl AllegraCertificate {
             cml_multi_era::allegra::AllegraCertificate::StakeDelegation(_) => {
                 AllegraCertificateKind::StakeDelegation
             }
-            cml_multi_era::allegra::AllegraCertificate::PoolRegistration(_) => {
-                AllegraCertificateKind::PoolRegistration
+            cml_multi_era::allegra::AllegraCertificate::ShelleyPoolRegistration(_) => {
+                AllegraCertificateKind::ShelleyPoolRegistration
             }
             cml_multi_era::allegra::AllegraCertificate::PoolRetirement(_) => {
                 AllegraCertificateKind::PoolRetirement
@@ -262,11 +262,11 @@ impl AllegraCertificate {
         }
     }
 
-    pub fn as_pool_registration(&self) -> Option<PoolRegistration> {
+    pub fn as_shelley_pool_registration(&self) -> Option<ShelleyPoolRegistration> {
         match &self.0 {
-            cml_multi_era::allegra::AllegraCertificate::PoolRegistration(pool_registration) => {
-                Some(pool_registration.clone().into())
-            }
+            cml_multi_era::allegra::AllegraCertificate::ShelleyPoolRegistration(
+                shelley_pool_registration,
+            ) => Some(shelley_pool_registration.clone().into()),
             _ => None,
         }
     }
@@ -304,7 +304,7 @@ pub enum AllegraCertificateKind {
     StakeRegistration,
     StakeDeregistration,
     StakeDelegation,
-    PoolRegistration,
+    ShelleyPoolRegistration,
     PoolRetirement,
     GenesisKeyDelegation,
     MoveInstantaneousRewardsCert,

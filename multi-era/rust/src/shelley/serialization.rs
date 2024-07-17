@@ -7,6 +7,7 @@ use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_chain::address::RewardAccount;
+use cml_chain::certs::{PoolMetadata, SingleHostAddr};
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::GenesisDelegateHash;
@@ -71,13 +72,13 @@ impl SerializeEmbeddedGroup for GenesisKeyDelegation {
                 ),
         )?;
         serializer.write_bytes_sz(
-            self.v_r_f_key_hash.to_raw_bytes(),
+            self.vrf_key_hash.to_raw_bytes(),
             self.encodings
                 .as_ref()
-                .map(|encs| encs.v_r_f_key_hash_encoding.clone())
+                .map(|encs| encs.vrf_key_hash_encoding.clone())
                 .unwrap_or_default()
                 .to_str_len_sz(
-                    self.v_r_f_key_hash.to_raw_bytes().len() as u64,
+                    self.vrf_key_hash.to_raw_bytes().len() as u64,
                     force_canonical,
                 ),
         )?;
@@ -145,7 +146,7 @@ impl DeserializeEmbeddedGroup for GenesisKeyDelegation {
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
                 .map_err(|e: DeserializeError| e.annotate("genesis_delegate_hash"))?;
-            let (v_r_f_key_hash, v_r_f_key_hash_encoding) = raw
+            let (vrf_key_hash, vrf_key_hash_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|(bytes, enc)| {
@@ -153,17 +154,17 @@ impl DeserializeEmbeddedGroup for GenesisKeyDelegation {
                         .map(|bytes| (bytes, StringEncoding::from(enc)))
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
-                .map_err(|e: DeserializeError| e.annotate("v_r_f_key_hash"))?;
+                .map_err(|e: DeserializeError| e.annotate("vrf_key_hash"))?;
             Ok(GenesisKeyDelegation {
                 genesis_hash,
                 genesis_delegate_hash,
-                v_r_f_key_hash,
+                vrf_key_hash,
                 encodings: Some(GenesisKeyDelegationEncoding {
                     len_encoding,
                     tag_encoding,
                     genesis_hash_encoding,
                     genesis_delegate_hash_encoding,
-                    v_r_f_key_hash_encoding,
+                    vrf_key_hash_encoding,
                 }),
             })
         })()
@@ -1095,8 +1096,8 @@ impl Serialize for ShelleyCertificate {
             ShelleyCertificate::StakeDelegation(stake_delegation) => {
                 stake_delegation.serialize(serializer, force_canonical)
             }
-            ShelleyCertificate::PoolRegistration(pool_registration) => {
-                pool_registration.serialize(serializer, force_canonical)
+            ShelleyCertificate::ShelleyPoolRegistration(shelley_pool_registration) => {
+                shelley_pool_registration.serialize(serializer, force_canonical)
             }
             ShelleyCertificate::PoolRetirement(pool_retirement) => {
                 pool_retirement.serialize(serializer, force_canonical)
@@ -1104,15 +1105,9 @@ impl Serialize for ShelleyCertificate {
             ShelleyCertificate::GenesisKeyDelegation(genesis_key_delegation) => {
                 genesis_key_delegation.serialize(serializer, force_canonical)
             }
-            ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert {
+            ShelleyCertificate::ShelleyMoveInstantaneousRewardsCert(
                 shelley_move_instantaneous_rewards_cert,
-                len_encoding,
-            } => {
-                serializer.write_array_sz(len_encoding.to_len_sz(1, force_canonical))?;
-                shelley_move_instantaneous_rewards_cert.serialize(serializer, force_canonical)?;
-                len_encoding.end(serializer, force_canonical)?;
-                Ok(serializer)
-            }
+            ) => shelley_move_instantaneous_rewards_cert.serialize(serializer, force_canonical),
         }
     }
 }
@@ -1121,7 +1116,6 @@ impl Deserialize for ShelleyCertificate {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
-            let len_encoding: LenEncoding = len.into();
             let initial_position = raw.as_mut_ref().stream_position().unwrap();
             let mut errs = Vec::new();
             let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
@@ -1200,7 +1194,8 @@ impl Deserialize for ShelleyCertificate {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(10)?;
                 read_len.finish()?;
-                let ret = PoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
+                let ret =
+                    ShelleyPoolRegistration::deserialize_as_embedded_group(raw, &mut read_len, len);
                 match len {
                     cbor_event::LenSz::Len(_, _) => (),
                     cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -1211,9 +1206,11 @@ impl Deserialize for ShelleyCertificate {
                 ret
             })(raw);
             match deser_variant {
-                Ok(pool_registration) => return Ok(Self::PoolRegistration(pool_registration)),
+                Ok(shelley_pool_registration) => {
+                    return Ok(Self::ShelleyPoolRegistration(shelley_pool_registration))
+                }
                 Err(e) => {
-                    errs.push(e.annotate("PoolRegistration"));
+                    errs.push(e.annotate("ShelleyPoolRegistration"));
                     raw.as_mut_ref()
                         .seek(SeekFrom::Start(initial_position))
                         .unwrap();
@@ -1270,9 +1267,13 @@ impl Deserialize for ShelleyCertificate {
             };
             let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
-                read_len.read_elems(1)?;
+                read_len.read_elems(2)?;
                 read_len.finish()?;
-                let ret = ShelleyMoveInstantaneousRewardsCert::deserialize(raw);
+                let ret = ShelleyMoveInstantaneousRewardsCert::deserialize_as_embedded_group(
+                    raw,
+                    &mut read_len,
+                    len,
+                );
                 match len {
                     cbor_event::LenSz::Len(_, _) => (),
                     cbor_event::LenSz::Indefinite => match raw.special()? {
@@ -1284,10 +1285,9 @@ impl Deserialize for ShelleyCertificate {
             })(raw);
             match deser_variant {
                 Ok(shelley_move_instantaneous_rewards_cert) => {
-                    return Ok(Self::ShelleyMoveInstantaneousRewardsCert {
+                    return Ok(Self::ShelleyMoveInstantaneousRewardsCert(
                         shelley_move_instantaneous_rewards_cert,
-                        len_encoding,
-                    })
+                    ))
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMoveInstantaneousRewardsCert"));
@@ -1302,6 +1302,45 @@ impl Deserialize for ShelleyCertificate {
             ))
         })()
         .map_err(|e| e.annotate("ShelleyCertificate"))
+    }
+}
+
+impl Serialize for ShelleyDNSName {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_text_sz(
+            &self.inner,
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding.clone())
+                .unwrap_or_default()
+                .to_str_len_sz(self.inner.len() as u64, force_canonical),
+        )
+    }
+}
+
+impl Deserialize for ShelleyDNSName {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let (inner, inner_encoding) = raw
+            .text_sz()
+            .map(|(s, enc)| (s, StringEncoding::from(enc)))?;
+        if inner.len() > 64 {
+            return Err(DeserializeError::new(
+                "ShelleyDNSName",
+                DeserializeFailure::RangeCheck {
+                    found: inner.len() as isize,
+                    min: Some(0),
+                    max: Some(64),
+                },
+            ));
+        }
+        Ok(Self {
+            inner,
+            encodings: Some(ShelleyDNSNameEncoding { inner_encoding }),
+        })
     }
 }
 
@@ -1415,12 +1454,12 @@ impl Serialize for ShelleyHeaderBody {
                 ),
         )?;
         serializer.write_bytes_sz(
-            self.v_r_f_vkey.to_raw_bytes(),
+            self.vrf_vkey.to_raw_bytes(),
             self.encodings
                 .as_ref()
-                .map(|encs| encs.v_r_f_vkey_encoding.clone())
+                .map(|encs| encs.vrf_vkey_encoding.clone())
                 .unwrap_or_default()
-                .to_str_len_sz(self.v_r_f_vkey.to_raw_bytes().len() as u64, force_canonical),
+                .to_str_len_sz(self.vrf_vkey.to_raw_bytes().len() as u64, force_canonical),
         )?;
         self.nonce_vrf.serialize(serializer, force_canonical)?;
         self.leader_vrf.serialize(serializer, force_canonical)?;
@@ -1508,7 +1547,7 @@ impl Deserialize for ShelleyHeaderBody {
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
                 .map_err(|e: DeserializeError| e.annotate("issuer_vkey"))?;
-            let (v_r_f_vkey, v_r_f_vkey_encoding) = raw
+            let (vrf_vkey, vrf_vkey_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|(bytes, enc)| {
@@ -1516,7 +1555,7 @@ impl Deserialize for ShelleyHeaderBody {
                         .map(|bytes| (bytes, StringEncoding::from(enc)))
                         .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
                 })
-                .map_err(|e: DeserializeError| e.annotate("v_r_f_vkey"))?;
+                .map_err(|e: DeserializeError| e.annotate("vrf_vkey"))?;
             let nonce_vrf =
                 VRFCert::deserialize(raw).map_err(|e: DeserializeError| e.annotate("nonce_vrf"))?;
             let leader_vrf = VRFCert::deserialize(raw)
@@ -1553,7 +1592,7 @@ impl Deserialize for ShelleyHeaderBody {
                 slot,
                 prev_hash,
                 issuer_vkey,
-                v_r_f_vkey,
+                vrf_vkey,
                 nonce_vrf,
                 leader_vrf,
                 block_body_size,
@@ -1566,7 +1605,7 @@ impl Deserialize for ShelleyHeaderBody {
                     slot_encoding,
                     prev_hash_encoding,
                     issuer_vkey_encoding,
-                    v_r_f_vkey_encoding,
+                    vrf_vkey_encoding,
                     block_body_size_encoding,
                     block_body_hash_encoding,
                 }),
@@ -1791,6 +1830,16 @@ impl Serialize for ShelleyMoveInstantaneousRewardsCert {
                 .unwrap_or_default()
                 .to_len_sz(2, force_canonical),
         )?;
+        self.serialize_as_embedded_group(serializer, force_canonical)
+    }
+}
+
+impl SerializeEmbeddedGroup for ShelleyMoveInstantaneousRewardsCert {
+    fn serialize_as_embedded_group<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
         serializer.write_unsigned_integer_sz(
             6u64,
             fit_sz(
@@ -1815,10 +1864,28 @@ impl Serialize for ShelleyMoveInstantaneousRewardsCert {
 impl Deserialize for ShelleyMoveInstantaneousRewardsCert {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
         read_len.finish()?;
+        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+        match len {
+            cbor_event::LenSz::Len(_, _) => (),
+            cbor_event::LenSz::Indefinite => match raw.special()? {
+                cbor_event::Special::Break => (),
+                _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+            },
+        }
+        ret
+    }
+}
+
+impl DeserializeEmbeddedGroup for ShelleyMoveInstantaneousRewardsCert {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(
+        raw: &mut Deserializer<R>,
+        _read_len: &mut CBORReadLen,
+        len: cbor_event::LenSz,
+    ) -> Result<Self, DeserializeError> {
+        let len_encoding = len.into();
         (|| -> Result<_, DeserializeError> {
             let tag_encoding = (|| -> Result<_, DeserializeError> {
                 let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
@@ -1836,13 +1903,6 @@ impl Deserialize for ShelleyMoveInstantaneousRewardsCert {
                 raw,
             )
             .map_err(|e: DeserializeError| e.annotate("shelley_move_instantaneous_reward"))?;
-            match len {
-                cbor_event::LenSz::Len(_, _) => (),
-                cbor_event::LenSz::Indefinite => match raw.special()? {
-                    cbor_event::Special::Break => (),
-                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                },
-            }
             Ok(ShelleyMoveInstantaneousRewardsCert {
                 shelley_move_instantaneous_reward,
                 encodings: Some(ShelleyMoveInstantaneousRewardsCertEncoding {
@@ -1852,6 +1912,463 @@ impl Deserialize for ShelleyMoveInstantaneousRewardsCert {
             })
         })()
         .map_err(|e| e.annotate("ShelleyMoveInstantaneousRewardsCert"))
+    }
+}
+
+impl Serialize for ShelleyMultiHostName {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(2, force_canonical),
+        )?;
+        self.serialize_as_embedded_group(serializer, force_canonical)
+    }
+}
+
+impl SerializeEmbeddedGroup for ShelleyMultiHostName {
+    fn serialize_as_embedded_group<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer_sz(
+            2u64,
+            fit_sz(
+                2u64,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.tag_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )?;
+        self.shelley_dns_name
+            .serialize(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for ShelleyMultiHostName {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(2)?;
+        read_len.finish()?;
+        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+        match len {
+            cbor_event::LenSz::Len(_, _) => (),
+            cbor_event::LenSz::Indefinite => match raw.special()? {
+                cbor_event::Special::Break => (),
+                _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+            },
+        }
+        ret
+    }
+}
+
+impl DeserializeEmbeddedGroup for ShelleyMultiHostName {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(
+        raw: &mut Deserializer<R>,
+        _read_len: &mut CBORReadLen,
+        len: cbor_event::LenSz,
+    ) -> Result<Self, DeserializeError> {
+        let len_encoding = len.into();
+        (|| -> Result<_, DeserializeError> {
+            let tag_encoding = (|| -> Result<_, DeserializeError> {
+                let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
+                if tag_value != 2 {
+                    return Err(DeserializeFailure::FixedValueMismatch {
+                        found: Key::Uint(tag_value),
+                        expected: Key::Uint(2),
+                    }
+                    .into());
+                }
+                Ok(Some(tag_encoding))
+            })()
+            .map_err(|e| e.annotate("tag"))?;
+            let shelley_dns_name = ShelleyDNSName::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("shelley_dns_name"))?;
+            Ok(ShelleyMultiHostName {
+                shelley_dns_name,
+                encodings: Some(ShelleyMultiHostNameEncoding {
+                    len_encoding,
+                    tag_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("ShelleyMultiHostName"))
+    }
+}
+
+impl Serialize for ShelleyPoolParams {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(9, force_canonical),
+        )?;
+        self.serialize_as_embedded_group(serializer, force_canonical)
+    }
+}
+
+impl SerializeEmbeddedGroup for ShelleyPoolParams {
+    fn serialize_as_embedded_group<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_bytes_sz(
+            self.operator.to_raw_bytes(),
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.operator_encoding.clone())
+                .unwrap_or_default()
+                .to_str_len_sz(self.operator.to_raw_bytes().len() as u64, force_canonical),
+        )?;
+        serializer.write_bytes_sz(
+            self.vrf_keyhash.to_raw_bytes(),
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.vrf_keyhash_encoding.clone())
+                .unwrap_or_default()
+                .to_str_len_sz(
+                    self.vrf_keyhash.to_raw_bytes().len() as u64,
+                    force_canonical,
+                ),
+        )?;
+        serializer.write_unsigned_integer_sz(
+            self.pledge,
+            fit_sz(
+                self.pledge,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.pledge_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )?;
+        serializer.write_unsigned_integer_sz(
+            self.cost,
+            fit_sz(
+                self.cost,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.cost_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )?;
+        self.margin.serialize(serializer, force_canonical)?;
+        self.reward_account.serialize(serializer, force_canonical)?;
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.pool_owners_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.pool_owners.len() as u64, force_canonical),
+        )?;
+        for (i, element) in self.pool_owners.iter().enumerate() {
+            let pool_owners_elem_encoding = self
+                .encodings
+                .as_ref()
+                .and_then(|encs| encs.pool_owners_elem_encodings.get(i))
+                .cloned()
+                .unwrap_or_default();
+            serializer.write_bytes_sz(
+                element.to_raw_bytes(),
+                pool_owners_elem_encoding
+                    .to_str_len_sz(element.to_raw_bytes().len() as u64, force_canonical),
+            )?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.pool_owners_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)?;
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.relays_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.relays.len() as u64, force_canonical),
+        )?;
+        for element in self.relays.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.relays_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)?;
+        match &self.pool_metadata {
+            Some(x) => x.serialize(serializer, force_canonical),
+            None => serializer.write_special(cbor_event::Special::Null),
+        }?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for ShelleyPoolParams {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(9)?;
+        read_len.finish()?;
+        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+        match len {
+            cbor_event::LenSz::Len(_, _) => (),
+            cbor_event::LenSz::Indefinite => match raw.special()? {
+                cbor_event::Special::Break => (),
+                _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+            },
+        }
+        ret
+    }
+}
+
+impl DeserializeEmbeddedGroup for ShelleyPoolParams {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(
+        raw: &mut Deserializer<R>,
+        _read_len: &mut CBORReadLen,
+        len: cbor_event::LenSz,
+    ) -> Result<Self, DeserializeError> {
+        let len_encoding = len.into();
+        (|| -> Result<_, DeserializeError> {
+            let (operator, operator_encoding) = raw
+                .bytes_sz()
+                .map_err(Into::<DeserializeError>::into)
+                .and_then(|(bytes, enc)| {
+                    Ed25519KeyHash::from_raw_bytes(&bytes)
+                        .map(|bytes| (bytes, StringEncoding::from(enc)))
+                        .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
+                })
+                .map_err(|e: DeserializeError| e.annotate("operator"))?;
+            let (vrf_keyhash, vrf_keyhash_encoding) = raw
+                .bytes_sz()
+                .map_err(Into::<DeserializeError>::into)
+                .and_then(|(bytes, enc)| {
+                    VRFKeyHash::from_raw_bytes(&bytes)
+                        .map(|bytes| (bytes, StringEncoding::from(enc)))
+                        .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
+                })
+                .map_err(|e: DeserializeError| e.annotate("vrf_keyhash"))?;
+            let (pledge, pledge_encoding) = raw
+                .unsigned_integer_sz()
+                .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
+                .map_err(|e: DeserializeError| e.annotate("pledge"))?;
+            let (cost, cost_encoding) = raw
+                .unsigned_integer_sz()
+                .map_err(Into::<DeserializeError>::into)
+                .map(|(x, enc)| (x, Some(enc)))
+                .map_err(|e: DeserializeError| e.annotate("cost"))?;
+            let margin = UnitInterval::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("margin"))?;
+            let reward_account = RewardAccount::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("reward_account"))?;
+            let (pool_owners, pool_owners_encoding, pool_owners_elem_encodings) =
+                (|| -> Result<_, DeserializeError> {
+                    let mut pool_owners_arr = Vec::new();
+                    let len = raw.array_sz()?;
+                    let pool_owners_encoding = len.into();
+                    let mut pool_owners_elem_encodings = Vec::new();
+                    while match len {
+                        cbor_event::LenSz::Len(n, _) => (pool_owners_arr.len() as u64) < n,
+                        cbor_event::LenSz::Indefinite => true,
+                    } {
+                        if raw.cbor_type()? == cbor_event::Type::Special {
+                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                            break;
+                        }
+                        let (pool_owners_elem, pool_owners_elem_encoding) = raw
+                            .bytes_sz()
+                            .map_err(Into::<DeserializeError>::into)
+                            .and_then(|(bytes, enc)| {
+                                Ed25519KeyHash::from_raw_bytes(&bytes)
+                                    .map(|bytes| (bytes, StringEncoding::from(enc)))
+                                    .map_err(|e| {
+                                        DeserializeFailure::InvalidStructure(Box::new(e)).into()
+                                    })
+                            })?;
+                        pool_owners_arr.push(pool_owners_elem);
+                        pool_owners_elem_encodings.push(pool_owners_elem_encoding);
+                    }
+                    Ok((
+                        pool_owners_arr,
+                        pool_owners_encoding,
+                        pool_owners_elem_encodings,
+                    ))
+                })()
+                .map_err(|e| e.annotate("pool_owners"))?;
+            let (relays, relays_encoding) = (|| -> Result<_, DeserializeError> {
+                let mut relays_arr = Vec::new();
+                let len = raw.array_sz()?;
+                let relays_encoding = len.into();
+                while match len {
+                    cbor_event::LenSz::Len(n, _) => (relays_arr.len() as u64) < n,
+                    cbor_event::LenSz::Indefinite => true,
+                } {
+                    if raw.cbor_type()? == cbor_event::Type::Special {
+                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                        break;
+                    }
+                    relays_arr.push(ShelleyRelay::deserialize(raw)?);
+                }
+                Ok((relays_arr, relays_encoding))
+            })()
+            .map_err(|e| e.annotate("relays"))?;
+            let pool_metadata = (|| -> Result<_, DeserializeError> {
+                Ok(match raw.cbor_type()? != cbor_event::Type::Special {
+                    true => Some(PoolMetadata::deserialize(raw)?),
+                    false => {
+                        if raw.special()? != cbor_event::Special::Null {
+                            return Err(DeserializeFailure::ExpectedNull.into());
+                        }
+                        None
+                    }
+                })
+            })()
+            .map_err(|e| e.annotate("pool_metadata"))?;
+            Ok(ShelleyPoolParams {
+                operator,
+                vrf_keyhash,
+                pledge,
+                cost,
+                margin,
+                reward_account,
+                pool_owners,
+                relays,
+                pool_metadata,
+                encodings: Some(ShelleyPoolParamsEncoding {
+                    len_encoding,
+                    operator_encoding,
+                    vrf_keyhash_encoding,
+                    pledge_encoding,
+                    cost_encoding,
+                    pool_owners_encoding,
+                    pool_owners_elem_encodings,
+                    relays_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("ShelleyPoolParams"))
+    }
+}
+
+impl Serialize for ShelleyPoolRegistration {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(10, force_canonical),
+        )?;
+        self.serialize_as_embedded_group(serializer, force_canonical)
+    }
+}
+
+impl SerializeEmbeddedGroup for ShelleyPoolRegistration {
+    fn serialize_as_embedded_group<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer_sz(
+            3u64,
+            fit_sz(
+                3u64,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.tag_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )?;
+        self.pool_params
+            .serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for ShelleyPoolRegistration {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(10)?;
+        read_len.finish()?;
+        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+        match len {
+            cbor_event::LenSz::Len(_, _) => (),
+            cbor_event::LenSz::Indefinite => match raw.special()? {
+                cbor_event::Special::Break => (),
+                _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+            },
+        }
+        ret
+    }
+}
+
+impl DeserializeEmbeddedGroup for ShelleyPoolRegistration {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(
+        raw: &mut Deserializer<R>,
+        read_len: &mut CBORReadLen,
+        len: cbor_event::LenSz,
+    ) -> Result<Self, DeserializeError> {
+        let len_encoding = len.into();
+        (|| -> Result<_, DeserializeError> {
+            let tag_encoding = (|| -> Result<_, DeserializeError> {
+                let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
+                if tag_value != 3 {
+                    return Err(DeserializeFailure::FixedValueMismatch {
+                        found: Key::Uint(tag_value),
+                        expected: Key::Uint(3),
+                    }
+                    .into());
+                }
+                Ok(Some(tag_encoding))
+            })()
+            .map_err(|e| e.annotate("tag"))?;
+            let pool_params = ShelleyPoolParams::deserialize_as_embedded_group(raw, read_len, len)
+                .map_err(|e: DeserializeError| e.annotate("pool_params"))?;
+            Ok(ShelleyPoolRegistration {
+                pool_params,
+                encodings: Some(ShelleyPoolRegistrationEncoding {
+                    len_encoding,
+                    tag_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("ShelleyPoolRegistration"))
     }
 }
 
@@ -2726,6 +3243,244 @@ impl Deserialize for ShelleyProtocolParamUpdate {
             })
         })()
         .map_err(|e| e.annotate("ShelleyProtocolParamUpdate"))
+    }
+}
+
+impl Serialize for ShelleyRelay {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        match self {
+            ShelleyRelay::SingleHostAddr(single_host_addr) => {
+                single_host_addr.serialize(serializer, force_canonical)
+            }
+            ShelleyRelay::ShelleySingleHostName(shelley_single_host_name) => {
+                shelley_single_host_name.serialize(serializer, force_canonical)
+            }
+            ShelleyRelay::ShelleyMultiHostName(shelley_multi_host_name) => {
+                shelley_multi_host_name.serialize(serializer, force_canonical)
+            }
+        }
+    }
+}
+
+impl Deserialize for ShelleyRelay {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let mut errs = Vec::new();
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(4)?;
+                read_len.finish()?;
+                let ret = SingleHostAddr::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
+            match deser_variant {
+                Ok(single_host_addr) => return Ok(Self::SingleHostAddr(single_host_addr)),
+                Err(e) => {
+                    errs.push(e.annotate("SingleHostAddr"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(3)?;
+                read_len.finish()?;
+                let ret =
+                    ShelleySingleHostName::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
+            match deser_variant {
+                Ok(shelley_single_host_name) => {
+                    return Ok(Self::ShelleySingleHostName(shelley_single_host_name))
+                }
+                Err(e) => {
+                    errs.push(e.annotate("ShelleySingleHostName"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let mut read_len = CBORReadLen::new(len);
+                read_len.read_elems(2)?;
+                read_len.finish()?;
+                let ret =
+                    ShelleyMultiHostName::deserialize_as_embedded_group(raw, &mut read_len, len);
+                match len {
+                    cbor_event::LenSz::Len(_, _) => (),
+                    cbor_event::LenSz::Indefinite => match raw.special()? {
+                        cbor_event::Special::Break => (),
+                        _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                    },
+                }
+                ret
+            })(raw);
+            match deser_variant {
+                Ok(shelley_multi_host_name) => {
+                    return Ok(Self::ShelleyMultiHostName(shelley_multi_host_name))
+                }
+                Err(e) => {
+                    errs.push(e.annotate("ShelleyMultiHostName"));
+                    raw.as_mut_ref()
+                        .seek(SeekFrom::Start(initial_position))
+                        .unwrap();
+                }
+            };
+            Err(DeserializeError::new(
+                "ShelleyRelay",
+                DeserializeFailure::NoVariantMatchedWithCauses(errs),
+            ))
+        })()
+        .map_err(|e| e.annotate("ShelleyRelay"))
+    }
+}
+
+impl Serialize for ShelleySingleHostName {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.len_encoding)
+                .unwrap_or_default()
+                .to_len_sz(3, force_canonical),
+        )?;
+        self.serialize_as_embedded_group(serializer, force_canonical)
+    }
+}
+
+impl SerializeEmbeddedGroup for ShelleySingleHostName {
+    fn serialize_as_embedded_group<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer_sz(
+            1u64,
+            fit_sz(
+                1u64,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.tag_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )?;
+        match &self.port {
+            Some(x) => serializer.write_unsigned_integer_sz(
+                *x as u64,
+                fit_sz(
+                    *x as u64,
+                    self.encodings
+                        .as_ref()
+                        .map(|encs| encs.port_encoding)
+                        .unwrap_or_default(),
+                    force_canonical,
+                ),
+            ),
+            None => serializer.write_special(cbor_event::Special::Null),
+        }?;
+        self.shelley_dns_name
+            .serialize(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for ShelleySingleHostName {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.array_sz()?;
+        let mut read_len = CBORReadLen::new(len);
+        read_len.read_elems(3)?;
+        read_len.finish()?;
+        let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
+        match len {
+            cbor_event::LenSz::Len(_, _) => (),
+            cbor_event::LenSz::Indefinite => match raw.special()? {
+                cbor_event::Special::Break => (),
+                _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+            },
+        }
+        ret
+    }
+}
+
+impl DeserializeEmbeddedGroup for ShelleySingleHostName {
+    fn deserialize_as_embedded_group<R: BufRead + Seek>(
+        raw: &mut Deserializer<R>,
+        _read_len: &mut CBORReadLen,
+        len: cbor_event::LenSz,
+    ) -> Result<Self, DeserializeError> {
+        let len_encoding = len.into();
+        (|| -> Result<_, DeserializeError> {
+            let tag_encoding = (|| -> Result<_, DeserializeError> {
+                let (tag_value, tag_encoding) = raw.unsigned_integer_sz()?;
+                if tag_value != 1 {
+                    return Err(DeserializeFailure::FixedValueMismatch {
+                        found: Key::Uint(tag_value),
+                        expected: Key::Uint(1),
+                    }
+                    .into());
+                }
+                Ok(Some(tag_encoding))
+            })()
+            .map_err(|e| e.annotate("tag"))?;
+            let (port, port_encoding) = (|| -> Result<_, DeserializeError> {
+                Ok(match raw.cbor_type()? != cbor_event::Type::Special {
+                    true => Result::<_, DeserializeError>::Ok(
+                        raw.unsigned_integer_sz()
+                            .map(|(x, enc)| (x as u16, Some(enc)))?,
+                    )
+                    .map(|(x, port_encoding)| (Some(x), port_encoding))?,
+                    false => {
+                        if raw.special()? != cbor_event::Special::Null {
+                            return Err(DeserializeFailure::ExpectedNull.into());
+                        }
+                        (None, None)
+                    }
+                })
+            })()
+            .map_err(|e| e.annotate("port"))?;
+            let shelley_dns_name = ShelleyDNSName::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("shelley__dns_name"))?;
+            Ok(ShelleySingleHostName {
+                port,
+                shelley_dns_name,
+                encodings: Some(ShelleySingleHostNameEncoding {
+                    len_encoding,
+                    tag_encoding,
+                    port_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("ShelleySingleHostName"))
     }
 }
 

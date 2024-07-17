@@ -6,7 +6,9 @@ use std::{
 use crate::{assets::AssetName, AssetNameList, MapAssetNameToNonZeroInt64, PolicyId, PolicyIdList};
 use wasm_bindgen::{prelude::wasm_bindgen, JsError, JsValue};
 
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_map};
+use cml_core_wasm::{
+    impl_raw_bytes_api, impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_map,
+};
 
 use super::Coin;
 
@@ -25,15 +27,6 @@ impl_wasm_map!(
 
 #[wasm_bindgen]
 impl AssetName {
-    /**
-     * Create an AssetName from raw bytes. 64 byte maximum.
-     */
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<AssetName, JsError> {
-        cml_chain::assets::AssetName::try_from(bytes)
-            .map(Into::into)
-            .map_err(Into::into)
-    }
-
     /**
      * Create an AssetName from utf8 string. 64 byte (not char!) maximum.
      */
@@ -54,6 +47,8 @@ impl AssetName {
             .map_err(Into::into)
     }
 }
+
+impl_raw_bytes_api!(cml_chain::assets::AssetName, AssetName);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

@@ -6,37 +6,38 @@ pub mod serialization;
 pub mod utils;
 
 use crate::allegra::AllegraCertificate;
+use crate::alonzo::AlonzoRedeemer;
 use crate::shelley::ProtocolVersionStruct;
 use cbor_encodings::{
-    BabbageBlockEncoding, BabbageCostModelsEncoding, BabbageFormatAuxDataEncoding,
-    BabbageFormatTxOutEncoding, BabbageProtocolParamUpdateEncoding, BabbageTransactionBodyEncoding,
-    BabbageTransactionEncoding, BabbageTransactionWitnessSetEncoding, BabbageUpdateEncoding,
+    BabbageBlockEncoding, BabbageFormatAuxDataEncoding, BabbageFormatTxOutEncoding,
+    BabbageProtocolParamUpdateEncoding, BabbageTransactionBodyEncoding, BabbageTransactionEncoding,
+    BabbageTransactionWitnessSetEncoding, BabbageUpdateEncoding,
 };
 use cml_chain::address::Address;
-use cml_chain::assets::{Coin, Mint, Value};
-use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMaFormatAuxData};
+use cml_chain::assets::{Coin, Value};
+use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain::block::Header;
 use cml_chain::crypto::{
     AuxiliaryDataHash, BootstrapWitness, GenesisHash, ScriptDataHash, Vkeywitness,
 };
 use cml_chain::plutus::{
-    ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, Redeemer,
+    CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script,
 };
-use cml_chain::transaction::{
-    AlonzoFormatTxOut, DatumOption, NativeScript, RequiredSigners, TransactionInput,
-};
-use cml_chain::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
+use cml_chain::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, TransactionInput};
+use cml_chain::{Epoch, NetworkId, Rational, RequiredSigners, UnitInterval, Withdrawals};
 
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::LenEncoding;
-use cml_core::{Int, TransactionIndex};
+use cml_core::TransactionIndex;
 
 use std::collections::BTreeMap;
+
+use self::utils::BabbageMint;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum BabbageAuxiliaryData {
     Shelley(ShelleyFormatAuxData),
-    ShelleyMA(ShelleyMaFormatAuxData),
+    ShelleyMA(ShelleyMAFormatAuxData),
     Babbage(BabbageFormatAuxData),
 }
 
@@ -45,8 +46,8 @@ impl BabbageAuxiliaryData {
         Self::Shelley(shelley)
     }
 
-    pub fn new_shelley_m_a(shelley_m_a: ShelleyMaFormatAuxData) -> Self {
-        Self::ShelleyMA(shelley_m_a)
+    pub fn new_shelley_ma(shelley_ma: ShelleyMAFormatAuxData) -> Self {
+        Self::ShelleyMA(shelley_ma)
     }
 
     pub fn new_babbage(babbage: BabbageFormatAuxData) -> Self {
@@ -84,29 +85,7 @@ impl BabbageBlock {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct BabbageCostModels {
-    pub plutus_v1: Option<Vec<Int>>,
-    pub plutus_v2: Option<Vec<Int>>,
-    #[serde(skip)]
-    pub encodings: Option<BabbageCostModelsEncoding>,
-}
-
-impl BabbageCostModels {
-    pub fn new() -> Self {
-        Self {
-            plutus_v1: None,
-            plutus_v2: None,
-            encodings: None,
-        }
-    }
-}
-
-impl Default for BabbageCostModels {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+pub type BabbageCostModels = CostModels;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct BabbageFormatAuxData {
@@ -316,7 +295,7 @@ pub struct BabbageTransactionBody {
     pub update: Option<BabbageUpdate>,
     pub auxiliary_data_hash: Option<AuxiliaryDataHash>,
     pub validity_interval_start: Option<u64>,
-    pub mint: Option<Mint>,
+    pub mint: Option<BabbageMint>,
     pub script_data_hash: Option<ScriptDataHash>,
     pub collateral_inputs: Option<Vec<TransactionInput>>,
     pub required_signers: Option<RequiredSigners>,
@@ -380,7 +359,7 @@ pub struct BabbageTransactionWitnessSet {
     pub bootstrap_witnesses: Option<Vec<BootstrapWitness>>,
     pub plutus_v1_scripts: Option<Vec<PlutusV1Script>>,
     pub plutus_datums: Option<Vec<PlutusData>>,
-    pub redeemers: Option<Vec<Redeemer>>,
+    pub redeemers: Option<Vec<AlonzoRedeemer>>,
     pub plutus_v2_scripts: Option<Vec<PlutusV2Script>>,
     #[serde(skip)]
     pub encodings: Option<BabbageTransactionWitnessSetEncoding>,

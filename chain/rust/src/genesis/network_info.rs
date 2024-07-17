@@ -1,13 +1,15 @@
-use crate::{byron::ProtocolMagic, plutus::CostModels};
-use cml_core::{
-    network::{
-        BYRON_MAINNET_NETWORK_MAGIC, BYRON_TESTNET_NETWORK_MAGIC, PREPROD_NETWORK_MAGIC,
-        PREVIEW_NETWORK_MAGIC, SANCHO_TESTNET_NETWORK_MAGIC,
-    },
-    Int,
+use crate::{
+    byron::ProtocolMagic,
+    plutus::{CostModels, Language},
+};
+use cml_core::network::{
+    BYRON_MAINNET_NETWORK_MAGIC, BYRON_TESTNET_NETWORK_MAGIC, PREPROD_NETWORK_MAGIC,
+    PREVIEW_NETWORK_MAGIC, SANCHO_TESTNET_NETWORK_MAGIC,
 };
 
-#[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct NetworkInfo {
     network_id: u8,
     protocol_magic: ProtocolMagic,
@@ -67,7 +69,7 @@ impl NetworkInfo {
 
 // TODO: https://github.com/dcSpark/cardano-multiplatform-lib/issues/92
 pub fn plutus_alonzo_cost_models() -> CostModels {
-    let ops: [u64; 166] = [
+    let ops = vec![
         197209, 0, 1, 1, 396231, 621, 0, 1, 150000, 1000, 0, 1, 150000, 32, 2477736, 29175, 4,
         29773, 100, 29773, 100, 29773, 100, 29773, 100, 29773, 100, 29773, 100, 100, 100, 29773,
         100, 150000, 32, 150000, 32, 150000, 32, 150000, 1000, 0, 1, 150000, 32, 150000, 1000, 0,
@@ -81,7 +83,7 @@ pub fn plutus_alonzo_cost_models() -> CostModels {
         3345831, 1, 1,
     ];
 
-    let mut res = CostModels::new();
-    res.plutus_v1 = Some(ops.iter().map(|&i| Int::from(i)).collect());
+    let mut res = CostModels::default();
+    res.inner.insert(Language::PlutusV1 as u64, ops);
     res
 }

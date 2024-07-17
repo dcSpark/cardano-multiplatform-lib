@@ -30,7 +30,7 @@ pub fn min_script_fee(
     ex_unit_prices: &ExUnitPrices,
 ) -> Result<Coin, ArithmeticError> {
     if let Some(redeemers) = &tx.witness_set.redeemers {
-        let total_ex_units = compute_total_ex_units(redeemers)?;
+        let total_ex_units = compute_total_ex_units(&redeemers.clone().to_flat_format())?;
         let script_fee = ((Fraction::new(total_ex_units.mem, 1u64)
             * Fraction::new(
                 ex_unit_prices.mem_price.numerator,

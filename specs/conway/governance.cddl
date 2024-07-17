@@ -18,13 +18,18 @@ gov_action = [
   hard_fork_initiation_action //
   treasury_withdrawals_action //
   no_confidence //
-  new_committee //
+  update_committee //
   new_constitution //
   ; @name info_action
   6
 ]
 
-parameter_change_action = (tag: 0, gov_action_id / null, protocol_param_update)
+parameter_change_action = (
+  tag: 0,
+  action_id: gov_action_id / null,
+  update: protocol_param_update,
+  policy_hash: script_hash / null,
+)
 
 hard_fork_initiation_action = (
   tag: 1
@@ -34,7 +39,8 @@ hard_fork_initiation_action = (
 
 treasury_withdrawals_action = (
   tag: 2,
-  withdrawal: { $reward_account => coin }
+  withdrawal: { $reward_account => coin },
+  policy_hash: script_hash / null,
 )
 
 no_confidence = (
@@ -42,11 +48,12 @@ no_confidence = (
   action_id: gov_action_id / null
 )
 
-new_committee = (
+update_committee = (
   tag: 4,
   action_id: gov_action_id / null,
-  cold_credentials: [* committee_cold_credential],
-  committee
+  cold_credentials: set<committee_cold_credential>,
+  credentials: { * committee_cold_credential => epoch },
+  unit_interval
 )
 
 new_constitution = (
@@ -54,11 +61,6 @@ new_constitution = (
   action_id: gov_action_id / null,
   constitution
 )
-
-committee = [
-  credentials: { $committee_cold_credential => epoch },
-  unit_interval
-]
 
 constitution = [
   anchor,

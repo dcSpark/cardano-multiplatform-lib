@@ -145,49 +145,49 @@ impl TransactionWitnessSet {
         // TODO: should we do duplicate checking here?
         if let Some(other_vkeys) = other.vkeywitnesses {
             if let Some(vkeys) = &mut self.vkeywitnesses {
-                vkeys.extend(other_vkeys);
+                vkeys.extend(Vec::from(other_vkeys));
             } else {
                 self.vkeywitnesses = Some(other_vkeys);
             }
         }
         if let Some(other_native_scripts) = other.native_scripts {
             if let Some(scripts) = &mut self.native_scripts {
-                scripts.extend(other_native_scripts);
+                scripts.extend(Vec::from(other_native_scripts));
             } else {
                 self.native_scripts = Some(other_native_scripts);
             }
         }
         if let Some(other_bootstraps) = other.bootstrap_witnesses {
             if let Some(bootstraps) = &mut self.bootstrap_witnesses {
-                bootstraps.extend(other_bootstraps);
+                bootstraps.extend(Vec::from(other_bootstraps));
             } else {
                 self.bootstrap_witnesses = Some(other_bootstraps);
             }
         }
         if let Some(other_plutus_v1_scripts) = other.plutus_v1_scripts {
             if let Some(scripts) = &mut self.plutus_v1_scripts {
-                scripts.extend(other_plutus_v1_scripts);
+                scripts.extend(Vec::from(other_plutus_v1_scripts));
             } else {
                 self.plutus_v1_scripts = Some(other_plutus_v1_scripts);
             }
         }
         if let Some(other_plutus_v2_scripts) = other.plutus_v2_scripts {
             if let Some(scripts) = &mut self.plutus_v2_scripts {
-                scripts.extend(other_plutus_v2_scripts);
+                scripts.extend(Vec::from(other_plutus_v2_scripts));
             } else {
                 self.plutus_v2_scripts = Some(other_plutus_v2_scripts);
             }
         }
         if let Some(other_plutus_v3_scripts) = other.plutus_v3_scripts {
             if let Some(scripts) = &mut self.plutus_v3_scripts {
-                scripts.extend(other_plutus_v3_scripts);
+                scripts.extend(Vec::from(other_plutus_v3_scripts));
             } else {
                 self.plutus_v3_scripts = Some(other_plutus_v3_scripts);
             }
         }
         if let Some(other_plutus_datums) = other.plutus_datums {
             if let Some(datums) = &mut self.plutus_datums {
-                datums.extend(other_plutus_datums);
+                datums.extend(Vec::from(other_plutus_datums));
             } else {
                 self.plutus_datums = Some(other_plutus_datums);
             }

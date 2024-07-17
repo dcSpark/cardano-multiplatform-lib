@@ -37,18 +37,48 @@ shelley_header_body = [
   protocol_version,
 ]
 
+shelley_pool_registration = (tag: 3, pool_params: shelley_pool_params)
+shelley_pool_params = ( operator:       ed25519_key_hash
+              , vrf_keyhash:    VRF_key_hash
+              , pledge:         coin
+              , cost:           coin
+              , margin:         unit_interval
+              , reward_account: reward_account
+              , pool_owners:    [* ed25519_key_hash]
+              , relays:         [* shelley_relay]
+              , pool_metadata:  pool_metadata / null
+              )
+
+shelley_DNS_name = tstr .size (0..64)
+
+shelley_single_host_name = (
+  tag: 1,
+  port / null,
+  shelley_DNS_name, ; @doc An A or AAAA DNS record @name dns_name
+)
+shelley_multi_host_name = (
+  tag: 2,
+  shelley_DNS_name, ; @doc A SRV DNS record @name dns_name
+)
+
+shelley_relay = [
+  single_host_addr //
+  shelley_single_host_name //
+  shelley_multi_host_name
+]
+
 shelley_certificate = [
-     stake_registration
-  // stake_deregistration
-  // stake_delegation
-  // pool_registration
-  // pool_retirement
-  // genesis_key_delegation
-  // shelley_move_instantaneous_rewards_cert
+  stake_registration //
+  stake_deregistration //
+  stake_delegation //
+  shelley_pool_registration //
+  pool_retirement //
+  genesis_key_delegation //
+  shelley_move_instantaneous_rewards_cert
 ]
 
 genesis_key_delegation = (tag: 5, genesis_hash, genesis_delegate_hash, VRF_key_hash)
-shelley_move_instantaneous_rewards_cert = [tag: 6, shelley_move_instantaneous_reward]
+shelley_move_instantaneous_rewards_cert = (tag: 6, shelley_move_instantaneous_reward)
 
 shelley_transaction_body = {
     0 : [* transaction_input],           ; @name inputs

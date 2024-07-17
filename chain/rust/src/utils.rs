@@ -1,12 +1,13 @@
-use cbor_event::{de::Deserializer, se::Serializer};
+use cbor_event::{de::Deserializer, se::Serializer, Sz};
 use cml_core::{
     error::{DeserializeError, DeserializeFailure},
-    serialization::{fit_sz, sz_max, Deserialize, Serialize},
-    Int,
+    serialization::{fit_sz, sz_max, Deserialize, LenEncoding, Serialize},
+    Int, Slot,
 };
-use cml_crypto::ScriptHash;
+use cml_crypto::{Ed25519KeyHash, RawBytesEncoding, ScriptHash};
 use derivative::Derivative;
 use std::io::{BufRead, Seek, Write};
+use std::iter::IntoIterator;
 
 use crate::{
     crypto::hash::{hash_script, ScriptHashNamespace},
@@ -39,6 +40,57 @@ impl Script {
 impl NativeScript {
     pub fn hash(&self) -> ScriptHash {
         hash_script(ScriptHashNamespace::NativeScript, &self.to_cbor_bytes())
+    }
+
+    pub fn verify(
+        &self,
+        lower_bound: Option<Slot>,
+        upper_bound: Option<Slot>,
+        key_hashes: &Vec<Ed25519KeyHash>,
+    ) -> bool {
+        fn verify_helper(
+            script: &NativeScript,
+            lower_bound: Option<Slot>,
+            upper_bound: Option<Slot>,
+            key_hashes: &Vec<Ed25519KeyHash>,
+        ) -> bool {
+            match &script {
+                NativeScript::ScriptPubkey(pub_key) => {
+                    key_hashes.contains(&pub_key.ed25519_key_hash)
+                }
+                NativeScript::ScriptAll(script_all) => {
+                    script_all.native_scripts.iter().all(|sub_script| {
+                        verify_helper(sub_script, lower_bound, upper_bound, key_hashes)
+                    })
+                }
+                NativeScript::ScriptAny(script_any) => {
+                    script_any.native_scripts.iter().any(|sub_script| {
+                        verify_helper(sub_script, lower_bound, upper_bound, key_hashes)
+                    })
+                }
+                NativeScript::ScriptNOfK(script_atleast) => {
+                    script_atleast
+                        .native_scripts
+                        .iter()
+                        .map(|sub_script| {
+                            verify_helper(sub_script, lower_bound, upper_bound, key_hashes)
+                        })
+                        .filter(|r| *r)
+                        .count()
+                        >= script_atleast.n as usize
+                }
+                NativeScript::ScriptInvalidBefore(timelock_start) => match lower_bound {
+                    Some(tx_slot) => tx_slot >= timelock_start.before,
+                    _ => false,
+                },
+                NativeScript::ScriptInvalidHereafter(timelock_expiry) => match upper_bound {
+                    Some(tx_slot) => tx_slot < timelock_expiry.after,
+                    _ => false,
+                },
+            }
+        }
+
+        verify_helper(self, lower_bound, upper_bound, key_hashes)
     }
 }
 
@@ -588,6 +640,356 @@ impl SubCoin {
             denom /= 10;
         }
         Self::new(numerator, denom)
+    }
+}
+
+// Represents the cddl: #6.258([+ T]) / [* T]
+// it DOES NOT and CAN NOT have any encoding detials per element!
+// so you can NOT use it on any primitives so must be serializable directly
+#[derive(Debug, Clone)]
+pub struct NonemptySet<T> {
+    elems: Vec<T>,
+    len_encoding: LenEncoding,
+    // also controls whether to use the tag encoding (Some) or raw array (None)
+    tag_encoding: Option<Sz>,
+}
+
+impl<T: serde::Serialize> serde::Serialize for NonemptySet<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.elems.serialize(serializer)
+    }
+}
+
+impl<'de, T: serde::de::Deserialize<'de>> serde::de::Deserialize<'de> for NonemptySet<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        Vec::deserialize(deserializer).map(|elems| Self {
+            elems,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+        })
+    }
+}
+
+impl<T: schemars::JsonSchema> schemars::JsonSchema for NonemptySet<T> {
+    fn schema_name() -> String {
+        Vec::<T>::schema_name()
+    }
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        Vec::<T>::json_schema(gen)
+    }
+    fn is_referenceable() -> bool {
+        Vec::<T>::is_referenceable()
+    }
+}
+
+impl<T> AsRef<[T]> for NonemptySet<T> {
+    fn as_ref(&self) -> &[T] {
+        self.elems.as_ref()
+    }
+}
+
+impl<T> IntoIterator for NonemptySet<T> {
+    type Item = T;
+    type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a NonemptySet<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut NonemptySet<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.iter_mut()
+    }
+}
+
+impl<T> std::ops::Deref for NonemptySet<T> {
+    type Target = Vec<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.elems
+    }
+}
+
+impl<T> std::ops::DerefMut for NonemptySet<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.elems
+    }
+}
+
+impl<T> From<Vec<T>> for NonemptySet<T> {
+    fn from(elems: Vec<T>) -> Self {
+        Self {
+            elems,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+        }
+    }
+}
+
+impl<T> From<NonemptySet<T>> for Vec<T> {
+    fn from(set: NonemptySet<T>) -> Self {
+        set.elems
+    }
+}
+
+impl<T: Serialize> Serialize for NonemptySet<T> {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        if let Some(tag_encoding) = &self.tag_encoding {
+            serializer.write_tag_sz(258, *tag_encoding)?;
+        }
+        serializer.write_array_sz(
+            self.len_encoding
+                .to_len_sz(self.elems.len() as u64, force_canonical),
+        )?;
+        for elem in self.elems.iter() {
+            elem.serialize(serializer, force_canonical)?;
+        }
+        self.len_encoding.end(serializer, force_canonical)
+    }
+}
+
+impl<T: Deserialize> Deserialize for NonemptySet<T> {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let mut elems = Vec::new();
+            let (arr_len, tag_encoding) = if raw.cbor_type()? == cbor_event::Type::Tag {
+                let (tag, tag_encoding) = raw.tag_sz()?;
+                if tag != 258 {
+                    return Err(DeserializeFailure::TagMismatch {
+                        found: tag,
+                        expected: 258,
+                    }
+                    .into());
+                }
+                (raw.array_sz()?, Some(tag_encoding))
+            } else {
+                (raw.array_sz()?, None)
+            };
+            let len_encoding = arr_len.into();
+            while match arr_len {
+                cbor_event::LenSz::Len(n, _) => (elems.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if raw.cbor_type()? == cbor_event::Type::Special {
+                    assert_eq!(raw.special()?, cbor_event::Special::Break);
+                    break;
+                }
+                let elem = T::deserialize(raw)?;
+                elems.push(elem);
+            }
+            Ok(Self {
+                elems,
+                len_encoding,
+                tag_encoding,
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySet"))
+    }
+}
+
+// for now just do this
+pub type Set<T> = NonemptySet<T>;
+
+// Represents the cddl: #6.258([+ T]) / [* T] where T uses RawBytesEncoding
+#[derive(Debug, Clone)]
+pub struct NonemptySetRawBytes<T> {
+    elems: Vec<T>,
+    len_encoding: LenEncoding,
+    // also controls whether to use the tag encoding (Some) or raw array (None)
+    tag_encoding: Option<Sz>,
+    bytes_encodings: Vec<StringEncoding>,
+}
+
+impl<T: serde::Serialize> serde::Serialize for NonemptySetRawBytes<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.elems.serialize(serializer)
+    }
+}
+
+impl<'de, T: serde::de::Deserialize<'de>> serde::de::Deserialize<'de> for NonemptySetRawBytes<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        Vec::deserialize(deserializer).map(|elems| Self {
+            elems,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+            bytes_encodings: Vec::new(),
+        })
+    }
+}
+
+impl<T: schemars::JsonSchema> schemars::JsonSchema for NonemptySetRawBytes<T> {
+    fn schema_name() -> String {
+        Vec::<T>::schema_name()
+    }
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        Vec::<T>::json_schema(gen)
+    }
+    fn is_referenceable() -> bool {
+        Vec::<T>::is_referenceable()
+    }
+}
+
+impl<T> AsRef<[T]> for NonemptySetRawBytes<T> {
+    fn as_ref(&self) -> &[T] {
+        self.elems.as_ref()
+    }
+}
+
+impl<T> IntoIterator for NonemptySetRawBytes<T> {
+    type Item = T;
+    type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a NonemptySetRawBytes<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut NonemptySetRawBytes<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.iter_mut()
+    }
+}
+
+impl<T> std::ops::Deref for NonemptySetRawBytes<T> {
+    type Target = Vec<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.elems
+    }
+}
+
+impl<T> std::ops::DerefMut for NonemptySetRawBytes<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.elems
+    }
+}
+
+impl<T> From<Vec<T>> for NonemptySetRawBytes<T> {
+    fn from(elems: Vec<T>) -> Self {
+        Self {
+            elems,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+            bytes_encodings: Vec::new(),
+        }
+    }
+}
+
+impl<T> From<NonemptySetRawBytes<T>> for Vec<T> {
+    fn from(set: NonemptySetRawBytes<T>) -> Self {
+        set.elems
+    }
+}
+
+impl<T: RawBytesEncoding> Serialize for NonemptySetRawBytes<T> {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        if let Some(tag_encoding) = &self.tag_encoding {
+            serializer.write_tag_sz(258, *tag_encoding)?;
+        }
+        serializer.write_array_sz(
+            self.len_encoding
+                .to_len_sz(self.elems.len() as u64, force_canonical),
+        )?;
+        for (i, elem) in self.elems.iter().enumerate() {
+            serializer.write_bytes_sz(
+                elem.to_raw_bytes(),
+                self.bytes_encodings
+                    .get(i)
+                    .cloned()
+                    .unwrap_or_default()
+                    .to_str_len_sz(elem.to_raw_bytes().len() as u64, force_canonical),
+            )?;
+        }
+        self.len_encoding.end(serializer, force_canonical)
+    }
+}
+
+impl<T: RawBytesEncoding> Deserialize for NonemptySetRawBytes<T> {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let mut elems = Vec::new();
+            let mut bytes_encodings = Vec::new();
+            let (arr_len, tag_encoding) = if raw.cbor_type()? == cbor_event::Type::Tag {
+                let (tag, tag_encoding) = raw.tag_sz()?;
+                if tag != 258 {
+                    return Err(DeserializeFailure::TagMismatch {
+                        found: tag,
+                        expected: 258,
+                    }
+                    .into());
+                }
+                (raw.array_sz()?, Some(tag_encoding))
+            } else {
+                (raw.array_sz()?, None)
+            };
+            let len_encoding = arr_len.into();
+            while match arr_len {
+                cbor_event::LenSz::Len(n, _) => (elems.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if raw.cbor_type()? == cbor_event::Type::Special {
+                    assert_eq!(raw.special()?, cbor_event::Special::Break);
+                    break;
+                }
+                let (bytes, bytes_enc) = raw.bytes_sz()?;
+                let elem = T::from_raw_bytes(&bytes)
+                    .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?;
+                elems.push(elem);
+                bytes_encodings.push(bytes_enc.into());
+            }
+            Ok(Self {
+                elems,
+                len_encoding,
+                tag_encoding,
+                bytes_encodings,
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySetRawBytes"))
     }
 }
 

@@ -2,9 +2,11 @@ use super::certificate_builder::*;
 use super::input_builder::InputBuilderResult;
 use super::mint_builder::MintBuilderResult;
 use super::output_builder::{OutputBuilderError, SingleOutputBuilderResult};
+use super::proposal_builder::ProposalBuilderResult;
 use super::redeemer_builder::RedeemerBuilderError;
 use super::redeemer_builder::RedeemerSetBuilder;
 use super::redeemer_builder::RedeemerWitnessKey;
+use super::vote_builder::VoteBuilderResult;
 use super::withdrawal_builder::WithdrawalBuilderResult;
 use super::witness_builder::merge_fake_witness;
 use super::witness_builder::PlutusScriptWitness;
@@ -21,9 +23,10 @@ use crate::crypto::hash::{calc_script_data_hash, hash_auxiliary_data, ScriptData
 use crate::crypto::{BootstrapWitness, Vkeywitness};
 use crate::deposit::{internal_get_deposit, internal_get_implicit_input};
 use crate::fees::LinearFee;
+use crate::governance::{ProposalProcedure, VotingProcedures};
 use crate::min_ada::min_ada_required;
-use crate::plutus::PlutusData;
-use crate::plutus::{CostModels, ExUnits, Language, Redeemer};
+use crate::plutus::{CostModels, ExUnits, Language};
+use crate::plutus::{PlutusData, Redeemers};
 use crate::transaction::{
     DatumOption, ScriptRef, Transaction, TransactionBody, TransactionInput, TransactionOutput,
     TransactionWitnessSet,
@@ -41,7 +44,9 @@ use std::convert::TryInto;
 use std::io::{BufRead, Seek, Write};
 use std::ops::DerefMut;
 
-// for enums:
+#[cfg(not(feature = "used_from_wasm"))]
+use noop_proc_macro::wasm_bindgen;
+#[cfg(feature = "used_from_wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
 /**
@@ -113,6 +118,7 @@ impl WitnessBuilders {
         let redeemers = self.redeemer_set_builder.build(true)?;
         let mut witness_set_clone = self.witness_set_builder.clone();
         redeemers
+            .to_flat_format()
             .into_iter()
             .for_each(|r| witness_set_clone.add_redeemer(r));
 
@@ -363,7 +369,7 @@ impl TransactionBuilderConfigBuilder {
             cost_models: if self.cost_models.is_some() {
                 self.cost_models.unwrap()
             } else {
-                CostModels::new()
+                CostModels::default()
             },
             _collateral_percentage: self.collateral_percentage.ok_or(
                 TxBuilderError::UninitializedField(TxBuilderConfigField::CollateralPercentage),
@@ -385,6 +391,8 @@ pub struct TransactionBuilder {
     ttl: Option<Slot>, // absolute slot number
     certs: Option<Vec<Certificate>>,
     withdrawals: Option<Withdrawals>,
+    proposals: Option<Vec<ProposalProcedure>>,
+    votes: Option<VotingProcedures>,
     auxiliary_data: Option<AuxiliaryData>,
     validity_start_interval: Option<Slot>,
     mint: Option<Mint>,
@@ -715,18 +723,17 @@ impl TransactionBuilder {
                 data
             {
                 required_signers
-                    .into_iter()
-                    .for_each(|signer| self.add_required_signer(signer));
+                    .iter()
+                    .for_each(|signer| self.add_required_signer(*signer));
 
                 match &script_witness.script {
                     PlutusScriptWitness::Ref(ref_script) => {
-                        if self
+                        if !self
                             .witness_builders
                             .witness_set_builder
                             .required_wits
                             .script_refs
-                            .get(ref_script)
-                            .is_none()
+                            .contains(ref_script)
                         {
                             Err(TxBuilderError::RefScriptNotFound(
                                 *ref_script,
@@ -868,8 +875,62 @@ impl TransactionBuilder {
                 .add_input_aggregate_fake_witness_data(&data);
             if let InputAggregateWitnessData::PlutusScript(_, required_signers, _) = data {
                 required_signers
-                    .into_iter()
-                    .for_each(|signer| self.add_required_signer(signer));
+                    .iter()
+                    .for_each(|signer| self.add_required_signer(*signer));
+            }
+        }
+        self.witness_builders
+            .witness_set_builder
+            .add_required_wits(result.required_wits);
+    }
+
+    pub fn add_proposal(&mut self, mut result: ProposalBuilderResult) {
+        self.witness_builders
+            .redeemer_set_builder
+            .add_proposal(&result);
+        if self.proposals.is_none() {
+            self.proposals = Some(Vec::new());
+        }
+        self.proposals
+            .as_mut()
+            .unwrap()
+            .append(&mut result.proposals);
+        for data in result.aggregate_witnesses {
+            self.witness_builders
+                .witness_set_builder
+                .add_input_aggregate_real_witness_data(&data);
+            self.witness_builders
+                .fake_required_witnesses
+                .add_input_aggregate_fake_witness_data(&data);
+            if let InputAggregateWitnessData::PlutusScript(_, required_signers, _) = data {
+                required_signers
+                    .iter()
+                    .for_each(|signer| self.add_required_signer(*signer));
+            }
+        }
+        self.witness_builders
+            .witness_set_builder
+            .add_required_wits(result.required_wits);
+    }
+
+    pub fn add_vote(&mut self, result: VoteBuilderResult) {
+        self.witness_builders.redeemer_set_builder.add_vote(&result);
+        if let Some(votes) = self.votes.as_mut() {
+            votes.extend(result.votes.take());
+        } else {
+            self.votes = Some(result.votes);
+        }
+        for data in result.aggregate_witnesses {
+            self.witness_builders
+                .witness_set_builder
+                .add_input_aggregate_real_witness_data(&data);
+            self.witness_builders
+                .fake_required_witnesses
+                .add_input_aggregate_fake_witness_data(&data);
+            if let InputAggregateWitnessData::PlutusScript(_, required_signers, _) = data {
+                required_signers
+                    .iter()
+                    .for_each(|signer| self.add_required_signer(*signer));
             }
         }
         self.witness_builders
@@ -901,8 +962,8 @@ impl TransactionBuilder {
                 .add_input_aggregate_fake_witness_data(&data);
             if let InputAggregateWitnessData::PlutusScript(_, required_signers, _) = data {
                 required_signers
-                    .into_iter()
-                    .for_each(|signer| self.add_required_signer(signer));
+                    .iter()
+                    .for_each(|signer| self.add_required_signer(*signer));
             }
         }
         self.witness_builders
@@ -957,8 +1018,8 @@ impl TransactionBuilder {
                 .add_input_aggregate_fake_witness_data(&data);
             if let InputAggregateWitnessData::PlutusScript(_, required_signers, _) = data {
                 required_signers
-                    .into_iter()
-                    .for_each(|signer| self.add_required_signer(signer));
+                    .iter()
+                    .for_each(|signer| self.add_required_signer(*signer));
             }
         }
         Ok(())
@@ -978,6 +1039,8 @@ impl TransactionBuilder {
             ttl: None,
             certs: None,
             withdrawals: None,
+            proposals: None,
+            votes: None,
             auxiliary_data: None,
             validity_start_interval: None,
             mint: None,
@@ -1125,6 +1188,7 @@ impl TransactionBuilder {
     pub fn get_deposit(&self) -> Result<Coin, TxBuilderError> {
         internal_get_deposit(
             self.certs.as_deref(),
+            self.proposals.as_deref(),
             self.config.pool_deposit,
             self.config.key_deposit,
         )
@@ -1164,6 +1228,8 @@ impl TransactionBuilder {
 
         let redeemers = self.witness_builders.redeemer_set_builder.build(true)?;
         let has_dummy_exunit = redeemers
+            .clone()
+            .to_flat_format()
             .iter()
             .any(|redeemer| redeemer.ex_units == ExUnits::dummy());
 
@@ -1208,7 +1274,11 @@ impl TransactionBuilder {
                         });
                     calc_script_data_hash(
                         &redeemers,
-                        &self.witness_builders.witness_set_builder.get_plutus_datum(),
+                        &self
+                            .witness_builders
+                            .witness_set_builder
+                            .get_plutus_datum()
+                            .into(),
                         &self.config.cost_models,
                         &languages.iter().copied().collect::<Vec<_>>(),
                         None,
@@ -1221,33 +1291,43 @@ impl TransactionBuilder {
                 .inputs
                 .iter()
                 .map(|tx_builder_input| tx_builder_input.input.clone())
-                .collect(),
+                .collect::<Vec<_>>()
+                .into(),
             outputs: self.outputs.clone(),
             fee,
             ttl: self.ttl,
-            certs: self.certs.clone(),
+            certs: self.certs.as_ref().map(|certs| certs.clone().into()),
             withdrawals: self.withdrawals.clone(),
             auxiliary_data_hash: self.auxiliary_data.as_ref().map(hash_auxiliary_data),
             validity_interval_start: self.validity_start_interval,
             mint: self.mint.clone(),
             script_data_hash,
-            collateral_inputs: self
-                .collateral
-                .as_ref()
-                .map(|collateral| collateral.iter().map(|c| c.input.clone()).collect()),
+            collateral_inputs: self.collateral.as_ref().map(|collateral| {
+                collateral
+                    .iter()
+                    .map(|c| c.input.clone())
+                    .collect::<Vec<_>>()
+                    .into()
+            }),
             required_signers: self
                 .required_signers
                 .as_ref()
-                .map(|set| set.iter().cloned().collect()),
+                .map(|set| set.iter().cloned().collect::<Vec<_>>().into()),
             network_id: self.network_id,
             collateral_return: self.collateral_return.clone(),
             total_collateral: self.calc_collateral_total()?,
-            reference_inputs: self
-                .reference_inputs
+            reference_inputs: self.reference_inputs.as_ref().map(|inputs| {
+                inputs
+                    .iter()
+                    .map(|utxo| utxo.input.clone())
+                    .collect::<Vec<_>>()
+                    .into()
+            }),
+            voting_procedures: self.votes.clone(),
+            proposal_procedures: self
+                .proposals
                 .as_ref()
-                .map(|inputs| inputs.iter().map(|utxo| utxo.input.clone()).collect()),
-            voting_procedures: None,
-            proposal_procedures: None,
+                .map(|proposals| proposals.clone().into()),
             current_treasury_value: None,
             donation: None,
             encodings: None,
@@ -1385,7 +1465,7 @@ impl TxRedeemerBuilder {
     /// Builds the transaction and moves to the next step where any real witness can be added
     /// NOTE: is_valid set to true
     /// Will NOT require you to have set required signers & witnesses
-    pub fn build(&self) -> Result<Vec<Redeemer>, RedeemerBuilderError> {
+    pub fn build(&self) -> Result<Redeemers, RedeemerBuilderError> {
         self.witness_builders.redeemer_set_builder.build(true)
     }
 
@@ -4076,14 +4156,19 @@ mod tests {
 
         let mut witness_set = TransactionWitnessSet::new();
 
-        witness_set.vkeywitnesses = Some(vec![make_vkey_witness(
-            &hash_transaction(&body),
-            &PrivateKey::from_normal_bytes(
-                &hex::decode("c660e50315d76a53d80732efda7630cae8885dfb85c46378684b3c6103e1284a")
+        witness_set.vkeywitnesses = Some(
+            vec![make_vkey_witness(
+                &hash_transaction(&body),
+                &PrivateKey::from_normal_bytes(
+                    &hex::decode(
+                        "c660e50315d76a53d80732efda7630cae8885dfb85c46378684b3c6103e1284a",
+                    )
                     .unwrap(),
-            )
-            .unwrap(),
-        )]);
+                )
+                .unwrap(),
+            )]
+            .into(),
+        );
 
         let final_tx = Transaction::new(body, witness_set, true, None);
         let deser_t = Transaction::from_cbor_bytes(&final_tx.to_cbor_bytes()).unwrap();
@@ -5120,7 +5205,7 @@ mod tests {
                     ),
                     PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                required_signers,
+                required_signers.into(),
                 PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
@@ -5268,7 +5353,7 @@ mod tests {
                     ),
                     PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                required_signers,
+                required_signers.into(),
                 PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
@@ -5446,7 +5531,7 @@ mod tests {
                     ),
                     PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                required_signers,
+                required_signers.into(),
                 PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
@@ -5704,7 +5789,7 @@ mod tests {
                     PlutusScriptWitness::from(script_hash),
                     PlutusData::new_bytes(vec![]),
                 ),
-                vec![],
+                vec![].into(),
                 PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
             )
             .unwrap()

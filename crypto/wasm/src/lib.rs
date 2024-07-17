@@ -333,38 +333,19 @@ macro_rules! impl_signature {
 
         #[wasm_bindgen]
         impl $name {
-            pub fn to_raw_bytes(&self) -> Vec<u8> {
-                self.0.to_raw_bytes().to_vec()
-            }
-
             pub fn to_bech32(&self) -> String {
                 self.0.to_bech32()
             }
 
-            pub fn to_hex(&self) -> String {
-                self.0.to_raw_hex()
-            }
-
-            pub fn from_bech32(bech32_str: &str) -> Result<$name, JsError> {
+            pub fn from_bech32(bech32_str: &str) -> Result<$name, wasm_bindgen::JsError> {
                 cml_crypto::$name::from_bech32(bech32_str)
                     .map(Into::into)
                     .map(Self)
                     .map_err(Into::into)
             }
-
-            pub fn from_hex(input: &str) -> Result<$name, JsError> {
-                cml_crypto::$name::from_raw_hex(input)
-                    .map(Into::into)
-                    .map(Self)
-                    .map_err(Into::into)
-            }
-
-            pub fn from_raw_bytes(bytes: &[u8]) -> Result<$name, JsError> {
-                cml_crypto::$name::from_raw_bytes(bytes)
-                    .map(Self)
-                    .map_err(Into::into)
-            }
         }
+
+        cml_core_wasm::impl_raw_bytes_api!(cml_crypto::$name, $name);
 
         impl From<cml_crypto::$name> for $name {
             fn from(inner: cml_crypto::$name) -> Self {
@@ -397,11 +378,6 @@ macro_rules! impl_hash_type_ext {
 
         #[wasm_bindgen::prelude::wasm_bindgen]
         impl $wasm_name {
-            pub fn to_raw_bytes(&self) -> Vec<u8> {
-                use cml_crypto::RawBytesEncoding;
-                self.0.to_raw_bytes().to_vec()
-            }
-
             pub fn to_bech32(
                 &self,
                 prefix: &str,
@@ -409,32 +385,11 @@ macro_rules! impl_hash_type_ext {
                 self.0.to_bech32(prefix).map_err(Into::into)
             }
 
-            pub fn to_hex(&self) -> String {
-                use cml_crypto::RawBytesEncoding;
-                self.0.to_raw_hex()
-            }
-
             pub fn from_bech32(
                 bech32_str: &str,
             ) -> Result<$wasm_name, wasm_bindgen::prelude::JsError> {
                 <$rust_name>::from_bech32(bech32_str)
                     .map(Into::into)
-                    .map(Self)
-                    .map_err(Into::into)
-            }
-
-            pub fn from_hex(input: &str) -> Result<$wasm_name, wasm_bindgen::prelude::JsError> {
-                use cml_crypto::RawBytesEncoding;
-                <$rust_name>::from_raw_hex(input)
-                    .map(Self)
-                    .map_err(Into::into)
-            }
-
-            pub fn from_raw_bytes(
-                bytes: &[u8],
-            ) -> Result<$wasm_name, wasm_bindgen::prelude::JsError> {
-                use cml_crypto::RawBytesEncoding;
-                <$rust_name>::from_raw_bytes(bytes)
                     .map(Self)
                     .map_err(Into::into)
             }
@@ -457,6 +412,8 @@ macro_rules! impl_hash_type_ext {
                 &self.0
             }
         }
+
+        cml_core_wasm::impl_raw_bytes_api!($rust_name, $wasm_name);
     };
 }
 

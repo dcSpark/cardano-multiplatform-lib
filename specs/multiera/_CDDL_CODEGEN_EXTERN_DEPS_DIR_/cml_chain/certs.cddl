@@ -1,0 +1,24 @@
+stake_credential = _CDDL_CODEGEN_EXTERN_TYPE_
+pool_metadata = _CDDL_CODEGEN_EXTERN_TYPE_
+
+; THESE CANNOT BE EXTERN SINCE THEY ARE PLAIN GROUPS SO DELETE THEM AFTER
+ipv4 = bytes .size 4 ; @custom_json
+ipv6 = bytes .size 16 ; @custom_json
+single_host_addr = ( tag: 0
+                   , port / null
+                   , ipv4 / null
+                   , ipv6 / null
+                   )
+
+stake_registration = (tag: 0, stake_credential)
+stake_deregistration = (tag: 1, stake_credential)
+stake_delegation = (
+    tag: 2,
+    stake_credential,
+    ed25519_key_hash ; @name pool
+)
+pool_retirement = (
+    tag: 4,
+    ed25519_key_hash, ; @name pool
+    epoch
+)

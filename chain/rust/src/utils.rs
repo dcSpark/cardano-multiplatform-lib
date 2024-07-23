@@ -621,20 +621,6 @@ impl Deserialize for NetworkId {
     }
 }
 
-impl SubCoin {
-    /// Converts base 10 floats to SubCoin.
-    /// This is the format used by blockfrost for ex units
-    /// Warning: If the passed in float was not meant to be base 10
-    /// this might result in a slightly inaccurate fraction.
-    pub fn from_base10_f32(f: f32) -> Self {
-        let mut denom = 1u64;
-        while (f * (denom as f32)).fract().abs() > f32::EPSILON {
-            denom *= 10;
-        }
-        Self::new((f * (denom as f32)).ceil() as u64, denom)
-    }
-}
-
 // Represents the cddl: #6.258([+ T]) / [* T]
 // it DOES NOT and CAN NOT have any encoding detials per element!
 // so you can NOT use it on any primitives so must be serializable directly

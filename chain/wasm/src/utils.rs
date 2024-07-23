@@ -86,7 +86,6 @@ impl NetworkId {
     }
 }
 
-
 #[wasm_bindgen]
 impl SubCoin {
     /// Converts base 10 floats to SubCoin.
@@ -164,14 +163,3 @@ impl_wasm_conversions_into!(
     cml_chain::SetCommitteeColdCredential,
     crate::CommitteeColdCredentialList
 );
-
-#[wasm_bindgen]
-impl SubCoin {
-    /// Converts base 10 floats to SubCoin.
-    /// This is the format used by blockfrost for ex units
-    /// Warning: If the passed in float was not meant to be base 10
-    /// this might result in a slightly inaccurate fraction.
-    pub fn from_base10_f32(f: f32) -> Self {
-        cml_chain::SubCoin::from_base10_f32(f).into()
-    }
-}

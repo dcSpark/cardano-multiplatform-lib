@@ -1,5 +1,5 @@
 use crate::{
-    plutus::{PlutusData, Redeemers},
+    plutus::{CostModels, PlutusData, Redeemers},
     LegacyRedeemerList, PlutusDataList,
 };
 use cml_chain::plutus::Language;
@@ -34,6 +34,21 @@ impl ConstrPlutusData {
             alternative,
             fields.clone().into(),
         ))
+    }
+}
+
+#[wasm_bindgen]
+impl CostModels {
+    pub fn set_plutus_v1(&mut self, costs: Vec<i64>) -> Result<(), JsError> {
+        self.0.set_plutus_v1(costs).map_err(Into::into)
+    }
+
+    pub fn set_plutus_v2(&mut self, costs: Vec<i64>) -> Result<(), JsError> {
+        self.0.set_plutus_v2(costs).map_err(Into::into)
+    }
+
+    pub fn set_plutus_v3(&mut self, costs: Vec<i64>) -> Result<(), JsError> {
+        self.0.set_plutus_v3(costs).map_err(Into::into)
     }
 }
 

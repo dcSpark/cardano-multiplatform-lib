@@ -326,6 +326,61 @@ impl Deserialize for ConstrPlutusData {
 }
 
 impl CostModels {
+    pub const PLUTUS_V1_COUNT: usize = 166;
+    pub const PLUTUS_V2_COUNT: usize = 175;
+    pub const PLUTUS_V3_COUNT: usize = 179;
+
+    pub fn set_plutus_v1(&mut self, costs: Vec<i64>) -> Result<(), DeserializeError> {
+        // on-chain there is no restriction on length but this will help users avoid problems
+        if costs.len() != Self::PLUTUS_V1_COUNT {
+            return Err(DeserializeFailure::RangeCheck {
+                found: costs.len() as isize,
+                min: Some(Self::PLUTUS_V1_COUNT as isize),
+                max: Some(Self::PLUTUS_V1_COUNT as isize),
+            }
+            .into());
+        }
+        self.inner.insert(Language::PlutusV1.into(), costs);
+        Ok(())
+    }
+
+    pub fn set_plutus_v2(&mut self, costs: Vec<i64>) -> Result<(), DeserializeError> {
+        // on-chain there is no restriction on length but this will help users avoid problems
+        if costs.len() != Self::PLUTUS_V2_COUNT {
+            return Err(DeserializeFailure::RangeCheck {
+                found: costs.len() as isize,
+                min: Some(Self::PLUTUS_V2_COUNT as isize),
+                max: Some(Self::PLUTUS_V2_COUNT as isize),
+            }
+            .into());
+        }
+        self.inner.insert(Language::PlutusV2.into(), costs);
+        Ok(())
+    }
+
+    pub fn set_plutus_v3(&mut self, costs: Vec<i64>) -> Result<(), DeserializeError> {
+        // on-chain there is no restriction on length but this will help users avoid problems
+        if costs.len() != Self::PLUTUS_V3_COUNT {
+            return Err(DeserializeFailure::RangeCheck {
+                found: costs.len() as isize,
+                min: Some(Self::PLUTUS_V3_COUNT as isize),
+                max: Some(Self::PLUTUS_V3_COUNT as isize),
+            }
+            .into());
+        }
+        self.inner.insert(Language::PlutusV3.into(), costs);
+        Ok(())
+    }
+
+    /// Total number of operations for the cost model of the given language
+    pub fn op_count(language: Language) -> usize {
+        match language {
+            Language::PlutusV1 => Self::PLUTUS_V1_COUNT,
+            Language::PlutusV2 => Self::PLUTUS_V2_COUNT,
+            Language::PlutusV3 => Self::PLUTUS_V3_COUNT,
+        }
+    }
+
     pub(crate) fn language_views_encoding(&self) -> Result<Vec<u8>, cbor_event::Error> {
         // ; language views CDDL:
         // ; { * language => script_integrity_data }

@@ -1624,7 +1624,7 @@ pub fn add_change_if_needed(
     let fee = match &builder.fee {
         None => builder.min_fee(include_exunits),
         // generating the change output involves changing the fee
-        Some(_x) => return Ok(false),
+        Some(set_fee) => Ok(set_fee.clone()),
     }?;
 
     // note: can't add datum / script_ref to change

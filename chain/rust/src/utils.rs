@@ -6,7 +6,7 @@ use cml_core::{
 };
 use cml_crypto::{Ed25519KeyHash, RawBytesEncoding, ScriptHash};
 use derivative::Derivative;
-use std::io::{BufRead, Seek, Write};
+use std::{convert::TryFrom, io::{BufRead, Seek, Write}};
 use std::iter::IntoIterator;
 
 use crate::{
@@ -22,6 +22,15 @@ impl Script {
             Self::PlutusV1 { script, .. } => script.hash(),
             Self::PlutusV2 { script, .. } => script.hash(),
             Self::PlutusV3 { script, .. } => script.hash(),
+        }
+    }
+
+    pub fn raw_plutus_bytes(&self) -> Result<&[u8], ScriptConversionError> {
+        match self {
+            Self::Native{ .. } => Err(ScriptConversionError::NativeScriptNotPlutus),
+            Self::PlutusV1 { script, .. } => Ok(script.to_raw_bytes()),
+            Self::PlutusV2 { script, .. } => Ok(script.to_raw_bytes()),
+            Self::PlutusV3 { script, .. } => Ok(script.to_raw_bytes()),
         }
     }
 
@@ -118,6 +127,25 @@ impl From<PlutusScript> for Script {
             PlutusScript::PlutusV1(v1) => Self::new_plutus_v1(v1),
             PlutusScript::PlutusV2(v2) => Self::new_plutus_v2(v2),
             PlutusScript::PlutusV3(v3) => Self::new_plutus_v3(v3),
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ScriptConversionError {
+    #[error("Cannot convert NativeScript to PlutusScript")]
+    NativeScriptNotPlutus,
+}
+
+impl TryFrom<Script> for PlutusScript {
+    type Error = ScriptConversionError;
+
+    fn try_from(script: Script) -> Result<PlutusScript, Self::Error> {
+        match script {
+            Script::Native{ .. } => Err(ScriptConversionError::NativeScriptNotPlutus),
+            Script::PlutusV1 { script, .. } => Ok(PlutusScript::PlutusV1(script)),
+            Script::PlutusV2 { script, .. } => Ok(PlutusScript::PlutusV2(script)),
+            Script::PlutusV3 { script, .. } => Ok(PlutusScript::PlutusV3(script)),
         }
     }
 }

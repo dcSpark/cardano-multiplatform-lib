@@ -13,16 +13,28 @@ impl_wasm_conversions!(cml_chain::fees::LinearFee, LinearFee);
 
 #[wasm_bindgen]
 impl LinearFee {
-    pub fn new(coefficient: Coin, constant: Coin) -> Self {
-        cml_chain::fees::LinearFee::new(coefficient, constant).into()
+    /**
+     * * `coefficient` - minfee_a from protocol params
+     * * `constant` - minfee_b from protocol params
+     * * `ref_script_cost_per_bytes` - min_fee_ref_script_cost_per_byte from protocol params. New in Conway
+     */
+    pub fn new(coefficient: Coin, constant: Coin, ref_script_cost_per_byte: Coin) -> Self {
+        cml_chain::fees::LinearFee::new(coefficient, constant, ref_script_cost_per_byte).into()
     }
 
+    /// minfee_a
+    pub fn coefficient(&self) -> Coin {
+        self.0.coefficient
+    }
+
+    /// minfee_b
     pub fn constant(&self) -> Coin {
         self.0.constant
     }
 
-    pub fn coefficient(&self) -> Coin {
-        self.0.coefficient
+    // minfee_ref_script_cost_per_byte
+    pub fn ref_script_cost_per_byte(&self) -> Coin {
+        self.0.ref_script_cost_per_byte
     }
 }
 

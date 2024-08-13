@@ -18,7 +18,8 @@ use crate::assets::MultiAsset;
 use crate::assets::{AssetArithmeticError, Mint};
 use crate::auxdata::AuxiliaryData;
 use crate::builders::output_builder::TransactionOutputBuilder;
-use crate::certs::Certificate;
+use crate::builders::tx_builder;
+use crate::certs::{Certificate, Credential};
 use crate::crypto::hash::{calc_script_data_hash, hash_auxiliary_data, ScriptDataHashError};
 use crate::crypto::{BootstrapWitness, Vkeywitness};
 use crate::deposit::{internal_get_deposit, internal_get_implicit_input};
@@ -227,10 +228,54 @@ fn min_fee(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuilderError> {
 fn min_fee_with_exunits(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuilderError> {
     let full_tx = fake_full_tx(tx_builder, tx_builder.build_body()?)?;
     // we can't know the of scripts yet as they can't be calculated until we build the tx
+    
+    fn ref_script_orig_size_builder(utxo: &TransactionUnspentOutput) -> Option<(ScriptHash, u64)> {
+        utxo.output.script_ref().map(|script_ref| (script_ref.hash(), script_ref.raw_plutus_bytes().expect("TODO: handle this").len() as u64))
+    }
+    // let ref_script_orig_sizes: std::collections::BTreeMap<ScriptHash, u64> = if let Some(ref_inputs) = &tx_builder.reference_inputs {
+    //     ref_inputs.iter().chain(tx_builder.inputs.iter()).filter_map(ref_script_orig_size_builder).collect()
+    // } else {
+    //     tx_builder.inputs.iter().filter_map(ref_script_orig_size_builder).collect()
+    // };
+
+    // let mut total_ref_script_size = 0;
+    // for output in tx_builder.outputs.iter() {
+    //     if let Some(Credential::Script{ hash, .. }) = output.address().payment_cred() {
+    //         if let Some(orig_size) = ref_script_orig_sizes.get(hash) {
+    //             total_ref_script_size += *orig_size;
+    //             println!("USING REF SCRIPT {} | SIZE {}", hash.to_hex(), orig_size);
+    //         }
+    //     }
+    // }
+
+    let ref_script_orig_sizes: HashMap<ScriptHash, u64> = if let Some(ref_inputs) = &tx_builder.reference_inputs {
+        ref_inputs.iter().filter_map(ref_script_orig_size_builder).collect()
+    } else {
+        HashMap::default()
+    };
+
+    println!("\n\n\n ORIG SIZES:");
+    for (hash, size) in ref_script_orig_sizes.iter() {
+        println!("  orig {} - {}", hash.to_hex(), size);
+    }
+
+    let mut total_ref_script_size = 0;
+    for utxo in tx_builder.inputs.iter() {
+        println!("!!!!!!!!!!!!!!!!!!\n{:?}\n!!!\n", utxo);
+        if let Some(Credential::Script{ hash, .. }) = utxo.output.address().payment_cred() {
+            println!("  ------ searching: {}", hash.to_hex());
+            if let Some(orig_size) = ref_script_orig_sizes.get(hash) {
+                total_ref_script_size += *orig_size;
+                println!("\n*  USING REF SCRIPT {} | SIZE {}\n", hash.to_hex(), orig_size);
+            }
+        }
+    }
+    
     crate::fees::min_fee(
         &full_tx,
         &tx_builder.config.fee_algo,
         &tx_builder.config.ex_unit_prices,
+        total_ref_script_size
     )
     .map_err(Into::into)
 }
@@ -402,6 +447,7 @@ pub struct TransactionBuilder {
     utxos: Vec<InputBuilderResult>,
     collateral_return: Option<TransactionOutput>,
     reference_inputs: Option<Vec<TransactionUnspentOutput>>,
+    //reference_scripts_used: Vec<Script>,
 }
 
 impl TransactionBuilder {
@@ -2027,7 +2073,7 @@ mod tests {
     }
 
     fn create_linear_fee(coefficient: u64, constant: u64) -> LinearFee {
-        LinearFee::new(coefficient, constant)
+        LinearFee::new(coefficient, constant, 0)
     }
 
     fn create_default_linear_fee() -> LinearFee {
@@ -3867,7 +3913,7 @@ mod tests {
     #[flaky_test::flaky_test]
     fn tx_builder_cip2_random_improve_when_using_all_available_inputs() {
         // we have a = 1 to test increasing fees when more inputs are added
-        let linear_fee = LinearFee::new(1, 0);
+        let linear_fee = LinearFee::new(1, 0, 0);
         let cfg = TransactionBuilderConfigBuilder::default()
             .fee_algo(linear_fee)
             .pool_deposit(0)
@@ -3911,7 +3957,7 @@ mod tests {
     #[flaky_test::flaky_test]
     fn tx_builder_cip2_random_improve_adds_enough_for_fees() {
         // we have a = 1 to test increasing fees when more inputs are added
-        let linear_fee = LinearFee::new(1, 0);
+        let linear_fee = LinearFee::new(1, 0, 0);
         let cfg = TransactionBuilderConfigBuilder::default()
             .fee_algo(linear_fee)
             .pool_deposit(0)
@@ -4180,7 +4226,7 @@ mod tests {
 
     #[test]
     fn add_change_splits_change_into_multiple_outputs_when_nfts_overflow_output_size() {
-        let linear_fee = LinearFee::new(0, 1);
+        let linear_fee = LinearFee::new(0, 1, 0);
         let max_value_size = 100; // super low max output size to test with fewer assets
         let mut tx_builder = TransactionBuilder::new(
             TransactionBuilderConfigBuilder::default()

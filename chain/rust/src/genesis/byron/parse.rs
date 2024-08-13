@@ -128,6 +128,7 @@ pub fn parse_genesis_data<R: Read>(json: R) -> Result<config::GenesisData, Genes
         fee_policy: LinearFee::new(
             parse_fee_constant(&data.blockVersionData.txFeePolicy.multiplier)?,
             parse_fee_constant(&data.blockVersionData.txFeePolicy.summand)?,
+            0,
         ),
         avvm_distr,
         non_avvm_balances,

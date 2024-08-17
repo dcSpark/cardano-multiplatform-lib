@@ -6,8 +6,11 @@ use cml_core::{
 };
 use cml_crypto::{Ed25519KeyHash, RawBytesEncoding, ScriptHash};
 use derivative::Derivative;
-use std::{convert::TryFrom, io::{BufRead, Seek, Write}};
 use std::iter::IntoIterator;
+use std::{
+    convert::TryFrom,
+    io::{BufRead, Seek, Write},
+};
 
 use crate::{
     crypto::hash::{hash_script, ScriptHashNamespace},
@@ -27,7 +30,7 @@ impl Script {
 
     pub fn raw_plutus_bytes(&self) -> Result<&[u8], ScriptConversionError> {
         match self {
-            Self::Native{ .. } => Err(ScriptConversionError::NativeScriptNotPlutus),
+            Self::Native { .. } => Err(ScriptConversionError::NativeScriptNotPlutus),
             Self::PlutusV1 { script, .. } => Ok(script.to_raw_bytes()),
             Self::PlutusV2 { script, .. } => Ok(script.to_raw_bytes()),
             Self::PlutusV3 { script, .. } => Ok(script.to_raw_bytes()),
@@ -142,7 +145,7 @@ impl TryFrom<Script> for PlutusScript {
 
     fn try_from(script: Script) -> Result<PlutusScript, Self::Error> {
         match script {
-            Script::Native{ .. } => Err(ScriptConversionError::NativeScriptNotPlutus),
+            Script::Native { .. } => Err(ScriptConversionError::NativeScriptNotPlutus),
             Script::PlutusV1 { script, .. } => Ok(PlutusScript::PlutusV1(script)),
             Script::PlutusV2 { script, .. } => Ok(PlutusScript::PlutusV2(script)),
             Script::PlutusV3 { script, .. } => Ok(PlutusScript::PlutusV3(script)),

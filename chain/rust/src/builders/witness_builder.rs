@@ -16,7 +16,10 @@ use cml_crypto::{
     DatumHash, Ed25519KeyHash, Ed25519Signature, PublicKey, RawBytesEncoding, ScriptHash,
 };
 
-use super::redeemer_builder::{MissingExunitError, RedeemerBuilderError, RedeemerWitnessKey};
+use super::{
+    redeemer_builder::{MissingExunitError, RedeemerBuilderError, RedeemerWitnessKey},
+    tx_builder::TransactionUnspentOutput,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum WitnessBuilderError {
@@ -173,6 +176,14 @@ impl RequiredWitnessSet {
         self.scripts.extend(requirements.scripts);
         self.plutus_data.extend(requirements.plutus_data);
         self.redeemers.extend(requirements.redeemers);
+    }
+
+    pub fn remove_ref_scripts(&mut self, ref_inputs: &[TransactionUnspentOutput]) {
+        ref_inputs.iter().for_each(|utxo| {
+            utxo.output.script_ref().inspect(|script_ref| {
+                self.scripts.remove(&script_ref.hash());
+            });
+        })
     }
 
     pub(crate) fn len(&self) -> usize {

@@ -18,7 +18,6 @@ use crate::assets::MultiAsset;
 use crate::assets::{AssetArithmeticError, Mint};
 use crate::auxdata::AuxiliaryData;
 use crate::builders::output_builder::TransactionOutputBuilder;
-use crate::builders::tx_builder;
 use crate::certs::{Certificate, Credential};
 use crate::crypto::hash::{calc_script_data_hash, hash_auxiliary_data, ScriptDataHashError};
 use crate::crypto::{BootstrapWitness, Vkeywitness};
@@ -38,7 +37,7 @@ use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{CBORReadLen, Deserialize};
 use cml_core::{ArithmeticError, DeserializeError, DeserializeFailure, Slot};
 use cml_crypto::{Ed25519KeyHash, ScriptDataHash, ScriptHash, Serialize};
-use fraction::Zero;
+use num::Zero;
 use rand::Rng;
 use std::collections::{BTreeSet, HashMap};
 use std::convert::TryInto;
@@ -189,8 +188,8 @@ pub enum TxBuilderError {
         "Multiasset values not supported by RandomImprove. Please use RandomImproveMultiAsset"
     )]
     RandomImproveCantContainMultiasset,
-    #[error("UTxO Balance Insufficient")]
-    UTxOBalanceInsufficient,
+    #[error("UTxO Balance Insufficient. Inputs: {0:?}, Outputs: {1:?}")]
+    UTxOBalanceInsufficient(Value, Value),
     #[error("NFTs too large for change output")]
     NFTTooLargeForChange,
     #[error("Collateral can only be payment keys (scripts not allowed)")]
@@ -228,9 +227,17 @@ fn min_fee(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuilderError> {
 fn min_fee_with_exunits(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuilderError> {
     let full_tx = fake_full_tx(tx_builder, tx_builder.build_body()?)?;
     // we can't know the of scripts yet as they can't be calculated until we build the tx
-    
+
     fn ref_script_orig_size_builder(utxo: &TransactionUnspentOutput) -> Option<(ScriptHash, u64)> {
-        utxo.output.script_ref().map(|script_ref| (script_ref.hash(), script_ref.raw_plutus_bytes().expect("TODO: handle this").len() as u64))
+        utxo.output.script_ref().map(|script_ref| {
+            (
+                script_ref.hash(),
+                script_ref
+                    .raw_plutus_bytes()
+                    .expect("TODO: handle this")
+                    .len() as u64,
+            )
+        })
     }
     // let ref_script_orig_sizes: std::collections::BTreeMap<ScriptHash, u64> = if let Some(ref_inputs) = &tx_builder.reference_inputs {
     //     ref_inputs.iter().chain(tx_builder.inputs.iter()).filter_map(ref_script_orig_size_builder).collect()
@@ -248,11 +255,15 @@ fn min_fee_with_exunits(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuild
     //     }
     // }
 
-    let ref_script_orig_sizes: HashMap<ScriptHash, u64> = if let Some(ref_inputs) = &tx_builder.reference_inputs {
-        ref_inputs.iter().filter_map(ref_script_orig_size_builder).collect()
-    } else {
-        HashMap::default()
-    };
+    let ref_script_orig_sizes: HashMap<ScriptHash, u64> =
+        if let Some(ref_inputs) = &tx_builder.reference_inputs {
+            ref_inputs
+                .iter()
+                .filter_map(ref_script_orig_size_builder)
+                .collect()
+        } else {
+            HashMap::default()
+        };
 
     println!("\n\n\n ORIG SIZES:");
     for (hash, size) in ref_script_orig_sizes.iter() {
@@ -261,21 +272,26 @@ fn min_fee_with_exunits(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuild
 
     let mut total_ref_script_size = 0;
     for utxo in tx_builder.inputs.iter() {
-        println!("!!!!!!!!!!!!!!!!!!\n{:?}\n!!!\n", utxo);
-        if let Some(Credential::Script{ hash, .. }) = utxo.output.address().payment_cred() {
+        if let Some(Credential::Script { hash, .. }) = utxo.output.address().payment_cred() {
             println!("  ------ searching: {}", hash.to_hex());
             if let Some(orig_size) = ref_script_orig_sizes.get(hash) {
                 total_ref_script_size += *orig_size;
-                println!("\n*  USING REF SCRIPT {} | SIZE {}\n", hash.to_hex(), orig_size);
+                println!(
+                    "\n*  USING REF SCRIPT {} | SIZE {}\n",
+                    hash.to_hex(),
+                    orig_size
+                );
             }
         }
     }
-    
+
+    println!("total_ref_script_size = {total_ref_script_size}");
+
     crate::fees::min_fee(
         &full_tx,
         &tx_builder.config.fee_algo,
         &tx_builder.config.ex_unit_prices,
-        total_ref_script_size
+        total_ref_script_size,
     )
     .map_err(Into::into)
 }
@@ -501,7 +517,10 @@ impl TransactionBuilder {
                 // a specific output, so the improvement algorithm we do above does not apply here.
                 while input_total.coin < output_total.coin {
                     if available_indices.is_empty() {
-                        return Err(TxBuilderError::UTxOBalanceInsufficient);
+                        return Err(TxBuilderError::UTxOBalanceInsufficient(
+                            input_total.clone(),
+                            output_total.clone(),
+                        ));
                     }
                     let i = *available_indices
                         .iter()
@@ -570,7 +589,10 @@ impl TransactionBuilder {
                 // a specific output, so the improvement algorithm we do above does not apply here.
                 while input_total.coin < output_total.coin {
                     if available_indices.is_empty() {
-                        return Err(TxBuilderError::UTxOBalanceInsufficient);
+                        return Err(TxBuilderError::UTxOBalanceInsufficient(
+                            input_total.clone(),
+                            output_total.clone(),
+                        ));
                     }
                     let i = *available_indices
                         .iter()
@@ -625,7 +647,10 @@ impl TransactionBuilder {
         if by(input_total).unwrap_or_else(u64::zero)
             < by(output_total).expect("do not call on asset types that aren't in the output")
         {
-            return Err(TxBuilderError::UTxOBalanceInsufficient);
+            return Err(TxBuilderError::UTxOBalanceInsufficient(
+                input_total.clone(),
+                output_total.clone(),
+            ));
         }
 
         Ok(())
@@ -677,7 +702,10 @@ impl TransactionBuilder {
             let needed = by(output.amount()).unwrap();
             while added < needed {
                 if relevant_indices.is_empty() {
-                    return Err(TxBuilderError::UTxOBalanceInsufficient);
+                    return Err(TxBuilderError::UTxOBalanceInsufficient(
+                        input_total.clone(),
+                        output_total.clone(),
+                    ));
                 }
                 let random_index = rng.gen_range(0..relevant_indices.len());
                 let i = relevant_indices.swap_remove(random_index);
@@ -739,7 +767,10 @@ impl TransactionBuilder {
         Ok(())
     }
 
-    pub fn add_input(&mut self, result: InputBuilderResult) -> Result<(), TxBuilderError> {
+    pub fn add_input(&mut self, mut result: InputBuilderResult) -> Result<(), TxBuilderError> {
+        if let Some(reference_inputs) = &self.reference_inputs {
+            result.required_wits.remove_ref_scripts(reference_inputs);
+        }
         if let Some(script_ref) = result.utxo_info.script_ref() {
             self.witness_builders
                 .witness_set_builder
@@ -772,16 +803,27 @@ impl TransactionBuilder {
                     .for_each(|signer| self.add_required_signer(*signer));
 
                 match &script_witness.script {
-                    PlutusScriptWitness::Ref(ref_script) => {
+                    PlutusScriptWitness::Ref(ref_script_hash) => {
+                        // it could also be a reference script - check those too
+                        // TODO: do we want to change how we store ref scripts to cache the hash to avoid re-hashing (slow on wasm) every time an input is added?
                         if !self
                             .witness_builders
                             .witness_set_builder
                             .required_wits
                             .script_refs
-                            .contains(ref_script)
+                            .contains(ref_script_hash)
+                            && !self.reference_inputs.iter().any(|ref_inputs| {
+                                ref_inputs.iter().any(|ref_input| {
+                                    ref_input
+                                        .output
+                                        .script_ref()
+                                        .iter()
+                                        .any(|ref_script| ref_script.hash() == *ref_script_hash)
+                                })
+                            })
                         {
                             Err(TxBuilderError::RefScriptNotFound(
-                                *ref_script,
+                                *ref_script_hash,
                                 self.witness_builders
                                     .witness_set_builder
                                     .required_wits
@@ -822,6 +864,7 @@ impl TransactionBuilder {
             .ok_or_else(|| ArithmeticError::IntegerOverflow.into())
     }
 
+    /// Add a reference input. Must be called BEFORE adding anything (inputs, certs, etc) that refer to this reference input.
     pub fn add_reference_input(&mut self, utxo: TransactionUnspentOutput) {
         let reference_inputs = match self.reference_inputs.as_mut() {
             None => {
@@ -905,7 +948,10 @@ impl TransactionBuilder {
         self.validity_start_interval = Some(validity_start_interval)
     }
 
-    pub fn add_cert(&mut self, result: CertificateBuilderResult) {
+    pub fn add_cert(&mut self, mut result: CertificateBuilderResult) {
+        if let Some(reference_inputs) = &self.reference_inputs {
+            result.required_wits.remove_ref_scripts(reference_inputs);
+        }
         self.witness_builders.redeemer_set_builder.add_cert(&result);
         if self.certs.is_none() {
             self.certs = Some(Vec::new());
@@ -930,6 +976,9 @@ impl TransactionBuilder {
     }
 
     pub fn add_proposal(&mut self, mut result: ProposalBuilderResult) {
+        if let Some(reference_inputs) = &self.reference_inputs {
+            result.required_wits.remove_ref_scripts(reference_inputs);
+        }
         self.witness_builders
             .redeemer_set_builder
             .add_proposal(&result);
@@ -958,7 +1007,10 @@ impl TransactionBuilder {
             .add_required_wits(result.required_wits);
     }
 
-    pub fn add_vote(&mut self, result: VoteBuilderResult) {
+    pub fn add_vote(&mut self, mut result: VoteBuilderResult) {
+        if let Some(reference_inputs) = &self.reference_inputs {
+            result.required_wits.remove_ref_scripts(reference_inputs);
+        }
         self.witness_builders.redeemer_set_builder.add_vote(&result);
         if let Some(votes) = self.votes.as_mut() {
             votes.extend(result.votes.take());
@@ -987,7 +1039,10 @@ impl TransactionBuilder {
         self.withdrawals.clone()
     }
 
-    pub fn add_withdrawal(&mut self, result: WithdrawalBuilderResult) {
+    pub fn add_withdrawal(&mut self, mut result: WithdrawalBuilderResult) {
+        if let Some(reference_inputs) = &self.reference_inputs {
+            result.required_wits.remove_ref_scripts(reference_inputs);
+        }
         self.witness_builders
             .redeemer_set_builder
             .add_reward(&result);
@@ -1035,7 +1090,10 @@ impl TransactionBuilder {
         }
     }
 
-    pub fn add_mint(&mut self, result: MintBuilderResult) -> Result<(), TxBuilderError> {
+    pub fn add_mint(&mut self, mut result: MintBuilderResult) -> Result<(), TxBuilderError> {
+        if let Some(reference_inputs) = &self.reference_inputs {
+            result.required_wits.remove_ref_scripts(reference_inputs);
+        }
         self.witness_builders.redeemer_set_builder.add_mint(&result);
         self.witness_builders
             .witness_set_builder
@@ -1099,9 +1157,12 @@ impl TransactionBuilder {
         }
     }
 
-    pub fn add_collateral(&mut self, result: InputBuilderResult) -> Result<(), TxBuilderError> {
+    pub fn add_collateral(&mut self, mut result: InputBuilderResult) -> Result<(), TxBuilderError> {
         if result.aggregate_witness.is_some() {
             return Err(TxBuilderError::CollateralMustBePayment);
+        }
+        if let Some(reference_inputs) = &self.reference_inputs {
+            result.required_wits.remove_ref_scripts(reference_inputs);
         }
         let new_input = TransactionUnspentOutput {
             input: result.input,
@@ -1690,7 +1751,10 @@ pub fn add_change_if_needed(
             builder.set_fee(input_total.checked_sub(&output_total)?.coin);
             Ok(false)
         }
-        Some(Ordering::Less) => Err(TxBuilderError::UTxOBalanceInsufficient),
+        Some(Ordering::Less) => Err(TxBuilderError::UTxOBalanceInsufficient(
+            input_total.clone(),
+            output_total.clone(),
+        )),
         Some(Ordering::Greater) => {
             let change_estimator = input_total.checked_sub(&output_total)?;
             if change_estimator.has_multiassets() {

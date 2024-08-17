@@ -39,11 +39,23 @@ impl LinearFee {
 }
 
 /**
- * Min fee for JUST the script
+ * Min fee for JUST the script, NOT including ref inputs
  */
 #[wasm_bindgen]
 pub fn min_script_fee(tx: &Transaction, ex_unit_prices: &ExUnitPrices) -> Result<Coin, JsError> {
     cml_chain::fees::min_script_fee(tx.as_ref(), ex_unit_prices.as_ref()).map_err(Into::into)
+}
+
+/**
+ * Calculates the cost of all ref scripts
+ * * `total_ref_script_size` - Total size (original, not hashes) of all ref scripts. Duplicate scripts are counted as many times as they occur
+ */
+pub fn min_ref_script_fee(
+    linear_fee: &LinearFee,
+    total_ref_script_size: u64,
+) -> Result<Coin, JsError> {
+    cml_chain::fees::min_ref_script_fee(linear_fee.as_ref(), total_ref_script_size)
+        .map_err(Into::into)
 }
 
 #[wasm_bindgen]
@@ -51,12 +63,22 @@ pub fn min_no_script_fee(tx: &Transaction, linear_fee: &LinearFee) -> Result<Coi
     cml_chain::fees::min_no_script_fee(tx.as_ref(), linear_fee.as_ref()).map_err(Into::into)
 }
 
+/**
+ * Calculates the cost of all ref scripts
+ * * `total_ref_script_size` - Total size (original, not hashes) of all ref scripts. Duplicate scripts are counted as many times as they occur
+ */
 #[wasm_bindgen]
 pub fn min_fee(
     tx: &Transaction,
     linear_fee: &LinearFee,
     ex_unit_prices: &ExUnitPrices,
+    total_ref_script_size: u64,
 ) -> Result<Coin, JsError> {
-    cml_chain::fees::min_fee(tx.as_ref(), linear_fee.as_ref(), ex_unit_prices.as_ref())
-        .map_err(Into::into)
+    cml_chain::fees::min_fee(
+        tx.as_ref(),
+        linear_fee.as_ref(),
+        ex_unit_prices.as_ref(),
+        total_ref_script_size,
+    )
+    .map_err(Into::into)
 }

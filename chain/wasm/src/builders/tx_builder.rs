@@ -177,6 +177,7 @@ impl TransactionBuilder {
         self.0.fee_for_input(result.as_ref()).map_err(Into::into)
     }
 
+    /// Add a reference input. Must be called BEFORE adding anything (inputs, certs, etc) that refer to this reference input.
     pub fn add_reference_input(&mut self, utxo: &TransactionUnspentOutput) {
         self.0.add_reference_input(utxo.clone().into())
     }

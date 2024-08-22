@@ -373,9 +373,19 @@ impl TransactionWitnessSetBuilder {
                 self.add_script(plutus_script.clone().into());
             });
         }
+        if let Some(plutus_scripts) = wit_set.plutus_v3_scripts {
+            plutus_scripts.iter().for_each(|plutus_script| {
+                self.add_script(plutus_script.clone().into());
+            });
+        }
         if let Some(redeemers) = wit_set.redeemers {
             redeemers.to_flat_format().into_iter().for_each(|redeemer| {
                 self.add_redeemer(redeemer);
+            });
+        }
+        if let Some(plutus_datums) = wit_set.plutus_datums {
+            plutus_datums.iter().for_each(|plutus_datum| {
+                self.add_plutus_datum(plutus_datum.clone());
             });
         }
     }

@@ -1,0 +1,21 @@
+plutus_v1_script = _CDDL_CODEGEN_EXTERN_TYPE_
+plutus_v2_script = _CDDL_CODEGEN_EXTERN_TYPE_
+plutus_v3_script = _CDDL_CODEGEN_EXTERN_TYPE_
+
+plutus_data = _CDDL_CODEGEN_EXTERN_TYPE_
+
+big_integer = _CDDL_CODEGEN_EXTERN_TYPE_
+
+constr_plutus_data = _CDDL_CODEGEN_EXTERN_TYPE_
+
+redeemer_tag =
+    0 ; @name Spend
+  / 1 ; @name Mint
+  / 2 ; @name Cert
+  / 3 ; @name Reward
+  / 4 ; @name Voting
+  / 5 ; @name Proposing
+
+language = 0 ; @name plutus_v1
+         / 1 ; @name plutus_v2
+         / 2 ; @name plutus_v3

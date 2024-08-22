@@ -1,0 +1,10 @@
+delta_coin = int
+transaction_index = uint .size 2
+port = uint .le 65535
+epoch = uint
+slot = uint
+transaction_metadatum_label = uint
+
+policy_id = script_hash
+
+network_id = uint ; @newtype

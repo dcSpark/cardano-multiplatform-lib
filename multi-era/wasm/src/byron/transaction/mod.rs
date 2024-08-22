@@ -8,7 +8,7 @@ use crate::byron::{
 use cml_core_wasm::{
     impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_map_btree,
 };
-use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 impl_wasm_map_btree!(
     cml_multi_era::byron::ByronAny,

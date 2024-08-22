@@ -11,7 +11,7 @@ use std::iter::IntoIterator;
 
 use crate::{
     crypto::hash::{hash_script, ScriptHashNamespace},
-    plutus::{Language, PlutusScript, PlutusV1Script, PlutusV2Script},
+    plutus::{Language, PlutusScript, PlutusV1Script, PlutusV2Script, PlutusV3Script},
     NativeScript, Script, SubCoin,
 };
 
@@ -109,6 +109,12 @@ impl From<PlutusV1Script> for Script {
 impl From<PlutusV2Script> for Script {
     fn from(script: PlutusV2Script) -> Self {
         Self::new_plutus_v2(script)
+    }
+}
+
+impl From<PlutusV3Script> for Script {
+    fn from(script: PlutusV3Script) -> Self {
+        Self::new_plutus_v3(script)
     }
 }
 

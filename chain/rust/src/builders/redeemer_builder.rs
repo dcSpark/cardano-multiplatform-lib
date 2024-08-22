@@ -90,7 +90,7 @@ pub struct RedeemerSetBuilder {
     // domain of the Value map in the mint field of the transaction.
     mint: BTreeMap<PolicyId, Option<UntaggedRedeemerPlaceholder>>,
 
-    // the index of a reward account ract in the reward withdrawals map is the index of ract as a key in the (unfiltered) map.
+    // the index of a reward account "ract" in the reward withdrawals map is the index of "ract" as a key in the (unfiltered) map.
     // The keys of the Wdrl map are arranged in the order defined on the RewardAcnt type, which is a lexicographical (abbrv. lex)
     // order on the pair of the Network and the Credential.
     reward: BTreeMap<RewardAddress, Option<UntaggedRedeemerPlaceholder>>,
@@ -165,13 +165,13 @@ impl RedeemerSetBuilder {
     }
 
     pub fn add_spend(&mut self, result: &InputBuilderResult) {
-        let plutus_data = {
+        let redeemer_data = {
             result
                 .aggregate_witness
                 .as_ref()
                 .and_then(|data| data.redeemer_plutus_data())
         };
-        if let Some(data) = plutus_data {
+        if let Some(data) = redeemer_data {
             self.spend.insert(
                 result.input.clone(),
                 Some(UntaggedRedeemerPlaceholder::JustData(data.clone())),
@@ -182,13 +182,13 @@ impl RedeemerSetBuilder {
     }
 
     pub fn add_mint(&mut self, result: &MintBuilderResult) {
-        let plutus_data = {
+        let redeemer_data = {
             result
                 .aggregate_witness
                 .as_ref()
                 .and_then(|data| data.redeemer_plutus_data())
         };
-        if let Some(data) = plutus_data {
+        if let Some(data) = redeemer_data {
             self.mint.insert(
                 result.policy_id,
                 Some(UntaggedRedeemerPlaceholder::JustData(data.clone())),
@@ -199,13 +199,13 @@ impl RedeemerSetBuilder {
     }
 
     pub fn add_reward(&mut self, result: &WithdrawalBuilderResult) {
-        let plutus_data = {
+        let redeemer_data = {
             result
                 .aggregate_witness
                 .as_ref()
                 .and_then(|data| data.redeemer_plutus_data())
         };
-        if let Some(data) = plutus_data {
+        if let Some(data) = redeemer_data {
             self.reward.insert(
                 result.address.clone(),
                 Some(UntaggedRedeemerPlaceholder::JustData(data.clone())),
@@ -216,13 +216,13 @@ impl RedeemerSetBuilder {
     }
 
     pub fn add_cert(&mut self, result: &CertificateBuilderResult) {
-        let plutus_data = {
+        let redeemer_data = {
             result
                 .aggregate_witness
                 .as_ref()
                 .and_then(|data| data.redeemer_plutus_data())
         };
-        if let Some(data) = plutus_data {
+        if let Some(data) = redeemer_data {
             self.cert
                 .push(Some(UntaggedRedeemerPlaceholder::JustData(data.clone())));
         } else {

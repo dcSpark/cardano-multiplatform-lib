@@ -4,7 +4,7 @@
     clippy::new_without_default
 )]
 
-use ::wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+use ::wasm_bindgen::prelude::{wasm_bindgen, JsError};
 use auxdata::TransactionMetadatumList;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list};
 

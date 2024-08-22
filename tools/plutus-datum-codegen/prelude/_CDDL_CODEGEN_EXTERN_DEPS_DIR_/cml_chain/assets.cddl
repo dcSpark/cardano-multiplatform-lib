@@ -1,0 +1,5 @@
+coin = uint
+
+positive_coin = coin
+
+value = _CDDL_CODEGEN_EXTERN_TYPE_

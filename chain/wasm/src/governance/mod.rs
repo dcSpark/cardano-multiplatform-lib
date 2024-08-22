@@ -13,7 +13,7 @@ use crate::{
 pub use cml_chain::governance::Vote;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 pub mod utils;
 

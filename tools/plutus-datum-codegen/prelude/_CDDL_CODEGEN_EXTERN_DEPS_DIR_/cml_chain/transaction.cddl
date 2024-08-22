@@ -1,0 +1,7 @@
+transaction_input = [ transaction_id : transaction_hash
+                    , index : uint
+                    ]
+
+script = _CDDL_CODEGEN_EXTERN_TYPE_
+
+native_script = _CDDL_CODEGEN_EXTERN_TYPE_

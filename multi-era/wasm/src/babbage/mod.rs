@@ -22,7 +22,7 @@ use cml_chain_wasm::{
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::TransactionIndex;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

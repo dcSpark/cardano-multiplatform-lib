@@ -7,7 +7,7 @@ use cml_core_wasm::{
     impl_raw_bytes_api, impl_wasm_cbor_api, impl_wasm_cbor_json_api, impl_wasm_conversions,
 };
 use cml_crypto_wasm::ScriptHash;
-use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 use super::{ExUnits, PlutusV1Script, PlutusV2Script, PlutusV3Script};
 

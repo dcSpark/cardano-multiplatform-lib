@@ -2,7 +2,7 @@ use crate::SubCoin;
 
 use super::{Int, Script, ScriptHash};
 use cml_chain::plutus::Language;
-use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list};
 

@@ -10,7 +10,7 @@ use crate::{LegacyRedeemerList, MapRedeemerKeyToRedeemerVal};
 pub use cml_chain::plutus::{Language, RedeemerTag};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_map};
 pub use utils::{ConstrPlutusData, PlutusMap};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError, JsValue};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 impl_wasm_map!(
     u64,

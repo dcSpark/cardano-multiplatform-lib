@@ -1,0 +1,15 @@
+---
+sidebar_position: 6
+---
+
+# WASM Usage
+
+## Memory Management
+
+If you are using CML from the browser this section is likely irrelevant for you.
+Using CML from a javascript environment with weakrefs enabled should have automatic memory cleanup.
+If this is not the case (e.g. non-javascript/typescript WASM environment), or you are using CML inside of a very tight loop that is executed hundreds of thousands of times in a short period it might be advisable to explicitly call `.free()` on any CML types after they are used.
+This is because while from an environment with weakrefs the types will eventually be freed automatically,
+it is still possible to use excessive memory or run out if, for example, large CML types are created in a constant loop that runs many times (e.g. hundreds of thousands of times without a break), as the automatic cleanup will not be run in time. Do not worry about this for normal CML usage.
+Do not call `.free()` on a type or use it after `.free()` has been called on it already.
+WASM types passed into other CML APIs will be done so by reference and will not have their `.free()` method called just by doing so, but will still eventually be cleaned up if weakrefs are available.

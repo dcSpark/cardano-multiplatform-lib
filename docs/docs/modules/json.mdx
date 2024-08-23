@@ -1,0 +1,63 @@
+---
+sidebar_position: 2
+---
+
+# JSON
+
+## General structs
+
+All on-chain types have to/from JSON support. The vast majority is auto-generated but some have custom logic e.g. `Url`, `Ipv4`, `BigInteger`, etc.
+
+### WASM
+
+In WASM JSON conversions are exposed by `.to_json()` and `.from_json()` methods on all supported wrappers. There is also a `to_js_value()`.
+
+```javascript
+let txInJson = "{\"transaction_id\":\"0fba1404ed9b82b41938ba2e8bda7bec8cce813fb7e7cd7692b43caa76fe891c\",\"index\":3}";
+
+let txIn = CML.TransactionInput.from_json(txInJson);
+
+console.log(`txIn JSON: ${txIn.to_json()}`);
+```
+
+### Rust
+
+JSON conversions are exposed in rust via the [`serde::Serialize`](https://docs.rs/serde/latest/serde/trait.Serialize.html) and [`serde::Deserialize`](https://docs.rs/serde/latest/serde/trait.Deserialize.html) traits together with `serde_json`.
+
+example:
+```rust
+let tx_in_json = "{\"transaction_id\":\"0fba1404ed9b82b41938ba2e8bda7bec8cce813fb7e7cd7692b43caa76fe891c\",\"index\":3}";
+
+// from JSON using serde_json::from_str() - note the type annotations
+let tx_in: TransactionInput = serde_json::from_str(tx_in_json).unwrap();
+
+// to JSON using serde_json::to_string() - use to_string_pretty() if you want more human-readable formatting
+println!("tx_in JSON: {}", serde_json::to_string(&tx_in).unwrap());
+```
+
+## Metadata
+
+Metadata, on top of the generic API mentioned above, has specific JSON functionality for compatability with cardano-node.
+
+There are three formats on `MetadataJsonSchema`. `NoConversions` is the stricted, stricter than cardano-node and only converts when there are no implicit conversions at all. `BasicConversions` is the node's `TxMetadataJsonNoSchema` and `DetailedSchema` its `TxMetadataJsonDetailedSchema`. See `MetadataJsonSchema` for more info on the schema.
+
+```javascript
+let basic_json = "{\"0x8badf00d\": \"0xdeadbeef\",\"9\": 5,\"obj\": {\"a\":[{\"5\": 2},{}]}}";
+let metadatum = CML.encode_json_str_to_metadatum(basic_json, CML.MetadataJsonSchema.BasicConversions);
+console.log(`detailed json: ${CML.decode_metadatum_to_json_str(metadatum, CML.MetadataJsonSchema.DetailedSchema)}`);
+// OUTPUT:
+// detailed json: {"map":[{"k":{"bytes":"8badf00d"},"v":{"bytes":"deadbeef"}},{"k":{"int":9},"v":{"int":5}},{"k":{"string":"obj"},"v":{"map":[{"k":{"string":"a"},"v":{"list":[{"map":[{"k":{"int":5},"v":{"int":2}}]},{"map":[]}]}}]}}]}
+```
+
+## Plutus Datums
+
+Plutus datums also have additional cardano-node JSON support. Remember that Plutus has no String datum so the strings there will be converted to utf8 bytes. See `CardanoNodePlutusDatumSchema` for more info on the schema.
+
+```javascript
+let basic_json = "{ \"100\": [ { \"x\": \"0\", \"y\": 1 } ], \"foo\": \"0x0000baadf00d0000cafed00d0000deadbeef0000\" }";
+let datum = CML.encode_json_str_to_plutus_datum(basic_json, CML.CardanoNodePlutusDatumSchema.BasicConversions);
+console.log(`detailed json: ${CML.decode_plutus_datum_to_json_str(datum, CML.CardanoNodePlutusDatumSchema.DetailedSchema,
+)}`);
+// OUTPUT:
+// detailed json: {"map":[{"k":{"int":100},"v":{"list":[{"map":[{"k":{"bytes":"78"},"v":{"bytes":"30"}},{"k":{"bytes":"79"},"v":{"int":1}}]}]}},{"k":{"bytes":"666f6f"},"v":{"bytes":"0000baadf00d0000cafed00d0000deadbeef0000"}}]}
+```

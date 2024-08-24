@@ -239,21 +239,6 @@ fn min_fee_with_exunits(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuild
             )
         })
     }
-    // let ref_script_orig_sizes: std::collections::BTreeMap<ScriptHash, u64> = if let Some(ref_inputs) = &tx_builder.reference_inputs {
-    //     ref_inputs.iter().chain(tx_builder.inputs.iter()).filter_map(ref_script_orig_size_builder).collect()
-    // } else {
-    //     tx_builder.inputs.iter().filter_map(ref_script_orig_size_builder).collect()
-    // };
-
-    // let mut total_ref_script_size = 0;
-    // for output in tx_builder.outputs.iter() {
-    //     if let Some(Credential::Script{ hash, .. }) = output.address().payment_cred() {
-    //         if let Some(orig_size) = ref_script_orig_sizes.get(hash) {
-    //             total_ref_script_size += *orig_size;
-    //             println!("USING REF SCRIPT {} | SIZE {}", hash.to_hex(), orig_size);
-    //         }
-    //     }
-    // }
 
     let ref_script_orig_sizes: HashMap<ScriptHash, u64> =
         if let Some(ref_inputs) = &tx_builder.reference_inputs {
@@ -265,27 +250,14 @@ fn min_fee_with_exunits(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuild
             HashMap::default()
         };
 
-    println!("\n\n\n ORIG SIZES:");
-    for (hash, size) in ref_script_orig_sizes.iter() {
-        println!("  orig {} - {}", hash.to_hex(), size);
-    }
-
     let mut total_ref_script_size = 0;
     for utxo in tx_builder.inputs.iter() {
         if let Some(Credential::Script { hash, .. }) = utxo.output.address().payment_cred() {
-            println!("  ------ searching: {}", hash.to_hex());
             if let Some(orig_size) = ref_script_orig_sizes.get(hash) {
                 total_ref_script_size += *orig_size;
-                println!(
-                    "\n*  USING REF SCRIPT {} | SIZE {}\n",
-                    hash.to_hex(),
-                    orig_size
-                );
             }
         }
     }
-
-    println!("total_ref_script_size = {total_ref_script_size}");
 
     crate::fees::min_fee(
         &full_tx,
@@ -463,7 +435,6 @@ pub struct TransactionBuilder {
     utxos: Vec<InputBuilderResult>,
     collateral_return: Option<TransactionOutput>,
     reference_inputs: Option<Vec<TransactionUnspentOutput>>,
-    //reference_scripts_used: Vec<Script>,
 }
 
 impl TransactionBuilder {

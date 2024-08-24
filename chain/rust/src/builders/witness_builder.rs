@@ -8,7 +8,10 @@ use crate::{
     byron::ByronAddress,
     certs::Credential,
     crypto::{hash::hash_plutus_data, BootstrapWitness, Vkey, Vkeywitness},
-    plutus::{LegacyRedeemer, PlutusData, PlutusScript, PlutusV1Script, PlutusV2Script, Redeemers},
+    plutus::{
+        LegacyRedeemer, PlutusData, PlutusScript, PlutusV1Script, PlutusV2Script, PlutusV3Script,
+        Redeemers,
+    },
     transaction::TransactionWitnessSet,
     NativeScript, RequiredSigners, Script,
 };
@@ -331,6 +334,22 @@ impl TransactionWitnessSetBuilder {
             )
     }
 
+    pub fn get_plutus_v3_script(&self) -> Vec<PlutusV3Script> {
+        self.scripts
+            .iter()
+            .filter(|entry| !self.required_wits.script_refs.contains(entry.0))
+            .fold(
+                Vec::<PlutusV3Script>::new(),
+                |mut acc, script| match &script.1 {
+                    &Script::PlutusV3 { script, .. } => {
+                        acc.push(script.clone());
+                        acc
+                    }
+                    _ => acc,
+                },
+            )
+    }
+
     pub fn add_plutus_datum(&mut self, plutus_datum: PlutusData) {
         self.plutus_data
             .insert(hash_plutus_data(&plutus_datum), plutus_datum);
@@ -430,6 +449,7 @@ impl TransactionWitnessSetBuilder {
         let native_scripts = self.get_native_script();
         let plutus_v1_scripts = self.get_plutus_v1_script();
         let plutus_v2_scripts = self.get_plutus_v2_script();
+        let plutus_v3_scripts = self.get_plutus_v3_script();
         let plutus_datums = self.get_plutus_datum();
 
         if !self.vkeys.is_empty() {
@@ -451,6 +471,10 @@ impl TransactionWitnessSetBuilder {
 
         if !plutus_v2_scripts.is_empty() {
             result.plutus_v2_scripts = Some(plutus_v2_scripts.into());
+        }
+
+        if !plutus_v3_scripts.is_empty() {
+            result.plutus_v3_scripts = Some(plutus_v3_scripts.into());
         }
 
         if !self.plutus_data.is_empty() {

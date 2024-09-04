@@ -37,6 +37,28 @@ impl ConstrPlutusData {
     }
 }
 
+#[wasm_bindgen]
+impl PlutusData {
+    /**
+     *  Convert to a Datum that will serialize equivalent to cardano-node's format
+     *
+     *  Please VERY STRONGLY consider using PlutusData::from_cbor_bytes() instead wherever possible.
+     * You should try to never rely on a tool encoding CBOR a certain way as there are many possible,
+     * and just because it matches with a specific datum, doesn't mean that a different datum won't differ.
+     * This is critical as that means the datum hash won't match.
+     * After creation a datum (or other hashable CBOR object) should only be treated as raw CBOR bytes,
+     * or through a type that respects its specific CBOR format e.g. CML's PlutusData::from_cbor_bytes()
+     *
+     *  This function is just here in case there's no possible way at all to create from CBOR bytes and
+     * thus cold only be constructed manually and then had this function called on it.
+     *
+     *  This is also the format that CSL and Lucid use
+     */
+    pub fn to_cardano_node_format(&self) -> Self {
+        self.0.to_cardano_node_format().into()
+    }
+}
+
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PlutusMap(cml_chain::plutus::PlutusMap);

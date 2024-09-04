@@ -5,6 +5,7 @@ use crate::json::plutus_datums::{
     decode_plutus_datum_to_json_value, encode_json_value_to_plutus_datum,
     CardanoNodePlutusDatumSchema,
 };
+use crate::utils::BigInteger;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
@@ -61,6 +62,80 @@ impl schemars::JsonSchema for PlutusData {
 
     fn is_referenceable() -> bool {
         true
+    }
+}
+
+impl PlutusData {
+    /**
+     *  Convert to a Datum that will serialize equivalent to cardano-node's format
+     *
+     *  Please VERY STRONGLY consider using PlutusData::from_cbor_bytes() instead wherever possible.
+     * You should try to never rely on a tool encoding CBOR a certain way as there are many possible,
+     * and just because it matches with a specific datum, doesn't mean that a different datum won't differ.
+     * This is critical as that means the datum hash won't match.
+     * After creation a datum (or other hashable CBOR object) should only be treated as raw CBOR bytes,
+     * or through a type that respects its specific CBOR format e.g. CML's PlutusData::from_cbor_bytes()
+     *
+     *  This function is just here in case there's no possible way at all to create from CBOR bytes and
+     * thus cold only be constructed manually and then had this function called on it.
+     *
+     *  This is also the format that CSL and Lucid use
+     */
+    pub fn to_cardano_node_format(&self) -> Self {
+        match self {
+            Self::ConstrPlutusData(c) => Self::ConstrPlutusData(ConstrPlutusData {
+                alternative: c.alternative,
+                fields: c
+                    .fields
+                    .iter()
+                    .map(|datum| datum.to_cardano_node_format())
+                    .collect(),
+                encodings: Some(ConstrPlutusDataEncoding {
+                    len_encoding: LenEncoding::Indefinite,
+                    tag_encoding: None,
+                    alternative_encoding: None,
+                    fields_encoding: if c.fields.is_empty() {
+                        LenEncoding::Canonical
+                    } else {
+                        LenEncoding::Indefinite
+                    },
+                    prefer_compact: true,
+                }),
+            }),
+            Self::Bytes { bytes, .. } => Self::Bytes {
+                bytes: bytes.clone(),
+                bytes_encoding: StringEncoding::Canonical,
+            },
+            // canonical
+            Self::Integer(bigint) => Self::Integer(BigInteger::from(bigint.num.clone())),
+            Self::List { list, .. } => Self::List {
+                list: list
+                    .iter()
+                    .map(|datum| datum.to_cardano_node_format())
+                    .collect(),
+                list_encoding: if list.is_empty() {
+                    LenEncoding::Canonical
+                } else {
+                    LenEncoding::Indefinite
+                },
+            },
+            Self::Map(map) => Self::Map(PlutusMap {
+                entries: {
+                    let mut sorted_entries: Vec<_> = map
+                        .entries
+                        .iter()
+                        .map(|(k, v)| (k.to_cardano_node_format(), v.to_cardano_node_format()))
+                        .collect();
+                    sorted_entries.sort_by(|(a, _), (b, _)| a.cmp(b));
+                    sorted_entries
+                },
+                encoding: if map.entries.is_empty() {
+                    LenEncoding::Canonical
+                } else {
+                    LenEncoding::Indefinite
+                },
+            }),
+        }
     }
 }
 

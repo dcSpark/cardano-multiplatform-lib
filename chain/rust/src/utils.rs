@@ -287,7 +287,7 @@ enum BigIntEncoding {
 #[derive(Clone, Debug, Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct BigInteger {
-    num: num_bigint::BigInt,
+    pub(crate) num: num_bigint::BigInt,
     #[derivative(
         PartialEq = "ignore",
         Ord = "ignore",

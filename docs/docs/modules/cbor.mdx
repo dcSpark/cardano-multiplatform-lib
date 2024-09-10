@@ -6,11 +6,32 @@ sidebar_position: 1
 
 Cardano on-chain types are stored using [CBOR](https://www.rfc-editor.org/rfc/rfc7049), a data format similar to JSON but with many more features and in binary.
 
-## Tool Interoperability
+## Tool Interoperability (AKA Why is the hash different?)
 
 Due to CBOR's flexibility it is possible that one piece of CBOR can be represented in multiple ways in the binary encoding. This causes problems when using CBOR taken on-chain or from another tool and using it with another tool. Notably, one small difference in the binary encoding of CBOR could result in hashes being totally different. e.g. metadatum hashes or transaction hashes calculated in a dApp might be different than in the wallet causing the entire transaction to be rejected by the network.
 
 CML solves this by supporting automatically every single possible CBOR encoding variation. On-chain types created by deserializing from CBOR bytes will remember these details and re-serializing will use them and result in the same CBOR bytes, unlike some other tools.
+
+As a real-world example let's look at a simple plutus datum 
+
+```javascript
+let datum = PlutusData.new_constr_plutus_data(ConstrPlutusData.new(0, [PlutusData.new_bytes(0xDE, 0xAD, 0xBE, 0xEF)]));
+```
+
+If we seralized this we would get the bytes `d8798144deadbeef`. However, some tools, such as CSL or Lucid would arrive at a longer `d8799f44deadbeefff`, both of which represent the same underlying data. Hashing `datum` would likewise result in a different hash than computed by such other tools.
+
+If we wanted to match the tool that created it we would instead do
+```javascript
+let datum = PlutusData.from_cbor_hex("d8799f44deadbeefff");
+```
+
+which when hashed would, in this instance, match that other tool, and when re-serialized would give the same original bytes.
+
+The important thing to remember here is that even this simple datum (variant 0 with a single DEADBEEF byte string) has over 50000 ways to represent it in CBOR bytes, and thus over 50000 different hashes. You should never rely on two tools except when using a protocol that requires canonical CBOR. Even if two tools match on one datum, or 1000, does not mean they will always match on another slightly different one. The Cardano protocol in general does not require canonical CBOR and thus you must support all such possible encodings. One advantage of CML over other tools is that, when creating things from bytes e.g. `PlutusData.from_cbor_hex()`, everything is handled for you.
+
+Once a datum or other on-chain structure has been created you should always from that point onward be creating it or hashing it only from the original cbor bytes. This applies to any hashing of (non-canonical) CBOR in general, not just with Cardano.
+
+In the rare situation where for some reason this is not possible e.g. you absolutely have to interface with another non-CBOR-preserving tool after creation that breaks hashes like Lucid/CSL, then for plutus datums in particular we offer `PlutusData.to_cardano_node_format()` which will force the datum to encode in the way those two tools currently use. This should only ever be used when working with `PlutusData.from_cbor_hex()/PlutusData.from_cbor_bytes()` is not possible e.g. when CML creates the datum and then submits it to a tool/protocol using CSL/Lucid to parse it which does not respect the original encodings and forces their specific encoding/hash. Those tools currently use the default format that cardano CLI currently uses when creating datums but all of these are just implementation details that could change so be warned.
 
 ## Rust
 

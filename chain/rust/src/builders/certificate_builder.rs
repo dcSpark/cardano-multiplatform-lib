@@ -70,8 +70,8 @@ pub fn cert_required_wits(cert: &Certificate, required_witnesses: &mut RequiredW
         Certificate::ResignCommitteeColdCert(cert) => {
             required_witnesses.add_from_credential(cert.committee_cold_credential.clone());
         }
-        Certificate::RegDrepCert(_cert) => {
-            // does not need a witness
+        Certificate::RegDrepCert(cert) => {
+            required_witnesses.add_from_credential(cert.drep_credential.clone());
         }
         Certificate::UnregDrepCert(cert) => {
             required_witnesses.add_from_credential(cert.drep_credential.clone());

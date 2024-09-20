@@ -193,6 +193,10 @@ mod test {
         include_str!("./test_data/test.json")
     }
 
+    fn get_test_genesis_data_yaci() -> &'static str {
+        include_str!("./test_data/test-yaci.json")
+    }
+
     #[test]
     fn calc_address_txid() {
         let hash = redeem_address_to_txid(
@@ -222,5 +226,11 @@ mod test {
                 .1,
             3000000000000000u64
         );
+    }
+
+    #[test]
+    fn parse_test_genesis_yaci_files() {
+        let genesis_data =
+            super::parse_genesis_data(get_test_genesis_data_yaci().as_bytes()).unwrap();
     }
 }

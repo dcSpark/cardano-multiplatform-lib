@@ -22,7 +22,8 @@ pub struct ShelleyGenesisData {
     pub networkMagic: u64,
     pub protocolParams: ShelleyGenesisProtocolParameters,
     pub securityParam: u64,
-    pub slotLength: u64,
+    #[serde(deserialize_with = "deserialize_string_from_number")]
+    pub slotLength: String,
     pub slotsPerKESPeriod: u64,
     pub staking: Option<ShelleyGenesisStaking>,
     pub systemStart: String,

@@ -18,7 +18,7 @@ pub struct ShelleyGenesisData {
     pub network_magic: u64,
     pub protocol_params: ShelleyGenesisProtocolParameters,
     pub security_param: u64,
-    pub slot_length: String,
+    pub slot_length: Fraction,
     pub slots_per_kes_period: u64,
     pub staking: Option<ShelleyGenesisStaking>,
     pub system_start: chrono::DateTime<chrono::Utc>,

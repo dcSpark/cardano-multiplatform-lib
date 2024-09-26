@@ -36,8 +36,7 @@ pub enum GenesisJSONError {
 pub fn parse_genesis_data<R: Read>(
     json: R,
 ) -> Result<config::ShelleyGenesisData, GenesisJSONError> {
-    let data_value: serde_json::Value = serde_json::from_reader(json)?;
-    let data: raw::ShelleyGenesisData = serde_json::from_value(data_value)?;
+    let data: raw::ShelleyGenesisData = serde_json::from_reader(json)?;
 
     let mut initial_funds = BTreeMap::new();
     for (addr_hex, balance) in &data.initialFunds {
@@ -55,7 +54,7 @@ pub fn parse_genesis_data<R: Read>(
             // 1) Get stake pools
             let mut pools: BTreeMap<Ed25519KeyHash, PoolParams> = BTreeMap::new();
             for (pool_id, params) in &raw.pools {
-                let ration = fraction::Fraction::from_str(&params.margin).unwrap();
+                let ration = fraction::Fraction::from_str(&params.margin.to_string()).unwrap();
                 let mut owners = Vec::<Ed25519KeyHash>::new();
                 for owner in &params.owners {
                     owners.push(Ed25519KeyHash::from_hex(owner)?);
@@ -136,7 +135,8 @@ pub fn parse_genesis_data<R: Read>(
         );
     }
     Ok(config::ShelleyGenesisData {
-        active_slots_coeff: fraction::Fraction::from_str(&data.activeSlotsCoeff).unwrap(),
+        active_slots_coeff: fraction::Fraction::from_str(&data.activeSlotsCoeff.to_string())
+            .unwrap(),
         epoch_length: data.epochLength,
         gen_delegs,
         initial_funds,
@@ -145,9 +145,9 @@ pub fn parse_genesis_data<R: Read>(
         network_id,
         network_magic: data.networkMagic,
         protocol_params: config::ShelleyGenesisProtocolParameters {
-            a0: fraction::Fraction::from_str(&data.protocolParams.a0).unwrap(),
+            a0: fraction::Fraction::from_str(&data.protocolParams.a0.to_string()).unwrap(),
             decentralisation_param: fraction::Fraction::from_str(
-                &data.protocolParams.decentralisationParam,
+                &data.protocolParams.decentralisationParam.to_string(),
             )
             .unwrap(),
             e_max: data.protocolParams.eMax,
@@ -168,11 +168,11 @@ pub fn parse_genesis_data<R: Read>(
                 data.protocolParams.protocolVersion.major,
                 data.protocolParams.protocolVersion.minor,
             ),
-            rho: fraction::Fraction::from_str(&data.protocolParams.rho).unwrap(),
-            tau: fraction::Fraction::from_str(&data.protocolParams.tau).unwrap(),
+            rho: fraction::Fraction::from_str(&data.protocolParams.rho.to_string()).unwrap(),
+            tau: fraction::Fraction::from_str(&data.protocolParams.tau.to_string()).unwrap(),
         },
         security_param: data.securityParam,
-        slot_length: fraction::Fraction::from_str(&data.slotLength).unwrap(),
+        slot_length: fraction::Fraction::from_str(&data.slotLength.to_string()).unwrap(),
         slots_per_kes_period: data.slotsPerKESPeriod,
         staking,
         system_start: data.systemStart.parse().expect("Failed to parse date"),

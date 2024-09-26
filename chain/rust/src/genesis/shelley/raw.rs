@@ -1,6 +1,5 @@
 use crate::assets::Coin;
 use serde::{Deserialize, Serialize};
-use serde_aux::prelude::*;
 use std::collections::HashMap;
 
 /// Parsing of the JSON representation of the Shelley genesis block
@@ -11,8 +10,7 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ShelleyGenesisData {
     // convert lossless JSON floats to string to avoid lossy Rust f64
-    #[serde(deserialize_with = "deserialize_string_from_number")]
-    pub activeSlotsCoeff: String,
+    pub activeSlotsCoeff: serde_json::Number,
     pub epochLength: u64,
     pub genDelegs: HashMap<String, ShelleyGenesisDelegations>,
     pub initialFunds: HashMap<String, Coin>,
@@ -22,8 +20,7 @@ pub struct ShelleyGenesisData {
     pub networkMagic: u64,
     pub protocolParams: ShelleyGenesisProtocolParameters,
     pub securityParam: u64,
-    #[serde(deserialize_with = "deserialize_string_from_number")]
-    pub slotLength: String,
+    pub slotLength: serde_json::Number,
     pub slotsPerKESPeriod: u64,
     pub staking: Option<ShelleyGenesisStaking>,
     pub systemStart: String,
@@ -40,12 +37,10 @@ pub struct ShelleyGenesisDelegations {
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ShelleyGenesisProtocolParameters {
-    // convert lossless JSON floats to string to avoid lossy Rust f64
-    #[serde(deserialize_with = "deserialize_string_from_number")]
-    pub a0: String,
-    // convert lossless JSON floats to string to avoid lossy Rust f64
-    #[serde(deserialize_with = "deserialize_string_from_number")]
-    pub decentralisationParam: String,
+    // this uses the serde_json arbitrary_precision feature to avoid lossy Rust f64
+    pub a0: serde_json::Number,
+    // this uses the serde_json arbitrary_precision feature to avoid lossy Rust f64
+    pub decentralisationParam: serde_json::Number,
     pub eMax: u64,
     pub extraEntropy: ShelleyGenesisExtraEntropy,
     pub keyDeposit: Coin,
@@ -59,12 +54,10 @@ pub struct ShelleyGenesisProtocolParameters {
     pub nOpt: u64,
     pub poolDeposit: Coin,
     pub protocolVersion: ShelleyGenesisProtocolVersion,
-    // convert lossless JSON floats to string to avoid lossy Rust f64
-    #[serde(deserialize_with = "deserialize_string_from_number")]
-    pub rho: String,
-    // convert lossless JSON floats to string to avoid lossy Rust f64
-    #[serde(deserialize_with = "deserialize_string_from_number")]
-    pub tau: String,
+    // this uses the serde_json arbitrary_precision feature to avoid lossy Rust f64
+    pub rho: serde_json::Number,
+    // this uses the serde_json arbitrary_precision feature to avoid lossy Rust f64
+    pub tau: serde_json::Number,
 }
 
 #[allow(non_snake_case)]
@@ -91,9 +84,8 @@ pub struct ShelleyGenesisStaking {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ShelleyGenesisPool {
     pub cost: Coin,
-    // convert lossless JSON floats to string to avoid lossy Rust f64
-    #[serde(deserialize_with = "deserialize_string_from_number")]
-    pub margin: String,
+    // this uses the serde_json arbitrary_precision feature to avoid lossy Rust f64
+    pub margin: serde_json::Number,
     pub metadata: Option<ShelleyGenesisPoolMetadata>,
     pub owners: Vec<String>,
     pub pledge: Coin,

@@ -2,6 +2,7 @@ use cml_core::DeserializeError;
 use cml_crypto::{
     chain_crypto::Blake2b256, Ed25519KeyHash, PoolMetadataHash, TransactionHash, VRFKeyHash,
 };
+use num::traits::Pow as _;
 use serde_json;
 use std::collections::BTreeMap;
 use std::io::Read;
@@ -54,7 +55,7 @@ pub fn parse_genesis_data<R: Read>(
             // 1) Get stake pools
             let mut pools: BTreeMap<Ed25519KeyHash, PoolParams> = BTreeMap::new();
             for (pool_id, params) in &raw.pools {
-                let ration = fraction::Fraction::from_str(&params.margin.to_string()).unwrap();
+                let ration = json_number_to_fraction(&params.margin);
                 let mut owners = Vec::<Ed25519KeyHash>::new();
                 for owner in &params.owners {
                     owners.push(Ed25519KeyHash::from_hex(owner)?);
@@ -135,8 +136,7 @@ pub fn parse_genesis_data<R: Read>(
         );
     }
     Ok(config::ShelleyGenesisData {
-        active_slots_coeff: fraction::Fraction::from_str(&data.activeSlotsCoeff.to_string())
-            .unwrap(),
+        active_slots_coeff: json_number_to_fraction(&data.activeSlotsCoeff),
         epoch_length: data.epochLength,
         gen_delegs,
         initial_funds,
@@ -145,11 +145,10 @@ pub fn parse_genesis_data<R: Read>(
         network_id,
         network_magic: data.networkMagic,
         protocol_params: config::ShelleyGenesisProtocolParameters {
-            a0: fraction::Fraction::from_str(&data.protocolParams.a0.to_string()).unwrap(),
-            decentralisation_param: fraction::Fraction::from_str(
-                &data.protocolParams.decentralisationParam.to_string(),
-            )
-            .unwrap(),
+            a0: json_number_to_fraction(&data.protocolParams.a0),
+            decentralisation_param: json_number_to_fraction(
+                &data.protocolParams.decentralisationParam,
+            ),
             e_max: data.protocolParams.eMax,
             extra_entropy: config::ShelleyGenesisExtraEntropy {
                 tag: data.protocolParams.extraEntropy.tag,
@@ -168,16 +167,31 @@ pub fn parse_genesis_data<R: Read>(
                 data.protocolParams.protocolVersion.major,
                 data.protocolParams.protocolVersion.minor,
             ),
-            rho: fraction::Fraction::from_str(&data.protocolParams.rho.to_string()).unwrap(),
-            tau: fraction::Fraction::from_str(&data.protocolParams.tau.to_string()).unwrap(),
+            rho: json_number_to_fraction(&data.protocolParams.rho),
+            tau: json_number_to_fraction(&data.protocolParams.tau),
         },
         security_param: data.securityParam,
-        slot_length: fraction::Fraction::from_str(&data.slotLength.to_string()).unwrap(),
+        slot_length: json_number_to_fraction(&data.slotLength),
         slots_per_kes_period: data.slotsPerKESPeriod,
         staking,
         system_start: data.systemStart.parse().expect("Failed to parse date"),
         update_quorum: data.updateQuorum,
     })
+}
+
+fn json_number_to_fraction(param: &serde_json::Number) -> fraction::GenericFraction<u64> {
+    let s = param.to_string();
+
+    if let Some(exp_position) = s.find('e').or_else(|| s.find('E')) {
+        let (a, b) = s.split_at_checked(exp_position).unwrap();
+
+        let exp = fraction::Ratio::from(10u64).pow(i32::from_str(&b[1..]).unwrap());
+
+        fraction::Fraction::from_str(a).unwrap()
+            * fraction::Fraction::new(*exp.numer(), *exp.denom())
+    } else {
+        fraction::Fraction::from_str(&param.to_string()).unwrap()
+    }
 }
 
 pub fn redeem_address_to_txid(pubkey: &Address) -> TransactionHash {

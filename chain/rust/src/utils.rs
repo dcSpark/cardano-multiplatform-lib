@@ -769,7 +769,7 @@ impl<T> From<Vec<T>> for NonemptySet<T> {
         Self {
             elems,
             len_encoding: LenEncoding::default(),
-            tag_encoding: None,
+            tag_encoding: Some(Sz::Two),
         }
     }
 }
@@ -939,7 +939,7 @@ impl<T> From<Vec<T>> for NonemptySetRawBytes<T> {
         Self {
             elems,
             len_encoding: LenEncoding::default(),
-            tag_encoding: None,
+            tag_encoding: Some(Sz::Two),
             bytes_encodings: Vec::new(),
         }
     }

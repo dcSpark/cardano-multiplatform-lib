@@ -2287,7 +2287,7 @@ mod tests {
                 .checked_add(&Value::from(tx_builder.get_fee_if_set().unwrap()))
                 .unwrap()
         );
-        assert_eq!(tx_builder.full_size().unwrap(), 285);
+        assert_eq!(tx_builder.full_size().unwrap(), 291);
         assert_eq!(tx_builder.output_sizes(), vec![62, 65]);
         let _final_tx = tx_builder.build(ChangeSelectionAlgo::Default, &change_addr);
         // just test that it doesn't throw
@@ -2393,8 +2393,8 @@ mod tests {
         tx_builder
             .add_change_if_needed_for_tests(&change_addr)
             .unwrap();
-        assert_eq!(tx_builder.min_fee(false).unwrap(), 214002);
-        assert_eq!(tx_builder.get_fee_if_set().unwrap(), 214002);
+        assert_eq!(tx_builder.min_fee(false).unwrap(), 218502);
+        assert_eq!(tx_builder.get_fee_if_set().unwrap(), 218502);
         assert_eq!(tx_builder.get_deposit().unwrap(), 1000000);
         assert_eq!(tx_builder.outputs.len(), 1);
         assert_eq!(
@@ -2582,7 +2582,7 @@ mod tests {
             .payment_key()
             .unwrap()
         };
-        assert_eq!(tx_builder.fee_for_input(&input).unwrap(), 69500);
+        assert_eq!(tx_builder.fee_for_input(&input).unwrap(), 71000);
         tx_builder.add_input(input).unwrap();
 
         let input = {
@@ -3049,7 +3049,7 @@ mod tests {
         );
         // The single change output contains more Coin then minimal utxo value
         // But not enough to cover the additional fee for a separate output
-        assert_eq!(final_tx.outputs[1].amount().coin, 336);
+        assert_eq!(final_tx.outputs[1].amount().coin, 330);
     }
 
     #[test]
@@ -4023,13 +4023,13 @@ mod tests {
                     .unwrap(),
             )
             .unwrap();
-        assert_eq!(tx_builder.min_fee(false).unwrap(), 53);
+        assert_eq!(tx_builder.min_fee(false).unwrap(), 56);
         tx_builder.add_utxo(make_input(1u8, Value::from(150)));
         tx_builder.add_utxo(make_input(2u8, Value::from(150)));
         tx_builder.add_utxo(make_input(3u8, Value::from(150)));
         let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
         assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
-        assert_eq!(tx_builder.min_fee(false).unwrap(), 264);
+        assert_eq!(tx_builder.min_fee(false).unwrap(), 270);
         let change_addr = ByronAddress::from_base58(
             "Ae2tdPwUPEZGUEsuMAhvDcy94LKsZxDjCbgaiBBMgYpR8sKf96xJmit7Eho",
         )
@@ -4832,7 +4832,7 @@ mod tests {
         tx_builder.add_input(input).unwrap();
 
         let original_tx_fee = tx_builder.min_fee(false).unwrap();
-        assert_eq!(original_tx_fee, 164502);
+        assert_eq!(original_tx_fee, 169002);
 
         let result = SingleMintBuilder::new_single_asset(name1, amount).native_script(
             mint_script1,
@@ -5368,7 +5368,7 @@ mod tests {
         }
 
         let original_tx_fee = tx_builder.min_fee(false).unwrap();
-        assert_eq!(original_tx_fee, 469629);
+        assert_eq!(original_tx_fee, 470421);
         tx_builder.set_fee(897753);
 
         {
@@ -5378,7 +5378,7 @@ mod tests {
             );
         }
         let tx = tx_builder.build(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap()).unwrap();
-        assert_eq!(hex::encode(tx.body.to_cbor_bytes()), "a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58201907c235a0df870e95152669f7c147d6e3a7e251b57e4d5227556d1fd0caca0b0d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c");
+        assert_eq!(hex::encode(tx.body.to_cbor_bytes()), "a700d9010281825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58205d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b0dd9010281825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000ed9010281581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c");
     }
 
     #[test]
@@ -5550,11 +5550,11 @@ mod tests {
         let real_script_hash = signed_tx_builder.body.script_data_hash.as_ref().unwrap();
         assert_eq!(
             real_script_hash.to_hex(),
-            "1907c235a0df870e95152669f7c147d6e3a7e251b57e4d5227556d1fd0caca0b"
+            "5d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b"
         );
 
         let tx = &signed_tx_builder.body;
-        assert_eq!(hex::encode(tx.to_cbor_bytes()), "a70081825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58201907c235a0df870e95152669f7c147d6e3a7e251b57e4d5227556d1fd0caca0b0d81825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000e81581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c");
+        assert_eq!(hex::encode(tx.to_cbor_bytes()), "a700d9010281825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58205d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b0dd9010281825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000ed9010281581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c");
     }
 
     #[test]

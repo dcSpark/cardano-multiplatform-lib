@@ -5,7 +5,6 @@ use super::output_builder::{OutputBuilderError, SingleOutputBuilderResult};
 use super::proposal_builder::ProposalBuilderResult;
 use super::redeemer_builder::RedeemerBuilderError;
 use super::redeemer_builder::RedeemerSetBuilder;
-use super::redeemer_builder::RedeemerWitnessKey;
 use super::vote_builder::VoteBuilderResult;
 use super::withdrawal_builder::WithdrawalBuilderResult;
 use super::witness_builder::merge_fake_witness;
@@ -25,8 +24,7 @@ use crate::deposit::{internal_get_deposit, internal_get_implicit_input};
 use crate::fees::LinearFee;
 use crate::governance::{ProposalProcedure, VotingProcedures};
 use crate::min_ada::min_ada_required;
-use crate::plutus::{CostModels, ExUnits, Language};
-use crate::plutus::{PlutusData, Redeemers};
+use crate::plutus::{CostModels, ExUnits, Language, PlutusData, RedeemerKey, Redeemers};
 use crate::transaction::{
     DatumOption, ScriptRef, Transaction, TransactionBody, TransactionInput, TransactionOutput,
     TransactionWitnessSet,
@@ -118,9 +116,11 @@ impl WitnessBuilders {
         let redeemers = self.redeemer_set_builder.build(true)?;
         let mut witness_set_clone = self.witness_set_builder.clone();
         redeemers
-            .to_flat_format()
-            .into_iter()
-            .for_each(|r| witness_set_clone.add_redeemer(r));
+            .to_map_format()
+            .iter()
+            .for_each(|(key, redeemer)| {
+                witness_set_clone.add_redeemer(key.clone(), redeemer.clone())
+            });
 
         if include_fake {
             merge_fake_witness(&mut witness_set_clone, &self.fake_required_witnesses);
@@ -1509,7 +1509,7 @@ impl TransactionBuilder {
     }
 
     /// used to override the exunit values initially provided when adding inputs
-    pub fn set_exunits(&mut self, redeemer: RedeemerWitnessKey, ex_units: ExUnits) {
+    pub fn set_exunits(&mut self, redeemer: RedeemerKey, ex_units: ExUnits) {
         self.witness_builders
             .redeemer_set_builder
             .update_ex_units(redeemer, ex_units);
@@ -1547,7 +1547,7 @@ impl TxRedeemerBuilder {
     }
 
     /// used to override the exunit values initially provided when adding inputs
-    pub fn set_exunits(&mut self, redeemer: RedeemerWitnessKey, ex_units: ExUnits) {
+    pub fn set_exunits(&mut self, redeemer: RedeemerKey, ex_units: ExUnits) {
         self.witness_builders
             .redeemer_set_builder
             .update_ex_units(redeemer, ex_units);
@@ -5368,17 +5368,20 @@ mod tests {
         }
 
         let original_tx_fee = tx_builder.min_fee(false).unwrap();
-        assert_eq!(original_tx_fee, 470421);
+        // 44 more than original as the redeemer format changed to map which uses 1 byte more
+        assert_eq!(original_tx_fee, 470465);
         tx_builder.set_fee(897753);
 
         {
             tx_builder.set_exunits(
-                RedeemerWitnessKey::new(RedeemerTag::Spend, 0),
+                RedeemerKey::new(RedeemerTag::Spend, 0),
                 ExUnits::new(5000000, 2000000000),
             );
         }
         let tx = tx_builder.build(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap()).unwrap();
-        assert_eq!(hex::encode(tx.body.to_cbor_bytes()), "a700d9010281825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58205d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b0dd9010281825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000ed9010281581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c");
+        // original: a700d9010281825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58205d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b0dd9010281825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000ed9010281581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c
+        // changed due to redeemer format changing
+        assert_eq!(hex::encode(tx.body.to_cbor_bytes()), "a700d9010281825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820ef2bf6654c6bb34514b16edc28ae51df117f9252322735962ea571e2614525d50dd9010281825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000ed9010281581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c");
     }
 
     #[test]
@@ -5532,11 +5535,11 @@ mod tests {
         );
         {
             tx_redeemer_builder.set_exunits(
-                RedeemerWitnessKey::new(RedeemerTag::Spend, 0),
+                RedeemerKey::new(RedeemerTag::Spend, 0),
                 ExUnits::new(5000000, 2000000000),
             );
             tx_builder.set_exunits(
-                RedeemerWitnessKey::new(RedeemerTag::Spend, 0),
+                RedeemerKey::new(RedeemerTag::Spend, 0),
                 ExUnits::new(5000000, 2000000000),
             );
         }
@@ -5548,13 +5551,17 @@ mod tests {
             )
             .unwrap();
         let real_script_hash = signed_tx_builder.body.script_data_hash.as_ref().unwrap();
+        // different than original 5d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b
+        // because the redeemer format changed which changes the script data hash
         assert_eq!(
             real_script_hash.to_hex(),
-            "5d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b"
+            "ef2bf6654c6bb34514b16edc28ae51df117f9252322735962ea571e2614525d5"
         );
 
         let tx = &signed_tx_builder.body;
-        assert_eq!(hex::encode(tx.to_cbor_bytes()), "a700d9010281825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58205d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b0dd9010281825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000ed9010281581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c");
+        // original: a700d9010281825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58205d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b0dd9010281825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000ed9010281581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c
+        // changed due to redeemer format changing
+        assert_eq!(hex::encode(tx.to_cbor_bytes()), "a700d9010281825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b5820ef2bf6654c6bb34514b16edc28ae51df117f9252322735962ea571e2614525d50dd9010281825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000ed9010281581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c");
     }
 
     #[test]
@@ -5708,7 +5715,7 @@ mod tests {
 
         {
             tx_builder.set_exunits(
-                RedeemerWitnessKey::new(RedeemerTag::Spend, 0),
+                RedeemerKey::new(RedeemerTag::Spend, 0),
                 ExUnits::new(5000000, 2000000000),
             );
         }

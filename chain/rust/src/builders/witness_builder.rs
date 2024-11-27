@@ -1,4 +1,4 @@
-use linked_hash_map::LinkedHashMap;
+use cml_core::ordered_hash_map::OrderedHashMap;
 use std::{
     collections::{BTreeSet, HashMap},
     fmt::Debug,
@@ -10,7 +10,7 @@ use crate::{
     crypto::{hash::hash_plutus_data, BootstrapWitness, Vkey, Vkeywitness},
     plutus::{
         LegacyRedeemer, PlutusData, PlutusScript, PlutusV1Script, PlutusV2Script, PlutusV3Script,
-        Redeemers,
+        RedeemerKey, RedeemerVal, Redeemers,
     },
     transaction::TransactionWitnessSet,
     NativeScript, RequiredSigners, Script,
@@ -20,7 +20,7 @@ use cml_crypto::{
 };
 
 use super::{
-    redeemer_builder::{MissingExunitError, RedeemerBuilderError, RedeemerWitnessKey},
+    redeemer_builder::{MissingExunitError, RedeemerBuilderError},
     tx_builder::TransactionUnspentOutput,
 };
 
@@ -30,7 +30,7 @@ pub enum WitnessBuilderError {
     MissingWitnesses(RequiredWitnessSet),
     #[error("Missing ExUnit: {0}")]
     MissingExUnit(#[from] MissingExunitError),
-    #[error("LegacyRedeemer build failed: {0}")]
+    #[error("Redeemer build failed: {0}")]
     RedeemBuildFailed(#[from] RedeemerBuilderError),
 }
 
@@ -111,7 +111,7 @@ pub struct RequiredWitnessSet {
     // note: no way to differentiate Plutus script from native script
     pub scripts: BTreeSet<ScriptHash>,
     pub plutus_data: BTreeSet<DatumHash>,
-    pub redeemers: BTreeSet<RedeemerWitnessKey>,
+    pub redeemers: BTreeSet<RedeemerKey>,
     pub script_refs: BTreeSet<ScriptHash>,
 }
 
@@ -167,9 +167,9 @@ impl RequiredWitnessSet {
     }
 
     // pub fn add_redeemer(&mut self, redeemer: &LegacyRedeemer) {
-    //     self.add_redeemer_tag(&RedeemerWitnessKey::new(&redeemer.tag(), &redeemer.index()));
+    //     self.add_redeemer_tag(&RedeemerKey::new(&redeemer.tag(), &redeemer.index()));
     // }
-    pub fn add_redeemer_tag(&mut self, redeemer: RedeemerWitnessKey) {
+    pub fn add_redeemer_tag(&mut self, redeemer: RedeemerKey) {
         self.redeemers.insert(redeemer);
     }
 
@@ -254,8 +254,8 @@ pub struct TransactionWitnessSetBuilder {
     pub vkeys: HashMap<Vkey, Vkeywitness>,
     pub bootstraps: HashMap<Vkey, BootstrapWitness>,
     pub scripts: HashMap<ScriptHash, Script>,
-    pub plutus_data: LinkedHashMap<DatumHash, PlutusData>,
-    pub redeemers: LinkedHashMap<RedeemerWitnessKey, LegacyRedeemer>,
+    pub plutus_data: OrderedHashMap<DatumHash, PlutusData>,
+    pub redeemers: OrderedHashMap<RedeemerKey, RedeemerVal>,
 
     /// witnesses that need to be added for the build function to succeed
     /// this allows checking that witnesses are present at build time (instead of when submitting to a node)
@@ -359,13 +359,15 @@ impl TransactionWitnessSetBuilder {
         self.plutus_data.values().cloned().collect()
     }
 
-    pub fn add_redeemer(&mut self, redeemer: LegacyRedeemer) {
-        self.redeemers
-            .insert(RedeemerWitnessKey::from(&redeemer), redeemer);
+    pub fn add_redeemer(&mut self, key: RedeemerKey, redeemer: RedeemerVal) {
+        self.redeemers.insert(key, redeemer);
     }
 
     pub fn get_redeemer(&self) -> Vec<LegacyRedeemer> {
-        self.redeemers.values().cloned().collect()
+        self.redeemers
+            .iter()
+            .map(|(k, v)| LegacyRedeemer::new(k.tag, k.index, v.data.clone(), v.ex_units.clone()))
+            .collect()
     }
 
     pub fn add_required_wits(&mut self, required_wits: RequiredWitnessSet) {
@@ -409,9 +411,12 @@ impl TransactionWitnessSetBuilder {
             });
         }
         if let Some(redeemers) = wit_set.redeemers {
-            redeemers.to_flat_format().into_iter().for_each(|redeemer| {
-                self.add_redeemer(redeemer);
-            });
+            redeemers
+                .to_map_format()
+                .iter()
+                .for_each(|(key, redeemer)| {
+                    self.add_redeemer(key.clone(), redeemer.clone());
+                });
         }
         if let Some(plutus_datums) = wit_set.plutus_datums {
             plutus_datums.iter().for_each(|plutus_datum| {
@@ -482,8 +487,8 @@ impl TransactionWitnessSetBuilder {
         }
 
         if !self.redeemers.is_empty() {
-            result.redeemers = Some(Redeemers::new_arr_legacy_redeemer(
-                self.redeemers.values().cloned().collect::<Vec<_>>(),
+            result.redeemers = Some(Redeemers::new_map_redeemer_key_to_redeemer_val(
+                self.redeemers,
             ));
         }
 

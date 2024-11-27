@@ -10,13 +10,12 @@ use crate::{
     builders::{
         certificate_builder::CertificateBuilderResult, input_builder::InputBuilderResult,
         mint_builder::MintBuilderResult, output_builder::SingleOutputBuilderResult,
-        proposal_builder::ProposalBuilderResult, redeemer_builder::RedeemerWitnessKey,
-        vote_builder::VoteBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
-        witness_builder::TransactionWitnessSetBuilder,
+        proposal_builder::ProposalBuilderResult, vote_builder::VoteBuilderResult,
+        withdrawal_builder::WithdrawalBuilderResult, witness_builder::TransactionWitnessSetBuilder,
     },
     crypto::{BootstrapWitness, Vkeywitness},
     fees::LinearFee,
-    plutus::{CostModels, ExUnitPrices, ExUnits, Redeemers},
+    plutus::{CostModels, ExUnitPrices, ExUnits, RedeemerKey, Redeemers},
     transaction::{Transaction, TransactionBody, TransactionInput, TransactionOutput},
     Coin, NetworkId, Slot, Value, Withdrawals,
 };
@@ -359,9 +358,9 @@ impl TransactionBuilder {
     }
 
     /// used to override the exunit values initially provided when adding inputs
-    pub fn set_exunits(&mut self, redeemer: &RedeemerWitnessKey, ex_units: &ExUnits) {
+    pub fn set_exunits(&mut self, redeemer: &RedeemerKey, ex_units: &ExUnits) {
         self.0
-            .set_exunits((*redeemer).into(), ex_units.clone().into())
+            .set_exunits(redeemer.clone().into(), ex_units.clone().into())
     }
 
     /// warning: sum of all parts of a transaction must equal 0. You cannot just set the fee to the min value and forget about it
@@ -408,9 +407,9 @@ impl TxRedeemerBuilder {
     }
 
     /// used to override the exunit values initially provided when adding inputs
-    pub fn set_exunits(&mut self, redeemer: &RedeemerWitnessKey, ex_units: &ExUnits) {
+    pub fn set_exunits(&mut self, redeemer: &RedeemerKey, ex_units: &ExUnits) {
         self.0
-            .set_exunits((*redeemer).into(), ex_units.clone().into())
+            .set_exunits(redeemer.clone().into(), ex_units.clone().into())
     }
 
     /// Transaction body with a dummy values for redeemers & script_data_hash

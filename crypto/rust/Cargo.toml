@@ -13,6 +13,11 @@ keywords = ["cardano"]
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+# these features are only used within chain-libs
+generic-serialization = []
+property-test-api = []
+
 [dependencies]
 cml-core = { "path" = "../../core/rust", version = "6.0.1" }
 base64 = "0.21.5"

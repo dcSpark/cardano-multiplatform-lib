@@ -21,7 +21,6 @@ use cml_crypto::{
 
 /// Configuration for the wallet-crypto
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-#[cfg_attr(feature = "generic-serialization", derive(Serialize, Deserialize))]
 pub struct Config {
     pub protocol_magic: ProtocolMagic,
 }

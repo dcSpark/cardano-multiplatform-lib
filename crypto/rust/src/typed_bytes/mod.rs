@@ -23,7 +23,7 @@ impl<T> AsRef<[u8]> for ByteArray<T> {
     }
 }
 
-impl<'a, T> AsRef<[u8]> for ByteSlice<'a, T> {
+impl<T> AsRef<[u8]> for ByteSlice<'_, T> {
     fn as_ref(&self) -> &[u8] {
         self.as_slice()
     }

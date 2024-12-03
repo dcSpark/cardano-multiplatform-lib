@@ -31,10 +31,10 @@ pub fn decode(input: &str) -> Result<Vec<u8>> {
     base_decode(ALPHABET, input.as_bytes())
 }
 
-/// decode from base58 the given input
-//pub fn decode_bytes(input: &[u8]) -> Result<Vec<u8>> {
+// /// decode from base58 the given input
+// pub fn decode_bytes(input: &[u8]) -> Result<Vec<u8>> {
 //    base_decode(ALPHABET, input)
-//}
+// }
 
 fn base_encode(alphabet_s: &str, input: &[u8]) -> Vec<u8> {
     let alphabet = alphabet_s.as_bytes();

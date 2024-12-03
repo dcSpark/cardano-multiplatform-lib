@@ -19,15 +19,15 @@ used_from_wasm = ["wasm-bindgen"]
 [dependencies]
 cml-core = { "path" = "../../core/rust", version = "6.0.1" }
 cml-crypto = { "path" = "../../crypto/rust", version = "6.0.1" }
-cbor_event = "2.2.0"
-linked-hash-map = "0.5.3"
-derivative = "2.2.0"
-serde = { version = "1.0", features = ["derive"] }
+cbor_event.workspace = true
+linked-hash-map.workspace = true
+derivative.workspace = true
+serde.workspace = true
 serde_json = { version = "1.0.57", features = ["arbitrary_precision"] }
-schemars = "0.8.8"
+schemars.workspace = true
 
 bech32 = "0.7.2"
-hex = "0.4.0"
+hex.workspace = true
 itertools = "0.10.1"
 getrandom = { version = "0.2.3", features = ["js"] }
 rand = "0.8.5"
@@ -35,7 +35,7 @@ fraction = "0.10.0"
 base64 = "0.21.5"
 num-bigint = "0.4.0"
 num-integer = "0.1.45"
-thiserror = "1.0.37"
+thiserror.workspace = true
 num = "0.4"
 unicode-segmentation = "1.10.1"
 chrono = "0.4.38"
@@ -44,7 +44,7 @@ chrono = "0.4.38"
 noop_proc_macro = { version = "0.3.0", optional = false }
 
 # wasm
-wasm-bindgen = { version = "0.2.87", optional = true }
+wasm-bindgen = { version = "0.2.97", optional = true }
 
 
 [dev-dependencies]

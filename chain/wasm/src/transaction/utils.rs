@@ -30,7 +30,11 @@ impl TransactionOutput {
     pub fn address(&self) -> Address {
         self.0.address().clone().into()
     }
-
+    
+    pub fn set_address(&mut self, addr: &Address) {
+        self.0.set_address(addr.clone().into())
+    }
+    
     pub fn amount(&self) -> Value {
         self.0.amount().clone().into()
     }

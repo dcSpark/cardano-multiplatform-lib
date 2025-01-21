@@ -48,6 +48,13 @@ impl TransactionOutput {
         }
     }
 
+    pub fn set_address(&mut self, new_address: Address) {
+        match self {
+            Self::AlonzoFormatTxOut(tx_out) => tx_out.address = new_address,
+            Self::ConwayFormatTxOut(tx_out) => tx_out.address = new_address,
+        }
+    }
+
     pub fn amount(&self) -> &Value {
         match self {
             Self::AlonzoFormatTxOut(tx_out) => &tx_out.amount,

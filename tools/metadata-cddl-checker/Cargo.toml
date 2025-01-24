@@ -1,6 +1,6 @@
 [package]
 name = "metadata-cddl-checker"
-version = "6.0.1"
+version = "6.1.0"
 edition = "2018"
 
 [dependencies]

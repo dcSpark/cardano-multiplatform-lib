@@ -14,15 +14,15 @@ keywords = ["cardano"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cbor_event = "2.2.0"
-linked-hash-map = "0.5.3"
-derivative = "2.2.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.57"
-schemars = "0.8.8"
+cbor_event.workspace = true
+linked-hash-map.workspace = true
+derivative.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true
 
 bech32 = "0.7.2"
-hex = "0.4.0"
+hex.workspace = true
 itertools = "0.10.1"
 getrandom = { version = "0.2.3", features = ["js"] }
 rand = "0.8.5"
@@ -31,7 +31,7 @@ base64 = "0.13"
 num-bigint = "0.4.0"
 num-integer = "0.1.45"
 #rand_os = "0.1"
-thiserror = "1.0.37"
+thiserror.workspace = true
 cfg-if = "1"
 
 

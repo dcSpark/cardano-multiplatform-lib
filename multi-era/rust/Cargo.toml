@@ -20,16 +20,16 @@ used_from_wasm = ["wasm-bindgen"]
 cml-core = { path = "../../core/rust", version = "6.0.1" }
 cml-crypto = { path = "../../crypto/rust", version = "6.0.1" }
 cml-chain = { path = "../../chain/rust", version = "6.0.1" }
-cbor_event = "2.4.0"
-linked-hash-map = "0.5.3"
-derivative = "2.2.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.57"
-schemars = "0.8.8"
+cbor_event.workspace = true
+linked-hash-map.workspace = true
+derivative.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true
 
 # only for declaring hash types
 bech32 = "0.7.2"
-hex = "0.4.0"
+hex.workspace = true
 
 # non-wasm
 noop_proc_macro = { version = "0.3.0" }

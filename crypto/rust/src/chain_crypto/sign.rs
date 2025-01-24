@@ -132,7 +132,7 @@ impl<A: VerificationAlgorithm, T> Signature<T, A> {
 
 pub trait SafeSignatureCoerce<T> {}
 
-impl<'a, T> SafeSignatureCoerce<ByteArray<T>> for ByteSlice<'a, T> {}
+impl<T> SafeSignatureCoerce<ByteArray<T>> for ByteSlice<'_, T> {}
 
 impl<A: VerificationAlgorithm, T: AsRef<[u8]>> Signature<T, A> {
     #[must_use]

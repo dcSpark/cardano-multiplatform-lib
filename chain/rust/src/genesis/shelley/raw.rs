@@ -2,9 +2,9 @@ use crate::assets::Coin;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Parsing of the JSON representation of the Shelley genesis block
-/// Note: for a lot of these fields, I didn't check what the max valid size is in the Haskell code
-///       so I just used u64 everywhere
+// Parsing of the JSON representation of the Shelley genesis block
+// Note: for a lot of these fields, I didn't check what the max valid size is in the Haskell code
+//       so I just used u64 everywhere
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]

@@ -240,24 +240,81 @@ fn min_fee_with_exunits(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuild
         })
     }
 
-    let ref_script_orig_sizes: HashMap<ScriptHash, u64> =
+    // if the same script is included in multiple places its size is multiplied
+    let ref_script_orig_sizes_non_distinct: Vec<(ScriptHash, u64)> =
         if let Some(ref_inputs) = &tx_builder.reference_inputs {
-            ref_inputs
+            tx_builder
+                .inputs
                 .iter()
+                .chain(ref_inputs.iter())
                 .filter_map(ref_script_orig_size_builder)
                 .collect()
         } else {
-            HashMap::default()
+            tx_builder
+                .inputs
+                .iter()
+                .filter_map(ref_script_orig_size_builder)
+                .collect()
         };
+    let mut ref_script_orig_sizes: HashMap<ScriptHash, u64> = HashMap::default();
+    for (hash, size) in ref_script_orig_sizes_non_distinct {
+        *ref_script_orig_sizes.entry(hash).or_default() += size;
+    }
 
-    let mut total_ref_script_size = 0;
+    let mut used_ref_scripts: HashMap<ScriptHash, u64> = HashMap::default();
     for utxo in tx_builder.inputs.iter() {
         if let Some(Credential::Script { hash, .. }) = utxo.output.address().payment_cred() {
             if let Some(orig_size) = ref_script_orig_sizes.get(hash) {
-                total_ref_script_size += *orig_size;
+                used_ref_scripts.insert(*hash, *orig_size);
             }
         }
     }
+    if let Some(certs) = &tx_builder.certs {
+        let mut cert_wits = RequiredWitnessSet::default();
+        for cert in certs.iter() {
+            cert_required_wits(cert, &mut cert_wits);
+        }
+        for hash in cert_wits.scripts {
+            if let Some(orig_size) = ref_script_orig_sizes.get(&hash) {
+                used_ref_scripts.insert(hash, *orig_size);
+            }
+        }
+    }
+    if let Some(proposals) = &tx_builder.proposals {
+        for proposal in proposals.iter() {
+            if let Some(hash) = proposal.gov_action.script_hash() {
+                if let Some(orig_size) = ref_script_orig_sizes.get(hash) {
+                    used_ref_scripts.insert(*hash, *orig_size);
+                }
+            }
+        }
+    }
+    if let Some(votes) = &tx_builder.votes {
+        for (voter, _) in votes.iter() {
+            if let Some(hash) = voter.script_hash() {
+                if let Some(orig_size) = ref_script_orig_sizes.get(hash) {
+                    used_ref_scripts.insert(*hash, *orig_size);
+                }
+            }
+        }
+    }
+    if let Some(withdrawals) = &tx_builder.withdrawals {
+        for (addr, _) in withdrawals.iter() {
+            if let Credential::Script { hash, .. } = &addr.payment {
+                if let Some(orig_size) = ref_script_orig_sizes.get(hash) {
+                    used_ref_scripts.insert(*hash, *orig_size);
+                }
+            }
+        }
+    }
+    if let Some(mint) = &tx_builder.mint {
+        for (policy, _) in mint.iter() {
+            if let Some(orig_size) = ref_script_orig_sizes.get(policy) {
+                used_ref_scripts.insert(*policy, *orig_size);
+            }
+        }
+    }
+    let total_ref_script_size = used_ref_scripts.values().sum();
 
     crate::fees::min_fee(
         &full_tx,

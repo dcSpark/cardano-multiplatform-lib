@@ -5,52 +5,17 @@ use super::{
 };
 use crate::{
     address::RewardAddress,
-    plutus::{ExUnits, LegacyRedeemer, PlutusData, RedeemerTag, Redeemers},
+    plutus::{ExUnits, PlutusData, RedeemerKey, RedeemerTag, RedeemerVal, Redeemers},
     transaction::TransactionInput,
     PolicyId,
 };
+use cml_core::ordered_hash_map::OrderedHashMap;
 use std::{collections::BTreeMap, fmt::Debug};
-
-#[derive(Clone, Copy, PartialOrd, Ord, Debug, PartialEq, Eq, Hash)]
-pub struct RedeemerWitnessKey {
-    tag: RedeemerTag,
-    index: u64,
-}
-
-impl RedeemerWitnessKey {
-    pub fn new(tag: RedeemerTag, index: u64) -> Self {
-        Self { tag, index }
-    }
-}
-
-impl From<&LegacyRedeemer> for RedeemerWitnessKey {
-    fn from(redeemer: &LegacyRedeemer) -> Self {
-        Self {
-            tag: redeemer.tag,
-            index: redeemer.index,
-        }
-    }
-}
-
-/// LegacyRedeemer without the tag of index
-/// This allows builder code to return partial redeemers
-/// and then later have them placed in the right context
-#[derive(Clone, Debug)]
-pub struct UntaggedRedeemer {
-    pub data: PlutusData,
-    pub ex_units: ExUnits,
-}
-
-impl UntaggedRedeemer {
-    pub fn new(data: PlutusData, ex_units: ExUnits) -> Self {
-        Self { data, ex_units }
-    }
-}
 
 #[derive(Clone, Debug)]
 enum UntaggedRedeemerPlaceholder {
     JustData(PlutusData),
-    Full(UntaggedRedeemer),
+    Full(RedeemerVal),
 }
 
 impl UntaggedRedeemerPlaceholder {
@@ -117,46 +82,46 @@ impl RedeemerSetBuilder {
     }
 
     /// note: will override existing value if called twice with the same key
-    pub fn update_ex_units(&mut self, key: RedeemerWitnessKey, ex_units: ExUnits) {
+    pub fn update_ex_units(&mut self, key: RedeemerKey, ex_units: ExUnits) {
         match key.tag {
             RedeemerTag::Spend => {
                 let entry = self.spend.iter_mut().nth(key.index as usize).unwrap().1;
-                *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
+                *entry = Some(UntaggedRedeemerPlaceholder::Full(RedeemerVal::new(
                     entry.as_ref().unwrap().data().clone(),
                     ex_units,
                 )));
             }
             RedeemerTag::Mint => {
                 let entry = self.mint.iter_mut().nth(key.index as usize).unwrap().1;
-                *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
+                *entry = Some(UntaggedRedeemerPlaceholder::Full(RedeemerVal::new(
                     entry.as_ref().unwrap().data().clone(),
                     ex_units,
                 )));
             }
             RedeemerTag::Cert => {
                 let entry = self.cert.get_mut(key.index as usize).unwrap();
-                *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
+                *entry = Some(UntaggedRedeemerPlaceholder::Full(RedeemerVal::new(
                     entry.as_ref().unwrap().data().clone(),
                     ex_units,
                 )));
             }
             RedeemerTag::Reward => {
                 let entry = self.reward.iter_mut().nth(key.index as usize).unwrap().1;
-                *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
+                *entry = Some(UntaggedRedeemerPlaceholder::Full(RedeemerVal::new(
                     entry.as_ref().unwrap().data().clone(),
                     ex_units,
                 )));
             }
             RedeemerTag::Proposing => {
                 let entry = self.proposals.get_mut(key.index as usize).unwrap();
-                *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
+                *entry = Some(UntaggedRedeemerPlaceholder::Full(RedeemerVal::new(
                     entry.as_ref().unwrap().data().clone(),
                     ex_units,
                 )));
             }
             RedeemerTag::Voting => {
                 let entry = self.votes.get_mut(key.index as usize).unwrap();
-                *entry = Some(UntaggedRedeemerPlaceholder::Full(UntaggedRedeemer::new(
+                *entry = Some(UntaggedRedeemerPlaceholder::Full(RedeemerVal::new(
                     entry.as_ref().unwrap().data().clone(),
                     ex_units,
                 )));
@@ -253,7 +218,7 @@ impl RedeemerSetBuilder {
     }
 
     pub fn build(&self, default_to_dummy_exunits: bool) -> Result<Redeemers, RedeemerBuilderError> {
-        let mut redeemers = Vec::new();
+        let mut redeemers = OrderedHashMap::new();
         // Calling iter on a BTreeMap returns a list of sorted keys
         self.remove_placeholders_and_tag(
             &mut redeemers,
@@ -292,17 +257,17 @@ impl RedeemerSetBuilder {
             default_to_dummy_exunits,
         )?;
 
-        Ok(Redeemers::new_arr_legacy_redeemer(redeemers))
+        Ok(Redeemers::new_map_redeemer_key_to_redeemer_val(redeemers))
     }
 
     fn remove_placeholders_and_tag<'a, K: Debug + Clone>(
         &self,
-        redeemers: &mut Vec<LegacyRedeemer>,
+        redeemers: &mut OrderedHashMap<RedeemerKey, RedeemerVal>,
         tag: RedeemerTag,
         entries: &mut dyn Iterator<Item = (&'a K, &'a Option<UntaggedRedeemerPlaceholder>)>,
         default_to_dummy_exunits: bool,
     ) -> Result<(), RedeemerBuilderError> {
-        let mut result = vec![];
+        let mut untagged_redeemers = vec![];
         for (i, entry) in entries.enumerate() {
             let key = (tag, i, entry.0);
 
@@ -313,7 +278,7 @@ impl RedeemerSetBuilder {
                             MissingExunitError::Key(key.0, key.1, format!("{:?}", key.2)),
                         ))
                     } else {
-                        Ok(Some(UntaggedRedeemer::new(data.clone(), ExUnits::dummy())))
+                        Ok(Some(RedeemerVal::new(data.clone(), ExUnits::dummy())))
                     }
                 }
                 Some(UntaggedRedeemerPlaceholder::Full(untagged_redeemer)) => {
@@ -321,29 +286,25 @@ impl RedeemerSetBuilder {
                 }
                 None => Ok(None),
             }?;
-            result.push(redeemer);
+            untagged_redeemers.push(redeemer);
         }
-        redeemers.append(&mut Self::tag_redeemer(tag, &result));
+        Self::tag_redeemer(redeemers, tag, &untagged_redeemers);
         Ok(())
     }
 
     fn tag_redeemer(
+        redeemers: &mut OrderedHashMap<RedeemerKey, RedeemerVal>,
         tag: RedeemerTag,
-        untagged_redeemers: &[Option<UntaggedRedeemer>],
-    ) -> Vec<LegacyRedeemer> {
-        let mut result = Vec::new();
-
+        untagged_redeemers: &[Option<RedeemerVal>],
+    ) {
         for (index, untagged_redeemer) in untagged_redeemers.iter().enumerate() {
             if let Some(untagged_redeemer) = untagged_redeemer {
-                result.push(LegacyRedeemer::new(
-                    tag,
-                    index as u64,
-                    untagged_redeemer.data.clone(),
-                    untagged_redeemer.ex_units.clone(),
-                ));
+                redeemers.insert(
+                    RedeemerKey::new(tag, index as u64),
+                    untagged_redeemer.clone(),
+                );
             }
         }
-        result
     }
 }
 
@@ -417,7 +378,7 @@ mod tests {
         builder.add_spend(&input_result);
 
         builder.update_ex_units(
-            RedeemerWitnessKey::new(RedeemerTag::Spend, 0),
+            RedeemerKey::new(RedeemerTag::Spend, 0),
             ExUnits::new(10, 10),
         );
 

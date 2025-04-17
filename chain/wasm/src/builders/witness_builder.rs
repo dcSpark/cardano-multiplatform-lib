@@ -2,7 +2,7 @@ use crate::{
     address::RewardAddress,
     byron::ByronAddress,
     crypto::{BootstrapWitness, Vkeywitness},
-    plutus::{utils::PlutusScript, LegacyRedeemer, PlutusData},
+    plutus::{utils::PlutusScript, PlutusData, RedeemerKey, RedeemerVal},
     transaction::TransactionWitnessSet,
     Ed25519KeyHashList, LegacyRedeemerList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
     PlutusV2ScriptList, Script,
@@ -10,8 +10,6 @@ use crate::{
 use cml_core_wasm::impl_wasm_conversions;
 use cml_crypto_wasm::{DatumHash, Ed25519KeyHash, ScriptHash};
 use wasm_bindgen::prelude::{wasm_bindgen, JsError};
-
-use super::redeemer_builder::RedeemerWitnessKey;
 
 #[wasm_bindgen]
 #[derive(Debug, Clone)]
@@ -126,8 +124,8 @@ impl RequiredWitnessSet {
         self.0.add_plutus_datum_hash(plutus_datum.clone().into());
     }
 
-    pub fn add_redeemer_tag(&mut self, redeemer: &RedeemerWitnessKey) {
-        self.0.add_redeemer_tag((*redeemer).into());
+    pub fn add_redeemer_tag(&mut self, redeemer: &RedeemerKey) {
+        self.0.add_redeemer_tag(redeemer.clone().into());
     }
 
     pub fn add_all(&mut self, requirements: &RequiredWitnessSet) {
@@ -194,8 +192,9 @@ impl TransactionWitnessSetBuilder {
         self.0.get_plutus_datum().into()
     }
 
-    pub fn add_redeemer(&mut self, redeemer: &LegacyRedeemer) {
-        self.0.add_redeemer(redeemer.clone().into());
+    pub fn add_redeemer(&mut self, key: &RedeemerKey, redeemer: &RedeemerVal) {
+        self.0
+            .add_redeemer(key.clone().into(), redeemer.clone().into());
     }
 
     pub fn get_redeemer(&self) -> LegacyRedeemerList {

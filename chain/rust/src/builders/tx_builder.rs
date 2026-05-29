@@ -18,7 +18,7 @@ use crate::assets::MultiAsset;
 use crate::assets::{AssetArithmeticError, Mint};
 use crate::auxdata::AuxiliaryData;
 use crate::builders::output_builder::TransactionOutputBuilder;
-use crate::certs::{Certificate, Credential};
+use crate::certs::Certificate;
 use crate::crypto::hash::{calc_script_data_hash, hash_auxiliary_data, ScriptDataHashError};
 use crate::crypto::{BootstrapWitness, Vkeywitness};
 use crate::deposit::{internal_get_deposit, internal_get_implicit_input};
@@ -31,12 +31,14 @@ use crate::transaction::{
     DatumOption, ScriptRef, Transaction, TransactionBody, TransactionInput, TransactionOutput,
     TransactionWitnessSet,
 };
-use crate::{assets::AssetName, Coin, ExUnitPrices, NetworkId, PolicyId, Value, Withdrawals};
+use crate::{
+    assets::AssetName, Coin, ExUnitPrices, NetworkId, PolicyId, Script, Value, Withdrawals,
+};
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{CBORReadLen, Deserialize};
 use cml_core::{ArithmeticError, DeserializeError, DeserializeFailure, Slot};
-use cml_crypto::{Ed25519KeyHash, ScriptDataHash, ScriptHash, Serialize};
+use cml_crypto::{Ed25519KeyHash, RawBytesEncoding, ScriptDataHash, ScriptHash, Serialize};
 use num::Zero;
 use rand::Rng;
 use std::collections::{BTreeSet, HashMap};
@@ -224,40 +226,41 @@ fn min_fee(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuilderError> {
     crate::fees::min_no_script_fee(&full_tx, &tx_builder.config.fee_algo).map_err(Into::into)
 }
 
+fn ref_script_orig_size(script_ref: &ScriptRef) -> u64 {
+    match script_ref {
+        Script::Native { script, .. } => script.to_cbor_bytes().len() as u64,
+        Script::PlutusV1 { script, .. } => script.to_raw_bytes().len() as u64,
+        Script::PlutusV2 { script, .. } => script.to_raw_bytes().len() as u64,
+        Script::PlutusV3 { script, .. } => script.to_raw_bytes().len() as u64,
+    }
+}
+
+fn total_ref_script_size_for_fee(tx_builder: &TransactionBuilder) -> Result<u64, TxBuilderError> {
+    let mut ref_script_inputs = BTreeSet::new();
+    let mut total_ref_script_size = 0u64;
+
+    for utxo in tx_builder
+        .inputs
+        .iter()
+        .chain(tx_builder.reference_inputs.iter().flatten())
+    {
+        if ref_script_inputs.insert(utxo.input.clone()) {
+            if let Some(script_ref) = utxo.output.script_ref() {
+                total_ref_script_size = total_ref_script_size
+                    .checked_add(ref_script_orig_size(script_ref))
+                    .ok_or(ArithmeticError::IntegerOverflow)?;
+            }
+        }
+    }
+
+    Ok(total_ref_script_size)
+}
+
 fn min_fee_with_exunits(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuilderError> {
     let full_tx = fake_full_tx(tx_builder, tx_builder.build_body()?)?;
     // we can't know the of scripts yet as they can't be calculated until we build the tx
 
-    fn ref_script_orig_size_builder(utxo: &TransactionUnspentOutput) -> Option<(ScriptHash, u64)> {
-        utxo.output.script_ref().map(|script_ref| {
-            (
-                script_ref.hash(),
-                script_ref
-                    .raw_plutus_bytes()
-                    .expect("TODO: handle this")
-                    .len() as u64,
-            )
-        })
-    }
-
-    let ref_script_orig_sizes: HashMap<ScriptHash, u64> =
-        if let Some(ref_inputs) = &tx_builder.reference_inputs {
-            ref_inputs
-                .iter()
-                .filter_map(ref_script_orig_size_builder)
-                .collect()
-        } else {
-            HashMap::default()
-        };
-
-    let mut total_ref_script_size = 0;
-    for utxo in tx_builder.inputs.iter() {
-        if let Some(Credential::Script { hash, .. }) = utxo.output.address().payment_cred() {
-            if let Some(orig_size) = ref_script_orig_sizes.get(hash) {
-                total_ref_script_size += *orig_size;
-            }
-        }
-    }
+    let total_ref_script_size = total_ref_script_size_for_fee(tx_builder)?;
 
     crate::fees::min_fee(
         &full_tx,
@@ -2248,6 +2251,56 @@ mod tests {
         .to_address();
 
         ((spend, spend_cred), (stake, stake_cred), address)
+    }
+
+    fn output_with_ref_script(address: &Address, script_ref: ScriptRef) -> TransactionOutput {
+        TransactionOutput::new(
+            address.clone(),
+            Value::from(5_000_000),
+            None,
+            Some(script_ref),
+        )
+    }
+
+    #[test]
+    fn ref_script_fee_size_counts_regular_and_reference_inputs() {
+        let mut tx_builder = create_default_tx_builder();
+        let (_, _, address) = create_account();
+        let script = Script::new_plutus_v2(PlutusV2Script::new(vec![1, 2, 3, 4]));
+        let other_script = Script::new_plutus_v1(PlutusV1Script::new(vec![5, 6, 7]));
+
+        let spent_ref_script_utxo = TransactionUnspentOutput::new(
+            TransactionInput::new(genesis_id(), 0),
+            output_with_ref_script(&address, script.clone()),
+        );
+        let repeated_script_ref_input = TransactionUnspentOutput::new(
+            TransactionInput::new(genesis_id(), 1),
+            output_with_ref_script(&address, script),
+        );
+        let other_ref_input = TransactionUnspentOutput::new(
+            TransactionInput::new(genesis_id(), 2),
+            output_with_ref_script(&address, other_script),
+        );
+
+        tx_builder.inputs.push(spent_ref_script_utxo.clone());
+        tx_builder.reference_inputs = Some(vec![
+            spent_ref_script_utxo,
+            repeated_script_ref_input,
+            other_ref_input,
+        ]);
+
+        assert_eq!(total_ref_script_size_for_fee(&tx_builder).unwrap(), 11);
+    }
+
+    #[test]
+    fn native_ref_script_size_does_not_panic() {
+        let script_ref = Script::new_native(NativeScript::new_script_pubkey(fake_key_hash(1)));
+        let expected_size = match &script_ref {
+            Script::Native { script, .. } => script.to_cbor_bytes().len() as u64,
+            _ => unreachable!(),
+        };
+
+        assert_eq!(ref_script_orig_size(&script_ref), expected_size);
     }
 
     #[test]

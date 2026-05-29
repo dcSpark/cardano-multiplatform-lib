@@ -95,7 +95,7 @@ pub fn min_ref_script_fee(
                 .checked_mul(&multiplier)
                 .ok_or(ArithmeticError::IntegerOverflow)?;
         }
-        u64::try_from(fee.ceil().to_integer()).map_err(|_e| ArithmeticError::IntegerOverflow)
+        u64::try_from(fee.to_integer()).map_err(|_e| ArithmeticError::IntegerOverflow)
     } else {
         Ok(0)
     }

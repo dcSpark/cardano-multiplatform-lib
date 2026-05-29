@@ -435,6 +435,8 @@ pub struct TransactionBuilder {
     utxos: Vec<InputBuilderResult>,
     collateral_return: Option<TransactionOutput>,
     reference_inputs: Option<Vec<TransactionUnspentOutput>>,
+    donation: Option<Coin>,
+    current_treasury_value: Option<Coin>,
 }
 
 impl TransactionBuilder {
@@ -911,6 +913,14 @@ impl TransactionBuilder {
         self.fee = Some(fee)
     }
 
+    pub fn set_donation(&mut self, donation: Coin) {
+        self.donation = Some(donation)
+    }
+
+    pub fn set_current_treasury_value(&mut self, current_treasury_value: Coin) {
+        self.current_treasury_value = Some(current_treasury_value)
+    }
+
     pub fn set_ttl(&mut self, ttl: Slot) {
         self.ttl = Some(ttl)
     }
@@ -1125,6 +1135,8 @@ impl TransactionBuilder {
             utxos: Vec::new(),
             collateral_return: None,
             reference_inputs: None,
+            donation: None,
+            current_treasury_value: None,
         }
     }
 
@@ -1243,12 +1255,16 @@ impl TransactionBuilder {
             .map_err(Into::into)
     }
 
-    /// Return explicit output plus implicit output plus burn (does not consider fee directly)
+    /// Return explicit output plus implicit output plus burn/donation (does not consider fee directly)
     pub fn get_total_output(&self) -> Result<Value, TxBuilderError> {
         let (_, burn_value) = self.get_mint_as_values();
         self.get_explicit_output()?
             .checked_add(&Value::from(self.get_deposit()?))
             .and_then(|x| x.checked_add(&burn_value))
+            .and_then(|x| match self.donation {
+                Some(donation) => x.checked_add(&Value::from(donation)),
+                None => Ok(x),
+            })
             .map_err(Into::into)
     }
 
@@ -1405,8 +1421,8 @@ impl TransactionBuilder {
                 .proposals
                 .as_ref()
                 .map(|proposals| proposals.clone().into()),
-            current_treasury_value: None,
-            donation: None,
+            current_treasury_value: self.current_treasury_value,
+            donation: self.donation,
             encodings: None,
         };
 

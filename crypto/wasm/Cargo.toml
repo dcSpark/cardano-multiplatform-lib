@@ -1,6 +1,6 @@
 [package]
 name = "cml-crypto-wasm"
-version = "6.0.1"
+version = "6.2.0"
 edition = "2018"
 authors = ["dcSpark"]
 license = "MIT"
@@ -14,8 +14,8 @@ keywords = ["cardano"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-core-wasm = { path = "../../core/wasm", version = "6.0.1" }
-cml-crypto = { path = "../rust", version = "6.0.1" }
+cml-core-wasm = { path = "../../core/wasm", version = "6.2.0" }
+cml-crypto = { path = "../rust", version = "6.2.0" }
 cbor_event = "2.2.0"
 wasm-bindgen = { version = "0.2.87" }
 linked-hash-map = "0.5.3"

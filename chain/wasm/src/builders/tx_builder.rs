@@ -201,6 +201,14 @@ impl TransactionBuilder {
         self.0.set_fee(fee)
     }
 
+    pub fn set_donation(&mut self, donation: Coin) {
+        self.0.set_donation(donation)
+    }
+
+    pub fn set_current_treasury_value(&mut self, current_treasury_value: Coin) {
+        self.0.set_current_treasury_value(current_treasury_value)
+    }
+
     pub fn set_ttl(&mut self, ttl: Slot) {
         self.0.set_ttl(ttl)
     }

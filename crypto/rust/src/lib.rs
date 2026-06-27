@@ -472,14 +472,14 @@ macro_rules! impl_signature {
         }
 
         impl schemars::JsonSchema for $name {
-            fn schema_name() -> String {
-                String::from(stringify!($name))
+            fn schema_name() -> ::std::borrow::Cow<'static, str> {
+                (String::from(stringify!($name))).into()
             }
-            fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+            fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
                 String::json_schema(generator)
             }
-            fn is_referenceable() -> bool {
-                String::is_referenceable()
+            fn inline_schema() -> bool {
+                String::inline_schema()
             }
         }
 
@@ -614,14 +614,14 @@ macro_rules! impl_hash_type {
         }
 
         impl schemars::JsonSchema for $name {
-            fn schema_name() -> String {
-                String::from(stringify!($name))
+            fn schema_name() -> ::std::borrow::Cow<'static, str> {
+                (String::from(stringify!($name))).into()
             }
-            fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+            fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
                 String::json_schema(generator)
             }
-            fn is_referenceable() -> bool {
-                String::is_referenceable()
+            fn inline_schema() -> bool {
+                String::inline_schema()
             }
         }
     };

@@ -75,16 +75,16 @@ impl<'de> serde::de::Deserialize<'de> for CostModels {
 }
 
 impl schemars::JsonSchema for CostModels {
-    fn schema_name() -> String {
-        String::from("CostModels")
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        (String::from("CostModels")).into()
     }
 
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         OrderedHashMap::<u64, Vec<i64>>::json_schema(generator)
     }
 
-    fn is_referenceable() -> bool {
-        OrderedHashMap::<u64, Vec<i64>>::is_referenceable()
+    fn inline_schema() -> bool {
+        OrderedHashMap::<u64, Vec<i64>>::inline_schema()
     }
 }
 
@@ -291,16 +291,16 @@ impl<'de> serde::de::Deserialize<'de> for PlutusV1Script {
 }
 
 impl schemars::JsonSchema for PlutusV1Script {
-    fn schema_name() -> String {
-        String::from("PlutusV1Script")
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        (String::from("PlutusV1Script")).into()
     }
 
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
     }
 
-    fn is_referenceable() -> bool {
-        String::is_referenceable()
+    fn inline_schema() -> bool {
+        String::inline_schema()
     }
 }
 
@@ -360,16 +360,16 @@ impl<'de> serde::de::Deserialize<'de> for PlutusV2Script {
 }
 
 impl schemars::JsonSchema for PlutusV2Script {
-    fn schema_name() -> String {
-        String::from("PlutusV2Script")
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        (String::from("PlutusV2Script")).into()
     }
 
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
     }
 
-    fn is_referenceable() -> bool {
-        String::is_referenceable()
+    fn inline_schema() -> bool {
+        String::inline_schema()
     }
 }
 
@@ -429,16 +429,16 @@ impl<'de> serde::de::Deserialize<'de> for PlutusV3Script {
 }
 
 impl schemars::JsonSchema for PlutusV3Script {
-    fn schema_name() -> String {
-        String::from("PlutusV3Script")
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        (String::from("PlutusV3Script")).into()
     }
 
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
     }
 
-    fn is_referenceable() -> bool {
-        String::is_referenceable()
+    fn inline_schema() -> bool {
+        String::inline_schema()
     }
 }
 

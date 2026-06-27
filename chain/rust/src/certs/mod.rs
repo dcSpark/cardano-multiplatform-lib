@@ -347,16 +347,16 @@ impl<'de> serde::de::Deserialize<'de> for DNSName {
 }
 
 impl schemars::JsonSchema for DNSName {
-    fn schema_name() -> String {
-        String::from("DNSName")
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        (String::from("DNSName")).into()
     }
 
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
     }
 
-    fn is_referenceable() -> bool {
-        String::is_referenceable()
+    fn inline_schema() -> bool {
+        String::inline_schema()
     }
 }
 
@@ -994,16 +994,16 @@ impl<'de> serde::de::Deserialize<'de> for Url {
 }
 
 impl schemars::JsonSchema for Url {
-    fn schema_name() -> String {
-        String::from("Url")
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        (String::from("Url")).into()
     }
 
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
     }
 
-    fn is_referenceable() -> bool {
-        String::is_referenceable()
+    fn inline_schema() -> bool {
+        String::inline_schema()
     }
 }
 

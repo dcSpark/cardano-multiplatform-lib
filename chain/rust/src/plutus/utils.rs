@@ -50,18 +50,16 @@ impl<'de> serde::de::Deserialize<'de> for PlutusData {
 }
 
 impl schemars::JsonSchema for PlutusData {
-    fn schema_name() -> String {
-        String::from("PlutusData")
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        (String::from("PlutusData")).into()
     }
 
-    fn json_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
-        schemars::schema::Schema::from(schemars::schema::SchemaObject::new_ref(
-            "PlutusData".to_owned(),
-        ))
+    fn json_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::Schema::new_ref("PlutusData".to_owned())
     }
 
-    fn is_referenceable() -> bool {
-        true
+    fn inline_schema() -> bool {
+        false
     }
 }
 

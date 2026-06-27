@@ -429,18 +429,16 @@ impl<'de> serde::de::Deserialize<'de> for TransactionMetadatum {
 }
 
 impl schemars::JsonSchema for TransactionMetadatum {
-    fn schema_name() -> String {
-        String::from("TransactionMetadatum")
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        (String::from("TransactionMetadatum")).into()
     }
 
-    fn json_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
-        schemars::schema::Schema::from(schemars::schema::SchemaObject::new_ref(
-            "TransactionMetadatum".to_owned(),
-        ))
+    fn json_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::Schema::new_ref("TransactionMetadatum".to_owned())
     }
 
-    fn is_referenceable() -> bool {
-        true
+    fn inline_schema() -> bool {
+        false
     }
 }
 

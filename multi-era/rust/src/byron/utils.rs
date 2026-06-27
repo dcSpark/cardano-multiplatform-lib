@@ -100,13 +100,13 @@ impl<'de> serde::de::Deserialize<'de> for ByronAny {
 }
 
 impl JsonSchema for ByronAny {
-    fn schema_name() -> String {
-        String::from("any")
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        (String::from("any")).into()
     }
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
     }
-    fn is_referenceable() -> bool {
-        String::is_referenceable()
+    fn inline_schema() -> bool {
+        String::inline_schema()
     }
 }

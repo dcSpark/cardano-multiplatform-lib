@@ -323,14 +323,14 @@ impl<'de> serde::de::Deserialize<'de> for BigInteger {
 }
 
 impl schemars::JsonSchema for BigInteger {
-    fn schema_name() -> String {
-        String::from("BigInteger")
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        (String::from("BigInteger")).into()
     }
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
     }
-    fn is_referenceable() -> bool {
-        String::is_referenceable()
+    fn inline_schema() -> bool {
+        String::inline_schema()
     }
 }
 
@@ -706,14 +706,14 @@ impl<'de, T: serde::de::Deserialize<'de>> serde::de::Deserialize<'de> for Nonemp
 }
 
 impl<T: schemars::JsonSchema> schemars::JsonSchema for NonemptySet<T> {
-    fn schema_name() -> String {
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
         Vec::<T>::schema_name()
     }
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         Vec::<T>::json_schema(generator)
     }
-    fn is_referenceable() -> bool {
-        Vec::<T>::is_referenceable()
+    fn inline_schema() -> bool {
+        Vec::<T>::inline_schema()
     }
 }
 
@@ -876,14 +876,14 @@ impl<'de, T: serde::de::Deserialize<'de>> serde::de::Deserialize<'de> for Nonemp
 }
 
 impl<T: schemars::JsonSchema> schemars::JsonSchema for NonemptySetRawBytes<T> {
-    fn schema_name() -> String {
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
         Vec::<T>::schema_name()
     }
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         Vec::<T>::json_schema(generator)
     }
-    fn is_referenceable() -> bool {
-        Vec::<T>::is_referenceable()
+    fn inline_schema() -> bool {
+        Vec::<T>::inline_schema()
     }
 }
 

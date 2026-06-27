@@ -14,7 +14,7 @@ keywords = ["cardano"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cbor_event = "2.2.0"
+cbor_event = "2.4.0"
 linked-hash-map = "0.5.6"
 derivative = "2.2.0"
 serde = { version = "1.0.152", features = ["derive"] }

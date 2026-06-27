@@ -24,7 +24,7 @@ impl Arbitrary for TestCryptoGen {
 impl TestCryptoGen {
     /// get the nth deterministic RNG
     pub fn get_rng(&self, idx: u32) -> ChaChaRng {
-        // ponytail: wrapping_* so a large arbitrary self.0 can't overflow in debug builds
+        // wrapping_* so a large arbitrary self.0 can't overflow in debug builds
         ChaChaRng::seed_from_u64((idx as u64 * 2) ^ (self.0.wrapping_add(12)))
     }
 

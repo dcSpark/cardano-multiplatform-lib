@@ -19,7 +19,7 @@ used_from_wasm = ["wasm-bindgen"]
 [dependencies]
 cml-core = { "path" = "../../core/rust", version = "6.2.0" }
 cml-crypto = { "path" = "../../crypto/rust", version = "6.2.0" }
-cbor_event = "2.2.0"
+cbor_event = "2.4.0"
 linked-hash-map = "0.5.6"
 derivative = "2.2.0"
 serde = { version = "1.0.152", features = ["derive"] }
@@ -52,4 +52,4 @@ wasm-bindgen = { version = "0.2.126", optional = true }
 quickcheck = "1.1.0"
 quickcheck_macros = "1.2.0"
 rand_chacha = "0.10.0"
-flaky_test = "0.1.0"
+flaky_test = "0.2.2"

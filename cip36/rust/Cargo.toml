@@ -17,7 +17,7 @@ crate-type = ["cdylib", "rlib"]
 cml-core = { "path" = "../../core/rust", version = "6.2.0" }
 cml-crypto = { "path" = "../../crypto/rust", version = "6.2.0" }
 cml-chain = { "path" = "../../chain/rust", version = "6.2.0" }
-cbor_event = "2.2.0"
+cbor_event = "2.4.0"
 linked-hash-map = "0.5.6"
 derivative = "2.2.0"
 serde = { version = "1.0.152", features = ["derive"] }

@@ -215,7 +215,7 @@ impl TransactionMetadatum {
     }
 
     pub fn to_json_value(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0)
+        serde::Serialize::serialize(&self.0, &serde_wasm_bindgen::Serializer::json_compatible())
             .map_err(|e| JsValue::from_str(&format!("to_js_value: {e}")))
     }
 

@@ -324,7 +324,7 @@ impl<'de> serde::de::Deserialize<'de> for BigInteger {
 
 impl schemars::JsonSchema for BigInteger {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("BigInteger")).into()
+        ::std::borrow::Cow::Borrowed("BigInteger")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)

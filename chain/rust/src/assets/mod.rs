@@ -88,7 +88,7 @@ impl<'de> serde::de::Deserialize<'de> for AssetName {
 
 impl schemars::JsonSchema for AssetName {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("AssetName")).into()
+        ::std::borrow::Cow::Borrowed("AssetName")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

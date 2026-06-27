@@ -129,7 +129,7 @@ impl<'de> serde::de::Deserialize<'de> for KESSignature {
 
 impl schemars::JsonSchema for KESSignature {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("KESSignature")).into()
+        ::std::borrow::Cow::Borrowed("KESSignature")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

@@ -144,7 +144,7 @@ impl<'de> serde::de::Deserialize<'de> for Int {
 
 impl schemars::JsonSchema for Int {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("Int")).into()
+        ::std::borrow::Cow::Borrowed("Int")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

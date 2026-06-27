@@ -545,7 +545,9 @@ macro_rules! impl_wasm_json_api {
             }
 
             pub fn to_js_value(&self) -> Result<wasm_bindgen::JsValue, wasm_bindgen::JsError> {
-                serde_wasm_bindgen::to_value(&self.0).map_err(|e| {
+                // json_compatible(): maps -> JS objects (not Map), None -> null, bytes -> arrays,
+                // so to_js_value matches to_json's shape. Default to_value() emits a JS Map instead.
+                serde::Serialize::serialize(&self.0, &serde_wasm_bindgen::Serializer::json_compatible()).map_err(|e| {
                     wasm_bindgen::JsError::new(&format!(
                         concat!(stringify!($wasm_name), "::to_js_value: {}"),
                         e

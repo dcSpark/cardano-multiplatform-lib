@@ -147,7 +147,7 @@ impl<'de, A: AsymmetricPublicKey> serde::de::Deserialize<'de> for PublicKey<A> {
 
 impl JsonSchema for PublicKey<crate::chain_crypto::Ed25519> {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("Ed25519PublicKey")).into()
+        ::std::borrow::Cow::Borrowed("Ed25519PublicKey")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
@@ -158,7 +158,7 @@ impl JsonSchema for PublicKey<crate::chain_crypto::Ed25519> {
 }
 impl JsonSchema for PublicKey<crate::chain_crypto::Ed25519Bip32> {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("Ed25519Bip32PublicKey")).into()
+        ::std::borrow::Cow::Borrowed("Ed25519Bip32PublicKey")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)

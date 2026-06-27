@@ -51,7 +51,7 @@ impl<'de> serde::de::Deserialize<'de> for PlutusData {
 
 impl schemars::JsonSchema for PlutusData {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("PlutusData")).into()
+        ::std::borrow::Cow::Borrowed("PlutusData")
     }
 
     fn json_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

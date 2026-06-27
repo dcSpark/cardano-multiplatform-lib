@@ -73,7 +73,7 @@ impl<'de> serde::de::Deserialize<'de> for Ipv4 {
 
 impl schemars::JsonSchema for Ipv4 {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("Ipv4")).into()
+        ::std::borrow::Cow::Borrowed("Ipv4")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -228,7 +228,7 @@ impl<'de> serde::de::Deserialize<'de> for Ipv6 {
 
 impl schemars::JsonSchema for Ipv6 {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("Ipv6")).into()
+        ::std::borrow::Cow::Borrowed("Ipv6")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

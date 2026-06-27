@@ -101,7 +101,7 @@ impl<'de> serde::de::Deserialize<'de> for ByronAny {
 
 impl JsonSchema for ByronAny {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("any")).into()
+        ::std::borrow::Cow::Borrowed("any")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)

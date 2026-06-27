@@ -76,7 +76,7 @@ impl<'de> serde::de::Deserialize<'de> for CostModels {
 
 impl schemars::JsonSchema for CostModels {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("CostModels")).into()
+        ::std::borrow::Cow::Borrowed("CostModels")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -292,7 +292,7 @@ impl<'de> serde::de::Deserialize<'de> for PlutusV1Script {
 
 impl schemars::JsonSchema for PlutusV1Script {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("PlutusV1Script")).into()
+        ::std::borrow::Cow::Borrowed("PlutusV1Script")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -361,7 +361,7 @@ impl<'de> serde::de::Deserialize<'de> for PlutusV2Script {
 
 impl schemars::JsonSchema for PlutusV2Script {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("PlutusV2Script")).into()
+        ::std::borrow::Cow::Borrowed("PlutusV2Script")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -430,7 +430,7 @@ impl<'de> serde::de::Deserialize<'de> for PlutusV3Script {
 
 impl schemars::JsonSchema for PlutusV3Script {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("PlutusV3Script")).into()
+        ::std::borrow::Cow::Borrowed("PlutusV3Script")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

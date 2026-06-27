@@ -348,7 +348,7 @@ impl<'de> serde::de::Deserialize<'de> for DNSName {
 
 impl schemars::JsonSchema for DNSName {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("DNSName")).into()
+        ::std::borrow::Cow::Borrowed("DNSName")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -995,7 +995,7 @@ impl<'de> serde::de::Deserialize<'de> for Url {
 
 impl schemars::JsonSchema for Url {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("Url")).into()
+        ::std::borrow::Cow::Borrowed("Url")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

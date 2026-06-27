@@ -114,7 +114,7 @@ impl<'de> serde::de::Deserialize<'de> for Address {
 
 impl JsonSchema for Address {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("Address")).into()
+        ::std::borrow::Cow::Borrowed("Address")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
@@ -734,7 +734,7 @@ impl<'de> serde::de::Deserialize<'de> for RewardAddress {
 
 impl JsonSchema for RewardAddress {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (String::from("RewardAddress")).into()
+        ::std::borrow::Cow::Borrowed("RewardAddress")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)

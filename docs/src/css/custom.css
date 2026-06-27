@@ -5,9 +5,11 @@
  */
 
 /* You can override the default Infima variables here. */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind v4: import theme + utilities only, skipping preflight so Tailwind's
+   CSS reset doesn't clobber Docusaurus/Infima base styles (was corePlugins.preflight:false). */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 
 @font-face {
   font-family: 'Manrope';

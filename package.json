@@ -28,10 +28,10 @@
     "url": "git+https://github.com/dcSpark/cardano-multiplatform-lib.git"
   },
   "devDependencies": {
-    "flowgen": "1.11.0",
-    "cross-env": "^7.0.3",
+    "flowgen": "1.21.0",
+    "cross-env": "^10.1.0",
     "husky": "4.2.5",
     "json-schema-to-typescript": "^10.1.5",
-    "rimraf": "3.0.2"
+    "rimraf": "6.1.3"
   }
 }

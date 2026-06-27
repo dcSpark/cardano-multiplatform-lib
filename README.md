@@ -8,7 +8,6 @@ This is a library, written in Rust, that can be deployed to multiple platforms (
 
 - browser: [link](https://www.npmjs.com/package/@dcspark/cardano-multiplatform-lib-browser)
 - nodejs: [link](https://www.npmjs.com/package/@dcspark/cardano-multiplatform-lib-nodejs)
-- asm.js (strongly discouraged): [link](https://www.npmjs.com/package/@dcspark/cardano-multiplatform-lib-asmjs)
 
 ##### Rust crates
 

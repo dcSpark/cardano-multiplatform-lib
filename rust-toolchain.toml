@@ -1,0 +1,5 @@
+[toolchain]
+# Pinned so local, CI, and codegen all build with the same compiler. Bump deliberately.
+channel = "1.91.1"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]

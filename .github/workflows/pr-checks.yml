@@ -10,48 +10,34 @@ jobs:
   test-and-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: 'recursive'
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/iron'
-      - name: Cache node modules
-        uses: actions/cache@v1
+          cache: 'npm'
+      # Cargo registry/git + target caching, keyed on rustc version and manifests, with
+      # stale-target cleanup. No committed Cargo.lock here, so hand-rolled hashFiles keys
+      # don't work — this action handles it.
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+      # The Rust toolchain, components (rustfmt/clippy) and wasm32 target are pinned in
+      # rust-toolchain.toml and auto-installed by rustup on first cargo invocation.
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@v2
         with:
-          path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
-      - name: prepare-rust
-        run: |
-          rustup install stable
-          rustup target add wasm32-unknown-unknown --toolchain stable
-          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          tool: wasm-pack
       - name: install
-        run: |
-          npm install
+        run: npm install
       - name: rust:test
-        run: |
-          npm run rust:test
+        run: npm run rust:test
       - name: rust:build-nodejs
-        run: |
-          npm run rust:build-nodejs
+        run: npm run rust:build-nodejs
       - name: rust:build-browser
-        run: |
-          npm run rust:build-browser
+        run: npm run rust:build-browser
       - name: cargo-fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
       - name: cargo-clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --workspace --all-features --all-targets -- --deny "clippy::all"
+        run: cargo clippy --workspace --all-features --all-targets -- --deny "clippy::all"
       - name: all:test
         run: cargo test
       - name: cml:install
@@ -72,3 +58,14 @@ jobs:
       - name: multi-era:rust:build-browser
         working-directory: multi-era/wasm
         run: npm run rust:build-browser
+
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo-deny
+        # Advisory-only until the dependency modernization pass; then remove continue-on-error.
+        continue-on-error: true
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check

@@ -16,9 +16,6 @@ This is a library, written in Rust, that can be deployed to multiple platforms (
 - browser: [link](https://www.npmjs.com/package/@dcspark/cardano-multiplatform-lib-browser)
 - nodejs: [link](https://www.npmjs.com/package/@dcspark/cardano-multiplatform-lib-nodejs)
 
-There is also an outdated asm.js . It is strongly discouraged from using this as it is out of date and asm.js results in incredibly slow cryptographic operations.
-- asm.js (strongly discouraged): [link](https://www.npmjs.com/package/@dcspark/cardano-multiplatform-lib-asmjs)
-
 Note: If you are using WebPack, you must use version 5 or later for CML to work.
 
 ##### Rust crates

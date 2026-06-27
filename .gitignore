@@ -5,13 +5,15 @@ rust/target
 .vscode/
 .idea
 rust/.idea
-binaryen/
 
 target/
 
 
 # New split architecture
 Cargo.lock
+
+# codegen.sh's pinned cddl-codegen checkout
+.cddl-codegen/
 
 chain/rust/target/**
 chain/rust/Cargo.lock
@@ -75,3 +77,6 @@ docs/.docusaurus/
 
 # Examples
 examples/wasm-browser/node_modules/
+
+# Local-only scratch example (untracked; used for ad-hoc local testing)
+/example/

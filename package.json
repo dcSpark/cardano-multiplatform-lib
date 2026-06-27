@@ -10,15 +10,11 @@
     "rust:build-nodejs": "(cd cml/wasm && npm run rust:build-nodejs) && (cd multi-era/wasm && npm run rust:build-nodejs)",
     "rust:build-browser": "(cd cml/wasm && npm run rust:build-browser) && (cd multi-era/wasm && npm run rust:build-browser)",
     "rust:build-web": "(cd cml/wasm && npm run rust:build-web) && (cd multi-era/wasm && npm run rust:build-web)",
-    "rust:build-asm": "(cd cml/wasm && npm run rust:build-asm) && (cd multi-era/wasm && npm run rust:build-asm)",
     "js:publish-nodejs:prod": "(cd cml/wasm && npm run js:publish-nodejs:prod) && (cd multi-era/wasm && npm run js:publish-nodejs:prod)",
     "js:publish-nodejs:beta": "(cd cml/wasm && npm run js:publish-nodejs:beta) && (cd multi-era/wasm && npm run js:publish-nodejs:beta)",
     "js:publish-browser:prod": "(cd cml/wasm && npm run js:publish-browser:prod) && (cd multi-era/wasm && npm run js:publish-browser:prod)",
     "js:publish-browser:beta": "(cd cml/wasm && npm run js:publish-browser:beta) && (cd multi-era/wasm && npm run js:publish-browser:beta)",
-    "js:publish-asm:prod": "(cd cml/wasm && npm run js:publish-asm:prod) && (cd multi-era/wasm && npm run js:publish-asm:prod)",
-    "js:publish-asm:beta": "(cd cml/wasm && npm run js:publish-asm:beta) && (cd multi-era/wasm && npm run js:publish-asm:beta)",
-    "all:publish": "./release.sh prod",
-    "postinstall": "git submodule update --init --recursive && cd binaryen; cmake . && make"
+    "all:publish": "./release.sh prod"
   },
   "husky": {
     "hooks": {

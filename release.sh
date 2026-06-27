@@ -30,5 +30,3 @@ cargo publish -p cardano-multiplatform-lib
 # publish on NPM
 npm run js:publish-nodejs:${RELEASE_TYPE}
 npm run js:publish-browser:${RELEASE_TYPE}
-# asmjs builds broken for now
-# npm run js:publish-asm:${RELEASE_TYPE}

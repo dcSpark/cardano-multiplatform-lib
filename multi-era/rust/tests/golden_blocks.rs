@@ -26,7 +26,11 @@ const KNOWN_FAILURES: &[&str] = &[
 /// raw CBOR blocks begin with 0x82 (not an ASCII hex digit), so this cleanly distinguishes them.
 fn load(path: &Path) -> Vec<u8> {
     let raw = fs::read(path).unwrap();
-    if !raw.is_empty() && raw.iter().all(|b| b.is_ascii_hexdigit() || b.is_ascii_whitespace()) {
+    if !raw.is_empty()
+        && raw
+            .iter()
+            .all(|b| b.is_ascii_hexdigit() || b.is_ascii_whitespace())
+    {
         hex::decode(std::str::from_utf8(&raw).unwrap().trim()).unwrap()
     } else {
         raw

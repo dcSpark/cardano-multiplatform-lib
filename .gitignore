@@ -10,7 +10,9 @@ target/
 
 
 # New split architecture
-Cargo.lock
+# The workspace root Cargo.lock IS committed (reproducible CI/dev builds; modern Cargo guidance).
+# The per-crate Cargo.lock files below are only produced by standalone (non-workspace) builds and
+# stay ignored.
 
 chain/rust/target/**
 chain/rust/Cargo.lock

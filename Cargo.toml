@@ -1,5 +1,7 @@
 [workspace]
 
+# Dependency policy (pin full versions incl. patch; root Cargo.lock is committed): see CONTRIBUTING.md
+
 # this is for the new crate structure. The legacy code (current CML) still resides in the `rust` directory.
 members = [
     "chain/rust",

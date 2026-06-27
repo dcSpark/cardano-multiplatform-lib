@@ -1,6 +1,5 @@
 use crate::byron::{ByronAddress, ByronAddressError};
 use crate::genesis::network_info::NetworkInfo;
-use bech32::ToBase32;
 use cbor_event::{de::Deserializer, se::Serializer};
 use derivative::Derivative;
 use schemars::JsonSchema;
@@ -68,7 +67,7 @@ pub enum AddressKind {
 #[derive(Debug, thiserror::Error)]
 pub enum AddressError {
     #[error("Bech32: {0}")]
-    Bech32(#[from] bech32::Error),
+    Bech32(String),
     #[error("ByronError: {0}")]
     Byron(#[from] ByronAddressError),
     #[error("CBOR: {0}")]
@@ -454,12 +453,16 @@ impl Address {
                 format!("{prefix_header}{prefix_tail}")
             }
         };
-        bech32::encode(&final_prefix, self.to_raw_bytes().to_base32()).map_err(|e| e.into())
+        // Cardano uses the original Bech32 checksum (not Bech32m) and no length limit.
+        let hrp =
+            bech32::Hrp::parse(&final_prefix).map_err(|e| AddressError::Bech32(e.to_string()))?;
+        bech32::encode::<bech32::Bech32>(hrp, &self.to_raw_bytes())
+            .map_err(|e| AddressError::Bech32(e.to_string()))
     }
 
     pub fn from_bech32(bech_str: &str) -> Result<Address, AddressError> {
-        let (_hrp, u5data) = bech32::decode(bech_str)?;
-        let data: Vec<u8> = bech32::FromBase32::from_base32(&u5data).unwrap();
+        let (_hrp, data) =
+            bech32::decode(bech_str).map_err(|e| AddressError::Bech32(e.to_string()))?;
         Ok(Self::from_bytes_impl(data.as_ref(), None)?)
     }
 

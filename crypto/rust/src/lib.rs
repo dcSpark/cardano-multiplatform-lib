@@ -42,14 +42,6 @@ pub enum CryptoError {
     SignatureError(#[from] chain_crypto::SignatureError),
 }
 
-// otherwise with 2 Froms (bech32::Error -> chain_crypto::bech32::Error -> CryptoError)
-// this can be hard to use (type annotations needed) so we provide a direct one.
-impl From<bech32::Error> for CryptoError {
-    fn from(e: bech32::Error) -> Self {
-        chain_crypto::bech32::Error::Bech32Malformed(e).into()
-    }
-}
-
 pub fn blake2b224(data: &[u8]) -> [u8; 28] {
     let mut out = [0; 28];
     Blake2b::blake2b(&mut out, data, &[]);
@@ -494,15 +486,15 @@ macro_rules! impl_hash_type {
             pub const BYTE_COUNT: usize = $byte_count;
 
             pub fn to_bech32(&self, prefix: &str) -> Result<String, CryptoError> {
-                use bech32::ToBase32;
-                bech32::encode(&prefix, self.0.as_ref().to_base32()).map_err(Into::into)
+                let hrp = bech32::Hrp::parse(prefix)
+                    .map_err(|e| chain_crypto::bech32::Error::Bech32Malformed(e.to_string()))?;
+                bech32::encode::<bech32::Bech32>(hrp, self.0.as_ref())
+                    .map_err(|e| chain_crypto::bech32::Error::Bech32Malformed(e.to_string()).into())
             }
 
             pub fn from_bech32(bech_str: &str) -> Result<$name, CryptoError> {
-                let (_hrp, u5data) = bech32::decode(bech_str)
-                    .map_err(chain_crypto::bech32::Error::Bech32Malformed)?;
-                let data: Vec<u8> = bech32::FromBase32::from_base32(&u5data)
-                    .map_err(chain_crypto::bech32::Error::Bech32Malformed)?;
+                let (_hrp, data) = bech32::decode(bech_str)
+                    .map_err(|e| chain_crypto::bech32::Error::Bech32Malformed(e.to_string()))?;
                 Self::from_raw_bytes(&data).map_err(Into::into)
             }
 

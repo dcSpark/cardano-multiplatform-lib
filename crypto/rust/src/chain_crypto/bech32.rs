@@ -1,4 +1,4 @@
-use bech32::{Error as Bech32Error, FromBase32, ToBase32};
+use bech32::Hrp;
 use std::error::Error as StdError;
 use std::fmt;
 use std::result::Result as StdResult;
@@ -16,24 +16,27 @@ pub trait Bech32 {
 }
 
 pub fn to_bech32_from_bytes<B: Bech32>(bytes: &[u8]) -> String {
-    bech32::encode(B::BECH32_HRP, bytes.to_base32())
+    let hrp = Hrp::parse(B::BECH32_HRP).expect("statically-known HRP is valid");
+    // Cardano uses the original Bech32 checksum (not Bech32m).
+    bech32::encode::<bech32::Bech32>(hrp, bytes)
         .unwrap_or_else(|e| panic!("Failed to build bech32: {}", e))
 }
 
 pub fn try_from_bech32_to_bytes<B: Bech32>(bech32_str: &str) -> Result<Vec<u8>> {
-    let (hrp, bech32_data) = bech32::decode(bech32_str)?;
-    if hrp != B::BECH32_HRP {
+    let (hrp, data) =
+        bech32::decode(bech32_str).map_err(|e| Error::Bech32Malformed(e.to_string()))?;
+    if hrp.as_str() != B::BECH32_HRP {
         return Err(Error::HrpInvalid {
             expected: B::BECH32_HRP,
-            actual: hrp,
+            actual: hrp.as_str().to_owned(),
         });
     }
-    Vec::<u8>::from_base32(&bech32_data).map_err(Into::into)
+    Ok(data)
 }
 
 #[derive(Debug)]
 pub enum Error {
-    Bech32Malformed(Bech32Error),
+    Bech32Malformed(String),
     HrpInvalid {
         expected: &'static str,
         actual: String,
@@ -47,16 +50,12 @@ impl Error {
     }
 }
 
-impl From<Bech32Error> for Error {
-    fn from(error: Bech32Error) -> Self {
-        Error::Bech32Malformed(error)
-    }
-}
-
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> StdResult<(), fmt::Error> {
         match self {
-            Error::Bech32Malformed(_) => write!(f, "Failed to parse bech32, invalid data format"),
+            Error::Bech32Malformed(cause) => {
+                write!(f, "Failed to parse bech32, invalid data format: {cause}")
+            }
             Error::HrpInvalid { expected, actual } => write!(
                 f,
                 "Parsed bech32 has invalid HRP prefix '{actual}', expected '{expected}'"
@@ -69,7 +68,6 @@ impl fmt::Display for Error {
 impl StdError for Error {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
-            Error::Bech32Malformed(cause) => Some(cause),
             Error::DataInvalid(cause) => Some(&**cause),
             _ => None,
         }

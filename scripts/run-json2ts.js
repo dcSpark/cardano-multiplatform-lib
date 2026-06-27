@@ -2,6 +2,48 @@ const fs = require('fs');
 const json2ts = require('json-schema-to-typescript');
 const path = require('path');
 
+// json-schema-to-typescript >= 11 blows the call stack while inlining an
+// external-file $ref whose target is self-recursive (PlutusData,
+// TransactionMetadatum) and then silently drops the type from the output (v10
+// tolerated it). Pull those external schemas in as local $defs so the generator
+// emits a named reference instead of recursing forever. declareExternally-
+// Referenced:false still keeps the body from being re-emitted here — each type
+// is declared once by its own schema file.
+function inlineExternalRefs(root, schemasDir) {
+  const ext = new Set();
+  (function collect(n) {
+    if (n && typeof n === 'object') {
+      if (typeof n.$ref === 'string' && !n.$ref.startsWith('#')) ext.add(n.$ref);
+      Object.values(n).forEach(collect);
+    }
+  })(root);
+  if (ext.size === 0) return;
+  const defsKey = root.definitions ? 'definitions' : '$defs';
+  root[defsKey] = root[defsKey] || {};
+  const fixPtr = (n) => {
+    if (n && typeof n === 'object') {
+      if (typeof n.$ref === 'string' && n.$ref.startsWith('#/definitions/')) {
+        n.$ref = '#/' + defsKey + '/' + n.$ref.slice('#/definitions/'.length);
+      }
+      Object.values(n).forEach(fixPtr);
+    }
+  };
+  for (const name of ext) {
+    const e = JSON.parse(fs.readFileSync(path.join(schemasDir, name), 'utf8'));
+    for (const [k, body] of Object.entries(e.definitions || {})) {
+      fixPtr(body);
+      if (body.title == null) body.title = k;
+      root[defsKey][k] = body;
+    }
+  }
+  (function rebind(n) {
+    if (n && typeof n === 'object') {
+      if (typeof n.$ref === 'string' && ext.has(n.$ref)) n.$ref = '#/' + defsKey + '/' + n.$ref;
+      Object.values(n).forEach(rebind);
+    }
+  })(root);
+}
+
 const schemasDir = path.join('json-gen', 'schemas');
 // we don't filter .json anymore to get around not being able to name the custom ones .json
 // Note: the reason we can't seem to be able to do that is if we use e.g.:
@@ -65,14 +107,25 @@ Promise.all(schemaFiles.map(schemaFile => {
   }
   */
 
+  inlineExternalRefs(schemaObj, schemasDir);
+
   //console.log(`NEW: ${JSON.stringify(schemaObj)}\n\n\n\n\n`);
   return json2ts.compile(schemaObj, schemaFile, {
     declareExternallyReferenced: false,
     cwd: schemasDir,//path.join(process.cwd(), schemasDir),
     bannerComment: ''
-  }).catch(e => { console.error(`${schemaFile}: ${e}`); });
-  
+  }).catch(e => { console.error(`${schemaFile}: ${e}`); return null; });
+
 })).then(tsDefs => {
+  // Don't swallow compile failures: a dropped schema silently removes its type
+  // from the output. Report every failure and abort without overwriting the
+  // last-good json-types.d.ts so the build (chained with &&) fails loudly.
+  const failed = tsDefs.filter(d => d == null).length;
+  if (failed > 0) {
+    console.error(`run-json2ts.js: ${failed} schema(s) failed to compile (see errors above) — not writing json-types.d.ts`);
+    process.exitCode = 1;
+    return;
+  }
   fs.mkdirSync(path.join('json-gen', 'output'), { recursive: true });
   const defs = tsDefs.join('').split(/\r?\n/);
   let dedupedDefs = [];

@@ -438,8 +438,8 @@ macro_rules! impl_signature {
             fn schema_name() -> String {
                 String::from(stringify!($name))
             }
-            fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-                String::json_schema(gen)
+            fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+                String::json_schema(generator)
             }
             fn is_referenceable() -> bool {
                 String::is_referenceable()
@@ -580,8 +580,8 @@ macro_rules! impl_hash_type {
             fn schema_name() -> String {
                 String::from(stringify!($name))
             }
-            fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-                String::json_schema(gen)
+            fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+                String::json_schema(generator)
             }
             fn is_referenceable() -> bool {
                 String::is_referenceable()

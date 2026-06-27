@@ -433,7 +433,7 @@ impl schemars::JsonSchema for TransactionMetadatum {
         String::from("TransactionMetadatum")
     }
 
-    fn json_schema(_gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
         schemars::schema::Schema::from(schemars::schema::SchemaObject::new_ref(
             "TransactionMetadatum".to_owned(),
         ))

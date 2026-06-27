@@ -351,8 +351,8 @@ impl schemars::JsonSchema for DNSName {
         String::from("DNSName")
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
 
     fn is_referenceable() -> bool {
@@ -998,8 +998,8 @@ impl schemars::JsonSchema for Url {
         String::from("Url")
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
 
     fn is_referenceable() -> bool {

@@ -218,7 +218,7 @@ impl RequiredWitnessSet {
                     NativeScriptWitnessInfo::Count(num) => {
                         self.add_fake_vkey_witnesses_by_num(*num)
                     }
-                    NativeScriptWitnessInfo::Vkeys(ref vkeys) => {
+                    NativeScriptWitnessInfo::Vkeys(vkeys) => {
                         vkeys
                             .iter()
                             .cloned()

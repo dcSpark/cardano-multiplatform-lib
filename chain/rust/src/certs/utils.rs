@@ -76,8 +76,8 @@ impl schemars::JsonSchema for Ipv4 {
         String::from("Ipv4")
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
 
     fn is_referenceable() -> bool {
@@ -231,8 +231,8 @@ impl schemars::JsonSchema for Ipv6 {
         String::from("Ipv6")
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
 
     fn is_referenceable() -> bool {

@@ -116,8 +116,8 @@ impl JsonSchema for Address {
     fn schema_name() -> String {
         String::from("Address")
     }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
     fn is_referenceable() -> bool {
         String::is_referenceable()
@@ -736,8 +736,8 @@ impl JsonSchema for RewardAddress {
     fn schema_name() -> String {
         String::from("RewardAddress")
     }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
     fn is_referenceable() -> bool {
         String::is_referenceable()

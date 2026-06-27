@@ -139,8 +139,8 @@ impl JsonSchema for PublicKey<crate::chain_crypto::Ed25519> {
     fn schema_name() -> String {
         String::from("Ed25519PublicKey")
     }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
     fn is_referenceable() -> bool {
         String::is_referenceable()
@@ -150,8 +150,8 @@ impl JsonSchema for PublicKey<crate::chain_crypto::Ed25519Bip32> {
     fn schema_name() -> String {
         String::from("Ed25519Bip32PublicKey")
     }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
     fn is_referenceable() -> bool {
         String::is_referenceable()

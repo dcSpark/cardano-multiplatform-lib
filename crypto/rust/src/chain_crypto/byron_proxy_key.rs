@@ -152,17 +152,17 @@ impl cbor_event::se::Serialize for BlockSignature {
         serializer: &'se mut Serializer<W>,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
-            BlockSignature::Signature(ref sig) => serializer
+            BlockSignature::Signature(sig) => serializer
                 .write_array(cbor_event::Len::Len(2))?
                 .write_unsigned_integer(0)?
                 .serialize(sig),
-            BlockSignature::ProxyLight(ref v) => {
+            BlockSignature::ProxyLight(v) => {
                 let serializer = serializer
                     .write_array(cbor_event::Len::Len(2))?
                     .write_unsigned_integer(1)?;
                 cbor_event::se::serialize_fixed_array(v.iter(), serializer)
             }
-            BlockSignature::ProxyHeavy(ref v) => serializer
+            BlockSignature::ProxyHeavy(v) => serializer
                 .write_array(cbor_event::Len::Len(2))?
                 .write_unsigned_integer(2)?
                 .serialize(v),

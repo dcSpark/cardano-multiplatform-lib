@@ -1,4 +1,6 @@
 [workspace]
+# edition 2024 implies resolver "3"; set explicitly since this is a virtual workspace.
+resolver = "3"
 
 # Dependency policy (pin full versions incl. patch; root Cargo.lock is committed): see CONTRIBUTING.md
 

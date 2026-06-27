@@ -326,8 +326,8 @@ impl schemars::JsonSchema for BigInteger {
     fn schema_name() -> String {
         String::from("BigInteger")
     }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
     fn is_referenceable() -> bool {
         String::is_referenceable()
@@ -709,8 +709,8 @@ impl<T: schemars::JsonSchema> schemars::JsonSchema for NonemptySet<T> {
     fn schema_name() -> String {
         Vec::<T>::schema_name()
     }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        Vec::<T>::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        Vec::<T>::json_schema(generator)
     }
     fn is_referenceable() -> bool {
         Vec::<T>::is_referenceable()
@@ -879,8 +879,8 @@ impl<T: schemars::JsonSchema> schemars::JsonSchema for NonemptySetRawBytes<T> {
     fn schema_name() -> String {
         Vec::<T>::schema_name()
     }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        Vec::<T>::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        Vec::<T>::json_schema(generator)
     }
     fn is_referenceable() -> bool {
         Vec::<T>::is_referenceable()

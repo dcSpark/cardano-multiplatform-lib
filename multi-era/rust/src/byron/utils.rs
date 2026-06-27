@@ -103,8 +103,8 @@ impl JsonSchema for ByronAny {
     fn schema_name() -> String {
         String::from("any")
     }
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
     fn is_referenceable() -> bool {
         String::is_referenceable()

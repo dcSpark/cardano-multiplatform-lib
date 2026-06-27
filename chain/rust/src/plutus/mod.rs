@@ -79,8 +79,8 @@ impl schemars::JsonSchema for CostModels {
         String::from("CostModels")
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        OrderedHashMap::<u64, Vec<i64>>::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        OrderedHashMap::<u64, Vec<i64>>::json_schema(generator)
     }
 
     fn is_referenceable() -> bool {
@@ -295,8 +295,8 @@ impl schemars::JsonSchema for PlutusV1Script {
         String::from("PlutusV1Script")
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
 
     fn is_referenceable() -> bool {
@@ -364,8 +364,8 @@ impl schemars::JsonSchema for PlutusV2Script {
         String::from("PlutusV2Script")
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
 
     fn is_referenceable() -> bool {
@@ -433,8 +433,8 @@ impl schemars::JsonSchema for PlutusV3Script {
         String::from("PlutusV3Script")
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(generator)
     }
 
     fn is_referenceable() -> bool {

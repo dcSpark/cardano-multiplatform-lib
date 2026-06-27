@@ -54,7 +54,7 @@ impl schemars::JsonSchema for PlutusData {
         String::from("PlutusData")
     }
 
-    fn json_schema(_gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
         schemars::schema::Schema::from(schemars::schema::SchemaObject::new_ref(
             "PlutusData".to_owned(),
         ))

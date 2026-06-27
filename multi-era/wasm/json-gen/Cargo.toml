@@ -1,11 +1,11 @@
 [package]
 name = "cml-multi-era-json-schema-gen"
 version = "6.2.0"
-edition = "2021"
+edition = "2024"
 
 
 [dependencies]
 serde_json = "1.0.57"
-schemars = "0.8.8"
+schemars = "0.8.22"
 cml-chain-json-schema-gen = { path = "../../../chain/wasm/json-gen" }
 cml-multi-era = { path = "../../rust" }

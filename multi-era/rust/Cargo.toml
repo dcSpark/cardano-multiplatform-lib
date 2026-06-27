@@ -1,7 +1,7 @@
 [package]
 name = "cml-multi-era"
 version = "6.2.0"
-edition = "2021"
+edition = "2024"
 authors = ["dcSpark"]
 license = "MIT"
 description = "Multiplatform SDK for era-agnostic Cardano blockchain parsing"
@@ -25,7 +25,7 @@ linked-hash-map = "0.5.6"
 derivative = "2.2.0"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.57"
-schemars = "0.8.8"
+schemars = "0.8.22"
 
 # only for declaring hash types
 bech32 = "0.11.1"

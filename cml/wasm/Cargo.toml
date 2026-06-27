@@ -1,7 +1,7 @@
 [package]
 name = "cardano-multiplatform-lib"
 version = "6.2.0"
-edition = "2021"
+edition = "2024"
 keywords = ["cardano"]
 license = "MIT"
 description = "Multiplatform WASM SDK containing the most common CML crates for Cardano blockchain functionality"

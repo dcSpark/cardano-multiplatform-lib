@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 'lts/iron'
+          node-version: 'lts/jod'
           cache: 'npm'
       # Cargo registry/git + target caching, keyed on rustc version and manifests, with
       # stale-target cleanup. No committed Cargo.lock here, so hand-rolled hashFiles keys

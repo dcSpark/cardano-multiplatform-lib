@@ -7,7 +7,7 @@ use crate::chain_crypto as crypto;
 use crate::chain_crypto::{
     AsymmetricKey, AsymmetricPublicKey, SecretKey, SigningAlgorithm, VerificationAlgorithm,
 };
-use rand::{CryptoRng, RngCore};
+use rand::{CryptoRng, Rng};
 
 #[derive(Clone)]
 pub enum EitherEd25519SecretKey {
@@ -16,7 +16,11 @@ pub enum EitherEd25519SecretKey {
 }
 
 impl EitherEd25519SecretKey {
-    pub fn generate<R: RngCore + CryptoRng>(rng: R) -> Self {
+    /// # Security
+    /// `rng` MUST be a CSPRNG seeded from OS entropy; a deterministically-seeded RNG yields
+    /// predictable, INSECURE keys (test-only). See [`crate::chain_crypto::AsymmetricKey::generate`]
+    /// and prefer the high-level `cml_crypto::PrivateKey` generators for production keys.
+    pub fn generate<R: Rng + CryptoRng>(rng: R) -> Self {
         EitherEd25519SecretKey::Extended(SecretKey::generate(rng))
     }
 

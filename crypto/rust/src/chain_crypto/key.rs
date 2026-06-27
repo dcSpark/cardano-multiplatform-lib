@@ -1,7 +1,7 @@
 use crate::chain_crypto::bech32::{self, Bech32};
 use cbor_event::{de::Deserializer, se::Serializer};
 use hex::FromHexError;
-use rand::{CryptoRng, RngCore};
+use rand::{CryptoRng, Rng};
 use schemars::JsonSchema;
 use std::fmt;
 use std::hash::Hash;
@@ -49,7 +49,13 @@ pub trait AsymmetricKey {
 
     const SECRET_BECH32_HRP: &'static str;
 
-    fn generate<T: RngCore + CryptoRng>(rng: T) -> Self::Secret;
+    /// # Security
+    /// `rng` MUST be a CSPRNG seeded from OS entropy (e.g. `rand::rand_core::UnwrapErr(rand::rngs::SysRng)`).
+    /// A deterministically-seeded RNG (e.g. `ChaCha20Rng::seed_from_u64`) produces predictable,
+    /// INSECURE private keys and is only acceptable in tests — the `CryptoRng` bound cannot tell the
+    /// two apart. For production keys prefer the high-level `cml_crypto::PrivateKey::generate_ed25519`
+    /// / `cml_crypto::Bip32PrivateKey::generate_ed25519_bip32`, which use the OS CSPRNG for you.
+    fn generate<T: Rng + CryptoRng>(rng: T) -> Self::Secret;
     fn compute_public(secret: &Self::Secret) -> <Self::PubAlg as AsymmetricPublicKey>::Public;
     fn secret_from_binary(data: &[u8]) -> Result<Self::Secret, SecretKeyError>;
 }
@@ -74,7 +80,11 @@ impl<A: AsymmetricKey> KeyPair<A> {
     pub fn into_keys(self) -> (SecretKey<A>, PublicKey<A::PubAlg>) {
         (self.0, self.1)
     }
-    pub fn generate<R: RngCore + CryptoRng>(rng: &mut R) -> Self {
+    /// # Security
+    /// `rng` MUST be a CSPRNG seeded from OS entropy; a deterministically-seeded RNG yields
+    /// predictable, INSECURE keys (test-only). See [`AsymmetricKey::generate`] and prefer the
+    /// high-level `cml_crypto::PrivateKey` / `Bip32PrivateKey` generators for production keys.
+    pub fn generate<R: Rng + CryptoRng>(rng: &mut R) -> Self {
         let sk = A::generate(rng);
         let pk = A::compute_public(&sk);
         KeyPair(SecretKey(sk), PublicKey(pk))
@@ -228,7 +238,11 @@ impl<A: AsymmetricKey> From<SecretKey<A>> for KeyPair<A> {
 }
 
 impl<A: AsymmetricKey> SecretKey<A> {
-    pub fn generate<T: RngCore + CryptoRng>(rng: T) -> Self {
+    /// # Security
+    /// `rng` MUST be a CSPRNG seeded from OS entropy; a deterministically-seeded RNG yields
+    /// predictable, INSECURE keys (test-only). See [`AsymmetricKey::generate`] and prefer the
+    /// high-level `cml_crypto::PrivateKey` / `Bip32PrivateKey` generators for production keys.
+    pub fn generate<T: Rng + CryptoRng>(rng: T) -> Self {
         SecretKey(A::generate(rng))
     }
     pub fn to_public(&self) -> PublicKey<A::PubAlg> {

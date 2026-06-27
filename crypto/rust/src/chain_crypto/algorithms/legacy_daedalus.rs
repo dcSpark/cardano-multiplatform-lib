@@ -13,7 +13,7 @@ use cryptoxide::sha2::Sha512;
 use super::ed25519 as ei;
 use cryptoxide::ed25519;
 use ed25519_bip32::{XPrv, XPub, XPRV_SIZE, XPUB_SIZE};
-use rand::{CryptoRng, RngCore};
+use rand::{CryptoRng, Rng};
 
 const CHAIN_CODE_SIZE: usize = 32;
 const SEED_SIZE: usize = 64;
@@ -66,7 +66,7 @@ impl AsymmetricKey for LegacyDaedalus {
 
     const SECRET_BECH32_HRP: &'static str = "legacy_xprv";
 
-    fn generate<T: RngCore + CryptoRng>(mut rng: T) -> Self::Secret {
+    fn generate<T: Rng + CryptoRng>(mut rng: T) -> Self::Secret {
         let mut seed = [0u8; SEED_SIZE];
         rng.fill_bytes(&mut seed);
         let mut mac = Hmac::new(Sha512::new(), &seed);

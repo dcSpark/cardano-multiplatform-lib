@@ -1,0 +1,8 @@
+# Run `cargo test --target wasm32-unknown-unknown` in Node (which provides Web Crypto). Test-only.
+#
+# Note: getrandom's wasm backend is selected by the `wasm_js` *feature* (set on getrandom in
+# crypto/rust/Cargo.toml), NOT by a rustflag. getrandom 0.4 dropped the old
+# `--cfg getrandom_backend="wasm_js"` requirement (the getrandom_backend cfg has no "wasm_js"
+# value in 0.4 — see its Cargo.toml check-cfg list), so no rustflags are needed here.
+[target.wasm32-unknown-unknown]
+runner = "wasm-bindgen-test-runner"

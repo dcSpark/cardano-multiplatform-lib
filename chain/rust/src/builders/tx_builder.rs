@@ -38,7 +38,7 @@ use cml_core::serialization::{CBORReadLen, Deserialize};
 use cml_core::{ArithmeticError, DeserializeError, DeserializeFailure, Slot};
 use cml_crypto::{Ed25519KeyHash, ScriptDataHash, ScriptHash, Serialize};
 use num::Zero;
-use rand::Rng;
+use rand::RngExt;
 use std::collections::{BTreeSet, HashMap};
 use std::convert::TryInto;
 use std::io::{BufRead, Seek, Write};
@@ -474,7 +474,9 @@ impl TransactionBuilder {
                 {
                     return Err(TxBuilderError::RandomImproveCantContainMultiasset);
                 }
-                let mut rng = rand::thread_rng();
+                // Non-security: randomizes UTXO selection only, never key material — a CSPRNG is
+                // not required here (cf. cml_crypto's os_csprng, used for key generation).
+                let mut rng = rand::rng();
                 let mut available_indices =
                     (0..available_inputs.len()).collect::<BTreeSet<usize>>();
                 self.cip2_random_improve_by(
@@ -497,7 +499,7 @@ impl TransactionBuilder {
                     }
                     let i = *available_indices
                         .iter()
-                        .nth(rng.gen_range(0..available_indices.len()))
+                        .nth(rng.random_range(0..available_indices.len()))
                         .unwrap();
                     available_indices.remove(&i);
                     let input = &available_inputs[i];
@@ -532,7 +534,8 @@ impl TransactionBuilder {
                 )?;
             }
             CoinSelectionStrategyCIP2::RandomImproveMultiAsset => {
-                let mut rng = rand::thread_rng();
+                // Non-security: randomizes UTXO selection only, never key material (see above).
+                let mut rng = rand::rng();
                 let mut available_indices =
                     (0..available_inputs.len()).collect::<BTreeSet<usize>>();
                 // run random-improve by each asset type
@@ -569,7 +572,7 @@ impl TransactionBuilder {
                     }
                     let i = *available_indices
                         .iter()
-                        .nth(rng.gen_range(0..available_indices.len()))
+                        .nth(rng.random_range(0..available_indices.len()))
                         .unwrap();
                     available_indices.remove(&i);
                     let input = &available_inputs[i];
@@ -629,7 +632,7 @@ impl TransactionBuilder {
         Ok(())
     }
 
-    fn cip2_random_improve_by<F, R: Rng + ?Sized>(
+    fn cip2_random_improve_by<F, R: RngExt + ?Sized>(
         &mut self,
         available_inputs: &[InputBuilderResult],
         available_indices: &mut BTreeSet<usize>,
@@ -680,7 +683,7 @@ impl TransactionBuilder {
                         output_total.clone(),
                     ));
                 }
-                let random_index = rng.gen_range(0..relevant_indices.len());
+                let random_index = rng.random_range(0..relevant_indices.len());
                 let i = relevant_indices.swap_remove(random_index);
                 available_indices.remove(&i);
                 let input = &available_inputs[i];
@@ -701,7 +704,7 @@ impl TransactionBuilder {
             for output in outputs.iter_mut() {
                 let associated = associated_indices.get_mut(output).unwrap();
                 for i in associated.iter_mut() {
-                    let random_index = rng.gen_range(0..relevant_indices.len());
+                    let random_index = rng.random_range(0..relevant_indices.len());
                     let j: &mut usize = relevant_indices.get_mut(random_index).unwrap();
                     let should_improve = {
                         let input = &available_inputs[*i];

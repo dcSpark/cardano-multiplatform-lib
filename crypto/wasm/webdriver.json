@@ -1,0 +1,8 @@
+{
+  "goog:chromeOptions": {
+    "args": ["--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+  },
+  "moz:firefoxOptions": {
+    "args": ["-headless"]
+  }
+}

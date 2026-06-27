@@ -42,7 +42,25 @@ pub enum EmIP3Error {
     DecryptionFailed,
 }
 
-/// Encrypt using Emip3: https://github.com/Emurgo/EmIPs/blob/master/specs/emip-003.md
+/// Encrypt using Emip3: <https://github.com/Emurgo/EmIPs/blob/master/specs/emip-003.md>
+///
+/// # Security
+/// This is ChaCha20-Poly1305 (RFC 8439) under a key derived from `password`+`salt`, with the
+/// caller-supplied `nonce`. The caller MUST use a UNIQUE 12-byte `nonce` for every encryption under
+/// a given password+salt (i.e. per derived key) — only the nonce *length* is checked here, not its
+/// uniqueness. This API keeps no counter state, so a fresh random nonce per call is the practical
+/// way to guarantee uniqueness.
+///
+/// Reusing a (key, nonce) pair is catastrophic for BOTH confidentiality and integrity:
+/// - Confidentiality, per RFC 8439 §4 (Security Considerations): "If a nonce is repeated, then both
+///   the one-time Poly1305 key and the keystream are identical between the messages. This reveals the
+///   XOR of the plaintexts ..." — <https://www.rfc-editor.org/rfc/rfc8439#section-4>
+/// - Integrity: the Poly1305 authentication key is a one-time key derived from (key, nonce), which
+///   RFC 8439 §2.5 requires be "unique, and MUST be unpredictable for each invocation"; reusing it
+///   lets an attacker recover the MAC key and forge tags — <https://www.rfc-editor.org/rfc/rfc8439#section-2.5>
+///
+/// Using a unique random `salt` per encryption changes the derived key and is the simplest way to
+/// guarantee a fresh (key, nonce) pair.
 pub fn emip3_encrypt_with_password(
     password: &str,
     salt: &str,
@@ -91,7 +109,7 @@ pub fn emip3_encrypt_with_password(
     Ok(output.encode_hex::<String>())
 }
 
-/// Decrypt using Emip3: https://github.com/Emurgo/EmIPs/blob/master/specs/emip-003.md
+/// Decrypt using Emip3: <https://github.com/Emurgo/EmIPs/blob/master/specs/emip-003.md>
 pub fn emip3_decrypt_with_password(password: &str, data: &str) -> Result<String, EmIP3Error> {
     use password_encryption_parameter::*;
     let password = hex::decode(password)?;

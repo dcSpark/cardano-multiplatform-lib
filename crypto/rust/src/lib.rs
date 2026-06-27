@@ -7,7 +7,6 @@ pub use cml_core::{
 use cryptoxide::blake2b::Blake2b;
 pub use derivative::Derivative;
 use impl_mockchain::key;
-use rand::rngs::OsRng;
 use std::convert::From;
 
 pub mod emip3;
@@ -52,6 +51,44 @@ pub fn blake2b256(data: &[u8]) -> [u8; 32] {
     let mut out = [0; 32];
     Blake2b::blake2b(&mut out, data, &[]);
     out
+}
+
+/// Cryptographically-secure RNG for **private key generation**.
+///
+/// `UnwrapErr(SysRng)` reads the operating system CSPRNG directly on every call, and on
+/// failure *panics* rather than emitting low-entropy bytes. Each claim below is sourced;
+/// the `[n]` markers point to the citations block. (Versions are the ones pinned in
+/// Cargo.lock: rand/rand_core 0.10.1, getrandom 0.4.3.)
+///
+/// - `SysRng` is "a stateless interface over the operating system's random number
+///   source" [1], and is marked cryptographically secure (`impl TryCryptoRng`) [2].
+/// - On `wasm32-unknown-unknown` that OS interface is the Web Crypto
+///   `globalThis.crypto.getRandomValues` [3] — a cryptographically-strong generator [4];
+///   getrandom requires this backend to be explicitly enabled, else it fails to build [5].
+/// - `UnwrapErr` "implements `Rng` by panicking on potential errors" [6], so an OS-RNG
+///   failure aborts instead of ever returning a weak key.
+/// - The OS RNG itself blocks if it is not yet seeded (e.g. early boot) rather than
+///   returning low-entropy bytes [9].
+///
+/// SECURITY — do NOT replace with `rand::rng()` / `ThreadRng`: ThreadRng is a userspace
+/// ChaCha-12 generator [7] that "is not automatically reseeded on fork" [8]. After a
+/// `fork()` the parent and child share RNG state and would emit identical key material
+/// until reseed; reading OS entropy per call (as above) is fork-safe. Independently, the
+/// `CryptoRng` bound on `generate` forbids substituting a non-CSPRNG at the type level.
+///
+/// Citations (doc link; and exact source file:line in the pinned crate):
+///  [1] https://docs.rs/rand/0.10.1/rand/rngs/index.html        — rand-0.10.1 src/rngs/mod.rs:18-19
+///  [2] getrandom-0.4.3 src/sys_rng.rs:55  (`impl TryCryptoRng for SysRng {}`)
+///  [3] getrandom-0.4.3 src/backends/wasm_js.rs:62  (`js_namespace = ["globalThis","crypto"], js_name = getRandomValues`)
+///  [4] https://www.w3.org/TR/WebCryptoAPI/#Crypto-method-getRandomValues  (W3C normative spec; the URL getrandom's source references)
+///  [5] https://docs.rs/getrandom/0.4.3/#webassembly-support  (the exact URL getrandom's build error prints; getrandom-0.4.3 src/backends.rs:176,180)
+///  [6] https://docs.rs/rand_core/0.10.1/rand_core/struct.UnwrapErr.html — rand_core-0.10.1 src/unwrap_err.rs:3-4 (panic: src/unwrap_err.rs:52)
+///  [7] https://docs.rs/rand/0.10.1/rand/rngs/struct.ThreadRng.html  ("The currently selected algorithm is ChaCha (12-rounds)", src/rngs/thread.rs:92)
+///  [8] rand-0.10.1 src/rngs/thread.rs:108 ("`ThreadRng` is not automatically reseeded on fork"); rendered on the page in [7]
+///  [9] getrandom-0.4.3 src/lib.rs:72 ("Blocking is possible, at least during early boot")
+fn os_csprng() -> impl rand::CryptoRng {
+    // CryptoRng: Rng, so this also satisfies the `Rng` half of `generate`'s bound.
+    rand::rand_core::UnwrapErr(rand::rngs::SysRng)
 }
 
 // All key structs were adapted from js-chain-libs:
@@ -114,7 +151,7 @@ impl Bip32PrivateKey {
     }
 
     pub fn generate_ed25519_bip32() -> Bip32PrivateKey {
-        Bip32PrivateKey(chain_crypto::SecretKey::<chain_crypto::Ed25519Bip32>::generate(OsRng))
+        Bip32PrivateKey(chain_crypto::SecretKey::<chain_crypto::Ed25519Bip32>::generate(os_csprng()))
     }
 
     pub fn to_raw_key(&self) -> PrivateKey {
@@ -247,12 +284,12 @@ impl PrivateKey {
     }
 
     pub fn generate_ed25519() -> PrivateKey {
-        let keypair = chain_crypto::SecretKey::<chain_crypto::Ed25519>::generate(OsRng);
+        let keypair = chain_crypto::SecretKey::<chain_crypto::Ed25519>::generate(os_csprng());
         PrivateKey(key::EitherEd25519SecretKey::Normal(keypair))
     }
 
     pub fn generate_ed25519extended() -> PrivateKey {
-        let keypair = chain_crypto::SecretKey::<chain_crypto::Ed25519Extended>::generate(OsRng);
+        let keypair = chain_crypto::SecretKey::<chain_crypto::Ed25519Extended>::generate(os_csprng());
         PrivateKey(key::EitherEd25519SecretKey::Extended(keypair))
     }
 

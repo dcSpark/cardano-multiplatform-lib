@@ -26,6 +26,12 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: wasm-pack
+      # Provides wasm-bindgen-test-runner for the wasm runtime tests below. Must match the
+      # wasm-bindgen lib version; bump together. Prebuilt by install-action (no compile).
+      - name: Install wasm-bindgen-cli
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen-cli@0.2.126
       - name: install
         run: npm install
       - name: rust:test
@@ -53,6 +59,17 @@ jobs:
           --allow clippy::derivable_impls
       - name: all:test
         run: cargo test
+      # Runtime check that key generation works on wasm (getrandom wasm_js -> crypto.getRandomValues).
+      # Also builds crypto/wasm standalone, which catches per-crate feature-unification gaps.
+      # Driven via cargo + the configured wasm-bindgen-test-runner (not `wasm-pack test`, which
+      # force-downloads the *latest* chromedriver and would mismatch a non-latest runner Chrome).
+      # The chrome run uses the runner's pre-matched driver ($CHROMEWEBDRIVER); webdriver.json
+      # (in crypto/wasm) supplies --no-sandbox. If chrome is ever unavailable, --node is the gate.
+      - name: wasm:keygen-runtime (node)
+        run: cargo test --target wasm32-unknown-unknown -p cml-crypto-wasm --test keygen_runtime
+      - name: wasm:keygen-runtime (chrome)
+        working-directory: crypto/wasm
+        run: CHROMEDRIVER="${CHROMEWEBDRIVER}/chromedriver" cargo test --target wasm32-unknown-unknown --test keygen_browser
       - name: cml:install
         working-directory: cml/wasm
         run: npm install

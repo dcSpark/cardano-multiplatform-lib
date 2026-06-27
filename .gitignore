@@ -12,9 +12,6 @@ target/
 # New split architecture
 Cargo.lock
 
-# codegen.sh's pinned cddl-codegen checkout
-.cddl-codegen/
-
 chain/rust/target/**
 chain/rust/Cargo.lock
 chain/wasm/target/**

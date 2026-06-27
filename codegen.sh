@@ -16,25 +16,37 @@
 # anyway. So: regen, then read the diff. Run on a clean (committed/stashed) tree so the
 # diff is only the regen.
 #
-# cddl-codegen is pinned to the exact commit that produced the current tree so the diff
-# reflects spec changes only, not codegen drift. Bump CDDL_CODEGEN_REV in its own commit
-# when intentionally adopting a newer codegen (e.g. for a new era).
+# cddl-codegen is pinned to the commit that produced the current tree so the diff reflects
+# spec changes only, not codegen drift. Bump CDDL_CODEGEN_REV in its own commit when
+# intentionally adopting a newer codegen (e.g. for a new era).
+#
+# WHAT STILL SHOWS IN THE DIFF AFTER A NO-OP REGEN (all genuine hand-editing — reconcile, don't fight):
+#   - plutus/ and transaction/ modules: heavily customized by hand on top of generation
+#   - serialization.rs (top-level): a hand-written shim re-exporting cml_core's serialization
+#   - lib.rs: hand-maintained `pub mod` list (incl. builders/byron/genesis/json/utils — non-generated)
+#   - Cargo.toml: hand-tuned deps (cddl-codegen emits a generic one)
+#   - per-module utils.rs (hand-added) and a few `#[allow(clippy::...)]`
+# The bulk of every generated module reproduces exactly; the above is the irreducible manual part.
 #
 # Usage:   ./codegen.sh                 # regenerate all crates in place
 #          ./codegen.sh chain           # regenerate a single crate
 #          CDDL_CODEGEN_DIR=~/src/cddl-codegen ./codegen.sh   # use a local checkout
 set -euo pipefail
 
-# cddl-codegen commit that generated the committed tree (CML last regenerated 2024-07-10;
-# this is the latest cddl-codegen commit at that time, and still its HEAD as of 2026-06).
-CDDL_CODEGEN_REV="228fd49675e17ab6d960bd8a721e5a64f7de7b1a"
+# cddl-codegen commit that generated the committed tree: 1ec516f, the last rev before #240 made
+# @newtype getters opt-in (the committed tree still has the auto-generated get() methods).
+CDDL_CODEGEN_REV="1ec516fe02960929cd3cadf3c2bad62360756648"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SPECS="$REPO_ROOT/specs"
 
 # Clone + check out the pinned cddl-codegen (cached between runs; override with CDDL_CODEGEN_DIR).
-WORK="${CDDL_CODEGEN_DIR:-$REPO_ROOT/.cddl-codegen}"
+# Kept OUTSIDE the repo: a checkout under REPO_ROOT gets absorbed by this Cargo workspace and
+# cargo refuses to build a nested package that isn't a member. Outside, it also builds with the
+# system toolchain rather than this repo's pinned rust-toolchain.toml.
+WORK="${CDDL_CODEGEN_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/cml-cddl-codegen}"
 if [ -z "${CDDL_CODEGEN_DIR:-}" ]; then
+  mkdir -p "$(dirname "$WORK")"
   if [ ! -d "$WORK/.git" ]; then
     git clone https://github.com/dcSpark/cddl-codegen "$WORK"
   fi
@@ -42,15 +54,24 @@ if [ -z "${CDDL_CODEGEN_DIR:-}" ]; then
   git -C "$WORK" checkout --quiet "$CDDL_CODEGEN_REV"
 fi
 
-# gen <crate-dir> <input> <extra cddl-codegen args...>  — writes straight into the crate dir.
+# gen <group-dir> <input> <extra cddl-codegen args...>
+# --output is the crate-GROUP dir (e.g. `chain`): cddl-codegen writes `<group>/rust/`,
+# `<group>/wasm/` and `<group>/wasm/json-gen/` under it, matching CML's layout.
 gen() {
   local out="$1" input="$2"; shift 2
   echo ">> generating $out"
   ( cd "$WORK" && cargo run --quiet -- --input="$input" --output="$REPO_ROOT/$out" "$@" )
 }
 
-# Shared flags. cip25 deliberately omits preserve-encodings/canonical-form (it never had them).
-COMMON=(--preserve-encodings=true --canonical-form=true --json-serde-derives=true --json-schema-export=true)
+# Shared flags.
+#   --common-import-override=cml_core is THE flag that makes regen reproduce CML's layout: it
+#     points the common scaffolding (error/serialization/ordered_hash_map) at the cml-core crate
+#     AND suppresses generating those files locally (export_static_files() => false). Without it
+#     cddl-codegen emits self-contained `crate::error` etc. and a wall of import diffs. Every CML
+#     crate depends on cml-core, so all of them pass it.
+#   cip25 deliberately omits preserve-encodings/canonical-form (it never had them).
+OVERRIDE=(--common-import-override=cml_core)
+COMMON=(--preserve-encodings=true --canonical-form=true --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}")
 
 # want <crate>: true when no crate filter was given, or <crate> is one of the args.
 ARGS=("$@")
@@ -72,11 +93,11 @@ fi
 #                                       a two-input crate — scrutinize this pass's diff first time)
 #   cip36      <- specs/cip36.cddl
 #   cip25      <- specs/cip25.cddl    (no preserve-encodings)
-want chain     && gen chain/rust     "$SPECS/conway"         "${COMMON[@]}"
-want multi-era && gen multi-era/rust "$SPECS/multiera"       "${COMMON[@]}"
-want multi-era && gen multi-era/rust "$SPECS/multiera-byron" "${COMMON[@]}"
-want cip36     && gen cip36/rust     "$SPECS/cip36.cddl"     "${COMMON[@]}"
-want cip25     && gen cip25/rust     "$SPECS/cip25.cddl"     --json-serde-derives=true --json-schema-export=true
+want chain     && gen chain     "$SPECS/conway"         "${COMMON[@]}"
+want multi-era && gen multi-era "$SPECS/multiera"       "${COMMON[@]}"
+want multi-era && gen multi-era "$SPECS/multiera-byron" "${COMMON[@]}"
+want cip36     && gen cip36     "$SPECS/cip36.cddl"     "${COMMON[@]}"
+want cip25     && gen cip25     "$SPECS/cip25.cddl"     --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}"
 
 cat <<'EOF'
 

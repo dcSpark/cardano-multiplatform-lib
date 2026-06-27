@@ -1,4 +1,4 @@
-CIP25_string64 = text .size (0..64)
+CIP25_string64 = text .size (0..64) ; @newtype get
 
 CIP25_files_details = 
   {

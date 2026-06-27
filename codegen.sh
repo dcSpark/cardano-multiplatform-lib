@@ -16,9 +16,9 @@
 # anyway. So: regen, then read the diff. Run on a clean (committed/stashed) tree so the
 # diff is only the regen.
 #
-# cddl-codegen is pinned to the commit that produced the current tree so the diff reflects
-# spec changes only, not codegen drift. Bump CDDL_CODEGEN_REV in its own commit when
-# intentionally adopting a newer codegen (e.g. for a new era).
+# cddl-codegen is pinned (CDDL_CODEGEN_REV) so a regen reflects spec changes, not codegen
+# drift. Bump CDDL_CODEGEN_REV in its own commit when intentionally adopting a newer codegen
+# (e.g. for a new era).
 #
 # WHAT STILL SHOWS IN THE DIFF AFTER A NO-OP REGEN (all genuine hand-editing — reconcile, don't fight):
 #   - plutus/ and transaction/ modules: heavily customized by hand on top of generation
@@ -33,9 +33,8 @@
 #          CDDL_CODEGEN_DIR=~/src/cddl-codegen ./codegen.sh   # use a local checkout
 set -euo pipefail
 
-# cddl-codegen commit that generated the committed tree: 1ec516f, the last rev before #240 made
-# @newtype getters opt-in (the committed tree still has the auto-generated get() methods).
-CDDL_CODEGEN_REV="1ec516fe02960929cd3cadf3c2bad62360756648"
+# cddl-codegen commit the specs target
+CDDL_CODEGEN_REV="228fd49675e17ab6d960bd8a721e5a64f7de7b1a"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SPECS="$REPO_ROOT/specs"

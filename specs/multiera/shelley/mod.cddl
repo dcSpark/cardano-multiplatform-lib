@@ -49,7 +49,7 @@ shelley_pool_params = ( operator:       ed25519_key_hash
               , pool_metadata:  pool_metadata / null
               )
 
-shelley_DNS_name = tstr .size (0..64)
+shelley_DNS_name = tstr .size (0..64) ; @newtype get
 
 shelley_single_host_name = (
   tag: 1,

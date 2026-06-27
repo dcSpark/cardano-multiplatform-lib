@@ -30,7 +30,7 @@
 
 ;datum_hash = $hash32
 
-KES_signature = bytes .size 448
+KES_signature = bytes .size 448 ; @newtype get
 
 ; this isn't referenced anywhere else so we don't provide it.
 ; signkeyKES = bytes .size 64

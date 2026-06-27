@@ -36,3 +36,7 @@ noop_proc_macro = { version = "0.3.0" }
 
 # wasm
 wasm-bindgen = { version = "0.2.87", optional = true }
+
+[dev-dependencies]
+# integration tests (tests/) are a separate crate and don't inherit the normal deps above
+hex = "0.4.0"

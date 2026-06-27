@@ -19,6 +19,7 @@ use crate::{
 use crate::{MultiEraBlock, MultiEraTransactionBody};
 
 use cbor_event::de::Deserializer;
+use cbor_event::se::Serializer;
 use cml_chain::address::Address;
 use cml_chain::assets::{Mint, PositiveCoin};
 use cml_chain::auxdata::AuxiliaryData;
@@ -102,6 +103,34 @@ impl MultiEraBlock {
             },
         }
         Ok(block)
+    }
+
+    /**
+     * Serializes a block back into the network block format with explicit era tag,
+     * i.e. `[era_tag, <block>]` — the inverse of from_explicit_network_cbor_bytes().
+     *
+     * The inner block is encoded with to_cbor_bytes() (preserving original encoding details),
+     * so a block decoded from network bytes round-trips byte-for-byte.
+     */
+    pub fn to_explicit_network_cbor_bytes(&self) -> Vec<u8> {
+        let era: u64 = match self {
+            Self::Byron(ByronBlock::EpochBoundary(_)) => 0,
+            Self::Byron(ByronBlock::Main(_)) => 1,
+            Self::Shelley(_) => 2,
+            Self::Allegra(_) => 3,
+            Self::Mary(_) => 4,
+            Self::Alonzo(_) => 5,
+            Self::Babbage(_) => 6,
+            Self::Conway(_) => 7,
+        };
+        // MultiEraBlock's own Serialize encodes just the inner block (no era tag); wrap it.
+        let inner = self.to_cbor_bytes();
+        let mut buf = Serializer::new_vec();
+        buf.write_array(cbor_event::Len::Len(2)).unwrap();
+        buf.write_unsigned_integer(era).unwrap();
+        let mut bytes = buf.finalize();
+        bytes.extend_from_slice(&inner);
+        bytes
     }
 
     pub fn header(&self) -> MultiEraBlockHeader {

@@ -1025,7 +1025,28 @@ impl_wasm_list!(
     StakeCredentialList
 );
 
-pub type SubCoin = Rational;
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct SubCoin(cml_chain::SubCoin);
+
+impl_wasm_cbor_json_api!(SubCoin);
+
+impl_wasm_conversions!(cml_chain::SubCoin, SubCoin);
+
+#[wasm_bindgen]
+impl SubCoin {
+    pub fn numerator(&self) -> u64 {
+        self.0.numerator
+    }
+
+    pub fn denominator(&self) -> u64 {
+        self.0.denominator
+    }
+
+    pub fn new(numerator: u64, denominator: u64) -> Self {
+        Self(cml_chain::SubCoin::new(numerator, denominator))
+    }
+}
 
 impl_wasm_list!(
     cml_chain::transaction::TransactionBody,

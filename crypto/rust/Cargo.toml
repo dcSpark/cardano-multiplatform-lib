@@ -17,8 +17,8 @@ crate-type = ["cdylib", "rlib"]
 cml-core = { "path" = "../../core/rust", version = "6.2.0" }
 base64 = "0.22.1"
 cbor_event = "2.2.0"
-cryptoxide = "0.4.2"
-ed25519-bip32 = "0.4.1"
+cryptoxide = "0.5.1"
+ed25519-bip32 = "0.4.2"
 sha2 = "0.10.9"
 digest = "0.10.7"
 bech32 = "0.12.0"

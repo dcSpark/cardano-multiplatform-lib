@@ -76,7 +76,10 @@ pub fn emip3_encrypt_with_password(
     let mut tag = [0; TAG_SIZE];
     let mut encrypted: Vec<u8> = repeat(0).take(data.len()).collect();
     {
-        ChaCha20Poly1305::new(&key, &nonce, &[]).encrypt(&data, &mut encrypted, &mut tag);
+        let nonce: &[u8; NONCE_SIZE] = nonce[..]
+            .try_into()
+            .expect("nonce length checked to be NONCE_SIZE above");
+        ChaCha20Poly1305::new(&key, nonce, &[]).encrypt(&data, &mut encrypted, &mut tag);
     }
 
     let mut output = Vec::with_capacity(data.len() + METADATA_SIZE);
@@ -110,6 +113,10 @@ pub fn emip3_decrypt_with_password(password: &str, data: &str) -> Result<String,
         pbkdf2(&mut mac, salt, ITER, &mut key);
         key
     };
+
+    let nonce: &[u8; NONCE_SIZE] = nonce
+        .try_into()
+        .expect("nonce slice is exactly NONCE_SIZE bytes");
 
     let mut decrypted: Vec<u8> = repeat(0).take(encrypted.len()).collect();
     let decryption_succeed =

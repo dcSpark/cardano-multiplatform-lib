@@ -16,7 +16,7 @@ use rand_chacha::ChaChaRng;
 pub struct TestCryptoGen(pub u64);
 
 impl Arbitrary for TestCryptoGen {
-    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+    fn arbitrary(g: &mut Gen) -> Self {
         TestCryptoGen(Arbitrary::arbitrary(g))
     }
 }
@@ -24,7 +24,8 @@ impl Arbitrary for TestCryptoGen {
 impl TestCryptoGen {
     /// get the nth deterministic RNG
     pub fn get_rng(&self, idx: u32) -> ChaChaRng {
-        ChaChaRng::seed_from_u64((idx as u64 * 2) ^ (12 + self.0))
+        // ponytail: wrapping_* so a large arbitrary self.0 can't overflow in debug builds
+        ChaChaRng::seed_from_u64((idx as u64 * 2) ^ (self.0.wrapping_add(12)))
     }
 
     /// Get the nth deterministic secret key
@@ -39,17 +40,16 @@ impl TestCryptoGen {
 }
 
 #[allow(dead_code)]
-pub fn arbitrary_public_key<A: AsymmetricKey, G: Gen>(g: &mut G) -> PublicKey<A::PubAlg> {
+pub fn arbitrary_public_key<A: AsymmetricKey>(g: &mut Gen) -> PublicKey<A::PubAlg> {
     TestCryptoGen::arbitrary(g)
         .keypair::<A>(0)
         .public_key()
         .clone()
 }
 
-pub fn arbitrary_secret_key<A, G>(g: &mut G) -> SecretKey<A>
+pub fn arbitrary_secret_key<A>(g: &mut Gen) -> SecretKey<A>
 where
     A: AsymmetricKey,
-    G: Gen,
 {
     TestCryptoGen::arbitrary(g).secret_key(0)
 }
@@ -59,7 +59,7 @@ where
     A: AsymmetricKey + 'static,
     A::Secret: Send,
 {
-    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+    fn arbitrary(g: &mut Gen) -> Self {
         arbitrary_secret_key(g)
     }
 }
@@ -69,7 +69,7 @@ where
     A::Secret: Send,
     <A::PubAlg as AsymmetricPublicKey>::Public: Send,
 {
-    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+    fn arbitrary(g: &mut Gen) -> Self {
         let secret_key = SecretKey::arbitrary(g);
         KeyPair::from(secret_key)
     }
@@ -81,7 +81,7 @@ where
     A::Signature: Send,
     T: Send + 'static,
 {
-    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+    fn arbitrary(g: &mut Gen) -> Self {
         let bytes: Vec<_> = std::iter::repeat_with(|| u8::arbitrary(g))
             .take(A::SIGNATURE_SIZE)
             .collect();
@@ -90,7 +90,7 @@ where
 }
 
 impl Arbitrary for Blake2b256 {
-    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+    fn arbitrary(g: &mut Gen) -> Self {
         let bytes: Vec<_> = std::iter::repeat_with(|| u8::arbitrary(g))
             .take(Self::HASH_SIZE)
             .collect();
@@ -99,7 +99,7 @@ impl Arbitrary for Blake2b256 {
 }
 
 impl Arbitrary for Sha3_256 {
-    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+    fn arbitrary(g: &mut Gen) -> Self {
         let bytes: Vec<_> = std::iter::repeat_with(|| u8::arbitrary(g))
             .take(Self::HASH_SIZE)
             .collect();
@@ -108,7 +108,7 @@ impl Arbitrary for Sha3_256 {
 }
 
 impl<H: digest::DigestAlg + 'static> Arbitrary for digest::Digest<H> {
-    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+    fn arbitrary(g: &mut Gen) -> Self {
         let bytes: Vec<_> = std::iter::repeat_with(|| u8::arbitrary(g))
             .take(26) // actual number doesn't really matter
             .collect();
@@ -117,7 +117,7 @@ impl<H: digest::DigestAlg + 'static> Arbitrary for digest::Digest<H> {
 }
 
 impl<H: digest::DigestAlg + 'static, T: 'static> Arbitrary for digest::DigestOf<H, T> {
-    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+    fn arbitrary(g: &mut Gen) -> Self {
         let bytes: Vec<_> = std::iter::repeat_with(|| u8::arbitrary(g))
             .take(26) // actual number doesn't really matter
             .collect();

@@ -35,6 +35,6 @@ serde_json = "1.0.57"
 schemars = "0.8.22"
 
 [dev-dependencies]
-quickcheck = "0.9.2"
-quickcheck_macros = "0.9.1"
+quickcheck = "1.1.0"
+quickcheck_macros = "1.2.0"
 rand_chacha = "0.10.0"

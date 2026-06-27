@@ -1,0 +1,1 @@
+npm run rust:test && npm run rust:build-nodejs

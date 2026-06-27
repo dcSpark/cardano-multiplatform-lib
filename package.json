@@ -14,12 +14,8 @@
     "js:publish-nodejs:beta": "(cd cml/wasm && npm run js:publish-nodejs:beta) && (cd multi-era/wasm && npm run js:publish-nodejs:beta)",
     "js:publish-browser:prod": "(cd cml/wasm && npm run js:publish-browser:prod) && (cd multi-era/wasm && npm run js:publish-browser:prod)",
     "js:publish-browser:beta": "(cd cml/wasm && npm run js:publish-browser:beta) && (cd multi-era/wasm && npm run js:publish-browser:beta)",
-    "all:publish": "./release.sh prod"
-  },
-  "husky": {
-    "hooks": {
-      "pre-push": "npm run rust:test && npm run rust:build-nodejs"
-    }
+    "all:publish": "./release.sh prod",
+    "prepare": "husky"
   },
   "author": "dcSpark",
   "license": "MIT",
@@ -30,7 +26,7 @@
   "devDependencies": {
     "flowgen": "1.21.0",
     "cross-env": "^10.1.0",
-    "husky": "4.2.5",
+    "husky": "9.1.7",
     "json-schema-to-typescript": "^10.1.5",
     "rimraf": "6.1.3"
   }

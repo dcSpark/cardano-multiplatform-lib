@@ -1,10 +1,10 @@
 use crate::PolicyId;
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::{
+    ArithmeticError,
     error::{DeserializeError, DeserializeFailure, Key},
     ordered_hash_map::OrderedHashMap,
-    serialization::{fit_sz, CBORReadLen, Deserialize, LenEncoding, Serialize, StringEncoding},
-    ArithmeticError,
+    serialization::{CBORReadLen, Deserialize, LenEncoding, Serialize, StringEncoding, fit_sz},
 };
 use cml_crypto::{RawBytesEncoding, ScriptHash};
 use std::io::{BufRead, Seek, Write};

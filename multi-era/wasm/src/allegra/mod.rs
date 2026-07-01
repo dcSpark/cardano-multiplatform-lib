@@ -8,13 +8,13 @@ use crate::{
     AllegraCertificateList, AllegraTransactionBodyList, AllegraTransactionWitnessSetList,
     MapTransactionIndexToAllegraAuxiliaryData, ShelleyTransactionOutputList,
 };
+use cml_chain_wasm::Epoch;
 use cml_chain_wasm::assets::Coin;
 use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain_wasm::certs::StakeCredential;
 use cml_chain_wasm::certs::{
     PoolRetirement, StakeDelegation, StakeDeregistration, StakeRegistration,
 };
-use cml_chain_wasm::Epoch;
 use cml_chain_wasm::{
     BootstrapWitnessList, NativeScriptList, TransactionInputList, VkeywitnessList,
 };

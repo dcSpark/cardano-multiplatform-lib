@@ -1,6 +1,6 @@
 use super::MaryTransactionBody;
 use cml_core::serialization::Serialize;
-use cml_crypto::{blake2b256, TransactionHash};
+use cml_crypto::{TransactionHash, blake2b256};
 
 impl MaryTransactionBody {
     pub fn hash(&self) -> TransactionHash {

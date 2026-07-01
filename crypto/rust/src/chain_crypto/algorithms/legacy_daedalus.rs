@@ -12,7 +12,7 @@ use cryptoxide::sha2::Sha512;
 
 use super::ed25519 as ei;
 use cryptoxide::ed25519;
-use ed25519_bip32::{XPrv, XPub, XPRV_SIZE, XPUB_SIZE};
+use ed25519_bip32::{XPRV_SIZE, XPUB_SIZE, XPrv, XPub};
 use rand::{CryptoRng, Rng};
 
 const CHAIN_CODE_SIZE: usize = 32;

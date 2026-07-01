@@ -68,7 +68,9 @@ pub enum MetadataJsonError {
     BoolFound,
     #[error("DetailedSchema key {0} does not match type {1:?}")]
     DetailedKeyMismatch(String, JSONValue),
-    #[error("entry format in detailed schema map object not correct. Needs to be of form {{\"k\": \"key\", \"v\": value}}")]
+    #[error(
+        "entry format in detailed schema map object not correct. Needs to be of form {{\"k\": \"key\", \"v\": value}}"
+    )]
     InvalidMapEntry,
     #[error("key '{0}' in tagged object not valid")]
     InvalidTag(String),

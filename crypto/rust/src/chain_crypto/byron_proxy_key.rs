@@ -7,7 +7,7 @@ use std::io::{BufRead, Write};
 
 use cml_core::network::ProtocolMagic;
 
-use super::{byron_tags, Ed25519Bip32, Signature};
+use super::{Ed25519Bip32, Signature, byron_tags};
 
 type SignData = ();
 
@@ -189,12 +189,12 @@ impl cbor_event::de::Deserialize for BlockSignature {
 
 #[cfg(test)]
 mod tests {
-    use base64::{engine::general_purpose::STANDARD, Engine};
+    use base64::{Engine, engine::general_purpose::STANDARD};
 
     use std::str::FromStr;
 
     use crate::chain_crypto::{
-        byron_proxy_key::ByronProxySecretKey, Ed25519Bip32, PublicKey, SecretKey, Signature,
+        Ed25519Bip32, PublicKey, SecretKey, Signature, byron_proxy_key::ByronProxySecretKey,
     };
 
     #[test]

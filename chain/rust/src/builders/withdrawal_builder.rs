@@ -3,7 +3,7 @@ use crate::*;
 
 use super::witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet};
 
-use crate::{address::RewardAddress, certs::StakeCredential, RequiredSigners};
+use crate::{RequiredSigners, address::RewardAddress, certs::StakeCredential};
 
 #[derive(Debug, thiserror::Error)]
 pub enum WithdrawalBuilderError {

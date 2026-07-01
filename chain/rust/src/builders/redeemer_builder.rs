@@ -4,10 +4,10 @@ use super::{
     vote_builder::VoteBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
 };
 use crate::{
+    PolicyId,
     address::RewardAddress,
     plutus::{ExUnits, LegacyRedeemer, PlutusData, RedeemerTag, Redeemers},
     transaction::TransactionInput,
-    PolicyId,
 };
 use std::{collections::BTreeMap, fmt::Debug};
 
@@ -350,6 +350,7 @@ impl RedeemerSetBuilder {
 #[cfg(test)]
 mod tests {
     use crate::{
+        Value,
         address::Address,
         builders::witness_builder::{
             InputAggregateWitnessData, PartialPlutusWitness, PlutusScriptWitness,
@@ -357,7 +358,6 @@ mod tests {
         },
         plutus::{PlutusScript, PlutusV1Script},
         transaction::AlonzoFormatTxOut,
-        Value,
     };
     use cml_crypto::{PublicKey, RawBytesEncoding, TransactionHash};
 

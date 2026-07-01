@@ -1,9 +1,9 @@
-use crate::plutus::utils::compute_total_ex_units;
-use crate::plutus::ExUnitPrices;
-use crate::transaction::Transaction;
 use crate::Coin;
-use cml_core::{serialization::Serialize, ArithmeticError};
-use num::{rational::BigRational, CheckedAdd, CheckedMul};
+use crate::plutus::ExUnitPrices;
+use crate::plutus::utils::compute_total_ex_units;
+use crate::transaction::Transaction;
+use cml_core::{ArithmeticError, serialization::Serialize};
+use num::{CheckedAdd, CheckedMul, rational::BigRational};
 use std::convert::TryFrom;
 
 /// Careful: although the linear fee is the same for Byron & Shelley

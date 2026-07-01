@@ -8,7 +8,7 @@ use super::ed25519 as ei;
 use cryptoxide::ed25519;
 use rand::{CryptoRng, Rng};
 
-use ed25519_bip32::{XPrv, XPRV_SIZE};
+use ed25519_bip32::{XPRV_SIZE, XPrv};
 
 /// ED25519 Signing Algorithm with extended secret key
 pub struct Ed25519Extended;

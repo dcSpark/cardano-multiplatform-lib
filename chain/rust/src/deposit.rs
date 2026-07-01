@@ -1,8 +1,8 @@
 use cml_core::ArithmeticError;
 
 use crate::{
-    certs::Certificate, governance::ProposalProcedure, transaction::TransactionBody, Coin, Value,
-    Withdrawals,
+    Coin, Value, Withdrawals, certs::Certificate, governance::ProposalProcedure,
+    transaction::TransactionBody,
 };
 
 pub fn internal_get_implicit_input(

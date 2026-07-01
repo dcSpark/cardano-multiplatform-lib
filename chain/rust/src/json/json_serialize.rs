@@ -635,7 +635,7 @@ mod tests {
     use std::iter::FromIterator;
     use std::str::FromStr;
 
-    use super::{parse_json, tokenize_string, JsonToken, Value};
+    use super::{JsonToken, Value, parse_json, tokenize_string};
     use crate::utils::BigInteger;
 
     #[test]

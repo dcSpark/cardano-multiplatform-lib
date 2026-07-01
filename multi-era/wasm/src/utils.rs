@@ -1,5 +1,8 @@
-use cml_chain::{assets::PositiveCoin, Coin};
+use cml_chain::{Coin, assets::PositiveCoin};
 use cml_chain_wasm::{
+    DRepVotingThresholds, MapTransactionIndexToAuxiliaryData, NetworkId, PoolVotingThresholds,
+    ProposalProcedureList, Rational, RequiredSigners, TransactionInputList,
+    TransactionWitnessSetList, UnitInterval, Withdrawals,
     address::Address,
     assets::{Mint, Value},
     block::{OperationalCert, ProtocolVersion},
@@ -12,20 +15,17 @@ use cml_chain_wasm::{
     crypto::{GenesisHash, Nonce, VRFCert, Vkey},
     governance::VotingProcedures,
     plutus::{CostModels, ExUnitPrices, ExUnits},
-    DRepVotingThresholds, MapTransactionIndexToAuxiliaryData, NetworkId, PoolVotingThresholds,
-    ProposalProcedureList, Rational, RequiredSigners, TransactionInputList,
-    TransactionWitnessSetList, UnitInterval, Withdrawals,
 };
 use cml_core::{Epoch, TransactionIndex};
 use cml_core_wasm::{impl_wasm_conversions, impl_wasm_json_api, impl_wasm_list, impl_wasm_map};
 use cml_crypto_wasm::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, ScriptDataHash, TransactionHash, VRFVkey,
 };
-use wasm_bindgen::{prelude::wasm_bindgen, JsError};
+use wasm_bindgen::{JsError, prelude::wasm_bindgen};
 
 use crate::{
-    allegra::MoveInstantaneousRewardsCert, shelley::GenesisKeyDelegation,
-    shelley::ProtocolVersionStruct, GenesisHashList, MultiEraBlock, MultiEraTransactionBody,
+    GenesisHashList, MultiEraBlock, MultiEraTransactionBody, allegra::MoveInstantaneousRewardsCert,
+    shelley::GenesisKeyDelegation, shelley::ProtocolVersionStruct,
 };
 
 #[wasm_bindgen]

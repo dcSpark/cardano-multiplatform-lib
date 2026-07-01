@@ -11,9 +11,10 @@ use cml_core::{
     serialization::{Deserialize, ToBytes},
 };
 use cml_crypto::{
+    Bip32PrivateKey, Bip32PublicKey, CryptoError, Ed25519Signature, LegacyDaedalusPrivateKey,
+    PublicKey, RawBytesEncoding, TransactionHash,
     chain_crypto::{self, Sha3_256},
-    impl_hash_type, Bip32PrivateKey, Bip32PublicKey, CryptoError, Ed25519Signature,
-    LegacyDaedalusPrivateKey, PublicKey, RawBytesEncoding, TransactionHash,
+    impl_hash_type,
 };
 use std::{convert::TryFrom, fmt};
 
@@ -334,8 +335,8 @@ mod tests {
     use crate::genesis::network_info::NetworkInfo;
     use cml_core::serialization::ToBytes;
     use cml_crypto::{
-        chain_crypto::{self, Ed25519Bip32},
         Deserialize,
+        chain_crypto::{self, Ed25519Bip32},
     };
 
     fn assert_same_address(address: ByronAddress, xpub: chain_crypto::PublicKey<Ed25519Bip32>) {

@@ -1,4 +1,4 @@
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 use crate::{
     assets::{Coin, Value},

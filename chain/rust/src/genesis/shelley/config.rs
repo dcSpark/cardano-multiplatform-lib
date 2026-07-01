@@ -2,7 +2,7 @@ use cml_crypto::{Ed25519KeyHash, VRFKeyHash};
 use fraction::Fraction;
 use std::collections::BTreeMap;
 
-use crate::{address::Address, block::ProtocolVersion, Coin};
+use crate::{Coin, address::Address, block::ProtocolVersion};
 
 /// A subset of the Shelley genesis data. The genesis data is a JSON file
 /// is something completely different from a epoch genesis block and the Byron genesis block

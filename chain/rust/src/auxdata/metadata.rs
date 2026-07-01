@@ -1,11 +1,11 @@
 use crate::json::metadatums::{
-    decode_metadatum_to_json_value, encode_json_value_to_metadatum, MetadataJsonSchema,
+    MetadataJsonSchema, decode_metadatum_to_json_value, encode_json_value_to_metadatum,
 };
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::{
-    error::{DeserializeError, DeserializeFailure},
-    serialization::{fit_sz, Deserialize, LenEncoding, Serialize, StringEncoding},
     Int,
+    error::{DeserializeError, DeserializeFailure},
+    serialization::{Deserialize, LenEncoding, Serialize, StringEncoding, fit_sz},
 };
 use derivative::Derivative;
 

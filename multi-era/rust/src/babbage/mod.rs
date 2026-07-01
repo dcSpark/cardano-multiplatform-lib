@@ -26,9 +26,9 @@ use cml_chain::plutus::{
 use cml_chain::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, TransactionInput};
 use cml_chain::{Epoch, NetworkId, Rational, RequiredSigners, UnitInterval, Withdrawals};
 
+use cml_core::TransactionIndex;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::LenEncoding;
-use cml_core::TransactionIndex;
 
 use std::collections::BTreeMap;
 

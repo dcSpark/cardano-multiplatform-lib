@@ -6,12 +6,12 @@ use crate::{
     AllegraCertificateList, AlonzoFormatTxOutList, AlonzoRedeemerList, AlonzoTransactionBodyList,
     AlonzoTransactionWitnessSetList, GenesisHashList, MapTransactionIndexToAlonzoAuxiliaryData,
 };
+use cml_chain_wasm::RequiredSigners;
+use cml_chain_wasm::TransactionIndex;
 use cml_chain_wasm::assets::{Coin, Mint};
 use cml_chain_wasm::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain_wasm::crypto::Nonce;
 use cml_chain_wasm::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData};
-use cml_chain_wasm::RequiredSigners;
-use cml_chain_wasm::TransactionIndex;
 use cml_chain_wasm::{
     BootstrapWitnessList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
     TransactionInputList, VkeywitnessList,

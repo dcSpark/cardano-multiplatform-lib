@@ -318,7 +318,7 @@ impl Deserialize for AllegraCertificate {
             })(raw);
             match deser_variant {
                 Ok(stake_deregistration) => {
-                    return Ok(Self::StakeDeregistration(stake_deregistration))
+                    return Ok(Self::StakeDeregistration(stake_deregistration));
                 }
                 Err(e) => {
                     errs.push(e.annotate("StakeDeregistration"));
@@ -367,7 +367,7 @@ impl Deserialize for AllegraCertificate {
             })(raw);
             match deser_variant {
                 Ok(shelley_pool_registration) => {
-                    return Ok(Self::ShelleyPoolRegistration(shelley_pool_registration))
+                    return Ok(Self::ShelleyPoolRegistration(shelley_pool_registration));
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleyPoolRegistration"));
@@ -416,7 +416,7 @@ impl Deserialize for AllegraCertificate {
             })(raw);
             match deser_variant {
                 Ok(genesis_key_delegation) => {
-                    return Ok(Self::GenesisKeyDelegation(genesis_key_delegation))
+                    return Ok(Self::GenesisKeyDelegation(genesis_key_delegation));
                 }
                 Err(e) => {
                     errs.push(e.annotate("GenesisKeyDelegation"));
@@ -447,7 +447,7 @@ impl Deserialize for AllegraCertificate {
                 Ok(move_instantaneous_rewards_cert) => {
                     return Ok(Self::MoveInstantaneousRewardsCert(
                         move_instantaneous_rewards_cert,
-                    ))
+                    ));
                 }
                 Err(e) => {
                     errs.push(e.annotate("MoveInstantaneousRewardsCert"));
@@ -1394,15 +1394,15 @@ impl Deserialize for AllegraTransactionWitnessSet {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            )
+                            );
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -1410,7 +1410,7 @@ impl Deserialize for AllegraTransactionWitnessSet {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;

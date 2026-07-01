@@ -1,5 +1,5 @@
 use crate::error::{DeserializeError, DeserializeFailure};
-use cbor_event::{de::Deserializer, se::Serializer, Sz};
+use cbor_event::{Sz, de::Deserializer, se::Serializer};
 use std::io::{BufRead, Seek, Write};
 
 pub struct CBORReadLen {

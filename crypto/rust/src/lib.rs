@@ -151,7 +151,9 @@ impl Bip32PrivateKey {
     }
 
     pub fn generate_ed25519_bip32() -> Bip32PrivateKey {
-        Bip32PrivateKey(chain_crypto::SecretKey::<chain_crypto::Ed25519Bip32>::generate(os_csprng()))
+        Bip32PrivateKey(
+            chain_crypto::SecretKey::<chain_crypto::Ed25519Bip32>::generate(os_csprng()),
+        )
     }
 
     pub fn to_raw_key(&self) -> PrivateKey {
@@ -289,7 +291,8 @@ impl PrivateKey {
     }
 
     pub fn generate_ed25519extended() -> PrivateKey {
-        let keypair = chain_crypto::SecretKey::<chain_crypto::Ed25519Extended>::generate(os_csprng());
+        let keypair =
+            chain_crypto::SecretKey::<chain_crypto::Ed25519Extended>::generate(os_csprng());
         PrivateKey(key::EitherEd25519SecretKey::Extended(keypair))
     }
 

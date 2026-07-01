@@ -1,9 +1,9 @@
 use crate::{
+    RequiredSigners,
     crypto::hash::hash_plutus_data,
     governance::{GovActionId, Voter, VotingProcedure, VotingProcedures},
     plutus::PlutusData,
     transaction::NativeScript,
-    RequiredSigners,
 };
 
 use super::{

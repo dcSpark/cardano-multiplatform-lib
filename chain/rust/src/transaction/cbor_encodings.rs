@@ -1,7 +1,7 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::{address::RewardAccount, assets::AssetName, Voter};
+use crate::{Voter, address::RewardAccount, assets::AssetName};
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use cml_crypto::ScriptHash;
 use std::collections::BTreeMap;

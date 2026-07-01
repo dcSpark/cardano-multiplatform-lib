@@ -39,10 +39,10 @@ pub use utils::{NetworkId, NonemptySet, Set};
 //pub mod legacy_address;
 
 pub use cml_core::{
+    CertificateIndex, Epoch, Int, Slot, TransactionIndex,
     error::{DeserializeError, DeserializeFailure},
     ordered_hash_map::OrderedHashMap,
     serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
-    CertificateIndex, Epoch, Int, Slot, TransactionIndex,
 };
 
 pub mod cbor_encodings;

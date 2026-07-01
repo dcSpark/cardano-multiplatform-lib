@@ -1,4 +1,4 @@
-use wasm_bindgen::{prelude::wasm_bindgen, JsError};
+use wasm_bindgen::{JsError, prelude::wasm_bindgen};
 
 use cml_core_wasm::impl_wasm_conversions;
 

@@ -7,9 +7,9 @@ use crate::{
     AllegraCertificateList, AllegraTransactionWitnessSetList,
     MapTransactionIndexToAllegraAuxiliaryData, MaryTransactionBodyList, MaryTransactionOutputList,
 };
-use cml_chain_wasm::assets::{Coin, Mint};
 use cml_chain_wasm::TransactionInputList;
-use cml_chain_wasm::{address::Address, Value, Withdrawals};
+use cml_chain_wasm::assets::{Coin, Mint};
+use cml_chain_wasm::{Value, Withdrawals, address::Address};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::AuxiliaryDataHash;
 use wasm_bindgen::prelude::wasm_bindgen;

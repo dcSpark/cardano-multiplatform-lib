@@ -77,19 +77,25 @@ pub enum PlutusJsonError {
         0
     )]
     DetailedNonObject(JSONValue),
-    #[error("Hex byte strings in detailed schema should NOT start with 0x and should just contain the hex characters")]
+    #[error(
+        "Hex byte strings in detailed schema should NOT start with 0x and should just contain the hex characters"
+    )]
     DetailedHexWith0x,
     #[error("DetailedSchema key {0} does not match type {1:?}")]
     DetailedKeyMismatch(String, JSONValue),
     #[error("Invalid hex string: {0}")]
     InvalidHex(#[from] hex::FromHexError),
-    #[error("entry format in detailed schema map object not correct. Needs to be of form {{\"k\": {{\"key_type\": key}}, \"v\": {{\"value_type\", value}}}}")]
+    #[error(
+        "entry format in detailed schema map object not correct. Needs to be of form {{\"k\": {{\"key_type\": key}}, \"v\": {{\"value_type\", value}}}}"
+    )]
     InvalidMapEntry,
     #[error("key '{0}' in tagged object not valid")]
     InvalidTag(String),
     #[error("Key requires DetailedSchema: {:?}", 0)]
     DetailedKeyInBasicSchema(PlutusData),
-    #[error("detailed schemas must either have only one of the following keys: \"int\", \"bytes\", \"list\" or \"map\", or both of these 2 keys: \"constructor\" + \"fields\"")]
+    #[error(
+        "detailed schemas must either have only one of the following keys: \"int\", \"bytes\", \"list\" or \"map\", or both of these 2 keys: \"constructor\" + \"fields\""
+    )]
     InvalidTaggedConstructor,
 }
 

@@ -18,7 +18,9 @@ impl StakeCredential {
 pub enum IPStringParsingError {
     #[error("Invalid IPv4 Address String, expected period-separated bytes e.g. 0.0.0.0")]
     IPv4StringFormat,
-    #[error("Invalid IPv6 Address String, expected colon-separated hextets e.g. 2001:0db8:0000:0000:0000:8a2e:0370:7334")]
+    #[error(
+        "Invalid IPv6 Address String, expected colon-separated hextets e.g. 2001:0db8:0000:0000:0000:8a2e:0370:7334"
+    )]
     IPv6StringFormat,
     #[error("Deserializing from bytes: {0:?}")]
     DeserializeError(DeserializeError),

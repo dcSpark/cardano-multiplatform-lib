@@ -1,7 +1,7 @@
 use cml_chain_wasm::{
+    PolicyId,
     assets::AssetName,
     auxdata::{Metadata, TransactionMetadatum},
-    PolicyId,
 };
 
 use crate::*;

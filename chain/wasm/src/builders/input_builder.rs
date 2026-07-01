@@ -3,12 +3,12 @@ use crate::builders::{
     witness_builder::{NativeScriptWitnessInfo, PartialPlutusWitness},
 };
 use crate::{
+    NativeScript, RequiredSigners,
     plutus::PlutusData,
     transaction::{TransactionInput, TransactionOutput},
-    NativeScript, RequiredSigners,
 };
 use cml_core_wasm::impl_wasm_conversions;
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]

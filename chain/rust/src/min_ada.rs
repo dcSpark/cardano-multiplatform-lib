@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use cml_core::ArithmeticError;
 use cml_crypto::Serialize;
 
-use crate::{transaction::TransactionOutput, Coin};
+use crate::{Coin, transaction::TransactionOutput};
 
 pub fn min_ada_required(
     output: &TransactionOutput,
@@ -64,13 +64,13 @@ pub fn min_ada_required(
 #[cfg(test)]
 mod tests {
     use crate::{
+        PolicyId,
         address::BaseAddress,
         assets::AssetName,
         assets::{MultiAsset, Value},
         certs::StakeCredential,
         genesis::network_info::NetworkInfo,
         transaction::AlonzoFormatTxOut,
-        PolicyId,
     };
 
     use cml_core::ordered_hash_map::OrderedHashMap;

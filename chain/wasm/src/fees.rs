@@ -1,7 +1,7 @@
 use cml_core_wasm::impl_wasm_conversions;
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
-use crate::{plutus::ExUnitPrices, transaction::Transaction, Coin};
+use crate::{Coin, plutus::ExUnitPrices, transaction::Transaction};
 
 /// Careful: although the linear fee is the same for Byron & Shelley
 /// The value of the parameters and how fees are computed is not the same

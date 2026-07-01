@@ -57,11 +57,11 @@ impl ByronGenesisRedeem {
     }
 
     pub fn txid(&self) -> TransactionHash {
-        self.0 .0.into()
+        self.0.0.into()
     }
 
     pub fn address(&self) -> crate::byron::ByronAddress {
-        self.0 .1.clone().into()
+        self.0.1.clone().into()
     }
 }
 

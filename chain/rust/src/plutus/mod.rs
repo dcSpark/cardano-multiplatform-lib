@@ -23,7 +23,7 @@ use cbor_encodings::{
 
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, Serialize, StringEncoding};
-use cml_crypto::{blake2b256, DatumHash};
+use cml_crypto::{DatumHash, blake2b256};
 
 pub use utils::{ConstrPlutusData, PlutusMap, PlutusScript};
 

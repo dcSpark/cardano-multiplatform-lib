@@ -41,10 +41,10 @@ use crate::{
     },
 };
 use cml_chain_wasm::{
+    Coin, StakeCredentialList, TransactionIndex,
     block::Block,
     certs::StakeCredential,
     transaction::{AlonzoFormatTxOut, TransactionBody},
-    Coin, StakeCredentialList, TransactionIndex,
 };
 use cml_core_wasm::{
     impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list, impl_wasm_map,

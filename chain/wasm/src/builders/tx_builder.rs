@@ -1,9 +1,10 @@
 use cml_chain::builders::tx_builder::{ChangeSelectionAlgo, CoinSelectionStrategyCIP2};
 use cml_core_wasm::{impl_wasm_cbor_event_serialize_api, impl_wasm_conversions};
 use cml_crypto_wasm::Ed25519KeyHash;
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 use crate::{
+    Coin, NetworkId, Slot, Value, Withdrawals,
     address::Address,
     assets::Mint,
     auxdata::AuxiliaryData,
@@ -18,7 +19,6 @@ use crate::{
     fees::LinearFee,
     plutus::{CostModels, ExUnitPrices, ExUnits, Redeemers},
     transaction::{Transaction, TransactionBody, TransactionInput, TransactionOutput},
-    Coin, NetworkId, Slot, Value, Withdrawals,
 };
 
 #[wasm_bindgen]

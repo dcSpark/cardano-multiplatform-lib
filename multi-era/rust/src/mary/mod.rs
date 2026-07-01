@@ -11,10 +11,10 @@ use cbor_encodings::{MaryBlockEncoding, MaryTransactionBodyEncoding, MaryTransac
 use cml_chain::address::Address;
 use cml_chain::assets::{Coin, Mint, Value};
 
-use cml_chain::crypto::AuxiliaryDataHash;
-use cml_chain::transaction::TransactionInput;
 use cml_chain::TransactionIndex;
 use cml_chain::Withdrawals;
+use cml_chain::crypto::AuxiliaryDataHash;
+use cml_chain::transaction::TransactionInput;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use std::collections::BTreeMap;
 

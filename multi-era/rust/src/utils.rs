@@ -12,11 +12,11 @@ use crate::shelley::{
     GenesisKeyDelegation, ProtocolVersionStruct, ShelleyCertificate, ShelleyHeader,
     ShelleyProtocolParamUpdate, ShelleyTransactionOutput,
 };
+use crate::{MultiEraBlock, MultiEraTransactionBody};
 use crate::{
     allegra::AllegraBlock, alonzo::AlonzoBlock, babbage::BabbageBlock, byron::block::ByronBlock,
     mary::MaryBlock, shelley::ShelleyBlock,
 };
-use crate::{MultiEraBlock, MultiEraTransactionBody};
 
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
@@ -45,8 +45,8 @@ use cml_core::error::{DeserializeError, DeserializeFailure};
 use cml_core::serialization::*;
 use cml_core::{Epoch, Int, TransactionIndex};
 use cml_crypto::{
-    blake2b256, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, Ed25519KeyHash, GenesisHash,
-    RawBytesEncoding, ScriptDataHash, TransactionHash, VRFVkey,
+    AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, Ed25519KeyHash, GenesisHash,
+    RawBytesEncoding, ScriptDataHash, TransactionHash, VRFVkey, blake2b256,
 };
 
 impl MultiEraBlock {

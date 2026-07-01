@@ -14,7 +14,7 @@ pub use utils::CIP25LabelMetadata;
 
 pub use cml_cip25::CIP25Version;
 
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+use wasm_bindgen::prelude::{JsValue, wasm_bindgen};
 
 /// This is the entire metadata schema for CIP-25
 /// It can be parsed by passing in the CBOR bytes of the entire transaction metadata

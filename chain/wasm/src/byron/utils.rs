@@ -1,8 +1,8 @@
 use cml_crypto_wasm::{
-    impl_hash_type_ext, Bip32PrivateKey, Bip32PublicKey, LegacyDaedalusPrivateKey, PublicKey,
-    TransactionHash,
+    Bip32PrivateKey, Bip32PublicKey, LegacyDaedalusPrivateKey, PublicKey, TransactionHash,
+    impl_hash_type_ext,
 };
-use wasm_bindgen::{prelude::wasm_bindgen, JsError};
+use wasm_bindgen::{JsError, prelude::wasm_bindgen};
 
 use crate::{
     address::Address,

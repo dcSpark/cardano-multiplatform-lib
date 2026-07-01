@@ -39,7 +39,7 @@ impl Deserialize for Ssc {
                 SscCommitmentsPayload::deserialize(raw);
             match deser_variant {
                 Ok(ssc_commitments_payload) => {
-                    return Ok(Self::SscCommitmentsPayload(ssc_commitments_payload))
+                    return Ok(Self::SscCommitmentsPayload(ssc_commitments_payload));
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscCommitmentsPayload"));
@@ -51,7 +51,7 @@ impl Deserialize for Ssc {
             let deser_variant: Result<_, DeserializeError> = SscOpeningsPayload::deserialize(raw);
             match deser_variant {
                 Ok(ssc_openings_payload) => {
-                    return Ok(Self::SscOpeningsPayload(ssc_openings_payload))
+                    return Ok(Self::SscOpeningsPayload(ssc_openings_payload));
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscOpeningsPayload"));
@@ -74,7 +74,7 @@ impl Deserialize for Ssc {
                 SscCertificatesPayload::deserialize(raw);
             match deser_variant {
                 Ok(ssc_certificates_payload) => {
-                    return Ok(Self::SscCertificatesPayload(ssc_certificates_payload))
+                    return Ok(Self::SscCertificatesPayload(ssc_certificates_payload));
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscCertificatesPayload"));
@@ -711,7 +711,7 @@ impl Deserialize for SscProof {
             let deser_variant: Result<_, DeserializeError> = SscCommitmentsProof::deserialize(raw);
             match deser_variant {
                 Ok(ssc_commitments_proof) => {
-                    return Ok(Self::SscCommitmentsProof(ssc_commitments_proof))
+                    return Ok(Self::SscCommitmentsProof(ssc_commitments_proof));
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscCommitmentsProof"));
@@ -743,7 +743,7 @@ impl Deserialize for SscProof {
             let deser_variant: Result<_, DeserializeError> = SscCertificatesProof::deserialize(raw);
             match deser_variant {
                 Ok(ssc_certificates_proof) => {
-                    return Ok(Self::SscCertificatesProof(ssc_certificates_proof))
+                    return Ok(Self::SscCertificatesProof(ssc_certificates_proof));
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscCertificatesProof"));

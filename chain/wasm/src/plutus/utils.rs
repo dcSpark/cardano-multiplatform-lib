@@ -1,13 +1,13 @@
 use crate::{
-    plutus::{PlutusData, Redeemers},
     LegacyRedeemerList, PlutusDataList,
+    plutus::{PlutusData, Redeemers},
 };
 use cml_chain::plutus::Language;
 use cml_core_wasm::{
     impl_raw_bytes_api, impl_wasm_cbor_api, impl_wasm_cbor_json_api, impl_wasm_conversions,
 };
 use cml_crypto_wasm::ScriptHash;
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 use super::{ExUnits, PlutusV1Script, PlutusV2Script, PlutusV3Script};
 

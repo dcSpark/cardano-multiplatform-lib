@@ -9,7 +9,7 @@ pub use cml_core::{
     serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
 };
 
-pub use cml_chain::{address::Address, auxdata::Metadata, NetworkId};
+pub use cml_chain::{NetworkId, address::Address, auxdata::Metadata};
 
 use std::convert::From;
 

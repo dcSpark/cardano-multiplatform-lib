@@ -5,13 +5,13 @@
 )]
 
 use wasm_bindgen::{
-    prelude::{wasm_bindgen, JsValue},
     JsError,
+    prelude::{JsValue, wasm_bindgen},
 };
 
 use cml_core::serialization::{Deserialize, Serialize};
 
-use cml_core_wasm::{impl_wasm_conversions, impl_wasm_list, Int};
+use cml_core_wasm::{Int, impl_wasm_conversions, impl_wasm_list};
 
 pub use cml_chain::auxdata::TransactionMetadatumLabel;
 

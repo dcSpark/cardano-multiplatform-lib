@@ -42,7 +42,7 @@ pub trait VerificationAlgorithm: key::AsymmetricPublicKey {
     const SIGNATURE_BECH32_HRP: &'static str;
 
     fn verify_bytes(pubkey: &Self::Public, signature: &Self::Signature, msg: &[u8])
-        -> Verification;
+    -> Verification;
 
     fn signature_from_bytes(data: &[u8]) -> Result<Self::Signature, SignatureError>;
 }

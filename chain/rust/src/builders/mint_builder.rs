@@ -4,7 +4,7 @@ use super::witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet};
 
 use cml_core::ordered_hash_map::OrderedHashMap;
 
-use crate::{assets::AssetName, NativeScript, PolicyId, RequiredSigners};
+use crate::{NativeScript, PolicyId, RequiredSigners, assets::AssetName};
 
 #[derive(Clone)]
 pub struct MintBuilderResult {

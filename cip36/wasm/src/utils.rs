@@ -6,7 +6,7 @@ pub use cml_core::{
 
 pub use cml_chain_wasm::auxdata::{Metadata, TransactionMetadatum};
 
-pub use cml_chain_wasm::{address::Address, NetworkId};
+pub use cml_chain_wasm::{NetworkId, address::Address};
 use wasm_bindgen::JsError;
 
 use std::convert::{TryFrom, TryInto};

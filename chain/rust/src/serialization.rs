@@ -3,8 +3,8 @@
 pub use cml_core::{
     error::Key,
     serialization::{
-        fit_sz, CBORReadLen, Deserialize, DeserializeEmbeddedGroup, Serialize,
-        SerializeEmbeddedGroup,
+        CBORReadLen, Deserialize, DeserializeEmbeddedGroup, Serialize, SerializeEmbeddedGroup,
+        fit_sz,
     },
 };
 

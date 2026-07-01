@@ -6,7 +6,7 @@ use crate::chain_crypto::sign::{
 };
 
 use ed25519_bip32 as i;
-use ed25519_bip32::{XPrv, XPub, XPRV_SIZE, XPUB_SIZE};
+use ed25519_bip32::{XPRV_SIZE, XPUB_SIZE, XPrv, XPub};
 use rand::{CryptoRng, Rng};
 
 /// Ed25519 BIP32 Signature algorithm

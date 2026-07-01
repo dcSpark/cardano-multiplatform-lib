@@ -1,8 +1,8 @@
-use cbor_event::{de::Deserializer, se::Serializer, Sz};
+use cbor_event::{Sz, de::Deserializer, se::Serializer};
 use cml_core::{
-    error::{DeserializeError, DeserializeFailure},
-    serialization::{fit_sz, sz_max, Deserialize, LenEncoding, Serialize},
     Int, Slot,
+    error::{DeserializeError, DeserializeFailure},
+    serialization::{Deserialize, LenEncoding, Serialize, fit_sz, sz_max},
 };
 use cml_crypto::{Ed25519KeyHash, RawBytesEncoding, ScriptHash};
 use derivative::Derivative;
@@ -13,9 +13,9 @@ use std::{
 };
 
 use crate::{
-    crypto::hash::{hash_script, ScriptHashNamespace},
-    plutus::{Language, PlutusScript, PlutusV1Script, PlutusV2Script, PlutusV3Script},
     NativeScript, Script, SubCoin,
+    crypto::hash::{ScriptHashNamespace, hash_script},
+    plutus::{Language, PlutusScript, PlutusV1Script, PlutusV2Script, PlutusV3Script},
 };
 
 impl Script {

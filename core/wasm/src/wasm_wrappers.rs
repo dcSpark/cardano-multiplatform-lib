@@ -120,10 +120,22 @@ macro_rules! impl_wasm_list {
 #[macro_export]
 macro_rules! impl_wasm_list_needs_into {
     ($rust_elem_name:ty, $wasm_elem_name:ty, $wasm_list_name:ident, true, $elem_copy:tt) => {
-        $crate::impl_wasm_list!($rust_elem_name, $wasm_elem_name, $wasm_list_name, false, $elem_copy);
+        $crate::impl_wasm_list!(
+            $rust_elem_name,
+            $wasm_elem_name,
+            $wasm_list_name,
+            false,
+            $elem_copy
+        );
     };
     ($rust_elem_name:ty, $wasm_elem_name:ty, $wasm_list_name:ident, false, $elem_copy:tt) => {
-        $crate::impl_wasm_list!($rust_elem_name, $wasm_elem_name, $wasm_list_name, true, $elem_copy);
+        $crate::impl_wasm_list!(
+            $rust_elem_name,
+            $wasm_elem_name,
+            $wasm_list_name,
+            true,
+            $elem_copy
+        );
     };
 }
 
@@ -563,7 +575,11 @@ macro_rules! impl_wasm_json_api {
             pub fn to_js_value(&self) -> Result<wasm_bindgen::JsValue, wasm_bindgen::JsError> {
                 // json_compatible(): maps -> JS objects (not Map), None -> null, bytes -> arrays,
                 // so to_js_value matches to_json's shape. Default to_value() emits a JS Map instead.
-                serde::Serialize::serialize(&self.0, &serde_wasm_bindgen::Serializer::json_compatible()).map_err(|e| {
+                serde::Serialize::serialize(
+                    &self.0,
+                    &serde_wasm_bindgen::Serializer::json_compatible(),
+                )
+                .map_err(|e| {
                     wasm_bindgen::JsError::new(&format!(
                         concat!(stringify!($wasm_name), "::to_js_value: {}"),
                         e

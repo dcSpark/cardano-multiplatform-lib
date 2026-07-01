@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use std::io::{BufRead, Write};
 
-use cml_crypto::{chain_crypto::hash::Blake2b224, Bip32PublicKey, PublicKey};
+use cml_crypto::{Bip32PublicKey, PublicKey, chain_crypto::hash::Blake2b224};
 
 use crate::Coin;
 
@@ -17,8 +17,8 @@ use cbor_event::{self, de::Deserializer, se::Serializer};
 pub use self::crc32::Crc32;
 pub use cml_core::network::ProtocolMagic;
 pub use utils::{
-    make_daedalus_bootstrap_witness, make_icarus_bootstrap_witness, AddressId, ByronAddressError,
-    ByronScript, ParseExtendedAddrError, StakeholderId,
+    AddressId, ByronAddressError, ByronScript, ParseExtendedAddrError, StakeholderId,
+    make_daedalus_bootstrap_witness, make_icarus_bootstrap_witness,
 };
 
 mod base58;

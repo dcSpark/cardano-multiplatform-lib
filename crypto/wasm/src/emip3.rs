@@ -1,4 +1,4 @@
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 /// Encrypt using Emip3: https://github.com/Emurgo/EmIPs/blob/master/specs/emip-003.md
 #[wasm_bindgen]

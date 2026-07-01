@@ -16,9 +16,9 @@ use cml_crypto::{Ed25519KeyHash, ScriptHash};
 use crate::certs::StakeCredential;
 
 use cml_core::{
+    CertificateIndex, Slot, TransactionIndex,
     error::{DeserializeError, DeserializeFailure},
     serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
-    CertificateIndex, Slot, TransactionIndex,
 };
 
 // returns (Number represented, bytes read) if valid encoding
@@ -1034,11 +1034,17 @@ mod tests {
             stake_cred.clone(),
         )
         .to_address();
-        assert_eq!(addr_net_0.to_bech32(None).unwrap(), "addr_test1qz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3jcu5d8ps7zex2k2xt3uqxgjqnnj83ws8lhrn648jjxtwq2ytjqp");
+        assert_eq!(
+            addr_net_0.to_bech32(None).unwrap(),
+            "addr_test1qz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3jcu5d8ps7zex2k2xt3uqxgjqnnj83ws8lhrn648jjxtwq2ytjqp"
+        );
         let addr_net_3 =
             BaseAddress::new(NetworkInfo::mainnet().network_id(), spend_cred, stake_cred)
                 .to_address();
-        assert_eq!(addr_net_3.to_bech32(None).unwrap(), "addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3jcu5d8ps7zex2k2xt3uqxgjqnnj83ws8lhrn648jjxtwqfjkjv7");
+        assert_eq!(
+            addr_net_3.to_bech32(None).unwrap(),
+            "addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3jcu5d8ps7zex2k2xt3uqxgjqnnj83ws8lhrn648jjxtwqfjkjv7"
+        );
     }
 
     #[test]
@@ -1122,11 +1128,17 @@ mod tests {
             stake_cred.clone(),
         )
         .to_address();
-        assert_eq!(addr_net_0.to_bech32(None).unwrap(), "addr_test1qpu5vlrf4xkxv2qpwngf6cjhtw542ayty80v8dyr49rf5ewvxwdrt70qlcpeeagscasafhffqsxy36t90ldv06wqrk2qum8x5w");
+        assert_eq!(
+            addr_net_0.to_bech32(None).unwrap(),
+            "addr_test1qpu5vlrf4xkxv2qpwngf6cjhtw542ayty80v8dyr49rf5ewvxwdrt70qlcpeeagscasafhffqsxy36t90ldv06wqrk2qum8x5w"
+        );
         let addr_net_3 =
             BaseAddress::new(NetworkInfo::mainnet().network_id(), spend_cred, stake_cred)
                 .to_address();
-        assert_eq!(addr_net_3.to_bech32(None).unwrap(), "addr1q9u5vlrf4xkxv2qpwngf6cjhtw542ayty80v8dyr49rf5ewvxwdrt70qlcpeeagscasafhffqsxy36t90ldv06wqrk2qld6xc3");
+        assert_eq!(
+            addr_net_3.to_bech32(None).unwrap(),
+            "addr1q9u5vlrf4xkxv2qpwngf6cjhtw542ayty80v8dyr49rf5ewvxwdrt70qlcpeeagscasafhffqsxy36t90ldv06wqrk2qld6xc3"
+        );
     }
 
     #[test]
@@ -1239,11 +1251,17 @@ mod tests {
             stake_cred.clone(),
         )
         .to_address();
-        assert_eq!(addr_net_0.to_bech32(None).unwrap(), "addr_test1qqy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmn8k8ttq8f3gag0h89aepvx3xf69g0l9pf80tqv7cve0l33sw96paj");
+        assert_eq!(
+            addr_net_0.to_bech32(None).unwrap(),
+            "addr_test1qqy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmn8k8ttq8f3gag0h89aepvx3xf69g0l9pf80tqv7cve0l33sw96paj"
+        );
         let addr_net_3 =
             BaseAddress::new(NetworkInfo::mainnet().network_id(), spend_cred, stake_cred)
                 .to_address();
-        assert_eq!(addr_net_3.to_bech32(None).unwrap(), "addr1qyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmn8k8ttq8f3gag0h89aepvx3xf69g0l9pf80tqv7cve0l33sdn8p3d");
+        assert_eq!(
+            addr_net_3.to_bech32(None).unwrap(),
+            "addr1qyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmn8k8ttq8f3gag0h89aepvx3xf69g0l9pf80tqv7cve0l33sdn8p3d"
+        );
     }
 
     #[test]
@@ -1352,11 +1370,17 @@ mod tests {
             stake_cred.clone(),
         )
         .to_address();
-        assert_eq!(addr_net_0.to_bech32(None).unwrap(), "addr_test1qz8fg2e9yn0ga6sav0760cxmx0antql96mfuhqgzcc5swugw2jqqlugnx9qjep9xvcx40z0zfyep55r2t3lav5smyjrs96cusg");
+        assert_eq!(
+            addr_net_0.to_bech32(None).unwrap(),
+            "addr_test1qz8fg2e9yn0ga6sav0760cxmx0antql96mfuhqgzcc5swugw2jqqlugnx9qjep9xvcx40z0zfyep55r2t3lav5smyjrs96cusg"
+        );
         let addr_net_3 =
             BaseAddress::new(NetworkInfo::mainnet().network_id(), spend_cred, stake_cred)
                 .to_address();
-        assert_eq!(addr_net_3.to_bech32(None).unwrap(), "addr1qx8fg2e9yn0ga6sav0760cxmx0antql96mfuhqgzcc5swugw2jqqlugnx9qjep9xvcx40z0zfyep55r2t3lav5smyjrsxv9uuh");
+        assert_eq!(
+            addr_net_3.to_bech32(None).unwrap(),
+            "addr1qx8fg2e9yn0ga6sav0760cxmx0antql96mfuhqgzcc5swugw2jqqlugnx9qjep9xvcx40z0zfyep55r2t3lav5smyjrsxv9uuh"
+        );
     }
 
     #[test]
@@ -1386,11 +1410,17 @@ mod tests {
             stake_cred.clone(),
         )
         .to_address();
-        assert_eq!(addr_net_0.to_bech32(None).unwrap(), "addr_test1xr0de0mz3m9xmgtlmqqzu06s0uvfsczskdec8k7v4jhr7077mjlk9rk2dkshlkqq9cl4qlccnps9pvmns0duet9w8uls8flvxc");
+        assert_eq!(
+            addr_net_0.to_bech32(None).unwrap(),
+            "addr_test1xr0de0mz3m9xmgtlmqqzu06s0uvfsczskdec8k7v4jhr7077mjlk9rk2dkshlkqq9cl4qlccnps9pvmns0duet9w8uls8flvxc"
+        );
         let addr_net_3 =
             BaseAddress::new(NetworkInfo::mainnet().network_id(), spend_cred, stake_cred)
                 .to_address();
-        assert_eq!(addr_net_3.to_bech32(None).unwrap(), "addr1x80de0mz3m9xmgtlmqqzu06s0uvfsczskdec8k7v4jhr7077mjlk9rk2dkshlkqq9cl4qlccnps9pvmns0duet9w8ulsylzv28");
+        assert_eq!(
+            addr_net_3.to_bech32(None).unwrap(),
+            "addr1x80de0mz3m9xmgtlmqqzu06s0uvfsczskdec8k7v4jhr7077mjlk9rk2dkshlkqq9cl4qlccnps9pvmns0duet9w8ulsylzv28"
+        );
     }
 
     #[test]

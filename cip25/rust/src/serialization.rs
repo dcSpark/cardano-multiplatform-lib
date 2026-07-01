@@ -85,7 +85,7 @@ impl Deserialize for CIP25FilesDetails {
                     },
                     CBORType::Special => match len {
                         cbor_event::Len::Len(_) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::Len::Indefinite => match raw.special()? {
                             CBORSpecial::Break => break,
@@ -110,7 +110,7 @@ impl Deserialize for CIP25FilesDetails {
                     return Err(
                         DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("name")))
                             .into(),
-                    )
+                    );
                 }
             };
             let media_type =
@@ -120,7 +120,7 @@ impl Deserialize for CIP25FilesDetails {
                         return Err(DeserializeFailure::MandatoryFieldMissing(Key::Str(
                             String::from("mediaType"),
                         ))
-                        .into())
+                        .into());
                     }
                 };
             let src = match src {
@@ -129,7 +129,7 @@ impl Deserialize for CIP25FilesDetails {
                     return Err(
                         DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("src")))
                             .into(),
-                    )
+                    );
                 }
             };
             Ok(Self {
@@ -190,7 +190,7 @@ impl Deserialize for CIP25Metadata {
                     },
                     CBORType::Special => match len {
                         cbor_event::Len::Len(_) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::Len::Indefinite => match raw.special()? {
                             CBORSpecial::Break => break,
@@ -198,7 +198,7 @@ impl Deserialize for CIP25Metadata {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;
@@ -206,7 +206,7 @@ impl Deserialize for CIP25Metadata {
             let key_721 = match key_721 {
                 Some(x) => x,
                 None => {
-                    return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(721)).into())
+                    return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(721)).into());
                 }
             };
             Ok(Self { key_721 })
@@ -367,7 +367,7 @@ impl Deserialize for CIP25MetadataDetails {
                     },
                     CBORType::Special => match len {
                         cbor_event::Len::Len(_) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::Len::Indefinite => match raw.special()? {
                             CBORSpecial::Break => break,
@@ -392,7 +392,7 @@ impl Deserialize for CIP25MetadataDetails {
                     return Err(
                         DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("name")))
                             .into(),
-                    )
+                    );
                 }
             };
             let image = match image {
@@ -401,7 +401,7 @@ impl Deserialize for CIP25MetadataDetails {
                     return Err(
                         DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("image")))
                             .into(),
-                    )
+                    );
                 }
             };
             read_len.finish()?;

@@ -1,11 +1,11 @@
 use crate::builders::witness_builder::PartialPlutusWitness;
 use crate::*;
 use cml_core_wasm::impl_wasm_conversions;
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 use super::witness_builder::NativeScriptWitnessInfo;
 
-use crate::{address::RewardAddress, RequiredSigners};
+use crate::{RequiredSigners, address::RewardAddress};
 
 #[wasm_bindgen]
 #[derive(Clone)]

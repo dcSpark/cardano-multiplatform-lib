@@ -8,10 +8,10 @@ use super::redeemer_builder::RedeemerSetBuilder;
 use super::redeemer_builder::RedeemerWitnessKey;
 use super::vote_builder::VoteBuilderResult;
 use super::withdrawal_builder::WithdrawalBuilderResult;
-use super::witness_builder::merge_fake_witness;
 use super::witness_builder::PlutusScriptWitness;
 use super::witness_builder::RequiredWitnessSet;
 use super::witness_builder::TransactionWitnessSetBuilder;
+use super::witness_builder::merge_fake_witness;
 use super::witness_builder::{InputAggregateWitnessData, WitnessBuilderError};
 use crate::address::Address;
 use crate::assets::MultiAsset;
@@ -19,7 +19,7 @@ use crate::assets::{AssetArithmeticError, Mint};
 use crate::auxdata::AuxiliaryData;
 use crate::builders::output_builder::TransactionOutputBuilder;
 use crate::certs::Certificate;
-use crate::crypto::hash::{calc_script_data_hash, hash_auxiliary_data, ScriptDataHashError};
+use crate::crypto::hash::{ScriptDataHashError, calc_script_data_hash, hash_auxiliary_data};
 use crate::crypto::{BootstrapWitness, Vkeywitness};
 use crate::deposit::{internal_get_deposit, internal_get_implicit_input};
 use crate::fees::LinearFee;
@@ -32,7 +32,7 @@ use crate::transaction::{
     TransactionWitnessSet,
 };
 use crate::{
-    assets::AssetName, Coin, ExUnitPrices, NetworkId, PolicyId, Script, Value, Withdrawals,
+    Coin, ExUnitPrices, NetworkId, PolicyId, Script, Value, Withdrawals, assets::AssetName,
 };
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::ordered_hash_map::OrderedHashMap;
@@ -186,9 +186,7 @@ pub enum TxBuilderError {
     AssetArithmetic(#[from] AssetArithmeticError),
     #[error("Uninitialized field: {0:?}")]
     UninitializedField(TxBuilderConfigField),
-    #[error(
-        "Multiasset values not supported by RandomImprove. Please use RandomImproveMultiAsset"
-    )]
+    #[error("Multiasset values not supported by RandomImprove. Please use RandomImproveMultiAsset")]
     RandomImproveCantContainMultiasset,
     #[error("UTxO Balance Insufficient. Inputs: {0:?}, Outputs: {1:?}")]
     UTxOBalanceInsufficient(Value, Value),
@@ -2076,7 +2074,7 @@ mod tests {
     use crate::certs::StakeCredential;
     use crate::crypto::hash::hash_transaction;
     use crate::crypto::utils::make_vkey_witness;
-    use crate::genesis::network_info::{plutus_alonzo_cost_models, NetworkInfo};
+    use crate::genesis::network_info::{NetworkInfo, plutus_alonzo_cost_models};
     use crate::plutus::{PlutusScript, PlutusV1Script, PlutusV2Script, RedeemerTag};
     use crate::transaction::NativeScript;
     use crate::{Script, SubCoin};
@@ -2086,7 +2084,7 @@ mod tests {
 
     const MAX_VALUE_SIZE: u32 = 4000;
     const MAX_TX_SIZE: u32 = 8000; // might be out of date but suffices for our tests
-                                   // this is what is used in mainnet
+    // this is what is used in mainnet
     static COINS_PER_UTXO_BYTE: u64 = 4310;
 
     impl TransactionBuilder {
@@ -3456,11 +3454,11 @@ mod tests {
         let final_tx = tx_builder.build_body().unwrap();
         assert_eq!(final_tx.outputs.len(), 3);
         for (policy_id, asset_name) in policy_ids.iter().zip(names.iter()) {
-            assert!(final_tx.outputs.iter().any(|output| output
-                .amount()
-                .multiasset
-                .iter()
-                .any(|(pid, a)| pid == policy_id && a.iter().any(|(name, _)| name == asset_name))));
+            assert!(final_tx.outputs.iter().any(|output| {
+                output.amount().multiasset.iter().any(|(pid, a)| {
+                    pid == policy_id && a.iter().any(|(name, _)| name == asset_name)
+                })
+            }));
         }
         for output in final_tx.outputs.iter() {
             assert!(output.amount().to_cbor_bytes().len() <= max_value_size as usize);
@@ -3493,17 +3491,19 @@ mod tests {
         let mut output_amount = Value::from(50);
         output_amount.multiasset = create_multiasset().0;
 
-        assert!(tx_builder
-            .add_output(
-                TransactionOutputBuilder::new()
-                    .with_address(output_addr)
-                    .next()
-                    .unwrap()
-                    .with_value(output_amount)
-                    .build()
-                    .unwrap()
-            )
-            .is_err());
+        assert!(
+            tx_builder
+                .add_output(
+                    TransactionOutputBuilder::new()
+                        .with_address(output_addr)
+                        .next()
+                        .unwrap()
+                        .with_value(output_amount)
+                        .build()
+                        .unwrap()
+                )
+                .is_err()
+        );
     }
 
     #[test]
@@ -3574,9 +3574,11 @@ mod tests {
         .unwrap()
         .to_address();
 
-        assert!(tx_builder
-            .add_change_if_needed_for_tests(&change_addr)
-            .is_err())
+        assert!(
+            tx_builder
+                .add_change_if_needed_for_tests(&change_addr)
+                .is_err()
+        )
     }
 
     fn make_input(input_hash_byte: u8, value: Value) -> InputBuilderResult {
@@ -5450,7 +5452,10 @@ mod tests {
             );
         }
         let tx = tx_builder.build(ChangeSelectionAlgo::Default, &Address::from_bech32("addr1q9tzwgthsm4hs8alk5v3rgjn7nf9pldlmnc3nrns6dvct2dqzvgjxvajrmzsvwh9fucmp65gxc6mv3fskurctfyuj5zqc7q30l").unwrap()).unwrap();
-        assert_eq!(hex::encode(tx.body.to_cbor_bytes()), "a700d9010281825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58205d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b0dd9010281825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000ed9010281581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c");
+        assert_eq!(
+            hex::encode(tx.body.to_cbor_bytes()),
+            "a700d9010281825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58205d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b0dd9010281825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000ed9010281581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c"
+        );
     }
 
     #[test]
@@ -5626,7 +5631,10 @@ mod tests {
         );
 
         let tx = &signed_tx_builder.body;
-        assert_eq!(hex::encode(tx.to_cbor_bytes()), "a700d9010281825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58205d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b0dd9010281825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000ed9010281581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c");
+        assert_eq!(
+            hex::encode(tx.to_cbor_bytes()),
+            "a700d9010281825820473899cb48414442ea107735f7fc3e020f0293122e9d05e4be6f03ffafde5a0c00018283581d71aba3c2914116298a146af57d8156b1583f183fc05c0aa48ee95bec71821a001c41caa1581c6bec713b08a2d7c64baa3596d200b41b560850919d72e634944f2d52a14f537061636542756442696433303533015820f7f2f57c58b5e4872201ab678928b0d63935e82d022d385e1bad5bfe347e89d8825839015627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9a013112333b21ec5063ae54f31b0ea883635b64530b70785a49c95041a040228dd021a000db2d907582029ed935cc80249c4de9f3e96fdcea6b7da123a543bbe75fffe9e2c66119e426d0b58205d5863643ea0687f9ca3ea903e9d86d81787373da1ebf196206c31f29608ce9b0dd9010281825820a90a895d07049afc725a0d6a38c6b82218b8d1de60e7bd70ecdd58f1d9e1218b000ed9010281581c1c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c"
+        );
     }
 
     #[test]

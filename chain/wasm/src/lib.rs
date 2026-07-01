@@ -4,7 +4,7 @@
     clippy::new_without_default
 )]
 
-use ::wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use ::wasm_bindgen::prelude::{JsError, wasm_bindgen};
 use auxdata::TransactionMetadatumList;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list};
 
@@ -35,7 +35,7 @@ use auxdata::{AuxiliaryData, TransactionMetadatum};
 
 use certs::{Certificate, Relay, StakeCredential};
 use cml_chain::assets::NonZeroInt64;
-pub use cml_chain::{assets::Coin, Epoch};
+pub use cml_chain::{Epoch, assets::Coin};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_crypto_wasm::{Ed25519KeyHash, ScriptHash};
 use crypto::{BootstrapWitness, Vkeywitness};

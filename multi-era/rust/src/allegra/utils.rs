@@ -3,7 +3,7 @@ use cml_chain::{auxdata::AuxiliaryData, transaction::TransactionWitnessSet};
 use super::{AllegraAuxiliaryData, AllegraTransactionBody, AllegraTransactionWitnessSet};
 
 use cml_core::serialization::Serialize;
-use cml_crypto::{blake2b256, TransactionHash};
+use cml_crypto::{TransactionHash, blake2b256};
 
 impl AllegraTransactionBody {
     pub fn hash(&self) -> TransactionHash {

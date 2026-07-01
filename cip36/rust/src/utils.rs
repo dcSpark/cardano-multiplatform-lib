@@ -9,9 +9,9 @@ pub use cml_core::{
 };
 
 pub use cml_chain::{
+    NetworkId,
     address::Address,
     auxdata::{Metadata, TransactionMetadatum},
-    NetworkId,
 };
 
 use std::convert::From;
@@ -99,7 +99,7 @@ impl CIP36DeregistrationCbor {
     pub fn deserialize<R: BufRead + std::io::Seek>(
         raw: &mut Deserializer<R>,
     ) -> Result<Self, DeserializeError> {
-        use cml_core::{serialization::CBORReadLen, Key};
+        use cml_core::{Key, serialization::CBORReadLen};
 
         let len = raw.map_sz()?;
         let mut read_len = CBORReadLen::new(len);
@@ -142,7 +142,7 @@ impl CIP36DeregistrationCbor {
                     },
                     CBORType::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             CBORSpecial::Break => break,
@@ -150,7 +150,7 @@ impl CIP36DeregistrationCbor {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;
@@ -161,7 +161,7 @@ impl CIP36DeregistrationCbor {
                     return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(
                         KEY_DEREGISTRATION_LABEL,
                     ))
-                    .into())
+                    .into());
                 }
             };
             let deregistration_witness = match deregistration_witness {
@@ -170,7 +170,7 @@ impl CIP36DeregistrationCbor {
                     return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(
                         DEREGISTRATION_WITNESS_LABEL,
                     ))
-                    .into())
+                    .into());
                 }
             };
             read_len.finish()?;
@@ -412,11 +412,11 @@ impl CIP36RegistrationCbor {
                         _unknown_key => (), /* permissive of other metadatum labels */
                     },
                     CBORType::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
                     }
                     CBORType::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             CBORSpecial::Break => break,
@@ -424,7 +424,7 @@ impl CIP36RegistrationCbor {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;
@@ -435,7 +435,7 @@ impl CIP36RegistrationCbor {
                     return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(
                         KEY_REGISTRATION_LABEL,
                     ))
-                    .into())
+                    .into());
                 }
             };
             let registration_witness = match registration_witness {
@@ -444,7 +444,7 @@ impl CIP36RegistrationCbor {
                     return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(
                         REGISTRATION_WITNESS_LABEL,
                     ))
-                    .into())
+                    .into());
                 }
             };
             read_len.finish()?;

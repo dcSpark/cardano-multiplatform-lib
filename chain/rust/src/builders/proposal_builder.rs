@@ -1,6 +1,6 @@
 use crate::{
-    crypto::hash::hash_plutus_data, governance::ProposalProcedure, plutus::PlutusData,
-    transaction::NativeScript, RequiredSigners,
+    RequiredSigners, crypto::hash::hash_plutus_data, governance::ProposalProcedure,
+    plutus::PlutusData, transaction::NativeScript,
 };
 
 use super::{

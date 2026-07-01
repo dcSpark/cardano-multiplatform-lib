@@ -3,8 +3,8 @@ use std::{
     ops::Deref,
 };
 
-use crate::{assets::AssetName, AssetNameList, MapAssetNameToNonZeroInt64, PolicyId, PolicyIdList};
-use wasm_bindgen::{prelude::wasm_bindgen, JsError};
+use crate::{AssetNameList, MapAssetNameToNonZeroInt64, PolicyId, PolicyIdList, assets::AssetName};
+use wasm_bindgen::{JsError, prelude::wasm_bindgen};
 
 use cml_core_wasm::{
     impl_raw_bytes_api, impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_map,

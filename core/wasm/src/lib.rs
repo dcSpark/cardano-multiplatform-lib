@@ -1,4 +1,4 @@
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+use wasm_bindgen::prelude::{JsValue, wasm_bindgen};
 
 use cml_core::serialization::{Deserialize, Serialize};
 
@@ -85,5 +85,11 @@ impl AsRef<cml_core::Int> for Int {
 // get/add must resolve to .clone().into() across the From<cml_core::Int>/From<Int> boundary.
 #[cfg(test)]
 mod wasm_list_macro_polarity_check {
-    crate::impl_wasm_list_needs_into!(cml_core::Int, crate::Int, IntNeedsIntoListCheck, true, false);
+    crate::impl_wasm_list_needs_into!(
+        cml_core::Int,
+        crate::Int,
+        IntNeedsIntoListCheck,
+        true,
+        false
+    );
 }

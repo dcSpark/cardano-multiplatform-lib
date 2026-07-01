@@ -8,10 +8,10 @@ pub mod utils;
 
 pub use utils::{CIP25LabelMetadata, CIP25Version};
 
-use cbor_event::de::Deserializer;
-use cbor_event::se::Serializer;
 use cbor_event::Special as CBORSpecial;
 use cbor_event::Type as CBORType;
+use cbor_event::de::Deserializer;
+use cbor_event::se::Serializer;
 pub use cml_core::error::*;
 use std::convert::{From, TryFrom};
 use std::io::{BufRead, Write};

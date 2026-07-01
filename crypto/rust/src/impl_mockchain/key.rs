@@ -1,7 +1,7 @@
 //! Module provides cryptographic utilities and types related to
 //! the user keys.
 //!
-use crate::chain_core::mempack::{read_mut_slice, ReadBuf, ReadError, Readable};
+use crate::chain_core::mempack::{ReadBuf, ReadError, Readable, read_mut_slice};
 use crate::chain_core::property;
 use crate::chain_crypto as crypto;
 use crate::chain_crypto::{

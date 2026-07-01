@@ -259,7 +259,7 @@ impl Deserialize for Nonce {
                     return Ok(Self::Identity {
                         identity_encoding,
                         len_encoding,
-                    })
+                    });
                 }
                 Err(e) => {
                     errs.push(e.annotate("Identity"));

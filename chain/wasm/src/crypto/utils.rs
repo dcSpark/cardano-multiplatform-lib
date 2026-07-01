@@ -1,6 +1,6 @@
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
-use crate::{byron::AddressContent, crypto::BootstrapWitness, Vkeywitness};
+use crate::{Vkeywitness, byron::AddressContent, crypto::BootstrapWitness};
 
 use cml_crypto_wasm::{PrivateKey, TransactionHash};
 

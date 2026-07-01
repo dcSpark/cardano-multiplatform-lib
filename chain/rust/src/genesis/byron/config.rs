@@ -10,13 +10,13 @@ use std::{
 };
 
 use crate::{
+    Coin,
     byron::{ByronAddress, ProtocolMagic, StakeholderId},
     fees::LinearFee,
-    Coin,
 };
 use cml_crypto::{
-    chain_crypto::{self, Ed25519, Ed25519Bip32},
     BlockHeaderHash,
+    chain_crypto::{self, Ed25519, Ed25519Bip32},
 };
 
 /// Configuration for the wallet-crypto

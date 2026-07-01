@@ -1,6 +1,6 @@
 use base64::{
-    engine::general_purpose::{STANDARD, URL_SAFE},
     Engine,
+    engine::general_purpose::{STANDARD, URL_SAFE},
 };
 use cbor_event::cbor;
 use cml_core::DeserializeError;
@@ -20,7 +20,7 @@ use cml_crypto::chain_crypto::byron_proxy_key::ByronProxySecretKey;
 use cml_crypto::chain_crypto::{
     self, Blake2b256, Ed25519, Ed25519Bip32, Signature, SignatureFromStrError,
 };
-use cml_crypto::{blake2b256, Bip32PublicKey};
+use cml_crypto::{Bip32PublicKey, blake2b256};
 
 use super::{config, raw};
 

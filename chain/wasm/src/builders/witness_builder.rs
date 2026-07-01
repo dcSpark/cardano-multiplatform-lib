@@ -1,15 +1,15 @@
 use crate::{
+    Ed25519KeyHashList, LegacyRedeemerList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
+    PlutusV2ScriptList, Script,
     address::RewardAddress,
     byron::ByronAddress,
     crypto::{BootstrapWitness, Vkeywitness},
-    plutus::{utils::PlutusScript, LegacyRedeemer, PlutusData},
+    plutus::{LegacyRedeemer, PlutusData, utils::PlutusScript},
     transaction::TransactionWitnessSet,
-    Ed25519KeyHashList, LegacyRedeemerList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
-    PlutusV2ScriptList, Script,
 };
 use cml_core_wasm::impl_wasm_conversions;
 use cml_crypto_wasm::{DatumHash, Ed25519KeyHash, ScriptHash};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 use super::redeemer_builder::RedeemerWitnessKey;
 

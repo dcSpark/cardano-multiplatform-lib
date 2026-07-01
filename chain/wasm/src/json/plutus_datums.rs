@@ -2,7 +2,7 @@ pub use cml_chain::json::plutus_datums::CardanoNodePlutusDatumSchema;
 
 use crate::plutus::PlutusData;
 
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[wasm_bindgen]
 pub fn encode_json_str_to_plutus_datum(

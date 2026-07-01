@@ -17,6 +17,7 @@ use cbor_encodings::{
     AlonzoTransactionBodyEncoding, AlonzoTransactionEncoding, AlonzoTransactionWitnessSetEncoding,
     AlonzoUpdateEncoding,
 };
+use cml_chain::TransactionIndex;
 use cml_chain::assets::{Coin, Mint};
 use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain::crypto::{
@@ -24,7 +25,6 @@ use cml_chain::crypto::{
 };
 use cml_chain::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script};
 use cml_chain::transaction::{AlonzoFormatTxOut, NativeScript, TransactionInput};
-use cml_chain::TransactionIndex;
 use cml_chain::{Epoch, NetworkId, Rational, RequiredSigners, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use std::collections::BTreeMap;

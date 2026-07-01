@@ -17,7 +17,7 @@ pub mod network;
 pub mod ordered_hash_map;
 pub mod serialization;
 
-use crate::serialization::{fit_sz, Deserialize, Serialize};
+use crate::serialization::{Deserialize, Serialize, fit_sz};
 
 extern crate derivative;
 use derivative::Derivative;

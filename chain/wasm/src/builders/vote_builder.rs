@@ -1,12 +1,12 @@
-use wasm_bindgen::{prelude::wasm_bindgen, JsError};
+use wasm_bindgen::{JsError, prelude::wasm_bindgen};
 
 use cml_core_wasm::impl_wasm_conversions;
 
 use crate::{
+    RequiredSigners,
     governance::{GovActionId, Voter, VotingProcedure},
     plutus::PlutusData,
     transaction::NativeScript,
-    RequiredSigners,
 };
 
 use super::witness_builder::{NativeScriptWitnessInfo, PartialPlutusWitness};

@@ -4,8 +4,8 @@ use super::{BootstrapWitness, Vkeywitness};
 use crate::byron::AddressContent;
 
 use cml_crypto::{
-    chain_crypto::{self, derive::combine_pk_and_chaincode},
     CryptoError, PrivateKey, RawBytesEncoding, TransactionHash,
+    chain_crypto::{self, derive::combine_pk_and_chaincode},
 };
 
 impl BootstrapWitness {

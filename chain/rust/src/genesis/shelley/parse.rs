@@ -1,6 +1,6 @@
 use cml_core::DeserializeError;
 use cml_crypto::{
-    chain_crypto::Blake2b256, Ed25519KeyHash, PoolMetadataHash, TransactionHash, VRFKeyHash,
+    Ed25519KeyHash, PoolMetadataHash, TransactionHash, VRFKeyHash, chain_crypto::Blake2b256,
 };
 use num::traits::Pow as _;
 use serde_json;
@@ -9,10 +9,10 @@ use std::io::Read;
 use std::str::FromStr;
 
 use crate::{
+    UnitInterval,
     address::{Address, RewardAccount},
     block::ProtocolVersion,
     certs::{Ipv4, Ipv6, PoolMetadata, PoolParams, Relay, StakeCredential, Url},
-    UnitInterval,
 };
 
 use super::{
@@ -67,19 +67,17 @@ pub fn parse_genesis_data<R: Read>(
                             "single host address" => {
                                 let ipv4 = match value.IPv4.as_ref() {
                                     Some(s) => Some(Ipv4::from_str(s)?),
-                                    _ => None
+                                    _ => None,
                                 };
                                 let ipv6 = match value.IPv6.as_ref() {
                                     Some(s) => Some(Ipv6::from_str(s)?),
-                                    _ => None
+                                    _ => None,
                                 };
-                                relays.push(Relay::new_single_host_addr(
-                                    value.port,
-                                    ipv4,
-                                    ipv6
-                                ));
-                            },
-                            _ => panic!("Only single host address relays are supported in cardano-node Relay JSON parsing")
+                                relays.push(Relay::new_single_host_addr(value.port, ipv4, ipv6));
+                            }
+                            _ => panic!(
+                                "Only single host address relays are supported in cardano-node Relay JSON parsing"
+                            ),
                         }
                     }
                 }

@@ -5,7 +5,7 @@ use super::{
 };
 use crate::plutus::{ExUnits, LegacyRedeemer, PlutusData, RedeemerTag, Redeemers};
 use cml_core_wasm::impl_wasm_conversions;
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, PartialOrd, Ord, Debug, PartialEq, Eq, Hash)]

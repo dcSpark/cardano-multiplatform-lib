@@ -826,7 +826,7 @@ impl Deserialize for ByronTxWitness {
                 );
             match deser_variant {
                 Ok(byron_script_witness) => {
-                    return Ok(Self::ByronScriptWitness(byron_script_witness))
+                    return Ok(Self::ByronScriptWitness(byron_script_witness));
                 }
                 Err(e) => {
                     errs.push(e.annotate("ByronScriptWitness"));
@@ -843,7 +843,7 @@ impl Deserialize for ByronTxWitness {
                 );
             match deser_variant {
                 Ok(byron_redeem_witness) => {
-                    return Ok(Self::ByronRedeemWitness(byron_redeem_witness))
+                    return Ok(Self::ByronRedeemWitness(byron_redeem_witness));
                 }
                 Err(e) => {
                     errs.push(e.annotate("ByronRedeemWitness"));

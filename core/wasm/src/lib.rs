@@ -79,3 +79,11 @@ impl AsRef<cml_core::Int> for Int {
         &self.0
     }
 }
+
+// compile-only check that the --wasm-list-macro shim expands the exact form
+// cddl-codegen emits for a wrapped element (needs_into=true, is_copy=false) into valid code —
+// get/add must resolve to .clone().into() across the From<cml_core::Int>/From<Int> boundary.
+#[cfg(test)]
+mod wasm_list_macro_polarity_check {
+    crate::impl_wasm_list_needs_into!(cml_core::Int, crate::Int, IntNeedsIntoListCheck, true, false);
+}

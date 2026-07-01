@@ -76,7 +76,11 @@ gen() {
 #   --lib-name=cml-<crate> (passed PER gen call below) sets the rust package name and the wasm
 #     self-reference (cml_chain::... etc.); without it everything is the default `cddl-lib`/cddl_lib.
 OVERRIDE=(--common-import-override=cml_core)
-WASM_MACROS=(--wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api --wasm-conversions-macro=cml_core_wasm::impl_wasm_conversions)
+#   --wasm-list-macro collapses each Vec<T>-backed wasm list wrapper (struct + new/len/get/add +
+#     conversions) into a single impl_wasm_list_needs_into!(rust, wasm, Name, needs_into, is_copy)
+#     call. It supersedes --wasm-conversions-macro for list wrappers. The shim adapts the flag's
+#     needs_into polarity to cml_core_wasm::impl_wasm_list (whose 4th arg is inverted).
+WASM_MACROS=(--wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api --wasm-conversions-macro=cml_core_wasm::impl_wasm_conversions --wasm-list-macro=cml_core_wasm::impl_wasm_list_needs_into)
 COMMON=(--preserve-encodings=true --canonical-form=true --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${WASM_MACROS[@]}")
 
 ARGS=("$@")

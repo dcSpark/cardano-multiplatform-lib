@@ -111,6 +111,22 @@ macro_rules! impl_wasm_list {
     };
 }
 
+/// Adapter for cddl-codegen's `--wasm-list-macro` flag. The flag emits a 5-arg call
+/// `(rust, wasm, name, needs_into, is_copy)` where `needs_into = true` means the element is
+/// converted across the wasm boundary via `.into()`. `impl_wasm_list`'s 4th parameter has the
+/// INVERSE polarity (`true` = element ABI is already native, so skip `.into()`), so this shim
+/// flips param 4 and forwards to `impl_wasm_list`. Hand-written `impl_wasm_list!` call sites keep
+/// their existing polarity and are unaffected.
+#[macro_export]
+macro_rules! impl_wasm_list_needs_into {
+    ($rust_elem_name:ty, $wasm_elem_name:ty, $wasm_list_name:ident, true, $elem_copy:tt) => {
+        $crate::impl_wasm_list!($rust_elem_name, $wasm_elem_name, $wasm_list_name, false, $elem_copy);
+    };
+    ($rust_elem_name:ty, $wasm_elem_name:ty, $wasm_list_name:ident, false, $elem_copy:tt) => {
+        $crate::impl_wasm_list!($rust_elem_name, $wasm_elem_name, $wasm_list_name, true, $elem_copy);
+    };
+}
+
 /// This shouldn't be explicitly called - only via impl_wasm_* macros here
 /// expression, e is Copy
 #[macro_export]

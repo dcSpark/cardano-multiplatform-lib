@@ -86,17 +86,14 @@ pub fn sz_max(sz: cbor_event::Sz) -> u64 {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Default)]
 pub enum LenEncoding {
+    #[default]
     Canonical,
     Definite(cbor_event::Sz),
     Indefinite,
 }
 
-impl Default for LenEncoding {
-    fn default() -> Self {
-        Self::Canonical
-    }
-}
 
 impl From<cbor_event::LenSz> for LenEncoding {
     fn from(len_sz: cbor_event::LenSz) -> Self {
@@ -114,17 +111,14 @@ impl From<cbor_event::LenSz> for LenEncoding {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Default)]
 pub enum StringEncoding {
+    #[default]
     Canonical,
     Indefinite(Vec<(u64, Sz)>),
     Definite(Sz),
 }
 
-impl Default for StringEncoding {
-    fn default() -> Self {
-        Self::Canonical
-    }
-}
 
 impl From<cbor_event::StringLenSz> for StringEncoding {
     fn from(len_sz: cbor_event::StringLenSz) -> Self {
@@ -285,8 +279,7 @@ impl<T: Deserialize> FromBytes for T {
         Self: Sized,
     {
         let mut raw = Deserializer::from(std::io::Cursor::new(data));
-        Self::deserialize(&mut raw).map_err(Into::into)
-    }
+        Self::deserialize(&mut raw)}
 }
 pub trait RawBytesEncoding {
     fn to_raw_bytes(&self) -> &[u8];

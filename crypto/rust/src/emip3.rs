@@ -4,7 +4,6 @@ use cryptoxide::pbkdf2::pbkdf2;
 use cryptoxide::sha2::Sha512;
 use hex::ToHex;
 
-use std::iter::repeat;
 
 // taken from js-cardano-wasm
 
@@ -86,13 +85,13 @@ pub fn emip3_encrypt_with_password(
 
     let key = {
         let mut mac = Hmac::new(Sha512::new(), &password);
-        let mut key: Vec<u8> = repeat(0).take(KEY_SIZE).collect();
+        let mut key: Vec<u8> = std::iter::repeat_n(0, KEY_SIZE).collect();
         pbkdf2(&mut mac, &salt[..], ITER, &mut key);
         key
     };
 
     let mut tag = [0; TAG_SIZE];
-    let mut encrypted: Vec<u8> = repeat(0).take(data.len()).collect();
+    let mut encrypted: Vec<u8> = std::iter::repeat_n(0, data.len()).collect();
     {
         let nonce: &[u8; NONCE_SIZE] = nonce[..]
             .try_into()
@@ -127,7 +126,7 @@ pub fn emip3_decrypt_with_password(password: &str, data: &str) -> Result<String,
 
     let key = {
         let mut mac = Hmac::new(Sha512::new(), &password);
-        let mut key: Vec<u8> = repeat(0).take(KEY_SIZE).collect();
+        let mut key: Vec<u8> = std::iter::repeat_n(0, KEY_SIZE).collect();
         pbkdf2(&mut mac, salt, ITER, &mut key);
         key
     };
@@ -136,7 +135,7 @@ pub fn emip3_decrypt_with_password(password: &str, data: &str) -> Result<String,
         .try_into()
         .expect("nonce slice is exactly NONCE_SIZE bytes");
 
-    let mut decrypted: Vec<u8> = repeat(0).take(encrypted.len()).collect();
+    let mut decrypted: Vec<u8> = std::iter::repeat_n(0, encrypted.len()).collect();
     let decryption_succeed =
         { ChaCha20Poly1305::new(&key, nonce, &[]).decrypt(encrypted, &mut decrypted, tag) };
 

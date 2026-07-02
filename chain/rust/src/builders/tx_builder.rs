@@ -242,13 +242,12 @@ fn total_ref_script_size_for_fee(tx_builder: &TransactionBuilder) -> Result<u64,
         .iter()
         .chain(tx_builder.reference_inputs.iter().flatten())
     {
-        if ref_script_inputs.insert(utxo.input.clone()) {
-            if let Some(script_ref) = utxo.output.script_ref() {
+        if ref_script_inputs.insert(utxo.input.clone())
+            && let Some(script_ref) = utxo.output.script_ref() {
                 total_ref_script_size = total_ref_script_size
                     .checked_add(ref_script_orig_size(script_ref))
                     .ok_or(ArithmeticError::IntegerOverflow)?;
             }
-        }
     }
 
     Ok(total_ref_script_size)
@@ -1350,11 +1349,10 @@ impl TransactionBuilder {
                         reference_inputs
                             .iter()
                             .fold(&mut languages, |langs, input| {
-                                if let Some(script_ref) = &input.output.script_ref() {
-                                    if let Some(lang) = script_ref.language() {
+                                if let Some(script_ref) = &input.output.script_ref()
+                                    && let Some(lang) = script_ref.language() {
                                         langs.insert(lang);
                                     }
-                                }
                                 langs
                             });
                     };
@@ -1362,11 +1360,10 @@ impl TransactionBuilder {
                         .clone()
                         .iter()
                         .fold(&mut languages, |langs, input| {
-                            if let Some(script_ref) = &input.output.script_ref() {
-                                if let Some(lang) = script_ref.language() {
+                            if let Some(script_ref) = &input.output.script_ref()
+                                && let Some(lang) = script_ref.language() {
                                     langs.insert(lang);
                                 }
-                            }
                             langs
                         });
                     calc_script_data_hash(
@@ -1722,7 +1719,7 @@ pub fn add_change_if_needed(
     let fee = match &builder.fee {
         None => builder.min_fee(include_exunits),
         // generating the change output involves changing the fee
-        Some(set_fee) => Ok(set_fee.clone()),
+        Some(set_fee) => Ok(*set_fee),
     }?;
 
     // note: can't add datum / script_ref to change

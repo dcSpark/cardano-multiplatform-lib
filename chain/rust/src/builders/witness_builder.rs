@@ -140,11 +140,8 @@ impl RequiredWitnessSet {
     // }
 
     pub fn add_script_hash(&mut self, script_hash: ScriptHash) {
-        match self.script_refs.get(&script_hash) {
-            None => {
-                self.scripts.insert(script_hash);
-            }
-            Some(_) => {}
+        if self.script_refs.get(&script_hash).is_none() {
+            self.scripts.insert(script_hash);
         }
     }
 

@@ -96,9 +96,7 @@ impl Deserialize for BootstrapWitness {
                 .map_err(|e: DeserializeError| e.annotate("signature"))?;
             let (chain_code, chain_code_encoding) = raw
                 .bytes_sz()
-                .map_err(Into::<DeserializeError>::into)
-                .map_err(Into::<DeserializeError>::into)
-                .and_then(|(bytes, enc)| {
+                .map_err(Into::<DeserializeError>::into).and_then(|(bytes, enc)| {
                     if bytes.len() < 32 || bytes.len() > 32 {
                         Err(DeserializeFailure::RangeCheck {
                             found: bytes.len() as isize,
@@ -377,9 +375,7 @@ impl Deserialize for VRFCert {
                 .map_err(|e: DeserializeError| e.annotate("output"))?;
             let (proof, proof_encoding) = raw
                 .bytes_sz()
-                .map_err(Into::<DeserializeError>::into)
-                .map_err(Into::<DeserializeError>::into)
-                .and_then(|(bytes, enc)| {
+                .map_err(Into::<DeserializeError>::into).and_then(|(bytes, enc)| {
                     if bytes.len() < 80 || bytes.len() > 80 {
                         Err(DeserializeFailure::RangeCheck {
                             found: bytes.len() as isize,

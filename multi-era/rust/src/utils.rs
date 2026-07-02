@@ -676,7 +676,7 @@ impl MultiEraTransactionBody {
         }
     }
 
-    pub fn mint(&self) -> Option<Cow<Mint>> {
+    pub fn mint(&self) -> Option<Cow<'_, Mint>> {
         match self {
             Self::Byron(_tx) => None,
             Self::Shelley(_tx) => None,
@@ -1105,12 +1105,10 @@ impl MultiEraProtocolParamUpdate {
             Self::Shelley(_update) => None,
             Self::Alonzo(update) => update
                 .cost_models_for_script_languages
-                .clone()
-                .map(Into::into),
+                .clone(),
             Self::Babbage(update) => update
                 .cost_models_for_script_languages
-                .clone()
-                .map(Into::into),
+                .clone(),
             Self::Conway(update) => update.cost_models_for_script_languages.clone(),
         }
     }

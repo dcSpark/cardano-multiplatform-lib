@@ -169,7 +169,7 @@ fn tokenize_string(string: &str) -> Vec<JsonToken> {
             "\"" => {
                 // if we have backslashed quotes in a string they're in the string already
                 if !current_string.is_empty()
-                    && current_string.graphemes(true).last().unwrap() == "\\"
+                    && current_string.graphemes(true).next_back().unwrap() == "\\"
                 {
                     let graphemes_count = current_string.graphemes(true).count();
                     current_string = current_string

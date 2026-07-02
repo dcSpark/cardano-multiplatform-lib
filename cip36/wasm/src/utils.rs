@@ -40,9 +40,7 @@ impl CIP36DeregistrationCbor {
     /// The resulting CIP36DeregistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
     pub fn from_metadata_bytes(metadata_cbor_bytes: &[u8]) -> Result<Self, DeserializeError> {
         cml_cip36::CIP36DeregistrationCbor::from_metadata_bytes(metadata_cbor_bytes)
-            .map(Into::into)
-            .map_err(Into::into)
-    }
+            .map(Into::into)}
 
     pub fn try_from_metadata(metadata: &Metadata) -> Result<CIP36DeregistrationCbor, JsError> {
         cml_cip36::CIP36DeregistrationCbor::try_from(metadata.as_ref())

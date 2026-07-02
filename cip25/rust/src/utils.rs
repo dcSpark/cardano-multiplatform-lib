@@ -249,11 +249,10 @@ impl CIP25LabelMetadata {
         asset_name: AssetName,
         details: CIP25MetadataDetails,
     ) -> Result<Option<CIP25MetadataDetails>, CIP25Error> {
-        if self.version == CIP25Version::V1 {
-            if let Err(e) = String::from_utf8(asset_name.to_raw_bytes().to_vec()) {
+        if self.version == CIP25Version::V1
+            && let Err(e) = String::from_utf8(asset_name.to_raw_bytes().to_vec()) {
                 return Err(CIP25Error::Version1NonStringAsset(asset_name, e));
             }
-        }
         Ok(self
             .nfts
             .entry(policy_id)

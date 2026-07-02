@@ -16,8 +16,7 @@ impl BootstrapWitness {
     // }
 
     pub fn to_address(&self) -> Result<AddressContent, CryptoError> {
-        AddressContent::try_from(self.clone()).map_err(Into::into)
-    }
+        AddressContent::try_from(self.clone())}
 }
 
 impl TryInto<chain_crypto::PublicKey<chain_crypto::ed25519_derive::Ed25519Bip32>>

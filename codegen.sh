@@ -123,6 +123,9 @@ want cip25     && gen cip25     "$SPECS/cip25.cddl" --lib-name=cml-cip25 --json-
 # specs/multiera-byron/_CDDL_CODEGEN_EXTERN_DEPS_DIR_/ so it is not generated as a local module.
 named byron && gen multi-era "$SPECS/multiera-byron" --lib-name=cml-multi-era --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${WASM_MACROS[@]}"
 
+echo "Running clippy --fix on the regenerated code..." >&2
+cargo clippy --fix --allow-dirty --allow-staged --workspace --all-features --all-targets
+
 cat <<'EOF'
 
 Done — sources regenerated in place. Review with git:

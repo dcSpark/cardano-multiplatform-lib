@@ -19,7 +19,7 @@ use super::{
 impl CIP36DeregistrationCbor {
     /// Add to an existing metadata (could be empty) the full CIP36 deregistration metadata
     pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), JsError> {
-        self.0
+        self.as_ref()
             .add_to_metadata(metadata.as_mut())
             .map_err(Into::into)
     }
@@ -33,14 +33,14 @@ impl CIP36DeregistrationCbor {
     /// If this was created from bytes or from a Metadata that was created from bytes, it will preserve
     /// the encodings but only from the metadatums themselves within the keys 61285 and 61286
     pub fn to_metadata_bytes(&self) -> Vec<u8> {
-        self.0.to_metadata_bytes()
+        self.as_ref().to_metadata_bytes()
     }
 
     /// Create a CIP36 view from the bytes of a Metadata.
     /// The resulting CIP36DeregistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
     pub fn from_metadata_bytes(metadata_cbor_bytes: &[u8]) -> Result<Self, DeserializeError> {
-        cml_cip36::CIP36DeregistrationCbor::from_metadata_bytes(metadata_cbor_bytes)
-            .map(Into::into)}
+        cml_cip36::CIP36DeregistrationCbor::from_metadata_bytes(metadata_cbor_bytes).map(Into::into)
+    }
 
     pub fn try_from_metadata(metadata: &Metadata) -> Result<CIP36DeregistrationCbor, JsError> {
         cml_cip36::CIP36DeregistrationCbor::try_from(metadata.as_ref())
@@ -49,7 +49,7 @@ impl CIP36DeregistrationCbor {
     }
 
     pub fn try_into_metadata(&self) -> Result<Metadata, JsError> {
-        TryInto::<cml_chain::auxdata::Metadata>::try_into(&self.0)
+        TryInto::<cml_chain::auxdata::Metadata>::try_into(self.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }
@@ -63,10 +63,7 @@ impl CIP36KeyDeregistration {
     /// * `stake_credential` - stake address for the network that this transaction is submitted to (to point to the Ada that was being delegated).
     /// * `nonce` - Monotonically rising across all transactions with the same staking key. Recommended to just use the slot of this tx.
     pub fn new(stake_credential: &CIP36StakeCredential, nonce: CIP36Nonce) -> Self {
-        Self(cml_cip36::CIP36KeyDeregistration::new(
-            stake_credential.clone().into(),
-            nonce,
-        ))
+        cml_cip36::CIP36KeyDeregistration::new(stake_credential.clone().into(), nonce).into()
     }
 
     /// Create bytes to sign to make a `DeregistrationWitness` from.
@@ -75,7 +72,7 @@ impl CIP36KeyDeregistration {
     ///
     /// * `force_canonical` - Whether to encode the inner registration canonically. Should be true for hardware wallets and false otherwise.
     pub fn hash_to_sign(&self, force_canonical: bool) -> Vec<u8> {
-        self.0.hash_to_sign(force_canonical).unwrap()
+        self.as_ref().hash_to_sign(force_canonical).unwrap()
     }
 }
 
@@ -94,12 +91,13 @@ impl CIP36KeyRegistration {
         payment_address: &Address,
         nonce: CIP36Nonce,
     ) -> Self {
-        Self(cml_cip36::CIP36KeyRegistration::new(
+        cml_cip36::CIP36KeyRegistration::new(
             delegation.clone().into(),
             stake_credential.clone().into(),
             payment_address.clone().into(),
             nonce,
-        ))
+        )
+        .into()
     }
 
     /// Create bytes to sign to make a `RegistrationWitness` from.
@@ -108,21 +106,21 @@ impl CIP36KeyRegistration {
     ///
     /// * `force_canonical` - Whether to encode the inner registration canonically. Should be true for hardware wallets and false otherwise.
     pub fn hash_to_sign(&self, force_canonical: bool) -> Vec<u8> {
-        self.0.hash_to_sign(force_canonical).unwrap()
+        self.as_ref().hash_to_sign(force_canonical).unwrap()
     }
 }
 
 impl CIP36RegistrationCbor {
     /// Add to an existing metadata (could be empty) the full CIP36 registration metadata
     pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), JsError> {
-        self.0
+        self.as_ref()
             .add_to_metadata(metadata.as_mut())
             .map_err(Into::into)
     }
 
     /// Verifies invariants in CIP36.
     pub fn verify(&self) -> Result<(), JsError> {
-        self.0.verify().map_err(Into::into)
+        self.as_ref().verify().map_err(Into::into)
     }
 
     // these are not implementing Serialize/Deserialize as we do not keep track of the rest of the encoding metadata
@@ -134,7 +132,7 @@ impl CIP36RegistrationCbor {
     /// If this was created from bytes or from a Metadata that was created from bytes, it will preserve
     /// the encodings but only from the metadatums themselves within the keys 61284 and 61285
     pub fn to_metadata_bytes(&self) -> Vec<u8> {
-        self.0.to_metadata_bytes()
+        self.as_ref().to_metadata_bytes()
     }
 
     /// Create a CIP36 view from the bytes of a Metadata.
@@ -152,7 +150,7 @@ impl CIP36RegistrationCbor {
     }
 
     pub fn try_into_metadata(&self) -> Result<Metadata, JsError> {
-        TryInto::<cml_chain::auxdata::Metadata>::try_into(&self.0)
+        TryInto::<cml_chain::auxdata::Metadata>::try_into(self.as_ref())
             .map(Into::into)
             .map_err(Into::into)
     }

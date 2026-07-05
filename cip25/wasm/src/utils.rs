@@ -6,28 +6,33 @@ use cml_chain_wasm::{
 
 use crate::*;
 
-use wasm_bindgen::prelude::JsError;
+use wasm_bindgen::prelude::{JsError, JsValue, wasm_bindgen};
 
-use cml_core_wasm::impl_wasm_json_api;
+use cml_core_wasm::{
+    impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_json_api,
+};
 
 #[wasm_bindgen]
 impl CIP25Metadata {
     /// Create a Metadata containing only the CIP25 schema
     pub fn to_metadata(&self) -> Result<Metadata, JsError> {
-        self.0.to_metadata().map(Metadata::from).map_err(Into::into)
+        self.as_ref()
+            .to_metadata()
+            .map(Metadata::from)
+            .map_err(Into::into)
     }
 
     /// Read the CIP25 schema from a Metadata. Ignores all other data besides CIP25
     /// Can fail if the Metadata does not conform to CIP25
     pub fn from_metadata(metadata: &Metadata) -> Result<CIP25Metadata, JsError> {
         cml_cip25::CIP25Metadata::from_metadata(metadata.as_ref())
-            .map(Self)
+            .map(Into::into)
             .map_err(Into::into)
     }
 
     /// Add to an existing metadata (could be empty) the full CIP25 metadata
     pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), JsError> {
-        self.0
+        self.as_ref()
             .add_to_metadata(metadata.as_mut())
             .map_err(Into::into)
     }
@@ -37,16 +42,16 @@ impl CIP25Metadata {
 impl CIP25String64 {
     pub fn new(s: &str) -> Result<CIP25String64, JsError> {
         cml_cip25::CIP25String64::new_str(s)
-            .map(Self)
+            .map(Into::into)
             .map_err(Into::into)
     }
 
     pub fn to_str(&self) -> String {
-        self.0.to_str().to_owned()
+        self.as_ref().to_str().to_owned()
     }
 
     pub fn get_str(&self) -> String {
-        self.0.get().clone()
+        self.as_ref().get().clone()
     }
 }
 
@@ -54,12 +59,12 @@ impl CIP25String64 {
 
 impl CIP25ChunkableString {
     pub fn from_string(str: &str) -> Self {
-        Self(cml_cip25::CIP25ChunkableString::from(str))
+        cml_cip25::CIP25ChunkableString::from(str).into()
     }
 
     #[allow(clippy::inherent_to_string)]
     pub fn to_string(&self) -> String {
-        String::from(&self.0)
+        String::from(self.as_ref())
     }
 }
 
@@ -88,7 +93,7 @@ impl CIP25MiniMetadataDetails {
     }
 
     pub fn name(&self) -> Option<CIP25String64> {
-        self.0.name.clone().map(CIP25String64)
+        self.0.name.clone().map(Into::into)
     }
 
     pub fn set_image(&mut self, image: &CIP25ChunkableString) {
@@ -96,7 +101,7 @@ impl CIP25MiniMetadataDetails {
     }
 
     pub fn image(&self) -> Option<CIP25ChunkableString> {
-        self.0.image.clone().map(CIP25ChunkableString)
+        self.0.image.clone().map(Into::into)
     }
 
     /// loose parsing of CIP25 metadata to allow for common exceptions to the format

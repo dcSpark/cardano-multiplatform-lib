@@ -5,7 +5,6 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use super::{NetworkId, Value};
 use crate::address::Address;
 use crate::assets::{Coin, Mint, PositiveCoin};
 use crate::auxdata::AuxiliaryData;
@@ -14,6 +13,7 @@ use crate::crypto::{
 };
 use crate::governance::VotingProcedures;
 use crate::plutus::{PlutusData, Redeemers};
+use crate::{NetworkId, Value};
 use crate::{
     NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetNativeScript,
     NonemptySetPlutusData, NonemptySetPlutusV1Script, NonemptySetPlutusV2Script,

@@ -51,13 +51,13 @@ impl BigInteger {
 #[wasm_bindgen]
 impl Script {
     pub fn hash(&self) -> ScriptHash {
-        self.0.hash().into()
+        self.as_ref().hash().into()
     }
 
     // Returns which language the script is if it's a Plutus script
     // Returns None otherwise (i.e. NativeScript)
     pub fn language(&self) -> Option<Language> {
-        self.0.language()
+        self.as_ref().language()
     }
 }
 
@@ -105,14 +105,16 @@ macro_rules! impl_wasm_conversions_into {
     ($rust:ty, $wasm:ty) => {
         impl From<$rust> for $wasm {
             fn from(native: $rust) -> Self {
-                Self(native.into())
+                let elems: Vec<_> = native.into();
+                elems.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
         impl Into<$rust> for $wasm {
             fn into(self) -> $rust {
-                self.0.into()
+                let elems: Vec<_> = self.into();
+                elems.into()
             }
         }
     };

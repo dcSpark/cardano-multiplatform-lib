@@ -4,15 +4,15 @@
 use crate::address::Address;
 use crate::assets::{Coin, Mint, PositiveCoin, Value};
 use crate::auxdata::AuxiliaryData;
-use crate::governance::VotingProcedures;
-use crate::plutus::{PlutusData, Redeemers};
-use crate::{
+use crate::generated::{
     NativeScriptList, NetworkId, NonemptySetBootstrapWitness, NonemptySetCertificate,
     NonemptySetNativeScript, NonemptySetPlutusData, NonemptySetPlutusV1Script,
     NonemptySetPlutusV2Script, NonemptySetPlutusV3Script, NonemptySetProposalProcedure,
     NonemptySetTransactionInput, NonemptySetVkeywitness, RequiredSigners, Script,
     SetTransactionInput, Slot, TransactionOutputList, Withdrawals,
 };
+use crate::governance::VotingProcedures;
+use crate::plutus::{PlutusData, Redeemers};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,

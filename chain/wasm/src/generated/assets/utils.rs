@@ -91,7 +91,7 @@ impl MultiAsset {
     }
 
     pub fn keys(&self) -> PolicyIdList {
-        PolicyIdList(self.0.iter().map(|(k, _v)| *k).collect::<Vec<_>>())
+        self.0.iter().map(|(k, _v)| *k).collect::<Vec<_>>().into()
     }
 
     /// Adds to multiassets together, checking value bounds.
@@ -168,7 +168,7 @@ impl Mint {
     }
 
     pub fn keys(&self) -> PolicyIdList {
-        PolicyIdList(self.0.iter().map(|(k, _v)| *k).collect::<Vec<_>>())
+        self.0.iter().map(|(k, _v)| *k).collect::<Vec<_>>().into()
     }
 
     /// Adds two mints together, checking value bounds.

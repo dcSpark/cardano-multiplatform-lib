@@ -101,13 +101,12 @@ impl PlutusMap {
     }
 
     pub fn keys(&self) -> PlutusDataList {
-        PlutusDataList(
-            self.0
-                .entries
-                .iter()
-                .map(|(k, _v)| k.clone())
-                .collect::<Vec<_>>(),
-        )
+        self.0
+            .entries
+            .iter()
+            .map(|(k, _v)| k.clone())
+            .collect::<Vec<_>>()
+            .into()
     }
 }
 

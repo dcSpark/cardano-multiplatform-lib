@@ -6,7 +6,7 @@ use crate::assets::Coin;
 use crate::block::ProtocolVersion;
 use crate::certs::Url;
 use crate::crypto::{AnchorDocHash, Ed25519KeyHash, ScriptHash, TransactionHash};
-use crate::{
+use crate::generated::{
     MapCommitteeColdCredentialToEpoch, MapGovActionIdToVotingProcedure, MapRewardAccountToCoin,
     ProtocolParamUpdate, SetCommitteeColdCredential, UnitInterval, VoterList,
 };

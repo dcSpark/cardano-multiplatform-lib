@@ -46,19 +46,19 @@ impl MultiEraBlock {
     }
 
     pub fn transaction_bodies(&self) -> MultiEraTransactionBodyList {
-        self.0.transaction_bodies().into()
+        self.as_ref().transaction_bodies().into()
     }
 
     pub fn transaction_witness_sets(&self) -> TransactionWitnessSetList {
-        self.0.transaction_witness_sets().into()
+        self.as_ref().transaction_witness_sets().into()
     }
 
     pub fn auxiliary_data_set(&self) -> MapTransactionIndexToAuxiliaryData {
-        self.0.auxiliary_data_set().into()
+        self.as_ref().auxiliary_data_set().into()
     }
 
     pub fn invalid_transactions(&self) -> Vec<TransactionIndex> {
-        self.0.invalid_transactions()
+        self.as_ref().invalid_transactions()
     }
 }
 
@@ -573,93 +573,97 @@ impl MultiEraProtocolParamUpdate {
 #[wasm_bindgen]
 impl MultiEraTransactionBody {
     pub fn inputs(&self) -> MultiEraTransactionInputList {
-        self.0.inputs().into()
+        self.as_ref().inputs().into()
     }
 
     pub fn outputs(&self) -> MultiEraTransactionOutputList {
-        self.0.outputs().into()
+        self.as_ref().outputs().into()
     }
 
     pub fn fee(&self) -> Option<Coin> {
-        self.0.fee()
+        self.as_ref().fee()
     }
 
     pub fn ttl(&self) -> Option<u64> {
-        self.0.ttl()
+        self.as_ref().ttl()
     }
 
     pub fn certs(&self) -> Option<MultiEraCertificateList> {
-        self.0.certs().map(Into::into)
+        self.as_ref().certs().map(Into::into)
     }
 
     pub fn withdrawals(&self) -> Option<Withdrawals> {
-        self.0.withdrawals().map(|wd| wd.clone().into())
+        self.as_ref().withdrawals().map(|wd| wd.clone().into())
     }
 
     pub fn update(&self) -> Option<MultiEraUpdate> {
-        self.0.update().map(Into::into)
+        self.as_ref().update().map(Into::into)
     }
 
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
-        self.0.auxiliary_data_hash().map(|aux| (*aux).into())
+        self.as_ref().auxiliary_data_hash().map(|aux| (*aux).into())
     }
 
     pub fn validity_interval_start(&self) -> Option<u64> {
-        self.0.validity_interval_start()
+        self.as_ref().validity_interval_start()
     }
 
     pub fn mint(&self) -> Option<Mint> {
-        self.0.mint().map(|m| m.into_owned().into())
+        self.as_ref().mint().map(|m| m.into_owned().into())
     }
 
     pub fn script_data_hash(&self) -> Option<ScriptDataHash> {
-        self.0.script_data_hash().map(Into::into)
+        self.as_ref().script_data_hash().map(Into::into)
     }
 
     pub fn collateral_inputs(&self) -> Option<TransactionInputList> {
-        self.0
+        self.as_ref()
             .collateral_inputs()
             .map(|inputs| inputs.to_vec().into())
     }
 
     pub fn required_signers(&self) -> Option<RequiredSigners> {
-        self.0
+        self.as_ref()
             .required_signers()
             .map(|signers| signers.to_vec().into())
     }
 
     pub fn network_id(&self) -> Option<NetworkId> {
-        self.0.network_id().map(Into::into)
+        self.as_ref().network_id().map(Into::into)
     }
 
     pub fn collateral_return(&self) -> Option<MultiEraTransactionOutput> {
-        self.0.collateral_return().map(Into::into)
+        self.as_ref().collateral_return().map(Into::into)
     }
 
     pub fn total_collateral(&self) -> Option<Coin> {
-        self.0.total_collateral()
+        self.as_ref().total_collateral()
     }
 
     pub fn reference_inputs(&self) -> Option<TransactionInputList> {
-        self.0
+        self.as_ref()
             .reference_inputs()
             .map(|inputs| inputs.to_vec().into())
     }
 
     pub fn voting_procedures(&self) -> Option<VotingProcedures> {
-        self.0.voting_procedures().map(|vps| vps.clone().into())
+        self.as_ref()
+            .voting_procedures()
+            .map(|vps| vps.clone().into())
     }
 
     pub fn proposal_procedures(&self) -> Option<ProposalProcedureList> {
-        self.0.proposal_procedures().map(|pps| pps.to_vec().into())
+        self.as_ref()
+            .proposal_procedures()
+            .map(|pps| pps.to_vec().into())
     }
 
     pub fn current_treasury_value(&self) -> Option<Coin> {
-        self.0.current_treasury_value()
+        self.as_ref().current_treasury_value()
     }
 
     pub fn donation(&self) -> Option<PositiveCoin> {
-        self.0.donation()
+        self.as_ref().donation()
     }
 }
 

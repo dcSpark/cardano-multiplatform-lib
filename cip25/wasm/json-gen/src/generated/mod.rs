@@ -15,11 +15,11 @@ pub fn export_schemas() {
     if !schema_path.exists() {
         std::fs::create_dir(schema_path).unwrap();
     }
-    gen_json_schema!(cml_cip25::CIP25Metadata);
     gen_json_schema!(cml_cip25::CIP25Version);
     gen_json_schema!(cml_cip25::CIP25ChunkableString);
     gen_json_schema!(cml_cip25::CIP25FilesDetails);
     gen_json_schema!(cml_cip25::CIP25LabelMetadata);
+    gen_json_schema!(cml_cip25::CIP25Metadata);
     gen_json_schema!(cml_cip25::CIP25MetadataDetails);
     gen_json_schema!(cml_cip25::CIP25String64);
 }

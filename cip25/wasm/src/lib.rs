@@ -12,6 +12,4 @@ pub use generated::*;
 
 pub mod utils;
 
-pub use utils::CIP25LabelMetadata;
-
-pub use cml_cip25::CIP25Version;
+pub use utils::{CIP25LabelMetadata, CIP25Version};

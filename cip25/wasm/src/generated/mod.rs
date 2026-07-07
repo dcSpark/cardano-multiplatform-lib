@@ -3,63 +3,30 @@
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
-
+impl_wasm_list_needs_into!(
+    cml_cip25::CIP25String64,
+    CIP25String64,
+    CIP25String64List,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_cip25::CIP25FilesDetails,
+    CIP25FilesDetails,
+    CIP25FilesDetailsList,
+    true,
+    false
+);
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
 pub use crate::CIP25LabelMetadata;
+
 use cml_core_wasm::{
-    impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_json_api,
-    impl_wasm_list,
+    impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_list_needs_into,
 };
-
-use wasm_bindgen::prelude::{JsValue, wasm_bindgen};
-
-/// This is the entire metadata schema for CIP-25
-/// It can be parsed by passing in the CBOR bytes of the entire transaction metadata
-/// or by passing in an existing Metadata struct.
-/// Parsing from CBOR bytes should be marginally faster.
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct CIP25Metadata(cml_cip25::CIP25Metadata);
-
-impl_wasm_conversions!(cml_cip25::CIP25Metadata, CIP25Metadata);
-
-// we manually write to_cbor_bytes/from_cbor_bytes so we can add the comments
-
-impl_wasm_json_api!(CIP25Metadata);
-
-#[wasm_bindgen]
-impl CIP25Metadata {
-    /// Serialize to CBOR bytes compatible with tx metadata
-    /// Does not guarantee any specific type of CBOR format and should NOT
-    /// be used with round-tripping. It will ignore all non-CIP25 keys.
-    /// Use cml_cip25::metadate crate for round-tripping metadata.
-    pub fn to_cbor_bytes(&self) -> Vec<u8> {
-        use cml_cip25::serialization::ToBytes;
-        ToBytes::to_bytes(&self.0)
-    }
-
-    /// Deserialize from CBOR bytes compatible with tx metadata
-    /// Does not guarantee any specific type of CBOR format and should NOT
-    /// be used with round-tripping. It will ignore all non-CIP25 keys.
-    /// Use cml_cip25::metadate crate for round-tripping metadata.
-    pub fn from_cbor_bytes(data: Vec<u8>) -> Result<CIP25Metadata, JsValue> {
-        use cml_cip25::serialization::FromBytes;
-        FromBytes::from_bytes(data)
-            .map(Self)
-            .map_err(|e| JsValue::from_str(&format!("from_cbor_bytes: {e}")))
-    }
-
-    /// The core details of the CIP25 spec
-    pub fn key_721(&self) -> CIP25LabelMetadata {
-        self.0.key_721.clone().into()
-    }
-
-    pub fn new(key_721: &CIP25LabelMetadata) -> Self {
-        Self(cml_cip25::CIP25Metadata::new(key_721.clone().into()))
-    }
-}
+use std::collections::BTreeMap;
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 /// A String that may or may not be chunked into 64-byte chunks to be able
 /// to conform to Cardano TX Metadata limitations.
@@ -72,9 +39,9 @@ impl CIP25Metadata {
 #[wasm_bindgen]
 pub struct CIP25ChunkableString(cml_cip25::CIP25ChunkableString);
 
-impl_wasm_conversions!(cml_cip25::CIP25ChunkableString, CIP25ChunkableString);
-
 impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25ChunkableString);
+
+impl_wasm_conversions!(cml_cip25::CIP25ChunkableString, CIP25ChunkableString);
 
 #[wasm_bindgen]
 impl CIP25ChunkableString {
@@ -90,10 +57,10 @@ impl CIP25ChunkableString {
         ))
     }
 
-    pub fn kind(&self) -> ChunkableStringKind {
+    pub fn kind(&self) -> CIP25ChunkableStringKind {
         match &self.0 {
-            cml_cip25::CIP25ChunkableString::Single(_) => ChunkableStringKind::Single,
-            cml_cip25::CIP25ChunkableString::Chunked(_) => ChunkableStringKind::Chunked,
+            cml_cip25::CIP25ChunkableString::Single(_) => CIP25ChunkableStringKind::Single,
+            cml_cip25::CIP25ChunkableString::Chunked(_) => CIP25ChunkableStringKind::Chunked,
         }
     }
 
@@ -113,7 +80,7 @@ impl CIP25ChunkableString {
 }
 
 #[wasm_bindgen]
-pub enum ChunkableStringKind {
+pub enum CIP25ChunkableStringKind {
     Single,
     Chunked,
 }
@@ -122,9 +89,9 @@ pub enum ChunkableStringKind {
 #[wasm_bindgen]
 pub struct CIP25FilesDetails(cml_cip25::CIP25FilesDetails);
 
-impl_wasm_conversions!(cml_cip25::CIP25FilesDetails, CIP25FilesDetails);
-
 impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25FilesDetails);
+
+impl_wasm_conversions!(cml_cip25::CIP25FilesDetails, CIP25FilesDetails);
 
 #[wasm_bindgen]
 impl CIP25FilesDetails {
@@ -153,19 +120,41 @@ impl CIP25FilesDetails {
     }
 }
 
-impl_wasm_list!(
-    cml_cip25::CIP25FilesDetails,
-    CIP25FilesDetails,
-    FilesDetailsList
-);
+/// This is the entire metadata schema for CIP-25
+/// It can be parsed by passing in the CBOR bytes of the entire transaction metadata
+/// or by passing in an existing Metadata struct.
+/// Parsing from CBOR bytes should be marginally faster.
+/// 
+/// Careful: `to_cbor_bytes`, `from_cbor_bytes`, `to_cbor_hex`, `from_cbor_hex` will:
+/// 1. ignore all non-CIP25 keys
+/// 2. not support round-trip serialization
+/// Use  `cml_chain::auxdata::Metadata` / `TransactionMetadatum` for round-tripping metadata.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct CIP25Metadata(cml_cip25::CIP25Metadata);
+
+impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25Metadata);
+
+impl_wasm_conversions!(cml_cip25::CIP25Metadata, CIP25Metadata);
+
+#[wasm_bindgen]
+impl CIP25Metadata {
+    pub fn key_721(&self) -> CIP25LabelMetadata {
+        self.0.key_721.clone().into()
+    }
+
+    pub fn new(key_721: &CIP25LabelMetadata) -> Self {
+        Self(cml_cip25::CIP25Metadata::new(key_721.clone().into()))
+    }
+}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct CIP25MetadataDetails(cml_cip25::CIP25MetadataDetails);
 
-impl_wasm_conversions!(cml_cip25::CIP25MetadataDetails, CIP25MetadataDetails);
-
 impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25MetadataDetails);
+
+impl_wasm_conversions!(cml_cip25::CIP25MetadataDetails, CIP25MetadataDetails);
 
 #[wasm_bindgen]
 impl CIP25MetadataDetails {
@@ -193,11 +182,11 @@ impl CIP25MetadataDetails {
         self.0.description.clone().map(std::convert::Into::into)
     }
 
-    pub fn set_files(&mut self, files: &FilesDetailsList) {
+    pub fn set_files(&mut self, files: &CIP25FilesDetailsList) {
         self.0.files = Some(files.clone().into())
     }
 
-    pub fn files(&self) -> Option<FilesDetailsList> {
+    pub fn files(&self) -> Option<CIP25FilesDetailsList> {
         self.0.files.clone().map(std::convert::Into::into)
     }
 
@@ -209,21 +198,23 @@ impl CIP25MetadataDetails {
     }
 }
 
-/// A String of at most 64 bytes.
-/// This is to conform with Cardano metadata restrictions.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct CIP25String64(cml_cip25::CIP25String64);
 
-impl_wasm_conversions!(cml_cip25::CIP25String64, CIP25String64);
-
 impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25String64);
+
+impl_wasm_conversions!(cml_cip25::CIP25String64, CIP25String64);
 
 #[wasm_bindgen]
 impl CIP25String64 {
+    pub fn new(inner: String) -> Result<CIP25String64, JsError> {
+        cml_cip25::CIP25String64::new(inner)
+            .map(Into::into)
+            .map_err(Into::into)
+    }
+
     pub fn get(&self) -> String {
         self.0.get().clone()
     }
 }
-
-impl_wasm_list!(cml_cip25::CIP25String64, CIP25String64, CIP25String64List);

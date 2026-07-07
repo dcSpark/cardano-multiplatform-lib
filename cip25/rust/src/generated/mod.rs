@@ -4,16 +4,12 @@
 // https://github.com/dcSpark/cddl-codegen
 
 pub mod serialization;
-
 pub use crate::CIP25LabelMetadata;
 
-use cbor_event::Special as CBORSpecial;
-use cbor_event::Type as CBORType;
-use cbor_event::de::Deserializer;
-use cbor_event::se::Serializer;
-pub use cml_core::error::*;
-use std::convert::{From, TryFrom};
-use std::io::{BufRead, Write};
+use cml_core::error::*;
+use std::collections::BTreeMap;
+use std::convert::TryFrom;
+
 
 /// A String that may or may not be chunked into 64-byte chunks to be able
 /// to conform to Cardano TX Metadata limitations.
@@ -104,8 +100,8 @@ impl CIP25MetadataDetails {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct CIP25String64(pub String);
+#[derive(Clone, Debug)]
+pub struct CIP25String64(String);
 
 impl CIP25String64 {
     pub fn get(&self) -> &String {
@@ -132,6 +128,44 @@ impl TryFrom<String> for CIP25String64 {
 
     fn try_from(inner: String) -> Result<Self, Self::Error> {
         CIP25String64::new(inner)
+    }
+}
+
+impl serde::Serialize for CIP25String64 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for CIP25String64 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let inner = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+        Self::new(inner.clone()).map_err(|_e| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(&inner),
+                &"invalid CIP25String64",
+            )
+        })
+    }
+}
+
+impl schemars::JsonSchema for CIP25String64 {
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        ::std::borrow::Cow::Borrowed("CIP25String64")
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        <String as schemars::JsonSchema>::json_schema(generator)
+    }
+
+    fn inline_schema() -> bool {
+        <String as schemars::JsonSchema>::inline_schema()
     }
 }
 

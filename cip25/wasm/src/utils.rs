@@ -12,6 +12,31 @@ use cml_core_wasm::{
     impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_json_api,
 };
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[wasm_bindgen]
+pub enum CIP25Version {
+    V1,
+    V2,
+}
+
+impl From<CIP25Version> for cml_cip25::CIP25Version {
+    fn from(version: CIP25Version) -> Self {
+        match version {
+            CIP25Version::V1 => Self::V1,
+            CIP25Version::V2 => Self::V2,
+        }
+    }
+}
+
+impl From<cml_cip25::CIP25Version> for CIP25Version {
+    fn from(version: cml_cip25::CIP25Version) -> Self {
+        match version {
+            cml_cip25::CIP25Version::V1 => Self::V1,
+            cml_cip25::CIP25Version::V2 => Self::V2,
+        }
+    }
+}
+
 #[wasm_bindgen]
 impl CIP25Metadata {
     /// Create a Metadata containing only the CIP25 schema
@@ -35,23 +60,6 @@ impl CIP25Metadata {
         self.as_ref()
             .add_to_metadata(metadata.as_mut())
             .map_err(Into::into)
-    }
-}
-
-#[wasm_bindgen]
-impl CIP25String64 {
-    pub fn new(s: &str) -> Result<CIP25String64, JsError> {
-        cml_cip25::CIP25String64::new_str(s)
-            .map(Into::into)
-            .map_err(Into::into)
-    }
-
-    pub fn to_str(&self) -> String {
-        self.as_ref().to_str().to_owned()
-    }
-
-    pub fn get_str(&self) -> String {
-        self.as_ref().get().clone()
     }
 }
 
@@ -129,7 +137,7 @@ impl CIP25LabelMetadata {
     /// Note that Version 1 can only support utf8 string asset names.
     /// Version 2 can support any asset name.
     pub fn new(version: CIP25Version) -> Self {
-        Self(cml_cip25::CIP25LabelMetadata::new(version))
+        Self(cml_cip25::CIP25LabelMetadata::new(version.into()))
     }
 
     /// If this is version 1 and the asset name is not a utf8 asset name
@@ -163,6 +171,6 @@ impl CIP25LabelMetadata {
     }
 
     pub fn version(&self) -> CIP25Version {
-        self.0.version()
+        self.0.version().into()
     }
 }

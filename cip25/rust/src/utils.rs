@@ -59,21 +59,11 @@ impl std::convert::TryInto<Metadata> for &CIP25Metadata {
 
 impl CIP25String64 {
     pub fn new_str(inner: &str) -> Result<Self, DeserializeError> {
-        if inner.len() > 64 {
-            return Err(DeserializeError::new(
-                "CIP25String64",
-                DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
-                    min: Some(0),
-                    max: Some(64),
-                },
-            ));
-        }
-        Ok(Self(inner.to_owned()))
+        Self::new(inner.to_owned())
     }
 
     pub fn to_str(&self) -> &str {
-        &self.0
+        self.get()
     }
 }
 
@@ -203,7 +193,6 @@ pub enum CIP25Error {
 /// Which version of the CIP25 spec to use. See CIP25 for details.
 /// This will change how things are encoded but for the most part contains
 /// the same information.
-#[wasm_bindgen::prelude::wasm_bindgen]
 #[derive(
     Copy,
     Clone,
@@ -715,21 +704,21 @@ mod tests {
             .unwrap(),
         )
         .unwrap();
-        assert_eq!(details.name.unwrap().0, "Metaverse");
+        assert_eq!(details.name.unwrap().get(), "Metaverse");
     }
 
     #[test]
     fn uppercase_name() {
         // {"Date":"9 May 2021","Description":"Happy Mother's Day to all the Cardano Moms!","Image":"ipfs.io/ipfs/Qmah6QPKUKvp6K9XQB2SA42Q3yrffCbYBbk8EoRrB7FN2g","Name":"Mother's Day 2021","Ticker":"MOM21","URL":"ipfs.io/ipfs/Qmah6QPKUKvp6K9XQB2SA42Q3yrffCbYBbk8EoRrB7FN2g"}
         let details = CIP25MiniMetadataDetails::loose_parse(&TransactionMetadatum::from_bytes(hex::decode("a664446174656a39204d617920323032316b4465736372697074696f6e782b4861707079204d6f7468657227732044617920746f20616c6c207468652043617264616e6f204d6f6d732165496d616765783b697066732e696f2f697066732f516d61683651504b554b7670364b39585142325341343251337972666643625942626b38456f52724237464e3267644e616d65714d6f746865722773204461792032303231665469636b6572654d4f4d32316355524c783b697066732e696f2f697066732f516d61683651504b554b7670364b39585142325341343251337972666643625942626b38456f52724237464e3267").unwrap()).unwrap()).unwrap();
-        assert_eq!(details.name.unwrap().0, "Mother's Day 2021");
+        assert_eq!(details.name.unwrap().get(), "Mother's Day 2021");
     }
 
     #[test]
     fn id_no_name() {
         // {"id":"00","image":"ipfs://QmSfYTF8B4ua6hFdr6URdRDZBZ9FjCQNUdDcLr2f7P8xn3"}
         let details = CIP25MiniMetadataDetails::loose_parse(&TransactionMetadatum::from_bytes(hex::decode("a262696462303065696d6167657835697066733a2f2f516d5366595446384234756136684664723655526452445a425a39466a43514e556444634c723266375038786e33").unwrap()).unwrap()).unwrap();
-        assert_eq!(details.name.unwrap().0, "00");
+        assert_eq!(details.name.unwrap().get(), "00");
     }
 
     #[test]

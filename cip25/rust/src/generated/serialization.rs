@@ -1,8 +1,66 @@
-use crate::utils::CIP25LabelMetadata;
+// This file was code-generated using an experimental CDDL to rust tool:
+// https://github.com/dcSpark/cddl-codegen
 
 use super::*;
-pub use cml_core::{error::*, serialization::*};
-use std::io::Seek;
+use cbor_event::de::Deserializer;
+use cbor_event::se::{Serialize, Serializer};
+use cml_core::error::*;
+use cml_core::serialization::*;
+use std::io::{BufRead, Seek, SeekFrom, Write};
+
+impl cbor_event::se::Serialize for CIP25ChunkableString {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        match self {
+            CIP25ChunkableString::Single(single) => single.serialize(serializer),
+            CIP25ChunkableString::Chunked(chunked) => {
+                serializer.write_array(cbor_event::Len::Len(chunked.len() as u64))?;
+                for element in chunked.iter() {
+                    element.serialize(serializer)?;
+                }
+                Ok(serializer)
+            }
+        }
+    }
+}
+
+impl Deserialize for CIP25ChunkableString {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            match raw.cbor_type()? {
+                cbor_event::Type::Text => Ok(CIP25ChunkableString::Single(
+                    CIP25String64::deserialize(raw)?,
+                )),
+                cbor_event::Type::Array => {
+                    let mut chunked_arr = Vec::new();
+                    let len = raw.array()?;
+                    while match len {
+                        cbor_event::Len::Len(n) => (chunked_arr.len() as u64) < n,
+                        cbor_event::Len::Indefinite => true,
+                    } {
+                        if let cbor_event::Len::Indefinite = len {
+                            if raw.cbor_type()? == cbor_event::Type::Special
+                                && raw.special_break()?
+                            {
+                                break;
+                            }
+                        }
+                        chunked_arr.push(CIP25String64::deserialize(raw)?);
+                    }
+                    let chunked = chunked_arr;
+                    Ok(Self::Chunked(chunked))
+                }
+                _ => Err(DeserializeError::new(
+                    "CIP25ChunkableString",
+                    DeserializeFailure::NoVariantMatched,
+                )),
+            }
+        })()
+        .map_err(|e| e.annotate("CIP25ChunkableString"))
+    }
+}
 
 impl cbor_event::se::Serialize for CIP25FilesDetails {
     fn serialize<'se, W: Write>(
@@ -22,23 +80,26 @@ impl cbor_event::se::Serialize for CIP25FilesDetails {
 
 impl Deserialize for CIP25FilesDetails {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.map()?;
+        let mut read_len = CBORReadLen::from(len);
+        read_len.read_elems(3)?;
         (|| -> Result<_, DeserializeError> {
-            let len = raw.map()?;
-            let mut read_len = CBORReadLen::new(match len {
-                cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, cbor_event::Sz::canonical(n)),
-                cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
-            });
-            read_len.read_elems(3)?;
             let mut src = None;
             let mut name = None;
             let mut media_type = None;
             let mut read = 0;
             while match len {
-                cbor_event::Len::Len(n) => read < n as usize,
+                cbor_event::Len::Len(n) => read < n,
                 cbor_event::Len::Indefinite => true,
             } {
                 match raw.cbor_type()? {
-                    CBORType::Text => match raw.text()?.as_str() {
+                    cbor_event::Type::UnsignedInteger => {
+                        return Err(DeserializeFailure::UnknownKey(Key::Uint(
+                            raw.unsigned_integer()?,
+                        ))
+                        .into())
+                    }
+                    cbor_event::Type::Text => match raw.text()?.as_str() {
                         "src" => {
                             if src.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Str(
@@ -47,8 +108,8 @@ impl Deserialize for CIP25FilesDetails {
                                 .into());
                             }
                             src = Some(
-                                { CIP25ChunkableString::deserialize(raw) }
-                                    .map_err(|e| e.annotate("src"))?,
+                                CIP25ChunkableString::deserialize(raw)
+                                    .map_err(|e: DeserializeError| e.annotate("src"))?,
                             );
                         }
                         "name" => {
@@ -59,8 +120,8 @@ impl Deserialize for CIP25FilesDetails {
                                 .into());
                             }
                             name = Some(
-                                { CIP25String64::deserialize(raw) }
-                                    .map_err(|e| e.annotate("name"))?,
+                                CIP25String64::deserialize(raw)
+                                    .map_err(|e: DeserializeError| e.annotate("name"))?,
                             );
                         }
                         "mediaType" => {
@@ -71,8 +132,8 @@ impl Deserialize for CIP25FilesDetails {
                                 .into());
                             }
                             media_type = Some(
-                                { CIP25String64::deserialize(raw) }
-                                    .map_err(|e| e.annotate("media_type"))?,
+                                CIP25String64::deserialize(raw)
+                                    .map_err(|e: DeserializeError| e.annotate("media_type"))?,
                             );
                         }
                         _unknown_key => {
@@ -83,12 +144,12 @@ impl Deserialize for CIP25FilesDetails {
                                 cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         }
                     },
-                    CBORType::Special => match len {
+                    cbor_event::Type::Special => match len {
                         cbor_event::Len::Len(_) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
                         }
                         cbor_event::Len::Indefinite => match raw.special()? {
-                            CBORSpecial::Break => break,
+                            cbor_event::Special::Break => break,
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
@@ -110,7 +171,7 @@ impl Deserialize for CIP25FilesDetails {
                     return Err(
                         DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("name")))
                             .into(),
-                    );
+                    )
                 }
             };
             let media_type =
@@ -120,7 +181,7 @@ impl Deserialize for CIP25FilesDetails {
                         return Err(DeserializeFailure::MandatoryFieldMissing(Key::Str(
                             String::from("mediaType"),
                         ))
-                        .into());
+                        .into())
                     }
                 };
             let src = match src {
@@ -129,9 +190,11 @@ impl Deserialize for CIP25FilesDetails {
                     return Err(
                         DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("src")))
                             .into(),
-                    );
+                    )
                 }
             };
+            read_len.finish()?;
+            ();
             Ok(Self {
                 name,
                 media_type,
@@ -156,28 +219,25 @@ impl cbor_event::se::Serialize for CIP25Metadata {
 
 impl Deserialize for CIP25Metadata {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.map()?;
+        let mut read_len = CBORReadLen::from(len);
+        read_len.read_elems(1)?;
         (|| -> Result<_, DeserializeError> {
-            let len = raw.map()?;
-            let mut read_len = CBORReadLen::new(match len {
-                cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, cbor_event::Sz::canonical(n)),
-                cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
-            });
-            read_len.read_elems(1)?;
             let mut key_721 = None;
             let mut read = 0;
             while match len {
-                cbor_event::Len::Len(n) => read < n as usize,
+                cbor_event::Len::Len(n) => read < n,
                 cbor_event::Len::Indefinite => true,
             } {
                 match raw.cbor_type()? {
-                    CBORType::UnsignedInteger => match raw.unsigned_integer()? {
+                    cbor_event::Type::UnsignedInteger => match raw.unsigned_integer()? {
                         721 => {
                             if key_721.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(721)).into());
                             }
                             key_721 = Some(
-                                { CIP25LabelMetadata::deserialize(raw) }
-                                    .map_err(|e| e.annotate("key_721"))?,
+                                CIP25LabelMetadata::deserialize(raw)
+                                    .map_err(|e: DeserializeError| e.annotate("key_721"))?,
                             );
                         }
                         _unknown_key => {
@@ -188,17 +248,20 @@ impl Deserialize for CIP25Metadata {
                                 cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         }
                     },
-                    CBORType::Special => match len {
+                    cbor_event::Type::Text => {
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                    }
+                    cbor_event::Type::Special => match len {
                         cbor_event::Len::Len(_) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
                         }
                         cbor_event::Len::Indefinite => match raw.special()? {
-                            CBORSpecial::Break => break,
+                            cbor_event::Special::Break => break,
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
                     }
                 }
                 read += 1;
@@ -206,9 +269,11 @@ impl Deserialize for CIP25Metadata {
             let key_721 = match key_721 {
                 Some(x) => x,
                 None => {
-                    return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(721)).into());
+                    return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(721)).into())
                 }
             };
+            read_len.finish()?;
+            ();
             Ok(Self { key_721 })
         })()
         .map_err(|e| e.annotate("CIP25Metadata"))
@@ -257,13 +322,10 @@ impl cbor_event::se::Serialize for CIP25MetadataDetails {
 
 impl Deserialize for CIP25MetadataDetails {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let len = raw.map()?;
+        let mut read_len = CBORReadLen::from(len);
+        read_len.read_elems(2)?;
         (|| -> Result<_, DeserializeError> {
-            let len = raw.map()?;
-            let mut read_len = CBORReadLen::new(match len {
-                cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, cbor_event::Sz::canonical(n)),
-                cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
-            });
-            read_len.read_elems(2)?;
             let mut name = None;
             let mut files = None;
             let mut image = None;
@@ -271,11 +333,17 @@ impl Deserialize for CIP25MetadataDetails {
             let mut description = None;
             let mut read = 0;
             while match len {
-                cbor_event::Len::Len(n) => read < n as usize,
+                cbor_event::Len::Len(n) => read < n,
                 cbor_event::Len::Indefinite => true,
             } {
                 match raw.cbor_type()? {
-                    CBORType::Text => match raw.text()?.as_str() {
+                    cbor_event::Type::UnsignedInteger => {
+                        return Err(DeserializeFailure::UnknownKey(Key::Uint(
+                            raw.unsigned_integer()?,
+                        ))
+                        .into())
+                    }
+                    cbor_event::Type::Text => match raw.text()?.as_str() {
                         "name" => {
                             if name.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Str(
@@ -284,8 +352,8 @@ impl Deserialize for CIP25MetadataDetails {
                                 .into());
                             }
                             name = Some(
-                                { CIP25String64::deserialize(raw) }
-                                    .map_err(|e| e.annotate("name"))?,
+                                CIP25String64::deserialize(raw)
+                                    .map_err(|e: DeserializeError| e.annotate("name"))?,
                             );
                         }
                         "files" => {
@@ -301,12 +369,15 @@ impl Deserialize for CIP25MetadataDetails {
                                     let mut files_arr = Vec::new();
                                     let len = raw.array()?;
                                     while match len {
-                                        cbor_event::Len::Len(n) => files_arr.len() < n as usize,
+                                        cbor_event::Len::Len(n) => (files_arr.len() as u64) < n,
                                         cbor_event::Len::Indefinite => true,
                                     } {
-                                        if raw.cbor_type()? == CBORType::Special {
-                                            assert_eq!(raw.special()?, CBORSpecial::Break);
-                                            break;
+                                        if let cbor_event::Len::Indefinite = len {
+                                            if raw.cbor_type()? == cbor_event::Type::Special
+                                                && raw.special_break()?
+                                            {
+                                                break;
+                                            }
                                         }
                                         files_arr.push(CIP25FilesDetails::deserialize(raw)?);
                                     }
@@ -323,8 +394,8 @@ impl Deserialize for CIP25MetadataDetails {
                                 .into());
                             }
                             image = Some(
-                                { CIP25ChunkableString::deserialize(raw) }
-                                    .map_err(|e| e.annotate("image"))?,
+                                CIP25ChunkableString::deserialize(raw)
+                                    .map_err(|e: DeserializeError| e.annotate("image"))?,
                             );
                         }
                         "mediaType" => {
@@ -365,16 +436,16 @@ impl Deserialize for CIP25MetadataDetails {
                                 cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         }
                     },
-                    CBORType::Special => match len {
+                    cbor_event::Type::Special => match len {
                         cbor_event::Len::Len(_) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
                         }
                         cbor_event::Len::Indefinite => match raw.special()? {
-                            CBORSpecial::Break => break,
+                            cbor_event::Special::Break => break,
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    _other_type => {
+                   _other_type => {
                         // CIP-25 allows permissive parsing
                         read_len.read_elems(1)?;
                         // we still need to read the data to move on to the CBOR after it
@@ -392,7 +463,7 @@ impl Deserialize for CIP25MetadataDetails {
                     return Err(
                         DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("name")))
                             .into(),
-                    );
+                    )
                 }
             };
             let image = match image {
@@ -401,7 +472,7 @@ impl Deserialize for CIP25MetadataDetails {
                     return Err(
                         DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("image")))
                             .into(),
-                    );
+                    )
                 }
             };
             read_len.finish()?;
@@ -440,53 +511,5 @@ impl Deserialize for CIP25String64 {
             ));
         }
         Ok(Self(inner))
-    }
-}
-
-impl cbor_event::se::Serialize for CIP25ChunkableString {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        match self {
-            CIP25ChunkableString::Single(string64) => string64.serialize(serializer),
-            CIP25ChunkableString::Chunked(arr_string64) => {
-                serializer.write_array(cbor_event::Len::Len(arr_string64.len() as u64))?;
-                for element in arr_string64.iter() {
-                    element.serialize(serializer)?;
-                }
-                Ok(serializer)
-            }
-        }
-    }
-}
-
-impl Deserialize for CIP25ChunkableString {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        (|| -> Result<_, DeserializeError> {
-            match raw.cbor_type()? {
-                cbor_event::Type::Text => CIP25String64::deserialize(raw).map(Self::Single),
-                cbor_event::Type::Array => {
-                    let mut arr_string64_arr = Vec::new();
-                    let len = raw.array()?;
-                    while match len {
-                        cbor_event::Len::Len(n) => arr_string64_arr.len() < n as usize,
-                        cbor_event::Len::Indefinite => true,
-                    } {
-                        if raw.cbor_type()? == CBORType::Special {
-                            assert_eq!(raw.special()?, CBORSpecial::Break);
-                            break;
-                        }
-                        arr_string64_arr.push(CIP25String64::deserialize(raw)?);
-                    }
-                    Ok(Self::Chunked(arr_string64_arr))
-                }
-                _ => Err(DeserializeError::new(
-                    "CIP25ChunkableString",
-                    DeserializeFailure::NoVariantMatched,
-                )),
-            }
-        })()
-        .map_err(|e| e.annotate("CIP25ChunkableString"))
     }
 }

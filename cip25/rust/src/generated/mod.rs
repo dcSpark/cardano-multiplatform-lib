@@ -7,7 +7,6 @@ pub mod serialization;
 pub use crate::CIP25LabelMetadata;
 
 use cml_core::error::*;
-use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 

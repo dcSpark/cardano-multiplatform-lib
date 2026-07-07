@@ -6,7 +6,7 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::{Serialize, Serializer};
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
+use std::io::{BufRead, Seek, Write};
 
 impl cbor_event::se::Serialize for CIP25ChunkableString {
     fn serialize<'se, W: Write>(
@@ -40,13 +40,12 @@ impl Deserialize for CIP25ChunkableString {
                         cbor_event::Len::Len(n) => (chunked_arr.len() as u64) < n,
                         cbor_event::Len::Indefinite => true,
                     } {
-                        if let cbor_event::Len::Indefinite = len {
-                            if raw.cbor_type()? == cbor_event::Type::Special
+                        if let cbor_event::Len::Indefinite = len
+                            && raw.cbor_type()? == cbor_event::Type::Special
                                 && raw.special_break()?
                             {
                                 break;
                             }
-                        }
                         chunked_arr.push(CIP25String64::deserialize(raw)?);
                     }
                     let chunked = chunked_arr;
@@ -372,13 +371,12 @@ impl Deserialize for CIP25MetadataDetails {
                                         cbor_event::Len::Len(n) => (files_arr.len() as u64) < n,
                                         cbor_event::Len::Indefinite => true,
                                     } {
-                                        if let cbor_event::Len::Indefinite = len {
-                                            if raw.cbor_type()? == cbor_event::Type::Special
+                                        if let cbor_event::Len::Indefinite = len
+                                            && raw.cbor_type()? == cbor_event::Type::Special
                                                 && raw.special_break()?
                                             {
                                                 break;
                                             }
-                                        }
                                         files_arr.push(CIP25FilesDetails::deserialize(raw)?);
                                     }
                                     Ok(files_arr)

@@ -25,7 +25,6 @@ pub use crate::CIP25LabelMetadata;
 use cml_core_wasm::{
     impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_list_needs_into,
 };
-use std::collections::BTreeMap;
 use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 /// A String that may or may not be chunked into 64-byte chunks to be able

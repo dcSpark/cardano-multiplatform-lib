@@ -127,6 +127,7 @@ named byron && gen multi-era "$SPECS/multiera-byron" --lib-name=cml-multi-era --
 
 echo "Running clippy --fix on the regenerated code..." >&2
 cargo clippy --fix --allow-dirty --allow-staged --workspace --all-features --all-targets
+cargo fmt --all
 
 cat <<'EOF'
 

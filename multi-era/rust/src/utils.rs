@@ -1103,12 +1103,8 @@ impl MultiEraProtocolParamUpdate {
     pub fn cost_models_for_script_languages(&self) -> Option<CostModels> {
         match self {
             Self::Shelley(_update) => None,
-            Self::Alonzo(update) => update
-                .cost_models_for_script_languages
-                .clone(),
-            Self::Babbage(update) => update
-                .cost_models_for_script_languages
-                .clone(),
+            Self::Alonzo(update) => update.cost_models_for_script_languages.clone(),
+            Self::Babbage(update) => update.cost_models_for_script_languages.clone(),
             Self::Conway(update) => update.cost_models_for_script_languages.clone(),
         }
     }

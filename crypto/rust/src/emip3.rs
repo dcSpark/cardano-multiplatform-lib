@@ -4,7 +4,6 @@ use cryptoxide::pbkdf2::pbkdf2;
 use cryptoxide::sha2::Sha512;
 use hex::ToHex;
 
-
 // taken from js-cardano-wasm
 
 mod password_encryption_parameter {

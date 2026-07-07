@@ -42,10 +42,10 @@ impl Deserialize for CIP25ChunkableString {
                     } {
                         if let cbor_event::Len::Indefinite = len
                             && raw.cbor_type()? == cbor_event::Type::Special
-                                && raw.special_break()?
-                            {
-                                break;
-                            }
+                            && raw.special_break()?
+                        {
+                            break;
+                        }
                         chunked_arr.push(CIP25String64::deserialize(raw)?);
                     }
                     let chunked = chunked_arr;
@@ -96,7 +96,7 @@ impl Deserialize for CIP25FilesDetails {
                         return Err(DeserializeFailure::UnknownKey(Key::Uint(
                             raw.unsigned_integer()?,
                         ))
-                        .into())
+                        .into());
                     }
                     cbor_event::Type::Text => match raw.text()?.as_str() {
                         "src" => {
@@ -145,7 +145,7 @@ impl Deserialize for CIP25FilesDetails {
                     },
                     cbor_event::Type::Special => match len {
                         cbor_event::Len::Len(_) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::Len::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -170,7 +170,7 @@ impl Deserialize for CIP25FilesDetails {
                     return Err(
                         DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("name")))
                             .into(),
-                    )
+                    );
                 }
             };
             let media_type =
@@ -180,7 +180,7 @@ impl Deserialize for CIP25FilesDetails {
                         return Err(DeserializeFailure::MandatoryFieldMissing(Key::Str(
                             String::from("mediaType"),
                         ))
-                        .into())
+                        .into());
                     }
                 };
             let src = match src {
@@ -189,7 +189,7 @@ impl Deserialize for CIP25FilesDetails {
                     return Err(
                         DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("src")))
                             .into(),
-                    )
+                    );
                 }
             };
             read_len.finish()?;
@@ -248,11 +248,11 @@ impl Deserialize for CIP25Metadata {
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::Len::Len(_) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::Len::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -260,7 +260,7 @@ impl Deserialize for CIP25Metadata {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;
@@ -268,7 +268,7 @@ impl Deserialize for CIP25Metadata {
             let key_721 = match key_721 {
                 Some(x) => x,
                 None => {
-                    return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(721)).into())
+                    return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(721)).into());
                 }
             };
             read_len.finish()?;
@@ -340,7 +340,7 @@ impl Deserialize for CIP25MetadataDetails {
                         return Err(DeserializeFailure::UnknownKey(Key::Uint(
                             raw.unsigned_integer()?,
                         ))
-                        .into())
+                        .into());
                     }
                     cbor_event::Type::Text => match raw.text()?.as_str() {
                         "name" => {
@@ -373,10 +373,10 @@ impl Deserialize for CIP25MetadataDetails {
                                     } {
                                         if let cbor_event::Len::Indefinite = len
                                             && raw.cbor_type()? == cbor_event::Type::Special
-                                                && raw.special_break()?
-                                            {
-                                                break;
-                                            }
+                                            && raw.special_break()?
+                                        {
+                                            break;
+                                        }
                                         files_arr.push(CIP25FilesDetails::deserialize(raw)?);
                                     }
                                     Ok(files_arr)
@@ -436,14 +436,14 @@ impl Deserialize for CIP25MetadataDetails {
                     },
                     cbor_event::Type::Special => match len {
                         cbor_event::Len::Len(_) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::Len::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                   _other_type => {
+                    _other_type => {
                         // CIP-25 allows permissive parsing
                         read_len.read_elems(1)?;
                         // we still need to read the data to move on to the CBOR after it
@@ -461,7 +461,7 @@ impl Deserialize for CIP25MetadataDetails {
                     return Err(
                         DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("name")))
                             .into(),
-                    )
+                    );
                 }
             };
             let image = match image {
@@ -470,7 +470,7 @@ impl Deserialize for CIP25MetadataDetails {
                     return Err(
                         DeserializeFailure::MandatoryFieldMissing(Key::Str(String::from("image")))
                             .into(),
-                    )
+                    );
                 }
             };
             read_len.finish()?;

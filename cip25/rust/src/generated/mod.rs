@@ -9,7 +9,6 @@ pub use crate::CIP25LabelMetadata;
 use cml_core::error::*;
 use std::convert::TryFrom;
 
-
 /// A String that may or may not be chunked into 64-byte chunks to be able
 /// to conform to Cardano TX Metadata limitations.
 /// Unless you have good reasons, you should be using the From<&str> trait to construct this:

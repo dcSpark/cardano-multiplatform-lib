@@ -25,7 +25,7 @@ pub use crate::CIP25LabelMetadata;
 use cml_core_wasm::{
     impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions, impl_wasm_list_needs_into,
 };
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 /// A String that may or may not be chunked into 64-byte chunks to be able
 /// to conform to Cardano TX Metadata limitations.
@@ -123,7 +123,7 @@ impl CIP25FilesDetails {
 /// It can be parsed by passing in the CBOR bytes of the entire transaction metadata
 /// or by passing in an existing Metadata struct.
 /// Parsing from CBOR bytes should be marginally faster.
-/// 
+///
 /// Careful: `to_cbor_bytes`, `from_cbor_bytes`, `to_cbor_hex`, `from_cbor_hex` will:
 /// 1. ignore all non-CIP25 keys
 /// 2. not support round-trip serialization

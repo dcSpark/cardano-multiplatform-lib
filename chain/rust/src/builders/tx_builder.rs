@@ -243,11 +243,12 @@ fn total_ref_script_size_for_fee(tx_builder: &TransactionBuilder) -> Result<u64,
         .chain(tx_builder.reference_inputs.iter().flatten())
     {
         if ref_script_inputs.insert(utxo.input.clone())
-            && let Some(script_ref) = utxo.output.script_ref() {
-                total_ref_script_size = total_ref_script_size
-                    .checked_add(ref_script_orig_size(script_ref))
-                    .ok_or(ArithmeticError::IntegerOverflow)?;
-            }
+            && let Some(script_ref) = utxo.output.script_ref()
+        {
+            total_ref_script_size = total_ref_script_size
+                .checked_add(ref_script_orig_size(script_ref))
+                .ok_or(ArithmeticError::IntegerOverflow)?;
+        }
     }
 
     Ok(total_ref_script_size)
@@ -1350,9 +1351,10 @@ impl TransactionBuilder {
                             .iter()
                             .fold(&mut languages, |langs, input| {
                                 if let Some(script_ref) = &input.output.script_ref()
-                                    && let Some(lang) = script_ref.language() {
-                                        langs.insert(lang);
-                                    }
+                                    && let Some(lang) = script_ref.language()
+                                {
+                                    langs.insert(lang);
+                                }
                                 langs
                             });
                     };
@@ -1361,9 +1363,10 @@ impl TransactionBuilder {
                         .iter()
                         .fold(&mut languages, |langs, input| {
                             if let Some(script_ref) = &input.output.script_ref()
-                                && let Some(lang) = script_ref.language() {
-                                    langs.insert(lang);
-                                }
+                                && let Some(lang) = script_ref.language()
+                            {
+                                langs.insert(lang);
+                            }
                             langs
                         });
                     calc_script_data_hash(

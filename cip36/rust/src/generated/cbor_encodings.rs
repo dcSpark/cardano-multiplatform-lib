@@ -1,7 +1,9 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+use super::*;
 use cml_core::serialization::{LenEncoding, StringEncoding};
+use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct CIP36DelegationEncoding {
@@ -46,7 +48,7 @@ pub struct CIP36KeyRegistrationEncoding {
     pub delegation_key_encoding: Option<cbor_event::Sz>,
     pub stake_credential_encoding: StringEncoding,
     pub stake_credential_key_encoding: Option<cbor_event::Sz>,
-    pub address_key_encoding: Option<cbor_event::Sz>,
+    pub payment_address_key_encoding: Option<cbor_event::Sz>,
     pub nonce_encoding: Option<cbor_event::Sz>,
     pub nonce_key_encoding: Option<cbor_event::Sz>,
     pub voting_purpose_encoding: Option<cbor_event::Sz>,

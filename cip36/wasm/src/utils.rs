@@ -12,8 +12,7 @@ use wasm_bindgen::JsError;
 use std::convert::{TryFrom, TryInto};
 
 use super::{
-    CIP36DelegationDistribution, CIP36DeregistrationCbor, CIP36KeyDeregistration,
-    CIP36KeyRegistration, CIP36Nonce, CIP36RegistrationCbor, CIP36StakeCredential,
+    CIP36DeregistrationCbor, CIP36KeyDeregistration, CIP36KeyRegistration, CIP36RegistrationCbor,
 };
 
 impl CIP36DeregistrationCbor {
@@ -56,16 +55,6 @@ impl CIP36DeregistrationCbor {
 }
 
 impl CIP36KeyDeregistration {
-    /// Creates a new CIP36KeyDeregistration. You must then sign self.hash_to_sign() to make a `DeregistrationWitness`.
-    ///
-    /// # Arguments
-    ///
-    /// * `stake_credential` - stake address for the network that this transaction is submitted to (to point to the Ada that was being delegated).
-    /// * `nonce` - Monotonically rising across all transactions with the same staking key. Recommended to just use the slot of this tx.
-    pub fn new(stake_credential: &CIP36StakeCredential, nonce: CIP36Nonce) -> Self {
-        cml_cip36::CIP36KeyDeregistration::new(stake_credential.clone().into(), nonce).into()
-    }
-
     /// Create bytes to sign to make a `DeregistrationWitness` from.
     ///
     /// # Arguments
@@ -77,29 +66,6 @@ impl CIP36KeyDeregistration {
 }
 
 impl CIP36KeyRegistration {
-    /// Creates a new CIP36KeyRegistration. You must then sign self.hash_to_sign() to make a `RegistrationWitness`.
-    ///
-    /// # Arguments
-    ///
-    /// * `delegation` - Delegation
-    /// * `stake_credential` - stake address for the network that this transaction is submitted to (to point to the Ada that is being delegated).
-    /// * `payment_address` - Shelley oayment address discriminated for the same network this transaction is submitted to for receiving awairds.
-    /// * `nonce` - Monotonically rising across all transactions with the same staking key. Recommended to just use the slot of this tx.
-    pub fn new(
-        delegation: &CIP36DelegationDistribution,
-        stake_credential: &CIP36StakeCredential,
-        payment_address: &Address,
-        nonce: CIP36Nonce,
-    ) -> Self {
-        cml_cip36::CIP36KeyRegistration::new(
-            delegation.clone().into(),
-            stake_credential.clone().into(),
-            payment_address.clone().into(),
-            nonce,
-        )
-        .into()
-    }
-
     /// Create bytes to sign to make a `RegistrationWitness` from.
     ///
     /// # Arguments

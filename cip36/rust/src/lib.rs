@@ -90,7 +90,8 @@ mod tests {
                 ])
                 .unwrap(),
                 1,
-            )]),
+            )])
+            .unwrap(),
             stake_cred,
             new_address,
             nonce,

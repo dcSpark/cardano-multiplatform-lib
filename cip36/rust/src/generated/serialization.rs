@@ -1,18 +1,13 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_core::{
-    Key,
-    serialization::{CBORReadLen, Deserialize, Serialize, fit_sz},
-};
-
-use cml_crypto::{Ed25519Signature, PublicKey, RawBytesEncoding};
-
 use super::cbor_encodings::*;
 use super::*;
-use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
+use cml_core::error::*;
+use cml_core::serialization::*;
+use cml_crypto::{Ed25519Signature, PublicKey, RawBytesEncoding};
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for CIP36Delegation {
@@ -64,6 +59,7 @@ impl Deserialize for CIP36Delegation {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let (voting_pub_key, voting_pub_key_encoding) = raw
                 .bytes_sz()
@@ -76,8 +72,20 @@ impl Deserialize for CIP36Delegation {
                 .map_err(|e: DeserializeError| e.annotate("voting_pub_key"))?;
             let (weight, weight_encoding) = raw
                 .unsigned_integer_sz()
-                .map(|(x, enc)| (x as u32, Some(enc)))
                 .map_err(Into::<DeserializeError>::into)
+                .and_then(|(x, enc)| {
+                    if x > 4294967295 {
+                        Err(DeserializeFailure::RangeCheck {
+                            found: x as isize,
+                            min: Some(0),
+                            max: Some(4294967295),
+                        }
+                        .into())
+                    } else {
+                        Ok((x, enc))
+                    }
+                })
+                .map(|(x, enc)| (x as u32, Some(enc)))
                 .map_err(|e: DeserializeError| e.annotate("weight"))?;
             match len {
                 cbor_event::LenSz::Len(_, _) => (),
@@ -108,16 +116,16 @@ impl Serialize for CIP36DelegationDistribution {
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
             CIP36DelegationDistribution::Weighted {
-                delegations,
-                delegations_encoding,
+                weighted,
+                weighted_encoding,
             } => {
                 serializer.write_array_sz(
-                    delegations_encoding.to_len_sz(delegations.len() as u64, force_canonical),
+                    weighted_encoding.to_len_sz(weighted.len() as u64, force_canonical),
                 )?;
-                for element in delegations.iter() {
+                for element in weighted.iter() {
                     element.serialize(serializer, force_canonical)?;
                 }
-                delegations_encoding.end(serializer, force_canonical)
+                weighted_encoding.end(serializer, force_canonical)
             }
             CIP36DelegationDistribution::Legacy {
                 legacy,
@@ -133,59 +141,59 @@ impl Serialize for CIP36DelegationDistribution {
 impl Deserialize for CIP36DelegationDistribution {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
-                let mut weighted_arr = Vec::new();
-                let len = raw.array_sz()?;
-                let delegations_encoding = len.into();
-                while match len {
-                    cbor_event::LenSz::Len(n, _) => (weighted_arr.len() as u64) < n,
-                    cbor_event::LenSz::Indefinite => true,
-                } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
+            match raw.cbor_type()? {
+                cbor_event::Type::Array => {
+                    let mut weighted_arr = Vec::new();
+                    let len = raw.array_sz()?;
+                    let weighted_encoding = len.into();
+                    while match len {
+                        cbor_event::LenSz::Len(n, _) => (weighted_arr.len() as u64) < n,
+                        cbor_event::LenSz::Indefinite => true,
+                    } {
+                        if let cbor_event::LenSz::Indefinite = len {
+                            if raw.cbor_type()? == cbor_event::Type::Special
+                                && raw.special_break()?
+                            {
+                                break;
+                            }
+                        }
+                        weighted_arr.push(CIP36Delegation::deserialize(raw)?);
                     }
-                    weighted_arr.push(CIP36Delegation::deserialize(raw)?);
+                    if weighted_arr.len() < 1 {
+                        return Err(DeserializeFailure::RangeCheck {
+                            found: weighted_arr.len() as isize,
+                            min: Some(1),
+                            max: None,
+                        }
+                        .into());
+                    }
+                    let (weighted, weighted_encoding) = (weighted_arr, weighted_encoding);
+                    Ok(Self::Weighted {
+                        weighted,
+                        weighted_encoding,
+                    })
                 }
-                Ok((weighted_arr, delegations_encoding))
-            })(raw);
-            match deser_variant {
-                Ok((delegations, delegations_encoding)) => {
-                    return Ok(Self::Weighted {
-                        delegations,
-                        delegations_encoding,
-                    });
-                }
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            let deser_variant: Result<_, DeserializeError> = raw
-                .bytes_sz()
-                .map_err(Into::<DeserializeError>::into)
-                .and_then(|(bytes, enc)| {
-                    PublicKey::from_raw_bytes(&bytes)
-                        .map(|bytes| (bytes, StringEncoding::from(enc)))
-                        .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
-                });
-            match deser_variant {
-                Ok((legacy, legacy_encoding)) => {
-                    return Ok(Self::Legacy {
+                cbor_event::Type::Bytes => {
+                    let (legacy, legacy_encoding) = raw
+                        .bytes_sz()
+                        .map_err(Into::<DeserializeError>::into)
+                        .and_then(|(bytes, enc)| {
+                            PublicKey::from_raw_bytes(&bytes)
+                                .map(|bytes| (bytes, StringEncoding::from(enc)))
+                                .map_err(|e| {
+                                    DeserializeFailure::InvalidStructure(Box::new(e)).into()
+                                })
+                        })?;
+                    Ok(Self::Legacy {
                         legacy,
                         legacy_encoding,
-                    });
+                    })
                 }
-                Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
-                    .unwrap(),
-            };
-            Err(DeserializeError::new(
-                "CIP36DelegationDistribution",
-                DeserializeFailure::NoVariantMatched,
-            ))
+                _ => Err(DeserializeError::new(
+                    "CIP36DelegationDistribution",
+                    DeserializeFailure::NoVariantMatched,
+                )),
+            }
         })()
         .map_err(|e| e.annotate("CIP36DelegationDistribution"))
     }
@@ -253,6 +261,7 @@ impl Deserialize for CIP36DeregistrationWitness {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(1)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let mut orig_deser_order = Vec::new();
             let mut stake_witness_encoding = StringEncoding::default();
@@ -313,6 +322,7 @@ impl Deserialize for CIP36DeregistrationWitness {
                 Some(x) => x,
                 None => return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(1)).into()),
             };
+            ();
             Ok(Self {
                 stake_witness,
                 encodings: Some(CIP36DeregistrationWitnessEncoding {
@@ -424,28 +434,36 @@ impl Serialize for CIP36KeyDeregistration {
                     )?;
                 }
                 2 => {
-                    serializer.write_unsigned_integer_sz(
-                        3u64,
-                        fit_sz(
+                    if self.voting_purpose != 0
+                        || self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.voting_purpose_default_present)
+                            .unwrap_or(false)
+                    {
+                        serializer.write_unsigned_integer_sz(
                             3u64,
-                            self.encodings
-                                .as_ref()
-                                .map(|encs| encs.voting_purpose_key_encoding)
-                                .unwrap_or_default(),
-                            force_canonical,
-                        ),
-                    )?;
-                    serializer.write_unsigned_integer_sz(
-                        self.voting_purpose,
-                        fit_sz(
+                            fit_sz(
+                                3u64,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.voting_purpose_key_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                        serializer.write_unsigned_integer_sz(
                             self.voting_purpose,
-                            self.encodings
-                                .as_ref()
-                                .map(|encs| encs.voting_purpose_encoding)
-                                .unwrap_or_default(),
-                            force_canonical,
-                        ),
-                    )?;
+                            fit_sz(
+                                self.voting_purpose,
+                                self.encodings
+                                    .as_ref()
+                                    .map(|encs| encs.voting_purpose_encoding)
+                                    .unwrap_or_default(),
+                                force_canonical,
+                            ),
+                        )?;
+                    }
                 }
                 _ => unreachable!(),
             };
@@ -509,8 +527,8 @@ impl Deserialize for CIP36KeyDeregistration {
                             }
                             let (tmp_nonce, tmp_nonce_encoding) = raw
                                 .unsigned_integer_sz()
-                                .map(|(x, enc)| (x, Some(enc)))
                                 .map_err(Into::<DeserializeError>::into)
+                                .map(|(x, enc)| (x, Some(enc)))
                                 .map_err(|e: DeserializeError| e.annotate("nonce"))?;
                             nonce = Some(tmp_nonce);
                             nonce_encoding = tmp_nonce_encoding;
@@ -525,8 +543,8 @@ impl Deserialize for CIP36KeyDeregistration {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("voting_purpose"))?;
                             voting_purpose = Some(tmp_voting_purpose);
@@ -601,17 +619,16 @@ impl Serialize for CIP36KeyRegistration {
         // code hand-edited to deal with including voting purpose or not depending on format
         // defaulting to weighted including it is based on the test vectors as it is not well specified
         // this seems to have changed as previously it was not included in old test vectors
-        let (_legacy_format, should_include_voting_purpose) = match self.delegation {
-            CIP36DelegationDistribution::Legacy { .. } => (true, false),
-            CIP36DelegationDistribution::Weighted { .. } => (
-                false,
+        let should_include_voting_purpose = match self.delegation {
+            CIP36DelegationDistribution::Legacy { .. } => false,
+            CIP36DelegationDistribution::Weighted { .. } => {
                 self.voting_purpose != 0
                     || self
                         .encodings
                         .as_ref()
                         .map(|encs| encs.voting_purpose_default_present)
-                        .unwrap_or(true),
-            ),
+                        .unwrap_or(true)
+            }
         };
         serializer.write_map_sz(
             self.encodings
@@ -686,7 +703,7 @@ impl Serialize for CIP36KeyRegistration {
                             3u64,
                             self.encodings
                                 .as_ref()
-                                .map(|encs| encs.address_key_encoding)
+                                .map(|encs| encs.payment_address_key_encoding)
                                 .unwrap_or_default(),
                             force_canonical,
                         ),
@@ -768,7 +785,7 @@ impl Deserialize for CIP36KeyRegistration {
             let mut stake_credential_encoding = StringEncoding::default();
             let mut stake_credential_key_encoding = None;
             let mut stake_credential = None;
-            let mut address_key_encoding = None;
+            let mut payment_address_key_encoding = None;
             let mut payment_address = None;
             let mut nonce_encoding = None;
             let mut nonce_key_encoding = None;
@@ -818,10 +835,10 @@ impl Deserialize for CIP36KeyRegistration {
                             if payment_address.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(3)).into());
                             }
-                            let tmp_payment_address = Address::deserialize(raw)
+                            let tmp_payment_address = PaymentAddress::deserialize(raw)
                                 .map_err(|e: DeserializeError| e.annotate("payment_address"))?;
                             payment_address = Some(tmp_payment_address);
-                            address_key_encoding = Some(key_enc);
+                            payment_address_key_encoding = Some(key_enc);
                             orig_deser_order.push(2);
                         }
                         (4, key_enc) => {
@@ -830,8 +847,8 @@ impl Deserialize for CIP36KeyRegistration {
                             }
                             let (tmp_nonce, tmp_nonce_encoding) = raw
                                 .unsigned_integer_sz()
-                                .map(|(x, enc)| (x, Some(enc)))
                                 .map_err(Into::<DeserializeError>::into)
+                                .map(|(x, enc)| (x, Some(enc)))
                                 .map_err(|e: DeserializeError| e.annotate("nonce"))?;
                             nonce = Some(tmp_nonce);
                             nonce_encoding = tmp_nonce_encoding;
@@ -846,8 +863,8 @@ impl Deserialize for CIP36KeyRegistration {
                                 (|| -> Result<_, DeserializeError> {
                                     read_len.read_elems(1)?;
                                     raw.unsigned_integer_sz()
-                                        .map(|(x, enc)| (x, Some(enc)))
                                         .map_err(Into::<DeserializeError>::into)
+                                        .map(|(x, enc)| (x, Some(enc)))
                                 })()
                                 .map_err(|e| e.annotate("voting_purpose"))?;
                             voting_purpose = Some(tmp_voting_purpose);
@@ -912,7 +929,7 @@ impl Deserialize for CIP36KeyRegistration {
                     delegation_key_encoding,
                     stake_credential_key_encoding,
                     stake_credential_encoding,
-                    address_key_encoding,
+                    payment_address_key_encoding,
                     nonce_key_encoding,
                     nonce_encoding,
                     voting_purpose_key_encoding,
@@ -987,6 +1004,7 @@ impl Deserialize for CIP36RegistrationWitness {
         let len_encoding: LenEncoding = len.into();
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(1)?;
+        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
             let mut orig_deser_order = Vec::new();
             let mut stake_witness_encoding = StringEncoding::default();
@@ -1047,6 +1065,7 @@ impl Deserialize for CIP36RegistrationWitness {
                 Some(x) => x,
                 None => return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(1)).into()),
             };
+            ();
             Ok(Self {
                 stake_witness,
                 encodings: Some(CIP36RegistrationWitnessEncoding {

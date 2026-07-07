@@ -3,14 +3,24 @@
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
+impl_wasm_list_needs_into!(
+    cml_cip36::CIP36Delegation,
+    CIP36Delegation,
+    CIP36DelegationList,
+    true,
+    false
+);
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use wasm_bindgen::prelude::wasm_bindgen;
+pub use crate::PaymentAddress;
 
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_json_api};
-
-use cml_chain_wasm::address::Address;
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core_wasm::{
+    impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_json_api, impl_wasm_list_needs_into,
+};
+use cml_crypto_wasm::{Ed25519Signature, PublicKey};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -33,7 +43,7 @@ impl CIP36Delegation {
     pub fn new(voting_pub_key: &CIP36VotingPubKey, weight: CIP36Weight) -> Self {
         Self(cml_cip36::CIP36Delegation::new(
             voting_pub_key.clone().into(),
-            weight,
+            weight.into(),
         ))
     }
 }
@@ -51,39 +61,41 @@ impl_wasm_conversions!(
 
 #[wasm_bindgen]
 impl CIP36DelegationDistribution {
-    pub fn new_weighted(delegations: &CIP36DelegationList) -> Self {
-        Self(cml_cip36::CIP36DelegationDistribution::new_weighted(
-            delegations.clone().into(),
-        ))
+    pub fn new_weighted(
+        weighted: &CIP36DelegationList,
+    ) -> Result<CIP36DelegationDistribution, JsError> {
+        cml_cip36::CIP36DelegationDistribution::new_weighted(weighted.clone().into())
+            .map(Into::into)
+            .map_err(Into::into)
     }
 
-    pub fn new_legacy(legacy: &LegacyKeyRegistration) -> Self {
+    pub fn new_legacy(legacy: &CIP36LegacyKeyRegistration) -> Self {
         Self(cml_cip36::CIP36DelegationDistribution::new_legacy(
             legacy.clone().into(),
         ))
     }
 
-    pub fn kind(&self) -> DelegationDistributionKind {
+    pub fn kind(&self) -> CIP36DelegationDistributionKind {
         match &self.0 {
             cml_cip36::CIP36DelegationDistribution::Weighted { .. } => {
-                DelegationDistributionKind::Weighted
+                CIP36DelegationDistributionKind::Weighted
             }
             cml_cip36::CIP36DelegationDistribution::Legacy { .. } => {
-                DelegationDistributionKind::Legacy
+                CIP36DelegationDistributionKind::Legacy
             }
         }
     }
 
     pub fn as_weighted(&self) -> Option<CIP36DelegationList> {
         match &self.0 {
-            cml_cip36::CIP36DelegationDistribution::Weighted { delegations, .. } => {
-                Some(delegations.clone().into())
+            cml_cip36::CIP36DelegationDistribution::Weighted { weighted, .. } => {
+                Some(weighted.clone().into())
             }
             _ => None,
         }
     }
 
-    pub fn as_legacy(&self) -> Option<LegacyKeyRegistration> {
+    pub fn as_legacy(&self) -> Option<CIP36LegacyKeyRegistration> {
         match &self.0 {
             cml_cip36::CIP36DelegationDistribution::Legacy { legacy, .. } => {
                 Some(legacy.clone().into())
@@ -94,50 +106,9 @@ impl CIP36DelegationDistribution {
 }
 
 #[wasm_bindgen]
-pub enum DelegationDistributionKind {
+pub enum CIP36DelegationDistributionKind {
     Weighted,
     Legacy,
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct CIP36DelegationList(Vec<cml_cip36::CIP36Delegation>);
-
-#[wasm_bindgen]
-impl CIP36DelegationList {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get(&self, index: usize) -> CIP36Delegation {
-        self.0[index].clone().into()
-    }
-
-    pub fn add(&mut self, elem: &CIP36Delegation) {
-        self.0.push(elem.clone().into());
-    }
-}
-
-impl From<Vec<cml_cip36::CIP36Delegation>> for CIP36DelegationList {
-    fn from(native: Vec<cml_cip36::CIP36Delegation>) -> Self {
-        Self(native)
-    }
-}
-
-impl From<CIP36DelegationList> for Vec<cml_cip36::CIP36Delegation> {
-    fn from(wasm: CIP36DelegationList) -> Self {
-        wasm.0
-    }
-}
-
-impl AsRef<Vec<cml_cip36::CIP36Delegation>> for CIP36DelegationList {
-    fn as_ref(&self) -> &Vec<cml_cip36::CIP36Delegation> {
-        &self.0
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -213,11 +184,18 @@ impl CIP36KeyDeregistration {
     }
 
     pub fn set_voting_purpose(&mut self, voting_purpose: CIP36VotingPurpose) {
-        self.0.voting_purpose = voting_purpose
+        self.0.voting_purpose = voting_purpose.into()
     }
 
     pub fn voting_purpose(&self) -> CIP36VotingPurpose {
         self.0.voting_purpose
+    }
+
+    pub fn new(stake_credential: &CIP36StakeCredential, nonce: CIP36Nonce) -> Self {
+        Self(cml_cip36::CIP36KeyDeregistration::new(
+            stake_credential.clone().into(),
+            nonce.into(),
+        ))
     }
 }
 
@@ -239,7 +217,7 @@ impl CIP36KeyRegistration {
         self.0.stake_credential.clone().into()
     }
 
-    pub fn payment_address(&self) -> Address {
+    pub fn payment_address(&self) -> PaymentAddress {
         self.0.payment_address.clone().into()
     }
 
@@ -248,15 +226,29 @@ impl CIP36KeyRegistration {
     }
 
     pub fn set_voting_purpose(&mut self, voting_purpose: CIP36VotingPurpose) {
-        self.0.voting_purpose = voting_purpose
+        self.0.voting_purpose = voting_purpose.into()
     }
 
     pub fn voting_purpose(&self) -> CIP36VotingPurpose {
         self.0.voting_purpose
     }
+
+    pub fn new(
+        delegation: &CIP36DelegationDistribution,
+        stake_credential: &CIP36StakeCredential,
+        payment_address: &PaymentAddress,
+        nonce: CIP36Nonce,
+    ) -> Self {
+        Self(cml_cip36::CIP36KeyRegistration::new(
+            delegation.clone().into(),
+            stake_credential.clone().into(),
+            payment_address.clone().into(),
+            nonce.into(),
+        ))
+    }
 }
 
-pub type LegacyKeyRegistration = cml_crypto_wasm::PublicKey;
+pub type CIP36LegacyKeyRegistration = PublicKey;
 
 pub type CIP36Nonce = u64;
 
@@ -314,13 +306,13 @@ impl CIP36RegistrationWitness {
     }
 }
 
-pub type CIP36StakeCredential = cml_crypto_wasm::PublicKey;
+pub type CIP36StakeCredential = PublicKey;
 
-pub type CIP36StakeWitness = cml_crypto_wasm::Ed25519Signature;
+pub type CIP36StakeWitness = Ed25519Signature;
 
-pub type CIP36StakingPubKey = cml_crypto_wasm::PublicKey;
+pub type CIP36StakingPubKey = PublicKey;
 
-pub type CIP36VotingPubKey = cml_crypto_wasm::PublicKey;
+pub type CIP36VotingPubKey = PublicKey;
 
 pub type CIP36VotingPurpose = u64;
 

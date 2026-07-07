@@ -18,8 +18,7 @@ use std::convert::From;
 
 use super::{
     CIP36DelegationDistribution, CIP36DeregistrationCbor, CIP36DeregistrationWitness,
-    CIP36KeyDeregistration, CIP36KeyRegistration, CIP36Nonce, CIP36RegistrationCbor,
-    CIP36RegistrationWitness, CIP36StakeCredential,
+    CIP36KeyDeregistration, CIP36KeyRegistration, CIP36RegistrationCbor, CIP36RegistrationWitness,
 };
 
 use std::io::{BufRead, Write};
@@ -34,16 +33,6 @@ pub static DEREGISTRATION_WITNESS_LABEL: u64 = REGISTRATION_WITNESS_LABEL;
 pub static KEY_DEREGISTRATION_LABEL: u64 = 61286;
 
 impl CIP36DeregistrationCbor {
-    pub fn new(
-        key_deregistration: CIP36KeyDeregistration,
-        deregistration_witness: CIP36DeregistrationWitness,
-    ) -> Self {
-        Self {
-            key_deregistration,
-            deregistration_witness,
-        }
-    }
-
     /// Add to an existing metadata (could be empty) the full CIP36 deregistration metadata
     pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), DeserializeError> {
         let dereg_metadatum =
@@ -216,21 +205,6 @@ impl std::convert::TryInto<Metadata> for &CIP36DeregistrationCbor {
 }
 
 impl CIP36KeyDeregistration {
-    /// Creates a new CIP36KeyDeregistration. You must then sign self.hash_to_sign() to make a `CIP36DeregistrationWitness`.
-    ///
-    /// # Arguments
-    ///
-    /// * `stake_credential` - stake address for the network that this transaction is submitted to (to point to the Ada that was being delegated).
-    /// * `nonce` - Monotonically rising across all transactions with the same staking key. Recommended to just use the slot of this tx.
-    pub fn new(stake_credential: CIP36StakeCredential, nonce: CIP36Nonce) -> Self {
-        Self {
-            stake_credential,
-            nonce,
-            voting_purpose: 0,
-            encodings: None,
-        }
-    }
-
     /// Create bytes to sign to make a `CIP36DeregistrationWitness` from.
     ///
     /// # Arguments
@@ -247,30 +221,6 @@ impl CIP36KeyDeregistration {
 }
 
 impl CIP36KeyRegistration {
-    /// Creates a new CIP36KeyRegistration. You must then sign self.hash_to_sign() to make a `CIP36RegistrationWitness`.
-    ///
-    /// # Arguments
-    ///
-    /// * `delegation` - Delegation
-    /// * `stake_credential` - stake address for the network that this transaction is submitted to (to point to the Ada that is being delegated).
-    /// * `payment_address` - Shelley payment address discriminated for the same network this transaction is submitted to for receiving awairds.
-    /// * `nonce` - Monotonically rising across all transactions with the same staking key. Recommended to just use the slot of this tx.
-    pub fn new(
-        delegation: CIP36DelegationDistribution,
-        stake_credential: CIP36StakeCredential,
-        payment_address: Address,
-        nonce: CIP36Nonce,
-    ) -> Self {
-        Self {
-            delegation,
-            stake_credential,
-            payment_address,
-            nonce,
-            voting_purpose: 0,
-            encodings: None,
-        }
-    }
-
     /// Create bytes to sign to make a `CIP36RegistrationWitness` from.
     ///
     /// # Arguments
@@ -287,16 +237,6 @@ impl CIP36KeyRegistration {
 }
 
 impl CIP36RegistrationCbor {
-    pub fn new(
-        key_registration: CIP36KeyRegistration,
-        registration_witness: CIP36RegistrationWitness,
-    ) -> Self {
-        Self {
-            key_registration,
-            registration_witness,
-        }
-    }
-
     /// Add to an existing metadata (could be empty) the full CIP36 registration metadata
     pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), DeserializeError> {
         self.verify()
@@ -312,13 +252,13 @@ impl CIP36RegistrationCbor {
 
     /// Verifies invariants in CIP36.
     pub fn verify(&self) -> Result<(), CIP36Error> {
-        if let CIP36DelegationDistribution::Weighted { delegations, .. } =
+        if let CIP36DelegationDistribution::Weighted { weighted, .. } =
             &self.key_registration.delegation
         {
-            if delegations.is_empty() {
+            if weighted.is_empty() {
                 return Err(CIP36Error::EmptyDelegationArray);
             }
-            if delegations.iter().any(|d| d.weight != 0) {
+            if weighted.iter().any(|d| d.weight != 0) {
                 return Err(CIP36Error::DelegationWeightsZero);
             }
         }

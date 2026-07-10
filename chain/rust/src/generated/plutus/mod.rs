@@ -7,8 +7,8 @@ use noop_proc_macro::wasm_bindgen;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 pub mod cbor_encodings;
-pub mod utils;
 pub mod serialization;
+pub mod utils;
 pub use crate::BigInteger;
 pub use crate::ConstrPlutusData;
 pub use crate::PlutusMap;
@@ -536,9 +536,7 @@ pub enum Redeemers {
 }
 
 impl Redeemers {
-    pub fn new_arr_legacy_redeemer(
-        arr_legacy_redeemer: Vec<LegacyRedeemer>,
-    ) -> Self {
+    pub fn new_arr_legacy_redeemer(arr_legacy_redeemer: Vec<LegacyRedeemer>) -> Self {
         Self::ArrLegacyRedeemer {
             arr_legacy_redeemer,
             arr_legacy_redeemer_encoding: LenEncoding::default(),

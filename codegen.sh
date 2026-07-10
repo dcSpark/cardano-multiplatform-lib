@@ -126,8 +126,8 @@ want cip25     && gen cip25     "$SPECS/cip25.cddl" --lib-name=cml-cip25 --json-
 named byron && gen multi-era "$SPECS/multiera-byron" --lib-name=cml-multi-era --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${WASM_MACROS[@]}"
 
 echo "Running clippy --fix on the regenerated code..." >&2
-cargo clippy --fix --allow-dirty --allow-staged --workspace --all-features --all-targets
 cargo fmt --all
+cargo clippy --fix --allow-dirty --allow-staged --workspace --all-features --all-targets
 
 cat <<'EOF'
 

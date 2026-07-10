@@ -3,8 +3,8 @@
 
 pub mod cbor_encodings;
 pub mod metadata;
-pub mod utils;
 pub mod serialization;
+pub mod utils;
 pub use crate::Metadata;
 pub use metadata::*;
 

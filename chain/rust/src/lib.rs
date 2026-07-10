@@ -40,8 +40,8 @@ pub use cml_core::serialization::{Deserialize, LenEncoding, Serialize, StringEnc
 pub use crate::auxdata::metadata::Metadata;
 pub use crate::plutus::utils::{ConstrPlutusData, PlutusMap};
 pub use address::{Address, RewardAccount};
-pub use transaction::RequiredSigners;
 pub use byron::AddrAttributes;
+pub use transaction::RequiredSigners;
 
 // Crate-root aliases the hand-written builder/util modules reference bare
 // (these were private root imports in the pre-thin-root lib.rs).

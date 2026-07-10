@@ -77,7 +77,12 @@ impl MultiAsset {
 
     /// Set the value of policy_id:asset_name to value.
     /// Returns the previous value, or None if it didn't exist
-    pub fn set_value(&mut self, policy_id: &PolicyId, asset: &AssetName, value: Coin) -> Option<Coin> {
+    pub fn set_value(
+        &mut self,
+        policy_id: &PolicyId,
+        asset: &AssetName,
+        value: Coin,
+    ) -> Option<Coin> {
         self.0
             .set(policy_id.clone().into(), asset.clone().into(), value)
     }
@@ -130,7 +135,12 @@ impl Mint {
 
     /// Set the value of policy_id:asset_name to value.
     /// Returns the previous value, or None if it didn't exist
-    pub fn set_value(&mut self, policy_id: &PolicyId, asset: &AssetName, value: i64) -> Option<i64> {
+    pub fn set_value(
+        &mut self,
+        policy_id: &PolicyId,
+        asset: &AssetName,
+        value: i64,
+    ) -> Option<i64> {
         self.0
             .set(policy_id.clone().into(), asset.clone().into(), value)
     }

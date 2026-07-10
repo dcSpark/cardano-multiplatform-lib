@@ -3,8 +3,8 @@
 
 pub mod cbor_encodings;
 use crate::utils::NonemptySetRawBytes;
-pub mod utils;
 pub mod serialization;
+pub mod utils;
 
 use crate::generated::address::Address;
 use crate::generated::assets::{Coin, Mint, PositiveCoin, Value};

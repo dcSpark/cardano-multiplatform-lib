@@ -4,8 +4,8 @@
 pub mod utils;
 
 pub use crate::Value;
-pub use cml_chain::assets::{Coin, NonZeroInt64, PositiveCoin};
 use crate::generated::{MapAssetNameToNonZeroInt64, MapAssetNameToU64, PolicyId, PolicyIdList};
+pub use cml_chain::assets::{Coin, NonZeroInt64, PositiveCoin};
 use std::ops::Deref;
 
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};

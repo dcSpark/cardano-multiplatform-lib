@@ -2,8 +2,8 @@
 // https://github.com/dcSpark/cddl-codegen
 
 pub mod cbor_encodings;
-pub mod utils;
 pub mod serialization;
+pub mod utils;
 
 use crate::generated::address::RewardAccount;
 use crate::generated::assets::Coin;

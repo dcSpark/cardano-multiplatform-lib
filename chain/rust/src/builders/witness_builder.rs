@@ -479,11 +479,9 @@ impl TransactionWitnessSetBuilder {
         }
 
         if !self.redeemers.is_empty() {
-            result.redeemers = Some(
-                Redeemers::new_arr_legacy_redeemer(
-                    self.redeemers.values().cloned().collect::<Vec<_>>(),
-                )
-            );
+            result.redeemers = Some(Redeemers::new_arr_legacy_redeemer(
+                self.redeemers.values().cloned().collect::<Vec<_>>(),
+            ));
         }
 
         result

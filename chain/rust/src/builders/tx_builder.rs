@@ -791,11 +791,9 @@ impl TransactionBuilder {
                             .contains(ref_script_hash)
                             && !self.reference_inputs.iter().any(|ref_inputs| {
                                 ref_inputs.iter().any(|ref_input| {
-                                    ref_input
-                                        .output
-                                        .script_ref()
-                                        .iter()
-                                        .any(|ref_script| ref_script.get().hash() == *ref_script_hash)
+                                    ref_input.output.script_ref().iter().any(|ref_script| {
+                                        ref_script.get().hash() == *ref_script_hash
+                                    })
                                 })
                             })
                         {

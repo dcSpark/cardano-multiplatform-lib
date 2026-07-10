@@ -39,7 +39,7 @@ hard_fork_initiation_action = (
 
 treasury_withdrawals_action = (
   tag: 2,
-  withdrawal: { $reward_account => coin },
+  withdrawal: { * reward_account => coin },
   policy_hash: script_hash / null,
 )
 

@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
-use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 use super::{Ipv4, Ipv6, StakeCredential};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[wasm_bindgen]
 impl StakeCredential {
@@ -19,7 +19,9 @@ impl Ipv4 {
 
     #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Result<Ipv4, JsError> {
-        cml_chain::certs::Ipv4::from_str(s).map(Into::into).map_err(Into::into)
+        cml_chain::certs::Ipv4::from_str(s)
+            .map(Into::into)
+            .map_err(Into::into)
     }
 }
 
@@ -31,6 +33,8 @@ impl Ipv6 {
 
     #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Result<Ipv6, JsError> {
-        cml_chain::certs::Ipv6::from_str(s).map(Into::into).map_err(Into::into)
+        cml_chain::certs::Ipv6::from_str(s)
+            .map(Into::into)
+            .map_err(Into::into)
     }
 }

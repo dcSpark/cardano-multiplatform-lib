@@ -13,7 +13,9 @@ use std::{
 };
 
 use crate::{
-    NativeScript, NetworkId, Script, SubCoin, crypto::hash::{ScriptHashNamespace, hash_script}, plutus::{Language, PlutusScript, PlutusV1Script, PlutusV2Script, PlutusV3Script},
+    NativeScript, NetworkId, Script, SubCoin,
+    crypto::hash::{ScriptHashNamespace, hash_script},
+    plutus::{Language, PlutusScript, PlutusV1Script, PlutusV2Script, PlutusV3Script},
 };
 
 impl Script {
@@ -603,7 +605,6 @@ impl NetworkId {
         Self::new(0)
     }
 }
-
 
 impl SubCoin {
     /// Converts base 10 floats to SubCoin.

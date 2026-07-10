@@ -6,11 +6,11 @@ use super::*;
 use crate::address::RewardAccount;
 use crate::assets::AssetName;
 use crate::governance::{GovActionId, Voter, VotingProcedure};
-use cml_crypto::ScriptHash;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
+use cml_crypto::ScriptHash;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for AlonzoFormatTxOut {
@@ -2023,7 +2023,7 @@ impl Serialize for TransactionBody {
                                     serializer.write_negative_integer_sz(
                                         *value as i128,
                                         fit_sz(
-                                           (*value + 1).unsigned_abs(),
+                                            (*value + 1).unsigned_abs(),
                                             mint_value_value_encoding,
                                             force_canonical,
                                         ),

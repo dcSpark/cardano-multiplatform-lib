@@ -7,8 +7,8 @@ use noop_proc_macro::wasm_bindgen;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 pub mod cbor_encodings;
-pub mod utils;
 pub mod serialization;
+pub mod utils;
 
 use crate::generated::address::RewardAccount;
 use crate::generated::assets::Coin;

@@ -621,7 +621,7 @@ impl Serialize for PlutusData {
 impl Deserialize for PlutusData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-// hand-coded based on generated code
+            // hand-coded based on generated code
             // 1) we use bounded bytes not
             // 2) to give better errors / direct branch on cbor_type()?
             match raw.cbor_type()? {
@@ -655,7 +655,9 @@ impl Deserialize for PlutusData {
                             cbor_event::LenSz::Indefinite => true,
                         } {
                             if let cbor_event::LenSz::Indefinite = len {
-                                if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                if raw.cbor_type()? == cbor_event::Type::Special
+                                    && raw.special_break()?
+                                {
                                     break;
                                 }
                             }

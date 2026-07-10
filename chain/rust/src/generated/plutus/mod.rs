@@ -1,39 +1,42 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-pub mod cbor_encodings;
-pub mod serialization;
-pub mod utils;
-
 #[cfg(not(feature = "used_from_wasm"))]
 use noop_proc_macro::wasm_bindgen;
 #[cfg(feature = "used_from_wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use self::cbor_encodings::{
-    LegacyRedeemerEncoding, PlutusV3ScriptEncoding, RedeemerKeyEncoding, RedeemerValEncoding,
-};
+pub mod cbor_encodings;
+pub mod utils;
+pub mod serialization;
+pub use crate::BigInteger;
+pub use crate::ConstrPlutusData;
+pub use crate::PlutusMap;
+pub use utils::PlutusScript;
 
-use super::{Rational, SubCoin};
-use crate::utils::BigInteger;
+use crate::generated::SubCoin;
 use cbor_encodings::{
-    CostModelsEncoding, ExUnitPricesEncoding, ExUnitsEncoding, PlutusV1ScriptEncoding,
-    PlutusV2ScriptEncoding,
+    CostModelsEncoding, ExUnitPricesEncoding, ExUnitsEncoding, LegacyRedeemerEncoding,
+    PlutusV1ScriptEncoding, PlutusV2ScriptEncoding, PlutusV3ScriptEncoding, RedeemerKeyEncoding,
+    RedeemerValEncoding,
 };
-
+use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, Serialize, StringEncoding};
-use cml_crypto::{DatumHash, blake2b256};
+use cml_core::serialization::{LenEncoding, StringEncoding};
+use std::collections::BTreeMap;
+use std::convert::TryFrom;
 
-pub use utils::{ConstrPlutusData, PlutusMap, PlutusScript};
-
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct CostModels {
-    pub inner: OrderedHashMap<u64, Vec<i64>>,
+    inner: OrderedHashMap<u64, Vec<i64>>,
     pub encodings: Option<CostModelsEncoding>,
 }
 
 impl CostModels {
+    pub fn get(&self) -> &OrderedHashMap<u64, Vec<i64>> {
+        &self.inner
+    }
+
     pub fn new(inner: OrderedHashMap<u64, Vec<i64>>) -> Self {
         Self {
             inner,
@@ -44,7 +47,7 @@ impl CostModels {
 
 impl From<OrderedHashMap<u64, Vec<i64>>> for CostModels {
     fn from(inner: OrderedHashMap<u64, Vec<i64>>) -> Self {
-        CostModels::new(inner.clone())
+        CostModels::new(inner.clone().into())
     }
 }
 
@@ -80,11 +83,11 @@ impl schemars::JsonSchema for CostModels {
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        OrderedHashMap::<u64, Vec<i64>>::json_schema(generator)
+        <OrderedHashMap<u64, Vec<i64>> as schemars::JsonSchema>::json_schema(generator)
     }
 
     fn inline_schema() -> bool {
-        OrderedHashMap::<u64, Vec<i64>>::inline_schema()
+        <OrderedHashMap<u64, Vec<i64>> as schemars::JsonSchema>::inline_schema()
     }
 }
 
@@ -229,16 +232,12 @@ impl PlutusData {
             bytes_encoding: StringEncoding::default(),
         }
     }
-
-    pub fn hash(&self) -> DatumHash {
-        DatumHash::from(blake2b256(&self.to_cbor_bytes()))
-    }
 }
 
 #[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PlutusV1Script {
-    pub inner: Vec<u8>,
+    inner: Vec<u8>,
     #[derivative(
         PartialEq = "ignore",
         Ord = "ignore",
@@ -249,6 +248,10 @@ pub struct PlutusV1Script {
 }
 
 impl PlutusV1Script {
+    pub fn get(&self) -> &Vec<u8> {
+        &self.inner
+    }
+
     pub fn new(inner: Vec<u8>) -> Self {
         Self {
             inner,
@@ -296,18 +299,18 @@ impl schemars::JsonSchema for PlutusV1Script {
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        String::json_schema(generator)
+        <String as schemars::JsonSchema>::json_schema(generator)
     }
 
     fn inline_schema() -> bool {
-        String::inline_schema()
+        <String as schemars::JsonSchema>::inline_schema()
     }
 }
 
 #[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PlutusV2Script {
-    pub inner: Vec<u8>,
+    inner: Vec<u8>,
     #[derivative(
         PartialEq = "ignore",
         Ord = "ignore",
@@ -318,6 +321,10 @@ pub struct PlutusV2Script {
 }
 
 impl PlutusV2Script {
+    pub fn get(&self) -> &Vec<u8> {
+        &self.inner
+    }
+
     pub fn new(inner: Vec<u8>) -> Self {
         Self {
             inner,
@@ -365,18 +372,18 @@ impl schemars::JsonSchema for PlutusV2Script {
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        String::json_schema(generator)
+        <String as schemars::JsonSchema>::json_schema(generator)
     }
 
     fn inline_schema() -> bool {
-        String::inline_schema()
+        <String as schemars::JsonSchema>::inline_schema()
     }
 }
 
 #[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PlutusV3Script {
-    pub inner: Vec<u8>,
+    inner: Vec<u8>,
     #[derivative(
         PartialEq = "ignore",
         Ord = "ignore",
@@ -387,6 +394,10 @@ pub struct PlutusV3Script {
 }
 
 impl PlutusV3Script {
+    pub fn get(&self) -> &Vec<u8> {
+        &self.inner
+    }
+
     pub fn new(inner: Vec<u8>) -> Self {
         Self {
             inner,
@@ -434,11 +445,11 @@ impl schemars::JsonSchema for PlutusV3Script {
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        String::json_schema(generator)
+        <String as schemars::JsonSchema>::json_schema(generator)
     }
 
     fn inline_schema() -> bool {
-        String::inline_schema()
+        <String as schemars::JsonSchema>::inline_schema()
     }
 }
 
@@ -525,7 +536,9 @@ pub enum Redeemers {
 }
 
 impl Redeemers {
-    pub fn new_arr_legacy_redeemer(arr_legacy_redeemer: Vec<LegacyRedeemer>) -> Self {
+    pub fn new_arr_legacy_redeemer(
+        arr_legacy_redeemer: Vec<LegacyRedeemer>,
+    ) -> Self {
         Self::ArrLegacyRedeemer {
             arr_legacy_redeemer,
             arr_legacy_redeemer_encoding: LenEncoding::default(),

@@ -83,7 +83,7 @@ pub fn plutus_alonzo_cost_models() -> CostModels {
         3345831, 1, 1,
     ];
 
-    let mut res = CostModels::default();
-    res.inner.insert(Language::PlutusV1 as u64, ops);
-    res
+    let mut cost_model = CostModels::default();
+    cost_model.as_mut().insert(Language::PlutusV1 as u64, ops);
+    cost_model
 }

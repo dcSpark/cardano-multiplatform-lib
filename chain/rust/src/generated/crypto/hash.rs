@@ -93,10 +93,10 @@ pub fn calc_script_data_hash(
     if !redeemers.is_empty() || !datums.is_empty() {
         let mut required_costmdls = CostModels::default();
         for lang in used_langs {
-            required_costmdls.inner.insert(
+            required_costmdls.as_mut().insert(
                 *lang as u64,
                 cost_models
-                    .inner
+                    .get()
                     .get(&(*lang).into())
                     .ok_or(ScriptDataHashError::MissingCostModel(*lang))?
                     .clone(),

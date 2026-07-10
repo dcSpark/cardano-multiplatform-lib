@@ -45,8 +45,8 @@ pub fn parse_genesis_data<R: Read>(
     }
 
     let network_id = match data.networkId.as_str() {
-        "Mainnet" => crate::NetworkId::mainnet().network,
-        "Testnet" => crate::NetworkId::testnet().network,
+        "Mainnet" => crate::NetworkId::mainnet().get(),
+        "Testnet" => crate::NetworkId::testnet().get(),
         val => return Err(GenesisJSONError::ParseNetwork(val.to_string())),
     };
 
@@ -96,8 +96,8 @@ pub fn parse_genesis_data<R: Read>(
                     UnitInterval::new(*ration.numer().unwrap(), *ration.denom().unwrap()),
                     RewardAccount::new(
                         match data.networkId.as_str() {
-                            "Mainnet" => crate::NetworkId::mainnet().network as u8,
-                            "Testnet" => crate::NetworkId::testnet().network as u8,
+                            "Mainnet" => crate::NetworkId::mainnet().get() as u8,
+                            "Testnet" => crate::NetworkId::testnet().get() as u8,
                             val => return Err(GenesisJSONError::ParseNetwork(val.to_string())),
                         },
                         StakeCredential::new_pub_key(Ed25519KeyHash::from_hex(

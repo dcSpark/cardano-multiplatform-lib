@@ -20,6 +20,15 @@ pub mod json;
 pub mod min_ada;
 pub mod utils;
 
+// Extern-type re-exports so the generated glue (`pub use crate::X;`) resolves.
+pub use crate::assets::utils::Value;
+pub use crate::auxdata::metadata::Metadata;
+pub use crate::plutus::utils::{ConstrPlutusData, PlutusMap};
+pub use address::{Address, RewardAccount};
+pub use byron::AddrAttributes;
+pub use cml_chain::Coin;
+pub use utils::BigInteger;
+
 // Imports/aliases the hand-written modules pull in via `use super::*` /
 // `use crate::*` or reference bare as `crate::X` (these were private root
 // imports in the pre-thin-root lib.rs).

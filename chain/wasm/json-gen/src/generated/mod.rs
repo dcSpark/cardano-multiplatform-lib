@@ -46,7 +46,9 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::assets::Value);
     // auxdata
     gen_json_schema!(cml_chain::auxdata::AuxiliaryData);
+    gen_json_schema!(cml_chain::auxdata::ConwayFormatAuxData);
     gen_json_schema!(cml_chain::auxdata::Metadata);
+    gen_json_schema!(cml_chain::auxdata::ShelleyMAFormatAuxData);
     // block
     gen_json_schema!(cml_chain::block::Block);
     gen_json_schema!(cml_chain::block::Header);
@@ -111,6 +113,7 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::crypto::KESSignature);
     gen_json_schema!(cml_chain::crypto::KESVkey);
     gen_json_schema!(cml_chain::crypto::Nonce);
+    gen_json_schema!(cml_chain::crypto::NonceHash);
     gen_json_schema!(cml_chain::crypto::PoolMetadataHash);
     gen_json_schema!(cml_chain::crypto::ScriptDataHash);
     gen_json_schema!(cml_chain::crypto::ScriptHash);
@@ -153,20 +156,19 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::ProtocolParamUpdate);
     gen_json_schema!(cml_chain::Rational);
     gen_json_schema!(cml_chain::Script);
+    gen_json_schema!(cml_chain::SetCommitteeColdCredential);
     gen_json_schema!(cml_chain::SetEd25519KeyHash);
     gen_json_schema!(cml_chain::SetTransactionInput);
     gen_json_schema!(cml_chain::UnitInterval);
-    gen_json_schema!(cml_chain::Value);
-    gen_json_schema!(cml_chain::crypto::Vkeywitness);
     // plutus
-    //gen_json_schema!(cml_chain::plutus::ConstrPlutusData);
+    // gen_json_schema!(cml_chain::plutus::ConstrPlutusData);
     gen_json_schema!(cml_chain::plutus::CostModels);
     gen_json_schema!(cml_chain::plutus::ExUnitPrices);
     gen_json_schema!(cml_chain::plutus::ExUnits);
     gen_json_schema!(cml_chain::plutus::Language);
     gen_json_schema!(cml_chain::plutus::LegacyRedeemer);
-    //gen_json_schema!(cml_chain::plutus::PlutusData);
-    //gen_json_schema!(cml_chain::plutus::PlutusMap);
+    // gen_json_schema!(cml_chain::plutus::PlutusData);
+    // gen_json_schema!(cml_chain::plutus::PlutusMap);
     gen_json_schema!(cml_chain::plutus::PlutusV1Script);
     gen_json_schema!(cml_chain::plutus::PlutusV2Script);
     gen_json_schema!(cml_chain::plutus::PlutusV3Script);
@@ -179,12 +181,14 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::transaction::ConwayFormatTxOut);
     gen_json_schema!(cml_chain::transaction::DatumOption);
     gen_json_schema!(cml_chain::transaction::NativeScript);
+    gen_json_schema!(cml_chain::transaction::RequiredSigners);
     gen_json_schema!(cml_chain::transaction::ScriptAll);
     gen_json_schema!(cml_chain::transaction::ScriptAny);
     gen_json_schema!(cml_chain::transaction::ScriptInvalidBefore);
     gen_json_schema!(cml_chain::transaction::ScriptInvalidHereafter);
     gen_json_schema!(cml_chain::transaction::ScriptNOfK);
     gen_json_schema!(cml_chain::transaction::ScriptPubkey);
+    gen_json_schema!(cml_chain::transaction::ScriptRef);
     gen_json_schema!(cml_chain::transaction::Transaction);
     gen_json_schema!(cml_chain::transaction::TransactionBody);
     gen_json_schema!(cml_chain::transaction::TransactionInput);

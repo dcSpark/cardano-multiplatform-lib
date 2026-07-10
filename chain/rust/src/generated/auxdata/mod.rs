@@ -3,14 +3,19 @@
 
 pub mod cbor_encodings;
 pub mod metadata;
-pub mod serialization;
 pub mod utils;
-
-use crate::plutus::{PlutusV1Script, PlutusV2Script, PlutusV3Script};
-use crate::transaction::NativeScript;
-use cbor_encodings::{ConwayFormatAuxDataEncoding, ShelleyMAFormatAuxDataEncoding};
-
+pub mod serialization;
+pub use crate::Metadata;
 pub use metadata::*;
+
+use crate::generated::plutus::{PlutusV1Script, PlutusV2Script, PlutusV3Script};
+use crate::generated::transaction::NativeScript;
+use cbor_encodings::{ConwayFormatAuxDataEncoding, ShelleyMAFormatAuxDataEncoding};
+use cml_core::error::*;
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::serialization::{LenEncoding, StringEncoding};
+use std::collections::BTreeMap;
+use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AuxiliaryData {

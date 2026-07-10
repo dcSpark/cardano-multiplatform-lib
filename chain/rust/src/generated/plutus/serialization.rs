@@ -3,11 +3,11 @@
 
 use super::cbor_encodings::*;
 use super::*;
+use crate::Rational;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::collections::BTreeMap;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 // PlutusData::Bytes uses this specific encoding:
@@ -102,9 +102,10 @@ impl Deserialize for CostModels {
             cbor_event::LenSz::Len(n, _) => (inner_table.len() as u64) < n,
             cbor_event::LenSz::Indefinite => true,
         } {
-            if raw.cbor_type()? == cbor_event::Type::Special {
-                assert_eq!(raw.special()?, cbor_event::Special::Break);
-                break;
+            if let cbor_event::LenSz::Indefinite = inner_len {
+                if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                    break;
+                }
             }
             let (inner_key, inner_key_encoding) =
                 raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
@@ -116,17 +117,46 @@ impl Deserialize for CostModels {
                 cbor_event::LenSz::Len(n, _) => (inner_value_arr.len() as u64) < n,
                 cbor_event::LenSz::Indefinite => true,
             } {
-                if raw.cbor_type()? == cbor_event::Type::Special {
-                    assert_eq!(raw.special()?, cbor_event::Special::Break);
-                    break;
+                if let cbor_event::LenSz::Indefinite = len {
+                    if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                        break;
+                    }
                 }
                 let (inner_value_elem, inner_value_elem_encoding) = match raw.cbor_type()? {
                     cbor_event::Type::UnsignedInteger => {
-                        let (x, enc) = raw.unsigned_integer_sz()?;
+                        let (x, enc) = raw
+                            .unsigned_integer_sz()
+                            .map_err(Into::<DeserializeError>::into)
+                            .and_then(|(x, enc)| {
+                                if x > 9223372036854775807 {
+                                    Err(DeserializeFailure::RangeCheck {
+                                        found: x as isize,
+                                        min: Some(-9223372036854775808),
+                                        max: Some(9223372036854775807),
+                                    }
+                                    .into())
+                                } else {
+                                    Ok((x, enc))
+                                }
+                            })?;
                         (x as i64, Some(enc))
                     }
                     _ => {
-                        let (x, enc) = raw.negative_integer_sz()?;
+                        let (x, enc) = raw
+                            .negative_integer_sz()
+                            .map_err(Into::<DeserializeError>::into)
+                            .and_then(|(x, enc)| {
+                                if x < -9223372036854775808 {
+                                    Err(DeserializeFailure::RangeCheck {
+                                        found: x as isize,
+                                        min: Some(-9223372036854775808),
+                                        max: Some(9223372036854775807),
+                                    }
+                                    .into())
+                                } else {
+                                    Ok((x, enc))
+                                }
+                            })?;
                         (x as i64, Some(enc))
                     }
                 };
@@ -139,7 +169,7 @@ impl Deserialize for CostModels {
                 inner_value_elem_encodings,
             );
             if inner_table.insert(inner_key, inner_value).is_some() {
-                return Err(DeserializeFailure::DuplicateKey(Key::Uint(inner_key)).into());
+                return Err(DeserializeFailure::DuplicateKey(Key::Uint(inner_key.into())).into());
             }
             inner_key_encodings.insert(inner_key, inner_key_encoding);
             inner_value_encodings.insert(
@@ -189,12 +219,12 @@ impl Serialize for ExUnitPrices {
 
 impl Deserialize for ExUnitPrices {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let mem_price = Rational::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("mem_price"))?;
             let step_price = Rational::deserialize(raw)
@@ -261,12 +291,12 @@ impl Serialize for ExUnits {
 
 impl Deserialize for ExUnits {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let (mem, mem_encoding) = raw
                 .unsigned_integer_sz()
                 .map_err(Into::<DeserializeError>::into)
@@ -402,12 +432,12 @@ impl Serialize for LegacyRedeemer {
 
 impl Deserialize for LegacyRedeemer {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(4)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(4)?;
+            read_len.finish()?;
             let (tag, tag_encoding) = (|| -> Result<_, DeserializeError> {
                 let initial_position = raw.as_mut_ref().stream_position().unwrap();
                 let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
@@ -578,7 +608,7 @@ impl Serialize for PlutusData {
                 }
                 list_encoding.end(serializer, force_canonical)
             }
-            PlutusData::Integer(big_int) => big_int.serialize(serializer, force_canonical),
+            PlutusData::Integer(integer) => integer.serialize(serializer, force_canonical),
             // hand-written
             PlutusData::Bytes {
                 bytes,
@@ -591,7 +621,7 @@ impl Serialize for PlutusData {
 impl Deserialize for PlutusData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            // hand-coded based on generated code
+// hand-coded based on generated code
             // 1) we use bounded bytes not
             // 2) to give better errors / direct branch on cbor_type()?
             match raw.cbor_type()? {
@@ -624,9 +654,10 @@ impl Deserialize for PlutusData {
                             cbor_event::LenSz::Len(n, _) => (list_arr.len() as u64) < n,
                             cbor_event::LenSz::Indefinite => true,
                         } {
-                            if raw.cbor_type()? == cbor_event::Type::Special {
-                                assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                break;
+                            if let cbor_event::LenSz::Indefinite = len {
+                                if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                    break;
+                                }
                             }
                             list_arr.push(PlutusData::deserialize(raw)?);
                         }
@@ -845,12 +876,12 @@ impl Serialize for RedeemerKey {
 
 impl Deserialize for RedeemerKey {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let (tag, tag_encoding) = (|| -> Result<_, DeserializeError> {
                 let initial_position = raw.as_mut_ref().stream_position().unwrap();
                 let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
@@ -1018,12 +1049,12 @@ impl Serialize for RedeemerVal {
 
 impl Deserialize for RedeemerVal {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let data =
                 PlutusData::deserialize(raw).map_err(|e: DeserializeError| e.annotate("data"))?;
             let ex_units =
@@ -1111,11 +1142,22 @@ impl Deserialize for Redeemers {
                         cbor_event::LenSz::Len(n, _) => (arr_legacy_redeemer_arr.len() as u64) < n,
                         cbor_event::LenSz::Indefinite => true,
                     } {
-                        if raw.cbor_type()? == cbor_event::Type::Special {
-                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                            break;
+                        if let cbor_event::LenSz::Indefinite = len {
+                            if raw.cbor_type()? == cbor_event::Type::Special
+                                && raw.special_break()?
+                            {
+                                break;
+                            }
                         }
                         arr_legacy_redeemer_arr.push(LegacyRedeemer::deserialize(raw)?);
+                    }
+                    if arr_legacy_redeemer_arr.len() < 1 {
+                        return Err(DeserializeFailure::RangeCheck {
+                            found: arr_legacy_redeemer_arr.len() as isize,
+                            min: Some(1),
+                            max: None,
+                        }
+                        .into());
                     }
                     let (arr_legacy_redeemer, arr_legacy_redeemer_encoding) =
                         (arr_legacy_redeemer_arr, arr_legacy_redeemer_encoding);
@@ -1135,9 +1177,13 @@ impl Deserialize for Redeemers {
                         }
                         cbor_event::LenSz::Indefinite => true,
                     } {
-                        if raw.cbor_type()? == cbor_event::Type::Special {
-                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                            break;
+                        if let cbor_event::LenSz::Indefinite = map_redeemer_key_to_redeemer_val_len
+                        {
+                            if raw.cbor_type()? == cbor_event::Type::Special
+                                && raw.special_break()?
+                            {
+                                break;
+                            }
                         }
                         let map_redeemer_key_to_redeemer_val_key = RedeemerKey::deserialize(raw)?;
                         let map_redeemer_key_to_redeemer_val_value = RedeemerVal::deserialize(raw)?;

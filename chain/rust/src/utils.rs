@@ -13,9 +13,7 @@ use std::{
 };
 
 use crate::{
-    NativeScript, Script, SubCoin,
-    crypto::hash::{ScriptHashNamespace, hash_script},
-    plutus::{Language, PlutusScript, PlutusV1Script, PlutusV2Script, PlutusV3Script},
+    NativeScript, NetworkId, Script, SubCoin, crypto::hash::{ScriptHashNamespace, hash_script}, plutus::{Language, PlutusScript, PlutusV1Script, PlutusV2Script, PlutusV3Script},
 };
 
 impl Script {
@@ -596,67 +594,16 @@ where
     }
 }
 
-#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
-pub struct NetworkId {
-    pub network: u64,
-    #[serde(skip)]
-    pub encoding: Option<cbor_event::Sz>,
-}
-
 impl NetworkId {
-    pub fn new(network: u64) -> Self {
-        Self {
-            network,
-            encoding: None,
-        }
-    }
-
     pub fn mainnet() -> Self {
-        Self {
-            network: 1,
-            encoding: None,
-        }
+        Self::new(1)
     }
 
     pub fn testnet() -> Self {
-        Self {
-            network: 0,
-            encoding: None,
-        }
+        Self::new(0)
     }
 }
 
-impl From<u64> for NetworkId {
-    fn from(network: u64) -> Self {
-        NetworkId::new(network)
-    }
-}
-
-impl From<NetworkId> for u64 {
-    fn from(id: NetworkId) -> u64 {
-        id.network
-    }
-}
-
-impl Serialize for NetworkId {
-    fn serialize<'se, W: Write>(
-        &self,
-        serializer: &'se mut Serializer<W>,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        serializer.write_unsigned_integer_sz(
-            self.network,
-            fit_sz(self.network, self.encoding, force_canonical),
-        )
-    }
-}
-
-impl Deserialize for NetworkId {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (network, encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
-        Ok(Self { network, encoding })
-    }
-}
 
 impl SubCoin {
     /// Converts base 10 floats to SubCoin.

@@ -7,8 +7,6 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-
-use cml_crypto::RawBytesEncoding;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for AuthCommitteeHotCert {
@@ -24,7 +22,12 @@ impl Serialize for AuthCommitteeHotCert {
                 .unwrap_or_default()
                 .to_len_sz(3, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -49,11 +52,7 @@ impl SerializeEmbeddedGroup for AuthCommitteeHotCert {
             .serialize(serializer, force_canonical)?;
         self.committee_hot_credential
             .serialize(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -1139,7 +1138,12 @@ impl Serialize for MultiHostName {
                 .unwrap_or_default()
                 .to_len_sz(2, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -1161,11 +1165,7 @@ impl SerializeEmbeddedGroup for MultiHostName {
             ),
         )?;
         self.dns_name.serialize(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -1256,12 +1256,12 @@ impl Serialize for PoolMetadata {
 
 impl Deserialize for PoolMetadata {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let url = Url::deserialize(raw).map_err(|e: DeserializeError| e.annotate("url"))?;
             let (pool_metadata_hash, pool_metadata_hash_encoding) = raw
                 .bytes_sz()
@@ -1305,7 +1305,12 @@ impl Serialize for PoolParams {
                 .unwrap_or_default()
                 .to_len_sz(9, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -1375,14 +1380,14 @@ impl SerializeEmbeddedGroup for PoolParams {
             .unwrap_or_default()
             .end(serializer, force_canonical)?;
         match &self.pool_metadata {
-            Some(x) => x.serialize(serializer, force_canonical),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+            Some(x) => {
+                x.serialize(serializer, force_canonical)?;
+            }
+            None => {
+                serializer.write_special(cbor_event::Special::Null)?;
+            }
+        };
+        Ok(serializer)
     }
 }
 
@@ -1454,9 +1459,10 @@ impl DeserializeEmbeddedGroup for PoolParams {
                     cbor_event::LenSz::Len(n, _) => (relays_arr.len() as u64) < n,
                     cbor_event::LenSz::Indefinite => true,
                 } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
+                    if let cbor_event::LenSz::Indefinite = len {
+                        if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                            break;
+                        }
                     }
                     relays_arr.push(Relay::deserialize(raw)?);
                 }
@@ -1512,7 +1518,12 @@ impl Serialize for PoolRegistration {
                 .unwrap_or_default()
                 .to_len_sz(10, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -1535,11 +1546,7 @@ impl SerializeEmbeddedGroup for PoolRegistration {
         )?;
         self.pool_params
             .serialize_as_embedded_group(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -1608,7 +1615,12 @@ impl Serialize for PoolRetirement {
                 .unwrap_or_default()
                 .to_len_sz(3, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -1648,11 +1660,7 @@ impl SerializeEmbeddedGroup for PoolRetirement {
                 force_canonical,
             ),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -1736,7 +1744,12 @@ impl Serialize for RegCert {
                 .unwrap_or_default()
                 .to_len_sz(3, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -1770,11 +1783,7 @@ impl SerializeEmbeddedGroup for RegCert {
                 force_canonical,
             ),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -1850,7 +1859,12 @@ impl Serialize for RegDrepCert {
                 .unwrap_or_default()
                 .to_len_sz(4, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -1885,14 +1899,14 @@ impl SerializeEmbeddedGroup for RegDrepCert {
             ),
         )?;
         match &self.anchor {
-            Some(x) => x.serialize(serializer, force_canonical),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+            Some(x) => {
+                x.serialize(serializer, force_canonical)?;
+            }
+            None => {
+                serializer.write_special(cbor_event::Special::Null)?;
+            }
+        };
+        Ok(serializer)
     }
 }
 
@@ -2085,7 +2099,12 @@ impl Serialize for ResignCommitteeColdCert {
                 .unwrap_or_default()
                 .to_len_sz(3, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -2109,14 +2128,14 @@ impl SerializeEmbeddedGroup for ResignCommitteeColdCert {
         self.committee_cold_credential
             .serialize(serializer, force_canonical)?;
         match &self.anchor {
-            Some(x) => x.serialize(serializer, force_canonical),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+            Some(x) => {
+                x.serialize(serializer, force_canonical)?;
+            }
+            None => {
+                serializer.write_special(cbor_event::Special::Null)?;
+            }
+        };
+        Ok(serializer)
     }
 }
 
@@ -2198,7 +2217,12 @@ impl Serialize for SingleHostAddr {
                 .unwrap_or_default()
                 .to_len_sz(4, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -2220,32 +2244,40 @@ impl SerializeEmbeddedGroup for SingleHostAddr {
             ),
         )?;
         match &self.port {
-            Some(x) => serializer.write_unsigned_integer_sz(
-                *x as u64,
-                fit_sz(
+            Some(x) => {
+                serializer.write_unsigned_integer_sz(
                     *x as u64,
-                    self.encodings
-                        .as_ref()
-                        .map(|encs| encs.port_encoding)
-                        .unwrap_or_default(),
-                    force_canonical,
-                ),
-            ),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
+                    fit_sz(
+                        *x as u64,
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.port_encoding)
+                            .unwrap_or_default(),
+                        force_canonical,
+                    ),
+                )?;
+            }
+            None => {
+                serializer.write_special(cbor_event::Special::Null)?;
+            }
+        };
         match &self.ipv4 {
-            Some(x) => x.serialize(serializer, force_canonical),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
+            Some(x) => {
+                x.serialize(serializer, force_canonical)?;
+            }
+            None => {
+                serializer.write_special(cbor_event::Special::Null)?;
+            }
+        };
         match &self.ipv6 {
-            Some(x) => x.serialize(serializer, force_canonical),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+            Some(x) => {
+                x.serialize(serializer, force_canonical)?;
+            }
+            None => {
+                serializer.write_special(cbor_event::Special::Null)?;
+            }
+        };
+        Ok(serializer)
     }
 }
 
@@ -2291,6 +2323,19 @@ impl DeserializeEmbeddedGroup for SingleHostAddr {
                 Ok(match raw.cbor_type()? != cbor_event::Type::Special {
                     true => Result::<_, DeserializeError>::Ok(
                         raw.unsigned_integer_sz()
+                            .map_err(Into::<DeserializeError>::into)
+                            .and_then(|(x, enc)| {
+                                if x > 65535 {
+                                    Err(DeserializeFailure::RangeCheck {
+                                        found: x as isize,
+                                        min: Some(0),
+                                        max: Some(65535),
+                                    }
+                                    .into())
+                                } else {
+                                    Ok((x, enc))
+                                }
+                            })
                             .map(|(x, enc)| (x as u16, Some(enc)))?,
                     )
                     .map(|(x, port_encoding)| (Some(x), port_encoding))?,
@@ -2355,7 +2400,12 @@ impl Serialize for SingleHostName {
                 .unwrap_or_default()
                 .to_len_sz(3, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -2377,25 +2427,25 @@ impl SerializeEmbeddedGroup for SingleHostName {
             ),
         )?;
         match &self.port {
-            Some(x) => serializer.write_unsigned_integer_sz(
-                *x as u64,
-                fit_sz(
+            Some(x) => {
+                serializer.write_unsigned_integer_sz(
                     *x as u64,
-                    self.encodings
-                        .as_ref()
-                        .map(|encs| encs.port_encoding)
-                        .unwrap_or_default(),
-                    force_canonical,
-                ),
-            ),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
+                    fit_sz(
+                        *x as u64,
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.port_encoding)
+                            .unwrap_or_default(),
+                        force_canonical,
+                    ),
+                )?;
+            }
+            None => {
+                serializer.write_special(cbor_event::Special::Null)?;
+            }
+        };
         self.dns_name.serialize(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -2441,6 +2491,19 @@ impl DeserializeEmbeddedGroup for SingleHostName {
                 Ok(match raw.cbor_type()? != cbor_event::Type::Special {
                     true => Result::<_, DeserializeError>::Ok(
                         raw.unsigned_integer_sz()
+                            .map_err(Into::<DeserializeError>::into)
+                            .and_then(|(x, enc)| {
+                                if x > 65535 {
+                                    Err(DeserializeFailure::RangeCheck {
+                                        found: x as isize,
+                                        min: Some(0),
+                                        max: Some(65535),
+                                    }
+                                    .into())
+                                } else {
+                                    Ok((x, enc))
+                                }
+                            })
                             .map(|(x, enc)| (x as u16, Some(enc)))?,
                     )
                     .map(|(x, port_encoding)| (Some(x), port_encoding))?,
@@ -2482,7 +2545,12 @@ impl Serialize for StakeDelegation {
                 .unwrap_or_default()
                 .to_len_sz(3, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -2513,11 +2581,7 @@ impl SerializeEmbeddedGroup for StakeDelegation {
                 .unwrap_or_default()
                 .to_str_len_sz(self.pool.to_raw_bytes().len() as u64, force_canonical),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -2597,7 +2661,12 @@ impl Serialize for StakeDeregistration {
                 .unwrap_or_default()
                 .to_len_sz(2, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -2620,11 +2689,7 @@ impl SerializeEmbeddedGroup for StakeDeregistration {
         )?;
         self.stake_credential
             .serialize(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -2693,7 +2758,12 @@ impl Serialize for StakeRegDelegCert {
                 .unwrap_or_default()
                 .to_len_sz(4, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -2735,11 +2805,7 @@ impl SerializeEmbeddedGroup for StakeRegDelegCert {
                 force_canonical,
             ),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -2826,7 +2892,12 @@ impl Serialize for StakeRegistration {
                 .unwrap_or_default()
                 .to_len_sz(2, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -2849,11 +2920,7 @@ impl SerializeEmbeddedGroup for StakeRegistration {
         )?;
         self.stake_credential
             .serialize(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -2922,7 +2989,12 @@ impl Serialize for StakeVoteDelegCert {
                 .unwrap_or_default()
                 .to_len_sz(4, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -2954,11 +3026,7 @@ impl SerializeEmbeddedGroup for StakeVoteDelegCert {
                 .to_str_len_sz(self.pool.to_raw_bytes().len() as u64, force_canonical),
         )?;
         self.d_rep.serialize(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -3041,7 +3109,12 @@ impl Serialize for StakeVoteRegDelegCert {
                 .unwrap_or_default()
                 .to_len_sz(5, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -3084,11 +3157,7 @@ impl SerializeEmbeddedGroup for StakeVoteRegDelegCert {
                 force_canonical,
             ),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -3178,7 +3247,12 @@ impl Serialize for UnregCert {
                 .unwrap_or_default()
                 .to_len_sz(3, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -3212,11 +3286,7 @@ impl SerializeEmbeddedGroup for UnregCert {
                 force_canonical,
             ),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -3292,7 +3362,12 @@ impl Serialize for UnregDrepCert {
                 .unwrap_or_default()
                 .to_len_sz(3, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -3326,11 +3401,7 @@ impl SerializeEmbeddedGroup for UnregDrepCert {
                 force_canonical,
             ),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -3406,7 +3477,12 @@ impl Serialize for UpdateDrepCert {
                 .unwrap_or_default()
                 .to_len_sz(3, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -3430,14 +3506,14 @@ impl SerializeEmbeddedGroup for UpdateDrepCert {
         self.drep_credential
             .serialize(serializer, force_canonical)?;
         match &self.anchor {
-            Some(x) => x.serialize(serializer, force_canonical),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+            Some(x) => {
+                x.serialize(serializer, force_canonical)?;
+            }
+            None => {
+                serializer.write_special(cbor_event::Special::Null)?;
+            }
+        };
+        Ok(serializer)
     }
 }
 
@@ -3558,7 +3634,12 @@ impl Serialize for VoteDelegCert {
                 .unwrap_or_default()
                 .to_len_sz(3, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -3582,11 +3663,7 @@ impl SerializeEmbeddedGroup for VoteDelegCert {
         self.stake_credential
             .serialize(serializer, force_canonical)?;
         self.d_rep.serialize(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -3658,7 +3735,12 @@ impl Serialize for VoteRegDelegCert {
                 .unwrap_or_default()
                 .to_len_sz(4, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -3693,11 +3775,7 @@ impl SerializeEmbeddedGroup for VoteRegDelegCert {
                 force_canonical,
             ),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 

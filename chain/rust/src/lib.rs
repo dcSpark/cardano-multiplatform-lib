@@ -29,12 +29,18 @@ pub mod utils;
 //pub mod legacy_address;
 
 pub use crate::assets::{Coin, Value};
-pub use utils::{BigInteger, NetworkId, NonemptySet, Set};
+pub use utils::{BigInteger, NonemptySet, Set};
+
+// Re-exported at the root because downstream crates' generated code imports these
+// through their extern dep (`use cml_chain::{LenEncoding, ...}`).
+pub use cml_core::ordered_hash_map::OrderedHashMap;
+pub use cml_core::serialization::{Deserialize, LenEncoding, Serialize, StringEncoding};
 
 // Extern-type re-exports so the generated glue (`pub use crate::X;`) resolves.
 pub use crate::auxdata::metadata::Metadata;
 pub use crate::plutus::utils::{ConstrPlutusData, PlutusMap};
 pub use address::{Address, RewardAccount};
+pub use transaction::RequiredSigners;
 pub use byron::AddrAttributes;
 
 // Crate-root aliases the hand-written builder/util modules reference bare

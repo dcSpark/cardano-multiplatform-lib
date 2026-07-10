@@ -1,11 +1,18 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_core::serialization::LenEncoding;
+use super::*;
+use cml_core::serialization::{LenEncoding, StringEncoding};
+use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct DRepVotingThresholdsEncoding {
     pub len_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NetworkIdEncoding {
+    pub inner_encoding: Option<cbor_event::Sz>,
 }
 
 #[derive(Clone, Debug, Default)]

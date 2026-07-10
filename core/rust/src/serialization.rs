@@ -242,6 +242,13 @@ pub trait Deserialize {
     }
 }
 
+// TODO: remove this once cbor_event is updated to 3.1.0
+impl Deserialize for bool {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        raw.bool().map_err(Into::into)
+    }
+}
+
 // TODO: remove ToBytes / FromBytes after we regenerate the WASM wrappers.
 // This is so the existing generated to/from bytes code works
 // We are, however, using this in CIP25 as a way to get to bytes without

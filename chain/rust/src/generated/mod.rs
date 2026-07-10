@@ -1,10 +1,7 @@
 #![allow(clippy::too_many_arguments)]
 
-// This file was code-generated using an experimental CDDL to rust tool:
-// https://github.com/dcSpark/cddl-codegen
-
 extern crate derivative;
-
+pub mod address;
 pub mod assets;
 pub mod auxdata;
 pub mod block;
@@ -13,35 +10,37 @@ pub mod crypto;
 pub mod governance;
 pub mod plutus;
 pub mod transaction;
+// This file was code-generated using an experimental CDDL to rust tool:
+// https://github.com/dcSpark/cddl-codegen
 
 pub mod cbor_encodings;
 pub mod serialization;
-
 pub use crate::NonemptySet;
 pub use crate::Set;
+pub use cml_core::{CertificateIndex, Epoch, Int, Slot, TransactionIndex};
 
-pub use cml_core::{
-    CertificateIndex, Epoch, Int, Slot, TransactionIndex,
-    error::{DeserializeError, DeserializeFailure},
-    ordered_hash_map::OrderedHashMap,
-    serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
-};
-
-use crate::address::RewardAccount;
-use crate::assets::Coin;
 use crate::certs::{Certificate, CommitteeColdCredential};
-use crate::crypto::{BootstrapWitness, Vkeywitness};
-use crate::governance::{ProposalProcedure, Voter};
-use crate::plutus::{
-    CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script,
-};
-use crate::transaction::{NativeScript, TransactionInput};
+use crate::crypto::{BootstrapWitness, ScriptHash, Vkeywitness};
+use crate::governance::ProposalProcedure;
+use crate::plutus::PlutusData;
+use crate::transaction::TransactionInput;
 use crate::utils::NonemptySetRawBytes;
-use cbor_encodings::{
-    DRepVotingThresholdsEncoding, PoolVotingThresholdsEncoding, ProtocolParamUpdateEncoding,
-    RationalEncoding, UnitIntervalEncoding,
-};
 use cml_crypto::Ed25519KeyHash;
+
+use address::RewardAccount;
+use assets::Coin;
+use cbor_encodings::{
+    DRepVotingThresholdsEncoding, NetworkIdEncoding, PoolVotingThresholdsEncoding,
+    ProtocolParamUpdateEncoding, RationalEncoding, UnitIntervalEncoding,
+};
+use cml_core::error::*;
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::serialization::{LenEncoding, StringEncoding};
+use governance::Voter;
+use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script, PlutusV3Script};
+use std::collections::BTreeMap;
+use std::convert::TryFrom;
+use transaction::NativeScript;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct DRepVotingThresholds {
@@ -60,7 +59,6 @@ pub struct DRepVotingThresholds {
 }
 
 impl DRepVotingThresholds {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         motion_no_confidence: UnitInterval,
         committee_normal: UnitInterval,
@@ -91,6 +89,64 @@ impl DRepVotingThresholds {
 
 pub type DeltaCoin = Int;
 
+#[derive(Clone, Debug)]
+pub struct NetworkId {
+    inner: u64,
+    pub encodings: Option<NetworkIdEncoding>,
+}
+
+impl NetworkId {
+    pub fn get(&self) -> u64 {
+        self.inner
+    }
+
+    pub fn new(inner: u64) -> Self {
+        Self {
+            inner,
+            encodings: None,
+        }
+    }
+}
+
+impl From<u64> for NetworkId {
+    fn from(inner: u64) -> Self {
+        NetworkId::new(inner)
+    }
+}
+
+impl serde::Serialize for NetworkId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.inner.serialize(serializer)
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for NetworkId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let inner = <u64 as serde::de::Deserialize>::deserialize(deserializer)?;
+        Ok(Self::new(inner))
+    }
+}
+
+impl schemars::JsonSchema for NetworkId {
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        ::std::borrow::Cow::Borrowed("NetworkId")
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        <u64 as schemars::JsonSchema>::json_schema(generator)
+    }
+
+    fn inline_schema() -> bool {
+        <u64 as schemars::JsonSchema>::inline_schema()
+    }
+}
+
 pub type NonemptySetBootstrapWitness = NonemptySet<BootstrapWitness>;
 
 pub type NonemptySetCertificate = NonemptySet<Certificate>;
@@ -111,11 +167,9 @@ pub type NonemptySetTransactionInput = NonemptySet<TransactionInput>;
 
 pub type NonemptySetVkeywitness = NonemptySet<Vkeywitness>;
 
-pub type PolicyId = cml_crypto::ScriptHash;
+pub type PolicyId = ScriptHash;
 
 pub type PolicyIdList = Vec<PolicyId>;
-
-pub type RequiredSigners = NonemptySetRawBytes<Ed25519KeyHash>;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct PoolVotingThresholds {
@@ -354,3 +408,9 @@ impl UnitInterval {
 pub type VoterList = Vec<Voter>;
 
 pub type Withdrawals = OrderedHashMap<RewardAccount, Coin>;
+
+impl From<NetworkId> for u64 {
+    fn from(wrapper: NetworkId) -> Self {
+        wrapper.inner
+    }
+}

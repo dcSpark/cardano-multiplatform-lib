@@ -1,14 +1,18 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use super::{NativeScriptList, PlutusV1ScriptList, PlutusV2ScriptList, PlutusV3ScriptList};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use wasm_bindgen::prelude::wasm_bindgen;
-
 pub mod metadata;
 pub mod utils;
 
+pub use crate::Metadata;
 pub use metadata::*;
+
+use crate::generated::{
+    NativeScriptList, PlutusV1ScriptList, PlutusV2ScriptList, PlutusV3ScriptList,
+};
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

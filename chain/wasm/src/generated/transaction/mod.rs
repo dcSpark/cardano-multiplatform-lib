@@ -1,26 +1,27 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::address::Address;
-use crate::assets::{Coin, Mint, PositiveCoin, Value};
-use crate::auxdata::AuxiliaryData;
+pub mod utils;
+pub use crate::RequiredSigners;
+
+use crate::generated::address::Address;
+use crate::generated::assets::{Coin, Mint, PositiveCoin, Value};
+use crate::generated::auxdata::AuxiliaryData;
+use crate::generated::crypto::{
+    AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
+};
+use crate::generated::governance::VotingProcedures;
+use crate::generated::plutus::{PlutusData, Redeemers};
 use crate::generated::{
     NativeScriptList, NetworkId, NonemptySetBootstrapWitness, NonemptySetCertificate,
     NonemptySetNativeScript, NonemptySetPlutusData, NonemptySetPlutusV1Script,
     NonemptySetPlutusV2Script, NonemptySetPlutusV3Script, NonemptySetProposalProcedure,
-    NonemptySetTransactionInput, NonemptySetVkeywitness, RequiredSigners, Script,
-    SetTransactionInput, Slot, TransactionOutputList, Withdrawals,
+    NonemptySetTransactionInput, NonemptySetVkeywitness, Script, SetTransactionInput, Slot,
+    TransactionOutputList, Withdrawals,
 };
-use crate::governance::VotingProcedures;
-use crate::plutus::{PlutusData, Redeemers};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use cml_crypto_wasm::{
-    AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
-};
-
-use wasm_bindgen::prelude::wasm_bindgen;
-
-pub mod utils;
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -45,7 +46,7 @@ impl AlonzoFormatTxOut {
     }
 
     pub fn datum_hash(&self) -> Option<DatumHash> {
-        self.0.datum_hash.map(std::convert::Into::into)
+        self.0.datum_hash.clone().map(std::convert::Into::into)
     }
 
     pub fn new(address: &Address, amount: &Value) -> Self {
@@ -133,7 +134,7 @@ impl DatumOption {
     pub fn as_hash(&self) -> Option<DatumHash> {
         match &self.0 {
             cml_chain::transaction::DatumOption::Hash { datum_hash, .. } => {
-                Some((*datum_hash).into())
+                Some(datum_hash.clone().into())
             }
             _ => None,
         }
@@ -190,12 +191,12 @@ impl NativeScript {
 
     /// Timelock validity intervals are half-open intervals [a, b). This field specifies the left (included) endpoint a.
     pub fn new_script_invalid_before(before: Slot) -> Self {
-        Self(cml_chain::transaction::NativeScript::new_script_invalid_before(before))
+        Self(cml_chain::transaction::NativeScript::new_script_invalid_before(before.into()))
     }
 
     /// Timelock validity intervals are half-open intervals [a, b). This field specifies the right (excluded) endpoint b.
     pub fn new_script_invalid_hereafter(after: Slot) -> Self {
-        Self(cml_chain::transaction::NativeScript::new_script_invalid_hereafter(after))
+        Self(cml_chain::transaction::NativeScript::new_script_invalid_hereafter(after.into()))
     }
 
     pub fn kind(&self) -> NativeScriptKind {
@@ -338,7 +339,9 @@ impl ScriptInvalidBefore {
     }
 
     pub fn new(before: Slot) -> Self {
-        Self(cml_chain::transaction::ScriptInvalidBefore::new(before))
+        Self(cml_chain::transaction::ScriptInvalidBefore::new(
+            before.into(),
+        ))
     }
 }
 
@@ -360,7 +363,9 @@ impl ScriptInvalidHereafter {
     }
 
     pub fn new(after: Slot) -> Self {
-        Self(cml_chain::transaction::ScriptInvalidHereafter::new(after))
+        Self(cml_chain::transaction::ScriptInvalidHereafter::new(
+            after.into(),
+        ))
     }
 }
 
@@ -401,7 +406,7 @@ impl_wasm_conversions!(cml_chain::transaction::ScriptPubkey, ScriptPubkey);
 #[wasm_bindgen]
 impl ScriptPubkey {
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.into()
+        self.0.ed25519_key_hash.clone().into()
     }
 
     pub fn new(ed25519_key_hash: &Ed25519KeyHash) -> Self {
@@ -411,7 +416,24 @@ impl ScriptPubkey {
     }
 }
 
-pub type ScriptRef = Script;
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct ScriptRef(cml_chain::transaction::ScriptRef);
+
+impl_wasm_cbor_json_api!(ScriptRef);
+
+impl_wasm_conversions!(cml_chain::transaction::ScriptRef, ScriptRef);
+
+#[wasm_bindgen]
+impl ScriptRef {
+    pub fn new(inner: &Script) -> Self {
+        Self(cml_chain::transaction::ScriptRef::new(inner.clone().into()))
+    }
+
+    pub fn get(&self) -> Script {
+        self.0.get().clone().into()
+    }
+}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -505,7 +527,10 @@ impl TransactionBody {
     }
 
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
-        self.0.auxiliary_data_hash.map(std::convert::Into::into)
+        self.0
+            .auxiliary_data_hash
+            .clone()
+            .map(std::convert::Into::into)
     }
 
     pub fn set_validity_interval_start(&mut self, validity_interval_start: u64) {
@@ -529,7 +554,10 @@ impl TransactionBody {
     }
 
     pub fn script_data_hash(&self) -> Option<ScriptDataHash> {
-        self.0.script_data_hash.map(std::convert::Into::into)
+        self.0
+            .script_data_hash
+            .clone()
+            .map(std::convert::Into::into)
     }
 
     pub fn set_collateral_inputs(&mut self, collateral_inputs: &NonemptySetTransactionInput) {
@@ -559,7 +587,7 @@ impl TransactionBody {
     }
 
     pub fn network_id(&self) -> Option<NetworkId> {
-        self.0.network_id.map(std::convert::Into::into)
+        self.0.network_id.clone().map(std::convert::Into::into)
     }
 
     pub fn set_collateral_return(&mut self, collateral_return: &TransactionOutput) {
@@ -574,7 +602,7 @@ impl TransactionBody {
     }
 
     pub fn set_total_collateral(&mut self, total_collateral: Coin) {
-        self.0.total_collateral = Some(total_collateral)
+        self.0.total_collateral = Some(total_collateral.into())
     }
 
     pub fn total_collateral(&self) -> Option<Coin> {
@@ -615,7 +643,7 @@ impl TransactionBody {
     }
 
     pub fn set_current_treasury_value(&mut self, current_treasury_value: Coin) {
-        self.0.current_treasury_value = Some(current_treasury_value)
+        self.0.current_treasury_value = Some(current_treasury_value.into())
     }
 
     pub fn current_treasury_value(&self) -> Option<Coin> {
@@ -623,7 +651,7 @@ impl TransactionBody {
     }
 
     pub fn set_donation(&mut self, donation: PositiveCoin) {
-        self.0.donation = Some(donation)
+        self.0.donation = Some(donation.into())
     }
 
     pub fn donation(&self) -> Option<PositiveCoin> {
@@ -634,7 +662,7 @@ impl TransactionBody {
         Self(cml_chain::transaction::TransactionBody::new(
             inputs.clone().into(),
             outputs.clone().into(),
-            fee,
+            fee.into(),
         ))
     }
 }
@@ -650,7 +678,7 @@ impl_wasm_conversions!(cml_chain::transaction::TransactionInput, TransactionInpu
 #[wasm_bindgen]
 impl TransactionInput {
     pub fn transaction_id(&self) -> TransactionHash {
-        self.0.transaction_id.into()
+        self.0.transaction_id.clone().into()
     }
 
     pub fn index(&self) -> u64 {

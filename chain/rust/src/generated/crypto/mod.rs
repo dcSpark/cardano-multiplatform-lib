@@ -1,25 +1,25 @@
-use crate::byron::AddrAttributes;
+// This file was code-generated using an experimental CDDL to rust tool:
+// https://github.com/dcSpark/cddl-codegen
+
+pub mod cbor_encodings;
+pub mod hash;
+pub mod utils;
 pub use cml_crypto::{
     AnchorDocHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash,
     Ed25519Signature, GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash,
     ScriptDataHash, ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
 };
-
 pub type Vkey = cml_crypto::PublicKey;
-
-pub mod hash;
-pub mod utils;
-// This file was code-generated using an experimental CDDL to rust tool:
-// https://github.com/dcSpark/cddl-codegen
-
-pub mod cbor_encodings;
 pub mod serialization;
+pub use crate::AddrAttributes;
 
 use cbor_encodings::{
     BootstrapWitnessEncoding, KESSignatureEncoding, VRFCertEncoding, VkeywitnessEncoding,
 };
 use cml_core::error::*;
+use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -59,7 +59,7 @@ impl BootstrapWitness {
 
 #[derive(Clone, Debug)]
 pub struct KESSignature {
-    pub inner: Vec<u8>,
+    inner: Vec<u8>,
     pub encodings: Option<KESSignatureEncoding>,
 }
 
@@ -133,11 +133,11 @@ impl schemars::JsonSchema for KESSignature {
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        String::json_schema(generator)
+        <String as schemars::JsonSchema>::json_schema(generator)
     }
 
     fn inline_schema() -> bool {
-        String::inline_schema()
+        <String as schemars::JsonSchema>::inline_schema()
     }
 }
 

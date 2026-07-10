@@ -63,6 +63,8 @@ impl schemars::JsonSchema for PlutusData {
     }
 }
 
+use cml_crypto::{DatumHash, blake2b256};
+
 impl PlutusData {
     /**
      *  Convert to a Datum that will serialize equivalent to cardano-node's format
@@ -134,6 +136,10 @@ impl PlutusData {
                 },
             }),
         }
+    }
+
+    pub fn hash(&self) -> DatumHash {
+        DatumHash::from(blake2b256(&self.to_cbor_bytes()))
     }
 }
 
@@ -476,6 +482,12 @@ impl AsRef<OrderedHashMap<u64, Vec<i64>>> for CostModels {
 impl AsMut<OrderedHashMap<u64, Vec<i64>>> for CostModels {
     fn as_mut(&mut self) -> &mut OrderedHashMap<u64, Vec<i64>> {
         &mut self.inner
+    }
+}
+
+impl Default for CostModels {
+    fn default() -> Self {
+        Self::new(OrderedHashMap::<u64, Vec<i64>>::default())
     }
 }
 
@@ -833,8 +845,9 @@ mod tests {
             1, 150000, 32, 197209, 0, 1, 1, 150000, 32, 150000, 32, 150000, 32, 150000, 32, 150000,
             32, 150000, 32, 150000, 32, 3345831, 1, 1,
         ];
-        let mut cms = CostModels::default();
-        cms.inner.insert(Language::PlutusV1.into(), v1_costs);
+        let mut cms_inner = cml_core::ordered_hash_map::OrderedHashMap::default();
+        cms_inner.insert(Language::PlutusV1.into(), v1_costs);
+        let cms = CostModels::new(cms_inner);
         assert_eq!(
             hex::encode(cms.language_views_encoding().unwrap()),
             "a141005901d59f1a000302590001011a00060bc719026d00011a000249f01903e800011a000249f018201a0025cea81971f70419744d186419744d186419744d186419744d186419744d186419744d18641864186419744d18641a000249f018201a000249f018201a000249f018201a000249f01903e800011a000249f018201a000249f01903e800081a000242201a00067e2318760001011a000249f01903e800081a000249f01a0001b79818f7011a000249f0192710011a0002155e19052e011903e81a000249f01903e8011a000249f018201a000249f018201a000249f0182001011a000249f0011a000249f0041a000194af18f8011a000194af18f8011a0002377c190556011a0002bdea1901f1011a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000242201a00067e23187600010119f04c192bd200011a000249f018201a000242201a00067e2318760001011a000242201a00067e2318760001011a0025cea81971f704001a000141bb041a000249f019138800011a000249f018201a000302590001011a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a000249f018201a00330da70101ff"

@@ -181,7 +181,7 @@ impl RequiredWitnessSet {
     pub fn remove_ref_scripts(&mut self, ref_inputs: &[TransactionUnspentOutput]) {
         ref_inputs.iter().for_each(|utxo| {
             utxo.output.script_ref().inspect(|script_ref| {
-                self.scripts.remove(&script_ref.hash());
+                self.scripts.remove(&script_ref.get().hash());
             });
         })
     }
@@ -479,9 +479,11 @@ impl TransactionWitnessSetBuilder {
         }
 
         if !self.redeemers.is_empty() {
-            result.redeemers = Some(Redeemers::new_arr_legacy_redeemer(
-                self.redeemers.values().cloned().collect::<Vec<_>>(),
-            ));
+            result.redeemers = Some(
+                Redeemers::new_arr_legacy_redeemer(
+                    self.redeemers.values().cloned().collect::<Vec<_>>(),
+                )
+            );
         }
 
         result

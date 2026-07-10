@@ -3,12 +3,7 @@
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
-
-use ::wasm_bindgen::prelude::wasm_bindgen;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list};
-
-pub use cml_core_wasm::Int;
-
+pub mod address;
 pub mod assets;
 pub mod auxdata;
 pub mod block;
@@ -17,6 +12,160 @@ pub mod crypto;
 pub mod governance;
 pub mod plutus;
 pub mod transaction;
+impl_wasm_list_needs_into!(
+    cml_chain::transaction::NativeScript,
+    NativeScript,
+    NativeScriptList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::plutus::PlutusV1Script,
+    PlutusV1Script,
+    PlutusV1ScriptList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::plutus::PlutusV2Script,
+    PlutusV2Script,
+    PlutusV2ScriptList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::plutus::PlutusV3Script,
+    PlutusV3Script,
+    PlutusV3ScriptList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::transaction::TransactionBody,
+    TransactionBody,
+    TransactionBodyList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::transaction::TransactionOutput,
+    TransactionOutput,
+    TransactionOutputList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::plutus::PlutusData,
+    PlutusData,
+    PlutusDataList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::transaction::TransactionWitnessSet,
+    TransactionWitnessSet,
+    TransactionWitnessSetList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::plutus::LegacyRedeemer,
+    LegacyRedeemer,
+    LegacyRedeemerList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::plutus::RedeemerKey,
+    RedeemerKey,
+    RedeemerKeyList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(cml_chain::certs::Relay, Relay, RelayList, true, false);
+impl_wasm_list_needs_into!(
+    cml_chain::address::RewardAccount,
+    RewardAccount,
+    RewardAccountList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::certs::CommitteeColdCredential,
+    CommitteeColdCredential,
+    CommitteeColdCredentialList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::assets::AssetName,
+    AssetName,
+    AssetNameList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(cml_chain::PolicyId, PolicyId, PolicyIdList, true, false);
+impl_wasm_list_needs_into!(cml_chain::governance::Voter, Voter, VoterList, true, false);
+impl_wasm_list_needs_into!(
+    cml_chain::governance::GovActionId,
+    GovActionId,
+    GovActionIdList,
+    true,
+    false
+);
+// Lists the generator no longer emits because their rust counterparts are now
+// `Set`/`NonemptySet` aliases. The `Set*`/`NonemptySet*` aliases in lib.rs resolve to these.
+impl_wasm_list_needs_into!(
+    cml_chain::crypto::BootstrapWitness,
+    BootstrapWitness,
+    BootstrapWitnessList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::certs::Certificate,
+    Certificate,
+    CertificateList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::crypto::Ed25519KeyHash,
+    Ed25519KeyHash,
+    Ed25519KeyHashList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::governance::ProposalProcedure,
+    ProposalProcedure,
+    ProposalProcedureList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::certs::StakeCredential,
+    StakeCredential,
+    StakeCredentialList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::transaction::TransactionInput,
+    TransactionInput,
+    TransactionInputList,
+    true,
+    false
+);
+impl_wasm_list_needs_into!(
+    cml_chain::crypto::Vkeywitness,
+    Vkeywitness,
+    VkeywitnessList,
+    true,
+    false
+);
+// This file was code-generated using an experimental CDDL to rust tool:
+// https://github.com/dcSpark/cddl-codegen
 
 pub use crate::NonemptySetBootstrapWitness;
 pub use crate::NonemptySetCertificate;
@@ -28,57 +177,28 @@ pub use crate::NonemptySetPlutusV3Script;
 pub use crate::NonemptySetProposalProcedure;
 pub use crate::NonemptySetTransactionInput;
 pub use crate::NonemptySetVkeywitness;
-pub use crate::RequiredSigners;
 pub use crate::SetCommitteeColdCredential;
 pub use crate::SetEd25519KeyHash;
 pub use crate::SetTransactionInput;
 
-use crate::auxdata::TransactionMetadatumList;
+pub use cml_core_wasm::Int;
 
-use crate::address::RewardAccount;
-use crate::assets::AssetName;
-pub use crate::assets::Value;
-use crate::auxdata::{AuxiliaryData, TransactionMetadatum};
-
-use crate::certs::{Certificate, Relay, StakeCredential};
-use crate::crypto::{BootstrapWitness, Vkeywitness};
-use crate::governance::{GovActionId, Voter};
-use crate::plutus::{
+use address::RewardAccount;
+use assets::{AssetName, Coin, NonZeroInt64};
+use auxdata::AuxiliaryData;
+use certs::{Certificate, CommitteeColdCredential, Relay, StakeCredential};
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use crypto::{BootstrapWitness, Ed25519KeyHash, ScriptHash, Vkeywitness};
+use governance::{GovActionId, ProposalProcedure, Voter, VotingProcedure};
+use plutus::{
     CostModels, ExUnitPrices, ExUnits, LegacyRedeemer, PlutusData, PlutusV1Script, PlutusV2Script,
-    PlutusV3Script,
+    PlutusV3Script, RedeemerKey, RedeemerVal,
 };
-use crate::transaction::{
+use transaction::{
     NativeScript, TransactionBody, TransactionInput, TransactionOutput, TransactionWitnessSet,
 };
-pub use crate::utils::NetworkId;
-use cml_chain::assets::NonZeroInt64;
-pub use cml_chain::{Epoch, assets::Coin};
-use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_crypto_wasm::{Ed25519KeyHash, ScriptHash};
-
-use crate::certs::CommitteeColdCredential;
-use crate::governance::{ProposalProcedure, VotingProcedure};
-use crate::plutus::{RedeemerKey, RedeemerVal};
-
-//extern crate serde_wasm_bindgen;
-// Code below here was code-generated using an experimental CDDL to rust tool:
-// https://github.com/dcSpark/cddl-codegen
-
-impl_wasm_list!(cml_chain::assets::AssetName, AssetName, AssetNameList);
-
-impl_wasm_list!(
-    cml_chain::crypto::BootstrapWitness,
-    BootstrapWitness,
-    BootstrapWitnessList
-);
-
-impl_wasm_list!(cml_chain::certs::Certificate, Certificate, CertificateList);
-
-impl_wasm_list!(
-    cml_chain::certs::CommitteeColdCredential,
-    CommitteeColdCredential,
-    CommitteeColdCredentialList
-);
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -159,25 +279,7 @@ impl DRepVotingThresholds {
 
 pub type DeltaCoin = Int;
 
-impl_wasm_list!(
-    cml_chain::crypto::Ed25519KeyHash,
-    Ed25519KeyHash,
-    Ed25519KeyHashList
-);
-
-impl_wasm_list!(
-    cml_chain::governance::GovActionId,
-    GovActionId,
-    GovActionIdList
-);
-
-impl_wasm_list!(cml_chain::Int, Int, IntList);
-
-impl_wasm_list!(
-    cml_chain::plutus::LegacyRedeemer,
-    LegacyRedeemer,
-    LegacyRedeemerList
-);
+pub type Epoch = u64;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -198,7 +300,7 @@ impl MapAssetNameToNonZeroInt64 {
     }
 
     pub fn insert(&mut self, key: &AssetName, value: NonZeroInt64) -> Option<NonZeroInt64> {
-        self.0.insert(key.clone().into(), value)
+        self.0.insert(key.clone().into(), value.into())
     }
 
     pub fn get(&self, key: &AssetName) -> Option<NonZeroInt64> {
@@ -258,7 +360,7 @@ impl MapCommitteeColdCredentialToEpoch {
     }
 
     pub fn insert(&mut self, key: &CommitteeColdCredential, value: Epoch) -> Option<Epoch> {
-        self.0.insert(key.clone().into(), value)
+        self.0.insert(key.clone().into(), value.into())
     }
 
     pub fn get(&self, key: &CommitteeColdCredential) -> Option<Epoch> {
@@ -309,39 +411,6 @@ impl MapGovActionIdToVotingProcedure {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MapPlutusDataToPlutusData(
-    OrderedHashMap<cml_chain::plutus::PlutusData, cml_chain::plutus::PlutusData>,
-);
-
-impl_wasm_conversions!(OrderedHashMap<cml_chain::plutus::PlutusData, cml_chain::plutus::PlutusData>, MapPlutusDataToPlutusData);
-
-#[wasm_bindgen]
-impl MapPlutusDataToPlutusData {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &PlutusData, value: &PlutusData) -> Option<PlutusData> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
-    }
-
-    pub fn get(&self, key: &PlutusData) -> Option<PlutusData> {
-        self.0.get(key.as_ref()).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> PlutusDataList {
-        PlutusDataList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
 pub struct MapRedeemerKeyToRedeemerVal(
     OrderedHashMap<cml_chain::plutus::RedeemerKey, cml_chain::plutus::RedeemerVal>,
 );
@@ -373,36 +442,7 @@ impl MapRedeemerKeyToRedeemerVal {
     }
 }
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapRewardAccountToCoin(
-    OrderedHashMap<cml_chain::address::RewardAccount, cml_chain::assets::Coin>,
-);
-
-impl_wasm_conversions!(OrderedHashMap<cml_chain::address::RewardAccount, cml_chain::assets::Coin>, MapRewardAccountToCoin);
-
-#[wasm_bindgen]
-impl MapRewardAccountToCoin {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &RewardAccount, value: Coin) -> Option<Coin> {
-        self.0.insert(key.clone().into(), value)
-    }
-
-    pub fn get(&self, key: &RewardAccount) -> Option<Coin> {
-        self.0.get(key.as_ref()).copied()
-    }
-
-    pub fn keys(&self) -> RewardAccountList {
-        RewardAccountList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
+pub type MapRewardAccountToCoin = Withdrawals;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -460,7 +500,9 @@ impl MapTransactionIndexToAuxiliaryData {
         key: TransactionIndex,
         value: &AuxiliaryData,
     ) -> Option<AuxiliaryData> {
-        self.0.insert(key, value.clone().into()).map(Into::into)
+        self.0
+            .insert(key.into(), value.clone().into())
+            .map(Into::into)
     }
 
     pub fn get(&self, key: TransactionIndex) -> Option<AuxiliaryData> {
@@ -474,17 +516,12 @@ impl MapTransactionIndexToAuxiliaryData {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MapTransactionMetadatumToTransactionMetadatum(
-    OrderedHashMap<
-        cml_chain::auxdata::TransactionMetadatum,
-        cml_chain::auxdata::TransactionMetadatum,
-    >,
-);
+pub struct MapU64ToArrI64(OrderedHashMap<u64, Vec<i64>>);
 
-impl_wasm_conversions!(OrderedHashMap<cml_chain::auxdata::TransactionMetadatum, cml_chain::auxdata::TransactionMetadatum>, MapTransactionMetadatumToTransactionMetadatum);
+impl_wasm_conversions!(OrderedHashMap<u64, Vec<i64>>, MapU64ToArrI64);
 
 #[wasm_bindgen]
-impl MapTransactionMetadatumToTransactionMetadatum {
+impl MapU64ToArrI64 {
     pub fn new() -> Self {
         Self(OrderedHashMap::new())
     }
@@ -493,58 +530,39 @@ impl MapTransactionMetadatumToTransactionMetadatum {
         self.0.len()
     }
 
-    pub fn insert(
-        &mut self,
-        key: &TransactionMetadatum,
-        value: &TransactionMetadatum,
-    ) -> Option<TransactionMetadatum> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
+    pub fn insert(&mut self, key: u64, value: Vec<i64>) -> Option<Vec<i64>> {
+        self.0.insert(key, value)
     }
 
-    pub fn get(&self, key: &TransactionMetadatum) -> Option<TransactionMetadatum> {
-        self.0.get(key.as_ref()).map(|v| v.clone().into())
+    pub fn get(&self, key: u64) -> Option<Vec<i64>> {
+        self.0.get(&key).map(|v| v.clone())
     }
 
-    pub fn keys(&self) -> TransactionMetadatumList {
-        self.0
-            .iter()
-            .map(|(k, _v)| k.clone())
-            .collect::<Vec<_>>()
-            .into()
+    pub fn keys(&self) -> Vec<u64> {
+        self.0.keys().copied().collect::<Vec<_>>()
     }
 }
 
-impl_wasm_list!(
-    cml_chain::transaction::NativeScript,
-    NativeScript,
-    NativeScriptList
-);
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NetworkId(cml_chain::NetworkId);
 
-impl_wasm_list!(cml_chain::plutus::PlutusData, PlutusData, PlutusDataList);
+impl_wasm_cbor_json_api!(NetworkId);
 
-impl_wasm_list!(
-    cml_chain::plutus::PlutusV1Script,
-    PlutusV1Script,
-    PlutusV1ScriptList
-);
+impl_wasm_conversions!(cml_chain::NetworkId, NetworkId);
 
-impl_wasm_list!(
-    cml_chain::plutus::PlutusV2Script,
-    PlutusV2Script,
-    PlutusV2ScriptList
-);
+#[wasm_bindgen]
+impl NetworkId {
+    pub fn new(inner: u64) -> Self {
+        Self(cml_chain::NetworkId::new(inner))
+    }
 
-impl_wasm_list!(
-    cml_chain::plutus::PlutusV3Script,
-    PlutusV3Script,
-    PlutusV3ScriptList
-);
+    pub fn get(&self) -> u64 {
+        self.0.get()
+    }
+}
 
 pub type PolicyId = ScriptHash;
-
-impl_wasm_list!(cml_chain::PolicyId, PolicyId, PolicyIdList);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -598,12 +616,6 @@ impl PoolVotingThresholds {
 
 pub type Port = u16;
 
-impl_wasm_list!(
-    cml_chain::governance::ProposalProcedure,
-    ProposalProcedure,
-    ProposalProcedureList
-);
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ProtocolParamUpdate(cml_chain::ProtocolParamUpdate);
@@ -615,7 +627,7 @@ impl_wasm_conversions!(cml_chain::ProtocolParamUpdate, ProtocolParamUpdate);
 #[wasm_bindgen]
 impl ProtocolParamUpdate {
     pub fn set_minfee_a(&mut self, minfee_a: Coin) {
-        self.0.minfee_a = Some(minfee_a)
+        self.0.minfee_a = Some(minfee_a.into())
     }
 
     pub fn minfee_a(&self) -> Option<Coin> {
@@ -623,7 +635,7 @@ impl ProtocolParamUpdate {
     }
 
     pub fn set_minfee_b(&mut self, minfee_b: Coin) {
-        self.0.minfee_b = Some(minfee_b)
+        self.0.minfee_b = Some(minfee_b.into())
     }
 
     pub fn minfee_b(&self) -> Option<Coin> {
@@ -655,7 +667,7 @@ impl ProtocolParamUpdate {
     }
 
     pub fn set_key_deposit(&mut self, key_deposit: Coin) {
-        self.0.key_deposit = Some(key_deposit)
+        self.0.key_deposit = Some(key_deposit.into())
     }
 
     pub fn key_deposit(&self) -> Option<Coin> {
@@ -663,7 +675,7 @@ impl ProtocolParamUpdate {
     }
 
     pub fn set_pool_deposit(&mut self, pool_deposit: Coin) {
-        self.0.pool_deposit = Some(pool_deposit)
+        self.0.pool_deposit = Some(pool_deposit.into())
     }
 
     pub fn pool_deposit(&self) -> Option<Coin> {
@@ -671,7 +683,7 @@ impl ProtocolParamUpdate {
     }
 
     pub fn set_maximum_epoch(&mut self, maximum_epoch: Epoch) {
-        self.0.maximum_epoch = Some(maximum_epoch)
+        self.0.maximum_epoch = Some(maximum_epoch.into())
     }
 
     pub fn maximum_epoch(&self) -> Option<Epoch> {
@@ -717,7 +729,7 @@ impl ProtocolParamUpdate {
     }
 
     pub fn set_min_pool_cost(&mut self, min_pool_cost: Coin) {
-        self.0.min_pool_cost = Some(min_pool_cost)
+        self.0.min_pool_cost = Some(min_pool_cost.into())
     }
 
     pub fn min_pool_cost(&self) -> Option<Coin> {
@@ -725,7 +737,7 @@ impl ProtocolParamUpdate {
     }
 
     pub fn set_ada_per_utxo_byte(&mut self, ada_per_utxo_byte: Coin) {
-        self.0.ada_per_utxo_byte = Some(ada_per_utxo_byte)
+        self.0.ada_per_utxo_byte = Some(ada_per_utxo_byte.into())
     }
 
     pub fn ada_per_utxo_byte(&self) -> Option<Coin> {
@@ -829,7 +841,7 @@ impl ProtocolParamUpdate {
     }
 
     pub fn set_committee_term_limit(&mut self, committee_term_limit: Epoch) {
-        self.0.committee_term_limit = Some(committee_term_limit)
+        self.0.committee_term_limit = Some(committee_term_limit.into())
     }
 
     pub fn committee_term_limit(&self) -> Option<Epoch> {
@@ -840,7 +852,7 @@ impl ProtocolParamUpdate {
         &mut self,
         governance_action_validity_period: Epoch,
     ) {
-        self.0.governance_action_validity_period = Some(governance_action_validity_period)
+        self.0.governance_action_validity_period = Some(governance_action_validity_period.into())
     }
 
     pub fn governance_action_validity_period(&self) -> Option<Epoch> {
@@ -848,7 +860,7 @@ impl ProtocolParamUpdate {
     }
 
     pub fn set_governance_action_deposit(&mut self, governance_action_deposit: Coin) {
-        self.0.governance_action_deposit = Some(governance_action_deposit)
+        self.0.governance_action_deposit = Some(governance_action_deposit.into())
     }
 
     pub fn governance_action_deposit(&self) -> Option<Coin> {
@@ -856,7 +868,7 @@ impl ProtocolParamUpdate {
     }
 
     pub fn set_d_rep_deposit(&mut self, d_rep_deposit: Coin) {
-        self.0.d_rep_deposit = Some(d_rep_deposit)
+        self.0.d_rep_deposit = Some(d_rep_deposit.into())
     }
 
     pub fn d_rep_deposit(&self) -> Option<Coin> {
@@ -864,7 +876,7 @@ impl ProtocolParamUpdate {
     }
 
     pub fn set_d_rep_inactivity_period(&mut self, d_rep_inactivity_period: Epoch) {
-        self.0.d_rep_inactivity_period = Some(d_rep_inactivity_period)
+        self.0.d_rep_inactivity_period = Some(d_rep_inactivity_period.into())
     }
 
     pub fn d_rep_inactivity_period(&self) -> Option<Epoch> {
@@ -913,16 +925,6 @@ impl Rational {
         Self(cml_chain::Rational::new(numerator, denominator))
     }
 }
-
-impl_wasm_list!(cml_chain::plutus::RedeemerKey, RedeemerKey, RedeemerKeyList);
-
-impl_wasm_list!(cml_chain::certs::Relay, Relay, RelayList);
-
-impl_wasm_list!(
-    cml_chain::address::RewardAccount,
-    RewardAccount,
-    RewardAccountList
-);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -998,60 +1000,11 @@ pub enum ScriptKind {
 
 pub type Slot = u64;
 
-impl_wasm_list!(
-    cml_chain::certs::StakeCredential,
-    StakeCredential,
-    StakeCredentialList
-);
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct SubCoin(cml_chain::SubCoin);
-
-impl_wasm_cbor_json_api!(SubCoin);
-
-impl_wasm_conversions!(cml_chain::SubCoin, SubCoin);
-
-#[wasm_bindgen]
-impl SubCoin {
-    pub fn numerator(&self) -> u64 {
-        self.0.numerator
-    }
-
-    pub fn denominator(&self) -> u64 {
-        self.0.denominator
-    }
-
-    pub fn new(numerator: u64, denominator: u64) -> Self {
-        Self(cml_chain::SubCoin::new(numerator, denominator))
-    }
-}
-
-impl_wasm_list!(
-    cml_chain::transaction::TransactionBody,
-    TransactionBody,
-    TransactionBodyList
-);
+pub type SubCoin = Rational;
 
 pub type TransactionIndex = u16;
 
-impl_wasm_list!(
-    cml_chain::transaction::TransactionInput,
-    TransactionInput,
-    TransactionInputList
-);
-
-impl_wasm_list!(
-    cml_chain::transaction::TransactionOutput,
-    TransactionOutput,
-    TransactionOutputList
-);
-
-impl_wasm_list!(
-    cml_chain::transaction::TransactionWitnessSet,
-    TransactionWitnessSet,
-    TransactionWitnessSetList
-);
+pub type TransactionMetadatumLabel = u64;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -1076,8 +1029,31 @@ impl UnitInterval {
     }
 }
 
-impl_wasm_list!(cml_chain::crypto::Vkeywitness, Vkeywitness, VkeywitnessList);
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct Withdrawals(cml_chain::Withdrawals);
 
-impl_wasm_list!(cml_chain::governance::Voter, Voter, VoterList);
+impl_wasm_conversions!(cml_chain::Withdrawals, Withdrawals);
 
-pub type Withdrawals = MapRewardAccountToCoin;
+#[wasm_bindgen]
+impl Withdrawals {
+    pub fn new() -> Self {
+        Self(OrderedHashMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn insert(&mut self, key: &RewardAccount, value: Coin) -> Option<Coin> {
+        self.0.insert(key.clone().into(), value.into())
+    }
+
+    pub fn get(&self, key: &RewardAccount) -> Option<Coin> {
+        self.0.get(key.as_ref()).copied()
+    }
+
+    pub fn keys(&self) -> RewardAccountList {
+        RewardAccountList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+    }
+}

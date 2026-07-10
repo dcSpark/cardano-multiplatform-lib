@@ -7,8 +7,7 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use cml_crypto::RawBytesEncoding;
-use std::io::{BufRead, Seek, Write};
+use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for Block {
     fn serialize<'se, W: Write>(
@@ -134,21 +133,22 @@ impl Serialize for Block {
 
 impl Deserialize for Block {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(5)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(5)?;
+            read_len.finish()?;
             let header = Header::deserialize(raw).map_err(|e: DeserializeError| e.annotate("header"))?;
             let (transaction_bodies, transaction_bodies_encoding) = (|| -> Result<_, DeserializeError> {
                 let mut transaction_bodies_arr = Vec::new();
                 let len = raw.array_sz()?;
                 let transaction_bodies_encoding = len.into();
                 while match len { cbor_event::LenSz::Len(n, _) => (transaction_bodies_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
+                    if let cbor_event::LenSz::Indefinite = len {
+                        if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                            break;
+                        }
                     }
                     transaction_bodies_arr.push(TransactionBody::deserialize(raw)?);
                 }
@@ -159,9 +159,10 @@ impl Deserialize for Block {
                 let len = raw.array_sz()?;
                 let transaction_witness_sets_encoding = len.into();
                 while match len { cbor_event::LenSz::Len(n, _) => (transaction_witness_sets_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
+                    if let cbor_event::LenSz::Indefinite = len {
+                        if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                            break;
+                        }
                     }
                     transaction_witness_sets_arr.push(TransactionWitnessSet::deserialize(raw)?);
                 }
@@ -173,11 +174,12 @@ impl Deserialize for Block {
                 let auxiliary_data_set_encoding = auxiliary_data_set_len.into();
                 let mut auxiliary_data_set_key_encodings = BTreeMap::new();
                 while match auxiliary_data_set_len { cbor_event::LenSz::Len(n, _) => (auxiliary_data_set_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
+                    if let cbor_event::LenSz::Indefinite = auxiliary_data_set_len {
+                        if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                            break;
+                        }
                     }
-                    let (auxiliary_data_set_key, auxiliary_data_set_key_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x as u16, Some(enc)))?;
+                    let (auxiliary_data_set_key, auxiliary_data_set_key_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x > 65535 { Err(DeserializeFailure::RangeCheck{ found: x as isize, min: Some(0), max: Some(65535) }.into()) } else { Ok((x, enc)) }).map(|(x, enc)| (x as u16, Some(enc)))?;
                     let auxiliary_data_set_value = AuxiliaryData::deserialize(raw)?;
                     if auxiliary_data_set_table.insert(auxiliary_data_set_key, auxiliary_data_set_value).is_some() {
                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
@@ -192,11 +194,12 @@ impl Deserialize for Block {
                 let invalid_transactions_encoding = len.into();
                 let mut invalid_transactions_elem_encodings = Vec::new();
                 while match len { cbor_event::LenSz::Len(n, _) => (invalid_transactions_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
+                    if let cbor_event::LenSz::Indefinite = len {
+                        if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                            break;
+                        }
                     }
-                    let (invalid_transactions_elem, invalid_transactions_elem_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x as u16, Some(enc)))?;
+                    let (invalid_transactions_elem, invalid_transactions_elem_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x > 65535 { Err(DeserializeFailure::RangeCheck{ found: x as isize, min: Some(0), max: Some(65535) }.into()) } else { Ok((x, enc)) }).map(|(x, enc)| (x as u16, Some(enc)))?;
                     invalid_transactions_arr.push(invalid_transactions_elem);
                     invalid_transactions_elem_encodings.push(invalid_transactions_elem_encoding);
                 }
@@ -254,12 +257,12 @@ impl Serialize for Header {
 
 impl Deserialize for Header {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let header_body = HeaderBody::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("header_body"))?;
             let body_signature = KESSignature::deserialize(raw)
@@ -317,16 +320,20 @@ impl Serialize for HeaderBody {
             ),
         )?;
         match &self.prev_hash {
-            Some(x) => serializer.write_bytes_sz(
-                x.to_raw_bytes(),
-                self.encodings
-                    .as_ref()
-                    .map(|encs| encs.prev_hash_encoding.clone())
-                    .unwrap_or_default()
-                    .to_str_len_sz(x.to_raw_bytes().len() as u64, force_canonical),
-            ),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
+            Some(x) => {
+                serializer.write_bytes_sz(
+                    x.to_raw_bytes(),
+                    self.encodings
+                        .as_ref()
+                        .map(|encs| encs.prev_hash_encoding.clone())
+                        .unwrap_or_default()
+                        .to_str_len_sz(x.to_raw_bytes().len() as u64, force_canonical),
+                )?;
+            }
+            None => {
+                serializer.write_special(cbor_event::Special::Null)?;
+            }
+        };
         serializer.write_bytes_sz(
             self.issuer_vkey.to_raw_bytes(),
             self.encodings
@@ -383,12 +390,12 @@ impl Serialize for HeaderBody {
 
 impl Deserialize for HeaderBody {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(10)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(10)?;
+            read_len.finish()?;
             let (block_number, block_number_encoding) = raw
                 .unsigned_integer_sz()
                 .map_err(Into::<DeserializeError>::into)
@@ -507,7 +514,12 @@ impl Serialize for OperationalCert {
                 .unwrap_or_default()
                 .to_len_sz(4, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -555,11 +567,7 @@ impl SerializeEmbeddedGroup for OperationalCert {
                 .unwrap_or_default()
                 .to_str_len_sz(self.sigma.to_raw_bytes().len() as u64, force_canonical),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -648,7 +656,12 @@ impl Serialize for ProtocolVersion {
                 .unwrap_or_default()
                 .to_len_sz(2, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -680,11 +693,7 @@ impl SerializeEmbeddedGroup for ProtocolVersion {
                 force_canonical,
             ),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 

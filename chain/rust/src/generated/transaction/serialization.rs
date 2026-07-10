@@ -4,16 +4,13 @@
 use super::cbor_encodings::*;
 use super::*;
 use crate::address::RewardAccount;
+use crate::assets::AssetName;
 use crate::governance::{GovActionId, Voter, VotingProcedure};
-use crate::plutus::Redeemers;
-use crate::{Script, assets::AssetName};
-use cbor_event;
+use cml_crypto::ScriptHash;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use cml_crypto::RawBytesEncoding;
-use cml_crypto::ScriptHash;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for AlonzoFormatTxOut {
@@ -29,7 +26,7 @@ impl Serialize for AlonzoFormatTxOut {
                 .unwrap_or_default()
                 .to_len_sz(
                     2 + match &self.datum_hash {
-                        Some(_x) => 1,
+                        Some(x) => 1,
                         None => 0,
                     },
                     force_canonical,
@@ -57,11 +54,11 @@ impl Serialize for AlonzoFormatTxOut {
 
 impl Deserialize for AlonzoFormatTxOut {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
             let address =
                 Address::deserialize(raw).map_err(|e: DeserializeError| e.annotate("address"))?;
             let amount =
@@ -206,31 +203,7 @@ impl Serialize for ConwayFormatTxOut {
                                 force_canonical,
                             ),
                         )?;
-                        serializer.write_tag_sz(
-                            24u64,
-                            fit_sz(
-                                24u64,
-                                self.encodings
-                                    .as_ref()
-                                    .map(|encs| encs.script_reference_tag_encoding)
-                                    .unwrap_or_default(),
-                                force_canonical,
-                            ),
-                        )?;
-                        let mut script_reference_inner_se = Serializer::new_vec();
-                        field.serialize(&mut script_reference_inner_se, force_canonical)?;
-                        let script_reference_bytes = script_reference_inner_se.finalize();
-                        serializer.write_bytes_sz(
-                            &script_reference_bytes,
-                            self.encodings
-                                .as_ref()
-                                .map(|encs| encs.script_reference_bytes_encoding.clone())
-                                .unwrap_or_default()
-                                .to_str_len_sz(
-                                    script_reference_bytes.len() as u64,
-                                    force_canonical,
-                                ),
-                        )?;
+                        field.serialize(serializer, force_canonical)?;
                     }
                 }
                 _ => unreachable!(),
@@ -246,11 +219,11 @@ impl Serialize for ConwayFormatTxOut {
 
 impl Deserialize for ConwayFormatTxOut {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
             let mut orig_deser_order = Vec::new();
             let mut address_key_encoding = None;
             let mut address = None;
@@ -258,8 +231,6 @@ impl Deserialize for ConwayFormatTxOut {
             let mut amount = None;
             let mut datum_option_key_encoding = None;
             let mut datum_option = None;
-            let mut script_reference_tag_encoding = None;
-            let mut script_reference_bytes_encoding = StringEncoding::default();
             let mut script_reference_key_encoding = None;
             let mut script_reference = None;
             let mut read = 0;
@@ -306,38 +277,12 @@ impl Deserialize for ConwayFormatTxOut {
                             if script_reference.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(3)).into());
                             }
-                            let (
-                                tmp_script_reference,
-                                tmp_script_reference_tag_encoding,
-                                tmp_script_reference_bytes_encoding,
-                            ) = (|| -> Result<_, DeserializeError> {
+                            let tmp_script_reference = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                match raw.tag_sz()? {
-                                    (24, tag_enc) => {
-                                        let (
-                                            script_reference_bytes,
-                                            script_reference_bytes_encoding,
-                                        ) = raw.bytes_sz()?;
-                                        let inner_de = &mut Deserializer::from(
-                                            std::io::Cursor::new(script_reference_bytes),
-                                        );
-                                        Ok((
-                                            Script::deserialize(inner_de)?,
-                                            Some(tag_enc),
-                                            StringEncoding::from(script_reference_bytes_encoding),
-                                        ))
-                                    }
-                                    (tag, _enc) => Err(DeserializeFailure::TagMismatch {
-                                        found: tag,
-                                        expected: 24,
-                                    }
-                                    .into()),
-                                }
+                                ScriptRef::deserialize(raw)
                             })()
                             .map_err(|e| e.annotate("script_reference"))?;
                             script_reference = Some(tmp_script_reference);
-                            script_reference_tag_encoding = tmp_script_reference_tag_encoding;
-                            script_reference_bytes_encoding = tmp_script_reference_bytes_encoding;
                             script_reference_key_encoding = Some(key_enc);
                             orig_deser_order.push(3);
                         }
@@ -386,8 +331,6 @@ impl Deserialize for ConwayFormatTxOut {
                     amount_key_encoding,
                     datum_option_key_encoding,
                     script_reference_key_encoding,
-                    script_reference_tag_encoding,
-                    script_reference_bytes_encoding,
                 }),
             })
         })()
@@ -775,7 +718,12 @@ impl Serialize for ScriptAll {
                 .unwrap_or_default()
                 .to_len_sz(2, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -811,11 +759,7 @@ impl SerializeEmbeddedGroup for ScriptAll {
             .map(|encs| encs.native_scripts_encoding)
             .unwrap_or_default()
             .end(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -865,9 +809,10 @@ impl DeserializeEmbeddedGroup for ScriptAll {
                     cbor_event::LenSz::Len(n, _) => (native_scripts_arr.len() as u64) < n,
                     cbor_event::LenSz::Indefinite => true,
                 } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
+                    if let cbor_event::LenSz::Indefinite = len {
+                        if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                            break;
+                        }
                     }
                     native_scripts_arr.push(NativeScript::deserialize(raw)?);
                 }
@@ -900,7 +845,12 @@ impl Serialize for ScriptAny {
                 .unwrap_or_default()
                 .to_len_sz(2, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -936,11 +886,7 @@ impl SerializeEmbeddedGroup for ScriptAny {
             .map(|encs| encs.native_scripts_encoding)
             .unwrap_or_default()
             .end(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -990,9 +936,10 @@ impl DeserializeEmbeddedGroup for ScriptAny {
                     cbor_event::LenSz::Len(n, _) => (native_scripts_arr.len() as u64) < n,
                     cbor_event::LenSz::Indefinite => true,
                 } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
+                    if let cbor_event::LenSz::Indefinite = len {
+                        if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                            break;
+                        }
                     }
                     native_scripts_arr.push(NativeScript::deserialize(raw)?);
                 }
@@ -1025,7 +972,12 @@ impl Serialize for ScriptInvalidBefore {
                 .unwrap_or_default()
                 .to_len_sz(2, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -1057,11 +1009,7 @@ impl SerializeEmbeddedGroup for ScriptInvalidBefore {
                 force_canonical,
             ),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -1134,7 +1082,12 @@ impl Serialize for ScriptInvalidHereafter {
                 .unwrap_or_default()
                 .to_len_sz(2, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -1166,11 +1119,7 @@ impl SerializeEmbeddedGroup for ScriptInvalidHereafter {
                 force_canonical,
             ),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -1243,7 +1192,12 @@ impl Serialize for ScriptNOfK {
                 .unwrap_or_default()
                 .to_len_sz(3, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -1290,11 +1244,7 @@ impl SerializeEmbeddedGroup for ScriptNOfK {
             .map(|encs| encs.native_scripts_encoding)
             .unwrap_or_default()
             .end(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -1349,9 +1299,10 @@ impl DeserializeEmbeddedGroup for ScriptNOfK {
                     cbor_event::LenSz::Len(n, _) => (native_scripts_arr.len() as u64) < n,
                     cbor_event::LenSz::Indefinite => true,
                 } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                        break;
+                    if let cbor_event::LenSz::Indefinite = len {
+                        if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                            break;
+                        }
                     }
                     native_scripts_arr.push(NativeScript::deserialize(raw)?);
                 }
@@ -1386,7 +1337,12 @@ impl Serialize for ScriptPubkey {
                 .unwrap_or_default()
                 .to_len_sz(2, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -1418,11 +1374,7 @@ impl SerializeEmbeddedGroup for ScriptPubkey {
                     force_canonical,
                 ),
         )?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
@@ -1486,6 +1438,67 @@ impl DeserializeEmbeddedGroup for ScriptPubkey {
     }
 }
 
+impl Serialize for ScriptRef {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_tag_sz(
+            24u64,
+            fit_sz(
+                24u64,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.inner_tag_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )?;
+        let mut inner_inner_se = Serializer::new_vec();
+        self.inner.serialize(&mut inner_inner_se, force_canonical)?;
+        let inner_bytes = inner_inner_se.finalize();
+        serializer.write_bytes_sz(
+            &inner_bytes,
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_bytes_encoding.clone())
+                .unwrap_or_default()
+                .to_str_len_sz(inner_bytes.len() as u64, force_canonical),
+        )
+    }
+}
+
+impl Deserialize for ScriptRef {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let (inner, inner_tag_encoding, inner_bytes_encoding) = match raw.tag_sz()? {
+            (24, tag_enc) => {
+                let (inner_bytes, inner_bytes_encoding) = raw.bytes_sz()?;
+                let inner_de = &mut Deserializer::from(std::io::Cursor::new(inner_bytes));
+                (
+                    Script::deserialize(inner_de)?,
+                    Some(tag_enc),
+                    StringEncoding::from(inner_bytes_encoding),
+                )
+            }
+            (tag, _enc) => {
+                return Err(DeserializeFailure::TagMismatch {
+                    found: tag,
+                    expected: 24,
+                }
+                .into());
+            }
+        };
+        Ok(Self {
+            inner,
+            encodings: Some(ScriptRefEncoding {
+                inner_tag_encoding,
+                inner_bytes_encoding,
+            }),
+        })
+    }
+}
+
 impl Serialize for Transaction {
     fn serialize<'se, W: Write>(
         &self,
@@ -1503,9 +1516,13 @@ impl Serialize for Transaction {
         self.witness_set.serialize(serializer, force_canonical)?;
         serializer.write_special(cbor_event::Special::Bool(self.is_valid))?;
         match &self.auxiliary_data {
-            Some(x) => x.serialize(serializer, force_canonical),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
+            Some(x) => {
+                x.serialize(serializer, force_canonical)?;
+            }
+            None => {
+                serializer.write_special(cbor_event::Special::Null)?;
+            }
+        };
         self.encodings
             .as_ref()
             .map(|encs| encs.len_encoding)
@@ -1516,20 +1533,18 @@ impl Serialize for Transaction {
 
 impl Deserialize for Transaction {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(4)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(4)?;
+            read_len.finish()?;
             let body = TransactionBody::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("body"))?;
             let witness_set = TransactionWitnessSet::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("witness_set"))?;
-            let is_valid = raw
-                .bool()
-                .map_err(Into::into)
-                .map_err(|e: DeserializeError| e.annotate("is_valid"))?;
+            let is_valid =
+                bool::deserialize(raw).map_err(|e: DeserializeError| e.annotate("is_valid"))?;
             let auxiliary_data = (|| -> Result<_, DeserializeError> {
                 Ok(match raw.cbor_type()? != cbor_event::Type::Special {
                     true => Some(AuxiliaryData::deserialize(raw)?),
@@ -2008,7 +2023,7 @@ impl Serialize for TransactionBody {
                                     serializer.write_negative_integer_sz(
                                         *value as i128,
                                         fit_sz(
-                                            (*value + 1).unsigned_abs(),
+                                           (*value + 1).unsigned_abs(),
                                             mint_value_value_encoding,
                                             force_canonical,
                                         ),
@@ -2314,11 +2329,11 @@ impl Serialize for TransactionBody {
 
 impl Deserialize for TransactionBody {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(3)?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(3)?;
             let mut orig_deser_order = Vec::new();
             let mut inputs_key_encoding = None;
             let mut inputs = None;
@@ -2398,9 +2413,10 @@ impl Deserialize for TransactionBody {
                                 let len = raw.array_sz()?;
                                 let outputs_encoding = len.into();
                                 while match len { cbor_event::LenSz::Len(n, _) => (outputs_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                        break;
+                                    if let cbor_event::LenSz::Indefinite = len {
+                                        if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                            break;
+                                        }
                                     }
                                     outputs_arr.push(TransactionOutput::deserialize(raw)?);
                                 }
@@ -2457,9 +2473,10 @@ impl Deserialize for TransactionBody {
                                 let withdrawals_encoding = withdrawals_len.into();
                                 let mut withdrawals_value_encodings = BTreeMap::new();
                                 while match withdrawals_len { cbor_event::LenSz::Len(n, _) => (withdrawals_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                        break;
+                                    if let cbor_event::LenSz::Indefinite = withdrawals_len {
+                                        if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                            break;
+                                        }
                                     }
                                     let withdrawals_key = RewardAccount::deserialize(raw)?;
                                     let (withdrawals_value, withdrawals_value_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
@@ -2514,9 +2531,10 @@ impl Deserialize for TransactionBody {
                                 let mut mint_key_encodings = BTreeMap::new();
                                 let mut mint_value_encodings = BTreeMap::new();
                                 while match mint_len { cbor_event::LenSz::Len(n, _) => (mint_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                        break;
+                                    if let cbor_event::LenSz::Indefinite = mint_len {
+                                        if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                            break;
+                                        }
                                     }
                                     let (mint_key, mint_key_encoding) = raw.bytes_sz().map_err(Into::<DeserializeError>::into).and_then(|(bytes, enc)| ScriptHash::from_raw_bytes(&bytes).map(|bytes| (bytes, StringEncoding::from(enc))).map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into()))?;
                                     let mut mint_value_table = OrderedHashMap::new();
@@ -2524,18 +2542,19 @@ impl Deserialize for TransactionBody {
                                     let mint_value_encoding = mint_value_len.into();
                                     let mut mint_value_value_encodings = BTreeMap::new();
                                     while match mint_value_len { cbor_event::LenSz::Len(n, _) => (mint_value_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                            break;
+                                        if let cbor_event::LenSz::Indefinite = mint_value_len {
+                                            if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                                break;
+                                            }
                                         }
                                         let mint_value_key = AssetName::deserialize(raw)?;
                                         let (mint_value_value, mint_value_value_encoding) = match raw.cbor_type()? {
                                             cbor_event::Type::UnsignedInteger => {
-                                                let (x, enc) = raw.unsigned_integer_sz()?;
+                                                let (x, enc) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x > 9223372036854775807 { Err(DeserializeFailure::RangeCheck{ found: x as isize, min: Some(-9223372036854775808), max: Some(9223372036854775807) }.into()) } else { Ok((x, enc)) })?;
                                                 (x as i64, Some(enc))
                                             },
                                             _ => {
-                                                let (x, enc) = raw.negative_integer_sz()?;
+                                                let (x, enc) = raw.negative_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x < -9223372036854775808 { Err(DeserializeFailure::RangeCheck{ found: x as isize, min: Some(-9223372036854775808), max: Some(9223372036854775807) }.into()) } else { Ok((x, enc)) })?;
                                                 (x as i64, Some(enc))
                                             },
                                         };
@@ -2545,11 +2564,11 @@ impl Deserialize for TransactionBody {
                                         mint_value_value_encodings.insert(mint_value_key, mint_value_value_encoding);
                                     }
                                     let (mint_value, mint_value_encoding, mint_value_value_encodings) = (mint_value_table, mint_value_encoding, mint_value_value_encodings);
-                                    if mint_table.insert(mint_key, mint_value).is_some() {
+                                    if mint_table.insert(mint_key.clone(), mint_value).is_some() {
                                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
                                     }
-                                    mint_key_encodings.insert(mint_key, mint_key_encoding);
-                                    mint_value_encodings.insert(mint_key, (mint_value_encoding, mint_value_value_encodings));
+                                    mint_key_encodings.insert(mint_key.clone(), mint_key_encoding);
+                                    mint_value_encodings.insert(mint_key.clone(), (mint_value_encoding, mint_value_value_encodings));
                                 }
                                 Ok((mint_table, mint_encoding, mint_key_encodings, mint_value_encodings))
                             })().map_err(|e| e.annotate("mint"))?;
@@ -2657,18 +2676,20 @@ impl Deserialize for TransactionBody {
                                 let voting_procedures_encoding = voting_procedures_len.into();
                                 let mut voting_procedures_value_encodings = BTreeMap::new();
                                 while match voting_procedures_len { cbor_event::LenSz::Len(n, _) => (voting_procedures_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                        break;
+                                    if let cbor_event::LenSz::Indefinite = voting_procedures_len {
+                                        if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                            break;
+                                        }
                                     }
                                     let voting_procedures_key = Voter::deserialize(raw)?;
                                     let mut voting_procedures_value_table = OrderedHashMap::new();
                                     let voting_procedures_value_len = raw.map_sz()?;
                                     let voting_procedures_value_encoding = voting_procedures_value_len.into();
                                     while match voting_procedures_value_len { cbor_event::LenSz::Len(n, _) => (voting_procedures_value_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
-                                            break;
+                                        if let cbor_event::LenSz::Indefinite = voting_procedures_value_len {
+                                            if raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                                break;
+                                            }
                                         }
                                         let voting_procedures_value_key = GovActionId::deserialize(raw)?;
                                         let voting_procedures_value_value = VotingProcedure::deserialize(raw)?;
@@ -2867,12 +2888,12 @@ impl Serialize for TransactionInput {
 
 impl Deserialize for TransactionInput {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let (transaction_id, transaction_id_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
@@ -3162,10 +3183,10 @@ impl Serialize for TransactionWitnessSet {
 
 impl Deserialize for TransactionWitnessSet {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
             let mut orig_deser_order = Vec::new();
             let mut vkeywitnesses_key_encoding = None;
             let mut vkeywitnesses = None;

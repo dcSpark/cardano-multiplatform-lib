@@ -1,22 +1,20 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+pub mod hash;
+pub mod utils;
+
+pub use crate::AddrAttributes;
 pub use cml_crypto_wasm::{
     AnchorDocHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash,
     Ed25519Signature, GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash,
     ScriptDataHash, ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
 };
 
-pub mod hash;
-pub mod utils;
-
-use wasm_bindgen::prelude::{JsError, wasm_bindgen};
+pub type Vkey = cml_crypto_wasm::PublicKey;
 
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-
-use crate::byron::AddrAttributes;
-
-pub type Vkey = cml_crypto_wasm::PublicKey;
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -71,6 +69,12 @@ impl_wasm_conversions!(cml_chain::crypto::KESSignature, KESSignature);
 
 #[wasm_bindgen]
 impl KESSignature {
+    pub fn new(inner: Vec<u8>) -> Result<KESSignature, JsError> {
+        cml_chain::crypto::KESSignature::new(inner)
+            .map(Into::into)
+            .map_err(Into::into)
+    }
+
     pub fn get(&self) -> Vec<u8> {
         self.0.get().clone()
     }
@@ -103,7 +107,7 @@ impl Nonce {
 
     pub fn as_hash(&self) -> Option<NonceHash> {
         match &self.0 {
-            cml_chain::crypto::Nonce::Hash { hash, .. } => Some((*hash).into()),
+            cml_chain::crypto::Nonce::Hash { hash, .. } => Some(hash.clone().into()),
             _ => None,
         }
     }

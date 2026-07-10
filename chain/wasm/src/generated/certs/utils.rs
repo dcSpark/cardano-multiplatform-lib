@@ -1,4 +1,6 @@
-use wasm_bindgen::prelude::wasm_bindgen;
+use std::str::FromStr;
+
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 use super::{Ipv4, Ipv6, StakeCredential};
 
 #[wasm_bindgen]

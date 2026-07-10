@@ -1,13 +1,3 @@
-// re-export the serialization stuff in cml_core as the other modules' serialization.rs
-// will expect to find that stuff here.
-pub use cml_core::{
-    error::Key,
-    serialization::{
-        CBORReadLen, Deserialize, DeserializeEmbeddedGroup, Serialize, SerializeEmbeddedGroup,
-        fit_sz,
-    },
-};
-
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
@@ -15,7 +5,8 @@ use super::cbor_encodings::*;
 use super::*;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
-
+use cml_core::error::*;
+use cml_core::serialization::*;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for DRepVotingThresholds {
@@ -61,12 +52,12 @@ impl Serialize for DRepVotingThresholds {
 
 impl Deserialize for DRepVotingThresholds {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(10)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(10)?;
+            read_len.finish()?;
             let motion_no_confidence = UnitInterval::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("motion_no_confidence"))?;
             let committee_normal = UnitInterval::deserialize(raw)
@@ -112,6 +103,36 @@ impl Deserialize for DRepVotingThresholds {
     }
 }
 
+impl Serialize for NetworkId {
+    fn serialize<'se, W: Write>(
+        &self,
+        serializer: &'se mut Serializer<W>,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer.write_unsigned_integer_sz(
+            self.inner,
+            fit_sz(
+                self.inner,
+                self.encodings
+                    .as_ref()
+                    .map(|encs| encs.inner_encoding)
+                    .unwrap_or_default(),
+                force_canonical,
+            ),
+        )
+    }
+}
+
+impl Deserialize for NetworkId {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        let (inner, inner_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
+        Ok(Self {
+            inner,
+            encodings: Some(NetworkIdEncoding { inner_encoding }),
+        })
+    }
+}
+
 impl Serialize for PoolVotingThresholds {
     fn serialize<'se, W: Write>(
         &self,
@@ -145,12 +166,12 @@ impl Serialize for PoolVotingThresholds {
 
 impl Deserialize for PoolVotingThresholds {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(5)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(5)?;
+            read_len.finish()?;
             let motion_no_confidence = UnitInterval::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("motion_no_confidence"))?;
             let committee_normal = UnitInterval::deserialize(raw)
@@ -1089,10 +1110,10 @@ impl Serialize for ProtocolParamUpdate {
 
 impl Deserialize for ProtocolParamUpdate {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
             let mut orig_deser_order = Vec::new();
             let mut minfee_a_encoding = None;
             let mut minfee_a_key_encoding = None;
@@ -1719,22 +1740,22 @@ impl Serialize for Rational {
 
 impl Deserialize for Rational {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (tag, tag_encoding) = raw.tag_sz()?;
-        if tag != 30 {
-            return Err(DeserializeError::new(
-                "Rational",
-                DeserializeFailure::TagMismatch {
-                    found: tag,
-                    expected: 30,
-                },
-            ));
-        }
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let (tag, tag_encoding) = raw.tag_sz()?;
+            if tag != 30 {
+                return Err(DeserializeError::new(
+                    "Rational",
+                    DeserializeFailure::TagMismatch {
+                        found: tag,
+                        expected: 30,
+                    },
+                ));
+            }
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let (numerator, numerator_encoding) = raw
                 .unsigned_integer_sz()
                 .map_err(Into::<DeserializeError>::into)
@@ -2066,22 +2087,22 @@ impl Serialize for UnitInterval {
 
 impl Deserialize for UnitInterval {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (tag, tag_encoding) = raw.tag_sz()?;
-        if tag != 30 {
-            return Err(DeserializeError::new(
-                "UnitInterval",
-                DeserializeFailure::TagMismatch {
-                    found: tag,
-                    expected: 30,
-                },
-            ));
-        }
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let (tag, tag_encoding) = raw.tag_sz()?;
+            if tag != 30 {
+                return Err(DeserializeError::new(
+                    "UnitInterval",
+                    DeserializeFailure::TagMismatch {
+                        found: tag,
+                        expected: 30,
+                    },
+                ));
+            }
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let (start, start_encoding) = raw
                 .unsigned_integer_sz()
                 .map_err(Into::<DeserializeError>::into)

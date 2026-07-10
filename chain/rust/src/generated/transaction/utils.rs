@@ -222,3 +222,20 @@ impl TransactionWitnessSet {
         used_langs
     }
 }
+
+// The generated `ScriptRef` newtype derives only Clone/Debug, but `TransactionOutput`
+// derives Hash/Eq/PartialEq over it. Forward to the wrapped script, ignoring `encodings`
+// (the same semantics `Script`'s own derivative impls use).
+impl std::hash::Hash for ScriptRef {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::hash::Hash::hash(self.get(), state)
+    }
+}
+
+impl PartialEq for ScriptRef {
+    fn eq(&self, other: &Self) -> bool {
+        self.get() == other.get()
+    }
+}
+
+impl Eq for ScriptRef {}

@@ -10,7 +10,7 @@ use cml_core_wasm::{
     impl_raw_bytes_api, impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_map,
 };
 
-use super::Coin;
+use super::{Coin, Mint, MultiAsset};
 
 impl_wasm_map!(
     cml_chain::assets::AssetName,
@@ -50,16 +50,8 @@ impl AssetName {
 
 impl_raw_bytes_api!(cml_chain::assets::AssetName, AssetName);
 
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MultiAsset(cml_chain::assets::MultiAsset);
-
 #[wasm_bindgen]
 impl MultiAsset {
-    pub fn new() -> Self {
-        Self(cml_chain::assets::MultiAsset::default())
-    }
-
     pub fn policy_count(&self) -> usize {
         self.0.len()
     }
@@ -79,19 +71,15 @@ impl MultiAsset {
     }
 
     /// Get the value of policy_id:asset_name if it exists.
-    pub fn get(&self, policy_id: &PolicyId, asset: &AssetName) -> Option<Coin> {
+    pub fn get_value(&self, policy_id: &PolicyId, asset: &AssetName) -> Option<Coin> {
         self.0.get(policy_id.as_ref(), asset.as_ref())
     }
 
     /// Set the value of policy_id:asset_name to value.
     /// Returns the previous value, or None if it didn't exist
-    pub fn set(&mut self, policy_id: &PolicyId, asset: &AssetName, value: Coin) -> Option<Coin> {
+    pub fn set_value(&mut self, policy_id: &PolicyId, asset: &AssetName, value: Coin) -> Option<Coin> {
         self.0
             .set(policy_id.clone().into(), asset.clone().into(), value)
-    }
-
-    pub fn keys(&self) -> PolicyIdList {
-        self.0.iter().map(|(k, _v)| *k).collect::<Vec<_>>().into()
     }
 
     /// Adds to multiassets together, checking value bounds.
@@ -125,30 +113,10 @@ impl MultiAsset {
     }
 }
 
-impl_wasm_conversions!(cml_chain::assets::MultiAsset, MultiAsset);
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct Mint(cml_chain::assets::Mint);
-
 #[wasm_bindgen]
 impl Mint {
-    pub fn new() -> Self {
-        Self(cml_chain::assets::Mint::default())
-    }
-
     pub fn policy_count(&self) -> usize {
         self.0.len()
-    }
-
-    pub fn insert_assets(
-        &mut self,
-        policy_id: &PolicyId,
-        assets: &MapAssetNameToNonZeroInt64,
-    ) -> Option<MapAssetNameToNonZeroInt64> {
-        self.0
-            .insert(policy_id.clone().into(), assets.clone().into())
-            .map(Into::into)
     }
 
     pub fn get_assets(&self, key: &PolicyId) -> Option<MapAssetNameToNonZeroInt64> {
@@ -156,19 +124,15 @@ impl Mint {
     }
 
     /// Get the value of policy_id:asset_name if it exists.
-    pub fn get(&self, policy_id: &PolicyId, asset: &AssetName) -> Option<i64> {
+    pub fn get_value(&self, policy_id: &PolicyId, asset: &AssetName) -> Option<i64> {
         self.0.get(policy_id.as_ref(), asset.as_ref())
     }
 
     /// Set the value of policy_id:asset_name to value.
     /// Returns the previous value, or None if it didn't exist
-    pub fn set(&mut self, policy_id: &PolicyId, asset: &AssetName, value: i64) -> Option<i64> {
+    pub fn set_value(&mut self, policy_id: &PolicyId, asset: &AssetName, value: i64) -> Option<i64> {
         self.0
             .set(policy_id.clone().into(), asset.clone().into(), value)
-    }
-
-    pub fn keys(&self) -> PolicyIdList {
-        self.0.iter().map(|(k, _v)| *k).collect::<Vec<_>>().into()
     }
 
     /// Adds two mints together, checking value bounds.
@@ -199,8 +163,6 @@ impl Mint {
         self.0.as_negative_multiasset().into()
     }
 }
-
-impl_wasm_conversions!(cml_chain::assets::Mint, Mint);
 
 #[wasm_bindgen]
 #[derive(Debug, Clone)]

@@ -35,7 +35,7 @@ use cml_chain::crypto::{Nonce, VRFCert, Vkey};
 use cml_chain::governance::{ProposalProcedure, VotingProcedures};
 use cml_chain::plutus::{CostModels, ExUnitPrices, ExUnits};
 use cml_chain::transaction::{
-    AlonzoFormatTxOut, TransactionInput, TransactionOutput, TransactionWitnessSet,
+    AlonzoFormatTxOut, ScriptRef, TransactionInput, TransactionOutput, TransactionWitnessSet,
 };
 use cml_chain::{
     Coin, DRepVotingThresholds, NetworkId, OrderedHashMap, PoolVotingThresholds,
@@ -730,9 +730,9 @@ impl MultiEraTransactionBody {
             Self::Shelley(_tx) => None,
             Self::Allegra(_tx) => None,
             Self::Mary(_tx) => None,
-            Self::Alonzo(tx) => tx.network_id,
-            Self::Babbage(tx) => tx.network_id,
-            Self::Conway(tx) => tx.network_id,
+            Self::Alonzo(tx) => tx.network_id.clone(),
+            Self::Babbage(tx) => tx.network_id.clone(),
+            Self::Conway(tx) => tx.network_id.clone(),
         }
     }
 
@@ -1336,7 +1336,10 @@ impl From<BabbageTransactionOutput> for MultiEraTransactionOutput {
                 babbage.address.clone(),
                 babbage.amount.clone(),
                 babbage.datum_option.clone(),
-                babbage.script_reference.clone().map(Into::into),
+                babbage
+                    .script_reference
+                    .clone()
+                    .map(|script| ScriptRef::new(script.into())),
             ),
         })
     }

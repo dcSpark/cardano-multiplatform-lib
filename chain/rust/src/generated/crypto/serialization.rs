@@ -3,12 +3,10 @@
 
 use super::cbor_encodings::*;
 use super::*;
-use crate::byron::AddrAttributes;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use cml_crypto::RawBytesEncoding;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for BootstrapWitness {
@@ -70,12 +68,12 @@ impl Serialize for BootstrapWitness {
 
 impl Deserialize for BootstrapWitness {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(4)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(4)?;
+            read_len.finish()?;
             let (public_key, public_key_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
@@ -363,12 +361,12 @@ impl Serialize for VRFCert {
 
 impl Deserialize for VRFCert {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let (output, output_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
@@ -453,12 +451,12 @@ impl Serialize for Vkeywitness {
 
 impl Deserialize for Vkeywitness {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let (vkey, vkey_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)

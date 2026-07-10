@@ -2,21 +2,24 @@
 // https://github.com/dcSpark/cddl-codegen
 
 pub mod cbor_encodings;
-pub mod serialization;
 pub mod utils;
+pub mod serialization;
+pub use crate::Value;
+pub use utils::*;
 
-pub use utils::*; //{Value, AssetBundle, Mint, MultiAsset, Coin, PositiveCoin, NonZeroInt64};
-
+use crate::generated::PolicyId;
 use cbor_encodings::AssetNameEncoding;
 use cml_core::error::*;
-
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::serialization::{LenEncoding, StringEncoding};
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 /// Use TryFrom<&str> / TryInto<&str> for utf8 text conversion and RawBytesEncoding for direct bytes access
 #[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct AssetName {
-    pub inner: Vec<u8>,
+    inner: Vec<u8>,
     #[derivative(
         PartialEq = "ignore",
         Ord = "ignore",
@@ -27,6 +30,10 @@ pub struct AssetName {
 }
 
 impl AssetName {
+    pub fn get(&self) -> &Vec<u8> {
+        &self.inner
+    }
+
     pub fn new(inner: Vec<u8>) -> Result<Self, DeserializeError> {
         if inner.len() > 32 {
             return Err(DeserializeError::new(
@@ -92,10 +99,10 @@ impl schemars::JsonSchema for AssetName {
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        String::json_schema(generator)
+        <String as schemars::JsonSchema>::json_schema(generator)
     }
 
     fn inline_schema() -> bool {
-        String::inline_schema()
+        <String as schemars::JsonSchema>::inline_schema()
     }
 }

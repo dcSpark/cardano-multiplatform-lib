@@ -2,13 +2,14 @@
 // https://github.com/dcSpark/cddl-codegen
 
 pub mod cbor_encodings;
-pub mod serialization;
 pub mod utils;
+pub mod serialization;
 
-use super::{Coin, Epoch, Port, SetEd25519KeyHash, UnitInterval};
-use crate::address::RewardAccount;
-use crate::crypto::{Ed25519KeyHash, PoolMetadataHash, ScriptHash, VRFKeyHash};
-use crate::governance::Anchor;
+use crate::generated::address::RewardAccount;
+use crate::generated::assets::Coin;
+use crate::generated::crypto::{Ed25519KeyHash, PoolMetadataHash, ScriptHash, VRFKeyHash};
+use crate::generated::governance::Anchor;
+use crate::generated::{Epoch, Port, SetEd25519KeyHash, UnitInterval};
 use cbor_encodings::{
     AuthCommitteeHotCertEncoding, DNSNameEncoding, Ipv4Encoding, Ipv6Encoding,
     MultiHostNameEncoding, PoolMetadataEncoding, PoolParamsEncoding, PoolRegistrationEncoding,
@@ -20,12 +21,11 @@ use cbor_encodings::{
     VoteRegDelegCertEncoding,
 };
 use cml_core::error::*;
-
+use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
-
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
-#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AuthCommitteeHotCert {
     pub committee_cold_credential: CommitteeColdCredential,
@@ -47,7 +47,6 @@ impl AuthCommitteeHotCert {
     }
 }
 
-#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum Certificate {
     /// Will be deprecated in the next era. Use RegCert instead which takes an explicit deposit amount, as that can change.
@@ -290,7 +289,7 @@ impl Credential {
 
 #[derive(Clone, Debug)]
 pub struct DNSName {
-    pub inner: String,
+    inner: String,
     pub encodings: Option<DNSNameEncoding>,
 }
 
@@ -352,11 +351,11 @@ impl schemars::JsonSchema for DNSName {
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        String::json_schema(generator)
+        <String as schemars::JsonSchema>::json_schema(generator)
     }
 
     fn inline_schema() -> bool {
-        String::inline_schema()
+        <String as schemars::JsonSchema>::inline_schema()
     }
 }
 
@@ -432,7 +431,7 @@ pub type DrepCredential = Credential;
 
 #[derive(Clone, Debug)]
 pub struct Ipv4 {
-    pub inner: Vec<u8>,
+    inner: Vec<u8>,
     pub encodings: Option<Ipv4Encoding>,
 }
 
@@ -475,7 +474,7 @@ impl From<Ipv4> for Vec<u8> {
 
 #[derive(Clone, Debug)]
 pub struct Ipv6 {
-    pub inner: Vec<u8>,
+    inner: Vec<u8>,
     pub encodings: Option<Ipv6Encoding>,
 }
 
@@ -568,7 +567,6 @@ pub struct PoolParams {
 }
 
 impl PoolParams {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         operator: Ed25519KeyHash,
         vrf_keyhash: VRFKeyHash,
@@ -937,7 +935,7 @@ impl UpdateDrepCert {
 
 #[derive(Clone, Debug)]
 pub struct Url {
-    pub inner: String,
+    inner: String,
     pub encodings: Option<UrlEncoding>,
 }
 
@@ -999,11 +997,11 @@ impl schemars::JsonSchema for Url {
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        String::json_schema(generator)
+        <String as schemars::JsonSchema>::json_schema(generator)
     }
 
     fn inline_schema() -> bool {
-        String::inline_schema()
+        <String as schemars::JsonSchema>::inline_schema()
     }
 }
 

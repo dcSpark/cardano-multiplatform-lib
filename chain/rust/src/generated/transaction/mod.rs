@@ -2,33 +2,35 @@
 // https://github.com/dcSpark/cddl-codegen
 
 pub mod cbor_encodings;
-pub mod serialization;
+use crate::utils::NonemptySetRawBytes;
 pub mod utils;
+pub mod serialization;
 
-use crate::address::Address;
-use crate::assets::{Coin, Mint, PositiveCoin};
-use crate::auxdata::AuxiliaryData;
-use crate::crypto::{
+use crate::generated::address::Address;
+use crate::generated::assets::{Coin, Mint, PositiveCoin, Value};
+use crate::generated::auxdata::AuxiliaryData;
+use crate::generated::crypto::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
 };
-use crate::governance::VotingProcedures;
-use crate::plutus::{PlutusData, Redeemers};
-use crate::{NetworkId, Value};
-use crate::{
-    NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetNativeScript,
+use crate::generated::governance::VotingProcedures;
+use crate::generated::plutus::{PlutusData, Redeemers};
+use crate::generated::{
+    NetworkId, NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetNativeScript,
     NonemptySetPlutusData, NonemptySetPlutusV1Script, NonemptySetPlutusV2Script,
     NonemptySetPlutusV3Script, NonemptySetProposalProcedure, NonemptySetTransactionInput,
-    NonemptySetVkeywitness, RequiredSigners, Script, SetTransactionInput, Slot, Withdrawals,
+    NonemptySetVkeywitness, Script, SetTransactionInput, Slot, Withdrawals,
 };
 use cbor_encodings::{
     AlonzoFormatTxOutEncoding, ConwayFormatTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
     ScriptInvalidBeforeEncoding, ScriptInvalidHereafterEncoding, ScriptNOfKEncoding,
-    ScriptPubkeyEncoding, TransactionBodyEncoding, TransactionEncoding, TransactionInputEncoding,
-    TransactionWitnessSetEncoding,
+    ScriptPubkeyEncoding, ScriptRefEncoding, TransactionBodyEncoding, TransactionEncoding,
+    TransactionInputEncoding, TransactionWitnessSetEncoding,
 };
+use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
+use std::convert::TryFrom;
 
 #[derive(
     Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
@@ -177,6 +179,14 @@ impl NativeScript {
     }
 }
 
+pub type RequiredSigners = NonemptySetRawBytes<Ed25519KeyHash>;
+
+impl From<ScriptRef> for Script {
+    fn from(wrapper: ScriptRef) -> Self {
+        wrapper.inner
+    }
+}
+
 #[derive(
     Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
 )]
@@ -299,7 +309,63 @@ impl ScriptPubkey {
     }
 }
 
-pub type ScriptRef = Script;
+#[derive(Clone, Debug)]
+pub struct ScriptRef {
+    inner: Script,
+    pub encodings: Option<ScriptRefEncoding>,
+}
+
+impl ScriptRef {
+    pub fn get(&self) -> &Script {
+        &self.inner
+    }
+
+    pub fn new(inner: Script) -> Self {
+        Self {
+            inner,
+            encodings: None,
+        }
+    }
+}
+
+impl From<Script> for ScriptRef {
+    fn from(inner: Script) -> Self {
+        ScriptRef::new(inner.clone().into())
+    }
+}
+
+impl serde::Serialize for ScriptRef {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.inner.serialize(serializer)
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for ScriptRef {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let inner = <Script as serde::de::Deserialize>::deserialize(deserializer)?;
+        Ok(Self::new(inner))
+    }
+}
+
+impl schemars::JsonSchema for ScriptRef {
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        ::std::borrow::Cow::Borrowed("ScriptRef")
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        <Script as schemars::JsonSchema>::json_schema(generator)
+    }
+
+    fn inline_schema() -> bool {
+        <Script as schemars::JsonSchema>::inline_schema()
+    }
+}
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct Transaction {

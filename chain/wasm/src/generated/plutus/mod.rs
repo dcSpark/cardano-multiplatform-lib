@@ -1,29 +1,18 @@
-pub mod utils;
-
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::utils::BigInteger;
+pub mod utils;
+pub use crate::BigInteger;
+pub use crate::ConstrPlutusData;
+pub use crate::PlutusMap;
 
-use super::{PlutusDataList, SubCoin};
-use crate::{LegacyRedeemerList, MapRedeemerKeyToRedeemerVal};
+use crate::generated::{
+    LegacyRedeemerList, MapRedeemerKeyToRedeemerVal, MapU64ToArrI64, PlutusDataList, SubCoin,
+};
 pub use cml_chain::plutus::{Language, RedeemerTag};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_map};
-pub use utils::{ConstrPlutusData, PlutusMap};
-use wasm_bindgen::prelude::wasm_bindgen;
-
-impl_wasm_map!(
-    u64,
-    Vec<i64>,
-    u64,
-    Vec<i64>,
-    Vec<u64>,
-    MapU64ToArrI64,
-    true,
-    true,
-    true,
-    false
-);
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -35,8 +24,12 @@ impl_wasm_conversions!(cml_chain::plutus::CostModels, CostModels);
 
 #[wasm_bindgen]
 impl CostModels {
-    pub fn inner(&self) -> MapU64ToArrI64 {
-        self.0.inner.clone().into()
+    pub fn new(inner: &MapU64ToArrI64) -> Self {
+        Self(cml_chain::plutus::CostModels::new(inner.clone().into()))
+    }
+
+    pub fn get(&self) -> MapU64ToArrI64 {
+        self.0.get().clone().into()
     }
 }
 
@@ -117,7 +110,7 @@ impl LegacyRedeemer {
 
     pub fn new(tag: RedeemerTag, index: u64, data: &PlutusData, ex_units: &ExUnits) -> Self {
         Self(cml_chain::plutus::LegacyRedeemer::new(
-            tag,
+            tag.into(),
             index,
             data.clone().into(),
             ex_units.clone().into(),
@@ -149,9 +142,9 @@ impl PlutusData {
         Self(cml_chain::plutus::PlutusData::new_list(list.clone().into()))
     }
 
-    pub fn new_integer(big_int: &BigInteger) -> Self {
+    pub fn new_integer(integer: &BigInteger) -> Self {
         Self(cml_chain::plutus::PlutusData::new_integer(
-            big_int.clone().into(),
+            integer.clone().into(),
         ))
     }
 
@@ -162,7 +155,7 @@ impl PlutusData {
     pub fn kind(&self) -> PlutusDataKind {
         match &self.0 {
             cml_chain::plutus::PlutusData::ConstrPlutusData(_) => PlutusDataKind::ConstrPlutusData,
-            cml_chain::plutus::PlutusData::Map { .. } => PlutusDataKind::Map,
+            cml_chain::plutus::PlutusData::Map(_) => PlutusDataKind::Map,
             cml_chain::plutus::PlutusData::List { .. } => PlutusDataKind::List,
             cml_chain::plutus::PlutusData::Integer(_) => PlutusDataKind::Integer,
             cml_chain::plutus::PlutusData::Bytes { .. } => PlutusDataKind::Bytes,
@@ -194,7 +187,7 @@ impl PlutusData {
 
     pub fn as_integer(&self) -> Option<BigInteger> {
         match &self.0 {
-            cml_chain::plutus::PlutusData::Integer(big_int) => Some(big_int.clone().into()),
+            cml_chain::plutus::PlutusData::Integer(integer) => Some(integer.clone().into()),
             _ => None,
         }
     }
@@ -224,6 +217,17 @@ impl_wasm_cbor_json_api!(PlutusV1Script);
 
 impl_wasm_conversions!(cml_chain::plutus::PlutusV1Script, PlutusV1Script);
 
+#[wasm_bindgen]
+impl PlutusV1Script {
+    pub fn new(inner: Vec<u8>) -> Self {
+        Self(cml_chain::plutus::PlutusV1Script::new(inner))
+    }
+
+    pub fn get(&self) -> Vec<u8> {
+        self.0.get().clone()
+    }
+}
+
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PlutusV2Script(cml_chain::plutus::PlutusV2Script);
@@ -232,6 +236,17 @@ impl_wasm_cbor_json_api!(PlutusV2Script);
 
 impl_wasm_conversions!(cml_chain::plutus::PlutusV2Script, PlutusV2Script);
 
+#[wasm_bindgen]
+impl PlutusV2Script {
+    pub fn new(inner: Vec<u8>) -> Self {
+        Self(cml_chain::plutus::PlutusV2Script::new(inner))
+    }
+
+    pub fn get(&self) -> Vec<u8> {
+        self.0.get().clone()
+    }
+}
+
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct PlutusV3Script(cml_chain::plutus::PlutusV3Script);
@@ -239,6 +254,17 @@ pub struct PlutusV3Script(cml_chain::plutus::PlutusV3Script);
 impl_wasm_cbor_json_api!(PlutusV3Script);
 
 impl_wasm_conversions!(cml_chain::plutus::PlutusV3Script, PlutusV3Script);
+
+#[wasm_bindgen]
+impl PlutusV3Script {
+    pub fn new(inner: Vec<u8>) -> Self {
+        Self(cml_chain::plutus::PlutusV3Script::new(inner))
+    }
+
+    pub fn get(&self) -> Vec<u8> {
+        self.0.get().clone()
+    }
+}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -259,7 +285,7 @@ impl RedeemerKey {
     }
 
     pub fn new(tag: RedeemerTag, index: u64) -> Self {
-        Self(cml_chain::plutus::RedeemerKey::new(tag, index))
+        Self(cml_chain::plutus::RedeemerKey::new(tag.into(), index))
     }
 }
 

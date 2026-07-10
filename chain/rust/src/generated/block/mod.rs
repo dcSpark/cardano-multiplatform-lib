@@ -4,18 +4,21 @@
 pub mod cbor_encodings;
 pub mod serialization;
 
-use super::TransactionIndex;
-use crate::auxdata::AuxiliaryData;
-use crate::crypto::{
+use crate::generated::TransactionIndex;
+use crate::generated::auxdata::AuxiliaryData;
+use crate::generated::crypto::{
     BlockBodyHash, BlockHeaderHash, Ed25519Signature, KESSignature, KESVkey, VRFCert, VRFVkey, Vkey,
 };
-use crate::transaction::{TransactionBody, TransactionWitnessSet};
+use crate::generated::transaction::{TransactionBody, TransactionWitnessSet};
 use cbor_encodings::{
     BlockEncoding, HeaderBodyEncoding, HeaderEncoding, OperationalCertEncoding,
     ProtocolVersionEncoding,
 };
+use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
+use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct Block {
@@ -82,7 +85,6 @@ pub struct HeaderBody {
 }
 
 impl HeaderBody {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         block_number: u64,
         slot: u64,

@@ -1,14 +1,16 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use super::{
+use crate::generated::crypto::{
+    BlockBodyHash, BlockHeaderHash, Ed25519Signature, KESSignature, KESVkey, VRFCert, VRFVkey, Vkey,
+};
+use crate::generated::{
     MapTransactionIndexToAuxiliaryData, TransactionBodyList, TransactionIndex,
     TransactionWitnessSetList,
 };
-use crate::crypto::{KESSignature, VRFCert, Vkey};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use cml_crypto_wasm::{BlockBodyHash, BlockHeaderHash, Ed25519Signature, KESVkey, VRFVkey};
-use wasm_bindgen::prelude::wasm_bindgen;
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -52,7 +54,7 @@ impl Block {
             transaction_bodies.clone().into(),
             transaction_witness_sets.clone().into(),
             auxiliary_data_set.clone().into(),
-            invalid_transactions,
+            invalid_transactions.into(),
         ))
     }
 }
@@ -102,7 +104,7 @@ impl HeaderBody {
     }
 
     pub fn prev_hash(&self) -> Option<BlockHeaderHash> {
-        self.0.prev_hash.map(std::convert::Into::into)
+        self.0.prev_hash.clone().map(std::convert::Into::into)
     }
 
     pub fn issuer_vkey(&self) -> Vkey {
@@ -110,7 +112,7 @@ impl HeaderBody {
     }
 
     pub fn vrf_vkey(&self) -> VRFVkey {
-        self.0.vrf_vkey.into()
+        self.0.vrf_vkey.clone().into()
     }
 
     pub fn vrf_result(&self) -> VRFCert {
@@ -122,7 +124,7 @@ impl HeaderBody {
     }
 
     pub fn block_body_hash(&self) -> BlockBodyHash {
-        self.0.block_body_hash.into()
+        self.0.block_body_hash.clone().into()
     }
 
     pub fn operational_cert(&self) -> OperationalCert {
@@ -171,7 +173,7 @@ impl_wasm_conversions!(cml_chain::block::OperationalCert, OperationalCert);
 #[wasm_bindgen]
 impl OperationalCert {
     pub fn hot_vkey(&self) -> KESVkey {
-        self.0.hot_vkey.into()
+        self.0.hot_vkey.clone().into()
     }
 
     pub fn sequence_number(&self) -> u64 {

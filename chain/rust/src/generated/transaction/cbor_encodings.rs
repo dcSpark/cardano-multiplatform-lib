@@ -1,9 +1,12 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::{address::RewardAccount, assets::AssetName, governance::Voter};
-use cml_core::serialization::{LenEncoding, StringEncoding};
+use super::*;
+use crate::address::RewardAccount;
+use crate::assets::AssetName;
+use crate::governance::Voter;
 use cml_crypto::ScriptHash;
+use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
@@ -19,8 +22,6 @@ pub struct ConwayFormatTxOutEncoding {
     pub address_key_encoding: Option<cbor_event::Sz>,
     pub amount_key_encoding: Option<cbor_event::Sz>,
     pub datum_option_key_encoding: Option<cbor_event::Sz>,
-    pub script_reference_tag_encoding: Option<cbor_event::Sz>,
-    pub script_reference_bytes_encoding: StringEncoding,
     pub script_reference_key_encoding: Option<cbor_event::Sz>,
 }
 
@@ -65,6 +66,12 @@ pub struct ScriptPubkeyEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
     pub ed25519_key_hash_encoding: StringEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ScriptRefEncoding {
+    pub inner_tag_encoding: Option<cbor_event::Sz>,
+    pub inner_bytes_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]

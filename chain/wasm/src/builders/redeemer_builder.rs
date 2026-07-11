@@ -3,7 +3,8 @@ use super::{
     mint_builder::MintBuilderResult, proposal_builder::ProposalBuilderResult,
     vote_builder::VoteBuilderResult, withdrawal_builder::WithdrawalBuilderResult,
 };
-use crate::plutus::{ExUnits, LegacyRedeemer, PlutusData, RedeemerTag, Redeemers};
+use crate::LegacyRedeemerList;
+use crate::plutus::{ExUnits, LegacyRedeemer, PlutusData, RedeemerTag};
 use cml_core_wasm::impl_wasm_conversions;
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
@@ -101,7 +102,7 @@ impl RedeemerSetBuilder {
         self.0.add_vote(result.as_ref());
     }
 
-    pub fn build(&self, default_to_dummy_exunits: bool) -> Result<Redeemers, JsError> {
+    pub fn build(&self, default_to_dummy_exunits: bool) -> Result<LegacyRedeemerList, JsError> {
         self.0
             .build(default_to_dummy_exunits)
             .map(Into::into)

@@ -6,7 +6,7 @@ use super::{
 use crate::{
     PolicyId,
     address::RewardAddress,
-    plutus::{ExUnits, LegacyRedeemer, PlutusData, RedeemerTag, Redeemers},
+    plutus::{ExUnits, LegacyRedeemer, PlutusData, RedeemerTag},
     transaction::TransactionInput,
 };
 use std::{collections::BTreeMap, fmt::Debug};
@@ -252,7 +252,11 @@ impl RedeemerSetBuilder {
         }
     }
 
-    pub fn build(&self, default_to_dummy_exunits: bool) -> Result<Redeemers, RedeemerBuilderError> {
+    /// Builds the flat list of redeemers. May be empty (a transaction with no scripts)
+    pub fn build(
+        &self,
+        default_to_dummy_exunits: bool,
+    ) -> Result<Vec<LegacyRedeemer>, RedeemerBuilderError> {
         let mut redeemers = Vec::new();
         // Calling iter on a BTreeMap returns a list of sorted keys
         self.remove_placeholders_and_tag(
@@ -292,7 +296,7 @@ impl RedeemerSetBuilder {
             default_to_dummy_exunits,
         )?;
 
-        Ok(Redeemers::new_arr_legacy_redeemer(redeemers))
+        Ok(redeemers)
     }
 
     fn remove_placeholders_and_tag<'a, K: Debug + Clone>(
@@ -421,7 +425,7 @@ mod tests {
             ExUnits::new(10, 10),
         );
 
-        let redeemers = builder.build(false).unwrap().to_flat_format();
+        let redeemers = builder.build(false).unwrap();
 
         assert_eq!(redeemers.len(), 1);
 

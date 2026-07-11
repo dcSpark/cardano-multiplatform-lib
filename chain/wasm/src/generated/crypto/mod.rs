@@ -11,6 +11,7 @@ pub use cml_crypto_wasm::{
     ScriptDataHash, ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
 };
 
+
 pub type Vkey = cml_crypto_wasm::PublicKey;
 
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
@@ -107,7 +108,7 @@ impl Nonce {
 
     pub fn as_hash(&self) -> Option<NonceHash> {
         match &self.0 {
-            cml_chain::crypto::Nonce::Hash { hash, .. } => Some(hash.clone().into()),
+            cml_chain::crypto::Nonce::Hash { hash, .. } => Some((*hash).into()),
             _ => None,
         }
     }

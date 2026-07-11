@@ -1,3 +1,4 @@
+use cml_core::non_empty::NonEmptyVec;
 use linked_hash_map::LinkedHashMap;
 use std::{
     collections::{BTreeSet, HashMap},
@@ -479,9 +480,11 @@ impl TransactionWitnessSetBuilder {
         }
 
         if !self.redeemers.is_empty() {
-            result.redeemers = Some(Redeemers::new_arr_legacy_redeemer(
-                self.redeemers.values().cloned().collect::<Vec<_>>(),
-            ));
+            // Guarded by is_empty above, so the Vec is non-empty: try_from cannot fail.
+            let redeemers =
+                NonEmptyVec::try_from(self.redeemers.values().cloned().collect::<Vec<_>>())
+                    .expect("redeemers non-empty (guarded by is_empty above)");
+            result.redeemers = Some(Redeemers::new_arr_legacy_redeemer(redeemers));
         }
 
         result

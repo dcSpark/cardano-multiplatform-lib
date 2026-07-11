@@ -1,6 +1,5 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
-
 use super::cbor_encodings::*;
 use super::*;
 use cbor_event::de::Deserializer;
@@ -8,7 +7,7 @@ use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::{Ed25519Signature, PublicKey, RawBytesEncoding};
-use std::io::{BufRead, Seek, SeekFrom, Write};
+use std::io::{BufRead, Seek, Write};
 
 impl Serialize for CIP36Delegation {
     fn serialize<'se, W: Write>(
@@ -55,12 +54,12 @@ impl Serialize for CIP36Delegation {
 
 impl Deserialize for CIP36Delegation {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let (voting_pub_key, voting_pub_key_encoding) = raw
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
@@ -150,23 +149,15 @@ impl Deserialize for CIP36DelegationDistribution {
                         cbor_event::LenSz::Len(n, _) => (weighted_arr.len() as u64) < n,
                         cbor_event::LenSz::Indefinite => true,
                     } {
-                        if let cbor_event::LenSz::Indefinite = len {
-                            if raw.cbor_type()? == cbor_event::Type::Special
-                                && raw.special_break()?
-                            {
-                                break;
-                            }
+                        if matches!(len, cbor_event::LenSz::Indefinite)
+                            && raw.cbor_type()? == cbor_event::Type::Special
+                            && raw.special_break()?
+                        {
+                            break;
                         }
                         weighted_arr.push(CIP36Delegation::deserialize(raw)?);
                     }
-                    if weighted_arr.len() < 1 {
-                        return Err(DeserializeFailure::RangeCheck {
-                            found: weighted_arr.len() as isize,
-                            min: Some(1),
-                            max: None,
-                        }
-                        .into());
-                    }
+                    let weighted_arr = NonEmptyVec::try_from(weighted_arr)?;
                     let (weighted, weighted_encoding) = (weighted_arr, weighted_encoding);
                     Ok(Self::Weighted {
                         weighted,
@@ -189,10 +180,7 @@ impl Deserialize for CIP36DelegationDistribution {
                         legacy_encoding,
                     })
                 }
-                _ => Err(DeserializeError::new(
-                    "CIP36DelegationDistribution",
-                    DeserializeFailure::NoVariantMatched,
-                )),
+                _ => Err(DeserializeFailure::NoVariantMatched.into()),
             }
         })()
         .map_err(|e| e.annotate("CIP36DelegationDistribution"))
@@ -257,12 +245,12 @@ impl Serialize for CIP36DeregistrationWitness {
 
 impl Deserialize for CIP36DeregistrationWitness {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(1)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(1)?;
+            read_len.finish()?;
             let mut orig_deser_order = Vec::new();
             let mut stake_witness_encoding = StringEncoding::default();
             let mut stake_witness_key_encoding = None;
@@ -322,7 +310,6 @@ impl Deserialize for CIP36DeregistrationWitness {
                 Some(x) => x,
                 None => return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(1)).into()),
             };
-            ();
             Ok(Self {
                 stake_witness,
                 encodings: Some(CIP36DeregistrationWitnessEncoding {
@@ -478,11 +465,11 @@ impl Serialize for CIP36KeyDeregistration {
 
 impl Deserialize for CIP36KeyDeregistration {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
             let mut orig_deser_order = Vec::new();
             let mut stake_credential_encoding = StringEncoding::default();
             let mut stake_credential_key_encoding = None;
@@ -774,11 +761,11 @@ impl Serialize for CIP36KeyRegistration {
 
 impl Deserialize for CIP36KeyRegistration {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(4)?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(4)?;
             let mut orig_deser_order = Vec::new();
             let mut delegation_key_encoding = None;
             let mut delegation = None;
@@ -1000,12 +987,12 @@ impl Serialize for CIP36RegistrationWitness {
 
 impl Deserialize for CIP36RegistrationWitness {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(1)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(1)?;
+            read_len.finish()?;
             let mut orig_deser_order = Vec::new();
             let mut stake_witness_encoding = StringEncoding::default();
             let mut stake_witness_key_encoding = None;
@@ -1065,7 +1052,6 @@ impl Deserialize for CIP36RegistrationWitness {
                 Some(x) => x,
                 None => return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(1)).into()),
             };
-            ();
             Ok(Self {
                 stake_witness,
                 encodings: Some(CIP36RegistrationWitnessEncoding {

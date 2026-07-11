@@ -3,7 +3,7 @@ use std::{
     ops::Deref,
 };
 
-use crate::{AssetNameList, MapAssetNameToNonZeroInt64, PolicyId, PolicyIdList, assets::AssetName};
+use crate::{AssetNameList, MapAssetNameToNonZeroInt64, PolicyId, assets::AssetName};
 use wasm_bindgen::{JsError, prelude::wasm_bindgen};
 
 use cml_core_wasm::{

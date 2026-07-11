@@ -1,22 +1,19 @@
+// This file was code-generated using an experimental CDDL to rust tool:
+// https://github.com/dcSpark/cddl-codegen
 #![allow(clippy::too_many_arguments)]
 
 extern crate derivative;
-// This file was code-generated using an experimental CDDL to rust tool:
-// https://github.com/dcSpark/cddl-codegen
-
 pub mod cbor_encodings;
 pub mod serialization;
 pub use crate::PaymentAddress;
 
 use cbor_encodings::{
-    CIP36DelegationEncoding, CIP36DeregistrationCborEncoding, CIP36DeregistrationWitnessEncoding,
-    CIP36KeyDeregistrationEncoding, CIP36KeyRegistrationEncoding, CIP36RegistrationCborEncoding,
+    CIP36DelegationEncoding, CIP36DeregistrationWitnessEncoding,
+    CIP36KeyDeregistrationEncoding, CIP36KeyRegistrationEncoding,
     CIP36RegistrationWitnessEncoding,
 };
-use cml_core::error::*;
-use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::non_empty::NonEmptyVec;
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 /// Weighted delegation input.
@@ -43,7 +40,7 @@ impl CIP36Delegation {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum CIP36DelegationDistribution {
     Weighted {
-        weighted: Vec<CIP36Delegation>,
+        weighted: NonEmptyVec<CIP36Delegation>,
         #[serde(skip)]
         weighted_encoding: LenEncoding,
     },
@@ -57,19 +54,11 @@ pub enum CIP36DelegationDistribution {
 impl CIP36DelegationDistribution {
     /// Create a new delegations delegation. Weights are relative to all others and will be rounded down.
     /// Leftover ADA will be delegated to the last item in the array.
-    pub fn new_weighted(weighted: Vec<CIP36Delegation>) -> Result<Self, DeserializeError> {
-        if weighted.len() < 1 {
-            return Err(DeserializeFailure::RangeCheck {
-                found: weighted.len() as isize,
-                min: Some(1),
-                max: None,
-            }
-            .into());
-        }
-        Ok(Self::Weighted {
+    pub fn new_weighted(weighted: NonEmptyVec<CIP36Delegation>) -> Self {
+        Self::Weighted {
             weighted,
             weighted_encoding: LenEncoding::default(),
-        })
+        }
     }
 
     /// Delegate to a single key i.e. CIP-15.

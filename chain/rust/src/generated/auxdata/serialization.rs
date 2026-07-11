@@ -1,6 +1,5 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
-
 use super::cbor_encodings::*;
 use super::*;
 use cbor_event::de::Deserializer;
@@ -61,10 +60,7 @@ impl Deserialize for AuxiliaryData {
                         .unwrap();
                 }
             };
-            Err(DeserializeError::new(
-                "AuxiliaryData",
-                DeserializeFailure::NoVariantMatchedWithCauses(errs),
-            ))
+            Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
         })()
         .map_err(|e| e.annotate("AuxiliaryData"))
     }
@@ -291,13 +287,11 @@ impl Deserialize for ConwayFormatAuxData {
         (|| -> Result<_, DeserializeError> {
             let (tag, tag_encoding) = raw.tag_sz()?;
             if tag != 259 {
-                return Err(DeserializeError::new(
-                    "ConwayFormatAuxData",
-                    DeserializeFailure::TagMismatch {
-                        found: tag,
-                        expected: 259,
-                    },
-                ));
+                return Err(DeserializeFailure::TagMismatch {
+                    found: tag,
+                    expected: 259,
+                }
+                .into());
             }
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -353,12 +347,11 @@ impl Deserialize for ConwayFormatAuxData {
                                         }
                                         cbor_event::LenSz::Indefinite => true,
                                     } {
-                                        if let cbor_event::LenSz::Indefinite = len {
-                                            if raw.cbor_type()? == cbor_event::Type::Special
-                                                && raw.special_break()?
-                                            {
-                                                break;
-                                            }
+                                        if matches!(len, cbor_event::LenSz::Indefinite)
+                                            && raw.cbor_type()? == cbor_event::Type::Special
+                                            && raw.special_break()?
+                                        {
+                                            break;
                                         }
                                         native_scripts_arr.push(NativeScript::deserialize(raw)?);
                                     }
@@ -386,12 +379,11 @@ impl Deserialize for ConwayFormatAuxData {
                                         }
                                         cbor_event::LenSz::Indefinite => true,
                                     } {
-                                        if let cbor_event::LenSz::Indefinite = len {
-                                            if raw.cbor_type()? == cbor_event::Type::Special
-                                                && raw.special_break()?
-                                            {
-                                                break;
-                                            }
+                                        if matches!(len, cbor_event::LenSz::Indefinite)
+                                            && raw.cbor_type()? == cbor_event::Type::Special
+                                            && raw.special_break()?
+                                        {
+                                            break;
                                         }
                                         plutus_v1_scripts_arr
                                             .push(PlutusV1Script::deserialize(raw)?);
@@ -420,12 +412,11 @@ impl Deserialize for ConwayFormatAuxData {
                                         }
                                         cbor_event::LenSz::Indefinite => true,
                                     } {
-                                        if let cbor_event::LenSz::Indefinite = len {
-                                            if raw.cbor_type()? == cbor_event::Type::Special
-                                                && raw.special_break()?
-                                            {
-                                                break;
-                                            }
+                                        if matches!(len, cbor_event::LenSz::Indefinite)
+                                            && raw.cbor_type()? == cbor_event::Type::Special
+                                            && raw.special_break()?
+                                        {
+                                            break;
                                         }
                                         plutus_v2_scripts_arr
                                             .push(PlutusV2Script::deserialize(raw)?);
@@ -454,12 +445,11 @@ impl Deserialize for ConwayFormatAuxData {
                                         }
                                         cbor_event::LenSz::Indefinite => true,
                                     } {
-                                        if let cbor_event::LenSz::Indefinite = len {
-                                            if raw.cbor_type()? == cbor_event::Type::Special
-                                                && raw.special_break()?
-                                            {
-                                                break;
-                                            }
+                                        if matches!(len, cbor_event::LenSz::Indefinite)
+                                            && raw.cbor_type()? == cbor_event::Type::Special
+                                            && raw.special_break()?
+                                        {
+                                            break;
                                         }
                                         plutus_v3_scripts_arr
                                             .push(PlutusV3Script::deserialize(raw)?);
@@ -580,12 +570,11 @@ impl Deserialize for ShelleyMAFormatAuxData {
                         cbor_event::LenSz::Len(n, _) => (auxiliary_scripts_arr.len() as u64) < n,
                         cbor_event::LenSz::Indefinite => true,
                     } {
-                        if let cbor_event::LenSz::Indefinite = len {
-                            if raw.cbor_type()? == cbor_event::Type::Special
-                                && raw.special_break()?
-                            {
-                                break;
-                            }
+                        if matches!(len, cbor_event::LenSz::Indefinite)
+                            && raw.cbor_type()? == cbor_event::Type::Special
+                            && raw.special_break()?
+                        {
+                            break;
                         }
                         auxiliary_scripts_arr.push(NativeScript::deserialize(raw)?);
                     }

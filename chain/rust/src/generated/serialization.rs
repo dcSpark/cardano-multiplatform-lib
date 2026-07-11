@@ -1,6 +1,5 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
-
 use super::cbor_encodings::*;
 use super::*;
 use cbor_event::de::Deserializer;
@@ -125,11 +124,15 @@ impl Serialize for NetworkId {
 
 impl Deserialize for NetworkId {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
-        Ok(Self {
-            inner,
-            encodings: Some(NetworkIdEncoding { inner_encoding }),
-        })
+        (|| -> Result<_, DeserializeError> {
+            let (inner, inner_encoding) =
+                raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
+            Ok(Self {
+                inner,
+                encodings: Some(NetworkIdEncoding { inner_encoding }),
+            })
+        })()
+        .map_err(|e| e.annotate("NetworkId"))
     }
 }
 
@@ -1743,13 +1746,11 @@ impl Deserialize for Rational {
         (|| -> Result<_, DeserializeError> {
             let (tag, tag_encoding) = raw.tag_sz()?;
             if tag != 30 {
-                return Err(DeserializeError::new(
-                    "Rational",
-                    DeserializeFailure::TagMismatch {
-                        found: tag,
-                        expected: 30,
-                    },
-                ));
+                return Err(DeserializeFailure::TagMismatch {
+                    found: tag,
+                    expected: 30,
+                }
+                .into());
             }
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -2022,10 +2023,7 @@ impl Deserialize for Script {
                         .unwrap();
                 }
             };
-            Err(DeserializeError::new(
-                "Script",
-                DeserializeFailure::NoVariantMatchedWithCauses(errs),
-            ))
+            Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
         })()
         .map_err(|e| e.annotate("Script"))
     }
@@ -2090,13 +2088,11 @@ impl Deserialize for UnitInterval {
         (|| -> Result<_, DeserializeError> {
             let (tag, tag_encoding) = raw.tag_sz()?;
             if tag != 30 {
-                return Err(DeserializeError::new(
-                    "UnitInterval",
-                    DeserializeFailure::TagMismatch {
-                        found: tag,
-                        expected: 30,
-                    },
-                ));
+                return Err(DeserializeFailure::TagMismatch {
+                    found: tag,
+                    expected: 30,
+                }
+                .into());
             }
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();

@@ -9,6 +9,7 @@ use super::{
     AlonzoTransactionWitnessSet,
 };
 
+use cml_core::non_empty::NonEmptyVec;
 use cml_core::serialization::Serialize;
 use cml_crypto::{TransactionHash, blake2b256};
 
@@ -40,9 +41,12 @@ impl From<AlonzoTransactionWitnessSet> for TransactionWitnessSet {
         new_wits.vkeywitnesses = wits.vkeywitnesses.map(Into::into);
         new_wits.native_scripts = wits.native_scripts.map(Into::into);
         new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.map(Into::into);
-        new_wits.redeemers = wits
-            .redeemers
-            .map(|r| Redeemers::new_arr_legacy_redeemer(r.into_iter().map(Into::into).collect()));
+        // Conway `Redeemers` cannot be empty; an empty older-era redeemer list maps to no redeemers.
+        new_wits.redeemers = wits.redeemers.and_then(|r| {
+            NonEmptyVec::try_from(r.into_iter().map(Into::into).collect::<Vec<_>>())
+                .ok()
+                .map(Redeemers::new_arr_legacy_redeemer)
+        });
         new_wits.plutus_datums = wits.plutus_datums.map(Into::into);
         new_wits.plutus_v1_scripts = wits.plutus_v1_scripts.map(Into::into);
         new_wits

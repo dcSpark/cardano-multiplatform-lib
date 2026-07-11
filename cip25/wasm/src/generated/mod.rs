@@ -1,25 +1,10 @@
+// This file was code-generated using an experimental CDDL to rust tool:
+// https://github.com/dcSpark/cddl-codegen
 #![allow(
     clippy::len_without_is_empty,
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
-impl_wasm_list_needs_into!(
-    cml_cip25::CIP25String64,
-    CIP25String64,
-    CIP25String64List,
-    true,
-    false
-);
-impl_wasm_list_needs_into!(
-    cml_cip25::CIP25FilesDetails,
-    CIP25FilesDetails,
-    CIP25FilesDetailsList,
-    true,
-    false
-);
-// This file was code-generated using an experimental CDDL to rust tool:
-// https://github.com/dcSpark/cddl-codegen
-
 pub use crate::CIP25LabelMetadata;
 
 use cml_core_wasm::{
@@ -119,6 +104,14 @@ impl CIP25FilesDetails {
     }
 }
 
+impl_wasm_list_needs_into!(
+    cml_cip25::CIP25FilesDetails,
+    CIP25FilesDetails,
+    CIP25FilesDetailsList,
+    true,
+    false
+);
+
 /// This is the entire metadata schema for CIP-25
 /// It can be parsed by passing in the CBOR bytes of the entire transaction metadata
 /// or by passing in an existing Metadata struct.
@@ -217,3 +210,11 @@ impl CIP25String64 {
         self.0.get().clone()
     }
 }
+
+impl_wasm_list_needs_into!(
+    cml_cip25::CIP25String64,
+    CIP25String64,
+    CIP25String64List,
+    true,
+    false
+);

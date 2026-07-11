@@ -1,6 +1,5 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
-
 pub mod cbor_encodings;
 pub mod hash;
 pub mod utils;
@@ -17,9 +16,7 @@ use cbor_encodings::{
     BootstrapWitnessEncoding, KESSignatureEncoding, VRFCertEncoding, VkeywitnessEncoding,
 };
 use cml_core::error::*;
-use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]

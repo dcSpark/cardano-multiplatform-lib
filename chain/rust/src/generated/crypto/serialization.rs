@@ -1,6 +1,5 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
-
 use super::cbor_encodings::*;
 use super::*;
 use cbor_event::de::Deserializer;
@@ -161,23 +160,24 @@ impl Serialize for KESSignature {
 
 impl Deserialize for KESSignature {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw
-            .bytes_sz()
-            .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() != 448 {
-            return Err(DeserializeError::new(
-                "KESSignature",
-                DeserializeFailure::RangeCheck {
+        (|| -> Result<_, DeserializeError> {
+            let (inner, inner_encoding) = raw
+                .bytes_sz()
+                .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
+            if inner.len() != 448 {
+                return Err(DeserializeFailure::RangeCheck {
                     found: inner.len() as isize,
                     min: Some(448),
                     max: Some(448),
-                },
-            ));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(KESSignatureEncoding { inner_encoding }),
-        })
+                }
+                .into());
+            }
+            Ok(Self {
+                inner,
+                encodings: Some(KESSignatureEncoding { inner_encoding }),
+            })
+        })()
+        .map_err(|e| e.annotate("KESSignature"))
     }
 }
 
@@ -313,10 +313,7 @@ impl Deserialize for Nonce {
                         .unwrap();
                 }
             };
-            Err(DeserializeError::new(
-                "Nonce",
-                DeserializeFailure::NoVariantMatchedWithCauses(errs),
-            ))
+            Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
         })()
         .map_err(|e| e.annotate("Nonce"))
     }

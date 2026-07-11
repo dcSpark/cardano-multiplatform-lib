@@ -1,6 +1,5 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
-
 use super::*;
 use cbor_event::de::Deserializer;
 use cbor_event::se::{Serialize, Serializer};
@@ -40,7 +39,7 @@ impl Deserialize for CIP25ChunkableString {
                         cbor_event::Len::Len(n) => (chunked_arr.len() as u64) < n,
                         cbor_event::Len::Indefinite => true,
                     } {
-                        if let cbor_event::Len::Indefinite = len
+                        if matches!(len, cbor_event::Len::Indefinite)
                             && raw.cbor_type()? == cbor_event::Type::Special
                             && raw.special_break()?
                         {
@@ -51,10 +50,7 @@ impl Deserialize for CIP25ChunkableString {
                     let chunked = chunked_arr;
                     Ok(Self::Chunked(chunked))
                 }
-                _ => Err(DeserializeError::new(
-                    "CIP25ChunkableString",
-                    DeserializeFailure::NoVariantMatched,
-                )),
+                _ => Err(DeserializeFailure::NoVariantMatched.into()),
             }
         })()
         .map_err(|e| e.annotate("CIP25ChunkableString"))
@@ -79,10 +75,10 @@ impl cbor_event::se::Serialize for CIP25FilesDetails {
 
 impl Deserialize for CIP25FilesDetails {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map()?;
-        let mut read_len = CBORReadLen::from(len);
-        read_len.read_elems(3)?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map()?;
+            let mut read_len = CBORReadLen::from(len);
+            read_len.read_elems(3)?;
             let mut src = None;
             let mut name = None;
             let mut media_type = None;
@@ -193,7 +189,6 @@ impl Deserialize for CIP25FilesDetails {
                 }
             };
             read_len.finish()?;
-            ();
             Ok(Self {
                 name,
                 media_type,
@@ -218,10 +213,10 @@ impl cbor_event::se::Serialize for CIP25Metadata {
 
 impl Deserialize for CIP25Metadata {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map()?;
-        let mut read_len = CBORReadLen::from(len);
-        read_len.read_elems(1)?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map()?;
+            let mut read_len = CBORReadLen::from(len);
+            read_len.read_elems(1)?;
             let mut key_721 = None;
             let mut read = 0;
             while match len {
@@ -272,7 +267,6 @@ impl Deserialize for CIP25Metadata {
                 }
             };
             read_len.finish()?;
-            ();
             Ok(Self { key_721 })
         })()
         .map_err(|e| e.annotate("CIP25Metadata"))
@@ -321,10 +315,10 @@ impl cbor_event::se::Serialize for CIP25MetadataDetails {
 
 impl Deserialize for CIP25MetadataDetails {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map()?;
-        let mut read_len = CBORReadLen::from(len);
-        read_len.read_elems(2)?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map()?;
+            let mut read_len = CBORReadLen::from(len);
+            read_len.read_elems(2)?;
             let mut name = None;
             let mut files = None;
             let mut image = None;
@@ -371,7 +365,7 @@ impl Deserialize for CIP25MetadataDetails {
                                         cbor_event::Len::Len(n) => (files_arr.len() as u64) < n,
                                         cbor_event::Len::Indefinite => true,
                                     } {
-                                        if let cbor_event::Len::Indefinite = len
+                                        if matches!(len, cbor_event::Len::Indefinite)
                                             && raw.cbor_type()? == cbor_event::Type::Special
                                             && raw.special_break()?
                                         {
@@ -497,17 +491,18 @@ impl cbor_event::se::Serialize for CIP25String64 {
 
 impl Deserialize for CIP25String64 {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let inner = raw.text()? as String;
-        if inner.len() > 64 {
-            return Err(DeserializeError::new(
-                "CIP25String64",
-                DeserializeFailure::RangeCheck {
+        (|| -> Result<_, DeserializeError> {
+            let inner = raw.text()?;
+            if inner.len() > 64 {
+                return Err(DeserializeFailure::RangeCheck {
                     found: inner.len() as isize,
                     min: Some(0),
                     max: Some(64),
-                },
-            ));
-        }
-        Ok(Self(inner))
+                }
+                .into());
+            }
+            Ok(Self(inner))
+        })()
+        .map_err(|e| e.annotate("CIP25String64"))
     }
 }

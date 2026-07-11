@@ -4,8 +4,9 @@
 pub mod utils;
 
 pub use crate::Value;
-use crate::generated::{MapAssetNameToNonZeroInt64, MapAssetNameToU64, PolicyId, PolicyIdList};
 pub use cml_chain::assets::{Coin, NonZeroInt64, PositiveCoin};
+
+use crate::generated::{MapAssetNameToNonZeroInt64, MapAssetNameToU64, PolicyId, PolicyIdList};
 use std::ops::Deref;
 
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
@@ -63,7 +64,7 @@ impl Mint {
     }
 
     pub fn keys(&self) -> PolicyIdList {
-        PolicyIdList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+        PolicyIdList(self.0.keys().cloned().collect::<Vec<_>>())
     }
 }
 
@@ -95,5 +96,9 @@ impl MultiAsset {
 
     pub fn get(&self, key: &PolicyId) -> Option<MapAssetNameToU64> {
         self.0.deref().get(key.as_ref()).map(|v| v.clone().into())
+    }
+
+    pub fn keys(&self) -> PolicyIdList {
+        PolicyIdList(self.0.keys().cloned().collect::<Vec<_>>())
     }
 }

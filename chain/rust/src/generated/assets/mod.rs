@@ -1,18 +1,13 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
-
 pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 pub use crate::Value;
 pub use utils::*;
 
-use crate::generated::PolicyId;
 use cbor_encodings::AssetNameEncoding;
 use cml_core::error::*;
-use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 /// Use TryFrom<&str> / TryInto<&str> for utf8 text conversion and RawBytesEncoding for direct bytes access

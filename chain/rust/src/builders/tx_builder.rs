@@ -26,7 +26,7 @@ use crate::fees::LinearFee;
 use crate::governance::{ProposalProcedure, VotingProcedures};
 use crate::min_ada::min_ada_required;
 use crate::plutus::{CostModels, ExUnits, Language};
-use crate::plutus::{PlutusData, Redeemers};
+use crate::plutus::{LegacyRedeemer, PlutusData, Redeemers};
 use crate::transaction::{
     DatumOption, ScriptRef, Transaction, TransactionBody, TransactionInput, TransactionOutput,
     TransactionWitnessSet,
@@ -35,6 +35,7 @@ use crate::{
     Coin, ExUnitPrices, NetworkId, PolicyId, Script, Value, Withdrawals, assets::AssetName,
 };
 use cbor_event::{de::Deserializer, se::Serializer};
+use cml_core::non_empty::NonEmptyVec;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{CBORReadLen, Deserialize};
 use cml_core::{ArithmeticError, DeserializeError, DeserializeFailure, Slot};
@@ -120,7 +121,6 @@ impl WitnessBuilders {
         let redeemers = self.redeemer_set_builder.build(true)?;
         let mut witness_set_clone = self.witness_set_builder.clone();
         redeemers
-            .to_flat_format()
             .into_iter()
             .for_each(|r| witness_set_clone.add_redeemer(r));
 
@@ -995,10 +995,16 @@ impl TransactionBuilder {
             result.required_wits.remove_ref_scripts(reference_inputs);
         }
         self.witness_builders.redeemer_set_builder.add_vote(&result);
-        if let Some(votes) = self.votes.as_mut() {
-            votes.extend(result.votes.take());
-        } else {
-            self.votes = Some(result.votes);
+        if let Some(new_votes) = result.votes.take() {
+            match self.votes.as_mut() {
+                // Replace the inner map for a voter present in both
+                Some(votes) => {
+                    for (voter, inner) in new_votes.into_inner().take() {
+                        votes.insert(voter, inner);
+                    }
+                }
+                None => self.votes = Some(new_votes),
+            }
         }
         for data in result.aggregate_witnesses {
             self.witness_builders
@@ -1323,8 +1329,6 @@ impl TransactionBuilder {
 
         let redeemers = self.witness_builders.redeemer_set_builder.build(true)?;
         let has_dummy_exunit = redeemers
-            .clone()
-            .to_flat_format()
             .iter()
             .any(|redeemer| redeemer.ex_units == ExUnits::dummy());
 
@@ -1367,8 +1371,14 @@ impl TransactionBuilder {
                             }
                             langs
                         });
+                    // The builder's is_empty() tracks registered witnesses, not the built list,
+                    // so the flat list can still be empty here (e.g. only key inputs). An empty
+                    // list means no redeemers: pass None (calc handles the datums-only case).
+                    let redeemers = NonEmptyVec::try_from(redeemers.clone())
+                        .ok()
+                        .map(Redeemers::new_arr_legacy_redeemer);
                     calc_script_data_hash(
-                        &redeemers,
+                        redeemers.as_ref(),
                         &self
                             .witness_builders
                             .witness_set_builder
@@ -1560,7 +1570,7 @@ impl TxRedeemerBuilder {
     /// Builds the transaction and moves to the next step where any real witness can be added
     /// NOTE: is_valid set to true
     /// Will NOT require you to have set required signers & witnesses
-    pub fn build(&self) -> Result<Redeemers, RedeemerBuilderError> {
+    pub fn build(&self) -> Result<Vec<LegacyRedeemer>, RedeemerBuilderError> {
         self.witness_builders.redeemer_set_builder.build(true)
     }
 

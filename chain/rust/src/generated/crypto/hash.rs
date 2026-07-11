@@ -31,7 +31,9 @@ pub fn hash_plutus_data(plutus_data: &PlutusData) -> DatumHash {
 /// Most users will not directly need this as when using the builders
 /// it will be invoked for you.
 pub fn hash_script_data(
-    redeemers: &Redeemers,
+    // None when there are no redeemers: the Conway `Redeemers` type cannot be empty,
+    // so absence is modelled with `Option` rather than an empty value.
+    redeemers: Option<&Redeemers>,
     cost_models: &CostModels,
     datums: Option<&NonemptySetPlutusData>,
     // this will be used again after Conway so we keep it here to avoid double breaking changes
@@ -39,7 +41,7 @@ pub fn hash_script_data(
 ) -> ScriptDataHash {
     let mut buf = cbor_event::se::Serializer::new_vec();
     match datums {
-        Some(datums) if redeemers.is_empty() => {
+        Some(datums) if redeemers.is_none() => {
             /* (Deprecated)
             ; Finally, note that in the case that a transaction includes datums but does not
             ; include any redeemers, the script data format becomes (in hex):
@@ -61,7 +63,15 @@ pub fn hash_script_data(
             ; Similarly for the datums, if present. If no datums are provided, the middle
             ; field is an empty string.
             */
-            redeemers.serialize(&mut buf, false).unwrap();
+            match redeemers {
+                Some(redeemers) => {
+                    redeemers.serialize(&mut buf, false).unwrap();
+                }
+                // No redeemers: an empty CBOR array, matching a legacy empty redeemer list.
+                None => {
+                    buf.write_raw_bytes(&[0x80]).unwrap();
+                }
+            }
             if let Some(datums) = datums {
                 datums.serialize(&mut buf, false).unwrap();
             }
@@ -84,13 +94,14 @@ pub enum ScriptDataHashError {
 /// Most users will not directly need this as when using the builders
 /// it will be invoked for you.
 pub fn calc_script_data_hash(
-    redeemers: &Redeemers,
+    // None when there are no redeemers (see hash_script_data).
+    redeemers: Option<&Redeemers>,
     datums: &NonemptySetPlutusData,
     cost_models: &CostModels,
     used_langs: &[Language],
     encoding: Option<&TransactionWitnessSetEncoding>,
 ) -> Result<Option<ScriptDataHash>, ScriptDataHashError> {
-    if !redeemers.is_empty() || !datums.is_empty() {
+    if redeemers.is_some() || !datums.is_empty() {
         let mut required_costmdls = CostModels::default();
         for lang in used_langs {
             required_costmdls.as_mut().insert(
@@ -129,7 +140,7 @@ pub fn calc_script_data_hash_from_witness(
 ) -> Result<Option<ScriptDataHash>, ScriptDataHashError> {
     if let (Some(redeemers), Some(datums)) = (&witnesses.redeemers, &witnesses.plutus_datums) {
         calc_script_data_hash(
-            redeemers,
+            Some(redeemers),
             datums,
             cost_models,
             witnesses.languages().as_ref(),
@@ -177,7 +188,7 @@ mod tests {
         ).unwrap();
 
         let script_data_hash = calc_script_data_hash(
-            &tx.witness_set.redeemers.unwrap(),
+            Some(&tx.witness_set.redeemers.unwrap()),
             &tx.witness_set.plutus_datums.unwrap(),
             &plutus_alonzo_cost_models(),
             &[Language::PlutusV1],

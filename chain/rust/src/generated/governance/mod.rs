@@ -22,11 +22,10 @@ use cbor_encodings::{
     ProposalProcedureEncoding, TreasuryWithdrawalsActionEncoding, UpdateCommitteeEncoding,
     VotingProcedureEncoding,
 };
-use cml_core::error::*;
+use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct Anchor {
@@ -546,4 +545,5 @@ impl VotingProcedure {
     }
 }
 
-pub type VotingProcedures = OrderedHashMap<Voter, OrderedHashMap<GovActionId, VotingProcedure>>;
+/// `{+ Voter => NonEmptyMap<GovActionId, VotingProcedure>}`: at least one entry, enforced at the `NonEmptyMap` `TryFrom` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+pub type VotingProcedures = NonEmptyMap<Voter, NonEmptyMap<GovActionId, VotingProcedure>>;

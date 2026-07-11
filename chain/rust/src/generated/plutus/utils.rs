@@ -761,7 +761,7 @@ impl Redeemers {
             Self::ArrLegacyRedeemer {
                 arr_legacy_redeemer,
                 ..
-            } => arr_legacy_redeemer,
+            } => arr_legacy_redeemer.into(),
             Self::MapRedeemerKeyToRedeemerVal {
                 map_redeemer_key_to_redeemer_val,
                 ..
@@ -779,7 +779,7 @@ impl Redeemers {
             Self::ArrLegacyRedeemer {
                 arr_legacy_redeemer,
                 ..
-            } => arr_legacy_redeemer
+            } => Vec::from(arr_legacy_redeemer)
                 .into_iter()
                 .map(|r| {
                     (
@@ -791,7 +791,7 @@ impl Redeemers {
             Self::MapRedeemerKeyToRedeemerVal {
                 map_redeemer_key_to_redeemer_val,
                 ..
-            } => map_redeemer_key_to_redeemer_val,
+            } => map_redeemer_key_to_redeemer_val.into(),
         }
     }
 

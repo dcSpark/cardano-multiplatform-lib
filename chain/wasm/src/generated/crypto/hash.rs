@@ -46,7 +46,7 @@ pub fn hash_script_data(
 ) -> ScriptDataHash {
     let datums = datums.map(|datums| NonemptySet::from(Into::<Vec<_>>::into(datums)));
     cml_chain::crypto::hash::hash_script_data(
-        redeemers.as_ref(),
+        Some(redeemers.as_ref()),
         cost_models.as_ref(),
         datums.as_ref(),
         None,
@@ -73,7 +73,7 @@ pub fn calc_script_data_hash(
     //    encoding: Option<TransactionWitnessSetEncoding>,
 ) -> Result<Option<ScriptDataHash>, JsError> {
     cml_chain::crypto::hash::calc_script_data_hash(
-        redeemers.as_ref(),
+        Some(redeemers.as_ref()),
         &NonemptySet::from(Into::<Vec<_>>::into(datums.clone())),
         cost_models.as_ref(),
         used_langs.as_ref(),

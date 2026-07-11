@@ -20,7 +20,8 @@ use cbor_encodings::{
     PlutusV1ScriptEncoding, PlutusV2ScriptEncoding, PlutusV3ScriptEncoding, RedeemerKeyEncoding,
     RedeemerValEncoding,
 };
-use cml_core::error::*;
+use cml_core::non_empty::NonEmptyVec;
+use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
@@ -47,7 +48,7 @@ impl CostModels {
 
 impl From<OrderedHashMap<u64, Vec<i64>>> for CostModels {
     fn from(inner: OrderedHashMap<u64, Vec<i64>>) -> Self {
-        CostModels::new(inner.clone().into())
+        CostModels::new(inner.clone())
     }
 }
 
@@ -524,19 +525,19 @@ impl RedeemerVal {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum Redeemers {
     ArrLegacyRedeemer {
-        arr_legacy_redeemer: Vec<LegacyRedeemer>,
+        arr_legacy_redeemer: NonEmptyVec<LegacyRedeemer>,
         #[serde(skip)]
         arr_legacy_redeemer_encoding: LenEncoding,
     },
     MapRedeemerKeyToRedeemerVal {
-        map_redeemer_key_to_redeemer_val: OrderedHashMap<RedeemerKey, RedeemerVal>,
+        map_redeemer_key_to_redeemer_val: NonEmptyMap<RedeemerKey, RedeemerVal>,
         #[serde(skip)]
         map_redeemer_key_to_redeemer_val_encoding: LenEncoding,
     },
 }
 
 impl Redeemers {
-    pub fn new_arr_legacy_redeemer(arr_legacy_redeemer: Vec<LegacyRedeemer>) -> Self {
+    pub fn new_arr_legacy_redeemer(arr_legacy_redeemer: NonEmptyVec<LegacyRedeemer>) -> Self {
         Self::ArrLegacyRedeemer {
             arr_legacy_redeemer,
             arr_legacy_redeemer_encoding: LenEncoding::default(),
@@ -544,7 +545,7 @@ impl Redeemers {
     }
 
     pub fn new_map_redeemer_key_to_redeemer_val(
-        map_redeemer_key_to_redeemer_val: OrderedHashMap<RedeemerKey, RedeemerVal>,
+        map_redeemer_key_to_redeemer_val: NonEmptyMap<RedeemerKey, RedeemerVal>,
     ) -> Self {
         Self::MapRedeemerKeyToRedeemerVal {
             map_redeemer_key_to_redeemer_val,

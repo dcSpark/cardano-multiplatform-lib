@@ -1,6 +1,5 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
-
 pub mod utils;
 use crate::generated::address::RewardAccount;
 use crate::generated::assets::Coin;
@@ -8,12 +7,14 @@ use crate::generated::block::ProtocolVersion;
 use crate::generated::certs::Url;
 use crate::generated::crypto::{AnchorDocHash, Ed25519KeyHash, ScriptHash, TransactionHash};
 use crate::generated::{
-    MapCommitteeColdCredentialToEpoch, MapGovActionIdToVotingProcedure, MapRewardAccountToCoin,
+    MapCommitteeColdCredentialToEpoch, MapRewardAccountToCoin,
+    MapVoterToMapGovActionIdToVotingProcedure, NonEmptyMapGovActionIdToVotingProcedure,
     ProtocolParamUpdate, SetCommitteeColdCredential, UnitInterval, VoterList,
 };
 pub use cml_chain::governance::Vote;
+use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
@@ -31,7 +32,7 @@ impl Anchor {
     }
 
     pub fn anchor_doc_hash(&self) -> AnchorDocHash {
-        self.0.anchor_doc_hash.clone().into()
+        self.0.anchor_doc_hash.into()
     }
 
     pub fn new(anchor_url: &Url, anchor_doc_hash: &AnchorDocHash) -> Self {
@@ -57,7 +58,7 @@ impl Constitution {
     }
 
     pub fn script_hash(&self) -> Option<ScriptHash> {
-        self.0.script_hash.clone().map(std::convert::Into::into)
+        self.0.script_hash.map(std::convert::Into::into)
     }
 
     pub fn new(anchor: &Anchor, script_hash: Option<ScriptHash>) -> Self {
@@ -234,7 +235,7 @@ impl_wasm_conversions!(cml_chain::governance::GovActionId, GovActionId);
 #[wasm_bindgen]
 impl GovActionId {
     pub fn transaction_id(&self) -> TransactionHash {
-        self.0.transaction_id.clone().into()
+        self.0.transaction_id.into()
     }
 
     pub fn gov_action_index(&self) -> u64 {
@@ -288,8 +289,6 @@ impl HardForkInitiationAction {
         ))
     }
 }
-
-pub type MapVoterToMapGovActionIdToVotingProcedure = VotingProcedures;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -360,7 +359,7 @@ impl ParameterChangeAction {
     }
 
     pub fn policy_hash(&self) -> Option<ScriptHash> {
-        self.0.policy_hash.clone().map(std::convert::Into::into)
+        self.0.policy_hash.map(std::convert::Into::into)
     }
 
     pub fn new(
@@ -409,7 +408,7 @@ impl ProposalProcedure {
         anchor: &Anchor,
     ) -> Self {
         Self(cml_chain::governance::ProposalProcedure::new(
-            deposit.into(),
+            deposit,
             reward_account.clone().into(),
             gov_action.clone().into(),
             anchor.clone().into(),
@@ -435,7 +434,7 @@ impl TreasuryWithdrawalsAction {
     }
 
     pub fn policy_hash(&self) -> Option<ScriptHash> {
-        self.0.policy_hash.clone().map(std::convert::Into::into)
+        self.0.policy_hash.map(std::convert::Into::into)
     }
 
     pub fn new(withdrawal: &MapRewardAccountToCoin, policy_hash: Option<ScriptHash>) -> Self {
@@ -552,7 +551,7 @@ impl Voter {
             cml_chain::governance::Voter::ConstitutionalCommitteeHotKeyHash {
                 ed25519_key_hash,
                 ..
-            } => Some(ed25519_key_hash.clone().into()),
+            } => Some((*ed25519_key_hash).into()),
             _ => None,
         }
     }
@@ -562,7 +561,7 @@ impl Voter {
             cml_chain::governance::Voter::ConstitutionalCommitteeHotScriptHash {
                 script_hash,
                 ..
-            } => Some(script_hash.clone().into()),
+            } => Some((*script_hash).into()),
             _ => None,
         }
     }
@@ -571,7 +570,7 @@ impl Voter {
         match &self.0 {
             cml_chain::governance::Voter::DRepKeyHash {
                 ed25519_key_hash, ..
-            } => Some(ed25519_key_hash.clone().into()),
+            } => Some((*ed25519_key_hash).into()),
             _ => None,
         }
     }
@@ -579,7 +578,7 @@ impl Voter {
     pub fn as_d_rep_script_hash(&self) -> Option<ScriptHash> {
         match &self.0 {
             cml_chain::governance::Voter::DRepScriptHash { script_hash, .. } => {
-                Some(script_hash.clone().into())
+                Some((*script_hash).into())
             }
             _ => None,
         }
@@ -589,7 +588,7 @@ impl Voter {
         match &self.0 {
             cml_chain::governance::Voter::StakingPoolKeyHash {
                 ed25519_key_hash, ..
-            } => Some(ed25519_key_hash.clone().into()),
+            } => Some((*ed25519_key_hash).into()),
             _ => None,
         }
     }
@@ -624,22 +623,31 @@ impl VotingProcedure {
 
     pub fn new(vote: Vote, anchor: Option<Anchor>) -> Self {
         Self(cml_chain::governance::VotingProcedure::new(
-            vote.into(),
+            vote,
             anchor.map(Into::into),
         ))
     }
 }
 
+/// `{+ k => v}` (`MapVoterToMapGovActionIdToVotingProcedure`): at least one entry, enforced by the `NonEmptyMap` representation. Enter via `try_from` (the single checked door — the CBOR decoder routes through the same door) or `new(first_key, first_value)`. `insert` can never violate the bound; removal is checked in the core type.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct VotingProcedures(cml_chain::governance::VotingProcedures);
+pub struct VotingProcedures(
+    NonEmptyMap<
+        cml_chain::governance::Voter,
+        NonEmptyMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>,
+    >,
+);
 
-impl_wasm_conversions!(cml_chain::governance::VotingProcedures, VotingProcedures);
+impl_wasm_conversions!(NonEmptyMap<cml_chain::governance::Voter, NonEmptyMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>>, VotingProcedures);
 
 #[wasm_bindgen]
 impl VotingProcedures {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
+    pub fn new(first_key: &Voter, first_value: &NonEmptyMapGovActionIdToVotingProcedure) -> Self {
+        Self(NonEmptyMap::new(
+            first_key.clone().into(),
+            first_value.clone().into(),
+        ))
     }
 
     pub fn len(&self) -> usize {
@@ -649,18 +657,30 @@ impl VotingProcedures {
     pub fn insert(
         &mut self,
         key: &Voter,
-        value: &MapGovActionIdToVotingProcedure,
-    ) -> Option<MapGovActionIdToVotingProcedure> {
+        value: &NonEmptyMapGovActionIdToVotingProcedure,
+    ) -> Option<NonEmptyMapGovActionIdToVotingProcedure> {
         self.0
             .insert(key.clone().into(), value.clone().into())
             .map(Into::into)
     }
 
-    pub fn get(&self, key: &Voter) -> Option<MapGovActionIdToVotingProcedure> {
+    pub fn get(&self, key: &Voter) -> Option<NonEmptyMapGovActionIdToVotingProcedure> {
         self.0.get(key.as_ref()).map(|v| v.clone().into())
     }
 
     pub fn keys(&self) -> VoterList {
-        VoterList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
+        VoterList(self.0.keys().cloned().collect::<Vec<_>>())
+    }
+
+    pub fn try_from(
+        map: &MapVoterToMapGovActionIdToVotingProcedure,
+    ) -> Result<VotingProcedures, JsError> {
+        let inner: OrderedHashMap<
+            cml_chain::governance::Voter,
+            NonEmptyMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>,
+        > = map.clone().into();
+        NonEmptyMap::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 }

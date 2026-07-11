@@ -13,6 +13,7 @@ use super::{
     BabbageAuxiliaryData, BabbageScript, BabbageTransactionBody, BabbageTransactionWitnessSet,
 };
 
+use cml_core::non_empty::NonEmptyVec;
 use cml_core::{
     DeserializeError, DeserializeFailure,
     serialization::{Deserialize, Serialize, fit_sz},
@@ -82,8 +83,11 @@ impl From<BabbageTransactionWitnessSet> for TransactionWitnessSet {
         new_wits.vkeywitnesses = wits.vkeywitnesses.map(Into::into);
         new_wits.native_scripts = wits.native_scripts.map(Into::into);
         new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.map(Into::into);
-        new_wits.redeemers = wits.redeemers.map(|rs| {
-            Redeemers::new_arr_legacy_redeemer(rs.into_iter().map(Into::into).collect::<Vec<_>>())
+        // Conway `Redeemers` cannot be empty; an empty older-era redeemer list maps to no redeemers.
+        new_wits.redeemers = wits.redeemers.and_then(|rs| {
+            NonEmptyVec::try_from(rs.into_iter().map(Into::into).collect::<Vec<_>>())
+                .ok()
+                .map(Redeemers::new_arr_legacy_redeemer)
         });
         new_wits.plutus_datums = wits.plutus_datums.map(Into::into);
         new_wits.plutus_v1_scripts = wits.plutus_v1_scripts.map(Into::into);

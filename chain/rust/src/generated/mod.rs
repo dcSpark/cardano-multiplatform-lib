@@ -1,3 +1,5 @@
+// This file was code-generated using an experimental CDDL to rust tool:
+// https://github.com/dcSpark/cddl-codegen
 #![allow(clippy::too_many_arguments)]
 
 extern crate derivative;
@@ -5,22 +7,19 @@ pub mod address;
 pub mod assets;
 pub mod auxdata;
 pub mod block;
+pub mod cbor_encodings;
 pub mod certs;
 pub mod crypto;
 pub mod governance;
 pub mod plutus;
-pub mod transaction;
-// This file was code-generated using an experimental CDDL to rust tool:
-// https://github.com/dcSpark/cddl-codegen
-
-pub mod cbor_encodings;
 pub mod serialization;
+pub mod transaction;
 pub use crate::NonemptySet;
 pub use crate::Set;
 pub use cml_core::{CertificateIndex, Epoch, Int, Slot, TransactionIndex};
 
 use crate::certs::{Certificate, CommitteeColdCredential};
-use crate::crypto::{BootstrapWitness, ScriptHash, Vkeywitness};
+use crate::crypto::{BootstrapWitness, Vkeywitness};
 use crate::governance::ProposalProcedure;
 use crate::plutus::PlutusData;
 use crate::transaction::TransactionInput;
@@ -33,13 +32,11 @@ use cbor_encodings::{
     DRepVotingThresholdsEncoding, NetworkIdEncoding, PoolVotingThresholdsEncoding,
     ProtocolParamUpdateEncoding, RationalEncoding, UnitIntervalEncoding,
 };
-use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_core::serialization::LenEncoding;
+use crypto::ScriptHash;
 use governance::Voter;
 use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script, PlutusV3Script};
-use std::collections::BTreeMap;
-use std::convert::TryFrom;
 use transaction::NativeScript;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]

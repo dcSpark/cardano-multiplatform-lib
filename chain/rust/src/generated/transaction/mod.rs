@@ -1,6 +1,5 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
-
 pub mod cbor_encodings;
 use crate::utils::NonemptySetRawBytes;
 pub mod serialization;
@@ -26,7 +25,7 @@ use cbor_encodings::{
     ScriptPubkeyEncoding, ScriptRefEncoding, TransactionBodyEncoding, TransactionEncoding,
     TransactionInputEncoding, TransactionWitnessSetEncoding,
 };
-use cml_core::error::*;
+use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
@@ -330,7 +329,7 @@ impl ScriptRef {
 
 impl From<Script> for ScriptRef {
     fn from(inner: Script) -> Self {
-        ScriptRef::new(inner.clone().into())
+        ScriptRef::new(inner.clone())
     }
 }
 

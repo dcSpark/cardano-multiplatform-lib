@@ -1,21 +1,13 @@
+// This file was code-generated using an experimental CDDL to rust tool:
+// https://github.com/dcSpark/cddl-codegen
 #![allow(
     clippy::len_without_is_empty,
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
-impl_wasm_list_needs_into!(
-    cml_cip36::CIP36Delegation,
-    CIP36Delegation,
-    CIP36DelegationList,
-    true,
-    false
-);
-// This file was code-generated using an experimental CDDL to rust tool:
-// https://github.com/dcSpark/cddl-codegen
-
 pub use crate::PaymentAddress;
 
-use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::non_empty::NonEmptyVec;
 use cml_core_wasm::{
     impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_json_api, impl_wasm_list_needs_into,
 };
@@ -43,7 +35,7 @@ impl CIP36Delegation {
     pub fn new(voting_pub_key: &CIP36VotingPubKey, weight: CIP36Weight) -> Self {
         Self(cml_cip36::CIP36Delegation::new(
             voting_pub_key.clone().into(),
-            weight.into(),
+            weight,
         ))
     }
 }
@@ -61,12 +53,10 @@ impl_wasm_conversions!(
 
 #[wasm_bindgen]
 impl CIP36DelegationDistribution {
-    pub fn new_weighted(
-        weighted: &CIP36DelegationList,
-    ) -> Result<CIP36DelegationDistribution, JsError> {
-        cml_cip36::CIP36DelegationDistribution::new_weighted(weighted.clone().into())
-            .map(Into::into)
-            .map_err(Into::into)
+    pub fn new_weighted(weighted: &NonEmptyCIP36DelegationList) -> Self {
+        Self(cml_cip36::CIP36DelegationDistribution::new_weighted(
+            weighted.clone().into(),
+        ))
     }
 
     pub fn new_legacy(legacy: &CIP36LegacyKeyRegistration) -> Self {
@@ -86,7 +76,7 @@ impl CIP36DelegationDistribution {
         }
     }
 
-    pub fn as_weighted(&self) -> Option<CIP36DelegationList> {
+    pub fn as_weighted(&self) -> Option<NonEmptyCIP36DelegationList> {
         match &self.0 {
             cml_cip36::CIP36DelegationDistribution::Weighted { weighted, .. } => {
                 Some(weighted.clone().into())
@@ -110,6 +100,14 @@ pub enum CIP36DelegationDistributionKind {
     Weighted,
     Legacy,
 }
+
+impl_wasm_list_needs_into!(
+    cml_cip36::CIP36Delegation,
+    CIP36Delegation,
+    CIP36DelegationList,
+    true,
+    false
+);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -184,7 +182,7 @@ impl CIP36KeyDeregistration {
     }
 
     pub fn set_voting_purpose(&mut self, voting_purpose: CIP36VotingPurpose) {
-        self.0.voting_purpose = voting_purpose.into()
+        self.0.voting_purpose = voting_purpose
     }
 
     pub fn voting_purpose(&self) -> CIP36VotingPurpose {
@@ -194,7 +192,7 @@ impl CIP36KeyDeregistration {
     pub fn new(stake_credential: &CIP36StakeCredential, nonce: CIP36Nonce) -> Self {
         Self(cml_cip36::CIP36KeyDeregistration::new(
             stake_credential.clone().into(),
-            nonce.into(),
+            nonce,
         ))
     }
 }
@@ -226,7 +224,7 @@ impl CIP36KeyRegistration {
     }
 
     pub fn set_voting_purpose(&mut self, voting_purpose: CIP36VotingPurpose) {
-        self.0.voting_purpose = voting_purpose.into()
+        self.0.voting_purpose = voting_purpose
     }
 
     pub fn voting_purpose(&self) -> CIP36VotingPurpose {
@@ -243,7 +241,7 @@ impl CIP36KeyRegistration {
             delegation.clone().into(),
             stake_credential.clone().into(),
             payment_address.clone().into(),
-            nonce.into(),
+            nonce,
         ))
     }
 }
@@ -317,3 +315,39 @@ pub type CIP36VotingPubKey = PublicKey;
 pub type CIP36VotingPurpose = u64;
 
 pub type CIP36Weight = u32;
+
+/// `[+ CIP36Delegation]`: at least one element, enforced by the `NonEmptyVec` representation. Enter via `try_from` (the single checked door — the CBOR decoder routes through the same door) or `new(first)`. `add` can never violate the bound; removal is checked in the core type.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonEmptyCIP36DelegationList(NonEmptyVec<cml_cip36::CIP36Delegation>);
+
+impl_wasm_conversions!(
+    NonEmptyVec<cml_cip36::CIP36Delegation>,
+    NonEmptyCIP36DelegationList
+);
+
+#[wasm_bindgen]
+impl NonEmptyCIP36DelegationList {
+    pub fn new(first: &CIP36Delegation) -> Self {
+        Self(NonEmptyVec::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> CIP36Delegation {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &CIP36Delegation) {
+        self.0.push(elem.clone().into());
+    }
+
+    pub fn try_from(list: &CIP36DelegationList) -> Result<NonEmptyCIP36DelegationList, JsError> {
+        let inner: Vec<cml_cip36::CIP36Delegation> = list.clone().into();
+        NonEmptyVec::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}

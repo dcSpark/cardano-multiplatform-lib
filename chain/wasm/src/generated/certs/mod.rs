@@ -7,8 +7,7 @@ use crate::generated::assets::Coin;
 use crate::generated::crypto::{Ed25519KeyHash, PoolMetadataHash, ScriptHash, VRFKeyHash};
 use crate::generated::governance::Anchor;
 use crate::generated::{Epoch, Port, RelayList, SetEd25519KeyHash, UnitInterval};
-use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
@@ -81,7 +80,7 @@ impl Certificate {
     pub fn new_pool_retirement(pool: &Ed25519KeyHash, epoch: Epoch) -> Self {
         Self(cml_chain::certs::Certificate::new_pool_retirement(
             pool.clone().into(),
-            epoch.into(),
+            epoch,
         ))
     }
 
@@ -89,7 +88,7 @@ impl Certificate {
     pub fn new_reg_cert(stake_credential: &StakeCredential, deposit: Coin) -> Self {
         Self(cml_chain::certs::Certificate::new_reg_cert(
             stake_credential.clone().into(),
-            deposit.into(),
+            deposit,
         ))
     }
 
@@ -97,7 +96,7 @@ impl Certificate {
     pub fn new_unreg_cert(stake_credential: &StakeCredential, deposit: Coin) -> Self {
         Self(cml_chain::certs::Certificate::new_unreg_cert(
             stake_credential.clone().into(),
-            deposit.into(),
+            deposit,
         ))
     }
 
@@ -131,7 +130,7 @@ impl Certificate {
         Self(cml_chain::certs::Certificate::new_stake_reg_deleg_cert(
             stake_credential.clone().into(),
             pool.clone().into(),
-            deposit.into(),
+            deposit,
         ))
     }
 
@@ -144,7 +143,7 @@ impl Certificate {
         Self(cml_chain::certs::Certificate::new_vote_reg_deleg_cert(
             stake_credential.clone().into(),
             d_rep.clone().into(),
-            deposit.into(),
+            deposit,
         ))
     }
 
@@ -160,7 +159,7 @@ impl Certificate {
                 stake_credential.clone().into(),
                 pool.clone().into(),
                 d_rep.clone().into(),
-                deposit.into(),
+                deposit,
             ),
         )
     }
@@ -194,7 +193,7 @@ impl Certificate {
     ) -> Self {
         Self(cml_chain::certs::Certificate::new_reg_drep_cert(
             drep_credential.clone().into(),
-            deposit.into(),
+            deposit,
             anchor.map(Into::into),
         ))
     }
@@ -202,7 +201,7 @@ impl Certificate {
     pub fn new_unreg_drep_cert(drep_credential: &DrepCredential, deposit: Coin) -> Self {
         Self(cml_chain::certs::Certificate::new_unreg_drep_cert(
             drep_credential.clone().into(),
-            deposit.into(),
+            deposit,
         ))
     }
 
@@ -455,14 +454,14 @@ impl Credential {
 
     pub fn as_pub_key(&self) -> Option<Ed25519KeyHash> {
         match &self.0 {
-            cml_chain::certs::Credential::PubKey { hash, .. } => Some(hash.clone().into()),
+            cml_chain::certs::Credential::PubKey { hash, .. } => Some((*hash).into()),
             _ => None,
         }
     }
 
     pub fn as_script(&self) -> Option<ScriptHash> {
         match &self.0 {
-            cml_chain::certs::Credential::Script { hash, .. } => Some(hash.clone().into()),
+            cml_chain::certs::Credential::Script { hash, .. } => Some((*hash).into()),
             _ => None,
         }
     }
@@ -534,14 +533,14 @@ impl DRep {
 
     pub fn as_key(&self) -> Option<Ed25519KeyHash> {
         match &self.0 {
-            cml_chain::certs::DRep::Key { pool, .. } => Some(pool.clone().into()),
+            cml_chain::certs::DRep::Key { pool, .. } => Some((*pool).into()),
             _ => None,
         }
     }
 
     pub fn as_script(&self) -> Option<ScriptHash> {
         match &self.0 {
-            cml_chain::certs::DRep::Script { script_hash, .. } => Some(script_hash.clone().into()),
+            cml_chain::certs::DRep::Script { script_hash, .. } => Some((*script_hash).into()),
             _ => None,
         }
     }
@@ -636,7 +635,7 @@ impl PoolMetadata {
     }
 
     pub fn pool_metadata_hash(&self) -> PoolMetadataHash {
-        self.0.pool_metadata_hash.clone().into()
+        self.0.pool_metadata_hash.into()
     }
 
     pub fn new(url: &Url, pool_metadata_hash: &PoolMetadataHash) -> Self {
@@ -658,11 +657,11 @@ impl_wasm_conversions!(cml_chain::certs::PoolParams, PoolParams);
 #[wasm_bindgen]
 impl PoolParams {
     pub fn operator(&self) -> Ed25519KeyHash {
-        self.0.operator.clone().into()
+        self.0.operator.into()
     }
 
     pub fn vrf_keyhash(&self) -> VRFKeyHash {
-        self.0.vrf_keyhash.clone().into()
+        self.0.vrf_keyhash.into()
     }
 
     pub fn pledge(&self) -> Coin {
@@ -707,8 +706,8 @@ impl PoolParams {
         Self(cml_chain::certs::PoolParams::new(
             operator.clone().into(),
             vrf_keyhash.clone().into(),
-            pledge.into(),
-            cost.into(),
+            pledge,
+            cost,
             margin.clone().into(),
             reward_account.clone().into(),
             pool_owners.clone().into(),
@@ -750,7 +749,7 @@ impl_wasm_conversions!(cml_chain::certs::PoolRetirement, PoolRetirement);
 #[wasm_bindgen]
 impl PoolRetirement {
     pub fn pool(&self) -> Ed25519KeyHash {
-        self.0.pool.clone().into()
+        self.0.pool.into()
     }
 
     pub fn epoch(&self) -> Epoch {
@@ -760,7 +759,7 @@ impl PoolRetirement {
     pub fn new(pool: &Ed25519KeyHash, epoch: Epoch) -> Self {
         Self(cml_chain::certs::PoolRetirement::new(
             pool.clone().into(),
-            epoch.into(),
+            epoch,
         ))
     }
 }
@@ -786,7 +785,7 @@ impl RegCert {
     pub fn new(stake_credential: &StakeCredential, deposit: Coin) -> Self {
         Self(cml_chain::certs::RegCert::new(
             stake_credential.clone().into(),
-            deposit.into(),
+            deposit,
         ))
     }
 }
@@ -816,7 +815,7 @@ impl RegDrepCert {
     pub fn new(drep_credential: &DrepCredential, deposit: Coin, anchor: Option<Anchor>) -> Self {
         Self(cml_chain::certs::RegDrepCert::new(
             drep_credential.clone().into(),
-            deposit.into(),
+            deposit,
             anchor.map(Into::into),
         ))
     }
@@ -1007,7 +1006,7 @@ impl StakeDelegation {
     }
 
     pub fn pool(&self) -> Ed25519KeyHash {
-        self.0.pool.clone().into()
+        self.0.pool.into()
     }
 
     pub fn new(stake_credential: &StakeCredential, pool: &Ed25519KeyHash) -> Self {
@@ -1054,7 +1053,7 @@ impl StakeRegDelegCert {
     }
 
     pub fn pool(&self) -> Ed25519KeyHash {
-        self.0.pool.clone().into()
+        self.0.pool.into()
     }
 
     pub fn deposit(&self) -> Coin {
@@ -1065,7 +1064,7 @@ impl StakeRegDelegCert {
         Self(cml_chain::certs::StakeRegDelegCert::new(
             stake_credential.clone().into(),
             pool.clone().into(),
-            deposit.into(),
+            deposit,
         ))
     }
 }
@@ -1106,7 +1105,7 @@ impl StakeVoteDelegCert {
     }
 
     pub fn pool(&self) -> Ed25519KeyHash {
-        self.0.pool.clone().into()
+        self.0.pool.into()
     }
 
     pub fn d_rep(&self) -> DRep {
@@ -1140,7 +1139,7 @@ impl StakeVoteRegDelegCert {
     }
 
     pub fn pool(&self) -> Ed25519KeyHash {
-        self.0.pool.clone().into()
+        self.0.pool.into()
     }
 
     pub fn d_rep(&self) -> DRep {
@@ -1161,7 +1160,7 @@ impl StakeVoteRegDelegCert {
             stake_credential.clone().into(),
             pool.clone().into(),
             d_rep.clone().into(),
-            deposit.into(),
+            deposit,
         ))
     }
 }
@@ -1187,7 +1186,7 @@ impl UnregCert {
     pub fn new(stake_credential: &StakeCredential, deposit: Coin) -> Self {
         Self(cml_chain::certs::UnregCert::new(
             stake_credential.clone().into(),
-            deposit.into(),
+            deposit,
         ))
     }
 }
@@ -1213,7 +1212,7 @@ impl UnregDrepCert {
     pub fn new(drep_credential: &DrepCredential, deposit: Coin) -> Self {
         Self(cml_chain::certs::UnregDrepCert::new(
             drep_credential.clone().into(),
-            deposit.into(),
+            deposit,
         ))
     }
 }
@@ -1317,7 +1316,7 @@ impl VoteRegDelegCert {
         Self(cml_chain::certs::VoteRegDelegCert::new(
             stake_credential.clone().into(),
             d_rep.clone().into(),
-            deposit.into(),
+            deposit,
         ))
     }
 }

@@ -100,6 +100,7 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::certs::VoteDelegCert);
     gen_json_schema!(cml_chain::certs::VoteRegDelegCert);
     // crypto
+    gen_json_schema!(cml_chain::crypto::AddrAttributes);
     gen_json_schema!(cml_chain::crypto::AnchorDocHash);
     gen_json_schema!(cml_chain::crypto::AuxiliaryDataHash);
     gen_json_schema!(cml_chain::crypto::BlockBodyHash);
@@ -112,6 +113,7 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::crypto::GenesisHash);
     gen_json_schema!(cml_chain::crypto::KESSignature);
     gen_json_schema!(cml_chain::crypto::KESVkey);
+    // gen_json_schema!(cml_chain::crypto::Natural);
     gen_json_schema!(cml_chain::crypto::Nonce);
     gen_json_schema!(cml_chain::crypto::NonceHash);
     gen_json_schema!(cml_chain::crypto::PoolMetadataHash);
@@ -142,6 +144,7 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::DRepVotingThresholds);
     gen_json_schema!(cml_chain::Int);
     gen_json_schema!(cml_chain::NetworkId);
+    // gen_json_schema!(cml_chain::NonemptySet);
     gen_json_schema!(cml_chain::NonemptySetBootstrapWitness);
     gen_json_schema!(cml_chain::NonemptySetCertificate);
     gen_json_schema!(cml_chain::NonemptySetNativeScript);
@@ -156,6 +159,7 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::ProtocolParamUpdate);
     gen_json_schema!(cml_chain::Rational);
     gen_json_schema!(cml_chain::Script);
+    // gen_json_schema!(cml_chain::Set);
     gen_json_schema!(cml_chain::SetCommitteeColdCredential);
     gen_json_schema!(cml_chain::SetEd25519KeyHash);
     gen_json_schema!(cml_chain::SetTransactionInput);

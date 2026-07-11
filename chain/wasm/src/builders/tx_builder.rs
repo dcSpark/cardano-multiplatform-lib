@@ -4,7 +4,7 @@ use cml_crypto_wasm::Ed25519KeyHash;
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 use crate::{
-    Coin, NetworkId, Slot, Value, Withdrawals,
+    Coin, LegacyRedeemerList, NetworkId, Slot, Value, Withdrawals,
     address::Address,
     assets::Mint,
     auxdata::AuxiliaryData,
@@ -17,7 +17,7 @@ use crate::{
     },
     crypto::{BootstrapWitness, Vkeywitness},
     fees::LinearFee,
-    plutus::{CostModels, ExUnitPrices, ExUnits, Redeemers},
+    plutus::{CostModels, ExUnitPrices, ExUnits},
     transaction::{Transaction, TransactionBody, TransactionInput, TransactionOutput},
 };
 
@@ -411,7 +411,7 @@ impl TxRedeemerBuilder {
     /// Builds the transaction and moves to the next step where any real witness can be added
     /// NOTE: is_valid set to true
     /// Will NOT require you to have set required signers & witnesses
-    pub fn build(&self) -> Result<Redeemers, JsError> {
+    pub fn build(&self) -> Result<LegacyRedeemerList, JsError> {
         self.0.build().map(Into::into).map_err(Into::into)
     }
 

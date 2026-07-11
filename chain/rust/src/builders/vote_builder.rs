@@ -1,3 +1,5 @@
+use cml_core::non_empty_map::NonEmptyMap;
+
 use crate::{
     RequiredSigners,
     crypto::hash::hash_plutus_data,
@@ -14,6 +16,34 @@ use super::{
     },
 };
 
+/// Insert `(voter, gov_action_id -> procedure)` into the (possibly-empty) votes map, growing the
+/// `NonEmptyMap`s in place via `get_mut`. `votes` starts as `None` because `VotingProcedures` is a
+/// `NonEmptyMap` and cannot be empty. Returns `true` if that `(voter, gov_action_id)` vote already
+/// existed (the caller treats this as an error).
+fn insert_vote(
+    votes: &mut Option<VotingProcedures>,
+    voter: Voter,
+    gov_action_id: GovActionId,
+    procedure: VotingProcedure,
+) -> bool {
+    match votes {
+        Some(votes) => match votes.get_mut(&voter) {
+            Some(inner) => inner.insert(gov_action_id, procedure).is_some(),
+            None => {
+                votes.insert(voter, NonEmptyMap::new(gov_action_id, procedure));
+                false
+            }
+        },
+        None => {
+            *votes = Some(NonEmptyMap::new(
+                voter,
+                NonEmptyMap::new(gov_action_id, procedure),
+            ));
+            false
+        }
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum VoteBuilderError {
     #[error("Voter is script. Call with_plutus_vote() instead.")]
@@ -28,7 +58,7 @@ pub enum VoteBuilderError {
 
 #[derive(Clone, Debug, Default)]
 pub struct VoteBuilderResult {
-    pub votes: VotingProcedures,
+    pub votes: Option<VotingProcedures>,
     pub required_wits: RequiredWitnessSet,
     pub aggregate_witnesses: Vec<InputAggregateWitnessData>,
 }
@@ -64,14 +94,7 @@ impl VoteBuilder {
         } else {
             return Err(VoteBuilderError::VoterIsScript);
         }
-        if self
-            .result
-            .votes
-            .entry(voter)
-            .or_default()
-            .insert(gov_action_id, procedure)
-            .is_some()
-        {
+        if insert_vote(&mut self.result.votes, voter, gov_action_id, procedure) {
             return Err(VoteBuilderError::VoteAlreayExists);
         }
         Ok(self)
@@ -96,14 +119,7 @@ impl VoteBuilder {
             return Err(VoteBuilderError::VoterIsKeyHash);
         }
 
-        if self
-            .result
-            .votes
-            .entry(voter)
-            .or_default()
-            .insert(gov_action_id, procedure)
-            .is_some()
-        {
+        if insert_vote(&mut self.result.votes, voter, gov_action_id, procedure) {
             return Err(VoteBuilderError::VoteAlreayExists);
         }
 
@@ -191,14 +207,7 @@ impl VoteBuilder {
             )));
         }
 
-        if self
-            .result
-            .votes
-            .entry(voter)
-            .or_default()
-            .insert(gov_action_id, procedure)
-            .is_some()
-        {
+        if insert_vote(&mut self.result.votes, voter, gov_action_id, procedure) {
             return Err(VoteBuilderError::VoteAlreayExists);
         }
 

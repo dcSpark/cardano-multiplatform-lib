@@ -1,13 +1,12 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
-
 use super::cbor_encodings::*;
 use super::*;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
+use std::io::{BufRead, Seek, Write};
 
 impl Serialize for AssetName {
     fn serialize<'se, W: Write>(
@@ -28,22 +27,23 @@ impl Serialize for AssetName {
 
 impl Deserialize for AssetName {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let (inner, inner_encoding) = raw
-            .bytes_sz()
-            .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
-        if inner.len() > 32 {
-            return Err(DeserializeError::new(
-                "AssetName",
-                DeserializeFailure::RangeCheck {
+        (|| -> Result<_, DeserializeError> {
+            let (inner, inner_encoding) = raw
+                .bytes_sz()
+                .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
+            if inner.len() > 32 {
+                return Err(DeserializeFailure::RangeCheck {
                     found: inner.len() as isize,
                     min: Some(0),
                     max: Some(32),
-                },
-            ));
-        }
-        Ok(Self {
-            inner,
-            encodings: Some(AssetNameEncoding { inner_encoding }),
-        })
+                }
+                .into());
+            }
+            Ok(Self {
+                inner,
+                encodings: Some(AssetNameEncoding { inner_encoding }),
+            })
+        })()
+        .map_err(|e| e.annotate("AssetName"))
     }
 }

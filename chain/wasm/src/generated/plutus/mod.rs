@@ -1,18 +1,17 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
-
 pub mod utils;
 pub use crate::BigInteger;
 pub use crate::ConstrPlutusData;
 pub use crate::PlutusMap;
 
 use crate::generated::{
-    LegacyRedeemerList, MapRedeemerKeyToRedeemerVal, MapU64ToArrI64, PlutusDataList, SubCoin,
+    MapU64ToArrI64, NonEmptyLegacyRedeemerList,
+    NonEmptyMapRedeemerKeyToRedeemerVal, PlutusDataList, SubCoin,
 };
 pub use cml_chain::plutus::{Language, RedeemerTag};
-use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{JsError, wasm_bindgen};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -110,7 +109,7 @@ impl LegacyRedeemer {
 
     pub fn new(tag: RedeemerTag, index: u64, data: &PlutusData, ex_units: &ExUnits) -> Self {
         Self(cml_chain::plutus::LegacyRedeemer::new(
-            tag.into(),
+            tag,
             index,
             data.clone().into(),
             ex_units.clone().into(),
@@ -285,7 +284,7 @@ impl RedeemerKey {
     }
 
     pub fn new(tag: RedeemerTag, index: u64) -> Self {
-        Self(cml_chain::plutus::RedeemerKey::new(tag.into(), index))
+        Self(cml_chain::plutus::RedeemerKey::new(tag, index))
     }
 }
 
@@ -325,14 +324,14 @@ impl_wasm_conversions!(cml_chain::plutus::Redeemers, Redeemers);
 
 #[wasm_bindgen]
 impl Redeemers {
-    pub fn new_arr_legacy_redeemer(arr_legacy_redeemer: &LegacyRedeemerList) -> Self {
+    pub fn new_arr_legacy_redeemer(arr_legacy_redeemer: &NonEmptyLegacyRedeemerList) -> Self {
         Self(cml_chain::plutus::Redeemers::new_arr_legacy_redeemer(
             arr_legacy_redeemer.clone().into(),
         ))
     }
 
     pub fn new_map_redeemer_key_to_redeemer_val(
-        map_redeemer_key_to_redeemer_val: &MapRedeemerKeyToRedeemerVal,
+        map_redeemer_key_to_redeemer_val: &NonEmptyMapRedeemerKeyToRedeemerVal,
     ) -> Self {
         Self(
             cml_chain::plutus::Redeemers::new_map_redeemer_key_to_redeemer_val(
@@ -352,7 +351,7 @@ impl Redeemers {
         }
     }
 
-    pub fn as_arr_legacy_redeemer(&self) -> Option<LegacyRedeemerList> {
+    pub fn as_arr_legacy_redeemer(&self) -> Option<NonEmptyLegacyRedeemerList> {
         match &self.0 {
             cml_chain::plutus::Redeemers::ArrLegacyRedeemer {
                 arr_legacy_redeemer,
@@ -362,7 +361,9 @@ impl Redeemers {
         }
     }
 
-    pub fn as_map_redeemer_key_to_redeemer_val(&self) -> Option<MapRedeemerKeyToRedeemerVal> {
+    pub fn as_map_redeemer_key_to_redeemer_val(
+        &self,
+    ) -> Option<NonEmptyMapRedeemerKeyToRedeemerVal> {
         match &self.0 {
             cml_chain::plutus::Redeemers::MapRedeemerKeyToRedeemerVal {
                 map_redeemer_key_to_redeemer_val,

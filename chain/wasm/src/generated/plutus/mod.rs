@@ -1,5 +1,6 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
+
 pub mod utils;
 pub use crate::BigInteger;
 pub use crate::ConstrPlutusData;
@@ -109,7 +110,7 @@ impl LegacyRedeemer {
 
     pub fn new(tag: RedeemerTag, index: u64, data: &PlutusData, ex_units: &ExUnits) -> Self {
         Self(cml_chain::plutus::LegacyRedeemer::new(
-            tag,
+            tag.into(),
             index,
             data.clone().into(),
             ex_units.clone().into(),
@@ -284,7 +285,7 @@ impl RedeemerKey {
     }
 
     pub fn new(tag: RedeemerTag, index: u64) -> Self {
-        Self(cml_chain::plutus::RedeemerKey::new(tag, index))
+        Self(cml_chain::plutus::RedeemerKey::new(tag.into(), index))
     }
 }
 

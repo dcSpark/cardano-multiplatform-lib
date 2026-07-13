@@ -1,10 +1,12 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::shelley::{ProtocolVersionStruct, ShelleyHeader};
-use crate::{
+use crate::generated::shelley::{ProtocolVersionStruct, ShelleyHeader};
+use crate::generated::{
     AllegraCertificateList, AlonzoFormatTxOutList, AlonzoRedeemerList, AlonzoTransactionBodyList,
-    AlonzoTransactionWitnessSetList, GenesisHashList, MapTransactionIndexToAlonzoAuxiliaryData,
+    AlonzoTransactionWitnessSetList, BootstrapWitnessList, Ed25519KeyHashList, GenesisHashList,
+    MapPolicyIdToMapAssetNameToI64, MapRewardAccountToCoin,
+    MapTransactionIndexToAlonzoAuxiliaryData, TransactionInputList, VkeywitnessList,
 };
 use cml_chain_wasm::RequiredSigners;
 use cml_chain_wasm::TransactionIndex;
@@ -12,10 +14,7 @@ use cml_chain_wasm::assets::{Coin, Mint};
 use cml_chain_wasm::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain_wasm::crypto::Nonce;
 use cml_chain_wasm::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData};
-use cml_chain_wasm::{
-    BootstrapWitnessList, NativeScriptList, PlutusDataList, PlutusV1ScriptList,
-    TransactionInputList, VkeywitnessList,
-};
+use cml_chain_wasm::{NativeScriptList, PlutusDataList, PlutusV1ScriptList};
 use cml_chain_wasm::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
@@ -233,7 +232,7 @@ impl AlonzoProposedProtocolParameterUpdates {
     }
 
     pub fn keys(&self) -> GenesisHashList {
-        self.0.iter().map(|(k, _v)| *k).collect::<Vec<_>>().into()
+        GenesisHashList(self.0.keys().cloned().collect::<Vec<_>>())
     }
 }
 
@@ -497,7 +496,7 @@ impl AlonzoRedeemer {
 
     pub fn new(tag: AlonzoRedeemerTag, index: u64, data: &PlutusData, ex_units: &ExUnits) -> Self {
         Self(cml_multi_era::alonzo::AlonzoRedeemer::new(
-            tag,
+            tag.into(),
             index,
             data.clone().into(),
             ex_units.clone().into(),
@@ -608,7 +607,10 @@ impl AlonzoTransactionBody {
     }
 
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
-        self.0.auxiliary_data_hash.map(std::convert::Into::into)
+        self.0
+            .auxiliary_data_hash
+            .clone()
+            .map(std::convert::Into::into)
     }
 
     pub fn set_validity_interval_start(&mut self, validity_interval_start: u64) {
@@ -632,7 +634,10 @@ impl AlonzoTransactionBody {
     }
 
     pub fn script_data_hash(&self) -> Option<ScriptDataHash> {
-        self.0.script_data_hash.map(std::convert::Into::into)
+        self.0
+            .script_data_hash
+            .clone()
+            .map(std::convert::Into::into)
     }
 
     pub fn set_collateral_inputs(&mut self, collateral_inputs: &TransactionInputList) {

@@ -1,3 +1,6 @@
+// This file was code-generated using an experimental CDDL to rust tool:
+// https://github.com/dcSpark/cddl-codegen
+
 use super::*;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
@@ -98,10 +101,7 @@ impl Deserialize for MultiEraBlock {
                         .unwrap();
                 }
             };
-            Err(DeserializeError::new(
-                "MultiEraBlock",
-                DeserializeFailure::NoVariantMatchedWithCauses(errs),
-            ))
+            Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
         })()
         .map_err(|e| e.annotate("MultiEraBlock"))
     }
@@ -216,10 +216,7 @@ impl Deserialize for MultiEraTransactionBody {
                         .unwrap();
                 }
             };
-            Err(DeserializeError::new(
-                "MultiEraTransactionBody",
-                DeserializeFailure::NoVariantMatchedWithCauses(errs),
-            ))
+            Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
         })()
         .map_err(|e| e.annotate("MultiEraTransactionBody"))
     }

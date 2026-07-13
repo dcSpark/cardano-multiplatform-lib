@@ -1339,7 +1339,9 @@ impl From<BabbageTransactionOutput> for MultiEraTransactionOutput {
                 babbage
                     .script_reference
                     .clone()
-                    .map(|script| ScriptRef::new(script.into())),
+                    .map(|script| {
+                        ScriptRef::new(crate::babbage::BabbageScript::from(script).into())
+                    }),
             ),
         })
     }

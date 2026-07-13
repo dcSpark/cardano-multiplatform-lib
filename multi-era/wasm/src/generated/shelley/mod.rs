@@ -1,10 +1,13 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::{
-    GenesisHashList, MapStakeCredentialToCoin, MapTransactionIndexToMetadata, MultisigScriptList,
+use cml_multi_era::allegra::MIRPot;
+use crate::generated::{
+    BootstrapWitnessList, Ed25519KeyHashList, GenesisHashList, MapRewardAccountToCoin,
+    MapStakeCredentialToCoin, MapTransactionIndexToMetadata, MultisigScriptList,
     ShelleyCertificateList, ShelleyRelayList, ShelleyTransactionBodyList,
-    ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
+    ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList, TransactionInputList,
+    VkeywitnessList,
 };
 use cml_chain_wasm::address::{Address, RewardAccount};
 use cml_chain_wasm::assets::Coin;
@@ -15,9 +18,6 @@ use cml_chain_wasm::certs::{
     StakeDeregistration, StakeRegistration,
 };
 use cml_chain_wasm::crypto::{KESSignature, Nonce, VRFCert, Vkey};
-use cml_chain_wasm::{
-    BootstrapWitnessList, Ed25519KeyHashList, TransactionInputList, VkeywitnessList,
-};
 use cml_chain_wasm::{Epoch, Port, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
@@ -25,8 +25,7 @@ use cml_crypto_wasm::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, Ed25519KeyHash, GenesisDelegateHash,
     GenesisHash, VRFKeyHash, VRFVkey,
 };
-use cml_multi_era::allegra::MIRPot;
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -42,15 +41,15 @@ impl_wasm_conversions!(
 #[wasm_bindgen]
 impl GenesisKeyDelegation {
     pub fn genesis_hash(&self) -> GenesisHash {
-        self.0.genesis_hash.into()
+        self.0.genesis_hash.clone().into()
     }
 
     pub fn genesis_delegate_hash(&self) -> GenesisDelegateHash {
-        self.0.genesis_delegate_hash.into()
+        self.0.genesis_delegate_hash.clone().into()
     }
 
     pub fn vrf_key_hash(&self) -> VRFKeyHash {
-        self.0.vrf_key_hash.into()
+        self.0.vrf_key_hash.clone().into()
     }
 
     pub fn new(
@@ -145,7 +144,7 @@ impl_wasm_conversions!(cml_multi_era::shelley::MultisigPubkey, MultisigPubkey);
 #[wasm_bindgen]
 impl MultisigPubkey {
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.into()
+        self.0.ed25519_key_hash.clone().into()
     }
 
     pub fn new(ed25519_key_hash: &Ed25519KeyHash) -> Self {
@@ -512,6 +511,12 @@ impl_wasm_conversions!(cml_multi_era::shelley::ShelleyDNSName, ShelleyDNSName);
 
 #[wasm_bindgen]
 impl ShelleyDNSName {
+    pub fn new(inner: String) -> Result<ShelleyDNSName, JsError> {
+        cml_multi_era::shelley::ShelleyDNSName::new(inner)
+            .map(Into::into)
+            .map_err(Into::into)
+    }
+
     pub fn get(&self) -> String {
         self.0.get().clone()
     }
@@ -562,7 +567,7 @@ impl ShelleyHeaderBody {
     }
 
     pub fn prev_hash(&self) -> Option<BlockHeaderHash> {
-        self.0.prev_hash.map(std::convert::Into::into)
+        self.0.prev_hash.clone().map(std::convert::Into::into)
     }
 
     pub fn issuer_vkey(&self) -> Vkey {
@@ -570,7 +575,7 @@ impl ShelleyHeaderBody {
     }
 
     pub fn vrf_vkey(&self) -> VRFVkey {
-        self.0.vrf_vkey.into()
+        self.0.vrf_vkey.clone().into()
     }
 
     pub fn nonce_vrf(&self) -> VRFCert {
@@ -586,7 +591,7 @@ impl ShelleyHeaderBody {
     }
 
     pub fn block_body_hash(&self) -> BlockBodyHash {
-        self.0.block_body_hash.into()
+        self.0.block_body_hash.clone().into()
     }
 
     pub fn operational_cert(&self) -> OperationalCert {
@@ -649,7 +654,7 @@ impl ShelleyMoveInstantaneousReward {
 
     pub fn new(pot: MIRPot, to_stake_credentials: &MapStakeCredentialToCoin) -> Self {
         Self(cml_multi_era::shelley::ShelleyMoveInstantaneousReward::new(
-            pot,
+            pot.into(),
             to_stake_credentials.clone().into(),
         ))
     }
@@ -719,11 +724,11 @@ impl_wasm_conversions!(cml_multi_era::shelley::ShelleyPoolParams, ShelleyPoolPar
 #[wasm_bindgen]
 impl ShelleyPoolParams {
     pub fn operator(&self) -> Ed25519KeyHash {
-        self.0.operator.into()
+        self.0.operator.clone().into()
     }
 
     pub fn vrf_keyhash(&self) -> VRFKeyHash {
-        self.0.vrf_keyhash.into()
+        self.0.vrf_keyhash.clone().into()
     }
 
     pub fn pledge(&self) -> Coin {
@@ -839,7 +844,7 @@ impl ShelleyProposedProtocolParameterUpdates {
     }
 
     pub fn keys(&self) -> GenesisHashList {
-        self.0.iter().map(|(k, _v)| *k).collect::<Vec<_>>().into()
+        GenesisHashList(self.0.keys().cloned().collect::<Vec<_>>())
     }
 }
 
@@ -1218,7 +1223,10 @@ impl ShelleyTransactionBody {
     }
 
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
-        self.0.auxiliary_data_hash.map(std::convert::Into::into)
+        self.0
+            .auxiliary_data_hash
+            .clone()
+            .map(std::convert::Into::into)
     }
 
     pub fn new(

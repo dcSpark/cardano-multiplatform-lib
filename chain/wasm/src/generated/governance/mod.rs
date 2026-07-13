@@ -1,5 +1,6 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
+
 pub mod utils;
 use crate::generated::address::RewardAccount;
 use crate::generated::assets::Coin;
@@ -32,7 +33,7 @@ impl Anchor {
     }
 
     pub fn anchor_doc_hash(&self) -> AnchorDocHash {
-        self.0.anchor_doc_hash.into()
+        self.0.anchor_doc_hash.clone().into()
     }
 
     pub fn new(anchor_url: &Url, anchor_doc_hash: &AnchorDocHash) -> Self {
@@ -58,7 +59,7 @@ impl Constitution {
     }
 
     pub fn script_hash(&self) -> Option<ScriptHash> {
-        self.0.script_hash.map(std::convert::Into::into)
+        self.0.script_hash.clone().map(std::convert::Into::into)
     }
 
     pub fn new(anchor: &Anchor, script_hash: Option<ScriptHash>) -> Self {
@@ -235,7 +236,7 @@ impl_wasm_conversions!(cml_chain::governance::GovActionId, GovActionId);
 #[wasm_bindgen]
 impl GovActionId {
     pub fn transaction_id(&self) -> TransactionHash {
-        self.0.transaction_id.into()
+        self.0.transaction_id.clone().into()
     }
 
     pub fn gov_action_index(&self) -> u64 {
@@ -359,7 +360,7 @@ impl ParameterChangeAction {
     }
 
     pub fn policy_hash(&self) -> Option<ScriptHash> {
-        self.0.policy_hash.map(std::convert::Into::into)
+        self.0.policy_hash.clone().map(std::convert::Into::into)
     }
 
     pub fn new(
@@ -434,7 +435,7 @@ impl TreasuryWithdrawalsAction {
     }
 
     pub fn policy_hash(&self) -> Option<ScriptHash> {
-        self.0.policy_hash.map(std::convert::Into::into)
+        self.0.policy_hash.clone().map(std::convert::Into::into)
     }
 
     pub fn new(withdrawal: &MapRewardAccountToCoin, policy_hash: Option<ScriptHash>) -> Self {
@@ -551,7 +552,7 @@ impl Voter {
             cml_chain::governance::Voter::ConstitutionalCommitteeHotKeyHash {
                 ed25519_key_hash,
                 ..
-            } => Some((*ed25519_key_hash).into()),
+            } => Some(ed25519_key_hash.clone().into()),
             _ => None,
         }
     }
@@ -561,7 +562,7 @@ impl Voter {
             cml_chain::governance::Voter::ConstitutionalCommitteeHotScriptHash {
                 script_hash,
                 ..
-            } => Some((*script_hash).into()),
+            } => Some(script_hash.clone().into()),
             _ => None,
         }
     }
@@ -570,7 +571,7 @@ impl Voter {
         match &self.0 {
             cml_chain::governance::Voter::DRepKeyHash {
                 ed25519_key_hash, ..
-            } => Some((*ed25519_key_hash).into()),
+            } => Some(ed25519_key_hash.clone().into()),
             _ => None,
         }
     }
@@ -578,7 +579,7 @@ impl Voter {
     pub fn as_d_rep_script_hash(&self) -> Option<ScriptHash> {
         match &self.0 {
             cml_chain::governance::Voter::DRepScriptHash { script_hash, .. } => {
-                Some((*script_hash).into())
+                Some(script_hash.clone().into())
             }
             _ => None,
         }
@@ -588,7 +589,7 @@ impl Voter {
         match &self.0 {
             cml_chain::governance::Voter::StakingPoolKeyHash {
                 ed25519_key_hash, ..
-            } => Some((*ed25519_key_hash).into()),
+            } => Some(ed25519_key_hash.clone().into()),
             _ => None,
         }
     }
@@ -623,13 +624,15 @@ impl VotingProcedure {
 
     pub fn new(vote: Vote, anchor: Option<Anchor>) -> Self {
         Self(cml_chain::governance::VotingProcedure::new(
-            vote,
+            vote.into(),
             anchor.map(Into::into),
         ))
     }
 }
 
-/// `{+ k => v}` (`MapVoterToMapGovActionIdToVotingProcedure`): at least one entry, enforced by the `NonEmptyMap` representation. Enter via `try_from` (the single checked door — the CBOR decoder routes through the same door) or `new(first_key, first_value)`. `insert` can never violate the bound; removal is checked in the core type.
+/// `{+ k => v}` (`MapVoterToMapGovActionIdToVotingProcedure`): at least one entry, enforced by the `NonEmptyMap` representation.
+/// Enter via `try_from` or `new(first_key, first_value)`.
+/// `insert` can never violate the bound; removal is checked in the core type.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct VotingProcedures(

@@ -5,6 +5,7 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
+use crate::generated::allegra::MIRPot;
 use cbor_encodings::{
     MultisigAllEncoding, MultisigAnyEncoding, MultisigNOfKEncoding, MultisigPubkeyEncoding,
     ShelleyBlockEncoding, ShelleyHeaderBodyEncoding, ShelleyHeaderEncoding,
@@ -33,13 +34,12 @@ use cml_crypto::{GenesisDelegateHash, VRFKeyHash};
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
-use crate::allegra::MIRPot;
-
 use self::cbor_encodings::{
     GenesisKeyDelegationEncoding, ProtocolVersionStructEncoding, ShelleyDNSNameEncoding,
     ShelleyMoveInstantaneousRewardEncoding, ShelleyMoveInstantaneousRewardsCertEncoding,
     ShelleyPoolParamsEncoding,
 };
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct GenesisKeyDelegation {
     pub genesis_hash: GenesisHash,
@@ -258,7 +258,7 @@ impl ShelleyCertificate {
 
 #[derive(Clone, Debug)]
 pub struct ShelleyDNSName {
-    pub inner: String,
+    inner: String,
     pub encodings: Option<ShelleyDNSNameEncoding>,
 }
 
@@ -323,11 +323,11 @@ impl schemars::JsonSchema for ShelleyDNSName {
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        String::json_schema(generator)
+        <String as schemars::JsonSchema>::json_schema(generator)
     }
 
     fn inline_schema() -> bool {
-        String::inline_schema()
+        <String as schemars::JsonSchema>::inline_schema()
     }
 }
 

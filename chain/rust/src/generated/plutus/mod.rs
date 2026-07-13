@@ -48,7 +48,7 @@ impl CostModels {
 
 impl From<OrderedHashMap<u64, Vec<i64>>> for CostModels {
     fn from(inner: OrderedHashMap<u64, Vec<i64>>) -> Self {
-        CostModels::new(inner.clone())
+        CostModels::new(inner.clone().into())
     }
 }
 

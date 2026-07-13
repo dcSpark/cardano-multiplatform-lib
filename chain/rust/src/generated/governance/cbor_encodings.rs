@@ -1,5 +1,6 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
+
 use super::*;
 use crate::certs::Credential;
 use cml_core::serialization::{LenEncoding, StringEncoding};

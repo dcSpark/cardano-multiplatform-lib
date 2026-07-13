@@ -45,7 +45,7 @@ impl AlonzoFormatTxOut {
     }
 
     pub fn datum_hash(&self) -> Option<DatumHash> {
-        self.0.datum_hash.map(std::convert::Into::into)
+        self.0.datum_hash.clone().map(std::convert::Into::into)
     }
 
     pub fn new(address: &Address, amount: &Value) -> Self {
@@ -133,7 +133,7 @@ impl DatumOption {
     pub fn as_hash(&self) -> Option<DatumHash> {
         match &self.0 {
             cml_chain::transaction::DatumOption::Hash { datum_hash, .. } => {
-                Some((*datum_hash).into())
+                Some(datum_hash.clone().into())
             }
             _ => None,
         }
@@ -401,7 +401,7 @@ impl_wasm_conversions!(cml_chain::transaction::ScriptPubkey, ScriptPubkey);
 #[wasm_bindgen]
 impl ScriptPubkey {
     pub fn ed25519_key_hash(&self) -> Ed25519KeyHash {
-        self.0.ed25519_key_hash.into()
+        self.0.ed25519_key_hash.clone().into()
     }
 
     pub fn new(ed25519_key_hash: &Ed25519KeyHash) -> Self {
@@ -524,6 +524,7 @@ impl TransactionBody {
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
         self.0
             .auxiliary_data_hash
+            .clone()
             .map(std::convert::Into::into)
     }
 
@@ -550,6 +551,7 @@ impl TransactionBody {
     pub fn script_data_hash(&self) -> Option<ScriptDataHash> {
         self.0
             .script_data_hash
+            .clone()
             .map(std::convert::Into::into)
     }
 
@@ -671,7 +673,7 @@ impl_wasm_conversions!(cml_chain::transaction::TransactionInput, TransactionInpu
 #[wasm_bindgen]
 impl TransactionInput {
     pub fn transaction_id(&self) -> TransactionHash {
-        self.0.transaction_id.into()
+        self.0.transaction_id.clone().into()
     }
 
     pub fn index(&self) -> u64 {

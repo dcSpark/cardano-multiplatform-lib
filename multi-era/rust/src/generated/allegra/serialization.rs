@@ -59,10 +59,7 @@ impl Deserialize for AllegraAuxiliaryData {
                         .unwrap();
                 }
             };
-            Err(DeserializeError::new(
-                "AllegraAuxiliaryData",
-                DeserializeFailure::NoVariantMatchedWithCauses(errs),
-            ))
+            Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
         })()
         .map_err(|e| e.annotate("AllegraAuxiliaryData"))
     }
@@ -164,20 +161,19 @@ impl Serialize for AllegraBlock {
 
 impl Deserialize for AllegraBlock {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(4)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(4)?;
+            read_len.finish()?;
             let header = ShelleyHeader::deserialize(raw).map_err(|e: DeserializeError| e.annotate("header"))?;
             let (transaction_bodies, transaction_bodies_encoding) = (|| -> Result<_, DeserializeError> {
                 let mut transaction_bodies_arr = Vec::new();
                 let len = raw.array_sz()?;
                 let transaction_bodies_encoding = len.into();
                 while match len { cbor_event::LenSz::Len(n, _) => (transaction_bodies_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                         break;
                     }
                     transaction_bodies_arr.push(AllegraTransactionBody::deserialize(raw)?);
@@ -189,8 +185,7 @@ impl Deserialize for AllegraBlock {
                 let len = raw.array_sz()?;
                 let transaction_witness_sets_encoding = len.into();
                 while match len { cbor_event::LenSz::Len(n, _) => (transaction_witness_sets_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                         break;
                     }
                     transaction_witness_sets_arr.push(AllegraTransactionWitnessSet::deserialize(raw)?);
@@ -203,11 +198,10 @@ impl Deserialize for AllegraBlock {
                 let auxiliary_data_set_encoding = auxiliary_data_set_len.into();
                 let mut auxiliary_data_set_key_encodings = BTreeMap::new();
                 while match auxiliary_data_set_len { cbor_event::LenSz::Len(n, _) => (auxiliary_data_set_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                    if matches!(auxiliary_data_set_len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                         break;
                     }
-                    let (auxiliary_data_set_key, auxiliary_data_set_key_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x as u16, Some(enc)))?;
+                    let (auxiliary_data_set_key, auxiliary_data_set_key_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x > 65535 { Err(DeserializeFailure::RangeCheck{ found: x as isize, min: Some(0), max: Some(65535) }.into()) } else { Ok((x, enc)) }).map(|(x, enc)| (x as u16, Some(enc)))?;
                     let auxiliary_data_set_value = AllegraAuxiliaryData::deserialize(raw)?;
                     if auxiliary_data_set_table.insert(auxiliary_data_set_key, auxiliary_data_set_value).is_some() {
                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
@@ -456,10 +450,7 @@ impl Deserialize for AllegraCertificate {
                         .unwrap();
                 }
             };
-            Err(DeserializeError::new(
-                "AllegraCertificate",
-                DeserializeFailure::NoVariantMatchedWithCauses(errs),
-            ))
+            Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
         })()
         .map_err(|e| e.annotate("AllegraCertificate"))
     }
@@ -481,9 +472,13 @@ impl Serialize for AllegraTransaction {
         self.body.serialize(serializer, force_canonical)?;
         self.witness_set.serialize(serializer, force_canonical)?;
         match &self.auxiliary_data {
-            Some(x) => x.serialize(serializer, force_canonical),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
+            Some(x) => {
+                x.serialize(serializer, force_canonical)?;
+            }
+            None => {
+                serializer.write_special(cbor_event::Special::Null)?;
+            }
+        };
         self.encodings
             .as_ref()
             .map(|encs| encs.len_encoding)
@@ -494,12 +489,12 @@ impl Serialize for AllegraTransaction {
 
 impl Deserialize for AllegraTransaction {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(3)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(3)?;
+            read_len.finish()?;
             let body = AllegraTransactionBody::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("body"))?;
             let witness_set = AllegraTransactionWitnessSet::deserialize(raw)
@@ -871,11 +866,11 @@ impl Serialize for AllegraTransactionBody {
 
 impl Deserialize for AllegraTransactionBody {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(3)?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(3)?;
             let mut orig_deser_order = Vec::new();
             let mut inputs_encoding = LenEncoding::default();
             let mut inputs_key_encoding = None;
@@ -917,8 +912,7 @@ impl Deserialize for AllegraTransactionBody {
                                 let len = raw.array_sz()?;
                                 let inputs_encoding = len.into();
                                 while match len { cbor_event::LenSz::Len(n, _) => (inputs_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                                         break;
                                     }
                                     inputs_arr.push(TransactionInput::deserialize(raw)?);
@@ -939,8 +933,7 @@ impl Deserialize for AllegraTransactionBody {
                                 let len = raw.array_sz()?;
                                 let outputs_encoding = len.into();
                                 while match len { cbor_event::LenSz::Len(n, _) => (outputs_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                                         break;
                                     }
                                     outputs_arr.push(ShelleyTransactionOutput::deserialize(raw)?);
@@ -985,8 +978,7 @@ impl Deserialize for AllegraTransactionBody {
                                 let len = raw.array_sz()?;
                                 let certs_encoding = len.into();
                                 while match len { cbor_event::LenSz::Len(n, _) => (certs_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                                         break;
                                     }
                                     certs_arr.push(AllegraCertificate::deserialize(raw)?);
@@ -1009,8 +1001,7 @@ impl Deserialize for AllegraTransactionBody {
                                 let withdrawals_encoding = withdrawals_len.into();
                                 let mut withdrawals_value_encodings = BTreeMap::new();
                                 while match withdrawals_len { cbor_event::LenSz::Len(n, _) => (withdrawals_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                    if matches!(withdrawals_len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                                         break;
                                     }
                                     let withdrawals_key = RewardAccount::deserialize(raw)?;
@@ -1018,7 +1009,7 @@ impl Deserialize for AllegraTransactionBody {
                                     if withdrawals_table.insert(withdrawals_key.clone(), withdrawals_value).is_some() {
                                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
                                     }
-                                    withdrawals_value_encodings.insert(withdrawals_key, withdrawals_value_encoding);
+                                    withdrawals_value_encodings.insert(withdrawals_key.clone(), withdrawals_value_encoding);
                                 }
                                 Ok((withdrawals_table, withdrawals_encoding, withdrawals_value_encodings))
                             })().map_err(|e| e.annotate("withdrawals"))?;
@@ -1279,10 +1270,10 @@ impl Serialize for AllegraTransactionWitnessSet {
 
 impl Deserialize for AllegraTransactionWitnessSet {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
             let mut orig_deser_order = Vec::new();
             let mut vkeywitnesses_encoding = LenEncoding::default();
             let mut vkeywitnesses_key_encoding = None;
@@ -1316,8 +1307,10 @@ impl Deserialize for AllegraTransactionWitnessSet {
                                         }
                                         cbor_event::LenSz::Indefinite => true,
                                     } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                        if matches!(len, cbor_event::LenSz::Indefinite)
+                                            && raw.cbor_type()? == cbor_event::Type::Special
+                                            && raw.special_break()?
+                                        {
                                             break;
                                         }
                                         vkeywitnesses_arr.push(Vkeywitness::deserialize(raw)?);
@@ -1346,8 +1339,10 @@ impl Deserialize for AllegraTransactionWitnessSet {
                                         }
                                         cbor_event::LenSz::Indefinite => true,
                                     } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                        if matches!(len, cbor_event::LenSz::Indefinite)
+                                            && raw.cbor_type()? == cbor_event::Type::Special
+                                            && raw.special_break()?
+                                        {
                                             break;
                                         }
                                         native_scripts_arr.push(NativeScript::deserialize(raw)?);
@@ -1376,8 +1371,10 @@ impl Deserialize for AllegraTransactionWitnessSet {
                                         }
                                         cbor_event::LenSz::Indefinite => true,
                                     } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                        if matches!(len, cbor_event::LenSz::Indefinite)
+                                            && raw.cbor_type()? == cbor_event::Type::Special
+                                            && raw.special_break()?
+                                        {
                                             break;
                                         }
                                         bootstrap_witnesses_arr
@@ -1498,8 +1495,10 @@ impl Deserialize for MIRAction {
                         }
                         cbor_event::LenSz::Indefinite => true,
                     } {
-                        if raw.cbor_type()? == cbor_event::Type::Special {
-                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                        if matches!(to_stake_credentials_len, cbor_event::LenSz::Indefinite)
+                            && raw.cbor_type()? == cbor_event::Type::Special
+                            && raw.special_break()?
+                        {
                             break;
                         }
                         let to_stake_credentials_key = StakeCredential::deserialize(raw)?;
@@ -1529,10 +1528,7 @@ impl Deserialize for MIRAction {
                         to_other_pot_encoding,
                     })
                 }
-                _ => Err(DeserializeError::new(
-                    "MIRAction",
-                    DeserializeFailure::NoVariantMatched,
-                )),
+                _ => Err(DeserializeFailure::NoVariantMatched.into()),
             }
         })()
         .map_err(|e| e.annotate("MIRAction"))
@@ -1587,12 +1583,12 @@ impl Serialize for MoveInstantaneousReward {
 
 impl Deserialize for MoveInstantaneousReward {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let (pot, pot_encoding) = (|| -> Result<_, DeserializeError> {
                 let initial_position = raw.as_mut_ref().stream_position().unwrap();
                 let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
@@ -1672,7 +1668,12 @@ impl Serialize for MoveInstantaneousRewardsCert {
                 .unwrap_or_default()
                 .to_len_sz(2, force_canonical),
         )?;
-        self.serialize_as_embedded_group(serializer, force_canonical)
+        self.serialize_as_embedded_group(serializer, force_canonical)?;
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.len_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
     }
 }
 
@@ -1695,28 +1696,32 @@ impl SerializeEmbeddedGroup for MoveInstantaneousRewardsCert {
         )?;
         self.move_instantaneous_reward
             .serialize(serializer, force_canonical)?;
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.len_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)
+        Ok(serializer)
     }
 }
 
 impl Deserialize for MoveInstantaneousRewardsCert {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
+        let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
+            Ok((len, read_len))
+        })()
+        .map_err(|e| e.annotate("MoveInstantaneousRewardsCert"))?;
         let ret = Self::deserialize_as_embedded_group(raw, &mut read_len, len);
-        match len {
-            cbor_event::LenSz::Len(_, _) => (),
-            cbor_event::LenSz::Indefinite => match raw.special()? {
-                cbor_event::Special::Break => (),
-                _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-            },
-        }
+        (|| -> Result<_, DeserializeError> {
+            match len {
+                cbor_event::LenSz::Len(_, _) => (),
+                cbor_event::LenSz::Indefinite => match raw.special()? {
+                    cbor_event::Special::Break => (),
+                    _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
+                },
+            }
+            Ok(())
+        })()
+        .map_err(|e| e.annotate("MoveInstantaneousRewardsCert"))?;
         ret
     }
 }

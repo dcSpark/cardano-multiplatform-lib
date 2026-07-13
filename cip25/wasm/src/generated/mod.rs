@@ -1,10 +1,12 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
+
 #![allow(
     clippy::len_without_is_empty,
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
+pub mod collections;
 pub use crate::CIP25LabelMetadata;
 
 use cml_core_wasm::{

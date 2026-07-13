@@ -3,6 +3,9 @@ name = "cml-multi-era-json-schema-gen"
 version = "6.2.0"
 edition = "2024"
 
+[package.metadata.cddl-codegen]
+generated-with = "0.1.0"
+
 
 [dependencies]
 serde_json = "1.0.57"

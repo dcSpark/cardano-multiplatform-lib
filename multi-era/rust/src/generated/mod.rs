@@ -1,3 +1,6 @@
+// This file was code-generated using an experimental CDDL to rust tool:
+// https://github.com/dcSpark/cddl-codegen
+
 #![allow(clippy::too_many_arguments)]
 
 extern crate derivative;
@@ -7,8 +10,6 @@ pub mod babbage;
 pub mod mary;
 pub mod serialization;
 pub mod shelley;
-// This file was code-generated using an experimental CDDL to rust tool:
-// https://github.com/dcSpark/cddl-codegen
 
 pub use crate::Block;
 pub use crate::ByronBlock;

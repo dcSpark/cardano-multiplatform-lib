@@ -13,7 +13,7 @@ pub mod utils;
 use crate::generated::address::RewardAccount;
 use crate::generated::assets::Coin;
 use crate::generated::block::ProtocolVersion;
-use crate::generated::certs::{CommitteeColdCredential, Url};
+use crate::generated::certs::{CommitteeColdCredential, Credential, Url};
 use crate::generated::crypto::{AnchorDocHash, Ed25519KeyHash, ScriptHash, TransactionHash};
 use crate::generated::{Epoch, ProtocolParamUpdate, SetCommitteeColdCredential, UnitInterval};
 use cbor_encodings::{

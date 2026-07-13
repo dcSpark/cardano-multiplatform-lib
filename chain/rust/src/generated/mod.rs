@@ -1,5 +1,6 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
+
 #![allow(clippy::too_many_arguments)]
 
 extern crate derivative;
@@ -166,8 +167,6 @@ pub type NonemptySetVkeywitness = NonemptySet<Vkeywitness>;
 
 pub type PolicyId = ScriptHash;
 
-pub type PolicyIdList = Vec<PolicyId>;
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct PoolVotingThresholds {
     pub motion_no_confidence: UnitInterval,
@@ -298,8 +297,6 @@ impl Rational {
     }
 }
 
-pub type RewardAccountList = Vec<RewardAccount>;
-
 #[derive(
     Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
 )]
@@ -378,6 +375,7 @@ impl Script {
 }
 
 pub type SetCommitteeColdCredential = Set<CommitteeColdCredential>;
+
 pub type SetEd25519KeyHash = NonemptySetRawBytes<Ed25519KeyHash>;
 
 pub type SetTransactionInput = Set<TransactionInput>;
@@ -401,8 +399,6 @@ impl UnitInterval {
         }
     }
 }
-
-pub type VoterList = Vec<Voter>;
 
 pub type Withdrawals = OrderedHashMap<RewardAccount, Coin>;
 

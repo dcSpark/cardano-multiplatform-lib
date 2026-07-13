@@ -1,7 +1,9 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_chain::{PolicyId, address::RewardAccount, assets::AssetName, crypto::GenesisHash};
+use super::*;
+use cml_chain::assets::AssetName;
+use cml_chain::{PolicyId, RewardAccount};
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 

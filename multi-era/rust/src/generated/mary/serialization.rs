@@ -110,20 +110,19 @@ impl Serialize for MaryBlock {
 
 impl Deserialize for MaryBlock {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(4)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(4)?;
+            read_len.finish()?;
             let header = ShelleyHeader::deserialize(raw).map_err(|e: DeserializeError| e.annotate("header"))?;
             let (transaction_bodies, transaction_bodies_encoding) = (|| -> Result<_, DeserializeError> {
                 let mut transaction_bodies_arr = Vec::new();
                 let len = raw.array_sz()?;
                 let transaction_bodies_encoding = len.into();
                 while match len { cbor_event::LenSz::Len(n, _) => (transaction_bodies_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                         break;
                     }
                     transaction_bodies_arr.push(MaryTransactionBody::deserialize(raw)?);
@@ -135,8 +134,7 @@ impl Deserialize for MaryBlock {
                 let len = raw.array_sz()?;
                 let transaction_witness_sets_encoding = len.into();
                 while match len { cbor_event::LenSz::Len(n, _) => (transaction_witness_sets_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                         break;
                     }
                     transaction_witness_sets_arr.push(AllegraTransactionWitnessSet::deserialize(raw)?);
@@ -149,11 +147,10 @@ impl Deserialize for MaryBlock {
                 let auxiliary_data_set_encoding = auxiliary_data_set_len.into();
                 let mut auxiliary_data_set_key_encodings = BTreeMap::new();
                 while match auxiliary_data_set_len { cbor_event::LenSz::Len(n, _) => (auxiliary_data_set_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                    if raw.cbor_type()? == cbor_event::Type::Special {
-                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                    if matches!(auxiliary_data_set_len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                         break;
                     }
-                    let (auxiliary_data_set_key, auxiliary_data_set_key_encoding) = raw.unsigned_integer_sz().map(|(x, enc)| (x as u16, Some(enc)))?;
+                    let (auxiliary_data_set_key, auxiliary_data_set_key_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x > 65535 { Err(DeserializeFailure::RangeCheck{ found: x as isize, min: Some(0), max: Some(65535) }.into()) } else { Ok((x, enc)) }).map(|(x, enc)| (x as u16, Some(enc)))?;
                     let auxiliary_data_set_value = AllegraAuxiliaryData::deserialize(raw)?;
                     if auxiliary_data_set_table.insert(auxiliary_data_set_key, auxiliary_data_set_value).is_some() {
                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
@@ -202,9 +199,13 @@ impl Serialize for MaryTransaction {
         self.body.serialize(serializer, force_canonical)?;
         self.witness_set.serialize(serializer, force_canonical)?;
         match &self.auxiliary_data {
-            Some(x) => x.serialize(serializer, force_canonical),
-            None => serializer.write_special(cbor_event::Special::Null),
-        }?;
+            Some(x) => {
+                x.serialize(serializer, force_canonical)?;
+            }
+            None => {
+                serializer.write_special(cbor_event::Special::Null)?;
+            }
+        };
         self.encodings
             .as_ref()
             .map(|encs| encs.len_encoding)
@@ -215,12 +216,12 @@ impl Serialize for MaryTransaction {
 
 impl Deserialize for MaryTransaction {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(3)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(3)?;
+            read_len.finish()?;
             let body = MaryTransactionBody::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("body"))?;
             let witness_set = AllegraTransactionWitnessSet::deserialize(raw)
@@ -711,11 +712,11 @@ impl Serialize for MaryTransactionBody {
 
 impl Deserialize for MaryTransactionBody {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.map_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(3)?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.map_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(3)?;
             let mut orig_deser_order = Vec::new();
             let mut inputs_encoding = LenEncoding::default();
             let mut inputs_key_encoding = None;
@@ -762,8 +763,7 @@ impl Deserialize for MaryTransactionBody {
                                 let len = raw.array_sz()?;
                                 let inputs_encoding = len.into();
                                 while match len { cbor_event::LenSz::Len(n, _) => (inputs_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                                         break;
                                     }
                                     inputs_arr.push(TransactionInput::deserialize(raw)?);
@@ -784,8 +784,7 @@ impl Deserialize for MaryTransactionBody {
                                 let len = raw.array_sz()?;
                                 let outputs_encoding = len.into();
                                 while match len { cbor_event::LenSz::Len(n, _) => (outputs_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                                         break;
                                     }
                                     outputs_arr.push(MaryTransactionOutput::deserialize(raw)?);
@@ -830,8 +829,7 @@ impl Deserialize for MaryTransactionBody {
                                 let len = raw.array_sz()?;
                                 let certs_encoding = len.into();
                                 while match len { cbor_event::LenSz::Len(n, _) => (certs_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                                         break;
                                     }
                                     certs_arr.push(AllegraCertificate::deserialize(raw)?);
@@ -854,8 +852,7 @@ impl Deserialize for MaryTransactionBody {
                                 let withdrawals_encoding = withdrawals_len.into();
                                 let mut withdrawals_value_encodings = BTreeMap::new();
                                 while match withdrawals_len { cbor_event::LenSz::Len(n, _) => (withdrawals_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                    if matches!(withdrawals_len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                                         break;
                                     }
                                     let withdrawals_key = RewardAccount::deserialize(raw)?;
@@ -863,7 +860,7 @@ impl Deserialize for MaryTransactionBody {
                                     if withdrawals_table.insert(withdrawals_key.clone(), withdrawals_value).is_some() {
                                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
                                     }
-                                    withdrawals_value_encodings.insert(withdrawals_key, withdrawals_value_encoding);
+                                    withdrawals_value_encodings.insert(withdrawals_key.clone(), withdrawals_value_encoding);
                                 }
                                 Ok((withdrawals_table, withdrawals_encoding, withdrawals_value_encodings))
                             })().map_err(|e| e.annotate("withdrawals"))?;
@@ -923,8 +920,7 @@ impl Deserialize for MaryTransactionBody {
                                 let mut mint_key_encodings = BTreeMap::new();
                                 let mut mint_value_encodings = BTreeMap::new();
                                 while match mint_len { cbor_event::LenSz::Len(n, _) => (mint_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                    if raw.cbor_type()? == cbor_event::Type::Special {
-                                        assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                    if matches!(mint_len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                                         break;
                                     }
                                     let (mint_key, mint_key_encoding) = raw.bytes_sz().map_err(Into::<DeserializeError>::into).and_then(|(bytes, enc)| PolicyId::from_raw_bytes(&bytes).map(|bytes| (bytes, StringEncoding::from(enc))).map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into()))?;
@@ -933,32 +929,31 @@ impl Deserialize for MaryTransactionBody {
                                     let mint_value_encoding = mint_value_len.into();
                                     let mut mint_value_value_encodings = BTreeMap::new();
                                     while match mint_value_len { cbor_event::LenSz::Len(n, _) => (mint_value_table.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
-                                        if raw.cbor_type()? == cbor_event::Type::Special {
-                                            assert_eq!(raw.special()?, cbor_event::Special::Break);
+                                        if matches!(mint_value_len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                                             break;
                                         }
                                         let mint_value_key = AssetName::deserialize(raw)?;
                                         let (mint_value_value, mint_value_value_encoding) = match raw.cbor_type()? {
                                             cbor_event::Type::UnsignedInteger => {
-                                                let (x, enc) = raw.unsigned_integer_sz()?;
+                                                let (x, enc) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x > 9223372036854775807 { Err(DeserializeFailure::RangeCheck{ found: x as isize, min: Some(-9223372036854775808), max: Some(9223372036854775807) }.into()) } else { Ok((x, enc)) })?;
                                                 (x as i64, Some(enc))
                                             },
                                             _ => {
-                                                let (x, enc) = raw.negative_integer_sz()?;
+                                                let (x, enc) = raw.negative_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x < -9223372036854775808 { Err(DeserializeFailure::RangeCheck{ found: x as isize, min: Some(-9223372036854775808), max: Some(9223372036854775807) }.into()) } else { Ok((x, enc)) })?;
                                                 (x as i64, Some(enc))
                                             },
                                         };
                                         if mint_value_table.insert(mint_value_key.clone(), mint_value_value).is_some() {
                                             return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
                                         }
-                                        mint_value_value_encodings.insert(mint_value_key, mint_value_value_encoding);
+                                        mint_value_value_encodings.insert(mint_value_key.clone(), mint_value_value_encoding);
                                     }
                                     let (mint_value, mint_value_encoding, mint_value_value_encodings) = (mint_value_table, mint_value_encoding, mint_value_value_encodings);
-                                    if mint_table.insert(mint_key, mint_value).is_some() {
+                                    if mint_table.insert(mint_key.clone(), mint_value).is_some() {
                                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
                                     }
-                                    mint_key_encodings.insert(mint_key, mint_key_encoding);
-                                    mint_value_encodings.insert(mint_key, (mint_value_encoding, mint_value_value_encodings));
+                                    mint_key_encodings.insert(mint_key.clone(), mint_key_encoding);
+                                    mint_value_encodings.insert(mint_key.clone(), (mint_value_encoding, mint_value_value_encodings));
                                 }
                                 Ok((mint_table, mint_encoding, mint_key_encodings, mint_value_encodings))
                             })().map_err(|e| e.annotate("mint"))?;
@@ -1063,12 +1058,12 @@ impl Serialize for MaryTransactionOutput {
 
 impl Deserialize for MaryTransactionOutput {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        let len = raw.array_sz()?;
-        let len_encoding: LenEncoding = len.into();
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        read_len.finish()?;
         (|| -> Result<_, DeserializeError> {
+            let len = raw.array_sz()?;
+            let len_encoding: LenEncoding = len.into();
+            let mut read_len = CBORReadLen::new(len);
+            read_len.read_elems(2)?;
+            read_len.finish()?;
             let address =
                 Address::deserialize(raw).map_err(|e: DeserializeError| e.annotate("address"))?;
             let amount =

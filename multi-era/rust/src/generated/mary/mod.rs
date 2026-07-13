@@ -5,9 +5,14 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use crate::allegra::{AllegraAuxiliaryData, AllegraCertificate, AllegraTransactionWitnessSet};
-use crate::shelley::{ShelleyHeader, ShelleyUpdate};
-use cbor_encodings::{MaryBlockEncoding, MaryTransactionBodyEncoding, MaryTransactionEncoding};
+use crate::generated::allegra::{
+    AllegraAuxiliaryData, AllegraCertificate, AllegraTransactionWitnessSet,
+};
+use crate::generated::shelley::{ShelleyHeader, ShelleyUpdate};
+use cbor_encodings::{
+    MaryBlockEncoding, MaryTransactionBodyEncoding, MaryTransactionEncoding,
+    MaryTransactionOutputEncoding,
+};
 use cml_chain::address::Address;
 use cml_chain::assets::{Coin, Mint, Value};
 
@@ -17,8 +22,6 @@ use cml_chain::crypto::AuxiliaryDataHash;
 use cml_chain::transaction::TransactionInput;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use std::collections::BTreeMap;
-
-use self::cbor_encodings::MaryTransactionOutputEncoding;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct MaryBlock {

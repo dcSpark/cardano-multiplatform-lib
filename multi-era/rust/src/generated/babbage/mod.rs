@@ -5,9 +5,10 @@ pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
 
-use crate::allegra::AllegraCertificate;
-use crate::alonzo::AlonzoRedeemer;
-use crate::shelley::ProtocolVersionStruct;
+use crate::generated::babbage::cbor_encodings::BabbageScriptRefEncoding;
+use crate::generated::allegra::AllegraCertificate;
+use crate::generated::alonzo::AlonzoRedeemer;
+use crate::generated::shelley::ProtocolVersionStruct;
 use cbor_encodings::{
     BabbageBlockEncoding, BabbageFormatAuxDataEncoding, BabbageFormatTxOutEncoding,
     BabbageProtocolParamUpdateEncoding, BabbageTransactionBodyEncoding, BabbageTransactionEncoding,
@@ -255,7 +256,69 @@ impl BabbageScript {
     }
 }
 
-pub type BabbageScriptRef = BabbageScript;
+impl From<BabbageScriptRef> for BabbageScript {
+    fn from(wrapper: BabbageScriptRef) -> Self {
+        wrapper.inner
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BabbageScriptRef {
+    inner: BabbageScript,
+    pub encodings: Option<BabbageScriptRefEncoding>,
+}
+
+impl BabbageScriptRef {
+    pub fn get(&self) -> &BabbageScript {
+        &self.inner
+    }
+
+    pub fn new(inner: BabbageScript) -> Self {
+        Self {
+            inner,
+            encodings: None,
+        }
+    }
+}
+
+impl From<BabbageScript> for BabbageScriptRef {
+    fn from(inner: BabbageScript) -> Self {
+        BabbageScriptRef::new(inner.clone().into())
+    }
+}
+
+impl serde::Serialize for BabbageScriptRef {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.inner.serialize(serializer)
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for BabbageScriptRef {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let inner = <BabbageScript as serde::de::Deserialize>::deserialize(deserializer)?;
+        Ok(Self::new(inner))
+    }
+}
+
+impl schemars::JsonSchema for BabbageScriptRef {
+    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+        ::std::borrow::Cow::Borrowed("BabbageScriptRef")
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        <BabbageScript as schemars::JsonSchema>::json_schema(generator)
+    }
+
+    fn inline_schema() -> bool {
+        <BabbageScript as schemars::JsonSchema>::inline_schema()
+    }
+}
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct BabbageTransaction {

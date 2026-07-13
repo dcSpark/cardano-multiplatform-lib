@@ -1,5 +1,6 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
+
 #![allow(
     clippy::len_without_is_empty,
     clippy::too_many_arguments,
@@ -10,6 +11,7 @@ pub mod assets;
 pub mod auxdata;
 pub mod block;
 pub mod certs;
+pub mod collections;
 pub mod crypto;
 pub mod governance;
 pub mod plutus;
@@ -325,44 +327,6 @@ impl MapRedeemerKeyToRedeemerVal {
 
 pub type MapRewardAccountToCoin = Withdrawals;
 
-// Allegra-era map (stake_credential => delta_coin) that isn't a Conway type (no longer emitted)
-// Kept here because multi-era-wasm imports it from cml_chain_wasm (its historical home).
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapStakeCredentialToDeltaCoin(
-    OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>,
-);
-
-impl_wasm_conversions!(
-    OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>,
-    MapStakeCredentialToDeltaCoin
-);
-
-#[wasm_bindgen]
-impl MapStakeCredentialToDeltaCoin {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &StakeCredential, value: &DeltaCoin) -> Option<DeltaCoin> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
-    }
-
-    pub fn get(&self, key: &StakeCredential) -> Option<DeltaCoin> {
-        self.0.get(key.as_ref()).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> StakeCredentialList {
-        StakeCredentialList(self.0.iter().map(|(k, _v)| k.clone()).collect::<Vec<_>>())
-    }
-}
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapTransactionIndexToAuxiliaryData(
@@ -494,7 +458,9 @@ impl NetworkId {
     }
 }
 
-/// `[+ LegacyRedeemer]`: at least one element, enforced by the `NonEmptyVec` representation. Enter via `try_from` (the single checked door — the CBOR decoder routes through the same door) or `new(first)`. `add` can never violate the bound; removal is checked in the core type.
+/// `[+ LegacyRedeemer]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct NonEmptyLegacyRedeemerList(NonEmptyVec<cml_chain::plutus::LegacyRedeemer>);
@@ -530,7 +496,9 @@ impl NonEmptyLegacyRedeemerList {
     }
 }
 
-/// `{+ k => v}` (`MapGovActionIdToVotingProcedure`): at least one entry, enforced by the `NonEmptyMap` representation. Enter via `try_from` (the single checked door — the CBOR decoder routes through the same door) or `new(first_key, first_value)`. `insert` can never violate the bound; removal is checked in the core type.
+/// `{+ k => v}` (`MapGovActionIdToVotingProcedure`): at least one entry, enforced by the `NonEmptyMap` representation.
+/// Enter via `try_from` or `new(first_key, first_value)`.
+/// `insert` can never violate the bound; removal is checked in the core type.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct NonEmptyMapGovActionIdToVotingProcedure(
@@ -583,7 +551,9 @@ impl NonEmptyMapGovActionIdToVotingProcedure {
     }
 }
 
-/// `{+ k => v}` (`MapRedeemerKeyToRedeemerVal`): at least one entry, enforced by the `NonEmptyMap` representation. Enter via `try_from` (the single checked door — the CBOR decoder routes through the same door) or `new(first_key, first_value)`. `insert` can never violate the bound; removal is checked in the core type.
+/// `{+ k => v}` (`MapRedeemerKeyToRedeemerVal`): at least one entry, enforced by the `NonEmptyMap` representation.
+/// Enter via `try_from` or `new(first_key, first_value)`.
+/// `insert` can never violate the bound; removal is checked in the core type.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct NonEmptyMapRedeemerKeyToRedeemerVal(
@@ -1174,58 +1144,6 @@ impl UnitInterval {
 }
 
 impl_wasm_list_needs_into!(cml_chain::governance::Voter, Voter, VoterList, true, false);
-// Lists whose rust counterparts are `Set`/`NonemptySet` aliases (extern-overridden), so the
-// generator emits no wasm wrapper for them. The `Set*`/`NonemptySet*` aliases in lib.rs and the
-// hand-written utils/builders resolve to these.
-impl_wasm_list_needs_into!(
-    cml_chain::crypto::BootstrapWitness,
-    BootstrapWitness,
-    BootstrapWitnessList,
-    true,
-    false
-);
-impl_wasm_list_needs_into!(
-    cml_chain::certs::Certificate,
-    Certificate,
-    CertificateList,
-    true,
-    false
-);
-impl_wasm_list_needs_into!(
-    cml_chain::crypto::Ed25519KeyHash,
-    Ed25519KeyHash,
-    Ed25519KeyHashList,
-    true,
-    false
-);
-impl_wasm_list_needs_into!(
-    cml_chain::governance::ProposalProcedure,
-    ProposalProcedure,
-    ProposalProcedureList,
-    true,
-    false
-);
-impl_wasm_list_needs_into!(
-    cml_chain::certs::StakeCredential,
-    StakeCredential,
-    StakeCredentialList,
-    true,
-    false
-);
-impl_wasm_list_needs_into!(
-    cml_chain::transaction::TransactionInput,
-    TransactionInput,
-    TransactionInputList,
-    true,
-    false
-);
-impl_wasm_list_needs_into!(
-    cml_chain::crypto::Vkeywitness,
-    Vkeywitness,
-    VkeywitnessList,
-    true,
-    false
-);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -1255,3 +1173,51 @@ impl Withdrawals {
         RewardAccountList(self.0.keys().cloned().collect::<Vec<_>>())
     }
 }
+
+impl_wasm_list_needs_into!(
+    cml_chain::crypto::BootstrapWitness,
+    BootstrapWitness,
+    BootstrapWitnessList,
+    true,
+    false
+);
+
+impl_wasm_list_needs_into!(
+    cml_chain::certs::Certificate,
+    Certificate,
+    CertificateList,
+    true,
+    false
+);
+
+impl_wasm_list_needs_into!(
+    cml_chain::crypto::Ed25519KeyHash,
+    Ed25519KeyHash,
+    Ed25519KeyHashList,
+    true,
+    false
+);
+
+impl_wasm_list_needs_into!(
+    cml_chain::governance::ProposalProcedure,
+    ProposalProcedure,
+    ProposalProcedureList,
+    true,
+    false
+);
+
+impl_wasm_list_needs_into!(
+    cml_chain::transaction::TransactionInput,
+    TransactionInput,
+    TransactionInputList,
+    true,
+    false
+);
+
+impl_wasm_list_needs_into!(
+    cml_chain::crypto::Vkeywitness,
+    Vkeywitness,
+    VkeywitnessList,
+    true,
+    false
+);

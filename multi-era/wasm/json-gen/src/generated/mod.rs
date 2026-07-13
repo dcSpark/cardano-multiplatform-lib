@@ -42,8 +42,10 @@ pub fn export_schemas() {
     gen_json_schema!(cml_multi_era::babbage::BabbageBlock);
     gen_json_schema!(cml_multi_era::babbage::BabbageFormatAuxData);
     gen_json_schema!(cml_multi_era::babbage::BabbageFormatTxOut);
+    gen_json_schema!(cml_multi_era::babbage::utils::BabbageMint);
     gen_json_schema!(cml_multi_era::babbage::BabbageProtocolParamUpdate);
     gen_json_schema!(cml_multi_era::babbage::BabbageScript);
+    // gen_json_schema!(cml_multi_era::babbage::BabbageScriptRef);
     gen_json_schema!(cml_multi_era::babbage::BabbageTransaction);
     gen_json_schema!(cml_multi_era::babbage::BabbageTransactionBody);
     gen_json_schema!(cml_multi_era::babbage::BabbageTransactionOutput);
@@ -128,11 +130,13 @@ pub fn export_schemas() {
     gen_json_schema!(cml_multi_era::mary::MaryTransactionBody);
     gen_json_schema!(cml_multi_era::mary::MaryTransactionOutput);
     // shelley
+    gen_json_schema!(cml_multi_era::shelley::GenesisKeyDelegation);
     gen_json_schema!(cml_multi_era::shelley::MultisigAll);
     gen_json_schema!(cml_multi_era::shelley::MultisigAny);
     gen_json_schema!(cml_multi_era::shelley::MultisigNOfK);
     gen_json_schema!(cml_multi_era::shelley::MultisigPubkey);
     gen_json_schema!(cml_multi_era::shelley::MultisigScript);
+    gen_json_schema!(cml_multi_era::shelley::ProtocolVersionStruct);
     gen_json_schema!(cml_multi_era::shelley::ShelleyBlock);
     gen_json_schema!(cml_multi_era::shelley::ShelleyCertificate);
     gen_json_schema!(cml_multi_era::shelley::ShelleyDNSName);

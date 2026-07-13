@@ -1,9 +1,9 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_chain::address::RewardAccount;
+use super::*;
+use cml_chain::RewardAccount;
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use cml_crypto::GenesisHash;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
@@ -38,8 +38,6 @@ pub struct BabbageFormatTxOutEncoding {
     pub address_key_encoding: Option<cbor_event::Sz>,
     pub amount_key_encoding: Option<cbor_event::Sz>,
     pub datum_option_key_encoding: Option<cbor_event::Sz>,
-    pub script_reference_tag_encoding: Option<cbor_event::Sz>,
-    pub script_reference_bytes_encoding: StringEncoding,
     pub script_reference_key_encoding: Option<cbor_event::Sz>,
 }
 
@@ -83,6 +81,12 @@ pub struct BabbageProtocolParamUpdateEncoding {
     pub collateral_percentage_key_encoding: Option<cbor_event::Sz>,
     pub max_collateral_inputs_encoding: Option<cbor_event::Sz>,
     pub max_collateral_inputs_key_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct BabbageScriptRefEncoding {
+    pub inner_tag_encoding: Option<cbor_event::Sz>,
+    pub inner_bytes_encoding: StringEncoding,
 }
 
 #[derive(Clone, Debug, Default)]

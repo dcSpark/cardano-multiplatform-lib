@@ -1,10 +1,12 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
+
 #![allow(
     clippy::len_without_is_empty,
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
+pub mod collections;
 pub use crate::PaymentAddress;
 
 use cml_core::non_empty::NonEmptyVec;
@@ -316,7 +318,9 @@ pub type CIP36VotingPurpose = u64;
 
 pub type CIP36Weight = u32;
 
-/// `[+ CIP36Delegation]`: at least one element, enforced by the `NonEmptyVec` representation. Enter via `try_from` (the single checked door — the CBOR decoder routes through the same door) or `new(first)`. `add` can never violate the bound; removal is checked in the core type.
+/// `[+ CIP36Delegation]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct NonEmptyCIP36DelegationList(NonEmptyVec<cml_cip36::CIP36Delegation>);

@@ -1,13 +1,13 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::allegra::{AllegraAuxiliaryData, AllegraTransactionWitnessSet};
-use crate::shelley::{ShelleyHeader, ShelleyUpdate};
-use crate::{
-    AllegraCertificateList, AllegraTransactionWitnessSetList,
-    MapTransactionIndexToAllegraAuxiliaryData, MaryTransactionBodyList, MaryTransactionOutputList,
+use crate::generated::allegra::{AllegraAuxiliaryData, AllegraTransactionWitnessSet};
+use crate::generated::shelley::{ShelleyHeader, ShelleyUpdate};
+use crate::generated::{
+    AllegraCertificateList, AllegraTransactionWitnessSetList, MapPolicyIdToMapAssetNameToI64,
+    MapRewardAccountToCoin, MapTransactionIndexToAllegraAuxiliaryData, MaryTransactionBodyList,
+    MaryTransactionOutputList, TransactionInputList,
 };
-use cml_chain_wasm::TransactionInputList;
 use cml_chain_wasm::assets::{Coin, Mint};
 use cml_chain_wasm::{Value, Withdrawals, address::Address};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
@@ -152,7 +152,10 @@ impl MaryTransactionBody {
     }
 
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
-        self.0.auxiliary_data_hash.map(std::convert::Into::into)
+        self.0
+            .auxiliary_data_hash
+            .clone()
+            .map(std::convert::Into::into)
     }
 
     pub fn set_validity_interval_start(&mut self, validity_interval_start: u64) {

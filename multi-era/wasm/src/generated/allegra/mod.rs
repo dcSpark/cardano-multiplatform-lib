@@ -1,12 +1,14 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::shelley::{
+use crate::generated::shelley::{
     GenesisKeyDelegation, ShelleyHeader, ShelleyPoolParams, ShelleyPoolRegistration, ShelleyUpdate,
 };
-use crate::{
+use crate::generated::{
     AllegraCertificateList, AllegraTransactionBodyList, AllegraTransactionWitnessSetList,
-    MapTransactionIndexToAllegraAuxiliaryData, ShelleyTransactionOutputList,
+    BootstrapWitnessList, MapRewardAccountToCoin, MapStakeCredentialToDeltaCoin,
+    MapTransactionIndexToAllegraAuxiliaryData, ShelleyTransactionOutputList, TransactionInputList,
+    VkeywitnessList,
 };
 use cml_chain_wasm::Epoch;
 use cml_chain_wasm::assets::Coin;
@@ -15,10 +17,8 @@ use cml_chain_wasm::certs::StakeCredential;
 use cml_chain_wasm::certs::{
     PoolRetirement, StakeDelegation, StakeDeregistration, StakeRegistration,
 };
-use cml_chain_wasm::{
-    BootstrapWitnessList, NativeScriptList, TransactionInputList, VkeywitnessList,
-};
-use cml_chain_wasm::{MapStakeCredentialToDeltaCoin, Withdrawals};
+use cml_chain_wasm::NativeScriptList;
+use cml_chain_wasm::Withdrawals;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use cml_crypto_wasm::Ed25519KeyHash;
 use cml_crypto_wasm::{AuxiliaryDataHash, GenesisDelegateHash, GenesisHash, VRFKeyHash};
@@ -410,7 +410,10 @@ impl AllegraTransactionBody {
     }
 
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
-        self.0.auxiliary_data_hash.map(std::convert::Into::into)
+        self.0
+            .auxiliary_data_hash
+            .clone()
+            .map(std::convert::Into::into)
     }
 
     pub fn set_validity_interval_start(&mut self, validity_interval_start: u64) {
@@ -559,7 +562,7 @@ impl MoveInstantaneousReward {
 
     pub fn new(pot: MIRPot, action: &MIRAction) -> Self {
         Self(cml_multi_era::allegra::MoveInstantaneousReward::new(
-            pot,
+            pot.into(),
             action.clone().into(),
         ))
     }

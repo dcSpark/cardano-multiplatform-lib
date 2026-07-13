@@ -1,11 +1,12 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::shelley::ProtocolVersionStruct;
-use crate::{
+use crate::generated::shelley::ProtocolVersionStruct;
+use crate::generated::{
     AllegraCertificateList, AlonzoRedeemerList, BabbageTransactionBodyList,
-    BabbageTransactionOutputList, BabbageTransactionWitnessSetList, GenesisHashList,
-    MapTransactionIndexToBabbageAuxiliaryData,
+    BabbageTransactionOutputList, BabbageTransactionWitnessSetList, BootstrapWitnessList,
+    Ed25519KeyHashList, GenesisHashList, MapRewardAccountToCoin,
+    MapTransactionIndexToBabbageAuxiliaryData, TransactionInputList, VkeywitnessList,
 };
 use cml_chain_wasm::address::Address;
 use cml_chain_wasm::assets::{Coin, Mint, Value};
@@ -15,8 +16,8 @@ use cml_chain_wasm::crypto::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
 use cml_chain_wasm::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
 use cml_chain_wasm::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript};
 use cml_chain_wasm::{
-    BootstrapWitnessList, NativeScriptList, NetworkId, PlutusDataList, PlutusV1ScriptList,
-    PlutusV2ScriptList, RequiredSigners, TransactionInputList, VkeywitnessList,
+    NativeScriptList, NetworkId, PlutusDataList, PlutusV1ScriptList, PlutusV2ScriptList,
+    RequiredSigners,
 };
 use cml_chain_wasm::{Epoch, Rational, UnitInterval, Withdrawals, auxdata::Metadata};
 use cml_core::TransactionIndex;
@@ -293,7 +294,7 @@ impl BabbageProposedProtocolParameterUpdates {
     }
 
     pub fn keys(&self) -> GenesisHashList {
-        self.0.iter().map(|(k, _v)| *k).collect::<Vec<_>>().into()
+        GenesisHashList(self.0.keys().cloned().collect::<Vec<_>>())
     }
 }
 
@@ -581,7 +582,26 @@ pub enum BabbageScriptKind {
     PlutusV2,
 }
 
-pub type BabbageScriptRef = BabbageScript;
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct BabbageScriptRef(cml_multi_era::babbage::BabbageScriptRef);
+
+impl_wasm_cbor_json_api!(BabbageScriptRef);
+
+impl_wasm_conversions!(cml_multi_era::babbage::BabbageScriptRef, BabbageScriptRef);
+
+#[wasm_bindgen]
+impl BabbageScriptRef {
+    pub fn new(inner: &BabbageScript) -> Self {
+        Self(cml_multi_era::babbage::BabbageScriptRef::new(
+            inner.clone().into(),
+        ))
+    }
+
+    pub fn get(&self) -> BabbageScript {
+        self.0.get().clone().into()
+    }
+}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -689,7 +709,10 @@ impl BabbageTransactionBody {
     }
 
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
-        self.0.auxiliary_data_hash.map(std::convert::Into::into)
+        self.0
+            .auxiliary_data_hash
+            .clone()
+            .map(std::convert::Into::into)
     }
 
     pub fn set_validity_interval_start(&mut self, validity_interval_start: u64) {
@@ -722,7 +745,10 @@ impl BabbageTransactionBody {
     }
 
     pub fn script_data_hash(&self) -> Option<ScriptDataHash> {
-        self.0.script_data_hash.map(std::convert::Into::into)
+        self.0
+            .script_data_hash
+            .clone()
+            .map(std::convert::Into::into)
     }
 
     pub fn set_collateral_inputs(&mut self, collateral_inputs: &TransactionInputList) {

@@ -33,8 +33,12 @@
 #          CDDL_CODEGEN_DIR=~/src/cddl-codegen ./codegen.sh   # use a local checkout
 set -euo pipefail
 
-# cddl-codegen commit the specs target
-CDDL_CODEGEN_REV="228fd49675e17ab6d960bd8a721e5a64f7de7b1a"
+# cddl-codegen commit the specs target. Override with CDDL_CODEGEN_DIR
+# NOTE: this rev PREDATES the extern-wrapper-dedup feature (--no-synthesized-rust-collection-aliases,
+# --extern-wrapper-index, generated collections.rs) AND workspace mode (--workspace-dep,
+# --wrapper-requests, borrowed/requested_collections.rs). Bump to a rev >= e551f74 once those commits
+# are on the GitHub remote; until then regen only works via CDDL_CODEGEN_DIR pointing at a local checkout.
+CDDL_CODEGEN_REV="77237871a3d2585996b103fbcc03bd227606c445"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SPECS="$REPO_ROOT/specs"
@@ -79,10 +83,44 @@ gen() {
 #     conversions) into a single impl_wasm_list_needs_into!(rust, wasm, Name, needs_into, is_copy)
 #     call. It supersedes --wasm-conversions-macro for list wrappers. The shim adapts the flag's
 #     needs_into polarity to cml_core_wasm::impl_wasm_list (whose 4th arg is inverted).
-OVERRIDE=(--common-import-override=cml_core)
+#   --no-synthesized-rust-collection-aliases=true suppresses the dead rust `pub type FooList =
+#     Vec<Foo>;` aliases minted for generator-SYNTHESIZED collection wrappers (table keys-lists,
+#     anonymous shapes). Rule-declared aliases are never touched. Generated code is structural, so
+#     this is emission-only; it removes public rust API in EVERY crate (incl. chain's own
+#     PolicyIdList etc.) — intentional, they were dead re-declarations.
+OVERRIDE=(--common-import-override=cml_core --no-synthesized-rust-collection-aliases=true)
 WASM_MACROS=(--wasm true --wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api --wasm-conversions-macro=cml_core_wasm::impl_wasm_conversions --wasm-list-macro=cml_core_wasm::impl_wasm_list_needs_into)
 CIP25_WASM_MACROS=(--wasm true --wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api_cbor_event_serialize --wasm-conversions-macro=cml_core_wasm::impl_wasm_conversions --wasm-list-macro=cml_core_wasm::impl_wasm_list_needs_into)
 COMMON=(--preserve-encodings=true --canonical-form=true --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${WASM_MACROS[@]}")
+
+# --extern-wasm-crate=<dep>=<dep>_wasm: multi-era references chain types as cross-crate extern deps
+#   (specs/multiera{,-byron}/_CDDL_CODEGEN_EXTERN_DEPS_DIR_/cml_chain). In the wasm pass, boundary
+#   types and their `use` imports must resolve through the dep's WASM crate (cml_chain_wasm), not its
+#   rust crate; inner storage keeps the rust type. Only multi-era has a cml_chain extern dep — a
+#   mapping that names no extern dep in the spec aborts codegen, so this is NOT in COMMON.
+# Workspace mode (multi-era <-> chain). Three flags cooperate:
+#   --workspace-dep=cml_chain: every wrapper whose element types are ALL chain's (transitively,
+#     NonEmpty included) is BORROWED — multi-era imports chain's class unconditionally and records
+#     the need in multi-era/wasm/src/generated/borrowed_collections.rs (the request sidecar).
+#   --extern-wrapper-index (kept): covers OWNERLESS shapes (primitives-only, e.g. {* u64 => [* i64]})
+#     which have no owning dep — those still index-defer against chain's committed collections.rs.
+#     Mixed-element wrappers (chain key + multi-era value) always stay local.
+#   --wrapper-requests=cml-multi-era=<sidecar> (on CHAIN's invocation): chain reads the committed
+#     sidecar and hosts every requested wrapper its own spec doesn't produce, in
+#     chain/wasm/src/generated/requested_collections.rs (indexed, attributed).
+# ORDERING is REVERSE dependency order — consumers before deps: multi-era regens first (rewrites
+# its sidecar), chain regens after (reads it). Single-crate runs read the other crate's committed
+# state and are safe; the one loud case is a multi-era-only run that ADDS a borrow — multi-era
+# won't build (unresolved import naming the wrapper) until chain regens too.
+EXTERN_WASM_MULTIERA=(--extern-wasm-crate=cml_chain=cml_chain_wasm --extern-wrapper-index=cml_chain="$REPO_ROOT/chain/wasm/src/generated/collections.rs" --workspace-dep=cml_chain)
+# The opt-in byron pass generates into the SAME multi-era crate from a different spec set. It must
+# NOT pass --workspace-dep: it would rewrite borrowed_collections.rs from byron's specs alone,
+# clobbering the main pass's request set (byron's chain-element wrappers are hand-written in
+# multi-era/wasm/src/byron/ and don't overlap the borrowed names). Without the flag the sidecar
+# file is left untouched.
+EXTERN_WASM_BYRON=(--extern-wasm-crate=cml_chain=cml_chain_wasm --extern-wrapper-index=cml_chain="$REPO_ROOT/chain/wasm/src/generated/collections.rs")
+MULTIERA_SIDECAR="$REPO_ROOT/multi-era/wasm/src/generated/borrowed_collections.rs"
+WRAPPER_REQUESTS_CHAIN=(--wrapper-requests=cml-multi-era="$MULTIERA_SIDECAR")
 
 ARGS=("$@")
 # named <crate>: true only when <crate> was passed explicitly. Used for opt-in passes (byron)
@@ -100,12 +138,22 @@ if [ -n "$(git -C "$REPO_ROOT" status --porcelain -- chain multi-era cip25 cip36
 fi
 
 # Crate              spec input                 args
-#   chain      <- specs/conway        (Conway-era on-chain types; README.md historically said babbage)
 #   multi-era  <- specs/multiera      (uses _CDDL_CODEGEN_EXTERN_DEPS_DIR_/cml_chain to reference chain)
+#   chain      <- specs/conway        (Conway-era on-chain types; README.md historically said babbage)
 #   cip36      <- specs/cip36.cddl
 #   cip25      <- specs/cip25.cddl    (no preserve-encodings)
-want chain     && gen chain     "$SPECS/conway"   --lib-name=cml-chain     "${COMMON[@]}"
-want multi-era && gen multi-era "$SPECS/multiera" --lib-name=cml-multi-era "${COMMON[@]}"
+# multi-era BEFORE chain: workspace-mode reverse dependency order (see comment above).
+want multi-era && gen multi-era "$SPECS/multiera" --lib-name=cml-multi-era "${COMMON[@]}" "${EXTERN_WASM_MULTIERA[@]}"
+if want chain; then
+  if [ -f "$MULTIERA_SIDECAR" ]; then
+    gen chain "$SPECS/conway" --lib-name=cml-chain "${COMMON[@]}" "${WRAPPER_REQUESTS_CHAIN[@]}"
+  else
+    # Only possible before the first multi-era regen under workspace mode. Without the sidecar,
+    # chain would silently drop every hosted wrapper multi-era needs — refuse instead.
+    echo "ERROR: $MULTIERA_SIDECAR missing — regenerate multi-era first (./codegen.sh multi-era)." >&2
+    exit 1
+  fi
+fi
 want cip36     && gen cip36     "$SPECS/cip36.cddl" --lib-name=cml-cip36    "${COMMON[@]}"
 #    cip25 doesn't use COMMON as it deliberately omits preserve-encodings/canonical-form (it never had them).
 want cip25     && gen cip25     "$SPECS/cip25.cddl" --lib-name=cml-cip25 --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${CIP25_WASM_MACROS[@]}"
@@ -123,7 +171,7 @@ want cip25     && gen cip25     "$SPECS/cip25.cddl" --lib-name=cml-cip25 --json-
 #     catch this). Re-applying it cleanly is the open work for "properly code-generating byron".
 # The cml_chain extern dep is already correctly placed under
 # specs/multiera-byron/_CDDL_CODEGEN_EXTERN_DEPS_DIR_/ so it is not generated as a local module.
-named byron && gen multi-era "$SPECS/multiera-byron" --lib-name=cml-multi-era --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${WASM_MACROS[@]}"
+named byron && gen multi-era "$SPECS/multiera-byron" --lib-name=cml-multi-era --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${WASM_MACROS[@]}" "${EXTERN_WASM_BYRON[@]}"
 
 echo "Running clippy --fix on the regenerated code..." >&2
 cargo fmt --all

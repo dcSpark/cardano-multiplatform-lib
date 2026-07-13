@@ -10,6 +10,9 @@ repository = "https://github.com/dcSpark/cardano-multiplatform-lib"
 readme = "../../README.md"
 keywords = ["cardano"]
 
+[package.metadata.cddl-codegen]
+generated-with = "0.1.0"
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -29,7 +32,7 @@ schemars = "1.2.1"
 
 # only for declaring hash types
 bech32 = "0.12.0"
-hex = "0.4.0"
+hex = "0.4.3"
 
 # non-wasm
 noop_proc_macro = { version = "0.3.0" }

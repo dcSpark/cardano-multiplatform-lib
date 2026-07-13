@@ -1,5 +1,6 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
+
 pub mod cbor_encodings;
 use crate::utils::NonemptySetRawBytes;
 pub mod serialization;
@@ -329,7 +330,7 @@ impl ScriptRef {
 
 impl From<Script> for ScriptRef {
     fn from(inner: Script) -> Self {
-        ScriptRef::new(inner.clone())
+        ScriptRef::new(inner.clone().into())
     }
 }
 

@@ -108,7 +108,7 @@ impl Nonce {
 
     pub fn as_hash(&self) -> Option<NonceHash> {
         match &self.0 {
-            cml_chain::crypto::Nonce::Hash { hash, .. } => Some((*hash).into()),
+            cml_chain::crypto::Nonce::Hash { hash, .. } => Some(hash.clone().into()),
             _ => None,
         }
     }

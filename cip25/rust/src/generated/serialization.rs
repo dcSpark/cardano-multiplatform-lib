@@ -496,7 +496,7 @@ impl Deserialize for CIP25String64 {
             let inner = raw.text()?;
             if inner.len() > 64 {
                 return Err(DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
+                    found: inner.len() as i128,
                     min: Some(0),
                     max: Some(64),
                 }

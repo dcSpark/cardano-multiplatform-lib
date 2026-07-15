@@ -7,8 +7,12 @@ pub mod utils;
 pub use crate::Value;
 pub use utils::*;
 
+use crate::generated::crypto::ScriptHash;
+use crate::generated::PolicyId;
 use cbor_encodings::AssetNameEncoding;
 use cml_core::error::*;
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::convert::TryFrom;
 
 /// Use TryFrom<&str> / TryInto<&str> for utf8 text conversion and RawBytesEncoding for direct bytes access
@@ -35,7 +39,7 @@ impl AssetName {
             return Err(DeserializeError::new(
                 "AssetName",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
+                    found: inner.len() as i128,
                     min: Some(0),
                     max: Some(32),
                 },

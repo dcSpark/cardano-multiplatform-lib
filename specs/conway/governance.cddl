@@ -11,7 +11,7 @@ proposal_procedure =
   , reward_account
   , gov_action
   , anchor
-  ]
+  ] ; @used_as_elem
 
 gov_action = [
   parameter_change_action //

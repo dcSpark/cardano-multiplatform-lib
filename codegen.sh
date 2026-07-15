@@ -27,6 +27,9 @@
 #   - Cargo.toml: hand-tuned deps (cddl-codegen emits a generic one)
 #   - per-module utils.rs (hand-added) and a few `#[allow(clippy::...)]`
 # The bulk of every generated module reproduces exactly; the above is the irreducible manual part.
+# core/rust/src's five runtime files (error/serialization/ordered_hash_map/non_empty*) are ALSO
+# tool-owned now, refreshed via --export-static-dir on the chain invocation; CML's additions in
+# them ride along in cddl-codegen:insert/replace blocks (see the chain gen call below).
 #
 # Usage:   ./codegen.sh                 # regenerate all crates in place
 #          ./codegen.sh chain           # regenerate a single crate
@@ -35,9 +38,15 @@ set -euo pipefail
 
 # cddl-codegen commit the specs target. Override with CDDL_CODEGEN_DIR
 # NOTE: this rev PREDATES the extern-wrapper-dedup feature (--no-synthesized-rust-collection-aliases,
-# --extern-wrapper-index, generated collections.rs) AND workspace mode (--workspace-dep,
-# --wrapper-requests, borrowed/requested_collections.rs). Bump to a rev >= e551f74 once those commits
-# are on the GitHub remote; until then regen only works via CDDL_CODEGEN_DIR pointing at a local checkout.
+# --extern-wrapper-index, generated collections.rs), workspace mode (--workspace-dep,
+# --wrapper-requests, borrowed/requested_collections.rs), the cml-core runtime export
+# (--export-static-dir), AND the wrapper-requests alias-element fix + hardening (without which the
+# dep-side regen PANICS on this workspace's real sidecar — alias elements like stake_credential).
+# It ALSO predates the @custom_json fix for sum-type/record encoding fields + record derives
+# (c9c47b0), which specs/conway/plutus.cddl's plutus_data now relies on.
+# Bump to a rev >= c9c47b0 once those commits are on the GitHub remote — nothing earlier; e.g.
+# 2bff93f has --export-static-dir but not the alias fix, and 18fb7cc lacks the @custom_json fix.
+# Until then regen only works via CDDL_CODEGEN_DIR pointing at a local checkout.
 CDDL_CODEGEN_REV="77237871a3d2585996b103fbcc03bd227606c445"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -146,7 +155,18 @@ fi
 want multi-era && gen multi-era "$SPECS/multiera" --lib-name=cml-multi-era "${COMMON[@]}" "${EXTERN_WASM_MULTIERA[@]}"
 if want chain; then
   if [ -f "$MULTIERA_SIDECAR" ]; then
-    gen chain "$SPECS/conway" --lib-name=cml-chain "${COMMON[@]}" "${WRAPPER_REQUESTS_CHAIN[@]}"
+    # --export-static-dir: refresh cml-core's copy of the static runtime (error.rs,
+    # serialization.rs prelude, ordered_hash_map.rs, non_empty*.rs) so it can't rot against the
+    # codegen rev. Passed on the CHAIN invocation only — it carries the maximal flavor
+    # (preserve-encodings + canonical + json-serde + json-schema) that the shared runtime must
+    # serve; cip25's reduced flavor would export a non-preserve runtime and break the others.
+    # CML-specific additions inside those five files (BadAddressType/OutOfRange/ArithmeticError,
+    # ToBytes/FromBytes, len_to_len_sz, OrderedHashMap::take, the lenient from_cbor_bytes and
+    # bool-not-blanket Deserialize impls) live in cddl-codegen:insert/replace blocks and are
+    # re-applied by the preservation overlay on every regen; anything it can't re-place traps in
+    # a loud compile_error!, never silently dropped. Everything else in core/ stays hand-owned.
+    gen chain "$SPECS/conway" --lib-name=cml-chain "${COMMON[@]}" "${WRAPPER_REQUESTS_CHAIN[@]}" \
+      --export-static-dir="$REPO_ROOT/core/rust/src"
   else
     # Only possible before the first multi-era regen under workspace mode. Without the sidecar,
     # chain would silently drop every hosted wrapper multi-era needs — refuse instead.
@@ -173,9 +193,36 @@ want cip25     && gen cip25     "$SPECS/cip25.cddl" --lib-name=cml-cip25 --json-
 # specs/multiera-byron/_CDDL_CODEGEN_EXTERN_DEPS_DIR_/ so it is not generated as a local module.
 named byron && gen multi-era "$SPECS/multiera-byron" --lib-name=cml-multi-era --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${WASM_MACROS[@]}" "${EXTERN_WASM_BYRON[@]}"
 
+# Workspace convergence check: every wrapper multi-era's sidecar borrows from cml_chain must be
+# listed in chain's collections index (satisfied either by chain's own spec rules or by hosting
+# in requested_collections.rs). The ONLY ordering that can go stale is "multi-era regenerated
+# after chain" — e.g. a single-crate multi-era run that added a borrow, or reverting chain's
+# regen diff during reconciliation. Without this check that state surfaces later as confusing
+# missing-type compile errors in cml-multi-era-wasm; with it, the fix is printed in one line.
+# Runs on the COMMITTED/on-disk state, so it is also valid after partial runs.
+check_convergence() {
+  local index="$REPO_ROOT/chain/wasm/src/generated/collections.rs"
+  [ -f "$MULTIERA_SIDECAR" ] && [ -f "$index" ] || return 0
+  local missing="" name
+  while IFS= read -r name; do
+    grep -q "::${name};" "$index" || missing="$missing $name"
+  done < <(sed -n 's/^ *use cml_chain_wasm::collections::\([A-Za-z0-9_]*\);$/\1/p' "$MULTIERA_SIDECAR")
+  if [ -n "$missing" ]; then
+    echo "ERROR: chain's collections index is STALE relative to multi-era's borrowed_collections.rs sidecar." >&2
+    echo "  not yet provided by chain:$missing" >&2
+    echo "  fix (dep-alone regen is always safe): ${CDDL_CODEGEN_DIR:+CDDL_CODEGEN_DIR=$CDDL_CODEGEN_DIR }./codegen.sh chain" >&2
+    return 1
+  fi
+}
+
 echo "Running clippy --fix on the regenerated code..." >&2
 cargo fmt --all
-cargo clippy --fix --allow-dirty --allow-staged --workspace --all-features --all-targets
+# cml-core is excluded from clippy --fix: its runtime files are now tool-owned (see
+# --export-static-dir above) and clippy's rewrites there (e.g. inline format args) would be
+# reverted by the next regen, churning the diff forever. Regular clippy still checks cml-core.
+cargo clippy --fix --allow-dirty --allow-staged --workspace --exclude cml-core --all-features --all-targets
+
+check_convergence
 
 cat <<'EOF'
 

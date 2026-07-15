@@ -15,7 +15,9 @@ pub fn export_schemas() {
     if !schema_path.exists() {
         std::fs::create_dir(schema_path).unwrap();
     }
+    // cddl-codegen:insert-start
     gen_json_schema!(cml_cip25::CIP25Version);
+    // cddl-codegen:insert-end
     gen_json_schema!(cml_cip25::CIP25ChunkableString);
     gen_json_schema!(cml_cip25::CIP25FilesDetails);
     gen_json_schema!(cml_cip25::CIP25LabelMetadata);

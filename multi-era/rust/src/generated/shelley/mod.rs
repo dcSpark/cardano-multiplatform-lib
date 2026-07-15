@@ -7,9 +7,11 @@ pub mod utils;
 
 use crate::generated::allegra::MIRPot;
 use cbor_encodings::{
-    MultisigAllEncoding, MultisigAnyEncoding, MultisigNOfKEncoding, MultisigPubkeyEncoding,
-    ShelleyBlockEncoding, ShelleyHeaderBodyEncoding, ShelleyHeaderEncoding,
-    ShelleyMultiHostNameEncoding, ShelleyPoolRegistrationEncoding,
+    GenesisKeyDelegationEncoding, MultisigAllEncoding, MultisigAnyEncoding, MultisigNOfKEncoding,
+    MultisigPubkeyEncoding, ProtocolVersionStructEncoding, ShelleyBlockEncoding,
+    ShelleyDNSNameEncoding, ShelleyHeaderBodyEncoding, ShelleyHeaderEncoding,
+    ShelleyMoveInstantaneousRewardEncoding, ShelleyMoveInstantaneousRewardsCertEncoding,
+    ShelleyMultiHostNameEncoding, ShelleyPoolParamsEncoding, ShelleyPoolRegistrationEncoding,
     ShelleyProtocolParamUpdateEncoding, ShelleySingleHostNameEncoding,
     ShelleyTransactionBodyEncoding, ShelleyTransactionEncoding, ShelleyTransactionOutputEncoding,
     ShelleyTransactionWitnessSetEncoding, ShelleyUpdateEncoding,
@@ -24,21 +26,16 @@ use cml_chain::certs::{
 };
 use cml_chain::crypto::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, BootstrapWitness, Ed25519KeyHash,
-    GenesisHash, KESSignature, Nonce, VRFCert, VRFVkey, Vkey, Vkeywitness,
+    GenesisDelegateHash, GenesisHash, KESSignature, Nonce, VRFCert, VRFKeyHash, VRFVkey, Vkey,
+    Vkeywitness,
 };
 use cml_chain::transaction::TransactionInput;
-use cml_chain::{Epoch, Port, Rational, UnitInterval, Withdrawals};
+use cml_chain::{Epoch, Port, Rational, TransactionIndex, UnitInterval, Withdrawals};
+use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::{DeserializeError, DeserializeFailure, TransactionIndex};
-use cml_crypto::{GenesisDelegateHash, VRFKeyHash};
+use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
-
-use self::cbor_encodings::{
-    GenesisKeyDelegationEncoding, ProtocolVersionStructEncoding, ShelleyDNSNameEncoding,
-    ShelleyMoveInstantaneousRewardEncoding, ShelleyMoveInstantaneousRewardsCertEncoding,
-    ShelleyPoolParamsEncoding,
-};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct GenesisKeyDelegation {
@@ -272,7 +269,7 @@ impl ShelleyDNSName {
             return Err(DeserializeError::new(
                 "ShelleyDNSName",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
+                    found: inner.len() as i128,
                     min: Some(0),
                     max: Some(64),
                 },

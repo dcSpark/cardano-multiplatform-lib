@@ -14,22 +14,26 @@ use crate::generated::allegra::AllegraCertificate;
 use crate::generated::shelley::{ProtocolVersionStruct, ShelleyHeader};
 use cbor_encodings::{
     AlonzoBlockEncoding, AlonzoFormatAuxDataEncoding, AlonzoProtocolParamUpdateEncoding,
-    AlonzoTransactionBodyEncoding, AlonzoTransactionEncoding, AlonzoTransactionWitnessSetEncoding,
-    AlonzoUpdateEncoding,
+    AlonzoRedeemerEncoding, AlonzoTransactionBodyEncoding, AlonzoTransactionEncoding,
+    AlonzoTransactionWitnessSetEncoding, AlonzoUpdateEncoding,
 };
-use cml_chain::TransactionIndex;
-use cml_chain::assets::{Coin, Mint};
+use cml_chain::address::RewardAccount;
+use cml_chain::assets::{AssetName, Coin, Mint};
 use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain::crypto::{
-    AuxiliaryDataHash, BootstrapWitness, GenesisHash, Nonce, ScriptDataHash, Vkeywitness,
+    AuxiliaryDataHash, BootstrapWitness, Ed25519KeyHash, GenesisHash, Nonce, ScriptDataHash,
+    Vkeywitness,
 };
 use cml_chain::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script};
-use cml_chain::transaction::{AlonzoFormatTxOut, NativeScript, TransactionInput};
-use cml_chain::{Epoch, NetworkId, Rational, RequiredSigners, UnitInterval, Withdrawals};
+use cml_chain::transaction::{AlonzoFormatTxOut, NativeScript, RequiredSigners, TransactionInput};
+use cml_chain::{
+    Epoch, NetworkId, PolicyId, Rational, TransactionIndex, UnitInterval, Withdrawals,
+};
+use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-
-use self::cbor_encodings::AlonzoRedeemerEncoding;
+use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AlonzoAuxiliaryData {

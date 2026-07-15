@@ -24,7 +24,7 @@ plutus_data =
   / plutus_map ; @name map
   / [ * plutus_data ] ; @name list
   / big_integer ; @name integer
-  / bounded_bytes ; @name bytes
+  / bounded_bytes ; @name bytes @custom_json @used_as_key
 
 big_integer = _CDDL_CODEGEN_EXTERN_TYPE_
 
@@ -63,7 +63,7 @@ redeemer_tag =
   / 4 ; @name Voting
   / 5 ; @name Proposing
 
-ex_units = [mem: uint, steps: uint]
+ex_units = [mem: uint, steps: uint] ; @used_as_key
 
 ex_unit_prices =
   [ mem_price: sub_coin, step_price: sub_coin ]

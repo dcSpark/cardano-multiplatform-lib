@@ -2590,11 +2590,11 @@ impl Deserialize for TransactionBody {
                                         let mint_value_key = AssetName::deserialize(raw)?;
                                         let (mint_value_value, mint_value_value_encoding) = match raw.cbor_type()? {
                                             cbor_event::Type::UnsignedInteger => {
-                                                let (x, enc) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x > 9223372036854775807 { Err(DeserializeFailure::RangeCheck{ found: x as isize, min: Some(-9223372036854775808), max: Some(9223372036854775807) }.into()) } else { Ok((x, enc)) })?;
+                                                let (x, enc) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x > 9223372036854775807 { Err(DeserializeFailure::RangeCheck{ found: x as i128, min: Some(-9223372036854775808), max: Some(9223372036854775807) }.into()) } else { Ok((x, enc)) })?;
                                                 (x as i64, Some(enc))
                                             },
                                             _ => {
-                                                let (x, enc) = raw.negative_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x < -9223372036854775808 { Err(DeserializeFailure::RangeCheck{ found: x as isize, min: Some(-9223372036854775808), max: Some(9223372036854775807) }.into()) } else { Ok((x, enc)) })?;
+                                                let (x, enc) = raw.negative_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x < -9223372036854775808 { Err(DeserializeFailure::RangeCheck{ found: x as i128, min: Some(-9223372036854775808), max: Some(9223372036854775807) }.into()) } else { Ok((x, enc)) })?;
                                                 (x as i64, Some(enc))
                                             },
                                         };
@@ -2823,8 +2823,12 @@ impl Deserialize for TransactionBody {
                 withdrawals,
                 auxiliary_data_hash,
                 validity_interval_start,
+                // cddl-codegen:replace-start
                 // Manual edit: convert since wrapped in AssetBundle API
                 mint: mint.map(Into::into),
+                // cddl-codegen:replaces
+                // mint,
+                // cddl-codegen:replace-end
                 script_data_hash,
                 collateral_inputs,
                 required_signers,

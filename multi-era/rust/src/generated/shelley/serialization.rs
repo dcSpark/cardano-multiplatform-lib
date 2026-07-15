@@ -3,16 +3,10 @@
 
 use super::cbor_encodings::*;
 use super::*;
-use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
-use cml_chain::address::RewardAccount;
-use cml_chain::certs::{PoolMetadata, SingleHostAddr};
 use cml_core::error::*;
 use cml_core::serialization::*;
-use cml_crypto::GenesisDelegateHash;
-use cml_crypto::RawBytesEncoding;
-use cml_crypto::VRFKeyHash;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for GenesisKeyDelegation {
@@ -1090,7 +1084,7 @@ impl Deserialize for ShelleyBlock {
                         .and_then(|(x, enc)| {
                             if x > 65535 {
                                 Err(DeserializeFailure::RangeCheck {
-                                    found: x as isize,
+                                    found: x as i128,
                                     min: Some(0),
                                     max: Some(65535),
                                 }
@@ -1225,7 +1219,7 @@ impl Deserialize for ShelleyCertificate {
             })(raw);
             match deser_variant {
                 Ok(stake_deregistration) => {
-                    return Ok(Self::StakeDeregistration(stake_deregistration));
+                    return Ok(Self::StakeDeregistration(stake_deregistration))
                 }
                 Err(e) => {
                     errs.push(e.annotate("StakeDeregistration"));
@@ -1274,7 +1268,7 @@ impl Deserialize for ShelleyCertificate {
             })(raw);
             match deser_variant {
                 Ok(shelley_pool_registration) => {
-                    return Ok(Self::ShelleyPoolRegistration(shelley_pool_registration));
+                    return Ok(Self::ShelleyPoolRegistration(shelley_pool_registration))
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleyPoolRegistration"));
@@ -1323,7 +1317,7 @@ impl Deserialize for ShelleyCertificate {
             })(raw);
             match deser_variant {
                 Ok(genesis_key_delegation) => {
-                    return Ok(Self::GenesisKeyDelegation(genesis_key_delegation));
+                    return Ok(Self::GenesisKeyDelegation(genesis_key_delegation))
                 }
                 Err(e) => {
                     errs.push(e.annotate("GenesisKeyDelegation"));
@@ -1354,7 +1348,7 @@ impl Deserialize for ShelleyCertificate {
                 Ok(shelley_move_instantaneous_rewards_cert) => {
                     return Ok(Self::ShelleyMoveInstantaneousRewardsCert(
                         shelley_move_instantaneous_rewards_cert,
-                    ));
+                    ))
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMoveInstantaneousRewardsCert"));
@@ -1394,7 +1388,7 @@ impl Deserialize for ShelleyDNSName {
                 .map(|(s, enc)| (s, StringEncoding::from(enc)))?;
             if inner.len() > 64 {
                 return Err(DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
+                    found: inner.len() as i128,
                     min: Some(0),
                     max: Some(64),
                 }
@@ -3286,15 +3280,15 @@ impl Deserialize for ShelleyProtocolParamUpdate {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            );
+                            )
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -3302,7 +3296,7 @@ impl Deserialize for ShelleyProtocolParamUpdate {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
                     }
                 }
                 read += 1;
@@ -3427,7 +3421,7 @@ impl Deserialize for ShelleyRelay {
             })(raw);
             match deser_variant {
                 Ok(shelley_single_host_name) => {
-                    return Ok(Self::ShelleySingleHostName(shelley_single_host_name));
+                    return Ok(Self::ShelleySingleHostName(shelley_single_host_name))
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleySingleHostName"));
@@ -3453,7 +3447,7 @@ impl Deserialize for ShelleyRelay {
             })(raw);
             match deser_variant {
                 Ok(shelley_multi_host_name) => {
-                    return Ok(Self::ShelleyMultiHostName(shelley_multi_host_name));
+                    return Ok(Self::ShelleyMultiHostName(shelley_multi_host_name))
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMultiHostName"));
@@ -3585,7 +3579,7 @@ impl DeserializeEmbeddedGroup for ShelleySingleHostName {
                             .and_then(|(x, enc)| {
                                 if x > 65535 {
                                     Err(DeserializeFailure::RangeCheck {
-                                        found: x as isize,
+                                        found: x as i128,
                                         min: Some(0),
                                         max: Some(65535),
                                     }
@@ -4250,15 +4244,15 @@ impl Deserialize for ShelleyTransactionBody {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            );
+                            )
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -4266,7 +4260,7 @@ impl Deserialize for ShelleyTransactionBody {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
                     }
                 }
                 read += 1;
@@ -4661,15 +4655,15 @@ impl Deserialize for ShelleyTransactionWitnessSet {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            );
+                            )
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -4677,7 +4671,7 @@ impl Deserialize for ShelleyTransactionWitnessSet {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
                     }
                 }
                 read += 1;

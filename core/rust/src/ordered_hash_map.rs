@@ -1,13 +1,18 @@
-use core::hash::{Hash, Hasher};
-use std::iter::FromIterator;
+use core::hash::Hash;
 
 // allowing this since PartialEq equality here still implies hash equality
-#[allow(clippy::derived_hash_with_manual_eq)]
-#[derive(Clone, Debug, Ord, Eq, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Hash, Ord, Eq, PartialEq, PartialOrd)]
 pub struct OrderedHashMap<K, V>(linked_hash_map::LinkedHashMap<K, V>)
 where
     K: Hash + Eq + Ord;
 
+// An empty ordered map is always constructible, so `Default` must not require `K: Default` /
+// `V: Default` the way `#[derive(Default)]` over a generic struct would. This mirrors
+// `std::collections::BTreeMap`/`HashMap` (empty-map default, no element bounds) so a table whose
+// KEY type isn't `Default` — e.g. a generated `@used_as_key` enum under `--preserve-encodings`,
+// where tables become `OrderedHashMap` and enum keys don't derive `Default` — can still be
+// `Default::default()`ed
+// `std::collections::BTreeMap`/`HashMap`.
 impl<K, V> Default for OrderedHashMap<K, V>
 where
     K: Hash + Eq + Ord,
@@ -45,22 +50,20 @@ where
         Self(linked_hash_map::LinkedHashMap::new())
     }
 
+    /// Consume the wrapper, yielding the backing insertion-ordered map.
     pub fn take(self) -> linked_hash_map::LinkedHashMap<K, V> {
         self.0
     }
 }
 
-#[allow(clippy::derived_hash_with_manual_eq)]
-impl<K, V> Hash for OrderedHashMap<K, V>
+impl<K, V> FromIterator<(K, V)> for OrderedHashMap<K, V>
 where
     K: Hash + Eq + Ord,
-    V: Hash,
 {
-    fn hash<H: Hasher>(&self, h: &mut H) {
-        self.0.hash(h);
+    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
+        Self(linked_hash_map::LinkedHashMap::from_iter(iter))
     }
 }
-
 impl<K, V> serde::Serialize for OrderedHashMap<K, V>
 where
     K: Hash + Eq + Ord + serde::Serialize,
@@ -97,21 +100,12 @@ where
     V: schemars::JsonSchema,
 {
     fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        (format!("OrderedHashMap<{}, {}>", K::schema_name(), V::schema_name())).into()
+        format!("OrderedHashMap<{}, {}>", K::schema_name(), V::schema_name()).into()
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         std::collections::BTreeMap::<K, V>::json_schema(generator)
     }
     fn inline_schema() -> bool {
         std::collections::BTreeMap::<K, V>::inline_schema()
-    }
-}
-
-impl<K, V> FromIterator<(K, V)> for OrderedHashMap<K, V>
-where
-    K: Hash + Eq + Ord,
-{
-    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
-        Self(linked_hash_map::LinkedHashMap::from_iter(iter))
     }
 }

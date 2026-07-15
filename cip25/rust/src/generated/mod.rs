@@ -7,6 +7,7 @@ pub mod serialization;
 pub use crate::CIP25LabelMetadata;
 
 use cml_core::error::*;
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 /// A String that may or may not be chunked into 64-byte chunks to be able
@@ -111,7 +112,7 @@ impl CIP25String64 {
             return Err(DeserializeError::new(
                 "CIP25String64",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
+                    found: inner.len() as i128,
                     min: Some(0),
                     max: Some(64),
                 },

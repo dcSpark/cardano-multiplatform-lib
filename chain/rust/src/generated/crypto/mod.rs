@@ -39,7 +39,7 @@ impl BootstrapWitness {
     ) -> Result<Self, DeserializeError> {
         if chain_code.len() < 32 || chain_code.len() > 32 {
             return Err(DeserializeFailure::RangeCheck {
-                found: chain_code.len() as isize,
+                found: chain_code.len() as i128,
                 min: Some(32),
                 max: Some(32),
             }
@@ -71,7 +71,7 @@ impl KESSignature {
             return Err(DeserializeError::new(
                 "KESSignature",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
+                    found: inner.len() as i128,
                     min: Some(448),
                     max: Some(448),
                 },
@@ -188,7 +188,7 @@ impl VRFCert {
     pub fn new(output: Vec<u8>, proof: Vec<u8>) -> Result<Self, DeserializeError> {
         if proof.len() < 80 || proof.len() > 80 {
             return Err(DeserializeFailure::RangeCheck {
-                found: proof.len() as isize,
+                found: proof.len() as i128,
                 min: Some(80),
                 max: Some(80),
             }

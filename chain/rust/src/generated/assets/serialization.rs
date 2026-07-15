@@ -7,7 +7,7 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, Write};
+use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for AssetName {
     fn serialize<'se, W: Write>(
@@ -34,7 +34,7 @@ impl Deserialize for AssetName {
                 .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
             if inner.len() > 32 {
                 return Err(DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
+                    found: inner.len() as i128,
                     min: Some(0),
                     max: Some(32),
                 }

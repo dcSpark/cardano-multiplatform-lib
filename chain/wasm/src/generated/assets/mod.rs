@@ -2,15 +2,17 @@
 // https://github.com/dcSpark/cddl-codegen
 
 pub mod utils;
-
 pub use crate::Value;
 pub use cml_chain::assets::{Coin, NonZeroInt64, PositiveCoin};
 
+use crate::generated::crypto::ScriptHash;
 use crate::generated::{MapAssetNameToNonZeroInt64, MapAssetNameToU64, PolicyId, PolicyIdList};
+// cddl-codegen:insert-start
 use std::ops::Deref;
-
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use wasm_bindgen::prelude::{JsError, wasm_bindgen};
+// cddl-codegen:insert-end
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -42,7 +44,11 @@ impl_wasm_conversions!(cml_chain::assets::Mint, Mint);
 #[wasm_bindgen]
 impl Mint {
     pub fn new() -> Self {
+        // cddl-codegen:replace-start
         Self(cml_chain::assets::Mint::new())
+        // cddl-codegen:replaces
+        // Self(OrderedHashMap::new())
+        // cddl-codegen:replace-end
     }
 
     pub fn len(&self) -> usize {
@@ -60,7 +66,11 @@ impl Mint {
     }
 
     pub fn get(&self, key: &PolicyId) -> Option<MapAssetNameToNonZeroInt64> {
+        // cddl-codegen:replace-start
         self.0.deref().get(key.as_ref()).map(|v| v.clone().into())
+        // cddl-codegen:replaces
+        // self.0.get(key.as_ref()).map(|v| v.clone().into())
+        // cddl-codegen:replace-end
     }
 
     pub fn keys(&self) -> PolicyIdList {
@@ -77,7 +87,11 @@ impl_wasm_conversions!(cml_chain::assets::MultiAsset, MultiAsset);
 #[wasm_bindgen]
 impl MultiAsset {
     pub fn new() -> Self {
+        // cddl-codegen:replace-start
         Self(cml_chain::assets::MultiAsset::new())
+        // cddl-codegen:replaces
+        // Self(OrderedHashMap::new())
+        // cddl-codegen:replace-end
     }
 
     pub fn len(&self) -> usize {
@@ -95,7 +109,11 @@ impl MultiAsset {
     }
 
     pub fn get(&self, key: &PolicyId) -> Option<MapAssetNameToU64> {
+        // cddl-codegen:replace-start
         self.0.deref().get(key.as_ref()).map(|v| v.clone().into())
+        // cddl-codegen:replaces
+        // self.0.get(key.as_ref()).map(|v| v.clone().into())
+        // cddl-codegen:replace-end
     }
 
     pub fn keys(&self) -> PolicyIdList {

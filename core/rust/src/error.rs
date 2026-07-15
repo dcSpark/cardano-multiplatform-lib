@@ -2,20 +2,32 @@
 pub enum Key {
     Str(String),
     Uint(u64),
+    Float(f64),
+    Bool(bool),
 }
 
 impl std::fmt::Display for Key {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Key::Str(x) => write!(f, "\"{x}\""),
-            Key::Uint(x) => write!(f, "{x}"),
+            Key::Str(x) => write!(f, "\"{}\"", x),
+            Key::Uint(x) => write!(f, "{}", x),
+            Key::Float(x) => write!(f, "{}", x),
+            Key::Bool(x) => write!(f, "{}", x),
         }
     }
 }
 
 #[derive(Debug)]
 pub enum DeserializeFailure {
+    // cddl-codegen:insert-start
     BadAddressType(u8),
+    OutOfRange {
+        min: usize,
+        max: usize,
+        found: usize,
+    },
+    VariableLenNatDecodeFailed,
+    // cddl-codegen:insert-end
     BreakInDefiniteLen,
     CBOR(cbor_event::Error),
     DefiniteLenMismatch(u64, Option<u64>),
@@ -26,20 +38,31 @@ pub enum DeserializeFailure {
         found: Key,
         expected: Key,
     },
+    /// The recursion depth guard (opt-in via `--deserialize-depth-limit`) rejected input nested
+    /// deeper than the configured limit, instead of recursing further and overflowing the stack.
+    DepthLimitExceeded {
+        limit: usize,
+    },
     /// Invalid internal structure imposed on top of the CBOR format
     InvalidStructure(Box<dyn std::error::Error>),
     MandatoryFieldMissing(Key),
     NoVariantMatched,
     NoVariantMatchedWithCauses(Vec<DeserializeError>),
-    OutOfRange {
-        min: usize,
-        max: usize,
-        found: usize,
-    },
     RangeCheck {
-        found: isize,
-        min: Option<isize>,
-        max: Option<isize>,
+        found: i128,
+        min: Option<i128>,
+        max: Option<i128>,
+    },
+    /// A float value fell outside its CDDL window (`float64 .le 10.5`, `0.5..10.5`). Separate from
+    /// `RangeCheck` because float bounds are f64-typed and carry per-side exclusivity (dense float
+    /// space has no ±1 collapse). NaN always lands here — the emitted check is accept-form
+    /// (`!(x >= min && x <= max)`), and every comparison against NaN is false.
+    RangeCheckFloat {
+        found: f64,
+        min: Option<f64>,
+        max: Option<f64>,
+        min_inclusive: bool,
+        max_inclusive: bool,
     },
     TagMismatch {
         found: u64,
@@ -47,7 +70,6 @@ pub enum DeserializeFailure {
     },
     UnknownKey(Key),
     UnexpectedKeyType(cbor_event::Type),
-    VariableLenNatDecodeFailed,
 }
 
 // we might want to add more info like which field,
@@ -65,6 +87,12 @@ impl DeserializeError {
         }
     }
 
+    /// The underlying failure reason. Lets callers (e.g. generated reject tests) assert the
+    /// exact `DeserializeFailure` variant rather than just that deserialization errored.
+    pub fn failure(&self) -> &DeserializeFailure {
+        &self.failure
+    }
+
     pub fn annotate<T: Into<String>>(self, location: T) -> Self {
         match self.location {
             Some(loc) => Self::new(format!("{}.{}", location.into(), loc), self.failure),
@@ -78,36 +106,49 @@ impl DeserializeError {
             write!(f, "\t")?;
         }
         match &self.location {
-            Some(loc) => write!(f, "Deserialization failed in {loc} because: "),
+            Some(loc) => write!(f, "Deserialization failed in {} because: ", loc),
             None => write!(f, "Deserialization: "),
         }?;
         match &self.failure {
+            // cddl-codegen:insert-start
             DeserializeFailure::BadAddressType(header) => {
                 write!(f, "Encountered unknown address header {header:#08b}")
             }
+            DeserializeFailure::OutOfRange { min, max, found } => {
+                write!(f, "Out of range: {found} - must be in range {min} - {max}")
+            }
+            DeserializeFailure::VariableLenNatDecodeFailed => {
+                write!(f, "Variable length natural number decode failed")
+            }
+            // cddl-codegen:insert-end
             DeserializeFailure::BreakInDefiniteLen => write!(
                 f,
                 "Encountered CBOR Break while reading definite length sequence"
             ),
             DeserializeFailure::CBOR(e) => e.fmt(f),
             DeserializeFailure::DefiniteLenMismatch(found, expected) => {
-                write!(f, "Definite length mismatch: found {found}")?;
+                write!(f, "Definite length mismatch: found {}", found)?;
                 if let Some(expected_elems) = expected {
-                    write!(f, ", expected: {expected_elems}")?;
+                    write!(f, ", expected: {}", expected_elems)?;
                 }
                 Ok(())
             }
-            DeserializeFailure::DuplicateKey(key) => write!(f, "Duplicate key: {key}"),
+            DeserializeFailure::DuplicateKey(key) => write!(f, "Duplicate key: {}", key),
             DeserializeFailure::EndingBreakMissing => write!(f, "Missing ending CBOR Break"),
             DeserializeFailure::ExpectedNull => write!(f, "Expected null, found other type"),
             DeserializeFailure::FixedValueMismatch { found, expected } => {
-                write!(f, "Expected fixed value {expected} found {found}")
+                write!(f, "Expected fixed value {} found {}", expected, found)
             }
+            DeserializeFailure::DepthLimitExceeded { limit } => write!(
+                f,
+                "Deserialization recursion depth exceeded the configured limit of {}",
+                limit
+            ),
             DeserializeFailure::InvalidStructure(e) => {
-                write!(f, "Invalid internal structure: {e}")
+                write!(f, "Invalid internal structure: {}", e)
             }
             DeserializeFailure::MandatoryFieldMissing(key) => {
-                write!(f, "Mandatory field {key} not found")
+                write!(f, "Mandatory field {} not found", key)
             }
             DeserializeFailure::NoVariantMatched => write!(f, "No variant matched"),
             DeserializeFailure::NoVariantMatchedWithCauses(errs) => {
@@ -118,24 +159,35 @@ impl DeserializeError {
                 }
                 Ok(())
             }
-            DeserializeFailure::OutOfRange { min, max, found } => {
-                write!(f, "Out of range: {found} - must be in range {min} - {max}")
-            }
             DeserializeFailure::RangeCheck { found, min, max } => match (min, max) {
-                (Some(min), Some(max)) => write!(f, "{found} not in range {min} - {max}"),
-                (Some(min), None) => write!(f, "{found} not at least {min}"),
-                (None, Some(max)) => write!(f, "{found} not at most {max}"),
+                (Some(min), Some(max)) => write!(f, "{} not in range {} - {}", found, min, max),
+                (Some(min), None) => write!(f, "{} not at least {}", found, min),
+                (None, Some(max)) => write!(f, "{} not at most {}", found, max),
                 (None, None) => write!(f, "invalid range (no min nor max specified)"),
             },
+            DeserializeFailure::RangeCheckFloat {
+                found,
+                min,
+                max,
+                min_inclusive,
+                max_inclusive,
+            } => {
+                let lo = match min {
+                    Some(min) => format!("{}{}", if *min_inclusive { ">=" } else { ">" }, min),
+                    None => "-inf".to_owned(),
+                };
+                let hi = match max {
+                    Some(max) => format!("{}{}", if *max_inclusive { "<=" } else { "<" }, max),
+                    None => "+inf".to_owned(),
+                };
+                write!(f, "{} not in float range ({}, {})", found, lo, hi)
+            }
             DeserializeFailure::TagMismatch { found, expected } => {
-                write!(f, "Expected tag {expected}, found {found}")
+                write!(f, "Expected tag {}, found {}", expected, found)
             }
-            DeserializeFailure::UnknownKey(key) => write!(f, "Found unexpected key {key}"),
+            DeserializeFailure::UnknownKey(key) => write!(f, "Found unexpected key {}", key),
             DeserializeFailure::UnexpectedKeyType(ty) => {
-                write!(f, "Found unexpected key of CBOR type {ty:?}")
-            }
-            DeserializeFailure::VariableLenNatDecodeFailed => {
-                write!(f, "Variable length natural number decode failed")
+                write!(f, "Found unexpected key of CBOR type {:?}", ty)
             }
         }
     }
@@ -158,6 +210,15 @@ impl From<DeserializeFailure> for DeserializeError {
     }
 }
 
+// cddl-codegen:insert-start
+#[derive(Debug, thiserror::Error)]
+pub enum ArithmeticError {
+    #[error("Integer overflow")]
+    IntegerOverflow,
+    #[error("Integer underflow")]
+    IntegerUnderflow,
+}
+// cddl-codegen:insert-end
 impl From<cbor_event::Error> for DeserializeError {
     fn from(err: cbor_event::Error) -> DeserializeError {
         DeserializeError {
@@ -165,12 +226,4 @@ impl From<cbor_event::Error> for DeserializeError {
             failure: DeserializeFailure::CBOR(err),
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum ArithmeticError {
-    #[error("Integer overflow")]
-    IntegerOverflow,
-    #[error("Integer underflow")]
-    IntegerUnderflow,
 }

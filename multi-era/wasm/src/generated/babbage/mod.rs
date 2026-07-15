@@ -4,26 +4,24 @@
 use crate::generated::shelley::ProtocolVersionStruct;
 use crate::generated::{
     AllegraCertificateList, AlonzoRedeemerList, BabbageTransactionBodyList,
-    BabbageTransactionOutputList, BabbageTransactionWitnessSetList, BootstrapWitnessList,
-    Ed25519KeyHashList, GenesisHashList, MapRewardAccountToCoin,
-    MapTransactionIndexToBabbageAuxiliaryData, TransactionInputList, VkeywitnessList,
+    BabbageTransactionOutputList, BabbageTransactionWitnessSetList,
+    MapTransactionIndexToBabbageAuxiliaryData,
 };
 use cml_chain_wasm::address::Address;
 use cml_chain_wasm::assets::{Coin, Mint, Value};
-use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMAFormatAuxData};
+use cml_chain_wasm::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain_wasm::block::Header;
+use cml_chain_wasm::collections::{
+    BootstrapWitnessList, Ed25519KeyHashList, GenesisHashList, NativeScriptList, PlutusDataList,
+    PlutusV1ScriptList, PlutusV2ScriptList, TransactionInputList, VkeywitnessList,
+};
 use cml_chain_wasm::crypto::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
 use cml_chain_wasm::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
-use cml_chain_wasm::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript};
-use cml_chain_wasm::{
-    NativeScriptList, NetworkId, PlutusDataList, PlutusV1ScriptList, PlutusV2ScriptList,
-    RequiredSigners,
-};
-use cml_chain_wasm::{Epoch, Rational, UnitInterval, Withdrawals, auxdata::Metadata};
-use cml_core::TransactionIndex;
+use cml_chain_wasm::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, RequiredSigners};
+use cml_chain_wasm::{Epoch, NetworkId, Rational, TransactionIndex, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use wasm_bindgen::prelude::wasm_bindgen;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -294,7 +292,7 @@ impl BabbageProposedProtocolParameterUpdates {
     }
 
     pub fn keys(&self) -> GenesisHashList {
-        GenesisHashList(self.0.keys().cloned().collect::<Vec<_>>())
+        self.0.keys().cloned().collect::<Vec<_>>().into()
     }
 }
 
@@ -723,6 +721,7 @@ impl BabbageTransactionBody {
         self.0.validity_interval_start
     }
 
+    // cddl-codegen:replace-start
     pub fn set_mint(&mut self, mint: &Mint) {
         // hand-edit
         self.0.mint = Some(cml_multi_era::babbage::utils::BabbageMint::from(Into::<
@@ -731,7 +730,13 @@ impl BabbageTransactionBody {
             mint.clone(),
         )))
     }
+    // cddl-codegen:replaces
+    // pub fn set_mint(&mut self, mint: &BabbageMint) {
+    //    self.0.mint = Some(mint.clone().into())
+    // }
+    // cddl-codegen:replace-end
 
+    // cddl-codegen:replace-start
     pub fn mint(&self) -> Option<Mint> {
         // hand-edit
         self.0
@@ -739,6 +744,11 @@ impl BabbageTransactionBody {
             .as_ref()
             .map(|mint| mint.to_mint().to_owned().into())
     }
+    // cddl-codegen:replaces
+    // pub fn mint(&self) -> Option<BabbageMint> {
+    //     self.0.mint.clone().map(std::convert::Into::into)
+    // }
+    // cddl-codegen:replace-end
 
     pub fn set_script_data_hash(&mut self, script_data_hash: &ScriptDataHash) {
         self.0.script_data_hash = Some(script_data_hash.clone().into())

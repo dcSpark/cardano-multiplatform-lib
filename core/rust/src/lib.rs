@@ -27,14 +27,6 @@ use derivative::Derivative;
 use cbor_event::{de::Deserializer, se::Serializer};
 use std::io::{BufRead, Seek, Write};
 
-pub type Epoch = u64;
-
-pub type Slot = u64;
-
-pub type TransactionIndex = u16;
-
-pub type CertificateIndex = u64;
-
 #[derive(Clone, Debug, Derivative)]
 #[derivative(
     Eq,

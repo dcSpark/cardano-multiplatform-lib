@@ -49,7 +49,7 @@ nonce = [
   tag: 1, hash: nonce_hash
 ]
 
-vkeywitness = [ $vkey, ed25519_signature ]
+vkeywitness = [ $vkey, ed25519_signature ] ; @used_as_elem
 
 ; this is defined in the byron era:
 addr_attributes = _CDDL_CODEGEN_EXTERN_TYPE_
@@ -59,7 +59,7 @@ bootstrap_witness =
   , signature  : ed25519_signature
   , chain_code : bytes .size 32
   , attributes : bytes .cbor addr_attributes
-  ]
+  ] ; @used_as_elem
 
 
 ; all types hand-coded here:
@@ -68,7 +68,7 @@ VRF_vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 natural = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 KES_vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 ed25519_signature = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-ed25519_key_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+ed25519_key_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @used_as_elem
 genesis_delegate_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 genesis_hash           = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 VRF_key_hash           = _CDDL_CODEGEN_RAW_BYTES_TYPE_

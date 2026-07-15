@@ -336,9 +336,9 @@ impl TransactionMetadatum {
     pub fn new_bytes(bytes: Vec<u8>) -> Result<Self, DeserializeError> {
         if bytes.len() > METADATA_MAX_LEN {
             return Err(DeserializeFailure::RangeCheck {
-                found: bytes.len() as isize,
+                found: bytes.len() as i128,
                 min: None,
-                max: Some(METADATA_MAX_LEN as isize),
+                max: Some(METADATA_MAX_LEN as i128),
             }
             .into());
         }
@@ -351,9 +351,9 @@ impl TransactionMetadatum {
     pub fn new_text(text: String) -> Result<Self, DeserializeError> {
         if text.len() > METADATA_MAX_LEN {
             return Err(DeserializeFailure::RangeCheck {
-                found: text.len() as isize,
+                found: text.len() as i128,
                 min: None,
-                max: Some(METADATA_MAX_LEN as isize),
+                max: Some(METADATA_MAX_LEN as i128),
             }
             .into());
         }
@@ -514,9 +514,9 @@ impl Deserialize for TransactionMetadatum {
                     .and_then(|(bytes, enc)| {
                         if bytes.len() > METADATA_MAX_LEN {
                             Err(DeserializeFailure::RangeCheck {
-                                found: bytes.len() as isize,
+                                found: bytes.len() as i128,
                                 min: None,
-                                max: Some(METADATA_MAX_LEN as isize),
+                                max: Some(METADATA_MAX_LEN as i128),
                             }
                             .into())
                         } else {
@@ -532,9 +532,9 @@ impl Deserialize for TransactionMetadatum {
                     .and_then(|(text, enc)| {
                         if text.len() > METADATA_MAX_LEN {
                             Err(DeserializeFailure::RangeCheck {
-                                found: text.len() as isize,
+                                found: text.len() as i128,
                                 min: None,
-                                max: Some(METADATA_MAX_LEN as isize),
+                                max: Some(METADATA_MAX_LEN as i128),
                             }
                             .into())
                         } else {

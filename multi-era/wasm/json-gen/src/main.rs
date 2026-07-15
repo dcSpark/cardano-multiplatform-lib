@@ -1,5 +1,6 @@
 fn main() {
     cml_multi_era_json_schema_gen::export_schemas();
-    // We export ALL of the JSON types included in cml-chain
+    // cddl-codegen:insert-start
     cml_chain_json_schema_gen::export_schemas();
+    // cddl-codegen:insert-end
 }

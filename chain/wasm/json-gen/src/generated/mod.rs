@@ -15,6 +15,7 @@ pub fn export_schemas() {
     if !schema_path.exists() {
         std::fs::create_dir(schema_path).unwrap();
     }
+    // cddl-codegen:insert-start
     // copy over custom ones
     for custom_schema in std::fs::read_dir(
         std::path::Path::new("..")
@@ -38,6 +39,7 @@ pub fn export_schemas() {
         std::fs::copy(old_path, new_path).unwrap();
         //}
     }
+    // cddl-codegen:insert-end
     // address
     gen_json_schema!(cml_chain::address::Address);
     gen_json_schema!(cml_chain::address::RewardAccount);

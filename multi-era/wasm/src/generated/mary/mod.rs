@@ -4,15 +4,16 @@
 use crate::generated::allegra::{AllegraAuxiliaryData, AllegraTransactionWitnessSet};
 use crate::generated::shelley::{ShelleyHeader, ShelleyUpdate};
 use crate::generated::{
-    AllegraCertificateList, AllegraTransactionWitnessSetList, MapPolicyIdToMapAssetNameToI64,
-    MapRewardAccountToCoin, MapTransactionIndexToAllegraAuxiliaryData, MaryTransactionBodyList,
-    MaryTransactionOutputList, TransactionInputList,
+    AllegraCertificateList, AllegraTransactionWitnessSetList,
+    MapTransactionIndexToAllegraAuxiliaryData, MaryTransactionBodyList, MaryTransactionOutputList,
 };
-use cml_chain_wasm::assets::{Coin, Mint};
-use cml_chain_wasm::{Value, Withdrawals, address::Address};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use cml_crypto_wasm::AuxiliaryDataHash;
-use wasm_bindgen::prelude::wasm_bindgen;
+use cml_chain_wasm::address::Address;
+use cml_chain_wasm::assets::{Coin, Mint, Value};
+use cml_chain_wasm::collections::TransactionInputList;
+use cml_chain_wasm::crypto::AuxiliaryDataHash;
+use cml_chain_wasm::Withdrawals;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

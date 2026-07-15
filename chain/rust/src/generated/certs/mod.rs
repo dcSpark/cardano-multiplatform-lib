@@ -301,7 +301,7 @@ impl DNSName {
             return Err(DeserializeError::new(
                 "DNSName",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
+                    found: inner.len() as i128,
                     min: Some(0),
                     max: Some(128),
                 },
@@ -443,7 +443,7 @@ impl Ipv4 {
             return Err(DeserializeError::new(
                 "Ipv4",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
+                    found: inner.len() as i128,
                     min: Some(4),
                     max: Some(4),
                 },
@@ -486,7 +486,7 @@ impl Ipv6 {
             return Err(DeserializeError::new(
                 "Ipv6",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
+                    found: inner.len() as i128,
                     min: Some(16),
                     max: Some(16),
                 },
@@ -947,7 +947,7 @@ impl Url {
             return Err(DeserializeError::new(
                 "Url",
                 DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
+                    found: inner.len() as i128,
                     min: Some(0),
                     max: Some(128),
                 },

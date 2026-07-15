@@ -6,24 +6,24 @@ use crate::generated::shelley::{
 };
 use crate::generated::{
     AllegraCertificateList, AllegraTransactionBodyList, AllegraTransactionWitnessSetList,
-    BootstrapWitnessList, MapRewardAccountToCoin, MapStakeCredentialToDeltaCoin,
-    MapTransactionIndexToAllegraAuxiliaryData, ShelleyTransactionOutputList, TransactionInputList,
-    VkeywitnessList,
+    MapTransactionIndexToAllegraAuxiliaryData, ShelleyTransactionOutputList,
 };
-use cml_chain_wasm::Epoch;
 use cml_chain_wasm::assets::Coin;
 use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMAFormatAuxData};
-use cml_chain_wasm::certs::StakeCredential;
 use cml_chain_wasm::certs::{
-    PoolRetirement, StakeDelegation, StakeDeregistration, StakeRegistration,
+    PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration, StakeRegistration,
 };
-use cml_chain_wasm::NativeScriptList;
-use cml_chain_wasm::Withdrawals;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use cml_crypto_wasm::Ed25519KeyHash;
-use cml_crypto_wasm::{AuxiliaryDataHash, GenesisDelegateHash, GenesisHash, VRFKeyHash};
-use cml_multi_era::allegra::MIRPot;
-use wasm_bindgen::prelude::wasm_bindgen;
+use cml_chain_wasm::collections::{
+    BootstrapWitnessList, MapStakeCredentialToDeltaCoin, NativeScriptList, TransactionInputList,
+    VkeywitnessList,
+};
+use cml_chain_wasm::crypto::{
+    AuxiliaryDataHash, Ed25519KeyHash, GenesisDelegateHash, GenesisHash, VRFKeyHash,
+};
+use cml_chain_wasm::{Epoch, Withdrawals};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+pub use cml_multi_era::allegra::MIRPot;
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

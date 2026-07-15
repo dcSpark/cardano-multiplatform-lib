@@ -15,6 +15,7 @@ pub mod collections;
 pub mod crypto;
 pub mod governance;
 pub mod plutus;
+pub mod requested_collections;
 pub mod transaction;
 pub use crate::NonemptySetBootstrapWitness;
 pub use crate::NonemptySetCertificate;
@@ -30,16 +31,16 @@ pub use crate::SetCommitteeColdCredential;
 pub use crate::SetEd25519KeyHash;
 pub use crate::SetTransactionInput;
 
-pub use cml_core_wasm::Int;
-
 use address::RewardAccount;
 use assets::{AssetName, Coin, NonZeroInt64};
 use auxdata::AuxiliaryData;
-use certs::{Certificate, CommitteeColdCredential, Relay, StakeCredential};
+use certs::{Certificate, CommitteeColdCredential, Credential, Relay};
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use cml_core_wasm::{
+    Int, impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into,
+};
 use crypto::{BootstrapWitness, Ed25519KeyHash, ScriptHash, Vkeywitness};
 use governance::{GovActionId, ProposalProcedure, Voter, VotingProcedure};
 use plutus::{
@@ -55,6 +56,22 @@ impl_wasm_list_needs_into!(
     cml_chain::assets::AssetName,
     AssetName,
     AssetNameList,
+    true,
+    false
+);
+
+impl_wasm_list_needs_into!(
+    cml_chain::crypto::BootstrapWitness,
+    BootstrapWitness,
+    BootstrapWitnessList,
+    true,
+    false
+);
+
+impl_wasm_list_needs_into!(
+    cml_chain::certs::Certificate,
+    Certificate,
+    CertificateList,
     true,
     false
 );
@@ -145,6 +162,14 @@ impl DRepVotingThresholds {
 }
 
 pub type DeltaCoin = Int;
+
+impl_wasm_list_needs_into!(
+    cml_chain::crypto::Ed25519KeyHash,
+    Ed25519KeyHash,
+    Ed25519KeyHashList,
+    true,
+    false
+);
 
 pub type Epoch = u64;
 
@@ -688,6 +713,14 @@ impl PoolVotingThresholds {
 
 pub type Port = u16;
 
+impl_wasm_list_needs_into!(
+    cml_chain::governance::ProposalProcedure,
+    ProposalProcedure,
+    ProposalProcedureList,
+    true,
+    false
+);
+
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ProtocolParamUpdate(cml_chain::ProtocolParamUpdate);
@@ -1102,6 +1135,14 @@ impl_wasm_list_needs_into!(
 
 pub type TransactionIndex = u16;
 
+impl_wasm_list_needs_into!(
+    cml_chain::transaction::TransactionInput,
+    TransactionInput,
+    TransactionInputList,
+    true,
+    false
+);
+
 pub type TransactionMetadatumLabel = u64;
 
 impl_wasm_list_needs_into!(
@@ -1143,6 +1184,14 @@ impl UnitInterval {
     }
 }
 
+impl_wasm_list_needs_into!(
+    cml_chain::crypto::Vkeywitness,
+    Vkeywitness,
+    VkeywitnessList,
+    true,
+    false
+);
+
 impl_wasm_list_needs_into!(cml_chain::governance::Voter, Voter, VoterList, true, false);
 
 #[derive(Clone, Debug)]
@@ -1173,51 +1222,3 @@ impl Withdrawals {
         RewardAccountList(self.0.keys().cloned().collect::<Vec<_>>())
     }
 }
-
-impl_wasm_list_needs_into!(
-    cml_chain::crypto::BootstrapWitness,
-    BootstrapWitness,
-    BootstrapWitnessList,
-    true,
-    false
-);
-
-impl_wasm_list_needs_into!(
-    cml_chain::certs::Certificate,
-    Certificate,
-    CertificateList,
-    true,
-    false
-);
-
-impl_wasm_list_needs_into!(
-    cml_chain::crypto::Ed25519KeyHash,
-    Ed25519KeyHash,
-    Ed25519KeyHashList,
-    true,
-    false
-);
-
-impl_wasm_list_needs_into!(
-    cml_chain::governance::ProposalProcedure,
-    ProposalProcedure,
-    ProposalProcedureList,
-    true,
-    false
-);
-
-impl_wasm_list_needs_into!(
-    cml_chain::transaction::TransactionInput,
-    TransactionInput,
-    TransactionInputList,
-    true,
-    false
-);
-
-impl_wasm_list_needs_into!(
-    cml_chain::crypto::Vkeywitness,
-    Vkeywitness,
-    VkeywitnessList,
-    true,
-    false
-);

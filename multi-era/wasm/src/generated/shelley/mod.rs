@@ -1,13 +1,10 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_multi_era::allegra::MIRPot;
+use crate::generated::allegra::MIRPot;
 use crate::generated::{
-    BootstrapWitnessList, Ed25519KeyHashList, GenesisHashList, MapRewardAccountToCoin,
-    MapStakeCredentialToCoin, MapTransactionIndexToMetadata, MultisigScriptList,
-    ShelleyCertificateList, ShelleyRelayList, ShelleyTransactionBodyList,
-    ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList, TransactionInputList,
-    VkeywitnessList,
+    MultisigScriptList, ShelleyCertificateList, ShelleyRelayList, ShelleyTransactionBodyList,
+    ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
 };
 use cml_chain_wasm::address::{Address, RewardAccount};
 use cml_chain_wasm::assets::Coin;
@@ -17,15 +14,18 @@ use cml_chain_wasm::certs::{
     Ipv4, Ipv6, PoolMetadata, PoolRetirement, SingleHostAddr, StakeCredential, StakeDelegation,
     StakeDeregistration, StakeRegistration,
 };
-use cml_chain_wasm::crypto::{KESSignature, Nonce, VRFCert, Vkey};
+use cml_chain_wasm::collections::{
+    BootstrapWitnessList, Ed25519KeyHashList, GenesisHashList, MapStakeCredentialToCoin,
+    MapTransactionIndexToMetadata, TransactionInputList, VkeywitnessList,
+};
+use cml_chain_wasm::crypto::{
+    AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, Ed25519KeyHash, GenesisDelegateHash,
+    GenesisHash, KESSignature, Nonce, VRFCert, VRFKeyHash, VRFVkey, Vkey,
+};
 use cml_chain_wasm::{Epoch, Port, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use cml_crypto_wasm::{
-    AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, Ed25519KeyHash, GenesisDelegateHash,
-    GenesisHash, VRFKeyHash, VRFVkey,
-};
-use wasm_bindgen::prelude::{JsError, wasm_bindgen};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -64,6 +64,8 @@ impl GenesisKeyDelegation {
         ))
     }
 }
+
+pub type MapGenesisHashToShelleyProtocolParamUpdate = ShelleyProposedProtocolParameterUpdates;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -844,7 +846,7 @@ impl ShelleyProposedProtocolParameterUpdates {
     }
 
     pub fn keys(&self) -> GenesisHashList {
-        GenesisHashList(self.0.keys().cloned().collect::<Vec<_>>())
+        self.0.keys().cloned().collect::<Vec<_>>().into()
     }
 }
 

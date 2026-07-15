@@ -10,29 +10,33 @@ use noop_proc_macro::wasm_bindgen;
 #[cfg(feature = "used_from_wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::shelley::{
-    GenesisKeyDelegation, ShelleyHeader, ShelleyPoolParams, ShelleyPoolRegistration,
-    ShelleyTransactionOutput, ShelleyUpdate,
+use crate::generated::shelley::{
+    GenesisKeyDelegation, ShelleyHeader, ShelleyPoolRegistration, ShelleyTransactionOutput,
+    ShelleyUpdate,
 };
 use cbor_encodings::{
     AllegraBlockEncoding, AllegraTransactionBodyEncoding, AllegraTransactionEncoding,
-    AllegraTransactionWitnessSetEncoding,
+    AllegraTransactionWitnessSetEncoding, MoveInstantaneousRewardEncoding,
+    MoveInstantaneousRewardsCertEncoding,
 };
-use cml_chain::Withdrawals;
+use cml_chain::address::RewardAccount;
 use cml_chain::assets::Coin;
 use cml_chain::auxdata::{ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain::certs::{
     PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration, StakeRegistration,
 };
-use cml_chain::crypto::{AuxiliaryDataHash, BootstrapWitness, Vkeywitness};
+use cml_chain::crypto::{
+    AuxiliaryDataHash, BootstrapWitness, Ed25519KeyHash, GenesisDelegateHash, GenesisHash,
+    VRFKeyHash, Vkeywitness,
+};
 use cml_chain::transaction::{NativeScript, TransactionInput};
-use cml_chain::{DeltaCoin, LenEncoding, TransactionIndex};
-use cml_core::Epoch;
+use cml_chain::{DeltaCoin, Epoch, TransactionIndex, Withdrawals};
+use crate::shelley::ShelleyPoolParams;
+use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_crypto::{Ed25519KeyHash, GenesisDelegateHash, GenesisHash, VRFKeyHash};
+use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-
-use self::cbor_encodings::{MoveInstantaneousRewardEncoding, MoveInstantaneousRewardsCertEncoding};
+use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AllegraAuxiliaryData {

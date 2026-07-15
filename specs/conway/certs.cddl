@@ -26,7 +26,7 @@ certificate = [
   reg_drep_cert //
   unreg_drep_cert //
   update_drep_cert
-]
+] ; @used_as_elem
 
 stake_registration = (tag: 0, stake_credential)
 stake_deregistration = (tag: 1, stake_credential)

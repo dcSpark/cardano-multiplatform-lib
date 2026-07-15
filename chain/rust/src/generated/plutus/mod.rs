@@ -14,12 +14,13 @@ pub use crate::ConstrPlutusData;
 pub use crate::PlutusMap;
 pub use utils::PlutusScript;
 
-use crate::generated::SubCoin;
+use crate::generated::{Rational, SubCoin};
 use cbor_encodings::{
     CostModelsEncoding, ExUnitPricesEncoding, ExUnitsEncoding, LegacyRedeemerEncoding,
     PlutusV1ScriptEncoding, PlutusV2ScriptEncoding, PlutusV3ScriptEncoding, RedeemerKeyEncoding,
     RedeemerValEncoding,
 };
+use cml_core::error::*;
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
@@ -111,14 +112,19 @@ impl ExUnitPrices {
 }
 
 #[derive(
-    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
 )]
-#[derivative(PartialEq, Hash, Eq)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ExUnits {
     pub mem: u64,
     pub steps: u64,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
-    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<ExUnitsEncoding>,
 }
 
@@ -483,16 +489,19 @@ impl RedeemerKey {
 
 #[derive(
     Copy,
-    Eq,
-    Hash,
-    PartialEq,
-    Ord,
-    PartialOrd,
     Clone,
     Debug,
     serde::Deserialize,
     serde::Serialize,
     schemars::JsonSchema,
+    derivative::Derivative,
+)]
+#[derivative(
+    Eq,
+    PartialEq,
+    Ord = "feature_allow_slow_enum",
+    PartialOrd = "feature_allow_slow_enum",
+    Hash
 )]
 #[wasm_bindgen]
 pub enum RedeemerTag {

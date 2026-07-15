@@ -1,6 +1,7 @@
 use cbor_event::{Sz, de::Deserializer, se::Serializer};
+use crate::Slot;
 use cml_core::{
-    Int, Slot,
+    Int,
     error::{DeserializeError, DeserializeFailure},
     serialization::{Deserialize, LenEncoding, Serialize, fit_sz, sz_max},
 };

@@ -38,11 +38,12 @@ use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{CBORReadLen, Deserialize};
-use cml_core::{ArithmeticError, DeserializeError, DeserializeFailure, Slot};
+use crate::Slot;
+use cml_core::{ArithmeticError, DeserializeError, DeserializeFailure};
 use cml_crypto::{Ed25519KeyHash, RawBytesEncoding, ScriptDataHash, ScriptHash, Serialize};
 use num::Zero;
 use rand::RngExt;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::BTreeSet;
 use std::convert::TryInto;
 use std::io::{BufRead, Seek, Write};
 use std::ops::DerefMut;
@@ -651,7 +652,6 @@ impl TransactionBuilder {
             .filter(|i| by(available_inputs[**i].utxo_info.amount()).is_some())
             .cloned()
             .collect::<Vec<usize>>();
-        let mut associated_indices: HashMap<TransactionOutput, Vec<usize>> = HashMap::new();
         let mut outputs = self
             .outputs
             .iter()
@@ -659,7 +659,10 @@ impl TransactionBuilder {
             .cloned()
             .collect::<Vec<TransactionOutput>>();
         outputs.sort_by_key(|output| by(output.amount()).expect("filtered above"));
-        for output in outputs.iter().rev() {
+        // associated by position in {outputs}: identical outputs must keep separate
+        // associations, otherwise their inputs get merged and added once per duplicate
+        let mut associated_indices: Vec<Vec<usize>> = vec![Vec::new(); outputs.len()];
+        for (output_index, output) in outputs.iter().enumerate().rev() {
             // TODO: how should we adapt this to inputs being associated when running for other assets?
             // if we do these two phases for each asset and don't take into account the other runs for other assets
             // then we over-add (and potentially fail if we don't have plenty of inputs)
@@ -694,16 +697,12 @@ impl TransactionBuilder {
                             .expect("do not call on asset types that aren't in the output"),
                     )
                     .ok_or(ArithmeticError::IntegerOverflow)?;
-                associated_indices
-                    .entry(output.clone())
-                    .or_default()
-                    .push(i);
+                associated_indices[output_index].push(i);
             }
         }
         if !relevant_indices.is_empty() {
             // Phase 2: Improvement
-            for output in outputs.iter_mut() {
-                let associated = associated_indices.get_mut(output).unwrap();
+            for (output, associated) in outputs.iter().zip(associated_indices.iter_mut()) {
                 for i in associated.iter_mut() {
                     let random_index = rng.random_range(0..relevant_indices.len());
                     let j: &mut usize = relevant_indices.get_mut(random_index).unwrap();
@@ -731,8 +730,8 @@ impl TransactionBuilder {
         }
 
         // after finalizing the improvement we need to actually add these results to the builder
-        for output in outputs.iter() {
-            for i in associated_indices.get(output).unwrap().iter() {
+        for associated in associated_indices.iter() {
+            for i in associated.iter() {
                 let input = &available_inputs[*i];
                 let input_fee = self.fee_for_input(input)?;
                 self.add_input(input.clone()).unwrap();
@@ -4024,6 +4023,46 @@ mod tests {
         assert!(!available_indices.contains(&0));
         assert!(available_indices.contains(&1));
         assert!(available_indices.len() < 2);
+    }
+
+    #[test]
+    fn tx_builder_cip2_random_improve_duplicate_outputs() {
+        // two identical outputs must not share an input association: they used to collide
+        // in an output-keyed map, adding every associated input once per duplicate
+        let mut tx_builder = create_tx_builder_with_fee(create_linear_fee(44, 155381));
+        const COST: u64 = 1_000_000;
+        for _ in 0..2 {
+            tx_builder
+                .add_output(
+                    TransactionOutputBuilder::new()
+                        .with_address(
+                            Address::from_bech32(
+                                "addr1vyy6nhfyks7wdu3dudslys37v252w2nwhv0fw2nfawemmnqs6l44z",
+                            )
+                            .unwrap(),
+                        )
+                        .next()
+                        .unwrap()
+                        .with_value(COST)
+                        .build()
+                        .unwrap(),
+                )
+                .unwrap();
+        }
+        for i in 0..8u8 {
+            tx_builder.add_utxo(make_input(i, Value::from(2_000_000)));
+        }
+        let add_inputs_res = tx_builder.select_utxos(CoinSelectionStrategyCIP2::RandomImprove);
+        assert!(add_inputs_res.is_ok(), "{:?}", add_inputs_res.err());
+        let mut seen = std::collections::HashSet::new();
+        for utxo in tx_builder.inputs.iter() {
+            assert!(
+                seen.insert((utxo.input.transaction_id, utxo.input.index)),
+                "input {:?}#{} selected twice",
+                utxo.input.transaction_id,
+                utxo.input.index
+            );
+        }
     }
 
     #[test]

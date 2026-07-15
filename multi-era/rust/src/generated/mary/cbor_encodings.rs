@@ -2,8 +2,6 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use super::*;
-use cml_chain::assets::AssetName;
-use cml_chain::{PolicyId, RewardAccount};
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 

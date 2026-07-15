@@ -3,24 +3,23 @@
 
 use crate::generated::shelley::{ProtocolVersionStruct, ShelleyHeader};
 use crate::generated::{
-    AllegraCertificateList, AlonzoFormatTxOutList, AlonzoRedeemerList, AlonzoTransactionBodyList,
-    AlonzoTransactionWitnessSetList, BootstrapWitnessList, Ed25519KeyHashList, GenesisHashList,
-    MapPolicyIdToMapAssetNameToI64, MapRewardAccountToCoin,
-    MapTransactionIndexToAlonzoAuxiliaryData, TransactionInputList, VkeywitnessList,
+    AllegraCertificateList, AlonzoRedeemerList, AlonzoTransactionBodyList,
+    AlonzoTransactionWitnessSetList, MapTransactionIndexToAlonzoAuxiliaryData,
 };
-use cml_chain_wasm::RequiredSigners;
-use cml_chain_wasm::TransactionIndex;
 use cml_chain_wasm::assets::{Coin, Mint};
 use cml_chain_wasm::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
-use cml_chain_wasm::crypto::Nonce;
+use cml_chain_wasm::collections::{
+    AlonzoFormatTxOutList, BootstrapWitnessList, Ed25519KeyHashList, GenesisHashList,
+    NativeScriptList, PlutusDataList, PlutusV1ScriptList, TransactionInputList, VkeywitnessList,
+};
+use cml_chain_wasm::crypto::{AuxiliaryDataHash, GenesisHash, Nonce, ScriptDataHash};
 use cml_chain_wasm::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData};
-use cml_chain_wasm::{NativeScriptList, PlutusDataList, PlutusV1ScriptList};
-use cml_chain_wasm::{Epoch, NetworkId, Rational, UnitInterval, Withdrawals};
+use cml_chain_wasm::transaction::RequiredSigners;
+use cml_chain_wasm::{Epoch, NetworkId, Rational, TransactionIndex, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use cml_crypto_wasm::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
-use cml_multi_era::alonzo::AlonzoRedeemerTag;
-use wasm_bindgen::prelude::wasm_bindgen;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+pub use cml_multi_era::alonzo::AlonzoRedeemerTag;
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -232,7 +231,7 @@ impl AlonzoProposedProtocolParameterUpdates {
     }
 
     pub fn keys(&self) -> GenesisHashList {
-        GenesisHashList(self.0.keys().cloned().collect::<Vec<_>>())
+        self.0.keys().cloned().collect::<Vec<_>>().into()
     }
 }
 
@@ -779,3 +778,5 @@ impl AlonzoUpdate {
         ))
     }
 }
+
+pub type MapGenesisHashToAlonzoProtocolParamUpdate = AlonzoProposedProtocolParameterUpdates;

@@ -7,27 +7,26 @@ extern crate derivative;
 pub mod allegra;
 pub mod alonzo;
 pub mod babbage;
+mod borrowed_key_types;
 pub mod mary;
 pub mod serialization;
 pub mod shelley;
-
 pub use crate::Block;
 pub use crate::ByronBlock;
 
-use crate::{
-    allegra::{AllegraBlock, AllegraTransactionBody},
-    alonzo::{AlonzoBlock, AlonzoTransactionBody},
-    babbage::{BabbageBlock, BabbageTransactionBody},
-    byron::transaction::ByronTx,
-    mary::{MaryBlock, MaryTransactionBody},
-    shelley::{ShelleyBlock, ShelleyTransactionBody},
-};
+use crate::byron::transaction::ByronTx;
+use allegra::{AllegraBlock, AllegraTransactionBody};
+use alonzo::{AlonzoBlock, AlonzoTransactionBody};
+use babbage::{BabbageBlock, BabbageTransactionBody};
 use cml_chain::crypto::GenesisHash;
-use cml_chain::{address::RewardAccount, transaction::TransactionBody};
-
-pub type GenesisHashList = Vec<GenesisHash>;
-
-pub type RewardAccountList = Vec<RewardAccount>;
+use cml_chain::transaction::TransactionBody;
+use cml_core::error::*;
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::serialization::{LenEncoding, StringEncoding};
+use mary::{MaryBlock, MaryTransactionBody};
+use shelley::{ShelleyBlock, ShelleyTransactionBody};
+use std::collections::BTreeMap;
+use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum MultiEraBlock {

@@ -34,7 +34,7 @@ required_signers = nonempty_set<ed25519_key_hash>
 
 transaction_input = [ transaction_id : transaction_hash
                     , index : uint
-                    ]
+                    ] ; @used_as_key @used_as_elem
 
 alonzo_format_tx_out = [
   address,

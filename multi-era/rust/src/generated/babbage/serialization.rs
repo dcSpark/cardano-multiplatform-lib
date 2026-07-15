@@ -5,11 +5,8 @@ use super::cbor_encodings::*;
 use super::*;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
-use cml_chain::address::RewardAccount;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use cml_crypto::Ed25519KeyHash;
-use cml_crypto::RawBytesEncoding;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for BabbageAuxiliaryData {
@@ -238,7 +235,7 @@ impl Deserialize for BabbageBlock {
                     if matches!(auxiliary_data_set_len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                         break;
                     }
-                    let (auxiliary_data_set_key, auxiliary_data_set_key_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x > 65535 { Err(DeserializeFailure::RangeCheck{ found: x as isize, min: Some(0), max: Some(65535) }.into()) } else { Ok((x, enc)) }).map(|(x, enc)| (x as u16, Some(enc)))?;
+                    let (auxiliary_data_set_key, auxiliary_data_set_key_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x > 65535 { Err(DeserializeFailure::RangeCheck{ found: x as i128, min: Some(0), max: Some(65535) }.into()) } else { Ok((x, enc)) }).map(|(x, enc)| (x as u16, Some(enc)))?;
                     let auxiliary_data_set_value = BabbageAuxiliaryData::deserialize(raw)?;
                     if auxiliary_data_set_table.insert(auxiliary_data_set_key, auxiliary_data_set_value).is_some() {
                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
@@ -256,7 +253,7 @@ impl Deserialize for BabbageBlock {
                     if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
                         break;
                     }
-                    let (invalid_transactions_elem, invalid_transactions_elem_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x > 65535 { Err(DeserializeFailure::RangeCheck{ found: x as isize, min: Some(0), max: Some(65535) }.into()) } else { Ok((x, enc)) }).map(|(x, enc)| (x as u16, Some(enc)))?;
+                    let (invalid_transactions_elem, invalid_transactions_elem_encoding) = raw.unsigned_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x > 65535 { Err(DeserializeFailure::RangeCheck{ found: x as i128, min: Some(0), max: Some(65535) }.into()) } else { Ok((x, enc)) }).map(|(x, enc)| (x as u16, Some(enc)))?;
                     invalid_transactions_arr.push(invalid_transactions_elem);
                     invalid_transactions_elem_encodings.push(invalid_transactions_elem_encoding);
                 }
@@ -616,15 +613,15 @@ impl Deserialize for BabbageFormatAuxData {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            );
+                            )
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -632,7 +629,7 @@ impl Deserialize for BabbageFormatAuxData {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
                     }
                 }
                 read += 1;
@@ -844,15 +841,15 @@ impl Deserialize for BabbageFormatTxOut {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            );
+                            )
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -860,7 +857,7 @@ impl Deserialize for BabbageFormatTxOut {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
                     }
                 }
                 read += 1;
@@ -1979,15 +1976,15 @@ impl Deserialize for BabbageProtocolParamUpdate {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            );
+                            )
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -1995,7 +1992,7 @@ impl Deserialize for BabbageProtocolParamUpdate {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
                     }
                 }
                 read += 1;
@@ -2305,7 +2302,7 @@ impl Deserialize for BabbageScriptRef {
                         found: tag,
                         expected: 24,
                     }
-                    .into());
+                    .into())
                 }
             };
             Ok(Self {
@@ -3366,7 +3363,11 @@ impl Deserialize for BabbageTransactionBody {
                 mint,
                 script_data_hash,
                 collateral_inputs,
+                // cddl-codegen:replace-start
                 required_signers: required_signers.map(Into::into),
+                // cddl-codegen:replaces
+                // required_signers,
+                // cddl-codegen:replace-end
                 network_id,
                 collateral_return,
                 total_collateral,
@@ -3437,7 +3438,7 @@ impl Deserialize for BabbageTransactionOutput {
             let deser_variant: Result<_, DeserializeError> = AlonzoFormatTxOut::deserialize(raw);
             match deser_variant {
                 Ok(alonzo_format_tx_out) => {
-                    return Ok(Self::AlonzoFormatTxOut(alonzo_format_tx_out));
+                    return Ok(Self::AlonzoFormatTxOut(alonzo_format_tx_out))
                 }
                 Err(e) => {
                     errs.push(e.annotate("AlonzoFormatTxOut"));
@@ -3449,7 +3450,7 @@ impl Deserialize for BabbageTransactionOutput {
             let deser_variant: Result<_, DeserializeError> = BabbageFormatTxOut::deserialize(raw);
             match deser_variant {
                 Ok(babbage_format_tx_out) => {
-                    return Ok(Self::BabbageFormatTxOut(babbage_format_tx_out));
+                    return Ok(Self::BabbageFormatTxOut(babbage_format_tx_out))
                 }
                 Err(e) => {
                     errs.push(e.annotate("BabbageFormatTxOut"));
@@ -4020,15 +4021,15 @@ impl Deserialize for BabbageTransactionWitnessSet {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            );
+                            )
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -4036,7 +4037,7 @@ impl Deserialize for BabbageTransactionWitnessSet {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
                     }
                 }
                 read += 1;

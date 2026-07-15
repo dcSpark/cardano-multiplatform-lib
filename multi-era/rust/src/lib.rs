@@ -10,5 +10,6 @@ pub mod byron;
 pub mod utils;
 
 // Extern-type re-exports so the generated glue (`pub use crate::X;`) resolves.
+pub use babbage::utils::BabbageMint;
 pub use byron::block::ByronBlock;
 pub use cml_chain::block::Block;

@@ -38,12 +38,12 @@ use cml_chain::transaction::{
     AlonzoFormatTxOut, ScriptRef, TransactionInput, TransactionOutput, TransactionWitnessSet,
 };
 use cml_chain::{
-    Coin, DRepVotingThresholds, NetworkId, OrderedHashMap, PoolVotingThresholds,
-    ProtocolParamUpdate, Rational, UnitInterval, Value, Withdrawals,
+    Coin, DRepVotingThresholds, Epoch, NetworkId, OrderedHashMap, PoolVotingThresholds,
+    ProtocolParamUpdate, Rational, TransactionIndex, UnitInterval, Value, Withdrawals,
 };
+use cml_core::Int;
 use cml_core::error::{DeserializeError, DeserializeFailure};
 use cml_core::serialization::*;
-use cml_core::{Epoch, Int, TransactionIndex};
 use cml_crypto::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, Ed25519KeyHash, GenesisHash,
     RawBytesEncoding, ScriptDataHash, TransactionHash, VRFVkey, blake2b256,
@@ -1336,12 +1336,9 @@ impl From<BabbageTransactionOutput> for MultiEraTransactionOutput {
                 babbage.address.clone(),
                 babbage.amount.clone(),
                 babbage.datum_option.clone(),
-                babbage
-                    .script_reference
-                    .clone()
-                    .map(|script| {
-                        ScriptRef::new(crate::babbage::BabbageScript::from(script).into())
-                    }),
+                babbage.script_reference.clone().map(|script| {
+                    ScriptRef::new(crate::babbage::BabbageScript::from(script).into())
+                }),
             ),
         })
     }

@@ -10,8 +10,10 @@ use cml_core::error::*;
 use cml_core::serialization::*;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
+// cddl-codegen:insert-start
 // PlutusData::Bytes uses this specific encoding:
 use crate::utils::{read_bounded_bytes, write_bounded_bytes};
+// cddl-codegen:insert-end
 
 impl Serialize for CostModels {
     fn serialize<'se, W: Write>(
@@ -133,7 +135,7 @@ impl Deserialize for CostModels {
                                 .and_then(|(x, enc)| {
                                     if x > 9223372036854775807 {
                                         Err(DeserializeFailure::RangeCheck {
-                                            found: x as isize,
+                                            found: x as i128,
                                             min: Some(-9223372036854775808),
                                             max: Some(9223372036854775807),
                                         }
@@ -151,7 +153,7 @@ impl Deserialize for CostModels {
                                 .and_then(|(x, enc)| {
                                     if x < -9223372036854775808 {
                                         Err(DeserializeFailure::RangeCheck {
-                                            found: x as isize,
+                                            found: x as i128,
                                             min: Some(-9223372036854775808),
                                             max: Some(9223372036854775807),
                                         }
@@ -614,11 +616,20 @@ impl Serialize for PlutusData {
                 list_encoding.end(serializer, force_canonical)
             }
             PlutusData::Integer(integer) => integer.serialize(serializer, force_canonical),
-            // hand-written
+            // cddl-codegen:replace-start
             PlutusData::Bytes {
                 bytes,
                 bytes_encoding,
             } => write_bounded_bytes(serializer, bytes, bytes_encoding, force_canonical),
+            // cddl-codegen:replaces
+            // PlutusData::Bytes {
+            //     bytes,
+            //     bytes_encoding,
+            // } => serializer.write_bytes_sz(
+            //     bytes,
+            //     bytes_encoding.to_str_len_sz(bytes.len() as u64, force_canonical),
+            // ),
+            // cddl-codegen:replace-end
         }
     }
 }
@@ -626,7 +637,7 @@ impl Serialize for PlutusData {
 impl Deserialize for PlutusData {
     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-// hand-coded based on generated code
+            // cddl-codegen:replace-start
             // 1) we use bounded bytes not
             // 2) to give better errors / direct branch on cbor_type()?
             match raw.cbor_type()? {
@@ -688,6 +699,91 @@ impl Deserialize for PlutusData {
                     .map_err(|e| e.annotate("Bytes")),
                 _ => Err(DeserializeFailure::NoVariantMatched.into()),
             }
+            // cddl-codegen:replaces
+            // let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            // let mut errs = Vec::new();
+            // let deser_variant: Result<_, DeserializeError> = ConstrPlutusData::deserialize(raw);
+            // match deser_variant {
+            //     Ok(constr_plutus_data) => return Ok(Self::ConstrPlutusData(constr_plutus_data)),
+            //     Err(e) => {
+            //         errs.push(e.annotate("ConstrPlutusData"));
+            //         raw.as_mut_ref()
+            //             .seek(SeekFrom::Start(initial_position))
+            //             .unwrap();
+            //     }
+            // };
+            // let deser_variant: Result<_, DeserializeError> = PlutusMap::deserialize(raw);
+            // match deser_variant {
+            //     Ok(map) => return Ok(Self::Map(map)),
+            //     Err(e) => {
+            //         errs.push(e.annotate("Map"));
+            //         raw.as_mut_ref()
+            //             .seek(SeekFrom::Start(initial_position))
+            //             .unwrap();
+            //     }
+            // };
+            // let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            //     let mut list_arr = Vec::new();
+            //     let len = raw.array_sz()?;
+            //     let list_encoding = len.into();
+            //     while match len {
+            //         cbor_event::LenSz::Len(n, _) => (list_arr.len() as u64) < n,
+            //         cbor_event::LenSz::Indefinite => true,
+            //     } {
+            //         if matches!(len, cbor_event::LenSz::Indefinite)
+            //             && raw.cbor_type()? == cbor_event::Type::Special
+            //             && raw.special_break()?
+            //         {
+            //             break;
+            //         }
+            //         list_arr.push(PlutusData::deserialize(raw)?);
+            //     }
+            //     Ok((list_arr, list_encoding))
+            // })(raw);
+            // match deser_variant {
+            //     Ok((list, list_encoding)) => {
+            //         return Ok(Self::List {
+            //             list,
+            //             list_encoding,
+            //         });
+            //     }
+            //     Err(e) => {
+            //         errs.push(e.annotate("List"));
+            //         raw.as_mut_ref()
+            //             .seek(SeekFrom::Start(initial_position))
+            //             .unwrap();
+            //     }
+            // };
+            // let deser_variant: Result<_, DeserializeError> = BigInteger::deserialize(raw);
+            // match deser_variant {
+            //     Ok(integer) => return Ok(Self::Integer(integer)),
+            //     Err(e) => {
+            //         errs.push(e.annotate("Integer"));
+            //         raw.as_mut_ref()
+            //             .seek(SeekFrom::Start(initial_position))
+            //             .unwrap();
+            //     }
+            // };
+            // let deser_variant: Result<_, DeserializeError> = raw
+            //     .bytes_sz()
+            //     .map_err(Into::<DeserializeError>::into)
+            //     .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)));
+            // match deser_variant {
+            //     Ok((bytes, bytes_encoding)) => {
+            //         return Ok(Self::Bytes {
+            //             bytes,
+            //             bytes_encoding,
+            //         });
+            //     }
+            //     Err(e) => {
+            //         errs.push(e.annotate("Bytes"));
+            //         raw.as_mut_ref()
+            //             .seek(SeekFrom::Start(initial_position))
+            //             .unwrap();
+            //     }
+            // };
+            // Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
+            // cddl-codegen:replace-end
         })()
         .map_err(|e| e.annotate("PlutusData"))
     }

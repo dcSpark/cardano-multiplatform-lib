@@ -4,36 +4,35 @@
 pub mod cbor_encodings;
 pub mod serialization;
 pub mod utils;
+pub use crate::BabbageMint;
 
-use crate::generated::babbage::cbor_encodings::BabbageScriptRefEncoding;
 use crate::generated::allegra::AllegraCertificate;
 use crate::generated::alonzo::AlonzoRedeemer;
 use crate::generated::shelley::ProtocolVersionStruct;
 use cbor_encodings::{
     BabbageBlockEncoding, BabbageFormatAuxDataEncoding, BabbageFormatTxOutEncoding,
-    BabbageProtocolParamUpdateEncoding, BabbageTransactionBodyEncoding, BabbageTransactionEncoding,
-    BabbageTransactionWitnessSetEncoding, BabbageUpdateEncoding,
+    BabbageProtocolParamUpdateEncoding, BabbageScriptRefEncoding, BabbageTransactionBodyEncoding,
+    BabbageTransactionEncoding, BabbageTransactionWitnessSetEncoding, BabbageUpdateEncoding,
 };
-use cml_chain::address::Address;
+use cml_chain::address::{Address, RewardAccount};
 use cml_chain::assets::{Coin, Value};
 use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain::block::Header;
 use cml_chain::crypto::{
-    AuxiliaryDataHash, BootstrapWitness, GenesisHash, ScriptDataHash, Vkeywitness,
+    AuxiliaryDataHash, BootstrapWitness, Ed25519KeyHash, GenesisHash, ScriptDataHash, Vkeywitness,
 };
 use cml_chain::plutus::{
     CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script,
 };
-use cml_chain::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, TransactionInput};
-use cml_chain::{Epoch, NetworkId, Rational, RequiredSigners, UnitInterval, Withdrawals};
-
-use cml_core::TransactionIndex;
+use cml_chain::transaction::{
+    AlonzoFormatTxOut, DatumOption, NativeScript, RequiredSigners, TransactionInput,
+};
+use cml_chain::{Epoch, NetworkId, Rational, TransactionIndex, UnitInterval, Withdrawals};
+use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::LenEncoding;
-
+use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-
-use self::utils::BabbageMint;
+use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum BabbageAuxiliaryData {

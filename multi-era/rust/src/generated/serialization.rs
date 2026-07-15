@@ -15,7 +15,11 @@ impl Serialize for MultiEraBlock {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
+            // cddl-codegen:replace-start
             MultiEraBlock::Byron(byron) => cbor_event::se::Serialize::serialize(byron, serializer),
+            // cddl-codegen:replaces
+            // MultiEraBlock::Byron(byron) => byron.serialize(serializer, force_canonical),
+            // cddl-codegen:replace-end
             MultiEraBlock::Shelley(shelley) => shelley.serialize(serializer, force_canonical),
             MultiEraBlock::Allegra(allegra) => allegra.serialize(serializer, force_canonical),
             MultiEraBlock::Mary(mary) => mary.serialize(serializer, force_canonical),
@@ -114,9 +118,13 @@ impl Serialize for MultiEraTransactionBody {
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
         match self {
+            // cddl-codegen:replace-start
             MultiEraTransactionBody::Byron(byron) => {
                 cbor_event::se::Serialize::serialize(byron, serializer)
             }
+            // cddl-codegen:replaces
+            // MultiEraTransactionBody::Byron(byron) => byron.serialize(serializer, force_canonical),
+            // cddl-codegen:replace-end
             MultiEraTransactionBody::Shelley(shelley) => {
                 shelley.serialize(serializer, force_canonical)
             }

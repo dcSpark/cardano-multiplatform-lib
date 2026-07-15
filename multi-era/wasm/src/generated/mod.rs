@@ -9,48 +9,41 @@
 pub mod allegra;
 pub mod alonzo;
 pub mod babbage;
+mod borrowed_collections;
 pub mod collections;
 pub mod mary;
 pub mod shelley;
 pub use crate::Block;
 pub use crate::ByronBlock;
 
-use crate::{
-    allegra::{
-        AllegraAuxiliaryData, AllegraBlock, AllegraCertificate, AllegraTransactionBody,
-        AllegraTransactionWitnessSet,
-    },
-    alonzo::{
-        AlonzoAuxiliaryData, AlonzoBlock, AlonzoRedeemer, AlonzoTransactionBody,
-        AlonzoTransactionWitnessSet,
-    },
-    babbage::{
-        BabbageAuxiliaryData, BabbageBlock, BabbageTransactionBody, BabbageTransactionOutput,
-        BabbageTransactionWitnessSet,
-    },
-    byron::transaction::ByronTx,
-    mary::{MaryBlock, MaryTransactionBody, MaryTransactionOutput},
-    shelley::{
-        MultisigScript, ShelleyBlock, ShelleyCertificate, ShelleyRelay, ShelleyTransactionBody,
-        ShelleyTransactionOutput, ShelleyTransactionWitnessSet,
-    },
+use allegra::{
+    AllegraAuxiliaryData, AllegraBlock, AllegraCertificate, AllegraTransactionBody,
+    AllegraTransactionWitnessSet,
 };
-use cml_chain_wasm::{
-    AssetNameList, Coin, DeltaCoin, PolicyId, PolicyIdList, RewardAccountList, TransactionIndex,
-    address::RewardAccount,
-    assets::AssetName,
-    auxdata::Metadata,
-    certs::StakeCredential,
-    crypto::{BootstrapWitness, Ed25519KeyHash, Vkeywitness},
-    transaction::{AlonzoFormatTxOut, TransactionBody, TransactionInput},
+use alonzo::{
+    AlonzoAuxiliaryData, AlonzoBlock, AlonzoRedeemer, AlonzoTransactionBody,
+    AlonzoTransactionWitnessSet,
 };
+use babbage::{
+    BabbageAuxiliaryData, BabbageBlock, BabbageTransactionBody, BabbageTransactionOutput,
+    BabbageTransactionWitnessSet,
+};
+use cml_chain_wasm::address::RewardAccount;
+use crate::byron::transaction::ByronTx;
+use cml_chain_wasm::assets::Coin;
+use cml_chain_wasm::PolicyId;
+use cml_chain_wasm::collections::{MapAssetNameToI64, PolicyIdList, RewardAccountList};
+use cml_chain_wasm::crypto::GenesisHash;
+use cml_chain_wasm::transaction::TransactionBody;
+use cml_chain_wasm::TransactionIndex;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core_wasm::{
-    impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list, impl_wasm_list_needs_into,
-    impl_wasm_map,
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use mary::{MaryBlock, MaryTransactionBody, MaryTransactionOutput};
+use shelley::{
+    MultisigScript, ShelleyBlock, ShelleyCertificate, ShelleyRelay, ShelleyTransactionBody,
+    ShelleyTransactionOutput, ShelleyTransactionWitnessSet,
 };
-use cml_crypto_wasm::GenesisHash;
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::prelude::{wasm_bindgen, JsError};
 
 impl_wasm_list_needs_into!(
     cml_multi_era::allegra::AllegraCertificate,
@@ -72,14 +65,6 @@ impl_wasm_list_needs_into!(
     cml_multi_era::allegra::AllegraTransactionWitnessSet,
     AllegraTransactionWitnessSet,
     AllegraTransactionWitnessSetList,
-    true,
-    false
-);
-
-impl_wasm_list_needs_into!(
-    cml_chain::transaction::AlonzoFormatTxOut,
-    AlonzoFormatTxOut,
-    AlonzoFormatTxOutList,
     true,
     false
 );
@@ -131,123 +116,6 @@ impl_wasm_list_needs_into!(
     true,
     false
 );
-
-impl_wasm_list_needs_into!(
-    cml_chain::crypto::BootstrapWitness,
-    BootstrapWitness,
-    BootstrapWitnessList,
-    true,
-    false
-);
-
-impl_wasm_list_needs_into!(
-    cml_chain::crypto::Ed25519KeyHash,
-    Ed25519KeyHash,
-    Ed25519KeyHashList,
-    true,
-    false
-);
-
-impl_wasm_list_needs_into!(
-    cml_chain::crypto::GenesisHash,
-    GenesisHash,
-    GenesisHashList,
-    true,
-    false
-);
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapAssetNameToI64(OrderedHashMap<cml_chain::assets::AssetName, i64>);
-
-impl_wasm_conversions!(OrderedHashMap<cml_chain::assets::AssetName, i64>, MapAssetNameToI64);
-
-#[wasm_bindgen]
-impl MapAssetNameToI64 {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &AssetName, value: i64) -> Option<i64> {
-        self.0.insert(key.clone().into(), value)
-    }
-
-    pub fn get(&self, key: &AssetName) -> Option<i64> {
-        self.0.get(key.as_ref()).copied()
-    }
-
-    pub fn keys(&self) -> AssetNameList {
-        self.0.keys().cloned().collect::<Vec<_>>().into()
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapStakeCredentialToCoin(
-    OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>,
-);
-
-impl_wasm_conversions!(OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>, MapStakeCredentialToCoin);
-
-#[wasm_bindgen]
-impl MapStakeCredentialToCoin {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &StakeCredential, value: Coin) -> Option<Coin> {
-        self.0.insert(key.clone().into(), value)
-    }
-
-    pub fn get(&self, key: &StakeCredential) -> Option<Coin> {
-        self.0.get(key.as_ref()).copied()
-    }
-
-    pub fn keys(&self) -> StakeCredentialList {
-        StakeCredentialList(self.0.keys().cloned().collect::<Vec<_>>())
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapStakeCredentialToDeltaCoin(
-    OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>,
-);
-
-impl_wasm_conversions!(OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>, MapStakeCredentialToDeltaCoin);
-
-#[wasm_bindgen]
-impl MapStakeCredentialToDeltaCoin {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &StakeCredential, value: &DeltaCoin) -> Option<DeltaCoin> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
-    }
-
-    pub fn get(&self, key: &StakeCredential) -> Option<DeltaCoin> {
-        self.0.get(key.as_ref()).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> StakeCredentialList {
-        StakeCredentialList(self.0.keys().cloned().collect::<Vec<_>>())
-    }
-}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -355,37 +223,6 @@ impl MapTransactionIndexToBabbageAuxiliaryData {
     }
 
     pub fn get(&self, key: TransactionIndex) -> Option<BabbageAuxiliaryData> {
-        self.0.get(&key).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> Vec<TransactionIndex> {
-        self.0.keys().copied().collect::<Vec<_>>()
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapTransactionIndexToMetadata(
-    OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::Metadata>,
-);
-
-impl_wasm_conversions!(OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::Metadata>, MapTransactionIndexToMetadata);
-
-#[wasm_bindgen]
-impl MapTransactionIndexToMetadata {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: TransactionIndex, value: &Metadata) -> Option<Metadata> {
-        self.0.insert(key, value.clone().into()).map(Into::into)
-    }
-
-    pub fn get(&self, key: TransactionIndex) -> Option<Metadata> {
         self.0.get(&key).map(|v| v.clone().into())
     }
 
@@ -724,95 +561,3 @@ impl_wasm_list_needs_into!(
     true,
     false
 );
-
-impl_wasm_list_needs_into!(
-    cml_chain::certs::StakeCredential,
-    StakeCredential,
-    StakeCredentialList,
-    true,
-    false
-);
-
-impl_wasm_list_needs_into!(
-    cml_chain::transaction::TransactionInput,
-    TransactionInput,
-    TransactionInputList,
-    true,
-    false
-);
-
-impl_wasm_list_needs_into!(
-    cml_chain::crypto::Vkeywitness,
-    Vkeywitness,
-    VkeywitnessList,
-    true,
-    false
-);
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapRewardAccountToCoin(
-    OrderedHashMap<cml_chain::address::RewardAccount, cml_chain::assets::Coin>,
-);
-
-impl_wasm_conversions!(OrderedHashMap<cml_chain::address::RewardAccount, cml_chain::assets::Coin>, MapRewardAccountToCoin);
-
-#[wasm_bindgen]
-impl MapRewardAccountToCoin {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(&mut self, key: &RewardAccount, value: Coin) -> Option<Coin> {
-        self.0.insert(key.clone().into(), value)
-    }
-
-    pub fn get(&self, key: &RewardAccount) -> Option<Coin> {
-        self.0.get(key.as_ref()).copied()
-    }
-
-    pub fn keys(&self) -> RewardAccountList {
-        self.0.keys().cloned().collect::<Vec<_>>().into()
-    }
-}
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct MapPolicyIdToMapAssetNameToI64(
-    OrderedHashMap<cml_chain::PolicyId, OrderedHashMap<cml_chain::assets::AssetName, i64>>,
-);
-
-impl_wasm_conversions!(OrderedHashMap<cml_chain::PolicyId, OrderedHashMap<cml_chain::assets::AssetName, i64>>, MapPolicyIdToMapAssetNameToI64);
-
-#[wasm_bindgen]
-impl MapPolicyIdToMapAssetNameToI64 {
-    pub fn new() -> Self {
-        Self(OrderedHashMap::new())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn insert(
-        &mut self,
-        key: &PolicyId,
-        value: &MapAssetNameToI64,
-    ) -> Option<MapAssetNameToI64> {
-        self.0
-            .insert(key.clone().into(), value.clone().into())
-            .map(Into::into)
-    }
-
-    pub fn get(&self, key: &PolicyId) -> Option<MapAssetNameToI64> {
-        self.0.get(key.as_ref()).map(|v| v.clone().into())
-    }
-
-    pub fn keys(&self) -> PolicyIdList {
-        self.0.keys().cloned().collect::<Vec<_>>().into()
-    }
-}

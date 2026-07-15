@@ -8,7 +8,7 @@ use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::{Ed25519Signature, PublicKey, RawBytesEncoding};
-use std::io::{BufRead, Seek, Write};
+use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for CIP36Delegation {
     fn serialize<'se, W: Write>(
@@ -76,7 +76,7 @@ impl Deserialize for CIP36Delegation {
                 .and_then(|(x, enc)| {
                     if x > 4294967295 {
                         Err(DeserializeFailure::RangeCheck {
-                            found: x as isize,
+                            found: x as i128,
                             min: Some(0),
                             max: Some(4294967295),
                         }
@@ -604,6 +604,7 @@ impl Serialize for CIP36KeyRegistration {
         serializer: &'se mut Serializer<W>,
         force_canonical: bool,
     ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        // cddl-codegen:insert-start
         // code hand-edited to deal with including voting purpose or not depending on format
         // defaulting to weighted including it is based on the test vectors as it is not well specified
         // this seems to have changed as previously it was not included in old test vectors
@@ -618,19 +619,35 @@ impl Serialize for CIP36KeyRegistration {
                         .unwrap_or(true)
             }
         };
+        // cddl-codegen:insert-end
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
                 .map(|encs| encs.len_encoding)
                 .unwrap_or_default()
                 .to_len_sz(
+                    // cddl-codegen:replace-start
                     4 + if should_include_voting_purpose { 1 } else { 0 },
+                    // cddl-codegen:replaces
+                    // 4 + if self.voting_purpose != 0
+                    //     || self
+                    //         .encodings
+                    //         .as_ref()
+                    //         .map(|encs| encs.voting_purpose_default_present)
+                    //         .unwrap_or(false)
+                    // {
+                    //     1
+                    // } else {
+                    //     0
+                    // },
+                    // cddl-codegen:replace-end
                     force_canonical,
                 ),
         )?;
         let deser_order = self
             .encodings
             .as_ref()
+            // cddl-codegen:replace-start
             .filter(|encs| {
                 !force_canonical
                     && encs.orig_deser_order.len()
@@ -644,6 +661,25 @@ impl Serialize for CIP36KeyRegistration {
                     vec![0, 1, 2, 3]
                 }
             });
+            // cddl-codegen:replaces
+            // .filter(|encs| {
+            //     !force_canonical
+            //         && encs.orig_deser_order.len()
+            //             == 4 + if self.voting_purpose != 0
+            //                 || self
+            //                     .encodings
+            //                     .as_ref()
+            //                     .map(|encs| encs.voting_purpose_default_present)
+            //                     .unwrap_or(false)
+            //             {
+            //                 1
+            //             } else {
+            //                 0
+            //             }
+            // })
+            // .map(|encs| encs.orig_deser_order.clone())
+            // .unwrap_or_else(|| vec![0, 1, 2, 3, 4]);
+            // cddl-codegen:replace-end
         for field_index in deser_order {
             match field_index {
                 0 => {
@@ -724,7 +760,17 @@ impl Serialize for CIP36KeyRegistration {
                     )?;
                 }
                 4 => {
+                    // cddl-codegen:replace-start
                     if should_include_voting_purpose {
+                    // cddl-codegen:replaces
+                    // if self.voting_purpose != 0
+                    //     || self
+                    //         .encodings
+                    //         .as_ref()
+                    //         .map(|encs| encs.voting_purpose_default_present)
+                    //         .unwrap_or(false)
+                    // {
+                    // cddl-codegen:replace-end
                         serializer.write_unsigned_integer_sz(
                             5u64,
                             fit_sz(

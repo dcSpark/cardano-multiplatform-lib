@@ -1,7 +1,49 @@
-use crate::error::{DeserializeError, DeserializeFailure};
-use cbor_event::{Sz, de::Deserializer, se::Serializer};
+use super::error::{DeserializeError, DeserializeFailure};
+use cbor_event::de::Deserializer;
+use cbor_event::se::Serializer;
 use std::io::{BufRead, Seek, Write};
 
+// same as cbor_event::de::Deserialize but with our DeserializeError
+pub trait Deserialize {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError>
+    where
+        Self: Sized;
+
+    /// from-bytes using the exact CBOR format specified in the CDDL binary spec.
+    /// For hashes/addresses/etc this will include the CBOR bytes type/len/etc.
+    fn from_cbor_bytes(data: &[u8]) -> Result<Self, DeserializeError>
+    where
+        Self: Sized,
+    {
+        let mut raw = Deserializer::from(std::io::Cursor::new(data));
+        let value = Self::deserialize(&mut raw)?;
+        // Reject leftover bytes after a complete value instead of silently ignoring them: otherwise a
+        // truncated/corrupt or accidentally-concatenated buffer would deserialize as Ok.
+        if raw.as_ref().position() != data.len() as u64 {
+            return Err(DeserializeFailure::CBOR(cbor_event::Error::TrailingData).into());
+        }
+        Ok(value)
+    }
+}
+
+// cddl-codegen:replace-start
+// CML keeps a targeted bool impl instead of upstream's blanket
+// `impl<T: cbor_event::de::Deserialize> Deserialize for T`: CML types like HDAddressPayload
+// implement BOTH cbor_event::de::Deserialize and a manual cml Deserialize, which the blanket
+// impl would turn into a coherence error.
+// TODO: remove this once cbor_event is updated to 3.1.0
+impl Deserialize for bool {
+    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+        raw.bool().map_err(Into::into)
+    }
+}
+// cddl-codegen:replaces
+// impl<T: cbor_event::de::Deserialize> Deserialize for T {
+//     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<T, DeserializeError> {
+//         T::deserialize(raw).map_err(DeserializeError::from)
+//     }
+// }
+// cddl-codegen:replace-end
 pub struct CBORReadLen {
     deser_len: cbor_event::LenSz,
     read: u64,
@@ -49,21 +91,27 @@ impl CBORReadLen {
     }
 }
 
+// allows a preserve-flavored crate to serve as a --common-import-override target for
+// preserve-encodings=false crates: they construct CBORReadLen via From<cbor_event::Len>, so we
+// promote the size-less Len to a canonical-sized LenSz
 impl From<cbor_event::Len> for CBORReadLen {
-    // to facilitate mixing with crates that use preserve-encodings=false to generate
-    // we need to create it from cbor_event::Len instead
     fn from(len: cbor_event::Len) -> Self {
-        Self::new(len_to_len_sz(len))
+        let len_sz = match len {
+            cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, cbor_event::Sz::canonical(n)),
+            cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
+        };
+        Self::new(len_sz)
     }
 }
 
+// cddl-codegen:insert-start
 pub fn len_to_len_sz(len: cbor_event::Len) -> cbor_event::LenSz {
     match len {
         cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, fit_sz(n, None, true)),
         cbor_event::Len::Indefinite => cbor_event::LenSz::Indefinite,
     }
 }
-
+// cddl-codegen:insert-end
 pub trait DeserializeEmbeddedGroup {
     fn deserialize_as_embedded_group<R: BufRead + Seek>(
         raw: &mut Deserializer<R>,
@@ -77,11 +125,11 @@ pub trait DeserializeEmbeddedGroup {
 #[inline]
 pub fn sz_max(sz: cbor_event::Sz) -> u64 {
     match sz {
-        Sz::Inline => 23u64,
-        Sz::One => u8::MAX as u64,
-        Sz::Two => u16::MAX as u64,
-        Sz::Four => u32::MAX as u64,
-        Sz::Eight => u64::MAX,
+        cbor_event::Sz::Inline => 23u64,
+        cbor_event::Sz::One => u8::MAX as u64,
+        cbor_event::Sz::Two => u16::MAX as u64,
+        cbor_event::Sz::Four => u32::MAX as u64,
+        cbor_event::Sz::Eight => u64::MAX,
     }
 }
 
@@ -112,8 +160,8 @@ impl From<cbor_event::LenSz> for LenEncoding {
 pub enum StringEncoding {
     #[default]
     Canonical,
-    Indefinite(Vec<(u64, Sz)>),
-    Definite(Sz),
+    Indefinite(Vec<(u64, cbor_event::Sz)>),
+    Definite(cbor_event::Sz),
 }
 
 impl From<cbor_event::StringLenSz> for StringEncoding {
@@ -124,18 +172,17 @@ impl From<cbor_event::StringLenSz> for StringEncoding {
         }
     }
 }
-
 #[inline]
-pub fn fit_sz(len: u64, sz: Option<cbor_event::Sz>, force_canonical: bool) -> Sz {
+pub fn fit_sz(len: u64, sz: Option<cbor_event::Sz>, force_canonical: bool) -> cbor_event::Sz {
     match sz {
         Some(sz) => {
             if !force_canonical && len <= sz_max(sz) {
                 sz
             } else {
-                Sz::canonical(len)
+                cbor_event::Sz::canonical(len)
             }
         }
-        None => Sz::canonical(len),
+        None => cbor_event::Sz::canonical(len),
     }
 }
 
@@ -225,30 +272,7 @@ pub trait SerializeEmbeddedGroup {
         force_canonical: bool,
     ) -> cbor_event::Result<&'a mut Serializer<W>>;
 }
-
-pub trait Deserialize {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError>
-    where
-        Self: Sized;
-
-    /// from-bytes using the exact CBOR format specified in the CDDL binary spec.
-    /// For hashes/addresses/etc this will include the CBOR bytes type/len/etc.
-    fn from_cbor_bytes(data: &[u8]) -> Result<Self, DeserializeError>
-    where
-        Self: Sized,
-    {
-        let mut raw = Deserializer::from(std::io::Cursor::new(data));
-        Self::deserialize(&mut raw)
-    }
-}
-
-// TODO: remove this once cbor_event is updated to 3.1.0
-impl Deserialize for bool {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        raw.bool().map_err(Into::into)
-    }
-}
-
+// cddl-codegen:insert-start
 // TODO: remove ToBytes / FromBytes after we regenerate the WASM wrappers.
 // This is so the existing generated to/from bytes code works
 // We are, however, using this in CIP25 as a way to get to bytes without
@@ -285,6 +309,7 @@ impl<T: Deserialize> FromBytes for T {
         Self::deserialize(&mut raw)
     }
 }
+// cddl-codegen:insert-end
 pub trait RawBytesEncoding {
     fn to_raw_bytes(&self) -> &[u8];
 
@@ -300,9 +325,8 @@ pub trait RawBytesEncoding {
     where
         Self: Sized,
     {
-        let bytes = hex::decode(hex_str).map_err(|e| {
-            DeserializeError::from(DeserializeFailure::InvalidStructure(Box::new(e)))
-        })?;
+        let bytes =
+            hex::decode(hex_str).map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?;
         Self::from_raw_bytes(bytes.as_ref())
     }
 }

@@ -1,10 +1,10 @@
+use crate::Slot;
 use crate::{
     Ed25519KeyHashList, NativeScript, Value,
     address::Address,
     transaction::{DatumOption, ScriptRef, TransactionOutput},
     utils::LanguageList,
 };
-use cml_core::Slot;
 use cml_crypto_wasm::{DatumHash, ScriptHash};
 use wasm_bindgen::prelude::wasm_bindgen;
 

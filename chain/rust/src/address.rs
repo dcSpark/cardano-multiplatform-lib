@@ -1,5 +1,6 @@
 use crate::byron::{ByronAddress, ByronAddressError};
 use crate::genesis::network_info::NetworkInfo;
+use crate::{Slot, TransactionIndex};
 use cbor_event::{de::Deserializer, se::Serializer};
 use derivative::Derivative;
 use schemars::JsonSchema;
@@ -16,10 +17,11 @@ use cml_crypto::{Ed25519KeyHash, ScriptHash};
 use crate::certs::StakeCredential;
 
 use cml_core::{
-    CertificateIndex, Slot, TransactionIndex,
     error::{DeserializeError, DeserializeFailure},
     serialization::{Deserialize, LenEncoding, Serialize, StringEncoding},
 };
+
+pub type CertificateIndex = u64;
 
 // returns (Number represented, bytes read) if valid encoding
 // or None if decoding prematurely finished

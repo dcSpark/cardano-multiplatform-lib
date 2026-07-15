@@ -47,8 +47,13 @@ impl Serialize for BootstrapWitness {
                 .to_str_len_sz(self.chain_code.len() as u64, force_canonical),
         )?;
         let mut attributes_inner_se = Serializer::new_vec();
+        // cddl-codegen:replace-start
         // Manual edit: This is from Byron, thus uses cbor_event::Serialize
         cbor_event::Serialize::serialize(&self.attributes, &mut attributes_inner_se)?;
+        // cddl-codegen:replaces
+        // self.attributes
+        //    .serialize(&mut attributes_inner_se, force_canonical)?;
+        // cddl-codegen:replace-end
         let attributes_bytes = attributes_inner_se.finalize();
         serializer.write_bytes_sz(
             &attributes_bytes,
@@ -98,7 +103,7 @@ impl Deserialize for BootstrapWitness {
                 .and_then(|(bytes, enc)| {
                     if bytes.len() < 32 || bytes.len() > 32 {
                         Err(DeserializeFailure::RangeCheck {
-                            found: bytes.len() as isize,
+                            found: bytes.len() as i128,
                             min: Some(32),
                             max: Some(32),
                         }
@@ -167,7 +172,7 @@ impl Deserialize for KESSignature {
                 .map(|(bytes, enc)| (bytes, StringEncoding::from(enc)))?;
             if inner.len() != 448 {
                 return Err(DeserializeFailure::RangeCheck {
-                    found: inner.len() as isize,
+                    found: inner.len() as i128,
                     min: Some(448),
                     max: Some(448),
                 }
@@ -257,7 +262,7 @@ impl Deserialize for Nonce {
                     return Ok(Self::Identity {
                         identity_encoding,
                         len_encoding,
-                    });
+                    })
                 }
                 Err(e) => {
                     errs.push(e.annotate("Identity"));
@@ -376,7 +381,7 @@ impl Deserialize for VRFCert {
                 .and_then(|(bytes, enc)| {
                     if bytes.len() < 80 || bytes.len() > 80 {
                         Err(DeserializeFailure::RangeCheck {
-                            found: bytes.len() as isize,
+                            found: bytes.len() as i128,
                             min: Some(80),
                             max: Some(80),
                         }

@@ -3,7 +3,6 @@
 
 use super::cbor_encodings::*;
 use super::*;
-use crate::certs::Credential;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
@@ -237,7 +236,7 @@ impl Deserialize for GovAction {
             })(raw);
             match deser_variant {
                 Ok(parameter_change_action) => {
-                    return Ok(Self::ParameterChangeAction(parameter_change_action));
+                    return Ok(Self::ParameterChangeAction(parameter_change_action))
                 }
                 Err(e) => {
                     errs.push(e.annotate("ParameterChangeAction"));
@@ -266,7 +265,7 @@ impl Deserialize for GovAction {
             })(raw);
             match deser_variant {
                 Ok(hard_fork_initiation_action) => {
-                    return Ok(Self::HardForkInitiationAction(hard_fork_initiation_action));
+                    return Ok(Self::HardForkInitiationAction(hard_fork_initiation_action))
                 }
                 Err(e) => {
                     errs.push(e.annotate("HardForkInitiationAction"));
@@ -295,7 +294,7 @@ impl Deserialize for GovAction {
             })(raw);
             match deser_variant {
                 Ok(treasury_withdrawals_action) => {
-                    return Ok(Self::TreasuryWithdrawalsAction(treasury_withdrawals_action));
+                    return Ok(Self::TreasuryWithdrawalsAction(treasury_withdrawals_action))
                 }
                 Err(e) => {
                     errs.push(e.annotate("TreasuryWithdrawalsAction"));
@@ -400,7 +399,7 @@ impl Deserialize for GovAction {
                     return Ok(Self::InfoAction {
                         info_action_encoding,
                         len_encoding,
-                    });
+                    })
                 }
                 Err(e) => {
                     errs.push(e.annotate("InfoAction"));

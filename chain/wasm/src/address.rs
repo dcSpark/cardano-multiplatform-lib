@@ -2,7 +2,8 @@ use super::*;
 
 pub use cml_chain::address::{AddressHeaderKind, AddressKind};
 
-use cml_core::CertificateIndex;
+use cml_chain::address::CertificateIndex;
+
 use cml_core_wasm::{impl_wasm_conversions, impl_wasm_json_api};
 
 use crate::certs::StakeCredential;

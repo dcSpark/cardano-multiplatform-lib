@@ -17,7 +17,7 @@ pub mod serialization;
 pub mod transaction;
 pub use crate::NonemptySet;
 pub use crate::Set;
-pub use cml_core::{CertificateIndex, Epoch, Int, Slot, TransactionIndex};
+pub use cml_core::Int;
 
 use crate::certs::{Certificate, CommitteeColdCredential};
 use crate::crypto::{BootstrapWitness, Vkeywitness};
@@ -33,11 +33,16 @@ use cbor_encodings::{
     DRepVotingThresholdsEncoding, NetworkIdEncoding, PoolVotingThresholdsEncoding,
     ProtocolParamUpdateEncoding, RationalEncoding, UnitIntervalEncoding,
 };
+use cml_core::error::*;
+use cml_core::non_empty::NonEmptyVec;
+use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::LenEncoding;
+use cml_core::serialization::{LenEncoding, StringEncoding};
 use crypto::ScriptHash;
 use governance::Voter;
 use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script, PlutusV3Script};
+use std::collections::BTreeMap;
+use std::convert::TryFrom;
 use transaction::NativeScript;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -86,6 +91,8 @@ impl DRepVotingThresholds {
 }
 
 pub type DeltaCoin = Int;
+
+pub type Epoch = u64;
 
 #[derive(Clone, Debug)]
 pub struct NetworkId {
@@ -298,44 +305,90 @@ impl Rational {
 }
 
 #[derive(
-    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
 )]
-#[derivative(Hash, PartialEq)]
+#[derivative(
+    Eq,
+    PartialEq,
+    Ord = "feature_allow_slow_enum",
+    PartialOrd = "feature_allow_slow_enum",
+    Hash
+)]
 pub enum Script {
     Native {
         script: NativeScript,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
-        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
-        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         tag_encoding: Option<cbor_event::Sz>,
     },
     PlutusV1 {
         script: PlutusV1Script,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
-        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
-        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         tag_encoding: Option<cbor_event::Sz>,
     },
     PlutusV2 {
         script: PlutusV2Script,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
-        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
-        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         tag_encoding: Option<cbor_event::Sz>,
     },
     PlutusV3 {
         script: PlutusV3Script,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
-        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
-        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         tag_encoding: Option<cbor_event::Sz>,
     },
 }
@@ -380,7 +433,11 @@ pub type SetEd25519KeyHash = NonemptySetRawBytes<Ed25519KeyHash>;
 
 pub type SetTransactionInput = Set<TransactionInput>;
 
+pub type Slot = u64;
+
 pub type SubCoin = Rational;
+
+pub type TransactionIndex = u16;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct UnitInterval {

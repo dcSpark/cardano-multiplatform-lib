@@ -18,6 +18,7 @@ pub mod transaction;
 pub use crate::NonemptySet;
 pub use crate::Set;
 pub use cml_core::Int;
+mod key_demand_assertions;
 
 use crate::certs::{Certificate, CommitteeColdCredential};
 use crate::crypto::{BootstrapWitness, Vkeywitness};

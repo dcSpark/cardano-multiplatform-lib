@@ -94,5 +94,5 @@ policy_id = script_hash
 network_id = uint ; @newtype
 ; _CDDL_CODEGEN_EXTERN_TYPE_
 
-set<T> = _CDDL_CODEGEN_EXTERN_TYPE_
-nonempty_set<T> = _CDDL_CODEGEN_EXTERN_TYPE_
+set<T> = _CDDL_CODEGEN_EXTERN_TYPE_ ; @raw_bytes_flavor
+nonempty_set<T> = _CDDL_CODEGEN_EXTERN_TYPE_ ; @raw_bytes_flavor

@@ -7,7 +7,6 @@ pub mod serialization;
 pub use crate::CIP25LabelMetadata;
 
 use cml_core::error::*;
-use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 /// A String that may or may not be chunked into 64-byte chunks to be able

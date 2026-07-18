@@ -333,16 +333,16 @@ impl<A: AsymmetricKey> Bech32 for SecretKey<A> {
 }
 
 impl<A: AsymmetricPublicKey> cbor_event::se::Serialize for PublicKey<A> {
-    fn serialize<'se, W: std::io::Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_bytes(self.as_ref())
     }
 }
 
 impl<A: AsymmetricPublicKey> cbor_event::de::Deserialize for PublicKey<A> {
-    fn deserialize<R: std::io::BufRead>(raw: &mut Deserializer<R>) -> cbor_event::Result<Self> {
+    fn deserialize(raw: &mut Deserializer) -> cbor_event::Result<Self> {
         let result = PublicKey::<A>::from_binary(raw.bytes()?.as_ref())
             .map_err(|err| cbor_event::Error::CustomError(format!("{err}")))?;
         Ok(result)

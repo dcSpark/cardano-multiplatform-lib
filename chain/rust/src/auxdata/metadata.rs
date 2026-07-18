@@ -9,8 +9,6 @@ use cml_core::{
 };
 use derivative::Derivative;
 
-use std::io::{BufRead, Seek, Write};
-
 pub use crate::TransactionMetadatumLabel;
 
 pub const METADATA_MAX_LEN: usize = 64;
@@ -76,11 +74,11 @@ pub struct MetadataEncoding {
 }
 
 impl Serialize for Metadata {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -123,7 +121,7 @@ impl Serialize for Metadata {
 }
 
 impl Deserialize for Metadata {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let mut entries = Vec::new();
         let len = raw.map_sz()?;
         let len_encoding = len.into();
@@ -216,11 +214,11 @@ impl MetadatumMap {
 }
 
 impl Serialize for MetadatumMap {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.entries_encoding
                 .to_len_sz(self.entries.len() as u64, force_canonical),
@@ -251,7 +249,7 @@ impl Serialize for MetadatumMap {
 }
 
 impl Deserialize for MetadatumMap {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let mut entries = Vec::new();
         let entries_len = raw.map_sz()?;
         let entries_encoding = entries_len.into();
@@ -443,11 +441,11 @@ impl schemars::JsonSchema for TransactionMetadatum {
 }
 
 impl Serialize for TransactionMetadatum {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             TransactionMetadatum::Map(map) => map.serialize(serializer, force_canonical),
             TransactionMetadatum::List {
@@ -482,7 +480,7 @@ impl Serialize for TransactionMetadatum {
 }
 
 impl Deserialize for TransactionMetadatum {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             match raw.cbor_type()? {
                 cbor_event::Type::Map => MetadatumMap::deserialize(raw).map(Self::Map),

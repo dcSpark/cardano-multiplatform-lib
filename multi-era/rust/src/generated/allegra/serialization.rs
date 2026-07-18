@@ -7,14 +7,13 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for AllegraAuxiliaryData {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             AllegraAuxiliaryData::Shelley(shelley) => {
                 shelley.serialize(serializer, force_canonical)
@@ -27,18 +26,16 @@ impl Serialize for AllegraAuxiliaryData {
 }
 
 impl Deserialize for AllegraAuxiliaryData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> = ShelleyFormatAuxData::deserialize(raw);
             match deser_variant {
                 Ok(shelley) => return Ok(Self::Shelley(shelley)),
                 Err(e) => {
                     errs.push(e.annotate("Shelley"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
@@ -47,9 +44,7 @@ impl Deserialize for AllegraAuxiliaryData {
                 Ok(shelley_ma) => return Ok(Self::ShelleyMA(shelley_ma)),
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMA"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -59,11 +54,11 @@ impl Deserialize for AllegraAuxiliaryData {
 }
 
 impl Serialize for AllegraBlock {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -153,7 +148,7 @@ impl Serialize for AllegraBlock {
 }
 
 impl Deserialize for AllegraBlock {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -228,11 +223,11 @@ impl Deserialize for AllegraBlock {
 }
 
 impl Serialize for AllegraCertificate {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             AllegraCertificate::StakeRegistration(stake_registration) => {
                 stake_registration.serialize(serializer, force_canonical)
@@ -260,12 +255,12 @@ impl Serialize for AllegraCertificate {
 }
 
 impl Deserialize for AllegraCertificate {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -283,12 +278,10 @@ impl Deserialize for AllegraCertificate {
                 Ok(stake_registration) => return Ok(Self::StakeRegistration(stake_registration)),
                 Err(e) => {
                     errs.push(e.annotate("StakeRegistration"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -309,12 +302,10 @@ impl Deserialize for AllegraCertificate {
                 }
                 Err(e) => {
                     errs.push(e.annotate("StakeDeregistration"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(3)?;
                 read_len.finish()?;
@@ -332,12 +323,10 @@ impl Deserialize for AllegraCertificate {
                 Ok(stake_delegation) => return Ok(Self::StakeDelegation(stake_delegation)),
                 Err(e) => {
                     errs.push(e.annotate("StakeDelegation"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(10)?;
                 read_len.finish()?;
@@ -358,12 +347,10 @@ impl Deserialize for AllegraCertificate {
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleyPoolRegistration"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(3)?;
                 read_len.finish()?;
@@ -381,12 +368,10 @@ impl Deserialize for AllegraCertificate {
                 Ok(pool_retirement) => return Ok(Self::PoolRetirement(pool_retirement)),
                 Err(e) => {
                     errs.push(e.annotate("PoolRetirement"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(4)?;
                 read_len.finish()?;
@@ -407,12 +392,10 @@ impl Deserialize for AllegraCertificate {
                 }
                 Err(e) => {
                     errs.push(e.annotate("GenesisKeyDelegation"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -438,9 +421,7 @@ impl Deserialize for AllegraCertificate {
                 }
                 Err(e) => {
                     errs.push(e.annotate("MoveInstantaneousRewardsCert"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -450,11 +431,11 @@ impl Deserialize for AllegraCertificate {
 }
 
 impl Serialize for AllegraTransaction {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -481,7 +462,7 @@ impl Serialize for AllegraTransaction {
 }
 
 impl Deserialize for AllegraTransaction {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -523,11 +504,11 @@ impl Deserialize for AllegraTransaction {
 }
 
 impl Serialize for AllegraTransactionBody {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -858,7 +839,7 @@ impl Serialize for AllegraTransactionBody {
 }
 
 impl Deserialize for AllegraTransactionBody {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -1115,11 +1096,11 @@ impl Deserialize for AllegraTransactionBody {
 }
 
 impl Serialize for AllegraTransactionWitnessSet {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -1262,7 +1243,7 @@ impl Serialize for AllegraTransactionWitnessSet {
 }
 
 impl Deserialize for AllegraTransactionWitnessSet {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -1427,11 +1408,11 @@ impl Deserialize for AllegraTransactionWitnessSet {
 }
 
 impl Serialize for MIRAction {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             MIRAction::ToStakeCredentials {
                 to_stake_credentials,
@@ -1475,7 +1456,7 @@ impl Serialize for MIRAction {
 }
 
 impl Deserialize for MIRAction {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             match raw.cbor_type()? {
                 cbor_event::Type::Map => {
@@ -1529,11 +1510,11 @@ impl Deserialize for MIRAction {
 }
 
 impl Serialize for MoveInstantaneousReward {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1575,7 +1556,7 @@ impl Serialize for MoveInstantaneousReward {
 }
 
 impl Deserialize for MoveInstantaneousReward {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -1583,8 +1564,8 @@ impl Deserialize for MoveInstantaneousReward {
             read_len.read_elems(2)?;
             read_len.finish()?;
             let (pot, pot_encoding) = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().stream_position().unwrap();
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let initial_position = raw.position();
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (reserve_value, reserve_encoding) = raw.unsigned_integer_sz()?;
                     if reserve_value != 0 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1597,12 +1578,9 @@ impl Deserialize for MoveInstantaneousReward {
                 })(raw);
                 match deser_variant {
                     Ok(pot_encoding) => return Ok((MIRPot::Reserve, pot_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (treasury_value, treasury_encoding) = raw.unsigned_integer_sz()?;
                     if treasury_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1615,10 +1593,7 @@ impl Deserialize for MoveInstantaneousReward {
                 })(raw);
                 match deser_variant {
                     Ok(pot_encoding) => return Ok((MIRPot::Treasury, pot_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
                 Err(DeserializeError::new(
                     "MIRPot",
@@ -1649,11 +1624,11 @@ impl Deserialize for MoveInstantaneousReward {
 }
 
 impl Serialize for MoveInstantaneousRewardsCert {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1671,11 +1646,11 @@ impl Serialize for MoveInstantaneousRewardsCert {
 }
 
 impl SerializeEmbeddedGroup for MoveInstantaneousRewardsCert {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             6u64,
             fit_sz(
@@ -1694,7 +1669,7 @@ impl SerializeEmbeddedGroup for MoveInstantaneousRewardsCert {
 }
 
 impl Deserialize for MoveInstantaneousRewardsCert {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -1720,8 +1695,8 @@ impl Deserialize for MoveInstantaneousRewardsCert {
 }
 
 impl DeserializeEmbeddedGroup for MoveInstantaneousRewardsCert {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {

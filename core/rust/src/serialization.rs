@@ -1,49 +1,39 @@
 use super::error::{DeserializeError, DeserializeFailure};
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
-use std::io::{BufRead, Seek, Write};
 
 // same as cbor_event::de::Deserialize but with our DeserializeError
 pub trait Deserialize {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError>
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError>
     where
         Self: Sized;
 
+    // cbor_event's Deserializer owns its buffer, so this copies `data` once (O(n))
     /// from-bytes using the exact CBOR format specified in the CDDL binary spec.
     /// For hashes/addresses/etc this will include the CBOR bytes type/len/etc.
     fn from_cbor_bytes(data: &[u8]) -> Result<Self, DeserializeError>
     where
         Self: Sized,
     {
-        let mut raw = Deserializer::from(std::io::Cursor::new(data));
+        let mut raw = Deserializer::from(data.to_vec());
         let value = Self::deserialize(&mut raw)?;
         // Reject leftover bytes after a complete value instead of silently ignoring them: otherwise a
         // truncated/corrupt or accidentally-concatenated buffer would deserialize as Ok.
-        if raw.as_ref().position() != data.len() as u64 {
+        // Hand-rolled rather than cbor_event's deserialize_complete(): that helper is bounded to
+        // cbor_event's own Deserialize trait and error type, while this trait must surface the
+        // annotated DeserializeError.
+        if !raw.as_slice().is_empty() {
             return Err(DeserializeFailure::CBOR(cbor_event::Error::TrailingData).into());
         }
         Ok(value)
     }
 }
 
-// cddl-codegen:replace-start
-// CML keeps a targeted bool impl instead of upstream's blanket
-// `impl<T: cbor_event::de::Deserialize> Deserialize for T`: CML types like HDAddressPayload
-// implement BOTH cbor_event::de::Deserialize and a manual cml Deserialize, which the blanket
-// impl would turn into a coherence error.
-// TODO: remove this once cbor_event is updated to 3.1.0
-impl Deserialize for bool {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        raw.bool().map_err(Into::into)
+impl<T: cbor_event::de::Deserialize> Deserialize for T {
+    fn deserialize(raw: &mut Deserializer) -> Result<T, DeserializeError> {
+        T::deserialize(raw).map_err(DeserializeError::from)
     }
 }
-// cddl-codegen:replaces
-// impl<T: cbor_event::de::Deserialize> Deserialize for T {
-//     fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<T, DeserializeError> {
-//         T::deserialize(raw).map_err(DeserializeError::from)
-//     }
-// }
-// cddl-codegen:replace-end
 pub struct CBORReadLen {
     deser_len: cbor_event::LenSz,
     read: u64,
@@ -113,8 +103,8 @@ pub fn len_to_len_sz(len: cbor_event::Len) -> cbor_event::LenSz {
 }
 // cddl-codegen:insert-end
 pub trait DeserializeEmbeddedGroup {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError>
@@ -205,11 +195,11 @@ impl LenEncoding {
         }
     }
 
-    pub fn end<'a, W: Write + Sized>(
+    pub fn end<'a>(
         &self,
-        serializer: &'a mut Serializer<W>,
+        serializer: &'a mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'a mut Serializer<W>> {
+    ) -> cbor_event::Result<&'a mut Serializer> {
         if !force_canonical && *self == Self::Indefinite {
             serializer.write_special(cbor_event::Special::Break)?;
         }
@@ -238,11 +228,11 @@ impl StringEncoding {
 }
 
 pub trait Serialize {
-    fn serialize<'a, W: Write + Sized>(
+    fn serialize<'a>(
         &self,
-        serializer: &'a mut Serializer<W>,
+        serializer: &'a mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'a mut Serializer<W>>;
+    ) -> cbor_event::Result<&'a mut Serializer>;
 
     /// Bytes of a structure using the CBOR bytes as per the CDDL spec
     /// which for foo = bytes will include the CBOR bytes type/len, etc.
@@ -266,11 +256,11 @@ pub trait Serialize {
 }
 
 pub trait SerializeEmbeddedGroup {
-    fn serialize_as_embedded_group<'a, W: Write + Sized>(
+    fn serialize_as_embedded_group<'a>(
         &self,
-        serializer: &'a mut Serializer<W>,
+        serializer: &'a mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'a mut Serializer<W>>;
+    ) -> cbor_event::Result<&'a mut Serializer>;
 }
 // cddl-codegen:insert-start
 // TODO: remove ToBytes / FromBytes after we regenerate the WASM wrappers.
@@ -305,7 +295,7 @@ impl<T: Deserialize> FromBytes for T {
     where
         Self: Sized,
     {
-        let mut raw = Deserializer::from(std::io::Cursor::new(data));
+        let mut raw = Deserializer::from(data);
         Self::deserialize(&mut raw)
     }
 }

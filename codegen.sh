@@ -28,8 +28,11 @@
 #   - per-module utils.rs (hand-added) and a few `#[allow(clippy::...)]`
 # The bulk of every generated module reproduces exactly; the above is the irreducible manual part.
 # core/rust/src's five runtime files (error/serialization/ordered_hash_map/non_empty*) are ALSO
-# tool-owned now, refreshed via --export-static-dir on the chain invocation; CML's additions in
-# them ride along in cddl-codegen:insert/replace blocks (see the chain gen call below).
+# tool-owned now, refreshed via --export-static-crate on the chain invocation — which additionally
+# merges the runtime's required dep versions into core/rust/Cargo.toml
+# so a codegen-side dep bump can't skew against core's manifest; CML's additions in the files
+# ride along in cddl-codegen:insert/replace blocks (see the chain gen call below),
+# and hand-added deps/keys in the manifest pass through the merge untouched.
 #
 # Usage:   ./codegen.sh                 # regenerate all crates in place
 #          ./codegen.sh chain           # regenerate a single crate
@@ -43,8 +46,11 @@ set -euo pipefail
 # (--export-static-dir), AND the wrapper-requests alias-element fix + hardening (without which the
 # dep-side regen PANICS on this workspace's real sidecar — alias elements like stake_credential).
 # It ALSO predates the @custom_json fix for sum-type/record encoding fields + record derives
-# (c9c47b0), which specs/conway/plutus.cddl's plutus_data now relies on.
-# Bump to a rev >= c9c47b0 once those commits are on the GitHub remote — nothing earlier; e.g.
+# (c9c47b0), which specs/conway/plutus.cddl's plutus_data now relies on, AND the crate-shaped
+# static export (--export-static-crate, which replaced --export-static-dir and also merges
+# core/rust/Cargo.toml — the chain invocation below uses the NEW flag, so it needs a rev that
+# has it; an older rev fails loudly on the unknown flag).
+# Bump to a rev with all of the above once they are on the GitHub remote — nothing earlier; e.g.
 # 2bff93f has --export-static-dir but not the alias fix, and 18fb7cc lacks the @custom_json fix.
 # Until then regen only works via CDDL_CODEGEN_DIR pointing at a local checkout.
 CDDL_CODEGEN_REV="77237871a3d2585996b103fbcc03bd227606c445"
@@ -155,18 +161,21 @@ fi
 want multi-era && gen multi-era "$SPECS/multiera" --lib-name=cml-multi-era "${COMMON[@]}" "${EXTERN_WASM_MULTIERA[@]}"
 if want chain; then
   if [ -f "$MULTIERA_SIDECAR" ]; then
-    # --export-static-dir: refresh cml-core's copy of the static runtime (error.rs,
-    # serialization.rs prelude, ordered_hash_map.rs, non_empty*.rs) so it can't rot against the
-    # codegen rev. Passed on the CHAIN invocation only — it carries the maximal flavor
+    # --export-static-crate: refresh cml-core's copy of the static runtime (error.rs,
+    # serialization.rs prelude, ordered_hash_map.rs, non_empty*.rs → core/rust/src/) AND merge the
+    # runtime's required dep versions into core/rust/Cargo.toml, so neither the files nor the
+    # manifest can rot against the codegen rev. Passed on
+    # the CHAIN invocation only — it carries the maximal flavor
     # (preserve-encodings + canonical + json-serde + json-schema) that the shared runtime must
     # serve; cip25's reduced flavor would export a non-preserve runtime and break the others.
     # CML-specific additions inside those five files (BadAddressType/OutOfRange/ArithmeticError,
     # ToBytes/FromBytes, len_to_len_sz, OrderedHashMap::take, the lenient from_cbor_bytes and
     # bool-not-blanket Deserialize impls) live in cddl-codegen:insert/replace blocks and are
     # re-applied by the preservation overlay on every regen; anything it can't re-place traps in
-    # a loud compile_error!, never silently dropped. Everything else in core/ stays hand-owned.
+    # a loud compile_error!, never silently dropped. Hand-added manifest deps/keys pass through
+    # the merge untouched. Everything else in core/ stays hand-owned.
     gen chain "$SPECS/conway" --lib-name=cml-chain "${COMMON[@]}" "${WRAPPER_REQUESTS_CHAIN[@]}" \
-      --export-static-dir="$REPO_ROOT/core/rust/src"
+      --export-static-crate="$REPO_ROOT/core/rust"
   else
     # Only possible before the first multi-era regen under workspace mode. Without the sidecar,
     # chain would silently drop every hosted wrapper multi-era needs — refuse instead.

@@ -8,14 +8,13 @@ use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::{Ed25519Signature, PublicKey, RawBytesEncoding};
-use std::io::{BufRead, Seek, Write};
 
 impl Serialize for CIP36Delegation {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -54,7 +53,7 @@ impl Serialize for CIP36Delegation {
 }
 
 impl Deserialize for CIP36Delegation {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -109,11 +108,11 @@ impl Deserialize for CIP36Delegation {
 }
 
 impl Serialize for CIP36DelegationDistribution {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             CIP36DelegationDistribution::Weighted {
                 weighted,
@@ -139,7 +138,7 @@ impl Serialize for CIP36DelegationDistribution {
 }
 
 impl Deserialize for CIP36DelegationDistribution {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             match raw.cbor_type()? {
                 cbor_event::Type::Array => {
@@ -189,11 +188,11 @@ impl Deserialize for CIP36DelegationDistribution {
 }
 
 impl Serialize for CIP36DeregistrationWitness {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -245,7 +244,7 @@ impl Serialize for CIP36DeregistrationWitness {
 }
 
 impl Deserialize for CIP36DeregistrationWitness {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -326,11 +325,11 @@ impl Deserialize for CIP36DeregistrationWitness {
 }
 
 impl Serialize for CIP36KeyDeregistration {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -465,7 +464,7 @@ impl Serialize for CIP36KeyDeregistration {
 }
 
 impl Deserialize for CIP36KeyDeregistration {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -599,11 +598,11 @@ impl Deserialize for CIP36KeyDeregistration {
 }
 
 impl Serialize for CIP36KeyRegistration {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         // cddl-codegen:insert-start
         // code hand-edited to deal with including voting purpose or not depending on format
         // defaulting to weighted including it is based on the test vectors as it is not well specified
@@ -760,17 +759,17 @@ impl Serialize for CIP36KeyRegistration {
                     )?;
                 }
                 4 => {
-                    // cddl-codegen:replace-start
+                     // cddl-codegen:replace-start
                     if should_include_voting_purpose {
-                        // cddl-codegen:replaces
-                        // if self.voting_purpose != 0
-                        //     || self
-                        //         .encodings
-                        //         .as_ref()
-                        //         .map(|encs| encs.voting_purpose_default_present)
-                        //         .unwrap_or(false)
-                        // {
-                        // cddl-codegen:replace-end
+                    // cddl-codegen:replaces
+                    // if self.voting_purpose != 0
+                    //     || self
+                    //         .encodings
+                    //         .as_ref()
+                    //         .map(|encs| encs.voting_purpose_default_present)
+                    //         .unwrap_or(false)
+                    // {
+                    // cddl-codegen:replace-end
                         serializer.write_unsigned_integer_sz(
                             5u64,
                             fit_sz(
@@ -807,7 +806,7 @@ impl Serialize for CIP36KeyRegistration {
 }
 
 impl Deserialize for CIP36KeyRegistration {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -977,11 +976,11 @@ impl Deserialize for CIP36KeyRegistration {
 }
 
 impl Serialize for CIP36RegistrationWitness {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -1033,7 +1032,7 @@ impl Serialize for CIP36RegistrationWitness {
 }
 
 impl Deserialize for CIP36RegistrationWitness {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();

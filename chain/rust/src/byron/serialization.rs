@@ -11,13 +11,12 @@ use cml_core::{
     serialization::{CBORReadLen, Deserialize},
 };
 use cml_crypto::RawBytesEncoding;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl cbor_event::se::Serialize for AddrAttributes {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         // NOTE: This was manually modified *slightly*
         // The direct cddl-codegen code will always include the stake distribution
         // but the old byron code seems to only put it in when it's not bootstrap.
@@ -62,7 +61,7 @@ impl cbor_event::se::Serialize for AddrAttributes {
 }
 
 impl Deserialize for AddrAttributes {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.map()?;
         let mut read_len = CBORReadLen::from(len);
         (|| -> Result<_, DeserializeError> {
@@ -83,9 +82,7 @@ impl Deserialize for AddrAttributes {
                             stake_distribution = Some(
                                 (|| -> Result<_, DeserializeError> {
                                     let stake_distribution_bytes = raw.bytes()?;
-                                    let inner_de = &mut Deserializer::from(std::io::Cursor::new(
-                                        stake_distribution_bytes,
-                                    ));
+                                    let inner_de = &mut Deserializer::from(stake_distribution_bytes);
                                     read_len.read_elems(1)?;
                                     StakeDistribution::deserialize(inner_de)
                                 })()
@@ -99,9 +96,7 @@ impl Deserialize for AddrAttributes {
                             derivation_path = Some(
                                 (|| -> Result<_, DeserializeError> {
                                     let derivation_path_bytes = raw.bytes()?;
-                                    let inner_de = &mut Deserializer::from(std::io::Cursor::new(
-                                        derivation_path_bytes,
-                                    ));
+                                    let inner_de = &mut Deserializer::from(derivation_path_bytes);
                                     read_len.read_elems(1)?;
                                     HDAddressPayload::deserialize(inner_de)
                                 })()
@@ -115,9 +110,7 @@ impl Deserialize for AddrAttributes {
                             protocol_magic = Some(
                                 (|| -> Result<_, DeserializeError> {
                                     let protocol_magic_bytes = raw.bytes()?;
-                                    let inner_de = &mut Deserializer::from(std::io::Cursor::new(
-                                        protocol_magic_bytes,
-                                    ));
+                                    let inner_de = &mut Deserializer::from(protocol_magic_bytes);
                                     read_len.read_elems(1)?;
                                     ProtocolMagic::deserialize(inner_de)
                                 })()
@@ -160,10 +153,10 @@ impl Deserialize for AddrAttributes {
 }
 
 impl cbor_event::se::Serialize for AddressContent {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(3))?;
         serializer.write_bytes(self.address_id.to_raw_bytes())?;
         self.addr_attributes.serialize(serializer)?;
@@ -177,7 +170,7 @@ impl cbor_event::se::Serialize for AddressContent {
 }
 
 impl Deserialize for AddressContent {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::new(match len {
             cbor_event::Len::Len(n) => LenSz::Len(n, fit_sz(n, None, true)),
@@ -196,8 +189,8 @@ impl Deserialize for AddressContent {
             let addr_attributes = AddrAttributes::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("addr_attributes"))?;
             let addr_type = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().stream_position().unwrap();
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let initial_position = raw.position();
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let public_key_value = raw.unsigned_integer()?;
                     if public_key_value != 0 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -211,11 +204,10 @@ impl Deserialize for AddressContent {
                 match deser_variant {
                     Ok(()) => return Ok(ByronAddrType::PublicKey),
                     Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
+                        .set_position(initial_position)
                         .unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let script_value = raw.unsigned_integer()?;
                     if script_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -229,11 +221,10 @@ impl Deserialize for AddressContent {
                 match deser_variant {
                     Ok(()) => return Ok(ByronAddrType::Script),
                     Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
+                        .set_position(initial_position)
                         .unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let redeem_value = raw.unsigned_integer()?;
                     if redeem_value != 2 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -247,8 +238,7 @@ impl Deserialize for AddressContent {
                 match deser_variant {
                     Ok(()) => return Ok(ByronAddrType::Redeem),
                     Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
+                        .set_position(initial_position)
                         .unwrap(),
                 };
                 Err(DeserializeError::new(
@@ -275,10 +265,10 @@ impl Deserialize for AddressContent {
 }
 
 impl cbor_event::se::Serialize for ByronAddress {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(2))?;
         serializer.write_tag(24u64)?;
         let mut content_inner_se = Serializer::new_vec();
@@ -291,7 +281,7 @@ impl cbor_event::se::Serialize for ByronAddress {
 }
 
 impl Deserialize for ByronAddress {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
@@ -301,7 +291,7 @@ impl Deserialize for ByronAddress {
                     24 => {
                         let content_bytes = raw.bytes()?;
                         let crc = crate::byron::crc32::crc32(&content_bytes);
-                        let inner_de = &mut Deserializer::from(std::io::Cursor::new(content_bytes));
+                        let inner_de = &mut Deserializer::from((content_bytes));
                         Ok((AddressContent::deserialize(inner_de)?, crc))
                     }
                     tag => Err(DeserializeFailure::TagMismatch {
@@ -336,10 +326,10 @@ impl Deserialize for ByronAddress {
 }
 
 impl cbor_event::se::Serialize for ByronTxOut {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(2))?;
         self.address.serialize(serializer)?;
         serializer.write_unsigned_integer(self.amount)?;
@@ -348,7 +338,7 @@ impl cbor_event::se::Serialize for ByronTxOut {
 }
 
 impl Deserialize for ByronTxOut {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
@@ -371,25 +361,25 @@ impl Deserialize for ByronTxOut {
 }
 
 impl cbor_event::se::Serialize for HDAddressPayload {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_bytes(&self.0)
     }
 }
 
 impl Deserialize for HDAddressPayload {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         Ok(Self(raw.bytes()? as Vec<u8>))
     }
 }
 
 impl cbor_event::se::Serialize for SpendingData {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             SpendingData::SpendingDataPubKey(pubkey) => {
                 serializer.write_array(cbor_event::Len::Len(2))?;
@@ -414,12 +404,12 @@ impl cbor_event::se::Serialize for SpendingData {
 }
 
 impl Deserialize for SpendingData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array()?;
             let _read_len = CBORReadLen::from(len);
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let initial_position = raw.position();
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 (|| -> Result<_, DeserializeError> {
                     let tag_value = raw.unsigned_integer()?;
                     if tag_value != 0 {
@@ -452,11 +442,10 @@ impl Deserialize for SpendingData {
             match deser_variant {
                 Ok(variant) => return Ok(variant),
                 Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
+                    .set_position(initial_position)
                     .unwrap(),
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 (|| -> Result<_, DeserializeError> {
                     let tag_value = raw.unsigned_integer()?;
                     if tag_value != 1 {
@@ -489,11 +478,10 @@ impl Deserialize for SpendingData {
             match deser_variant {
                 Ok(variant) => return Ok(variant),
                 Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
+                    .set_position(initial_position)
                     .unwrap(),
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 (|| -> Result<_, DeserializeError> {
                     let tag_value = raw.unsigned_integer()?;
                     if tag_value != 2 {
@@ -526,8 +514,7 @@ impl Deserialize for SpendingData {
             match deser_variant {
                 Ok(variant) => return Ok(variant),
                 Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
+                    .set_position(initial_position)
                     .unwrap(),
             };
             match len {
@@ -547,10 +534,10 @@ impl Deserialize for SpendingData {
 }
 
 impl cbor_event::se::Serialize for StakeDistribution {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             StakeDistribution::SingleKey(stakeholder_id) => {
                 serializer.write_array(cbor_event::Len::Len(2))?;
@@ -567,12 +554,12 @@ impl cbor_event::se::Serialize for StakeDistribution {
 }
 
 impl Deserialize for StakeDistribution {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array()?;
             let _read_len = CBORReadLen::from(len);
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let initial_position = raw.position();
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 (|| -> Result<_, DeserializeError> {
                     let tag_value = raw.unsigned_integer()?;
                     if tag_value != 0 {
@@ -605,11 +592,10 @@ impl Deserialize for StakeDistribution {
             match deser_variant {
                 Ok(variant) => return Ok(variant),
                 Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
+                    .set_position(initial_position)
                     .unwrap(),
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let bootstrap_era_distr_value = raw.unsigned_integer()?;
                 if bootstrap_era_distr_value != 1 {
                     return Err(DeserializeFailure::FixedValueMismatch {
@@ -623,8 +609,7 @@ impl Deserialize for StakeDistribution {
             match deser_variant {
                 Ok(()) => return Ok(StakeDistribution::BootstrapEra),
                 Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
+                    .set_position(initial_position)
                     .unwrap(),
             };
             match len {

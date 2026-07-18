@@ -7,7 +7,6 @@ pub mod serialization;
 pub use crate::CIP25LabelMetadata;
 
 use cml_core::error::*;
-use std::convert::TryFrom;
 
 /// A String that may or may not be chunked into 64-byte chunks to be able
 /// to conform to Cardano TX Metadata limitations.
@@ -99,7 +98,7 @@ impl CIP25MetadataDetails {
 }
 
 #[derive(Clone, Debug)]
-pub struct CIP25String64(String);
+pub struct CIP25String64(pub(crate) String);
 
 impl CIP25String64 {
     pub fn get(&self) -> &String {

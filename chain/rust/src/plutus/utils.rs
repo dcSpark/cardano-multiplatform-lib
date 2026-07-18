@@ -14,7 +14,6 @@ use cml_core::serialization::*;
 use cml_crypto::ScriptHash;
 use itertools::Itertools;
 use std::convert::{TryFrom, TryInto};
-use std::io::{BufRead, Seek, Write};
 
 impl serde::Serialize for PlutusData {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -210,11 +209,11 @@ pub struct ConstrPlutusDataEncoding {
 }
 
 impl Serialize for ConstrPlutusData {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match Self::alternative_to_compact_cbor_tag(self.alternative) {
             Some(compact_tag)
                 if self
@@ -308,7 +307,7 @@ impl Serialize for ConstrPlutusData {
 }
 
 impl Deserialize for ConstrPlutusData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let (tag, tag_encoding) = raw.tag_sz()?;
             match tag {
@@ -697,11 +696,11 @@ impl PlutusMap {
 }
 
 impl Serialize for PlutusMap {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encoding
                 .to_len_sz(self.entries.len() as u64, force_canonical),
@@ -732,7 +731,7 @@ impl Serialize for PlutusMap {
 }
 
 impl Deserialize for PlutusMap {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let mut entries = Vec::new();
             let map_len = raw.map_sz()?;

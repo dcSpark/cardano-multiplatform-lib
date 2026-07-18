@@ -7,7 +7,6 @@ pub use cml_chain::{
     auxdata::{Metadata, TransactionMetadatum},
 };
 pub use cml_core::{error::*, serialization::*};
-use std::io::{BufRead, Seek, SeekFrom, Write};
 
 use crate::{CIP25ChunkableString, CIP25Metadata, CIP25MetadataDetails, CIP25String64};
 
@@ -270,10 +269,10 @@ impl CIP25LabelMetadata {
 // serialization:
 
 impl cbor_event::se::Serialize for CIP25LabelMetadata {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self.version {
             CIP25Version::V1 => {
                 serializer.write_map(cbor_event::Len::Len(self.nfts.len() as u64))?;
@@ -316,14 +315,14 @@ impl cbor_event::se::Serialize for CIP25LabelMetadata {
 }
 
 impl Deserialize for CIP25LabelMetadata {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             // largely taken from result of generating the original CDDL then modifying to merge v1/v2
             // this has to be modified anyway to allow for permissive parsing in the first place.
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
 
             // Try parsing V1
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut label_metadata_v1_table = BTreeMap::new();
                 let mut label_metadata_v1_table_len = 0;
                 let label_metadata_v1_len = raw.map()?;
@@ -424,13 +423,12 @@ impl Deserialize for CIP25LabelMetadata {
                     });
                 },
                 Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
+                    .set_position(initial_position)
                     .unwrap(),
             };
 
             // Try paring V2
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let len = raw.map()?;
                 let mut read_len = CBORReadLen::new(match len {
                     cbor_event::Len::Len(n) => cbor_event::LenSz::Len(n, cbor_event::Sz::canonical(n)),
@@ -610,8 +608,7 @@ impl Deserialize for CIP25LabelMetadata {
                     });
                 },
                 Err(_) => raw
-                    .as_mut_ref()
-                    .seek(SeekFrom::Start(initial_position))
+                    .set_position(initial_position)
                     .unwrap(),
             };
 

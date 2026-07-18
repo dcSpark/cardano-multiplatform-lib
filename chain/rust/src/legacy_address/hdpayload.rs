@@ -111,15 +111,15 @@ impl Path {
     }
 }
 impl cbor_event::se::Serialize for Path {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         se::serialize_indefinite_array(self.0.iter(), serializer)
     }
 }
 impl cbor_event::Deserialize for Path {
-    fn deserialize<R: BufRead>(reader: &mut Deserializer<R>) -> cbor_event::Result<Self> {
+    fn deserialize(reader: &mut Deserializer) -> cbor_event::Result<Self> {
         Ok(Path(reader.deserialize()?))
     }
 }
@@ -235,15 +235,15 @@ impl HDAddressPayload {
     }
 }
 impl cbor_event::se::Serialize for HDAddressPayload {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         se::serialize_cbor_in_cbor(self.0.as_slice(), serializer)
     }
 }
 impl cbor_event::de::Deserialize for HDAddressPayload {
-    fn deserialize<R: BufRead>(reader: &mut Deserializer<R>) -> cbor_event::Result<Self> {
+    fn deserialize(reader: &mut Deserializer) -> cbor_event::Result<Self> {
         let inner_cbor = reader.bytes()?;
         let inner_cbor = std::io::Cursor::new(inner_cbor);
         let mut inner_cbor = Deserializer::from(inner_cbor);

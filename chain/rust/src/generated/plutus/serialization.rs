@@ -7,18 +7,17 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 
 // cddl-codegen:insert-start
 // PlutusData::Bytes uses this specific encoding:
 use crate::utils::{read_bounded_bytes, write_bounded_bytes};
 // cddl-codegen:insert-end
 impl Serialize for CostModels {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -92,7 +91,7 @@ impl Serialize for CostModels {
 }
 
 impl Deserialize for CostModels {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let mut inner_table = OrderedHashMap::new();
             let inner_len = raw.map_sz()?;
@@ -200,11 +199,11 @@ impl Deserialize for CostModels {
 }
 
 impl Serialize for ExUnitPrices {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -223,7 +222,7 @@ impl Serialize for ExUnitPrices {
 }
 
 impl Deserialize for ExUnitPrices {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -252,11 +251,11 @@ impl Deserialize for ExUnitPrices {
 }
 
 impl Serialize for ExUnits {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -295,7 +294,7 @@ impl Serialize for ExUnits {
 }
 
 impl Deserialize for ExUnits {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -334,11 +333,11 @@ impl Deserialize for ExUnits {
 }
 
 impl Serialize for LegacyRedeemer {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -436,7 +435,7 @@ impl Serialize for LegacyRedeemer {
 }
 
 impl Deserialize for LegacyRedeemer {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -444,8 +443,8 @@ impl Deserialize for LegacyRedeemer {
             read_len.read_elems(4)?;
             read_len.finish()?;
             let (tag, tag_encoding) = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().stream_position().unwrap();
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let initial_position = raw.position();
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (spend_value, spend_encoding) = raw.unsigned_integer_sz()?;
                     if spend_value != 0 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -458,12 +457,9 @@ impl Deserialize for LegacyRedeemer {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Spend, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (mint_value, mint_encoding) = raw.unsigned_integer_sz()?;
                     if mint_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -476,12 +472,9 @@ impl Deserialize for LegacyRedeemer {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Mint, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (cert_value, cert_encoding) = raw.unsigned_integer_sz()?;
                     if cert_value != 2 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -494,12 +487,9 @@ impl Deserialize for LegacyRedeemer {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Cert, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (reward_value, reward_encoding) = raw.unsigned_integer_sz()?;
                     if reward_value != 3 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -512,12 +502,9 @@ impl Deserialize for LegacyRedeemer {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Reward, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (voting_value, voting_encoding) = raw.unsigned_integer_sz()?;
                     if voting_value != 4 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -530,12 +517,9 @@ impl Deserialize for LegacyRedeemer {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Voting, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (proposing_value, proposing_encoding) = raw.unsigned_integer_sz()?;
                     if proposing_value != 5 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -548,10 +532,7 @@ impl Deserialize for LegacyRedeemer {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Proposing, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
                 Err(DeserializeError::new(
                     "RedeemerTag",
@@ -592,11 +573,11 @@ impl Deserialize for LegacyRedeemer {
 }
 
 impl Serialize for PlutusData {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             PlutusData::ConstrPlutusData(constr_plutus_data) => {
                 constr_plutus_data.serialize(serializer, force_canonical)
@@ -633,7 +614,7 @@ impl Serialize for PlutusData {
 }
 
 impl Deserialize for PlutusData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             // cddl-codegen:replace-start
             // 1) we use bounded bytes not
@@ -641,10 +622,9 @@ impl Deserialize for PlutusData {
             match raw.cbor_type()? {
                 cbor_event::Type::Tag => {
                     // could be large BigInteger or ConstrPlutusData so check tag to see which it is
-                    let initial_position = raw.as_mut_ref().stream_position().unwrap();
+                    let initial_position = raw.position();
                     let tag = raw.tag()?;
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
+                    raw.set_position(initial_position)
                         .unwrap();
                     if tag == 2 || tag == 3 {
                         BigInteger::deserialize(raw)
@@ -660,7 +640,7 @@ impl Deserialize for PlutusData {
                     .map(Self::Map)
                     .map_err(|e| e.annotate("Map")),
                 cbor_event::Type::Array => {
-                    (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                    (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                         let mut list_arr = Vec::new();
                         let len = raw.array_sz()?;
                         let list_encoding = len.into();
@@ -697,17 +677,15 @@ impl Deserialize for PlutusData {
                     .map_err(|e| e.annotate("Bytes")),
                 _ => Err(DeserializeFailure::NoVariantMatched.into()),
             }
-            // cddl-codegen:replaces
-            // let initial_position = raw.as_mut_ref().stream_position().unwrap();
+             // cddl-codegen:replaces
+            // let initial_position = raw.position();
             // let mut errs = Vec::new();
             // let deser_variant: Result<_, DeserializeError> = ConstrPlutusData::deserialize(raw);
             // match deser_variant {
             //     Ok(constr_plutus_data) => return Ok(Self::ConstrPlutusData(constr_plutus_data)),
             //     Err(e) => {
             //         errs.push(e.annotate("ConstrPlutusData"));
-            //         raw.as_mut_ref()
-            //             .seek(SeekFrom::Start(initial_position))
-            //             .unwrap();
+            //         raw.set_position(initial_position).unwrap();
             //     }
             // };
             // let deser_variant: Result<_, DeserializeError> = PlutusMap::deserialize(raw);
@@ -715,12 +693,10 @@ impl Deserialize for PlutusData {
             //     Ok(map) => return Ok(Self::Map(map)),
             //     Err(e) => {
             //         errs.push(e.annotate("Map"));
-            //         raw.as_mut_ref()
-            //             .seek(SeekFrom::Start(initial_position))
-            //             .unwrap();
+            //         raw.set_position(initial_position).unwrap();
             //     }
             // };
-            // let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            // let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
             //     let mut list_arr = Vec::new();
             //     let len = raw.array_sz()?;
             //     let list_encoding = len.into();
@@ -747,9 +723,7 @@ impl Deserialize for PlutusData {
             //     }
             //     Err(e) => {
             //         errs.push(e.annotate("List"));
-            //         raw.as_mut_ref()
-            //             .seek(SeekFrom::Start(initial_position))
-            //             .unwrap();
+            //         raw.set_position(initial_position).unwrap();
             //     }
             // };
             // let deser_variant: Result<_, DeserializeError> = BigInteger::deserialize(raw);
@@ -757,9 +731,7 @@ impl Deserialize for PlutusData {
             //     Ok(integer) => return Ok(Self::Integer(integer)),
             //     Err(e) => {
             //         errs.push(e.annotate("Integer"));
-            //         raw.as_mut_ref()
-            //             .seek(SeekFrom::Start(initial_position))
-            //             .unwrap();
+            //         raw.set_position(initial_position).unwrap();
             //     }
             // };
             // let deser_variant: Result<_, DeserializeError> = raw
@@ -775,9 +747,7 @@ impl Deserialize for PlutusData {
             //     }
             //     Err(e) => {
             //         errs.push(e.annotate("Bytes"));
-            //         raw.as_mut_ref()
-            //             .seek(SeekFrom::Start(initial_position))
-            //             .unwrap();
+            //         raw.set_position(initial_position).unwrap();
             //     }
             // };
             // Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -788,11 +758,11 @@ impl Deserialize for PlutusData {
 }
 
 impl Serialize for PlutusV1Script {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_bytes_sz(
             &self.inner,
             self.encodings
@@ -805,7 +775,7 @@ impl Serialize for PlutusV1Script {
 }
 
 impl Deserialize for PlutusV1Script {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let (inner, inner_encoding) = raw
                 .bytes_sz()
@@ -820,11 +790,11 @@ impl Deserialize for PlutusV1Script {
 }
 
 impl Serialize for PlutusV2Script {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_bytes_sz(
             &self.inner,
             self.encodings
@@ -837,7 +807,7 @@ impl Serialize for PlutusV2Script {
 }
 
 impl Deserialize for PlutusV2Script {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let (inner, inner_encoding) = raw
                 .bytes_sz()
@@ -852,11 +822,11 @@ impl Deserialize for PlutusV2Script {
 }
 
 impl Serialize for PlutusV3Script {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_bytes_sz(
             &self.inner,
             self.encodings
@@ -869,7 +839,7 @@ impl Serialize for PlutusV3Script {
 }
 
 impl Deserialize for PlutusV3Script {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let (inner, inner_encoding) = raw
                 .bytes_sz()
@@ -884,11 +854,11 @@ impl Deserialize for PlutusV3Script {
 }
 
 impl Serialize for RedeemerKey {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -984,7 +954,7 @@ impl Serialize for RedeemerKey {
 }
 
 impl Deserialize for RedeemerKey {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -992,8 +962,8 @@ impl Deserialize for RedeemerKey {
             read_len.read_elems(2)?;
             read_len.finish()?;
             let (tag, tag_encoding) = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().stream_position().unwrap();
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let initial_position = raw.position();
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (spend_value, spend_encoding) = raw.unsigned_integer_sz()?;
                     if spend_value != 0 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1006,12 +976,9 @@ impl Deserialize for RedeemerKey {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Spend, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (mint_value, mint_encoding) = raw.unsigned_integer_sz()?;
                     if mint_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1024,12 +991,9 @@ impl Deserialize for RedeemerKey {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Mint, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (cert_value, cert_encoding) = raw.unsigned_integer_sz()?;
                     if cert_value != 2 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1042,12 +1006,9 @@ impl Deserialize for RedeemerKey {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Cert, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (reward_value, reward_encoding) = raw.unsigned_integer_sz()?;
                     if reward_value != 3 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1060,12 +1021,9 @@ impl Deserialize for RedeemerKey {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Reward, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (voting_value, voting_encoding) = raw.unsigned_integer_sz()?;
                     if voting_value != 4 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1078,12 +1036,9 @@ impl Deserialize for RedeemerKey {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Voting, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (proposing_value, proposing_encoding) = raw.unsigned_integer_sz()?;
                     if proposing_value != 5 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1096,10 +1051,7 @@ impl Deserialize for RedeemerKey {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((RedeemerTag::Proposing, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
                 Err(DeserializeError::new(
                     "RedeemerTag",
@@ -1134,11 +1086,11 @@ impl Deserialize for RedeemerKey {
 }
 
 impl Serialize for RedeemerVal {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1157,7 +1109,7 @@ impl Serialize for RedeemerVal {
 }
 
 impl Deserialize for RedeemerVal {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -1186,11 +1138,11 @@ impl Deserialize for RedeemerVal {
 }
 
 impl Serialize for Redeemers {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             Redeemers::ArrLegacyRedeemer {
                 arr_legacy_redeemer,
@@ -1240,7 +1192,7 @@ impl Serialize for Redeemers {
 }
 
 impl Deserialize for Redeemers {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             match raw.cbor_type()? {
                 cbor_event::Type::Array => {

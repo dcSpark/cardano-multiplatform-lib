@@ -6,13 +6,12 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::{Serialize, Serializer};
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, Write};
 
 impl cbor_event::se::Serialize for CIP25ChunkableString {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             CIP25ChunkableString::Single(single) => single.serialize(serializer),
             CIP25ChunkableString::Chunked(chunked) => {
@@ -27,7 +26,7 @@ impl cbor_event::se::Serialize for CIP25ChunkableString {
 }
 
 impl Deserialize for CIP25ChunkableString {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             match raw.cbor_type()? {
                 cbor_event::Type::Text => Ok(CIP25ChunkableString::Single(
@@ -59,10 +58,10 @@ impl Deserialize for CIP25ChunkableString {
 }
 
 impl cbor_event::se::Serialize for CIP25FilesDetails {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map(cbor_event::Len::Len(3))?;
         serializer.write_text("src")?;
         self.src.serialize(serializer)?;
@@ -75,7 +74,7 @@ impl cbor_event::se::Serialize for CIP25FilesDetails {
 }
 
 impl Deserialize for CIP25FilesDetails {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
             let mut read_len = CBORReadLen::from(len);
@@ -149,7 +148,7 @@ impl Deserialize for CIP25FilesDetails {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    _other_type => {
+                     _other_type => {
                         // CIP-25 allows permissive parsing
                         read_len.read_elems(1)?;
                         // we still need to read the data to move on to the CBOR after it
@@ -201,10 +200,10 @@ impl Deserialize for CIP25FilesDetails {
 }
 
 impl cbor_event::se::Serialize for CIP25Metadata {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map(cbor_event::Len::Len(1))?;
         serializer.write_unsigned_integer(721u64)?;
         self.key_721.serialize(serializer)?;
@@ -213,7 +212,7 @@ impl cbor_event::se::Serialize for CIP25Metadata {
 }
 
 impl Deserialize for CIP25Metadata {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
             let mut read_len = CBORReadLen::from(len);
@@ -275,10 +274,10 @@ impl Deserialize for CIP25Metadata {
 }
 
 impl cbor_event::se::Serialize for CIP25MetadataDetails {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map(cbor_event::Len::Len(
             2 + match &self.media_type {
                 Some(_) => 1,
@@ -315,7 +314,7 @@ impl cbor_event::se::Serialize for CIP25MetadataDetails {
 }
 
 impl Deserialize for CIP25MetadataDetails {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
             let mut read_len = CBORReadLen::from(len);
@@ -438,7 +437,7 @@ impl Deserialize for CIP25MetadataDetails {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                    _other_type => {
+                     _other_type => {
                         // CIP-25 allows permissive parsing
                         read_len.read_elems(1)?;
                         // we still need to read the data to move on to the CBOR after it
@@ -482,16 +481,16 @@ impl Deserialize for CIP25MetadataDetails {
 }
 
 impl cbor_event::se::Serialize for CIP25String64 {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_text(&self.0)
     }
 }
 
 impl Deserialize for CIP25String64 {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let inner = raw.text()?;
             if inner.len() > 64 {

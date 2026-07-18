@@ -3,7 +3,6 @@ use cbor_event::{
     de::Deserializer,
     se::{self, Serializer},
 };
-use std::io::{BufRead, Write};
 
 use cml_core::network::ProtocolMagic;
 
@@ -22,10 +21,10 @@ pub struct ByronProxySecretKey {
 }
 
 impl cbor_event::se::Serialize for ByronProxySecretKey {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer
             .write_array(cbor_event::Len::Len(4))?
             .serialize(&self.omega)?
@@ -36,7 +35,7 @@ impl cbor_event::se::Serialize for ByronProxySecretKey {
 }
 
 impl cbor_event::de::Deserialize for ByronProxySecretKey {
-    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> cbor_event::Result<Self> {
+    fn deserialize(raw: &mut Deserializer) -> cbor_event::Result<Self> {
         raw.tuple(4, "ByronProxySecretKey")?;
 
         let omega = cbor_event::de::Deserialize::deserialize(raw)?;
@@ -89,17 +88,19 @@ impl ByronProxySecretKey {
         // CBOR-in-byte-vector-in-CBOR-in-byte-vector...
         let mut buf2 = vec![b'0', b'0'];
         buf2.extend(delegate_pk.as_ref());
-        se::Serializer::new(&mut buf2).serialize(&omega).unwrap();
+        let mut ser2 = se::Serializer::new(buf2);
+        ser2.serialize(&omega).unwrap();
+        let buf2 = ser2.finalize();
 
         let mut buf = vec![];
         buf.push(byron_tags::SigningTag::ProxySK as u8);
-        se::Serializer::new(&mut buf)
-            .serialize(&protocol_magic)
+        let mut ser = se::Serializer::new(buf);
+        ser.serialize(&protocol_magic)
             .unwrap()
             .write_bytes(buf2)
             .unwrap();
 
-        buf
+        ser.finalize()
     }
 }
 
@@ -110,10 +111,10 @@ pub struct ProxySignature {
 }
 
 impl cbor_event::se::Serialize for ProxySignature {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer
             .write_array(cbor_event::Len::Len(2))?
             .serialize(&self.psk)?
@@ -122,7 +123,7 @@ impl cbor_event::se::Serialize for ProxySignature {
 }
 
 impl cbor_event::de::Deserialize for ProxySignature {
-    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> cbor_event::Result<Self> {
+    fn deserialize(raw: &mut Deserializer) -> cbor_event::Result<Self> {
         raw.tuple(2, "ProxySignature")?;
 
         let psk = cbor_event::de::Deserialize::deserialize(raw)?;
@@ -147,10 +148,10 @@ impl BlockSignature {
     }
 }
 impl cbor_event::se::Serialize for BlockSignature {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             BlockSignature::Signature(sig) => serializer
                 .write_array(cbor_event::Len::Len(2))?
@@ -170,7 +171,7 @@ impl cbor_event::se::Serialize for BlockSignature {
     }
 }
 impl cbor_event::de::Deserialize for BlockSignature {
-    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> cbor_event::Result<Self> {
+    fn deserialize(raw: &mut Deserializer) -> cbor_event::Result<Self> {
         raw.tuple(2, "BlockSignature")?;
         let sum_type_idx = raw.unsigned_integer()?;
         match sum_type_idx {

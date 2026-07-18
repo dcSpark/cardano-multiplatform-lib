@@ -25,7 +25,6 @@ extern crate derivative;
 use derivative::Derivative;
 
 use cbor_event::{de::Deserializer, se::Serializer};
-use std::io::{BufRead, Seek, Write};
 
 #[derive(Clone, Debug, Derivative)]
 #[derivative(
@@ -203,11 +202,11 @@ impl From<&Int> for i128 {
 }
 
 impl Serialize for Int {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             Self::Uint { value, encoding } => serializer
                 .write_unsigned_integer_sz(*value, fit_sz(*value, *encoding, force_canonical)),
@@ -220,7 +219,7 @@ impl Serialize for Int {
 }
 
 impl Deserialize for Int {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             match raw.cbor_type()? {
                 cbor_event::Type::UnsignedInteger => raw

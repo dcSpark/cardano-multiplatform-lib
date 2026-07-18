@@ -45,7 +45,6 @@ use num::Zero;
 use rand::RngExt;
 use std::collections::BTreeSet;
 use std::convert::TryInto;
-use std::io::{BufRead, Seek, Write};
 use std::ops::DerefMut;
 
 #[cfg(not(feature = "used_from_wasm"))]
@@ -73,10 +72,10 @@ impl TransactionUnspentOutput {
 // this isn't on-chain (hence why cbor_event's Serialize since we don't care about outer format)
 // but being able to (de)serialize helps massively with CIP30.
 impl cbor_event::se::Serialize for TransactionUnspentOutput {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(2))?;
         self.input.serialize(serializer, false)?;
         self.output.serialize(serializer, false)
@@ -84,7 +83,7 @@ impl cbor_event::se::Serialize for TransactionUnspentOutput {
 }
 
 impl Deserialize for TransactionUnspentOutput {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array_sz()?;
         let mut read_len = CBORReadLen::new(len);
         read_len.read_elems(2)?;

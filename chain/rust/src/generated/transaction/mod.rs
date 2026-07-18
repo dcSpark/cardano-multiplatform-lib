@@ -389,7 +389,7 @@ impl ScriptPubkey {
 #[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ScriptRef {
-    inner: Script,
+    pub(crate) inner: Script,
     #[derivative(
         PartialEq = "ignore",
         Ord = "ignore",

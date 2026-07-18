@@ -7,14 +7,13 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for BootstrapWitness {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -72,7 +71,7 @@ impl Serialize for BootstrapWitness {
 }
 
 impl Deserialize for BootstrapWitness {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -115,7 +114,7 @@ impl Deserialize for BootstrapWitness {
                 .map_err(|e: DeserializeError| e.annotate("chain_code"))?;
             let (attributes, attributes_bytes_encoding) = (|| -> Result<_, DeserializeError> {
                 let (attributes_bytes, attributes_bytes_encoding) = raw.bytes_sz()?;
-                let inner_de = &mut Deserializer::from(std::io::Cursor::new(attributes_bytes));
+                let inner_de = &mut Deserializer::from(attributes_bytes);
                 Ok((
                     AddrAttributes::deserialize(inner_de)?,
                     StringEncoding::from(attributes_bytes_encoding),
@@ -148,11 +147,11 @@ impl Deserialize for BootstrapWitness {
 }
 
 impl Serialize for KESSignature {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_bytes_sz(
             &self.inner,
             self.encodings
@@ -165,7 +164,7 @@ impl Serialize for KESSignature {
 }
 
 impl Deserialize for KESSignature {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let (inner, inner_encoding) = raw
                 .bytes_sz()
@@ -188,11 +187,11 @@ impl Deserialize for KESSignature {
 }
 
 impl Serialize for Nonce {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             Nonce::Identity {
                 identity_encoding,
@@ -229,13 +228,13 @@ impl Serialize for Nonce {
 }
 
 impl Deserialize for Nonce {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(1)?;
                 read_len.finish()?;
@@ -266,12 +265,10 @@ impl Deserialize for Nonce {
                 }
                 Err(e) => {
                     errs.push(e.annotate("Identity"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -314,9 +311,7 @@ impl Deserialize for Nonce {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("Hash"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -326,11 +321,11 @@ impl Deserialize for Nonce {
 }
 
 impl Serialize for VRFCert {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -363,7 +358,7 @@ impl Serialize for VRFCert {
 }
 
 impl Deserialize for VRFCert {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -413,11 +408,11 @@ impl Deserialize for VRFCert {
 }
 
 impl Serialize for Vkeywitness {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -453,7 +448,7 @@ impl Serialize for Vkeywitness {
 }
 
 impl Deserialize for Vkeywitness {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();

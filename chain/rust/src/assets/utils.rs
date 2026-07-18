@@ -7,7 +7,6 @@ use cml_core::{
     serialization::{CBORReadLen, Deserialize, LenEncoding, Serialize, StringEncoding, fit_sz},
 };
 use cml_crypto::{RawBytesEncoding, ScriptHash};
-use std::io::{BufRead, Seek, Write};
 use std::{
     cmp::PartialOrd,
     convert::{TryFrom, TryInto},
@@ -478,11 +477,11 @@ impl From<MultiAsset> for Value {
 }
 
 impl Serialize for Value {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         if self.multiasset.is_empty()
             && self
                 .encodings
@@ -611,7 +610,7 @@ impl Serialize for Value {
 }
 
 impl Deserialize for Value {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             match raw.cbor_type()? {
                 // coin-only format

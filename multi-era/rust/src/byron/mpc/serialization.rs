@@ -8,13 +8,12 @@ use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::RawBytesEncoding;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl cbor_event::se::Serialize for Ssc {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             Ssc::SscCommitmentsPayload(ssc_commitments_payload) => {
                 ssc_commitments_payload.serialize(serializer)
@@ -31,9 +30,9 @@ impl cbor_event::se::Serialize for Ssc {
 }
 
 impl Deserialize for Ssc {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> =
                 SscCommitmentsPayload::deserialize(raw);
@@ -43,8 +42,7 @@ impl Deserialize for Ssc {
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscCommitmentsPayload"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
+                    raw.set_position(initial_position)
                         .unwrap();
                 }
             };
@@ -55,8 +53,7 @@ impl Deserialize for Ssc {
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscOpeningsPayload"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
+                    raw.set_position(initial_position)
                         .unwrap();
                 }
             };
@@ -65,8 +62,7 @@ impl Deserialize for Ssc {
                 Ok(ssc_shares_payload) => return Ok(Self::SscSharesPayload(ssc_shares_payload)),
                 Err(e) => {
                     errs.push(e.annotate("SscSharesPayload"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
+                    raw.set_position(initial_position)
                         .unwrap();
                 }
             };
@@ -78,8 +74,7 @@ impl Deserialize for Ssc {
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscCertificatesPayload"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
+                    raw.set_position(initial_position)
                         .unwrap();
                 }
             };
@@ -93,10 +88,10 @@ impl Deserialize for Ssc {
 }
 
 impl cbor_event::se::Serialize for SscCert {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(4))?;
         serializer.write_bytes(&self.vss_pub_key)?;
         serializer.write_unsigned_integer(self.epoch_id)?;
@@ -107,7 +102,7 @@ impl cbor_event::se::Serialize for SscCert {
 }
 
 impl Deserialize for SscCert {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(4)?;
@@ -140,10 +135,10 @@ impl Deserialize for SscCert {
 }
 
 impl cbor_event::se::Serialize for SscCertificatesPayload {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(2))?;
         serializer.write_unsigned_integer(3u64)?;
         serializer.write_tag(258u64)?;
@@ -156,7 +151,7 @@ impl cbor_event::se::Serialize for SscCertificatesPayload {
 }
 
 impl Deserialize for SscCertificatesPayload {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
@@ -213,10 +208,10 @@ impl Deserialize for SscCertificatesPayload {
 }
 
 impl cbor_event::se::Serialize for SscCertificatesProof {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(2))?;
         serializer.write_unsigned_integer(3u64)?;
         serializer.write_bytes(self.blake2b256.to_raw_bytes())?;
@@ -225,7 +220,7 @@ impl cbor_event::se::Serialize for SscCertificatesProof {
 }
 
 impl Deserialize for SscCertificatesProof {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
@@ -265,10 +260,10 @@ impl Deserialize for SscCertificatesProof {
 }
 
 impl cbor_event::se::Serialize for SscCommitment {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(2))?;
         serializer.write_map(cbor_event::Len::Len(self.vss_shares.len() as u64))?;
         for (key, value) in self.vss_shares.iter() {
@@ -281,7 +276,7 @@ impl cbor_event::se::Serialize for SscCommitment {
 }
 
 impl Deserialize for SscCommitment {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
@@ -332,10 +327,10 @@ impl Deserialize for SscCommitment {
 }
 
 impl cbor_event::se::Serialize for SscCommitmentsPayload {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(3))?;
         serializer.write_unsigned_integer(0u64)?;
         serializer.write_tag(258u64)?;
@@ -355,7 +350,7 @@ impl cbor_event::se::Serialize for SscCommitmentsPayload {
 }
 
 impl Deserialize for SscCommitmentsPayload {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(3)?;
@@ -442,10 +437,10 @@ impl Deserialize for SscCommitmentsPayload {
 }
 
 impl cbor_event::se::Serialize for SscCommitmentsProof {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(3))?;
         serializer.write_unsigned_integer(0u64)?;
         serializer.write_bytes(self.blake2b256.to_raw_bytes())?;
@@ -455,7 +450,7 @@ impl cbor_event::se::Serialize for SscCommitmentsProof {
 }
 
 impl Deserialize for SscCommitmentsProof {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(3)?;
@@ -506,10 +501,10 @@ impl Deserialize for SscCommitmentsProof {
 }
 
 impl cbor_event::se::Serialize for SscOpeningsPayload {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(3))?;
         serializer.write_unsigned_integer(1u64)?;
         serializer.write_map(cbor_event::Len::Len(self.ssc_opens.len() as u64))?;
@@ -527,7 +522,7 @@ impl cbor_event::se::Serialize for SscOpeningsPayload {
 }
 
 impl Deserialize for SscOpeningsPayload {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(3)?;
@@ -620,10 +615,10 @@ impl Deserialize for SscOpeningsPayload {
 }
 
 impl cbor_event::se::Serialize for SscOpeningsProof {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(3))?;
         serializer.write_unsigned_integer(1u64)?;
         serializer.write_bytes(self.blake2b256.to_raw_bytes())?;
@@ -633,7 +628,7 @@ impl cbor_event::se::Serialize for SscOpeningsProof {
 }
 
 impl Deserialize for SscOpeningsProof {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(3)?;
@@ -684,10 +679,10 @@ impl Deserialize for SscOpeningsProof {
 }
 
 impl cbor_event::se::Serialize for SscProof {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             SscProof::SscCommitmentsProof(ssc_commitments_proof) => {
                 ssc_commitments_proof.serialize(serializer)
@@ -704,9 +699,9 @@ impl cbor_event::se::Serialize for SscProof {
 }
 
 impl Deserialize for SscProof {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> = SscCommitmentsProof::deserialize(raw);
             match deser_variant {
@@ -715,8 +710,7 @@ impl Deserialize for SscProof {
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscCommitmentsProof"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
+                    raw.set_position(initial_position)
                         .unwrap();
                 }
             };
@@ -725,8 +719,7 @@ impl Deserialize for SscProof {
                 Ok(ssc_openings_proof) => return Ok(Self::SscOpeningsProof(ssc_openings_proof)),
                 Err(e) => {
                     errs.push(e.annotate("SscOpeningsProof"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
+                    raw.set_position(initial_position)
                         .unwrap();
                 }
             };
@@ -735,8 +728,7 @@ impl Deserialize for SscProof {
                 Ok(ssc_shares_proof) => return Ok(Self::SscSharesProof(ssc_shares_proof)),
                 Err(e) => {
                     errs.push(e.annotate("SscSharesProof"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
+                    raw.set_position(initial_position)
                         .unwrap();
                 }
             };
@@ -747,8 +739,7 @@ impl Deserialize for SscProof {
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscCertificatesProof"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
+                    raw.set_position(initial_position)
                         .unwrap();
                 }
             };
@@ -762,10 +753,10 @@ impl Deserialize for SscProof {
 }
 
 impl cbor_event::se::Serialize for SscSharesPayload {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(3))?;
         serializer.write_unsigned_integer(2u64)?;
         serializer.write_map(cbor_event::Len::Len(self.ssc_shares.len() as u64))?;
@@ -791,7 +782,7 @@ impl cbor_event::se::Serialize for SscSharesPayload {
 }
 
 impl Deserialize for SscSharesPayload {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(3)?;
@@ -927,10 +918,10 @@ impl Deserialize for SscSharesPayload {
 }
 
 impl cbor_event::se::Serialize for SscSharesProof {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(3))?;
         serializer.write_unsigned_integer(2u64)?;
         serializer.write_bytes(self.blake2b256.to_raw_bytes())?;
@@ -940,7 +931,7 @@ impl cbor_event::se::Serialize for SscSharesProof {
 }
 
 impl Deserialize for SscSharesProof {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(3)?;
@@ -991,10 +982,10 @@ impl Deserialize for SscSharesProof {
 }
 
 impl cbor_event::se::Serialize for SscSignedCommitment {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(3))?;
         serializer.write_bytes(&self.byron_pub_key)?;
         self.ssc_commitment.serialize(serializer)?;
@@ -1004,7 +995,7 @@ impl cbor_event::se::Serialize for SscSignedCommitment {
 }
 
 impl Deserialize for SscSignedCommitment {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(3)?;
@@ -1034,10 +1025,10 @@ impl Deserialize for SscSignedCommitment {
 }
 
 impl cbor_event::se::Serialize for VssEncryptedShare {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         //serializer.write_array(cbor_event::Len::Len(1))?;
         serializer.write_array(cbor_event::Len::Indefinite)?;
         serializer.write_bytes(&self.index_0)?;
@@ -1047,7 +1038,7 @@ impl cbor_event::se::Serialize for VssEncryptedShare {
 }
 
 impl Deserialize for VssEncryptedShare {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(1)?;
@@ -1069,10 +1060,10 @@ impl Deserialize for VssEncryptedShare {
 }
 
 impl cbor_event::se::Serialize for VssProof {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(4))?;
         serializer.write_bytes(&self.extra_gen)?;
         serializer.write_bytes(&self.proof)?;
@@ -1088,7 +1079,7 @@ impl cbor_event::se::Serialize for VssProof {
 }
 
 impl Deserialize for VssProof {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(4)?;

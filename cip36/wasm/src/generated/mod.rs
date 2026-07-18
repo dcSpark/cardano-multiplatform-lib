@@ -18,7 +18,7 @@ use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP36Delegation(cml_cip36::CIP36Delegation);
+pub struct CIP36Delegation(pub(crate) cml_cip36::CIP36Delegation);
 
 impl_wasm_cbor_json_api!(CIP36Delegation);
 
@@ -44,7 +44,7 @@ impl CIP36Delegation {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP36DelegationDistribution(cml_cip36::CIP36DelegationDistribution);
+pub struct CIP36DelegationDistribution(pub(crate) cml_cip36::CIP36DelegationDistribution);
 
 impl_wasm_cbor_json_api!(CIP36DelegationDistribution);
 
@@ -113,7 +113,7 @@ impl_wasm_list_needs_into!(
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP36DeregistrationCbor(cml_cip36::CIP36DeregistrationCbor);
+pub struct CIP36DeregistrationCbor(pub(crate) cml_cip36::CIP36DeregistrationCbor);
 
 // CIP36DeregistrationCbor does not implement Serialize as it may be a subset of metadata
 impl_wasm_json_api!(CIP36DeregistrationCbor);
@@ -143,7 +143,7 @@ impl CIP36DeregistrationCbor {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP36DeregistrationWitness(cml_cip36::CIP36DeregistrationWitness);
+pub struct CIP36DeregistrationWitness(pub(crate) cml_cip36::CIP36DeregistrationWitness);
 
 impl_wasm_cbor_json_api!(CIP36DeregistrationWitness);
 
@@ -167,7 +167,7 @@ impl CIP36DeregistrationWitness {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP36KeyDeregistration(cml_cip36::CIP36KeyDeregistration);
+pub struct CIP36KeyDeregistration(pub(crate) cml_cip36::CIP36KeyDeregistration);
 
 impl_wasm_cbor_json_api!(CIP36KeyDeregistration);
 
@@ -201,7 +201,7 @@ impl CIP36KeyDeregistration {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP36KeyRegistration(cml_cip36::CIP36KeyRegistration);
+pub struct CIP36KeyRegistration(pub(crate) cml_cip36::CIP36KeyRegistration);
 
 impl_wasm_cbor_json_api!(CIP36KeyRegistration);
 
@@ -254,7 +254,7 @@ pub type CIP36Nonce = u64;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP36RegistrationCbor(cml_cip36::CIP36RegistrationCbor);
+pub struct CIP36RegistrationCbor(pub(crate) cml_cip36::CIP36RegistrationCbor);
 
 // not implemented since CIP36RegistrationCbor doesn't implement Serialize as it's a subset of metadata
 impl_wasm_json_api!(CIP36RegistrationCbor);
@@ -284,7 +284,7 @@ impl CIP36RegistrationCbor {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP36RegistrationWitness(cml_cip36::CIP36RegistrationWitness);
+pub struct CIP36RegistrationWitness(pub(crate) cml_cip36::CIP36RegistrationWitness);
 
 impl_wasm_cbor_json_api!(CIP36RegistrationWitness);
 
@@ -323,7 +323,7 @@ pub type CIP36Weight = u32;
 /// `add` can never violate the bound; removal is checked in the core type.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NonEmptyCIP36DelegationList(NonEmptyVec<cml_cip36::CIP36Delegation>);
+pub struct NonEmptyCIP36DelegationList(pub(crate) NonEmptyVec<cml_cip36::CIP36Delegation>);
 
 impl_wasm_conversions!(
     NonEmptyVec<cml_cip36::CIP36Delegation>,

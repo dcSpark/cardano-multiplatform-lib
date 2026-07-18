@@ -23,7 +23,7 @@ use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 /// ```
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP25ChunkableString(cml_cip25::CIP25ChunkableString);
+pub struct CIP25ChunkableString(pub(crate) cml_cip25::CIP25ChunkableString);
 
 impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25ChunkableString);
 
@@ -73,7 +73,7 @@ pub enum CIP25ChunkableStringKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP25FilesDetails(cml_cip25::CIP25FilesDetails);
+pub struct CIP25FilesDetails(pub(crate) cml_cip25::CIP25FilesDetails);
 
 impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25FilesDetails);
 
@@ -125,7 +125,7 @@ impl_wasm_list_needs_into!(
 /// Use  `cml_chain::auxdata::Metadata` / `TransactionMetadatum` for round-tripping metadata.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP25Metadata(cml_cip25::CIP25Metadata);
+pub struct CIP25Metadata(pub(crate) cml_cip25::CIP25Metadata);
 
 impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25Metadata);
 
@@ -144,7 +144,7 @@ impl CIP25Metadata {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP25MetadataDetails(cml_cip25::CIP25MetadataDetails);
+pub struct CIP25MetadataDetails(pub(crate) cml_cip25::CIP25MetadataDetails);
 
 impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25MetadataDetails);
 
@@ -194,7 +194,7 @@ impl CIP25MetadataDetails {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CIP25String64(cml_cip25::CIP25String64);
+pub struct CIP25String64(pub(crate) cml_cip25::CIP25String64);
 
 impl_wasm_cbor_json_api_cbor_event_serialize!(CIP25String64);
 

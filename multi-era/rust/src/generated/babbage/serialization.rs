@@ -7,14 +7,13 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for BabbageAuxiliaryData {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             BabbageAuxiliaryData::Shelley(shelley) => {
                 shelley.serialize(serializer, force_canonical)
@@ -30,18 +29,16 @@ impl Serialize for BabbageAuxiliaryData {
 }
 
 impl Deserialize for BabbageAuxiliaryData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> = ShelleyFormatAuxData::deserialize(raw);
             match deser_variant {
                 Ok(shelley) => return Ok(Self::Shelley(shelley)),
                 Err(e) => {
                     errs.push(e.annotate("Shelley"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
@@ -50,9 +47,7 @@ impl Deserialize for BabbageAuxiliaryData {
                 Ok(shelley_ma) => return Ok(Self::ShelleyMA(shelley_ma)),
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMA"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> = BabbageFormatAuxData::deserialize(raw);
@@ -60,9 +55,7 @@ impl Deserialize for BabbageAuxiliaryData {
                 Ok(babbage) => return Ok(Self::Babbage(babbage)),
                 Err(e) => {
                     errs.push(e.annotate("Babbage"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -72,11 +65,11 @@ impl Deserialize for BabbageAuxiliaryData {
 }
 
 impl Serialize for BabbageBlock {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -194,7 +187,7 @@ impl Serialize for BabbageBlock {
 }
 
 impl Deserialize for BabbageBlock {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -287,11 +280,11 @@ impl Deserialize for BabbageBlock {
 }
 
 impl Serialize for BabbageFormatAuxData {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_tag_sz(
             259u64,
             fit_sz(
@@ -467,7 +460,7 @@ impl Serialize for BabbageFormatAuxData {
 }
 
 impl Deserialize for BabbageFormatAuxData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let (tag, tag_encoding) = raw.tag_sz()?;
             if tag != 259 {
@@ -659,11 +652,11 @@ impl Deserialize for BabbageFormatAuxData {
 }
 
 impl Serialize for BabbageFormatTxOut {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -770,7 +763,7 @@ impl Serialize for BabbageFormatTxOut {
 }
 
 impl Deserialize for BabbageFormatTxOut {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -891,11 +884,11 @@ impl Deserialize for BabbageFormatTxOut {
 }
 
 impl Serialize for BabbageProtocolParamUpdate {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -1558,7 +1551,7 @@ impl Serialize for BabbageProtocolParamUpdate {
 }
 
 impl Deserialize for BabbageProtocolParamUpdate {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -2068,11 +2061,11 @@ impl Deserialize for BabbageProtocolParamUpdate {
 }
 
 impl Serialize for BabbageScript {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             BabbageScript::Native {
                 script,
@@ -2121,13 +2114,13 @@ impl Serialize for BabbageScript {
 }
 
 impl Deserialize for BabbageScript {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
-            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -2162,12 +2155,10 @@ impl Deserialize for BabbageScript {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("Native"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -2202,12 +2193,10 @@ impl Deserialize for BabbageScript {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("PlutusV1"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -2242,9 +2231,7 @@ impl Deserialize for BabbageScript {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("PlutusV2"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -2254,11 +2241,11 @@ impl Deserialize for BabbageScript {
 }
 
 impl Serialize for BabbageScriptRef {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_tag_sz(
             24u64,
             fit_sz(
@@ -2285,12 +2272,12 @@ impl Serialize for BabbageScriptRef {
 }
 
 impl Deserialize for BabbageScriptRef {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let (inner, inner_tag_encoding, inner_bytes_encoding) = match raw.tag_sz()? {
                 (24, tag_enc) => {
                     let (inner_bytes, inner_bytes_encoding) = raw.bytes_sz()?;
-                    let inner_de = &mut Deserializer::from(std::io::Cursor::new(inner_bytes));
+                    let inner_de = &mut Deserializer::from(inner_bytes);
                     (
                         BabbageScript::deserialize(inner_de)?,
                         Some(tag_enc),
@@ -2318,11 +2305,11 @@ impl Deserialize for BabbageScriptRef {
 }
 
 impl Serialize for BabbageTransaction {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -2350,7 +2337,7 @@ impl Serialize for BabbageTransaction {
 }
 
 impl Deserialize for BabbageTransaction {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -2395,11 +2382,11 @@ impl Deserialize for BabbageTransaction {
 }
 
 impl Serialize for BabbageTransactionBody {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -2977,7 +2964,7 @@ impl Serialize for BabbageTransactionBody {
 }
 
 impl Deserialize for BabbageTransactionBody {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -3414,11 +3401,11 @@ impl Deserialize for BabbageTransactionBody {
 }
 
 impl Serialize for BabbageTransactionOutput {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             BabbageTransactionOutput::AlonzoFormatTxOut(alonzo_format_tx_out) => {
                 alonzo_format_tx_out.serialize(serializer, force_canonical)
@@ -3431,9 +3418,9 @@ impl Serialize for BabbageTransactionOutput {
 }
 
 impl Deserialize for BabbageTransactionOutput {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> = AlonzoFormatTxOut::deserialize(raw);
             match deser_variant {
@@ -3442,9 +3429,7 @@ impl Deserialize for BabbageTransactionOutput {
                 }
                 Err(e) => {
                     errs.push(e.annotate("AlonzoFormatTxOut"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> = BabbageFormatTxOut::deserialize(raw);
@@ -3454,9 +3439,7 @@ impl Deserialize for BabbageTransactionOutput {
                 }
                 Err(e) => {
                     errs.push(e.annotate("BabbageFormatTxOut"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -3466,11 +3449,11 @@ impl Deserialize for BabbageTransactionOutput {
 }
 
 impl Serialize for BabbageTransactionWitnessSet {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -3757,7 +3740,7 @@ impl Serialize for BabbageTransactionWitnessSet {
 }
 
 impl Deserialize for BabbageTransactionWitnessSet {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -4076,11 +4059,11 @@ impl Deserialize for BabbageTransactionWitnessSet {
 }
 
 impl Serialize for BabbageUpdate {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -4151,7 +4134,7 @@ impl Serialize for BabbageUpdate {
 }
 
 impl Deserialize for BabbageUpdate {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();

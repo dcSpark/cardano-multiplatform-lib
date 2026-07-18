@@ -2,17 +2,18 @@
 // https://github.com/dcSpark/cddl-codegen
 
 pub use crate::Value;
+
 // cddl-codegen:insert-start
 // Deref is used by the hand-augmented Mint/MultiAsset class methods below.
 use std::ops::Deref;
 // cddl-codegen:insert-end
-
 use crate::generated::crypto::ScriptHash;
 use crate::generated::{MapAssetNameToNonZeroInt64, MapAssetNameToU64, PolicyId, PolicyIdList};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
+/// Use TryFrom<&str> / TryInto<&str> for utf8 text conversion and RawBytesEncoding for direct bytes access
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AssetName(pub(crate) cml_chain::assets::AssetName);

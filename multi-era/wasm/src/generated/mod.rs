@@ -123,13 +123,10 @@ impl_wasm_list_needs_into!(
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 // rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
-// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged). Remove when #5708 ships.
 #[rustfmt::skip]
 pub struct MapTransactionIndexToAllegraAuxiliaryData(
-    pub(crate) OrderedHashMap<
-        cml_chain::TransactionIndex,
-        cml_multi_era::allegra::AllegraAuxiliaryData,
-    >,
+    pub(crate) OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::allegra::AllegraAuxiliaryData>,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::allegra::AllegraAuxiliaryData>, MapTransactionIndexToAllegraAuxiliaryData);
@@ -164,13 +161,10 @@ impl MapTransactionIndexToAllegraAuxiliaryData {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 // rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
-// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged). Remove when #5708 ships.
 #[rustfmt::skip]
 pub struct MapTransactionIndexToAlonzoAuxiliaryData(
-    pub(crate) OrderedHashMap<
-        cml_chain::TransactionIndex,
-        cml_multi_era::alonzo::AlonzoAuxiliaryData,
-    >,
+    pub(crate) OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::alonzo::AlonzoAuxiliaryData>,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::alonzo::AlonzoAuxiliaryData>, MapTransactionIndexToAlonzoAuxiliaryData);
@@ -205,13 +199,10 @@ impl MapTransactionIndexToAlonzoAuxiliaryData {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 // rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
-// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged). Remove when #5708 ships.
 #[rustfmt::skip]
 pub struct MapTransactionIndexToBabbageAuxiliaryData(
-    pub(crate) OrderedHashMap<
-        cml_chain::TransactionIndex,
-        cml_multi_era::babbage::BabbageAuxiliaryData,
-    >,
+    pub(crate) OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::babbage::BabbageAuxiliaryData>,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::TransactionIndex, cml_multi_era::babbage::BabbageAuxiliaryData>, MapTransactionIndexToBabbageAuxiliaryData);

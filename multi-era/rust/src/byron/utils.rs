@@ -1,5 +1,3 @@
-use std::io::{BufRead, Seek, Write};
-
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_crypto::impl_hash_type;
 
@@ -47,18 +45,17 @@ impl Ord for ByronAny {
 }
 
 impl cbor_event::se::Serialize for ByronAny {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         self.0.serialize(serializer)
     }
 }
 
 impl Deserialize for ByronAny {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
-        use cbor_event::Deserialize;
-        cbor_event::Value::deserialize(raw)
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        <cbor_event::Value as cbor_event::Deserialize>::deserialize(raw)
             .map(Self)
             .map_err(Into::into)
     }

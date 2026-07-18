@@ -60,7 +60,7 @@ impl MultiEraBlock {
      * then you should use this function instead of the regular from_cbor_bytes().
      */
     pub fn from_explicit_network_cbor_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
-        let mut raw = Deserializer::from(std::io::Cursor::new(bytes));
+        let mut raw = Deserializer::from(bytes.to_vec());
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;

@@ -7,14 +7,13 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for Anchor {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -43,7 +42,7 @@ impl Serialize for Anchor {
 }
 
 impl Deserialize for Anchor {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -82,11 +81,11 @@ impl Deserialize for Anchor {
 }
 
 impl Serialize for Constitution {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -119,7 +118,7 @@ impl Serialize for Constitution {
 }
 
 impl Deserialize for Constitution {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -172,11 +171,11 @@ impl Deserialize for Constitution {
 }
 
 impl Serialize for GovAction {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             GovAction::ParameterChangeAction(parameter_change_action) => {
                 parameter_change_action.serialize(serializer, force_canonical)
@@ -213,13 +212,13 @@ impl Serialize for GovAction {
 }
 
 impl Deserialize for GovAction {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(4)?;
                 read_len.finish()?;
@@ -240,12 +239,10 @@ impl Deserialize for GovAction {
                 }
                 Err(e) => {
                     errs.push(e.annotate("ParameterChangeAction"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(3)?;
                 read_len.finish()?;
@@ -269,12 +266,10 @@ impl Deserialize for GovAction {
                 }
                 Err(e) => {
                     errs.push(e.annotate("HardForkInitiationAction"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(3)?;
                 read_len.finish()?;
@@ -298,12 +293,10 @@ impl Deserialize for GovAction {
                 }
                 Err(e) => {
                     errs.push(e.annotate("TreasuryWithdrawalsAction"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -321,12 +314,10 @@ impl Deserialize for GovAction {
                 Ok(no_confidence) => return Ok(Self::NoConfidence(no_confidence)),
                 Err(e) => {
                     errs.push(e.annotate("NoConfidence"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(5)?;
                 read_len.finish()?;
@@ -344,12 +335,10 @@ impl Deserialize for GovAction {
                 Ok(update_committee) => return Ok(Self::UpdateCommittee(update_committee)),
                 Err(e) => {
                     errs.push(e.annotate("UpdateCommittee"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(3)?;
                 read_len.finish()?;
@@ -367,12 +356,10 @@ impl Deserialize for GovAction {
                 Ok(new_constitution) => return Ok(Self::NewConstitution(new_constitution)),
                 Err(e) => {
                     errs.push(e.annotate("NewConstitution"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(1)?;
                 read_len.finish()?;
@@ -403,9 +390,7 @@ impl Deserialize for GovAction {
                 }
                 Err(e) => {
                     errs.push(e.annotate("InfoAction"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -415,11 +400,11 @@ impl Deserialize for GovAction {
 }
 
 impl Serialize for GovActionId {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -458,7 +443,7 @@ impl Serialize for GovActionId {
 }
 
 impl Deserialize for GovActionId {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -501,11 +486,11 @@ impl Deserialize for GovActionId {
 }
 
 impl Serialize for HardForkInitiationAction {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -523,11 +508,11 @@ impl Serialize for HardForkInitiationAction {
 }
 
 impl SerializeEmbeddedGroup for HardForkInitiationAction {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             1u64,
             fit_sz(
@@ -553,7 +538,7 @@ impl SerializeEmbeddedGroup for HardForkInitiationAction {
 }
 
 impl Deserialize for HardForkInitiationAction {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -579,8 +564,8 @@ impl Deserialize for HardForkInitiationAction {
 }
 
 impl DeserializeEmbeddedGroup for HardForkInitiationAction {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -626,11 +611,11 @@ impl DeserializeEmbeddedGroup for HardForkInitiationAction {
 }
 
 impl Serialize for NewConstitution {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -648,11 +633,11 @@ impl Serialize for NewConstitution {
 }
 
 impl SerializeEmbeddedGroup for NewConstitution {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             5u64,
             fit_sz(
@@ -678,7 +663,7 @@ impl SerializeEmbeddedGroup for NewConstitution {
 }
 
 impl Deserialize for NewConstitution {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -704,8 +689,8 @@ impl Deserialize for NewConstitution {
 }
 
 impl DeserializeEmbeddedGroup for NewConstitution {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -751,11 +736,11 @@ impl DeserializeEmbeddedGroup for NewConstitution {
 }
 
 impl Serialize for NoConfidence {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -773,11 +758,11 @@ impl Serialize for NoConfidence {
 }
 
 impl SerializeEmbeddedGroup for NoConfidence {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             3u64,
             fit_sz(
@@ -802,7 +787,7 @@ impl SerializeEmbeddedGroup for NoConfidence {
 }
 
 impl Deserialize for NoConfidence {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -828,8 +813,8 @@ impl Deserialize for NoConfidence {
 }
 
 impl DeserializeEmbeddedGroup for NoConfidence {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -872,11 +857,11 @@ impl DeserializeEmbeddedGroup for NoConfidence {
 }
 
 impl Serialize for ParameterChangeAction {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -894,11 +879,11 @@ impl Serialize for ParameterChangeAction {
 }
 
 impl SerializeEmbeddedGroup for ParameterChangeAction {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             0u64,
             fit_sz(
@@ -939,7 +924,7 @@ impl SerializeEmbeddedGroup for ParameterChangeAction {
 }
 
 impl Deserialize for ParameterChangeAction {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -965,8 +950,8 @@ impl Deserialize for ParameterChangeAction {
 }
 
 impl DeserializeEmbeddedGroup for ParameterChangeAction {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -1037,11 +1022,11 @@ impl DeserializeEmbeddedGroup for ParameterChangeAction {
 }
 
 impl Serialize for ProposalProcedure {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1072,7 +1057,7 @@ impl Serialize for ProposalProcedure {
 }
 
 impl Deserialize for ProposalProcedure {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -1113,11 +1098,11 @@ impl Deserialize for ProposalProcedure {
 }
 
 impl Serialize for TreasuryWithdrawalsAction {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1135,11 +1120,11 @@ impl Serialize for TreasuryWithdrawalsAction {
 }
 
 impl SerializeEmbeddedGroup for TreasuryWithdrawalsAction {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             2u64,
             fit_sz(
@@ -1213,7 +1198,7 @@ impl SerializeEmbeddedGroup for TreasuryWithdrawalsAction {
 }
 
 impl Deserialize for TreasuryWithdrawalsAction {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -1239,8 +1224,8 @@ impl Deserialize for TreasuryWithdrawalsAction {
 }
 
 impl DeserializeEmbeddedGroup for TreasuryWithdrawalsAction {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -1336,11 +1321,11 @@ impl DeserializeEmbeddedGroup for TreasuryWithdrawalsAction {
 }
 
 impl Serialize for UpdateCommittee {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1358,11 +1343,11 @@ impl Serialize for UpdateCommittee {
 }
 
 impl SerializeEmbeddedGroup for UpdateCommittee {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             4u64,
             fit_sz(
@@ -1432,7 +1417,7 @@ impl SerializeEmbeddedGroup for UpdateCommittee {
 }
 
 impl Deserialize for UpdateCommittee {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -1458,8 +1443,8 @@ impl Deserialize for UpdateCommittee {
 }
 
 impl DeserializeEmbeddedGroup for UpdateCommittee {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -1549,11 +1534,11 @@ impl DeserializeEmbeddedGroup for UpdateCommittee {
 }
 
 impl Serialize for Voter {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             Voter::ConstitutionalCommitteeHotKeyHash {
                 ed25519_key_hash,
@@ -1661,13 +1646,13 @@ impl Serialize for Voter {
 }
 
 impl Deserialize for Voter {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
-            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -1710,12 +1695,10 @@ impl Deserialize for Voter {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("ConstitutionalCommitteeHotKeyHash"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -1758,12 +1741,10 @@ impl Deserialize for Voter {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("ConstitutionalCommitteeHotScriptHash"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -1806,12 +1787,10 @@ impl Deserialize for Voter {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("DRepKeyHash"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -1854,12 +1833,10 @@ impl Deserialize for Voter {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("DRepScriptHash"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let variant_deser = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let variant_deser = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -1902,9 +1879,7 @@ impl Deserialize for Voter {
                 Ok(variant) => return Ok(variant),
                 Err(e) => {
                     errs.push(e.annotate("StakingPoolKeyHash"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -1914,11 +1889,11 @@ impl Deserialize for Voter {
 }
 
 impl Serialize for VotingProcedure {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1978,7 +1953,7 @@ impl Serialize for VotingProcedure {
 }
 
 impl Deserialize for VotingProcedure {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -1986,8 +1961,8 @@ impl Deserialize for VotingProcedure {
             read_len.read_elems(2)?;
             read_len.finish()?;
             let (vote, vote_encoding) = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().stream_position().unwrap();
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let initial_position = raw.position();
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (no_value, no_encoding) = raw.unsigned_integer_sz()?;
                     if no_value != 0 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -2000,12 +1975,9 @@ impl Deserialize for VotingProcedure {
                 })(raw);
                 match deser_variant {
                     Ok(vote_encoding) => return Ok((Vote::No, vote_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (yes_value, yes_encoding) = raw.unsigned_integer_sz()?;
                     if yes_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -2018,12 +1990,9 @@ impl Deserialize for VotingProcedure {
                 })(raw);
                 match deser_variant {
                     Ok(vote_encoding) => return Ok((Vote::Yes, vote_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (abstain_value, abstain_encoding) = raw.unsigned_integer_sz()?;
                     if abstain_value != 2 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -2036,10 +2005,7 @@ impl Deserialize for VotingProcedure {
                 })(raw);
                 match deser_variant {
                     Ok(vote_encoding) => return Ok((Vote::Abstain, vote_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
                 Err(DeserializeError::new(
                     "Vote",

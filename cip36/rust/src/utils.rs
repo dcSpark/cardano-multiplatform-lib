@@ -21,8 +21,6 @@ use super::{
     CIP36KeyDeregistration, CIP36KeyRegistration, CIP36RegistrationCbor, CIP36RegistrationWitness,
 };
 
-use std::io::{BufRead, Write};
-
 use cbor_event::Type as CBORType;
 
 use cbor_event::Special as CBORSpecial;
@@ -61,7 +59,7 @@ impl CIP36DeregistrationCbor {
     /// Create a CIP36 view from the bytes of a Metadata.
     /// The resulting CIP36DeregistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
     pub fn from_metadata_bytes(metadata_cbor_bytes: &[u8]) -> Result<Self, DeserializeError> {
-        let mut raw = Deserializer::from(std::io::Cursor::new(metadata_cbor_bytes));
+        let mut raw = Deserializer::from(metadata_cbor_bytes.to_vec());
         Self::deserialize(&mut raw)
     }
 
@@ -69,11 +67,11 @@ impl CIP36DeregistrationCbor {
     /// If this was created from bytes or from a Metadata that was created from bytes, it will preserve
     /// the encodings but only from the metadatums themselves within the keys 61285 and 61286
     /// * `force_canonical` - Whether to force canonical CBOR encodings. ONLY applies to the metadatums within labels 61285 and 61286
-    pub fn serialize<'se, W: Write>(
+    pub fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map(cbor_event::Len::Len(2))?;
         serializer.write_unsigned_integer(DEREGISTRATION_WITNESS_LABEL)?;
         self.deregistration_witness
@@ -85,8 +83,8 @@ impl CIP36DeregistrationCbor {
 
     /// Deserializes a CIP36 view from either a Metadata or a CIP36DeregistrationCbor
     /// This contains ONLY the relevant fields for CIP36 if created from a Metadata
-    pub fn deserialize<R: BufRead + std::io::Seek>(
-        raw: &mut Deserializer<R>,
+    pub fn deserialize(
+        raw: &mut Deserializer,
     ) -> Result<Self, DeserializeError> {
         use cml_core::{Key, serialization::CBORReadLen};
 
@@ -282,7 +280,7 @@ impl CIP36RegistrationCbor {
     /// Create a CIP36 view from the bytes of a Metadata.
     /// The resulting CIP36RegistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
     pub fn from_metadata_bytes(metadata_cbor_bytes: &[u8]) -> Result<Self, DeserializeError> {
-        let mut raw = Deserializer::from(std::io::Cursor::new(metadata_cbor_bytes));
+        let mut raw = Deserializer::from(metadata_cbor_bytes.to_vec());
         Self::deserialize(&mut raw)
     }
 
@@ -290,11 +288,11 @@ impl CIP36RegistrationCbor {
     /// If this was created from bytes or from a Metadata that was created from bytes, it will preserve
     /// the encodings but only from the metadatums themselves within the keys 61284 and 61285
     /// * `force_canonical` - Whether to force canonical CBOR encodings. ONLY applies to the metadatums within labels 61285 and 61286
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         self.verify()
             .map_err(|e| cbor_event::Error::CustomError(e.to_string()))?;
         serializer.write_map(cbor_event::Len::Len(2))?;
@@ -308,8 +306,8 @@ impl CIP36RegistrationCbor {
 
     /// Deserializes a CIP36 view from either a Metadata or a CIP36RegistrationCbor
     /// This contains ONLY the relevant fields for CIP36 if created from a Metadata
-    fn deserialize<R: BufRead + std::io::Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize(
+        raw: &mut Deserializer,
     ) -> Result<Self, DeserializeError> {
         use cml_core::{error::Key, serialization::CBORReadLen};
         let len = raw.map_sz()?;

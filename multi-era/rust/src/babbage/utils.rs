@@ -1,5 +1,3 @@
-use std::io::{BufRead, Seek, Write};
-
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_chain::{
     LenEncoding, PolicyId, Script, StringEncoding,
@@ -144,11 +142,11 @@ pub struct BabbageMintEncoding {
 }
 
 impl Serialize for BabbageMint {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -236,7 +234,7 @@ impl Serialize for BabbageMint {
 }
 
 impl Deserialize for BabbageMint {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let outer_len = raw.map_sz()?;
         let mut assets = Vec::new();
         let mut encodings = Vec::new();

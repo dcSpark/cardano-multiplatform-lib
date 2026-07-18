@@ -7,14 +7,13 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for GenesisKeyDelegation {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -32,11 +31,11 @@ impl Serialize for GenesisKeyDelegation {
 }
 
 impl SerializeEmbeddedGroup for GenesisKeyDelegation {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             5u64,
             fit_sz(
@@ -86,7 +85,7 @@ impl SerializeEmbeddedGroup for GenesisKeyDelegation {
 }
 
 impl Deserialize for GenesisKeyDelegation {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -112,8 +111,8 @@ impl Deserialize for GenesisKeyDelegation {
 }
 
 impl DeserializeEmbeddedGroup for GenesisKeyDelegation {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -176,11 +175,11 @@ impl DeserializeEmbeddedGroup for GenesisKeyDelegation {
 }
 
 impl Serialize for MultisigAll {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -198,11 +197,11 @@ impl Serialize for MultisigAll {
 }
 
 impl SerializeEmbeddedGroup for MultisigAll {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             1u64,
             fit_sz(
@@ -234,7 +233,7 @@ impl SerializeEmbeddedGroup for MultisigAll {
 }
 
 impl Deserialize for MultisigAll {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -260,8 +259,8 @@ impl Deserialize for MultisigAll {
 }
 
 impl DeserializeEmbeddedGroup for MultisigAll {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -313,11 +312,11 @@ impl DeserializeEmbeddedGroup for MultisigAll {
 }
 
 impl Serialize for MultisigAny {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -335,11 +334,11 @@ impl Serialize for MultisigAny {
 }
 
 impl SerializeEmbeddedGroup for MultisigAny {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             2u64,
             fit_sz(
@@ -371,7 +370,7 @@ impl SerializeEmbeddedGroup for MultisigAny {
 }
 
 impl Deserialize for MultisigAny {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -397,8 +396,8 @@ impl Deserialize for MultisigAny {
 }
 
 impl DeserializeEmbeddedGroup for MultisigAny {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -450,11 +449,11 @@ impl DeserializeEmbeddedGroup for MultisigAny {
 }
 
 impl Serialize for MultisigNOfK {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -472,11 +471,11 @@ impl Serialize for MultisigNOfK {
 }
 
 impl SerializeEmbeddedGroup for MultisigNOfK {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             3u64,
             fit_sz(
@@ -519,7 +518,7 @@ impl SerializeEmbeddedGroup for MultisigNOfK {
 }
 
 impl Deserialize for MultisigNOfK {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -545,8 +544,8 @@ impl Deserialize for MultisigNOfK {
 }
 
 impl DeserializeEmbeddedGroup for MultisigNOfK {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -605,11 +604,11 @@ impl DeserializeEmbeddedGroup for MultisigNOfK {
 }
 
 impl Serialize for MultisigPubkey {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -627,11 +626,11 @@ impl Serialize for MultisigPubkey {
 }
 
 impl SerializeEmbeddedGroup for MultisigPubkey {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             0u64,
             fit_sz(
@@ -659,7 +658,7 @@ impl SerializeEmbeddedGroup for MultisigPubkey {
 }
 
 impl Deserialize for MultisigPubkey {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -685,8 +684,8 @@ impl Deserialize for MultisigPubkey {
 }
 
 impl DeserializeEmbeddedGroup for MultisigPubkey {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -727,11 +726,11 @@ impl DeserializeEmbeddedGroup for MultisigPubkey {
 }
 
 impl Serialize for MultisigScript {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             MultisigScript::MultisigPubkey(multisig_pubkey) => {
                 multisig_pubkey.serialize(serializer, force_canonical)
@@ -750,12 +749,12 @@ impl Serialize for MultisigScript {
 }
 
 impl Deserialize for MultisigScript {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -773,12 +772,10 @@ impl Deserialize for MultisigScript {
                 Ok(multisig_pubkey) => return Ok(Self::MultisigPubkey(multisig_pubkey)),
                 Err(e) => {
                     errs.push(e.annotate("MultisigPubkey"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -796,12 +793,10 @@ impl Deserialize for MultisigScript {
                 Ok(multisig_all) => return Ok(Self::MultisigAll(multisig_all)),
                 Err(e) => {
                     errs.push(e.annotate("MultisigAll"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -819,12 +814,10 @@ impl Deserialize for MultisigScript {
                 Ok(multisig_any) => return Ok(Self::MultisigAny(multisig_any)),
                 Err(e) => {
                     errs.push(e.annotate("MultisigAny"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(3)?;
                 read_len.finish()?;
@@ -842,9 +835,7 @@ impl Deserialize for MultisigScript {
                 Ok(multisig_n_of_k) => return Ok(Self::MultisigNOfK(multisig_n_of_k)),
                 Err(e) => {
                     errs.push(e.annotate("MultisigNOfK"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -854,11 +845,11 @@ impl Deserialize for MultisigScript {
 }
 
 impl Serialize for ProtocolVersionStruct {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -877,7 +868,7 @@ impl Serialize for ProtocolVersionStruct {
 }
 
 impl Deserialize for ProtocolVersionStruct {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -904,11 +895,11 @@ impl Deserialize for ProtocolVersionStruct {
 }
 
 impl Serialize for ShelleyBlock {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1002,7 +993,7 @@ impl Serialize for ShelleyBlock {
 }
 
 impl Deserialize for ShelleyBlock {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -1142,11 +1133,11 @@ impl Deserialize for ShelleyBlock {
 }
 
 impl Serialize for ShelleyCertificate {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             ShelleyCertificate::StakeRegistration(stake_registration) => {
                 stake_registration.serialize(serializer, force_canonical)
@@ -1174,12 +1165,12 @@ impl Serialize for ShelleyCertificate {
 }
 
 impl Deserialize for ShelleyCertificate {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -1197,12 +1188,10 @@ impl Deserialize for ShelleyCertificate {
                 Ok(stake_registration) => return Ok(Self::StakeRegistration(stake_registration)),
                 Err(e) => {
                     errs.push(e.annotate("StakeRegistration"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -1223,12 +1212,10 @@ impl Deserialize for ShelleyCertificate {
                 }
                 Err(e) => {
                     errs.push(e.annotate("StakeDeregistration"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(3)?;
                 read_len.finish()?;
@@ -1246,12 +1233,10 @@ impl Deserialize for ShelleyCertificate {
                 Ok(stake_delegation) => return Ok(Self::StakeDelegation(stake_delegation)),
                 Err(e) => {
                     errs.push(e.annotate("StakeDelegation"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(10)?;
                 read_len.finish()?;
@@ -1272,12 +1257,10 @@ impl Deserialize for ShelleyCertificate {
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleyPoolRegistration"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(3)?;
                 read_len.finish()?;
@@ -1295,12 +1278,10 @@ impl Deserialize for ShelleyCertificate {
                 Ok(pool_retirement) => return Ok(Self::PoolRetirement(pool_retirement)),
                 Err(e) => {
                     errs.push(e.annotate("PoolRetirement"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(4)?;
                 read_len.finish()?;
@@ -1321,12 +1302,10 @@ impl Deserialize for ShelleyCertificate {
                 }
                 Err(e) => {
                     errs.push(e.annotate("GenesisKeyDelegation"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -1352,9 +1331,7 @@ impl Deserialize for ShelleyCertificate {
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMoveInstantaneousRewardsCert"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -1364,11 +1341,11 @@ impl Deserialize for ShelleyCertificate {
 }
 
 impl Serialize for ShelleyDNSName {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_text_sz(
             &self.inner,
             self.encodings
@@ -1381,7 +1358,7 @@ impl Serialize for ShelleyDNSName {
 }
 
 impl Deserialize for ShelleyDNSName {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let (inner, inner_encoding) = raw
                 .text_sz()
@@ -1404,11 +1381,11 @@ impl Deserialize for ShelleyDNSName {
 }
 
 impl Serialize for ShelleyHeader {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1427,7 +1404,7 @@ impl Serialize for ShelleyHeader {
 }
 
 impl Deserialize for ShelleyHeader {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -1456,11 +1433,11 @@ impl Deserialize for ShelleyHeader {
 }
 
 impl Serialize for ShelleyHeaderBody {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1561,7 +1538,7 @@ impl Serialize for ShelleyHeaderBody {
 }
 
 impl Deserialize for ShelleyHeaderBody {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -1679,11 +1656,11 @@ impl Deserialize for ShelleyHeaderBody {
 }
 
 impl Serialize for ShelleyMoveInstantaneousReward {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1766,7 +1743,7 @@ impl Serialize for ShelleyMoveInstantaneousReward {
 }
 
 impl Deserialize for ShelleyMoveInstantaneousReward {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -1774,8 +1751,8 @@ impl Deserialize for ShelleyMoveInstantaneousReward {
             read_len.read_elems(2)?;
             read_len.finish()?;
             let (pot, pot_encoding) = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().stream_position().unwrap();
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let initial_position = raw.position();
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (reserve_value, reserve_encoding) = raw.unsigned_integer_sz()?;
                     if reserve_value != 0 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1788,12 +1765,9 @@ impl Deserialize for ShelleyMoveInstantaneousReward {
                 })(raw);
                 match deser_variant {
                     Ok(pot_encoding) => return Ok((MIRPot::Reserve, pot_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (treasury_value, treasury_encoding) = raw.unsigned_integer_sz()?;
                     if treasury_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1806,10 +1780,7 @@ impl Deserialize for ShelleyMoveInstantaneousReward {
                 })(raw);
                 match deser_variant {
                     Ok(pot_encoding) => return Ok((MIRPot::Treasury, pot_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
                 Err(DeserializeError::new(
                     "MIRPot",
@@ -1883,11 +1854,11 @@ impl Deserialize for ShelleyMoveInstantaneousReward {
 }
 
 impl Serialize for ShelleyMoveInstantaneousRewardsCert {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1905,11 +1876,11 @@ impl Serialize for ShelleyMoveInstantaneousRewardsCert {
 }
 
 impl SerializeEmbeddedGroup for ShelleyMoveInstantaneousRewardsCert {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             6u64,
             fit_sz(
@@ -1928,7 +1899,7 @@ impl SerializeEmbeddedGroup for ShelleyMoveInstantaneousRewardsCert {
 }
 
 impl Deserialize for ShelleyMoveInstantaneousRewardsCert {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -1954,8 +1925,8 @@ impl Deserialize for ShelleyMoveInstantaneousRewardsCert {
 }
 
 impl DeserializeEmbeddedGroup for ShelleyMoveInstantaneousRewardsCert {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -1990,11 +1961,11 @@ impl DeserializeEmbeddedGroup for ShelleyMoveInstantaneousRewardsCert {
 }
 
 impl Serialize for ShelleyMultiHostName {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -2012,11 +1983,11 @@ impl Serialize for ShelleyMultiHostName {
 }
 
 impl SerializeEmbeddedGroup for ShelleyMultiHostName {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             2u64,
             fit_sz(
@@ -2035,7 +2006,7 @@ impl SerializeEmbeddedGroup for ShelleyMultiHostName {
 }
 
 impl Deserialize for ShelleyMultiHostName {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -2061,8 +2032,8 @@ impl Deserialize for ShelleyMultiHostName {
 }
 
 impl DeserializeEmbeddedGroup for ShelleyMultiHostName {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -2095,11 +2066,11 @@ impl DeserializeEmbeddedGroup for ShelleyMultiHostName {
 }
 
 impl Serialize for ShelleyPoolParams {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -2117,11 +2088,11 @@ impl Serialize for ShelleyPoolParams {
 }
 
 impl SerializeEmbeddedGroup for ShelleyPoolParams {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_bytes_sz(
             self.operator.to_raw_bytes(),
             self.encodings
@@ -2218,7 +2189,7 @@ impl SerializeEmbeddedGroup for ShelleyPoolParams {
 }
 
 impl Deserialize for ShelleyPoolParams {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -2244,8 +2215,8 @@ impl Deserialize for ShelleyPoolParams {
 }
 
 impl DeserializeEmbeddedGroup for ShelleyPoolParams {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -2377,11 +2348,11 @@ impl DeserializeEmbeddedGroup for ShelleyPoolParams {
 }
 
 impl Serialize for ShelleyPoolRegistration {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -2399,11 +2370,11 @@ impl Serialize for ShelleyPoolRegistration {
 }
 
 impl SerializeEmbeddedGroup for ShelleyPoolRegistration {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             3u64,
             fit_sz(
@@ -2422,7 +2393,7 @@ impl SerializeEmbeddedGroup for ShelleyPoolRegistration {
 }
 
 impl Deserialize for ShelleyPoolRegistration {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -2448,8 +2419,8 @@ impl Deserialize for ShelleyPoolRegistration {
 }
 
 impl DeserializeEmbeddedGroup for ShelleyPoolRegistration {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -2482,11 +2453,11 @@ impl DeserializeEmbeddedGroup for ShelleyPoolRegistration {
 }
 
 impl Serialize for ShelleyProtocolParamUpdate {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -2973,7 +2944,7 @@ impl Serialize for ShelleyProtocolParamUpdate {
 }
 
 impl Deserialize for ShelleyProtocolParamUpdate {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -3356,11 +3327,11 @@ impl Deserialize for ShelleyProtocolParamUpdate {
 }
 
 impl Serialize for ShelleyRelay {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             ShelleyRelay::SingleHostAddr(single_host_addr) => {
                 single_host_addr.serialize(serializer, force_canonical)
@@ -3376,12 +3347,12 @@ impl Serialize for ShelleyRelay {
 }
 
 impl Deserialize for ShelleyRelay {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(4)?;
                 read_len.finish()?;
@@ -3399,12 +3370,10 @@ impl Deserialize for ShelleyRelay {
                 Ok(single_host_addr) => return Ok(Self::SingleHostAddr(single_host_addr)),
                 Err(e) => {
                     errs.push(e.annotate("SingleHostAddr"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(3)?;
                 read_len.finish()?;
@@ -3425,12 +3394,10 @@ impl Deserialize for ShelleyRelay {
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleySingleHostName"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
-            let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+            let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let mut read_len = CBORReadLen::new(len);
                 read_len.read_elems(2)?;
                 read_len.finish()?;
@@ -3451,9 +3418,7 @@ impl Deserialize for ShelleyRelay {
                 }
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMultiHostName"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -3463,11 +3428,11 @@ impl Deserialize for ShelleyRelay {
 }
 
 impl Serialize for ShelleySingleHostName {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -3485,11 +3450,11 @@ impl Serialize for ShelleySingleHostName {
 }
 
 impl SerializeEmbeddedGroup for ShelleySingleHostName {
-    fn serialize_as_embedded_group<'se, W: Write>(
+    fn serialize_as_embedded_group<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer_sz(
             1u64,
             fit_sz(
@@ -3526,7 +3491,7 @@ impl SerializeEmbeddedGroup for ShelleySingleHostName {
 }
 
 impl Deserialize for ShelleySingleHostName {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (len, mut read_len) = (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let mut read_len = CBORReadLen::new(len);
@@ -3552,8 +3517,8 @@ impl Deserialize for ShelleySingleHostName {
 }
 
 impl DeserializeEmbeddedGroup for ShelleySingleHostName {
-    fn deserialize_as_embedded_group<R: BufRead + Seek>(
-        raw: &mut Deserializer<R>,
+    fn deserialize_as_embedded_group(
+        raw: &mut Deserializer,
         _read_len: &mut CBORReadLen,
         len: cbor_event::LenSz,
     ) -> Result<Self, DeserializeError> {
@@ -3617,11 +3582,11 @@ impl DeserializeEmbeddedGroup for ShelleySingleHostName {
 }
 
 impl Serialize for ShelleyTransaction {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -3648,7 +3613,7 @@ impl Serialize for ShelleyTransaction {
 }
 
 impl Deserialize for ShelleyTransaction {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -3690,11 +3655,11 @@ impl Deserialize for ShelleyTransaction {
 }
 
 impl Serialize for ShelleyTransactionBody {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -3985,7 +3950,7 @@ impl Serialize for ShelleyTransactionBody {
 }
 
 impl Deserialize for ShelleyTransactionBody {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -4318,11 +4283,11 @@ impl Deserialize for ShelleyTransactionBody {
 }
 
 impl Serialize for ShelleyTransactionOutput {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -4351,7 +4316,7 @@ impl Serialize for ShelleyTransactionOutput {
 }
 
 impl Deserialize for ShelleyTransactionOutput {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -4386,11 +4351,11 @@ impl Deserialize for ShelleyTransactionOutput {
 }
 
 impl Serialize for ShelleyTransactionWitnessSet {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -4533,7 +4498,7 @@ impl Serialize for ShelleyTransactionWitnessSet {
 }
 
 impl Deserialize for ShelleyTransactionWitnessSet {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -4698,11 +4663,11 @@ impl Deserialize for ShelleyTransactionWitnessSet {
 }
 
 impl Serialize for ShelleyUpdate {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -4779,7 +4744,7 @@ impl Serialize for ShelleyUpdate {
 }
 
 impl Deserialize for ShelleyUpdate {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();

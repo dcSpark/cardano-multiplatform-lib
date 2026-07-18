@@ -334,16 +334,16 @@ impl ::std::io::Write for Crc32 {
 }
 
 impl cbor_event::se::Serialize for Crc32 {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_unsigned_integer(self.0 as u64)
     }
 }
 
 impl Deserialize for Crc32 {
-    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         Ok(Self(raw.unsigned_integer()? as u32))
     }
 }

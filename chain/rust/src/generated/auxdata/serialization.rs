@@ -7,14 +7,13 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for AuxiliaryData {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             AuxiliaryData::Shelley(shelley) => shelley.serialize(serializer, force_canonical),
             AuxiliaryData::ShelleyMA(shelley_ma) => {
@@ -26,18 +25,16 @@ impl Serialize for AuxiliaryData {
 }
 
 impl Deserialize for AuxiliaryData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> = Metadata::deserialize(raw);
             match deser_variant {
                 Ok(shelley) => return Ok(Self::Shelley(shelley)),
                 Err(e) => {
                     errs.push(e.annotate("Shelley"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
@@ -46,9 +43,7 @@ impl Deserialize for AuxiliaryData {
                 Ok(shelley_ma) => return Ok(Self::ShelleyMA(shelley_ma)),
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMA"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> = ConwayFormatAuxData::deserialize(raw);
@@ -56,9 +51,7 @@ impl Deserialize for AuxiliaryData {
                 Ok(conway) => return Ok(Self::Conway(conway)),
                 Err(e) => {
                     errs.push(e.annotate("Conway"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -68,11 +61,11 @@ impl Deserialize for AuxiliaryData {
 }
 
 impl Serialize for ConwayFormatAuxData {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_tag_sz(
             259u64,
             fit_sz(
@@ -284,7 +277,7 @@ impl Serialize for ConwayFormatAuxData {
 }
 
 impl Deserialize for ConwayFormatAuxData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let (tag, tag_encoding) = raw.tag_sz()?;
             if tag != 259 {
@@ -515,11 +508,11 @@ impl Deserialize for ConwayFormatAuxData {
 }
 
 impl Serialize for ShelleyMAFormatAuxData {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -553,7 +546,7 @@ impl Serialize for ShelleyMAFormatAuxData {
 }
 
 impl Deserialize for ShelleyMAFormatAuxData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();

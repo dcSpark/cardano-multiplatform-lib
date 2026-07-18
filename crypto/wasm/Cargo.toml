@@ -16,7 +16,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 cml-core-wasm = { path = "../../core/wasm", version = "6.2.0" }
 cml-crypto = { path = "../rust", version = "6.2.0" }
-cbor_event = "2.4.0"
+cbor_event = "3.2.0"
 wasm-bindgen = { version = "0.2.126" }
 linked-hash-map = "0.5.6"
 serde_json = "1.0.57"

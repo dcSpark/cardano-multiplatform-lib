@@ -2,7 +2,6 @@
 //! the common interfaces for the project to work with.
 
 use std::hash::{Hash, Hasher};
-use std::io::{BufRead, Write};
 use std::str::FromStr;
 use std::{error, fmt, result};
 
@@ -139,7 +138,7 @@ macro_rules! define_hash_object {
             }
         }
         impl cbor_event::de::Deserialize for $hash_ty {
-            fn deserialize<R: BufRead>(reader: &mut Deserializer<R>) -> cbor_event::Result<Self> {
+            fn deserialize(reader: &mut Deserializer) -> cbor_event::Result<Self> {
                 let bytes = reader.bytes()?;
                 match Self::try_from_slice(&bytes) {
                     Ok(digest) => Ok(digest),
@@ -154,10 +153,10 @@ macro_rules! define_hash_object {
             }
         }
         impl cbor_event::se::Serialize for $hash_ty {
-            fn serialize<'se, W: Write>(
+            fn serialize<'se>(
                 &self,
-                serializer: &'se mut Serializer<W>,
-            ) -> cbor_event::Result<&'se mut Serializer<W>> {
+                serializer: &'se mut Serializer,
+            ) -> cbor_event::Result<&'se mut Serializer> {
                 serializer.write_bytes(self.as_ref())
             }
         }

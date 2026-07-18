@@ -7,13 +7,12 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, Write};
 
 impl cbor_event::se::Serialize for ByronDelegation {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(4))?;
         serializer.write_unsigned_integer(self.epoch)?;
         serializer.write_bytes(&self.issuer)?;
@@ -24,7 +23,7 @@ impl cbor_event::se::Serialize for ByronDelegation {
 }
 
 impl Deserialize for ByronDelegation {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(4)?;
@@ -57,10 +56,10 @@ impl Deserialize for ByronDelegation {
 }
 
 impl cbor_event::se::Serialize for ByronDelegationSignature {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(2))?;
         self.byron_delegation.serialize(serializer)?;
         serializer.write_bytes(&self.byron_signature)?;
@@ -69,7 +68,7 @@ impl cbor_event::se::Serialize for ByronDelegationSignature {
 }
 
 impl Deserialize for ByronDelegationSignature {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
@@ -96,10 +95,10 @@ impl Deserialize for ByronDelegationSignature {
 }
 
 impl cbor_event::se::Serialize for EpochRange {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(2))?;
         serializer.write_unsigned_integer(self.epoch_id)?;
         serializer.write_unsigned_integer(self.epoch_id2)?;
@@ -108,7 +107,7 @@ impl cbor_event::se::Serialize for EpochRange {
 }
 
 impl Deserialize for EpochRange {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
@@ -135,10 +134,10 @@ impl Deserialize for EpochRange {
 }
 
 impl cbor_event::se::Serialize for LightWeightDelegationSignature {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(2))?;
         self.light_weight_dlg.serialize(serializer)?;
         serializer.write_bytes(&self.byron_signature)?;
@@ -147,7 +146,7 @@ impl cbor_event::se::Serialize for LightWeightDelegationSignature {
 }
 
 impl Deserialize for LightWeightDelegationSignature {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(2)?;
@@ -174,10 +173,10 @@ impl Deserialize for LightWeightDelegationSignature {
 }
 
 impl cbor_event::se::Serialize for LightWeightDlg {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(4))?;
         self.epoch_range.serialize(serializer)?;
         serializer.write_bytes(&self.issuer)?;
@@ -188,7 +187,7 @@ impl cbor_event::se::Serialize for LightWeightDlg {
 }
 
 impl Deserialize for LightWeightDlg {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.array()?;
         let mut read_len = CBORReadLen::from(len);
         read_len.read_elems(4)?;

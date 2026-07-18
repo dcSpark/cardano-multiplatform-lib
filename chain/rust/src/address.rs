@@ -5,7 +5,6 @@ use cbor_event::{de::Deserializer, se::Serializer};
 use derivative::Derivative;
 use schemars::JsonSchema;
 use std::convert::{TryFrom, TryInto};
-use std::io::{BufRead, Write};
 
 #[cfg(not(feature = "used_from_wasm"))]
 use noop_proc_macro::wasm_bindgen;
@@ -847,11 +846,11 @@ pub struct StakeCredentialEncoding {
 }
 
 impl Serialize for Address {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         let raw_bytes = self.to_raw_bytes();
         serializer.write_bytes_sz(
             &raw_bytes,
@@ -864,24 +863,24 @@ impl Serialize for Address {
 }
 
 impl Deserialize for Address {
-    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (raw_bytes, encoding) = raw.bytes_sz()?;
         Self::from_bytes_impl(raw_bytes.as_ref(), Some(encoding.into()))
     }
 }
 
 impl Serialize for RewardAccount {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         Address::from(self.clone()).serialize(serializer, force_canonical)
     }
 }
 
 impl Deserialize for RewardAccount {
-    fn deserialize<R: BufRead>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let (raw_bytes, encoding) = raw.bytes_sz()?;
         match Address::from_bytes_impl(raw_bytes.as_ref(), Some(encoding.into()))? {
             Address::Reward(reward_address) => Ok(reward_address),

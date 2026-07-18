@@ -286,13 +286,10 @@ impl MapCommitteeColdCredentialToEpoch {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 // rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
-// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged). Remove when #5708 ships.
 #[rustfmt::skip]
 pub struct MapGovActionIdToVotingProcedure(
-    pub(crate) OrderedHashMap<
-        cml_chain::governance::GovActionId,
-        cml_chain::governance::VotingProcedure,
-    >,
+    pub(crate) OrderedHashMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>, MapGovActionIdToVotingProcedure);
@@ -428,13 +425,10 @@ impl MapU64ToArrI64 {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 // rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
-// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged). Remove when #5708 ships.
 #[rustfmt::skip]
 pub struct MapVoterToMapGovActionIdToVotingProcedure(
-    pub(crate) OrderedHashMap<
-        cml_chain::governance::Voter,
-        NonEmptyMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>,
-    >,
+    pub(crate) OrderedHashMap<cml_chain::governance::Voter, NonEmptyMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>>,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::governance::Voter, NonEmptyMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>>, MapVoterToMapGovActionIdToVotingProcedure);
@@ -539,13 +533,10 @@ impl NonEmptyLegacyRedeemerList {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 // rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
-// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged). Remove when #5708 ships.
 #[rustfmt::skip]
 pub struct NonEmptyMapGovActionIdToVotingProcedure(
-    pub(crate) NonEmptyMap<
-        cml_chain::governance::GovActionId,
-        cml_chain::governance::VotingProcedure,
-    >,
+    pub(crate) NonEmptyMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>,
 );
 
 impl_wasm_conversions!(NonEmptyMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>, NonEmptyMapGovActionIdToVotingProcedure);

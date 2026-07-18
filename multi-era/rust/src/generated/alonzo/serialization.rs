@@ -7,14 +7,13 @@ use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for AlonzoAuxiliaryData {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         match self {
             AlonzoAuxiliaryData::Shelley(shelley) => shelley.serialize(serializer, force_canonical),
             AlonzoAuxiliaryData::ShelleyMA(shelley_ma) => {
@@ -26,18 +25,16 @@ impl Serialize for AlonzoAuxiliaryData {
 }
 
 impl Deserialize for AlonzoAuxiliaryData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
-            let initial_position = raw.as_mut_ref().stream_position().unwrap();
+            let initial_position = raw.position();
             let mut errs = Vec::new();
             let deser_variant: Result<_, DeserializeError> = ShelleyFormatAuxData::deserialize(raw);
             match deser_variant {
                 Ok(shelley) => return Ok(Self::Shelley(shelley)),
                 Err(e) => {
                     errs.push(e.annotate("Shelley"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
@@ -46,9 +43,7 @@ impl Deserialize for AlonzoAuxiliaryData {
                 Ok(shelley_ma) => return Ok(Self::ShelleyMA(shelley_ma)),
                 Err(e) => {
                     errs.push(e.annotate("ShelleyMA"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> = AlonzoFormatAuxData::deserialize(raw);
@@ -56,9 +51,7 @@ impl Deserialize for AlonzoAuxiliaryData {
                 Ok(alonzo) => return Ok(Self::Alonzo(alonzo)),
                 Err(e) => {
                     errs.push(e.annotate("Alonzo"));
-                    raw.as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
@@ -68,11 +61,11 @@ impl Deserialize for AlonzoAuxiliaryData {
 }
 
 impl Serialize for AlonzoBlock {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -190,7 +183,7 @@ impl Serialize for AlonzoBlock {
 }
 
 impl Deserialize for AlonzoBlock {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -283,11 +276,11 @@ impl Deserialize for AlonzoBlock {
 }
 
 impl Serialize for AlonzoFormatAuxData {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_tag_sz(
             259u64,
             fit_sz(
@@ -427,7 +420,7 @@ impl Serialize for AlonzoFormatAuxData {
 }
 
 impl Deserialize for AlonzoFormatAuxData {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let (tag, tag_encoding) = raw.tag_sz()?;
             if tag != 259 {
@@ -580,11 +573,11 @@ impl Deserialize for AlonzoFormatAuxData {
 }
 
 impl Serialize for AlonzoProtocolParamUpdate {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -1292,7 +1285,7 @@ impl Serialize for AlonzoProtocolParamUpdate {
 }
 
 impl Deserialize for AlonzoProtocolParamUpdate {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -1837,11 +1830,11 @@ impl Deserialize for AlonzoProtocolParamUpdate {
 }
 
 impl Serialize for AlonzoRedeemer {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1917,7 +1910,7 @@ impl Serialize for AlonzoRedeemer {
 }
 
 impl Deserialize for AlonzoRedeemer {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -1925,8 +1918,8 @@ impl Deserialize for AlonzoRedeemer {
             read_len.read_elems(4)?;
             read_len.finish()?;
             let (tag, tag_encoding) = (|| -> Result<_, DeserializeError> {
-                let initial_position = raw.as_mut_ref().stream_position().unwrap();
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let initial_position = raw.position();
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (spend_value, spend_encoding) = raw.unsigned_integer_sz()?;
                     if spend_value != 0 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1939,12 +1932,9 @@ impl Deserialize for AlonzoRedeemer {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((AlonzoRedeemerTag::Spend, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (mint_value, mint_encoding) = raw.unsigned_integer_sz()?;
                     if mint_value != 1 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1957,12 +1947,9 @@ impl Deserialize for AlonzoRedeemer {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((AlonzoRedeemerTag::Mint, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (cert_value, cert_encoding) = raw.unsigned_integer_sz()?;
                     if cert_value != 2 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1975,12 +1962,9 @@ impl Deserialize for AlonzoRedeemer {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((AlonzoRedeemerTag::Cert, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
-                let deser_variant = (|raw: &mut Deserializer<_>| -> Result<_, DeserializeError> {
+                let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let (reward_value, reward_encoding) = raw.unsigned_integer_sz()?;
                     if reward_value != 3 {
                         return Err(DeserializeFailure::FixedValueMismatch {
@@ -1993,10 +1977,7 @@ impl Deserialize for AlonzoRedeemer {
                 })(raw);
                 match deser_variant {
                     Ok(tag_encoding) => return Ok((AlonzoRedeemerTag::Reward, tag_encoding)),
-                    Err(_) => raw
-                        .as_mut_ref()
-                        .seek(SeekFrom::Start(initial_position))
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
                 Err(DeserializeError::new(
                     "AlonzoRedeemerTag",
@@ -2037,11 +2018,11 @@ impl Deserialize for AlonzoRedeemer {
 }
 
 impl Serialize for AlonzoTransaction {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -2069,7 +2050,7 @@ impl Serialize for AlonzoTransaction {
 }
 
 impl Deserialize for AlonzoTransaction {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -2114,11 +2095,11 @@ impl Deserialize for AlonzoTransaction {
 }
 
 impl Serialize for AlonzoTransactionBody {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -2703,7 +2684,7 @@ impl Serialize for AlonzoTransactionBody {
 }
 
 impl Deserialize for AlonzoTransactionBody {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -3131,11 +3112,11 @@ impl Deserialize for AlonzoTransactionBody {
 }
 
 impl Serialize for AlonzoTransactionWitnessSet {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -3386,7 +3367,7 @@ impl Serialize for AlonzoTransactionWitnessSet {
 }
 
 impl Deserialize for AlonzoTransactionWitnessSet {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map_sz()?;
             let len_encoding: LenEncoding = len.into();
@@ -3666,11 +3647,11 @@ impl Deserialize for AlonzoTransactionWitnessSet {
 }
 
 impl Serialize for AlonzoUpdate {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -3747,7 +3728,7 @@ impl Serialize for AlonzoUpdate {
 }
 
 impl Deserialize for AlonzoUpdate {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let len = raw.array_sz()?;
             let len_encoding: LenEncoding = len.into();

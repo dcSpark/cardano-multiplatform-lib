@@ -216,16 +216,16 @@ impl<T, A: VerificationAlgorithm> std::cmp::PartialEq<Self> for Signature<T, A> 
 impl<T, A: VerificationAlgorithm> std::cmp::Eq for Signature<T, A> {}
 
 impl<U, A: VerificationAlgorithm> cbor_event::se::Serialize for Signature<U, A> {
-    fn serialize<'se, W: std::io::Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+        serializer: &'se mut Serializer,
+    ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_bytes(self.as_ref())
     }
 }
 
 impl<U, A: VerificationAlgorithm> cbor_event::de::Deserialize for Signature<U, A> {
-    fn deserialize<R: std::io::BufRead>(raw: &mut Deserializer<R>) -> cbor_event::Result<Self> {
+    fn deserialize(raw: &mut Deserializer) -> cbor_event::Result<Self> {
         let result = Signature::<U, A>::from_binary(raw.bytes()?.as_ref())
             .map_err(|err| cbor_event::Error::CustomError(format!("{err}")))?;
         Ok(result)

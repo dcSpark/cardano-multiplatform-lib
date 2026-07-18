@@ -10,7 +10,6 @@ use derivative::Derivative;
 use std::iter::IntoIterator;
 use std::{
     convert::TryFrom,
-    io::{BufRead, Seek, Write},
 };
 
 use crate::{
@@ -163,9 +162,9 @@ impl TryFrom<Script> for PlutusScript {
 const BOUNDED_BYTES_CHUNK_SIZE: usize = 64;
 
 // to get around not having access from outside the library we just write the raw CBOR indefinite byte string code here
-fn write_cbor_indefinite_byte_tag<W: Write>(
-    serializer: &mut Serializer<W>,
-) -> cbor_event::Result<&mut Serializer<W>> {
+fn write_cbor_indefinite_byte_tag(
+    serializer: &mut Serializer,
+) -> cbor_event::Result<&mut Serializer> {
     serializer.write_raw_bytes(&[0x5f])
 }
 
@@ -191,12 +190,12 @@ fn valid_indefinite_string_encoding(chunks: &[(u64, cbor_event::Sz)], total_len:
 ///   ;  ( reminder: in CBOR, the indefinite-length encoding of bytestrings
 ///   ;    consists of a token #2.31 followed by a sequence of definite-length
 ///   ;    encoded bytestrings and a stop code )
-pub fn write_bounded_bytes<'se, W: Write>(
-    serializer: &'se mut Serializer<W>,
+pub fn write_bounded_bytes<'se>(
+    serializer: &'se mut Serializer,
     bytes: &[u8],
     enc: &StringEncoding,
     force_canonical: bool,
-) -> cbor_event::Result<&'se mut Serializer<W>> {
+) -> cbor_event::Result<&'se mut Serializer> {
     match enc {
         StringEncoding::Definite(sz) if !force_canonical => {
             if bytes.len() <= BOUNDED_BYTES_CHUNK_SIZE {
@@ -248,8 +247,8 @@ pub fn write_bounded_bytes<'se, W: Write>(
 ///  ;  ( reminder: in CBOR, the indefinite-length encoding of bytestrings
 ///  ;    consists of a token #2.31 followed by a sequence of definite-length
 ///  ;    encoded bytestrings and a stop code )
-pub fn read_bounded_bytes<R: BufRead + Seek>(
-    raw: &mut Deserializer<R>,
+pub fn read_bounded_bytes(
+    raw: &mut Deserializer,
 ) -> Result<(Vec<u8>, StringEncoding), DeserializeError> {
     let (bytes, bytes_enc) = raw.bytes_sz()?;
     match &bytes_enc {
@@ -439,14 +438,14 @@ impl BigInteger {
 }
 
 impl Serialize for BigInteger {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
-        let write_self_as_bytes = |serializer: &'se mut Serializer<W>,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        let write_self_as_bytes = |serializer: &'se mut Serializer,
                                    enc: &StringEncoding|
-         -> cbor_event::Result<&'se mut Serializer<W>> {
+         -> cbor_event::Result<&'se mut Serializer> {
             let (sign, bytes) = self.num.to_bytes_be();
             match sign {
                 // positive bigint
@@ -527,7 +526,7 @@ impl Serialize for BigInteger {
 }
 
 impl Deserialize for BigInteger {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             match raw.cbor_type()? {
                 // bigint
@@ -646,7 +645,7 @@ impl<'de, T: serde::de::Deserialize<'de>> serde::de::Deserialize<'de> for Nonemp
     where
         D: serde::de::Deserializer<'de>,
     {
-        Vec::deserialize(deserializer).map(|elems| Self {
+        <Vec<T> as serde::de::Deserialize>::deserialize(deserializer).map(|elems| Self {
             elems,
             len_encoding: LenEncoding::default(),
             tag_encoding: None,
@@ -730,11 +729,11 @@ impl<T> From<NonemptySet<T>> for Vec<T> {
 }
 
 impl<T: Serialize> Serialize for NonemptySet<T> {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         if let Some(tag_encoding) = &self.tag_encoding {
             serializer.write_tag_sz(258, *tag_encoding)?;
         }
@@ -750,7 +749,7 @@ impl<T: Serialize> Serialize for NonemptySet<T> {
 }
 
 impl<T: Deserialize> Deserialize for NonemptySet<T> {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let mut elems = Vec::new();
             let (arr_len, tag_encoding) = if raw.cbor_type()? == cbor_event::Type::Tag {
@@ -816,7 +815,7 @@ impl<'de, T: serde::de::Deserialize<'de>> serde::de::Deserialize<'de> for Nonemp
     where
         D: serde::de::Deserializer<'de>,
     {
-        Vec::deserialize(deserializer).map(|elems| Self {
+        <Vec<T> as serde::de::Deserialize>::deserialize(deserializer).map(|elems| Self {
             elems,
             len_encoding: LenEncoding::default(),
             tag_encoding: None,
@@ -902,11 +901,11 @@ impl<T> From<NonemptySetRawBytes<T>> for Vec<T> {
 }
 
 impl<T: RawBytesEncoding> Serialize for NonemptySetRawBytes<T> {
-    fn serialize<'se, W: Write>(
+    fn serialize<'se>(
         &self,
-        serializer: &'se mut Serializer<W>,
+        serializer: &'se mut Serializer,
         force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer<W>> {
+    ) -> cbor_event::Result<&'se mut Serializer> {
         if let Some(tag_encoding) = &self.tag_encoding {
             serializer.write_tag_sz(258, *tag_encoding)?;
         }
@@ -929,7 +928,7 @@ impl<T: RawBytesEncoding> Serialize for NonemptySetRawBytes<T> {
 }
 
 impl<T: RawBytesEncoding> Deserialize for NonemptySetRawBytes<T> {
-    fn deserialize<R: BufRead + Seek>(raw: &mut Deserializer<R>) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         (|| -> Result<_, DeserializeError> {
             let mut elems = Vec::new();
             let mut bytes_encodings = Vec::new();

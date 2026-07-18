@@ -14,7 +14,6 @@ use cbor_encodings::{
 };
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::convert::TryFrom;
 
 /// Weighted delegation input.
 /// This is the proportion of weight to assign to this public key relative to the weights

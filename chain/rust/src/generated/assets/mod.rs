@@ -3,23 +3,20 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
-pub mod utils;
 pub use crate::Value;
-pub use utils::*;
 
-use crate::generated::crypto::ScriptHash;
 use crate::generated::PolicyId;
+use crate::generated::crypto::ScriptHash;
 use cbor_encodings::AssetNameEncoding;
 use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::convert::TryFrom;
+use cml_core::serialization::StringEncoding;
 
 /// Use TryFrom<&str> / TryInto<&str> for utf8 text conversion and RawBytesEncoding for direct bytes access
 #[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct AssetName {
-    inner: Vec<u8>,
+    pub(crate) inner: Vec<u8>,
     #[derivative(
         PartialEq = "ignore",
         Ord = "ignore",
@@ -106,3 +103,26 @@ impl schemars::JsonSchema for AssetName {
         <String as schemars::JsonSchema>::inline_schema()
     }
 }
+
+pub type Coin = u64;
+
+// cddl-codegen:replace-start
+// Hand-defined as AssetBundle<NonZeroInt64> (checked-arithmetic API over the same map shape);
+// generated code keeps handling it as a map through AssetBundle's Deref/DerefMut.
+pub use crate::assets::utils::Mint;
+// cddl-codegen:replaces
+// pub type Mint = OrderedHashMap<PolicyId, OrderedHashMap<AssetName, NonZeroInt64>>;
+// cddl-codegen:replace-end
+
+// cddl-codegen:replace-start
+// Hand-defined as AssetBundle<PositiveCoin> — same rationale as Mint above.
+pub use crate::assets::utils::MultiAsset;
+// cddl-codegen:replaces
+// pub type MultiAsset = OrderedHashMap<PolicyId, OrderedHashMap<AssetName, u64>>;
+// cddl-codegen:replace-end
+
+/// Does not enforce != 0: plain i64 alias for API convenience. Could become a bounds-checked newtype later.
+pub type NonZeroInt64 = i64;
+
+/// Does not enforce > 0: plain u64 alias for API convenience. Could become a bounds-checked newtype later.
+pub type PositiveCoin = u64;

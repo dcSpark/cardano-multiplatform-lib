@@ -4,7 +4,8 @@
 use crate::generated::shelley::{ProtocolVersionStruct, ShelleyHeader};
 use crate::generated::{
     AllegraCertificateList, AlonzoRedeemerList, AlonzoTransactionBodyList,
-    AlonzoTransactionWitnessSetList, MapTransactionIndexToAlonzoAuxiliaryData,
+    AlonzoTransactionWitnessSetList, MapPolicyIdToMapAssetNameToI64, MapRewardAccountToCoin,
+    MapTransactionIndexToAlonzoAuxiliaryData,
 };
 use cml_chain_wasm::assets::{Coin, Mint};
 use cml_chain_wasm::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
@@ -19,11 +20,11 @@ use cml_chain_wasm::{Epoch, NetworkId, Rational, TransactionIndex, UnitInterval,
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
 pub use cml_multi_era::alonzo::AlonzoRedeemerTag;
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoAuxiliaryData(cml_multi_era::alonzo::AlonzoAuxiliaryData);
+pub struct AlonzoAuxiliaryData(pub(crate) cml_multi_era::alonzo::AlonzoAuxiliaryData);
 
 impl_wasm_cbor_json_api!(AlonzoAuxiliaryData);
 
@@ -103,7 +104,7 @@ pub enum AlonzoAuxiliaryDataKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoBlock(cml_multi_era::alonzo::AlonzoBlock);
+pub struct AlonzoBlock(pub(crate) cml_multi_era::alonzo::AlonzoBlock);
 
 impl_wasm_cbor_json_api!(AlonzoBlock);
 
@@ -152,7 +153,7 @@ pub type AlonzoCostModels = CostModels;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoFormatAuxData(cml_multi_era::alonzo::AlonzoFormatAuxData);
+pub struct AlonzoFormatAuxData(pub(crate) cml_multi_era::alonzo::AlonzoFormatAuxData);
 
 impl_wasm_cbor_json_api!(AlonzoFormatAuxData);
 
@@ -198,7 +199,7 @@ impl AlonzoFormatAuxData {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct AlonzoProposedProtocolParameterUpdates(
-    cml_multi_era::alonzo::AlonzoProposedProtocolParameterUpdates,
+    pub(crate) cml_multi_era::alonzo::AlonzoProposedProtocolParameterUpdates,
 );
 
 impl_wasm_conversions!(
@@ -237,7 +238,7 @@ impl AlonzoProposedProtocolParameterUpdates {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoProtocolParamUpdate(cml_multi_era::alonzo::AlonzoProtocolParamUpdate);
+pub struct AlonzoProtocolParamUpdate(pub(crate) cml_multi_era::alonzo::AlonzoProtocolParamUpdate);
 
 impl_wasm_cbor_json_api!(AlonzoProtocolParamUpdate);
 
@@ -469,7 +470,7 @@ impl AlonzoProtocolParamUpdate {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoRedeemer(cml_multi_era::alonzo::AlonzoRedeemer);
+pub struct AlonzoRedeemer(pub(crate) cml_multi_era::alonzo::AlonzoRedeemer);
 
 impl_wasm_cbor_json_api!(AlonzoRedeemer);
 
@@ -505,7 +506,7 @@ impl AlonzoRedeemer {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoTransaction(cml_multi_era::alonzo::AlonzoTransaction);
+pub struct AlonzoTransaction(pub(crate) cml_multi_era::alonzo::AlonzoTransaction);
 
 impl_wasm_cbor_json_api!(AlonzoTransaction);
 
@@ -546,7 +547,7 @@ impl AlonzoTransaction {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoTransactionBody(cml_multi_era::alonzo::AlonzoTransactionBody);
+pub struct AlonzoTransactionBody(pub(crate) cml_multi_era::alonzo::AlonzoTransactionBody);
 
 impl_wasm_cbor_json_api!(AlonzoTransactionBody);
 
@@ -680,7 +681,9 @@ impl AlonzoTransactionBody {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoTransactionWitnessSet(cml_multi_era::alonzo::AlonzoTransactionWitnessSet);
+pub struct AlonzoTransactionWitnessSet(
+    pub(crate) cml_multi_era::alonzo::AlonzoTransactionWitnessSet,
+);
 
 impl_wasm_cbor_json_api!(AlonzoTransactionWitnessSet);
 
@@ -752,7 +755,7 @@ impl AlonzoTransactionWitnessSet {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoUpdate(cml_multi_era::alonzo::AlonzoUpdate);
+pub struct AlonzoUpdate(pub(crate) cml_multi_era::alonzo::AlonzoUpdate);
 
 impl_wasm_cbor_json_api!(AlonzoUpdate);
 

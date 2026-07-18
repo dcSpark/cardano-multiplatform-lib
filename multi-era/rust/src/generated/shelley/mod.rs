@@ -3,7 +3,6 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
-pub mod utils;
 
 use crate::generated::allegra::MIRPot;
 use cbor_encodings::{
@@ -35,7 +34,6 @@ use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct GenesisKeyDelegation {
@@ -255,7 +253,7 @@ impl ShelleyCertificate {
 
 #[derive(Clone, Debug)]
 pub struct ShelleyDNSName {
-    inner: String,
+    pub(crate) inner: String,
     pub encodings: Option<ShelleyDNSNameEncoding>,
 }
 

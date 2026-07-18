@@ -2,23 +2,21 @@
 // https://github.com/dcSpark/cddl-codegen
 
 pub mod cbor_encodings;
-pub mod hash;
-pub mod utils;
+pub mod serialization;
+pub use crate::AddrAttributes;
+
 pub use cml_crypto::{
     AnchorDocHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash,
     Ed25519Signature, GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash,
     ScriptDataHash, ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
 };
 pub type Vkey = cml_crypto::PublicKey;
-pub mod serialization;
-pub use crate::AddrAttributes;
 
 use cbor_encodings::{
     BootstrapWitnessEncoding, KESSignatureEncoding, VRFCertEncoding, VkeywitnessEncoding,
 };
 use cml_core::error::*;
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct BootstrapWitness {
@@ -37,7 +35,7 @@ impl BootstrapWitness {
         chain_code: Vec<u8>,
         attributes: AddrAttributes,
     ) -> Result<Self, DeserializeError> {
-        if chain_code.len() < 32 || chain_code.len() > 32 {
+        if chain_code.len() != 32 {
             return Err(DeserializeFailure::RangeCheck {
                 found: chain_code.len() as i128,
                 min: Some(32),
@@ -57,7 +55,7 @@ impl BootstrapWitness {
 
 #[derive(Clone, Debug)]
 pub struct KESSignature {
-    inner: Vec<u8>,
+    pub(crate) inner: Vec<u8>,
     pub encodings: Option<KESSignatureEncoding>,
 }
 
@@ -186,7 +184,7 @@ pub struct VRFCert {
 
 impl VRFCert {
     pub fn new(output: Vec<u8>, proof: Vec<u8>) -> Result<Self, DeserializeError> {
-        if proof.len() < 80 || proof.len() > 80 {
+        if proof.len() != 80 {
             return Err(DeserializeFailure::RangeCheck {
                 found: proof.len() as i128,
                 min: Some(80),

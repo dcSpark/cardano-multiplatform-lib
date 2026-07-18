@@ -21,4 +21,5 @@ pub use cml_cip36_wasm::CIP36DeregistrationCbor;
 
 // Extern-type re-exports so the generated glue (`pub use crate::X;`) resolves.
 pub use byron::block::ByronBlock;
+pub use byron::transaction::ByronTx;
 pub use cml_chain_wasm::block::Block;

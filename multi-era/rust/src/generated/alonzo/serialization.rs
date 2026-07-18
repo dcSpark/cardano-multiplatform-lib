@@ -537,15 +537,15 @@ impl Deserialize for AlonzoFormatAuxData {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            )
+                            );
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -553,7 +553,7 @@ impl Deserialize for AlonzoFormatAuxData {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;
@@ -1741,15 +1741,15 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            )
+                            );
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -1757,7 +1757,7 @@ impl Deserialize for AlonzoProtocolParamUpdate {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;
@@ -3614,15 +3614,15 @@ impl Deserialize for AlonzoTransactionWitnessSet {
                         (unknown_key, _enc) => {
                             return Err(
                                 DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                            )
+                            );
                         }
                     },
                     cbor_event::Type::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into())
+                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
                     }
                     cbor_event::Type::Special => match len {
                         cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into())
+                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
                         }
                         cbor_event::LenSz::Indefinite => match raw.special()? {
                             cbor_event::Special::Break => break,
@@ -3630,7 +3630,7 @@ impl Deserialize for AlonzoTransactionWitnessSet {
                         },
                     },
                     other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into())
+                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
                     }
                 }
                 read += 1;

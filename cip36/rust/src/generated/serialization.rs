@@ -8,7 +8,7 @@ use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
 use cml_crypto::{Ed25519Signature, PublicKey, RawBytesEncoding};
-use std::io::{BufRead, Seek, SeekFrom, Write};
+use std::io::{BufRead, Seek, Write};
 
 impl Serialize for CIP36Delegation {
     fn serialize<'se, W: Write>(
@@ -661,25 +661,25 @@ impl Serialize for CIP36KeyRegistration {
                     vec![0, 1, 2, 3]
                 }
             });
-            // cddl-codegen:replaces
-            // .filter(|encs| {
-            //     !force_canonical
-            //         && encs.orig_deser_order.len()
-            //             == 4 + if self.voting_purpose != 0
-            //                 || self
-            //                     .encodings
-            //                     .as_ref()
-            //                     .map(|encs| encs.voting_purpose_default_present)
-            //                     .unwrap_or(false)
-            //             {
-            //                 1
-            //             } else {
-            //                 0
-            //             }
-            // })
-            // .map(|encs| encs.orig_deser_order.clone())
-            // .unwrap_or_else(|| vec![0, 1, 2, 3, 4]);
-            // cddl-codegen:replace-end
+        // cddl-codegen:replaces
+        // .filter(|encs| {
+        //     !force_canonical
+        //         && encs.orig_deser_order.len()
+        //             == 4 + if self.voting_purpose != 0
+        //                 || self
+        //                     .encodings
+        //                     .as_ref()
+        //                     .map(|encs| encs.voting_purpose_default_present)
+        //                     .unwrap_or(false)
+        //             {
+        //                 1
+        //             } else {
+        //                 0
+        //             }
+        // })
+        // .map(|encs| encs.orig_deser_order.clone())
+        // .unwrap_or_else(|| vec![0, 1, 2, 3, 4]);
+        // cddl-codegen:replace-end
         for field_index in deser_order {
             match field_index {
                 0 => {
@@ -762,15 +762,15 @@ impl Serialize for CIP36KeyRegistration {
                 4 => {
                     // cddl-codegen:replace-start
                     if should_include_voting_purpose {
-                    // cddl-codegen:replaces
-                    // if self.voting_purpose != 0
-                    //     || self
-                    //         .encodings
-                    //         .as_ref()
-                    //         .map(|encs| encs.voting_purpose_default_present)
-                    //         .unwrap_or(false)
-                    // {
-                    // cddl-codegen:replace-end
+                        // cddl-codegen:replaces
+                        // if self.voting_purpose != 0
+                        //     || self
+                        //         .encodings
+                        //         .as_ref()
+                        //         .map(|encs| encs.voting_purpose_default_present)
+                        //         .unwrap_or(false)
+                        // {
+                        // cddl-codegen:replace-end
                         serializer.write_unsigned_integer_sz(
                             5u64,
                             fit_sz(

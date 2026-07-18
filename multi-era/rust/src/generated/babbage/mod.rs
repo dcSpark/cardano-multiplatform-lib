@@ -3,7 +3,6 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
-pub mod utils;
 pub use crate::BabbageMint;
 
 use crate::generated::allegra::AllegraCertificate;
@@ -32,7 +31,6 @@ use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum BabbageAuxiliaryData {
@@ -263,7 +261,7 @@ impl From<BabbageScriptRef> for BabbageScript {
 
 #[derive(Clone, Debug)]
 pub struct BabbageScriptRef {
-    inner: BabbageScript,
+    pub(crate) inner: BabbageScript,
     pub encodings: Option<BabbageScriptRefEncoding>,
 }
 

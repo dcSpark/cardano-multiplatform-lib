@@ -2,7 +2,6 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use super::*;
-use crate::certs::Credential;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 

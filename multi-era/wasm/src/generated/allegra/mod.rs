@@ -6,7 +6,8 @@ use crate::generated::shelley::{
 };
 use crate::generated::{
     AllegraCertificateList, AllegraTransactionBodyList, AllegraTransactionWitnessSetList,
-    MapTransactionIndexToAllegraAuxiliaryData, ShelleyTransactionOutputList,
+    MapRewardAccountToCoin, MapTransactionIndexToAllegraAuxiliaryData,
+    ShelleyTransactionOutputList,
 };
 use cml_chain_wasm::assets::Coin;
 use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMAFormatAuxData};
@@ -23,11 +24,11 @@ use cml_chain_wasm::crypto::{
 use cml_chain_wasm::{Epoch, Withdrawals};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
 pub use cml_multi_era::allegra::MIRPot;
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AllegraAuxiliaryData(cml_multi_era::allegra::AllegraAuxiliaryData);
+pub struct AllegraAuxiliaryData(pub(crate) cml_multi_era::allegra::AllegraAuxiliaryData);
 
 impl_wasm_cbor_json_api!(AllegraAuxiliaryData);
 
@@ -88,7 +89,7 @@ pub enum AllegraAuxiliaryDataKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AllegraBlock(cml_multi_era::allegra::AllegraBlock);
+pub struct AllegraBlock(pub(crate) cml_multi_era::allegra::AllegraBlock);
 
 impl_wasm_cbor_json_api!(AllegraBlock);
 
@@ -129,7 +130,7 @@ impl AllegraBlock {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AllegraCertificate(cml_multi_era::allegra::AllegraCertificate);
+pub struct AllegraCertificate(pub(crate) cml_multi_era::allegra::AllegraCertificate);
 
 impl_wasm_cbor_json_api!(AllegraCertificate);
 
@@ -312,7 +313,7 @@ pub enum AllegraCertificateKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AllegraTransaction(cml_multi_era::allegra::AllegraTransaction);
+pub struct AllegraTransaction(pub(crate) cml_multi_era::allegra::AllegraTransaction);
 
 impl_wasm_cbor_json_api!(AllegraTransaction);
 
@@ -350,7 +351,7 @@ impl AllegraTransaction {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AllegraTransactionBody(cml_multi_era::allegra::AllegraTransactionBody);
+pub struct AllegraTransactionBody(pub(crate) cml_multi_era::allegra::AllegraTransactionBody);
 
 impl_wasm_cbor_json_api!(AllegraTransactionBody);
 
@@ -439,7 +440,9 @@ impl AllegraTransactionBody {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AllegraTransactionWitnessSet(cml_multi_era::allegra::AllegraTransactionWitnessSet);
+pub struct AllegraTransactionWitnessSet(
+    pub(crate) cml_multi_era::allegra::AllegraTransactionWitnessSet,
+);
 
 impl_wasm_cbor_json_api!(AllegraTransactionWitnessSet);
 
@@ -484,7 +487,7 @@ impl AllegraTransactionWitnessSet {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MIRAction(cml_multi_era::allegra::MIRAction);
+pub struct MIRAction(pub(crate) cml_multi_era::allegra::MIRAction);
 
 impl_wasm_cbor_json_api!(MIRAction);
 
@@ -541,7 +544,7 @@ pub enum MIRActionKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MoveInstantaneousReward(cml_multi_era::allegra::MoveInstantaneousReward);
+pub struct MoveInstantaneousReward(pub(crate) cml_multi_era::allegra::MoveInstantaneousReward);
 
 impl_wasm_cbor_json_api!(MoveInstantaneousReward);
 
@@ -570,7 +573,9 @@ impl MoveInstantaneousReward {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MoveInstantaneousRewardsCert(cml_multi_era::allegra::MoveInstantaneousRewardsCert);
+pub struct MoveInstantaneousRewardsCert(
+    pub(crate) cml_multi_era::allegra::MoveInstantaneousRewardsCert,
+);
 
 impl_wasm_cbor_json_api!(MoveInstantaneousRewardsCert);
 

@@ -1,14 +1,13 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+pub mod cbor_encodings;
+pub mod serialization;
+
 #[cfg(not(feature = "used_from_wasm"))]
 use noop_proc_macro::wasm_bindgen;
 #[cfg(feature = "used_from_wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
-
-pub mod cbor_encodings;
-pub mod serialization;
-pub mod utils;
 
 use crate::generated::address::RewardAccount;
 use crate::generated::assets::Coin;
@@ -23,12 +22,10 @@ use cbor_encodings::{
     VotingProcedureEncoding,
 };
 use cml_core::error::*;
-use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct Anchor {

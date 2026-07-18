@@ -3,14 +3,10 @@
 
 use super::cbor_encodings::*;
 use super::*;
-use crate::address::RewardAccount;
-use crate::assets::AssetName;
-use crate::governance::{GovActionId, Voter, VotingProcedure};
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::serialization::*;
-use cml_crypto::ScriptHash;
 use std::io::{BufRead, Seek, SeekFrom, Write};
 
 impl Serialize for AlonzoFormatTxOut {

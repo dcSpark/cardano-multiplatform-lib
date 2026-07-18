@@ -3,8 +3,8 @@
 
 use crate::generated::allegra::MIRPot;
 use crate::generated::{
-    MultisigScriptList, ShelleyCertificateList, ShelleyRelayList, ShelleyTransactionBodyList,
-    ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
+    MapRewardAccountToCoin, MultisigScriptList, ShelleyCertificateList, ShelleyRelayList,
+    ShelleyTransactionBodyList, ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
 };
 use cml_chain_wasm::address::{Address, RewardAccount};
 use cml_chain_wasm::assets::Coin;
@@ -25,11 +25,11 @@ use cml_chain_wasm::crypto::{
 use cml_chain_wasm::{Epoch, Port, Rational, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct GenesisKeyDelegation(cml_multi_era::shelley::GenesisKeyDelegation);
+pub struct GenesisKeyDelegation(pub(crate) cml_multi_era::shelley::GenesisKeyDelegation);
 
 impl_wasm_cbor_json_api!(GenesisKeyDelegation);
 
@@ -69,7 +69,7 @@ pub type MapGenesisHashToShelleyProtocolParamUpdate = ShelleyProposedProtocolPar
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MultisigAll(cml_multi_era::shelley::MultisigAll);
+pub struct MultisigAll(pub(crate) cml_multi_era::shelley::MultisigAll);
 
 impl_wasm_cbor_json_api!(MultisigAll);
 
@@ -90,7 +90,7 @@ impl MultisigAll {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MultisigAny(cml_multi_era::shelley::MultisigAny);
+pub struct MultisigAny(pub(crate) cml_multi_era::shelley::MultisigAny);
 
 impl_wasm_cbor_json_api!(MultisigAny);
 
@@ -111,7 +111,7 @@ impl MultisigAny {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MultisigNOfK(cml_multi_era::shelley::MultisigNOfK);
+pub struct MultisigNOfK(pub(crate) cml_multi_era::shelley::MultisigNOfK);
 
 impl_wasm_cbor_json_api!(MultisigNOfK);
 
@@ -137,7 +137,7 @@ impl MultisigNOfK {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MultisigPubkey(cml_multi_era::shelley::MultisigPubkey);
+pub struct MultisigPubkey(pub(crate) cml_multi_era::shelley::MultisigPubkey);
 
 impl_wasm_cbor_json_api!(MultisigPubkey);
 
@@ -158,7 +158,7 @@ impl MultisigPubkey {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MultisigScript(cml_multi_era::shelley::MultisigScript);
+pub struct MultisigScript(pub(crate) cml_multi_era::shelley::MultisigScript);
 
 impl_wasm_cbor_json_api!(MultisigScript);
 
@@ -255,7 +255,7 @@ pub enum MultisigScriptKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ProtocolVersionStruct(cml_multi_era::shelley::ProtocolVersionStruct);
+pub struct ProtocolVersionStruct(pub(crate) cml_multi_era::shelley::ProtocolVersionStruct);
 
 impl_wasm_cbor_json_api!(ProtocolVersionStruct);
 
@@ -279,7 +279,7 @@ impl ProtocolVersionStruct {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyBlock(cml_multi_era::shelley::ShelleyBlock);
+pub struct ShelleyBlock(pub(crate) cml_multi_era::shelley::ShelleyBlock);
 
 impl_wasm_cbor_json_api!(ShelleyBlock);
 
@@ -320,7 +320,7 @@ impl ShelleyBlock {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyCertificate(cml_multi_era::shelley::ShelleyCertificate);
+pub struct ShelleyCertificate(pub(crate) cml_multi_era::shelley::ShelleyCertificate);
 
 impl_wasm_cbor_json_api!(ShelleyCertificate);
 
@@ -505,7 +505,7 @@ pub enum ShelleyCertificateKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyDNSName(cml_multi_era::shelley::ShelleyDNSName);
+pub struct ShelleyDNSName(pub(crate) cml_multi_era::shelley::ShelleyDNSName);
 
 impl_wasm_cbor_json_api!(ShelleyDNSName);
 
@@ -526,7 +526,7 @@ impl ShelleyDNSName {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyHeader(cml_multi_era::shelley::ShelleyHeader);
+pub struct ShelleyHeader(pub(crate) cml_multi_era::shelley::ShelleyHeader);
 
 impl_wasm_cbor_json_api!(ShelleyHeader);
 
@@ -552,7 +552,7 @@ impl ShelleyHeader {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyHeaderBody(cml_multi_era::shelley::ShelleyHeaderBody);
+pub struct ShelleyHeaderBody(pub(crate) cml_multi_era::shelley::ShelleyHeaderBody);
 
 impl_wasm_cbor_json_api!(ShelleyHeaderBody);
 
@@ -635,7 +635,9 @@ impl ShelleyHeaderBody {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyMoveInstantaneousReward(cml_multi_era::shelley::ShelleyMoveInstantaneousReward);
+pub struct ShelleyMoveInstantaneousReward(
+    pub(crate) cml_multi_era::shelley::ShelleyMoveInstantaneousReward,
+);
 
 impl_wasm_cbor_json_api!(ShelleyMoveInstantaneousReward);
 
@@ -665,7 +667,7 @@ impl ShelleyMoveInstantaneousReward {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ShelleyMoveInstantaneousRewardsCert(
-    cml_multi_era::shelley::ShelleyMoveInstantaneousRewardsCert,
+    pub(crate) cml_multi_era::shelley::ShelleyMoveInstantaneousRewardsCert,
 );
 
 impl_wasm_cbor_json_api!(ShelleyMoveInstantaneousRewardsCert);
@@ -692,7 +694,7 @@ impl ShelleyMoveInstantaneousRewardsCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyMultiHostName(cml_multi_era::shelley::ShelleyMultiHostName);
+pub struct ShelleyMultiHostName(pub(crate) cml_multi_era::shelley::ShelleyMultiHostName);
 
 impl_wasm_cbor_json_api!(ShelleyMultiHostName);
 
@@ -717,7 +719,7 @@ impl ShelleyMultiHostName {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyPoolParams(cml_multi_era::shelley::ShelleyPoolParams);
+pub struct ShelleyPoolParams(pub(crate) cml_multi_era::shelley::ShelleyPoolParams);
 
 impl_wasm_cbor_json_api!(ShelleyPoolParams);
 
@@ -788,7 +790,7 @@ impl ShelleyPoolParams {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyPoolRegistration(cml_multi_era::shelley::ShelleyPoolRegistration);
+pub struct ShelleyPoolRegistration(pub(crate) cml_multi_era::shelley::ShelleyPoolRegistration);
 
 impl_wasm_cbor_json_api!(ShelleyPoolRegistration);
 
@@ -813,7 +815,7 @@ impl ShelleyPoolRegistration {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct ShelleyProposedProtocolParameterUpdates(
-    cml_multi_era::shelley::ShelleyProposedProtocolParameterUpdates,
+    pub(crate) cml_multi_era::shelley::ShelleyProposedProtocolParameterUpdates,
 );
 
 impl_wasm_conversions!(
@@ -852,7 +854,9 @@ impl ShelleyProposedProtocolParameterUpdates {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyProtocolParamUpdate(cml_multi_era::shelley::ShelleyProtocolParamUpdate);
+pub struct ShelleyProtocolParamUpdate(
+    pub(crate) cml_multi_era::shelley::ShelleyProtocolParamUpdate,
+);
 
 impl_wasm_cbor_json_api!(ShelleyProtocolParamUpdate);
 
@@ -1010,7 +1014,7 @@ impl ShelleyProtocolParamUpdate {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyRelay(cml_multi_era::shelley::ShelleyRelay);
+pub struct ShelleyRelay(pub(crate) cml_multi_era::shelley::ShelleyRelay);
 
 impl_wasm_cbor_json_api!(ShelleyRelay);
 
@@ -1101,7 +1105,7 @@ pub enum ShelleyRelayKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleySingleHostName(cml_multi_era::shelley::ShelleySingleHostName);
+pub struct ShelleySingleHostName(pub(crate) cml_multi_era::shelley::ShelleySingleHostName);
 
 impl_wasm_cbor_json_api!(ShelleySingleHostName);
 
@@ -1131,7 +1135,7 @@ impl ShelleySingleHostName {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyTransaction(cml_multi_era::shelley::ShelleyTransaction);
+pub struct ShelleyTransaction(pub(crate) cml_multi_era::shelley::ShelleyTransaction);
 
 impl_wasm_cbor_json_api!(ShelleyTransaction);
 
@@ -1169,7 +1173,7 @@ impl ShelleyTransaction {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyTransactionBody(cml_multi_era::shelley::ShelleyTransactionBody);
+pub struct ShelleyTransactionBody(pub(crate) cml_multi_era::shelley::ShelleyTransactionBody);
 
 impl_wasm_cbor_json_api!(ShelleyTransactionBody);
 
@@ -1250,7 +1254,7 @@ pub type ShelleyTransactionIndex = u16;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyTransactionOutput(cml_multi_era::shelley::ShelleyTransactionOutput);
+pub struct ShelleyTransactionOutput(pub(crate) cml_multi_era::shelley::ShelleyTransactionOutput);
 
 impl_wasm_cbor_json_api!(ShelleyTransactionOutput);
 
@@ -1279,7 +1283,9 @@ impl ShelleyTransactionOutput {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyTransactionWitnessSet(cml_multi_era::shelley::ShelleyTransactionWitnessSet);
+pub struct ShelleyTransactionWitnessSet(
+    pub(crate) cml_multi_era::shelley::ShelleyTransactionWitnessSet,
+);
 
 impl_wasm_cbor_json_api!(ShelleyTransactionWitnessSet);
 
@@ -1324,7 +1330,7 @@ impl ShelleyTransactionWitnessSet {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyUpdate(cml_multi_era::shelley::ShelleyUpdate);
+pub struct ShelleyUpdate(pub(crate) cml_multi_era::shelley::ShelleyUpdate);
 
 impl_wasm_cbor_json_api!(ShelleyUpdate);
 

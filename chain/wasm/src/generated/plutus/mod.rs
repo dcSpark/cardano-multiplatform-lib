@@ -1,22 +1,23 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-pub mod utils;
+use crate::generated::{NonEmptyLegacyRedeemerList, NonEmptyMapRedeemerKeyToRedeemerVal};
+
 pub use crate::BigInteger;
 pub use crate::ConstrPlutusData;
 pub use crate::PlutusMap;
 
 use crate::generated::{
-    MapU64ToArrI64, NonEmptyLegacyRedeemerList,
-    NonEmptyMapRedeemerKeyToRedeemerVal, PlutusDataList, SubCoin,
+    LegacyRedeemerList, MapRedeemerKeyToRedeemerVal, MapU64ToArrI64, PlutusDataList, Rational,
+    SubCoin,
 };
 pub use cml_chain::plutus::{Language, RedeemerTag};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use wasm_bindgen::prelude::wasm_bindgen;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct CostModels(cml_chain::plutus::CostModels);
+pub struct CostModels(pub(crate) cml_chain::plutus::CostModels);
 
 impl_wasm_cbor_json_api!(CostModels);
 
@@ -35,7 +36,7 @@ impl CostModels {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ExUnitPrices(cml_chain::plutus::ExUnitPrices);
+pub struct ExUnitPrices(pub(crate) cml_chain::plutus::ExUnitPrices);
 
 impl_wasm_cbor_json_api!(ExUnitPrices);
 
@@ -61,7 +62,7 @@ impl ExUnitPrices {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ExUnits(cml_chain::plutus::ExUnits);
+pub struct ExUnits(pub(crate) cml_chain::plutus::ExUnits);
 
 impl_wasm_cbor_json_api!(ExUnits);
 
@@ -84,7 +85,7 @@ impl ExUnits {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct LegacyRedeemer(cml_chain::plutus::LegacyRedeemer);
+pub struct LegacyRedeemer(pub(crate) cml_chain::plutus::LegacyRedeemer);
 
 impl_wasm_cbor_json_api!(LegacyRedeemer);
 
@@ -120,7 +121,7 @@ impl LegacyRedeemer {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct PlutusData(cml_chain::plutus::PlutusData);
+pub struct PlutusData(pub(crate) cml_chain::plutus::PlutusData);
 
 impl_wasm_cbor_json_api!(PlutusData);
 
@@ -211,7 +212,7 @@ pub enum PlutusDataKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct PlutusV1Script(cml_chain::plutus::PlutusV1Script);
+pub struct PlutusV1Script(pub(crate) cml_chain::plutus::PlutusV1Script);
 
 impl_wasm_cbor_json_api!(PlutusV1Script);
 
@@ -230,7 +231,7 @@ impl PlutusV1Script {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct PlutusV2Script(cml_chain::plutus::PlutusV2Script);
+pub struct PlutusV2Script(pub(crate) cml_chain::plutus::PlutusV2Script);
 
 impl_wasm_cbor_json_api!(PlutusV2Script);
 
@@ -249,7 +250,7 @@ impl PlutusV2Script {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct PlutusV3Script(cml_chain::plutus::PlutusV3Script);
+pub struct PlutusV3Script(pub(crate) cml_chain::plutus::PlutusV3Script);
 
 impl_wasm_cbor_json_api!(PlutusV3Script);
 
@@ -268,7 +269,7 @@ impl PlutusV3Script {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct RedeemerKey(cml_chain::plutus::RedeemerKey);
+pub struct RedeemerKey(pub(crate) cml_chain::plutus::RedeemerKey);
 
 impl_wasm_cbor_json_api!(RedeemerKey);
 
@@ -291,7 +292,7 @@ impl RedeemerKey {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct RedeemerVal(cml_chain::plutus::RedeemerVal);
+pub struct RedeemerVal(pub(crate) cml_chain::plutus::RedeemerVal);
 
 impl_wasm_cbor_json_api!(RedeemerVal);
 
@@ -317,7 +318,7 @@ impl RedeemerVal {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Redeemers(cml_chain::plutus::Redeemers);
+pub struct Redeemers(pub(crate) cml_chain::plutus::Redeemers);
 
 impl_wasm_cbor_json_api!(Redeemers);
 

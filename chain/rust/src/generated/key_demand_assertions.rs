@@ -39,3 +39,8 @@ fn _demand_transaction_input() {
     _key_demand_hash::<crate::generated::transaction::TransactionInput>();
     _key_demand_ord::<crate::generated::transaction::TransactionInput>();
 }
+#[allow(dead_code)]
+fn _demand_transaction_output() {
+    // required by `@used_as_key hash` on transaction_output
+    _key_demand_hash::<crate::generated::transaction::TransactionOutput>();
+}

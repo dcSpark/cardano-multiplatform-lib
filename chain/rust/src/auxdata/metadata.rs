@@ -11,7 +11,7 @@ use derivative::Derivative;
 
 use std::io::{BufRead, Seek, Write};
 
-pub type TransactionMetadatumLabel = u64;
+pub use crate::TransactionMetadatumLabel;
 
 pub const METADATA_MAX_LEN: usize = 64;
 

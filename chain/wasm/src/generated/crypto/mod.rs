@@ -1,25 +1,21 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-pub mod hash;
-pub mod utils;
-
 pub use crate::AddrAttributes;
+
 pub use cml_crypto_wasm::{
     AnchorDocHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash,
     Ed25519Signature, GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash,
     ScriptDataHash, ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
 };
-
-
 pub type Vkey = cml_crypto_wasm::PublicKey;
 
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BootstrapWitness(cml_chain::crypto::BootstrapWitness);
+pub struct BootstrapWitness(pub(crate) cml_chain::crypto::BootstrapWitness);
 
 impl_wasm_cbor_json_api!(BootstrapWitness);
 
@@ -62,7 +58,7 @@ impl BootstrapWitness {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct KESSignature(cml_chain::crypto::KESSignature);
+pub struct KESSignature(pub(crate) cml_chain::crypto::KESSignature);
 
 impl_wasm_cbor_json_api!(KESSignature);
 
@@ -83,7 +79,7 @@ impl KESSignature {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Nonce(cml_chain::crypto::Nonce);
+pub struct Nonce(pub(crate) cml_chain::crypto::Nonce);
 
 impl_wasm_cbor_json_api!(Nonce);
 
@@ -122,7 +118,7 @@ pub enum NonceKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct VRFCert(cml_chain::crypto::VRFCert);
+pub struct VRFCert(pub(crate) cml_chain::crypto::VRFCert);
 
 impl_wasm_cbor_json_api!(VRFCert);
 
@@ -147,7 +143,7 @@ impl VRFCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Vkeywitness(cml_chain::crypto::Vkeywitness);
+pub struct Vkeywitness(pub(crate) cml_chain::crypto::Vkeywitness);
 
 impl_wasm_cbor_json_api!(Vkeywitness);
 

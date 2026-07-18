@@ -15,19 +15,10 @@ use std::{
 
 use std::collections::BTreeMap;
 
-use super::AssetName;
-
-pub type Coin = u64;
-
-/// This should technically now allow 0 but this would make the API harder to use.
-/// At least for now we'll keep it as Coin (aka u64) as an alias with this comment here.
-/// Later on it could potentially be redone to its own struct.
-pub type NonZeroInt64 = i64;
-
-/// This should technically now allow 0 but this would make the API harder to use.
-/// At least for now we'll keep it as Coin (aka u64) as an alias with this comment here.
-/// Later on it could potentially be redone to its own struct.
-pub type PositiveCoin = Coin;
+// Coin/NonZeroInt64/PositiveCoin are now the generated aliases (semantically identical to
+// the hand ones this file used to define); Mint/MultiAsset stay hand-defined below because
+// AssetBundle carries the checked-arithmetic API a bare map alias cannot.
+use super::{AssetName, NonZeroInt64, PositiveCoin};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AssetArithmeticError {

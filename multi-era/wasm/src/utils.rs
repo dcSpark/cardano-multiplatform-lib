@@ -1,4 +1,5 @@
 use cml_chain::{Coin, assets::PositiveCoin};
+use cml_chain::{Epoch, TransactionIndex};
 use cml_chain_wasm::{
     DRepVotingThresholds, MapTransactionIndexToAuxiliaryData, NetworkId, PoolVotingThresholds,
     ProposalProcedureList, Rational, RequiredSigners, TransactionInputList,
@@ -16,7 +17,6 @@ use cml_chain_wasm::{
     governance::VotingProcedures,
     plutus::{CostModels, ExUnitPrices, ExUnits},
 };
-use cml_chain::{Epoch, TransactionIndex};
 use cml_core_wasm::{impl_wasm_conversions, impl_wasm_json_api, impl_wasm_list, impl_wasm_map};
 use cml_crypto_wasm::{
     AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, ScriptDataHash, TransactionHash, VRFVkey,

@@ -20,6 +20,44 @@ pub mod json;
 pub mod min_ada;
 pub mod utils;
 
+// Facade modules (see cddl-codegen docs "Per-scope hand modules: the facade pattern"):
+// an explicit `pub mod <scope>` here shadows the glob-imported generated scope module,
+// merging the machine-generated items with the hand files at src/<scope>/*.rs under the
+// scope's public path. Scopes without hand files keep flowing through `pub use generated::*;`.
+pub mod assets {
+    pub use crate::generated::assets::*;
+    pub mod utils;
+    pub use utils::*;
+}
+pub mod auxdata {
+    pub use crate::generated::auxdata::*;
+    pub mod metadata;
+    pub use metadata::*;
+    pub mod utils;
+}
+pub mod certs {
+    pub use crate::generated::certs::*;
+    pub mod utils;
+}
+pub mod crypto {
+    pub use crate::generated::crypto::*;
+    pub mod hash;
+    pub mod utils;
+}
+pub mod governance {
+    pub use crate::generated::governance::*;
+    pub mod utils;
+}
+pub mod plutus {
+    pub use crate::generated::plutus::*;
+    pub mod utils;
+    pub use utils::{ConstrPlutusData, PlutusMap, PlutusScript};
+}
+pub mod transaction {
+    pub use crate::generated::transaction::*;
+    pub mod utils;
+}
+
 // Extern-type re-exports so the generated glue (`pub use crate::X;`) resolves.
 pub use crate::assets::utils::Value;
 pub use crate::auxdata::metadata::Metadata;

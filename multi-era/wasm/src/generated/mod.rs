@@ -6,6 +6,10 @@
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
+
+pub type MapRewardAccountToCoin = cml_chain_wasm::Withdrawals;
+pub type MapPolicyIdToMapAssetNameToI64 = cml_chain_wasm::assets::Mint;
+
 pub mod allegra;
 pub mod alonzo;
 pub mod babbage;
@@ -15,6 +19,7 @@ pub mod mary;
 pub mod shelley;
 pub use crate::Block;
 pub use crate::ByronBlock;
+pub use crate::ByronTx;
 
 use allegra::{
     AllegraAuxiliaryData, AllegraBlock, AllegraCertificate, AllegraTransactionBody,
@@ -29,13 +34,11 @@ use babbage::{
     BabbageTransactionWitnessSet,
 };
 use cml_chain_wasm::address::RewardAccount;
-use crate::byron::transaction::ByronTx;
 use cml_chain_wasm::assets::Coin;
-use cml_chain_wasm::PolicyId;
 use cml_chain_wasm::collections::{MapAssetNameToI64, PolicyIdList, RewardAccountList};
 use cml_chain_wasm::crypto::GenesisHash;
 use cml_chain_wasm::transaction::TransactionBody;
-use cml_chain_wasm::TransactionIndex;
+use cml_chain_wasm::{PolicyId, TransactionIndex};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
 use mary::{MaryBlock, MaryTransactionBody, MaryTransactionOutput};
@@ -43,7 +46,7 @@ use shelley::{
     MultisigScript, ShelleyBlock, ShelleyCertificate, ShelleyRelay, ShelleyTransactionBody,
     ShelleyTransactionOutput, ShelleyTransactionWitnessSet,
 };
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 impl_wasm_list_needs_into!(
     cml_multi_era::allegra::AllegraCertificate,
@@ -119,8 +122,11 @@ impl_wasm_list_needs_into!(
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+// rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+#[rustfmt::skip]
 pub struct MapTransactionIndexToAllegraAuxiliaryData(
-    OrderedHashMap<
+    pub(crate) OrderedHashMap<
         cml_chain::TransactionIndex,
         cml_multi_era::allegra::AllegraAuxiliaryData,
     >,
@@ -157,8 +163,11 @@ impl MapTransactionIndexToAllegraAuxiliaryData {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+// rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+#[rustfmt::skip]
 pub struct MapTransactionIndexToAlonzoAuxiliaryData(
-    OrderedHashMap<
+    pub(crate) OrderedHashMap<
         cml_chain::TransactionIndex,
         cml_multi_era::alonzo::AlonzoAuxiliaryData,
     >,
@@ -195,8 +204,11 @@ impl MapTransactionIndexToAlonzoAuxiliaryData {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+// rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+#[rustfmt::skip]
 pub struct MapTransactionIndexToBabbageAuxiliaryData(
-    OrderedHashMap<
+    pub(crate) OrderedHashMap<
         cml_chain::TransactionIndex,
         cml_multi_era::babbage::BabbageAuxiliaryData,
     >,
@@ -249,7 +261,7 @@ impl_wasm_list_needs_into!(
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MultiEraBlock(cml_multi_era::MultiEraBlock);
+pub struct MultiEraBlock(pub(crate) cml_multi_era::MultiEraBlock);
 
 impl_wasm_cbor_json_api!(MultiEraBlock);
 
@@ -372,7 +384,7 @@ pub enum MultiEraBlockKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MultiEraTransactionBody(cml_multi_era::MultiEraTransactionBody);
+pub struct MultiEraTransactionBody(pub(crate) cml_multi_era::MultiEraTransactionBody);
 
 impl_wasm_cbor_json_api!(MultiEraTransactionBody);
 

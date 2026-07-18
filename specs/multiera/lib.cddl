@@ -2,6 +2,7 @@
 block = _CDDL_CODEGEN_EXTERN_TYPE_
 
 byron_block = _CDDL_CODEGEN_EXTERN_TYPE_
+byron_tx = _CDDL_CODEGEN_EXTERN_TYPE_ ; hand-written in THIS crate (byron/transaction), not a cml_chain type
 
 multi_era_block =
     byron_block   ; @name byron

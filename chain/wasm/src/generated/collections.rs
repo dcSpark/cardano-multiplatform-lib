@@ -7,16 +7,6 @@
 // line naming a removed wrapper fails this crate's own build — the index cannot
 // drift. Downstream crates point `--extern-wrapper-index <dep>=<this file>` here to
 // avoid re-minting these wrappers (a wasm duplicate-symbol link error otherwise).
-pub use crate::generated::assets::Mint;
-pub use crate::generated::assets::MultiAsset;
-pub use crate::generated::governance::VotingProcedures;
-pub use crate::generated::requested_collections::AlonzoFormatTxOutList;
-pub use crate::generated::requested_collections::GenesisHashList;
-pub use crate::generated::requested_collections::MapAssetNameToI64;
-pub use crate::generated::requested_collections::MapStakeCredentialToCoin;
-pub use crate::generated::requested_collections::MapStakeCredentialToDeltaCoin;
-pub use crate::generated::requested_collections::MapTransactionIndexToMetadata;
-pub use crate::generated::requested_collections::StakeCredentialList;
 pub use crate::generated::AssetNameList;
 pub use crate::generated::BootstrapWitnessList;
 pub use crate::generated::CertificateList;
@@ -52,3 +42,13 @@ pub use crate::generated::TransactionWitnessSetList;
 pub use crate::generated::VkeywitnessList;
 pub use crate::generated::VoterList;
 pub use crate::generated::Withdrawals;
+pub use crate::generated::assets::Mint;
+pub use crate::generated::assets::MultiAsset;
+pub use crate::generated::governance::VotingProcedures;
+pub use crate::generated::requested_collections::AlonzoFormatTxOutList;
+pub use crate::generated::requested_collections::GenesisHashList;
+pub use crate::generated::requested_collections::MapAssetNameToI64;
+pub use crate::generated::requested_collections::MapStakeCredentialToCoin;
+pub use crate::generated::requested_collections::MapStakeCredentialToDeltaCoin;
+pub use crate::generated::requested_collections::MapTransactionIndexToMetadata;
+pub use crate::generated::requested_collections::StakeCredentialList;

@@ -3,7 +3,6 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
-pub mod utils;
 
 #[cfg(not(feature = "used_from_wasm"))]
 use noop_proc_macro::wasm_bindgen;
@@ -11,8 +10,8 @@ use noop_proc_macro::wasm_bindgen;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::generated::shelley::{
-    GenesisKeyDelegation, ShelleyHeader, ShelleyPoolRegistration, ShelleyTransactionOutput,
-    ShelleyUpdate,
+    GenesisKeyDelegation, ShelleyHeader, ShelleyPoolParams, ShelleyPoolRegistration,
+    ShelleyTransactionOutput, ShelleyUpdate,
 };
 use cbor_encodings::{
     AllegraBlockEncoding, AllegraTransactionBodyEncoding, AllegraTransactionEncoding,
@@ -31,12 +30,10 @@ use cml_chain::crypto::{
 };
 use cml_chain::transaction::{NativeScript, TransactionInput};
 use cml_chain::{DeltaCoin, Epoch, TransactionIndex, Withdrawals};
-use crate::shelley::ShelleyPoolParams;
 use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AllegraAuxiliaryData {

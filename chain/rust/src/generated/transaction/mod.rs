@@ -2,9 +2,7 @@
 // https://github.com/dcSpark/cddl-codegen
 
 pub mod cbor_encodings;
-use crate::utils::NonemptySetRawBytes;
 pub mod serialization;
-pub mod utils;
 
 use crate::generated::address::{Address, RewardAccount};
 use crate::generated::assets::{AssetName, Coin, Mint, NonZeroInt64, PositiveCoin, Value};
@@ -20,6 +18,7 @@ use crate::generated::{
     NonemptySetPlutusV3Script, NonemptySetProposalProcedure, NonemptySetTransactionInput,
     NonemptySetVkeywitness, PolicyId, Script, SetTransactionInput, Slot, Withdrawals,
 };
+use crate::utils::NonemptySetRawBytes;
 use cbor_encodings::{
     AlonzoFormatTxOutEncoding, ConwayFormatTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
     ScriptInvalidBeforeEncoding, ScriptInvalidHereafterEncoding, ScriptNOfKEncoding,
@@ -31,7 +30,6 @@ use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(
     Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,

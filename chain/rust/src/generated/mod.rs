@@ -12,38 +12,37 @@ pub mod cbor_encodings;
 pub mod certs;
 pub mod crypto;
 pub mod governance;
+mod key_demand_assertions;
 pub mod plutus;
 pub mod serialization;
 pub mod transaction;
 pub use crate::NonemptySet;
+pub use crate::NonemptySetRawBytes;
 pub use crate::Set;
-pub use cml_core::Int;
-mod key_demand_assertions;
+pub use crate::SetRawBytes;
 
 use crate::certs::{Certificate, CommitteeColdCredential};
 use crate::crypto::{BootstrapWitness, Vkeywitness};
 use crate::governance::ProposalProcedure;
 use crate::plutus::PlutusData;
 use crate::transaction::TransactionInput;
-use crate::utils::NonemptySetRawBytes;
-use cml_crypto::Ed25519KeyHash;
-
 use address::RewardAccount;
 use assets::Coin;
 use cbor_encodings::{
     DRepVotingThresholdsEncoding, NetworkIdEncoding, PoolVotingThresholdsEncoding,
     ProtocolParamUpdateEncoding, RationalEncoding, UnitIntervalEncoding,
 };
+pub use cml_core::Int;
 use cml_core::error::*;
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_crypto::Ed25519KeyHash;
 use crypto::ScriptHash;
 use governance::Voter;
 use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script, PlutusV3Script};
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 use transaction::NativeScript;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -97,7 +96,7 @@ pub type Epoch = u64;
 
 #[derive(Clone, Debug)]
 pub struct NetworkId {
-    inner: u64,
+    pub(crate) inner: u64,
     pub encodings: Option<NetworkIdEncoding>,
 }
 
@@ -439,6 +438,8 @@ pub type Slot = u64;
 pub type SubCoin = Rational;
 
 pub type TransactionIndex = u16;
+
+pub type TransactionMetadatumLabel = u64;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct UnitInterval {

@@ -1,14 +1,25 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+// cddl-codegen:insert-start
+// Used by the hand mint/set_mint accessors in the replace blocks below.
+use cml_chain_wasm::assets::Mint;
+// cddl-codegen:insert-end
+// cddl-codegen:replace-start
+// No wasm BabbageMint wrapper exists: the babbage mint accessors expose chain's Mint class
+// and convert through the rust BabbageMint internally (see the mint/set_mint replace blocks).
+// cddl-codegen:replaces
+// pub use crate::BabbageMint;
+// cddl-codegen:replace-end
+
 use crate::generated::shelley::ProtocolVersionStruct;
 use crate::generated::{
     AllegraCertificateList, AlonzoRedeemerList, BabbageTransactionBodyList,
-    BabbageTransactionOutputList, BabbageTransactionWitnessSetList,
+    BabbageTransactionOutputList, BabbageTransactionWitnessSetList, MapRewardAccountToCoin,
     MapTransactionIndexToBabbageAuxiliaryData,
 };
 use cml_chain_wasm::address::Address;
-use cml_chain_wasm::assets::{Coin, Mint, Value};
+use cml_chain_wasm::assets::{Coin, Value};
 use cml_chain_wasm::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain_wasm::block::Header;
 use cml_chain_wasm::collections::{
@@ -21,11 +32,11 @@ use cml_chain_wasm::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, 
 use cml_chain_wasm::{Epoch, NetworkId, Rational, TransactionIndex, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageAuxiliaryData(cml_multi_era::babbage::BabbageAuxiliaryData);
+pub struct BabbageAuxiliaryData(pub(crate) cml_multi_era::babbage::BabbageAuxiliaryData);
 
 impl_wasm_cbor_json_api!(BabbageAuxiliaryData);
 
@@ -105,7 +116,7 @@ pub enum BabbageAuxiliaryDataKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageBlock(cml_multi_era::babbage::BabbageBlock);
+pub struct BabbageBlock(pub(crate) cml_multi_era::babbage::BabbageBlock);
 
 impl_wasm_cbor_json_api!(BabbageBlock);
 
@@ -154,7 +165,7 @@ pub type BabbageCostModels = CostModels;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageFormatAuxData(cml_multi_era::babbage::BabbageFormatAuxData);
+pub struct BabbageFormatAuxData(pub(crate) cml_multi_era::babbage::BabbageFormatAuxData);
 
 impl_wasm_cbor_json_api!(BabbageFormatAuxData);
 
@@ -210,7 +221,7 @@ impl BabbageFormatAuxData {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageFormatTxOut(cml_multi_era::babbage::BabbageFormatTxOut);
+pub struct BabbageFormatTxOut(pub(crate) cml_multi_era::babbage::BabbageFormatTxOut);
 
 impl_wasm_cbor_json_api!(BabbageFormatTxOut);
 
@@ -259,7 +270,7 @@ impl BabbageFormatTxOut {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct BabbageProposedProtocolParameterUpdates(
-    cml_multi_era::babbage::BabbageProposedProtocolParameterUpdates,
+    pub(crate) cml_multi_era::babbage::BabbageProposedProtocolParameterUpdates,
 );
 
 impl_wasm_conversions!(
@@ -298,7 +309,9 @@ impl BabbageProposedProtocolParameterUpdates {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageProtocolParamUpdate(cml_multi_era::babbage::BabbageProtocolParamUpdate);
+pub struct BabbageProtocolParamUpdate(
+    pub(crate) cml_multi_era::babbage::BabbageProtocolParamUpdate,
+);
 
 impl_wasm_cbor_json_api!(BabbageProtocolParamUpdate);
 
@@ -511,7 +524,7 @@ impl BabbageProtocolParamUpdate {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageScript(cml_multi_era::babbage::BabbageScript);
+pub struct BabbageScript(pub(crate) cml_multi_era::babbage::BabbageScript);
 
 impl_wasm_cbor_json_api!(BabbageScript);
 
@@ -582,7 +595,7 @@ pub enum BabbageScriptKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageScriptRef(cml_multi_era::babbage::BabbageScriptRef);
+pub struct BabbageScriptRef(pub(crate) cml_multi_era::babbage::BabbageScriptRef);
 
 impl_wasm_cbor_json_api!(BabbageScriptRef);
 
@@ -603,7 +616,7 @@ impl BabbageScriptRef {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageTransaction(cml_multi_era::babbage::BabbageTransaction);
+pub struct BabbageTransaction(pub(crate) cml_multi_era::babbage::BabbageTransaction);
 
 impl_wasm_cbor_json_api!(BabbageTransaction);
 
@@ -647,7 +660,7 @@ impl BabbageTransaction {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageTransactionBody(cml_multi_era::babbage::BabbageTransactionBody);
+pub struct BabbageTransactionBody(pub(crate) cml_multi_era::babbage::BabbageTransactionBody);
 
 impl_wasm_cbor_json_api!(BabbageTransactionBody);
 
@@ -836,7 +849,7 @@ impl BabbageTransactionBody {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageTransactionOutput(cml_multi_era::babbage::BabbageTransactionOutput);
+pub struct BabbageTransactionOutput(pub(crate) cml_multi_era::babbage::BabbageTransactionOutput);
 
 impl_wasm_cbor_json_api!(BabbageTransactionOutput);
 
@@ -901,7 +914,9 @@ pub enum BabbageTransactionOutputKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageTransactionWitnessSet(cml_multi_era::babbage::BabbageTransactionWitnessSet);
+pub struct BabbageTransactionWitnessSet(
+    pub(crate) cml_multi_era::babbage::BabbageTransactionWitnessSet,
+);
 
 impl_wasm_cbor_json_api!(BabbageTransactionWitnessSet);
 
@@ -984,7 +999,7 @@ impl BabbageTransactionWitnessSet {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct BabbageUpdate(cml_multi_era::babbage::BabbageUpdate);
+pub struct BabbageUpdate(pub(crate) cml_multi_era::babbage::BabbageUpdate);
 
 impl_wasm_cbor_json_api!(BabbageUpdate);
 
@@ -1007,3 +1022,5 @@ impl BabbageUpdate {
         ))
     }
 }
+
+pub type MapGenesisHashToBabbageProtocolParamUpdate = BabbageProposedProtocolParameterUpdates;

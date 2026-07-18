@@ -1,22 +1,21 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-pub mod utils;
 pub use crate::Value;
-pub use cml_chain::assets::{Coin, NonZeroInt64, PositiveCoin};
+// cddl-codegen:insert-start
+// Deref is used by the hand-augmented Mint/MultiAsset class methods below.
+use std::ops::Deref;
+// cddl-codegen:insert-end
 
 use crate::generated::crypto::ScriptHash;
 use crate::generated::{MapAssetNameToNonZeroInt64, MapAssetNameToU64, PolicyId, PolicyIdList};
-// cddl-codegen:insert-start
-use std::ops::Deref;
-// cddl-codegen:insert-end
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AssetName(cml_chain::assets::AssetName);
+pub struct AssetName(pub(crate) cml_chain::assets::AssetName);
 
 impl_wasm_cbor_json_api!(AssetName);
 
@@ -35,9 +34,15 @@ impl AssetName {
     }
 }
 
+pub type Coin = u64;
+
+pub type MapPolicyIdToMapAssetNameToNonZeroInt64 = Mint;
+
+pub type MapPolicyIdToMapAssetNameToU64 = MultiAsset;
+
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Mint(cml_chain::assets::Mint);
+pub struct Mint(pub(crate) cml_chain::assets::Mint);
 
 impl_wasm_conversions!(cml_chain::assets::Mint, Mint);
 
@@ -80,7 +85,7 @@ impl Mint {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MultiAsset(cml_chain::assets::MultiAsset);
+pub struct MultiAsset(pub(crate) cml_chain::assets::MultiAsset);
 
 impl_wasm_conversions!(cml_chain::assets::MultiAsset, MultiAsset);
 
@@ -120,3 +125,7 @@ impl MultiAsset {
         PolicyIdList(self.0.keys().cloned().collect::<Vec<_>>())
     }
 }
+
+pub type NonZeroInt64 = i64;
+
+pub type PositiveCoin = u64;

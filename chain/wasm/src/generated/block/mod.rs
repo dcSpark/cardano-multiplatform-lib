@@ -9,11 +9,11 @@ use crate::generated::{
     TransactionWitnessSetList,
 };
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Block(cml_chain::block::Block);
+pub struct Block(pub(crate) cml_chain::block::Block);
 
 impl_wasm_cbor_json_api!(Block);
 
@@ -60,7 +60,7 @@ impl Block {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Header(cml_chain::block::Header);
+pub struct Header(pub(crate) cml_chain::block::Header);
 
 impl_wasm_cbor_json_api!(Header);
 
@@ -86,7 +86,7 @@ impl Header {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct HeaderBody(cml_chain::block::HeaderBody);
+pub struct HeaderBody(pub(crate) cml_chain::block::HeaderBody);
 
 impl_wasm_cbor_json_api!(HeaderBody);
 
@@ -163,7 +163,7 @@ impl HeaderBody {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct OperationalCert(cml_chain::block::OperationalCert);
+pub struct OperationalCert(pub(crate) cml_chain::block::OperationalCert);
 
 impl_wasm_cbor_json_api!(OperationalCert);
 
@@ -204,7 +204,7 @@ impl OperationalCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ProtocolVersion(cml_chain::block::ProtocolVersion);
+pub struct ProtocolVersion(pub(crate) cml_chain::block::ProtocolVersion);
 
 impl_wasm_cbor_json_api!(ProtocolVersion);
 

@@ -6,6 +6,13 @@
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
+
+use certs::Certificate;
+use cml_core_wasm::Int;
+use crypto::{BootstrapWitness, Ed25519KeyHash, Vkeywitness};
+use governance::ProposalProcedure;
+use transaction::TransactionInput;
+
 pub mod address;
 pub mod assets;
 pub mod auxdata;
@@ -34,22 +41,18 @@ pub use crate::SetTransactionInput;
 use address::RewardAccount;
 use assets::{AssetName, Coin, NonZeroInt64};
 use auxdata::AuxiliaryData;
-use certs::{Certificate, CommitteeColdCredential, Credential, Relay};
+use certs::{CommitteeColdCredential, Credential, Relay};
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core_wasm::{
-    Int, impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into,
-};
-use crypto::{BootstrapWitness, Ed25519KeyHash, ScriptHash, Vkeywitness};
-use governance::{GovActionId, ProposalProcedure, Voter, VotingProcedure};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use crypto::ScriptHash;
+use governance::{GovActionId, Voter, VotingProcedure};
 use plutus::{
     CostModels, ExUnitPrices, ExUnits, LegacyRedeemer, PlutusData, PlutusV1Script, PlutusV2Script,
     PlutusV3Script, RedeemerKey, RedeemerVal,
 };
-use transaction::{
-    NativeScript, TransactionBody, TransactionInput, TransactionOutput, TransactionWitnessSet,
-};
+use transaction::{NativeScript, TransactionBody, TransactionOutput, TransactionWitnessSet};
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 impl_wasm_list_needs_into!(
@@ -86,7 +89,7 @@ impl_wasm_list_needs_into!(
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct DRepVotingThresholds(cml_chain::DRepVotingThresholds);
+pub struct DRepVotingThresholds(pub(crate) cml_chain::DRepVotingThresholds);
 
 impl_wasm_cbor_json_api!(DRepVotingThresholds);
 
@@ -192,7 +195,7 @@ impl_wasm_list_needs_into!(
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapAssetNameToNonZeroInt64(
-    OrderedHashMap<cml_chain::assets::AssetName, cml_chain::assets::NonZeroInt64>,
+    pub(crate) OrderedHashMap<cml_chain::assets::AssetName, cml_chain::assets::NonZeroInt64>,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::assets::AssetName, cml_chain::assets::NonZeroInt64>, MapAssetNameToNonZeroInt64);
@@ -222,7 +225,7 @@ impl MapAssetNameToNonZeroInt64 {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MapAssetNameToU64(OrderedHashMap<cml_chain::assets::AssetName, u64>);
+pub struct MapAssetNameToU64(pub(crate) OrderedHashMap<cml_chain::assets::AssetName, u64>);
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::assets::AssetName, u64>, MapAssetNameToU64);
 
@@ -252,7 +255,7 @@ impl MapAssetNameToU64 {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapCommitteeColdCredentialToEpoch(
-    OrderedHashMap<cml_chain::certs::CommitteeColdCredential, cml_chain::Epoch>,
+    pub(crate) OrderedHashMap<cml_chain::certs::CommitteeColdCredential, cml_chain::Epoch>,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::certs::CommitteeColdCredential, cml_chain::Epoch>, MapCommitteeColdCredentialToEpoch);
@@ -282,8 +285,14 @@ impl MapCommitteeColdCredentialToEpoch {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+// rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+#[rustfmt::skip]
 pub struct MapGovActionIdToVotingProcedure(
-    OrderedHashMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>,
+    pub(crate) OrderedHashMap<
+        cml_chain::governance::GovActionId,
+        cml_chain::governance::VotingProcedure,
+    >,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>, MapGovActionIdToVotingProcedure);
@@ -320,7 +329,7 @@ impl MapGovActionIdToVotingProcedure {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapRedeemerKeyToRedeemerVal(
-    OrderedHashMap<cml_chain::plutus::RedeemerKey, cml_chain::plutus::RedeemerVal>,
+    pub(crate) OrderedHashMap<cml_chain::plutus::RedeemerKey, cml_chain::plutus::RedeemerVal>,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::plutus::RedeemerKey, cml_chain::plutus::RedeemerVal>, MapRedeemerKeyToRedeemerVal);
@@ -355,7 +364,7 @@ pub type MapRewardAccountToCoin = Withdrawals;
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapTransactionIndexToAuxiliaryData(
-    OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::AuxiliaryData>,
+    pub(crate) OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::AuxiliaryData>,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::AuxiliaryData>, MapTransactionIndexToAuxiliaryData);
@@ -389,7 +398,7 @@ impl MapTransactionIndexToAuxiliaryData {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MapU64ToArrI64(OrderedHashMap<u64, Vec<i64>>);
+pub struct MapU64ToArrI64(pub(crate) OrderedHashMap<u64, Vec<i64>>);
 
 impl_wasm_conversions!(OrderedHashMap<u64, Vec<i64>>, MapU64ToArrI64);
 
@@ -418,8 +427,11 @@ impl MapU64ToArrI64 {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+// rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+#[rustfmt::skip]
 pub struct MapVoterToMapGovActionIdToVotingProcedure(
-    OrderedHashMap<
+    pub(crate) OrderedHashMap<
         cml_chain::governance::Voter,
         NonEmptyMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>,
     >,
@@ -466,7 +478,7 @@ impl_wasm_list_needs_into!(
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NetworkId(cml_chain::NetworkId);
+pub struct NetworkId(pub(crate) cml_chain::NetworkId);
 
 impl_wasm_cbor_json_api!(NetworkId);
 
@@ -488,7 +500,7 @@ impl NetworkId {
 /// `add` can never violate the bound; removal is checked in the core type.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NonEmptyLegacyRedeemerList(NonEmptyVec<cml_chain::plutus::LegacyRedeemer>);
+pub struct NonEmptyLegacyRedeemerList(pub(crate) NonEmptyVec<cml_chain::plutus::LegacyRedeemer>);
 
 impl_wasm_conversions!(
     NonEmptyVec<cml_chain::plutus::LegacyRedeemer>,
@@ -526,8 +538,14 @@ impl NonEmptyLegacyRedeemerList {
 /// `insert` can never violate the bound; removal is checked in the core type.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+// rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+#[rustfmt::skip]
 pub struct NonEmptyMapGovActionIdToVotingProcedure(
-    NonEmptyMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>,
+    pub(crate) NonEmptyMap<
+        cml_chain::governance::GovActionId,
+        cml_chain::governance::VotingProcedure,
+    >,
 );
 
 impl_wasm_conversions!(NonEmptyMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>, NonEmptyMapGovActionIdToVotingProcedure);
@@ -582,7 +600,7 @@ impl NonEmptyMapGovActionIdToVotingProcedure {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct NonEmptyMapRedeemerKeyToRedeemerVal(
-    NonEmptyMap<cml_chain::plutus::RedeemerKey, cml_chain::plutus::RedeemerVal>,
+    pub(crate) NonEmptyMap<cml_chain::plutus::RedeemerKey, cml_chain::plutus::RedeemerVal>,
 );
 
 impl_wasm_conversions!(NonEmptyMap<cml_chain::plutus::RedeemerKey, cml_chain::plutus::RedeemerVal>, NonEmptyMapRedeemerKeyToRedeemerVal);
@@ -663,7 +681,7 @@ impl_wasm_list_needs_into!(cml_chain::PolicyId, PolicyId, PolicyIdList, true, fa
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct PoolVotingThresholds(cml_chain::PoolVotingThresholds);
+pub struct PoolVotingThresholds(pub(crate) cml_chain::PoolVotingThresholds);
 
 impl_wasm_cbor_json_api!(PoolVotingThresholds);
 
@@ -723,7 +741,7 @@ impl_wasm_list_needs_into!(
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ProtocolParamUpdate(cml_chain::ProtocolParamUpdate);
+pub struct ProtocolParamUpdate(pub(crate) cml_chain::ProtocolParamUpdate);
 
 impl_wasm_cbor_json_api!(ProtocolParamUpdate);
 
@@ -1010,7 +1028,7 @@ impl ProtocolParamUpdate {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Rational(cml_chain::Rational);
+pub struct Rational(pub(crate) cml_chain::Rational);
 
 impl_wasm_cbor_json_api!(Rational);
 
@@ -1051,7 +1069,7 @@ impl_wasm_list_needs_into!(
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Script(cml_chain::Script);
+pub struct Script(pub(crate) cml_chain::Script);
 
 impl_wasm_cbor_json_api!(Script);
 
@@ -1163,7 +1181,7 @@ impl_wasm_list_needs_into!(
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct UnitInterval(cml_chain::UnitInterval);
+pub struct UnitInterval(pub(crate) cml_chain::UnitInterval);
 
 impl_wasm_cbor_json_api!(UnitInterval);
 
@@ -1196,7 +1214,7 @@ impl_wasm_list_needs_into!(cml_chain::governance::Voter, Voter, VoterList, true,
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Withdrawals(cml_chain::Withdrawals);
+pub struct Withdrawals(pub(crate) cml_chain::Withdrawals);
 
 impl_wasm_conversions!(cml_chain::Withdrawals, Withdrawals);
 

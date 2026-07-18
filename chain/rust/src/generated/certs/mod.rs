@@ -3,7 +3,6 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
-pub mod utils;
 
 use crate::generated::address::RewardAccount;
 use crate::generated::assets::Coin;
@@ -22,7 +21,6 @@ use cbor_encodings::{
 };
 use cml_core::error::*;
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AuthCommitteeHotCert {
@@ -287,7 +285,7 @@ impl Credential {
 
 #[derive(Clone, Debug)]
 pub struct DNSName {
-    inner: String,
+    pub(crate) inner: String,
     pub encodings: Option<DNSNameEncoding>,
 }
 
@@ -429,7 +427,7 @@ pub type DrepCredential = Credential;
 
 #[derive(Clone, Debug)]
 pub struct Ipv4 {
-    inner: Vec<u8>,
+    pub(crate) inner: Vec<u8>,
     pub encodings: Option<Ipv4Encoding>,
 }
 
@@ -472,7 +470,7 @@ impl From<Ipv4> for Vec<u8> {
 
 #[derive(Clone, Debug)]
 pub struct Ipv6 {
-    inner: Vec<u8>,
+    pub(crate) inner: Vec<u8>,
     pub encodings: Option<Ipv6Encoding>,
 }
 
@@ -933,7 +931,7 @@ impl UpdateDrepCert {
 
 #[derive(Clone, Debug)]
 pub struct Url {
-    inner: String,
+    pub(crate) inner: String,
     pub encodings: Option<UrlEncoding>,
 }
 

@@ -1,11 +1,12 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-pub mod utils;
 pub use crate::RequiredSigners;
 
 use crate::generated::address::Address;
-use crate::generated::assets::{Coin, Mint, PositiveCoin, Value};
+use crate::generated::assets::{
+    Coin, MapPolicyIdToMapAssetNameToNonZeroInt64, Mint, PositiveCoin, Value,
+};
 use crate::generated::auxdata::AuxiliaryData;
 use crate::generated::crypto::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
@@ -13,18 +14,18 @@ use crate::generated::crypto::{
 use crate::generated::governance::VotingProcedures;
 use crate::generated::plutus::{PlutusData, Redeemers};
 use crate::generated::{
-    NativeScriptList, NetworkId,
+    MapRewardAccountToCoin, MapVoterToMapGovActionIdToVotingProcedure, NativeScriptList, NetworkId,
     NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetNativeScript,
     NonemptySetPlutusData, NonemptySetPlutusV1Script, NonemptySetPlutusV2Script,
     NonemptySetPlutusV3Script, NonemptySetProposalProcedure, NonemptySetTransactionInput,
     NonemptySetVkeywitness, Script, SetTransactionInput, Slot, TransactionOutputList, Withdrawals,
 };
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
-use wasm_bindgen::prelude::wasm_bindgen;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AlonzoFormatTxOut(cml_chain::transaction::AlonzoFormatTxOut);
+pub struct AlonzoFormatTxOut(pub(crate) cml_chain::transaction::AlonzoFormatTxOut);
 
 impl_wasm_cbor_json_api!(AlonzoFormatTxOut);
 
@@ -58,7 +59,7 @@ impl AlonzoFormatTxOut {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ConwayFormatTxOut(cml_chain::transaction::ConwayFormatTxOut);
+pub struct ConwayFormatTxOut(pub(crate) cml_chain::transaction::ConwayFormatTxOut);
 
 impl_wasm_cbor_json_api!(ConwayFormatTxOut);
 
@@ -103,7 +104,7 @@ impl ConwayFormatTxOut {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct DatumOption(cml_chain::transaction::DatumOption);
+pub struct DatumOption(pub(crate) cml_chain::transaction::DatumOption);
 
 impl_wasm_cbor_json_api!(DatumOption);
 
@@ -155,7 +156,7 @@ pub enum DatumOptionKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NativeScript(cml_chain::transaction::NativeScript);
+pub struct NativeScript(pub(crate) cml_chain::transaction::NativeScript);
 
 impl_wasm_cbor_json_api!(NativeScript);
 
@@ -280,7 +281,7 @@ pub enum NativeScriptKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ScriptAll(cml_chain::transaction::ScriptAll);
+pub struct ScriptAll(pub(crate) cml_chain::transaction::ScriptAll);
 
 impl_wasm_cbor_json_api!(ScriptAll);
 
@@ -301,7 +302,7 @@ impl ScriptAll {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ScriptAny(cml_chain::transaction::ScriptAny);
+pub struct ScriptAny(pub(crate) cml_chain::transaction::ScriptAny);
 
 impl_wasm_cbor_json_api!(ScriptAny);
 
@@ -322,7 +323,7 @@ impl ScriptAny {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ScriptInvalidBefore(cml_chain::transaction::ScriptInvalidBefore);
+pub struct ScriptInvalidBefore(pub(crate) cml_chain::transaction::ScriptInvalidBefore);
 
 impl_wasm_cbor_json_api!(ScriptInvalidBefore);
 
@@ -344,7 +345,7 @@ impl ScriptInvalidBefore {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ScriptInvalidHereafter(cml_chain::transaction::ScriptInvalidHereafter);
+pub struct ScriptInvalidHereafter(pub(crate) cml_chain::transaction::ScriptInvalidHereafter);
 
 impl_wasm_cbor_json_api!(ScriptInvalidHereafter);
 
@@ -366,7 +367,7 @@ impl ScriptInvalidHereafter {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ScriptNOfK(cml_chain::transaction::ScriptNOfK);
+pub struct ScriptNOfK(pub(crate) cml_chain::transaction::ScriptNOfK);
 
 impl_wasm_cbor_json_api!(ScriptNOfK);
 
@@ -392,7 +393,7 @@ impl ScriptNOfK {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ScriptPubkey(cml_chain::transaction::ScriptPubkey);
+pub struct ScriptPubkey(pub(crate) cml_chain::transaction::ScriptPubkey);
 
 impl_wasm_cbor_json_api!(ScriptPubkey);
 
@@ -413,7 +414,7 @@ impl ScriptPubkey {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ScriptRef(cml_chain::transaction::ScriptRef);
+pub struct ScriptRef(pub(crate) cml_chain::transaction::ScriptRef);
 
 impl_wasm_cbor_json_api!(ScriptRef);
 
@@ -432,7 +433,7 @@ impl ScriptRef {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Transaction(cml_chain::transaction::Transaction);
+pub struct Transaction(pub(crate) cml_chain::transaction::Transaction);
 
 impl_wasm_cbor_json_api!(Transaction);
 
@@ -473,7 +474,7 @@ impl Transaction {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct TransactionBody(cml_chain::transaction::TransactionBody);
+pub struct TransactionBody(pub(crate) cml_chain::transaction::TransactionBody);
 
 impl_wasm_cbor_json_api!(TransactionBody);
 
@@ -664,7 +665,7 @@ impl TransactionBody {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct TransactionInput(cml_chain::transaction::TransactionInput);
+pub struct TransactionInput(pub(crate) cml_chain::transaction::TransactionInput);
 
 impl_wasm_cbor_json_api!(TransactionInput);
 
@@ -690,7 +691,7 @@ impl TransactionInput {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct TransactionOutput(cml_chain::transaction::TransactionOutput);
+pub struct TransactionOutput(pub(crate) cml_chain::transaction::TransactionOutput);
 
 impl_wasm_cbor_json_api!(TransactionOutput);
 
@@ -752,7 +753,7 @@ pub enum TransactionOutputKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct TransactionWitnessSet(cml_chain::transaction::TransactionWitnessSet);
+pub struct TransactionWitnessSet(pub(crate) cml_chain::transaction::TransactionWitnessSet);
 
 impl_wasm_cbor_json_api!(TransactionWitnessSet);
 

@@ -1,18 +1,17 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+pub mod cbor_encodings;
+pub mod serialization;
+
 #[cfg(not(feature = "used_from_wasm"))]
 use noop_proc_macro::wasm_bindgen;
 #[cfg(feature = "used_from_wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
-pub mod cbor_encodings;
-pub mod serialization;
-pub mod utils;
 pub use crate::BigInteger;
 pub use crate::ConstrPlutusData;
 pub use crate::PlutusMap;
-pub use utils::PlutusScript;
 
 use crate::generated::{Rational, SubCoin};
 use cbor_encodings::{
@@ -26,11 +25,10 @@ use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug)]
 pub struct CostModels {
-    inner: OrderedHashMap<u64, Vec<i64>>,
+    pub(crate) inner: OrderedHashMap<u64, Vec<i64>>,
     pub encodings: Option<CostModelsEncoding>,
 }
 
@@ -244,7 +242,7 @@ impl PlutusData {
 #[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PlutusV1Script {
-    inner: Vec<u8>,
+    pub(crate) inner: Vec<u8>,
     #[derivative(
         PartialEq = "ignore",
         Ord = "ignore",
@@ -317,7 +315,7 @@ impl schemars::JsonSchema for PlutusV1Script {
 #[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PlutusV2Script {
-    inner: Vec<u8>,
+    pub(crate) inner: Vec<u8>,
     #[derivative(
         PartialEq = "ignore",
         Ord = "ignore",
@@ -390,7 +388,7 @@ impl schemars::JsonSchema for PlutusV2Script {
 #[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PlutusV3Script {
-    inner: Vec<u8>,
+    pub(crate) inner: Vec<u8>,
     #[derivative(
         PartialEq = "ignore",
         Ord = "ignore",

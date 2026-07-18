@@ -1,15 +1,17 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-pub mod utils;
+use crate::generated::{
+    MapVoterToMapGovActionIdToVotingProcedure, NonEmptyMapGovActionIdToVotingProcedure,
+};
+
 use crate::generated::address::RewardAccount;
 use crate::generated::assets::Coin;
 use crate::generated::block::ProtocolVersion;
 use crate::generated::certs::Url;
 use crate::generated::crypto::{AnchorDocHash, Ed25519KeyHash, ScriptHash, TransactionHash};
 use crate::generated::{
-    MapCommitteeColdCredentialToEpoch, MapRewardAccountToCoin,
-    MapVoterToMapGovActionIdToVotingProcedure, NonEmptyMapGovActionIdToVotingProcedure,
+    MapCommitteeColdCredentialToEpoch, MapGovActionIdToVotingProcedure, MapRewardAccountToCoin,
     ProtocolParamUpdate, SetCommitteeColdCredential, UnitInterval, VoterList,
 };
 pub use cml_chain::governance::Vote;
@@ -20,7 +22,7 @@ use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Anchor(cml_chain::governance::Anchor);
+pub struct Anchor(pub(crate) cml_chain::governance::Anchor);
 
 impl_wasm_cbor_json_api!(Anchor);
 
@@ -46,7 +48,7 @@ impl Anchor {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Constitution(cml_chain::governance::Constitution);
+pub struct Constitution(pub(crate) cml_chain::governance::Constitution);
 
 impl_wasm_cbor_json_api!(Constitution);
 
@@ -72,7 +74,7 @@ impl Constitution {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct GovAction(cml_chain::governance::GovAction);
+pub struct GovAction(pub(crate) cml_chain::governance::GovAction);
 
 impl_wasm_cbor_json_api!(GovAction);
 
@@ -227,7 +229,7 @@ impl GovAction {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct GovActionId(cml_chain::governance::GovActionId);
+pub struct GovActionId(pub(crate) cml_chain::governance::GovActionId);
 
 impl_wasm_cbor_json_api!(GovActionId);
 
@@ -264,7 +266,7 @@ pub enum GovActionKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct HardForkInitiationAction(cml_chain::governance::HardForkInitiationAction);
+pub struct HardForkInitiationAction(pub(crate) cml_chain::governance::HardForkInitiationAction);
 
 impl_wasm_cbor_json_api!(HardForkInitiationAction);
 
@@ -293,7 +295,7 @@ impl HardForkInitiationAction {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NewConstitution(cml_chain::governance::NewConstitution);
+pub struct NewConstitution(pub(crate) cml_chain::governance::NewConstitution);
 
 impl_wasm_cbor_json_api!(NewConstitution);
 
@@ -319,7 +321,7 @@ impl NewConstitution {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NoConfidence(cml_chain::governance::NoConfidence);
+pub struct NoConfidence(pub(crate) cml_chain::governance::NoConfidence);
 
 impl_wasm_cbor_json_api!(NoConfidence);
 
@@ -340,7 +342,7 @@ impl NoConfidence {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ParameterChangeAction(cml_chain::governance::ParameterChangeAction);
+pub struct ParameterChangeAction(pub(crate) cml_chain::governance::ParameterChangeAction);
 
 impl_wasm_cbor_json_api!(ParameterChangeAction);
 
@@ -378,7 +380,7 @@ impl ParameterChangeAction {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ProposalProcedure(cml_chain::governance::ProposalProcedure);
+pub struct ProposalProcedure(pub(crate) cml_chain::governance::ProposalProcedure);
 
 impl_wasm_cbor_json_api!(ProposalProcedure);
 
@@ -419,7 +421,7 @@ impl ProposalProcedure {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct TreasuryWithdrawalsAction(cml_chain::governance::TreasuryWithdrawalsAction);
+pub struct TreasuryWithdrawalsAction(pub(crate) cml_chain::governance::TreasuryWithdrawalsAction);
 
 impl_wasm_cbor_json_api!(TreasuryWithdrawalsAction);
 
@@ -448,7 +450,7 @@ impl TreasuryWithdrawalsAction {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct UpdateCommittee(cml_chain::governance::UpdateCommittee);
+pub struct UpdateCommittee(pub(crate) cml_chain::governance::UpdateCommittee);
 
 impl_wasm_cbor_json_api!(UpdateCommittee);
 
@@ -489,7 +491,7 @@ impl UpdateCommittee {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Voter(cml_chain::governance::Voter);
+pub struct Voter(pub(crate) cml_chain::governance::Voter);
 
 impl_wasm_cbor_json_api!(Voter);
 
@@ -606,7 +608,7 @@ pub enum VoterKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct VotingProcedure(cml_chain::governance::VotingProcedure);
+pub struct VotingProcedure(pub(crate) cml_chain::governance::VotingProcedure);
 
 impl_wasm_cbor_json_api!(VotingProcedure);
 
@@ -635,8 +637,11 @@ impl VotingProcedure {
 /// `insert` can never violate the bound; removal is checked in the core type.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+// rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged; present through 1.9.0-nightly 2026-07-17).
+#[rustfmt::skip]
 pub struct VotingProcedures(
-    NonEmptyMap<
+    pub(crate) NonEmptyMap<
         cml_chain::governance::Voter,
         NonEmptyMap<cml_chain::governance::GovActionId, cml_chain::governance::VotingProcedure>,
     >,

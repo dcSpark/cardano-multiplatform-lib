@@ -3,7 +3,6 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
-pub mod utils;
 
 #[cfg(not(feature = "used_from_wasm"))]
 use noop_proc_macro::wasm_bindgen;
@@ -33,7 +32,6 @@ use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AlonzoAuxiliaryData {

@@ -1,21 +1,17 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-pub mod metadata;
-pub mod utils;
-
 pub use crate::Metadata;
-pub use metadata::*;
 
 use crate::generated::{
     NativeScriptList, PlutusV1ScriptList, PlutusV2ScriptList, PlutusV3ScriptList,
 };
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AuxiliaryData(cml_chain::auxdata::AuxiliaryData);
+pub struct AuxiliaryData(pub(crate) cml_chain::auxdata::AuxiliaryData);
 
 impl_wasm_cbor_json_api!(AuxiliaryData);
 
@@ -82,7 +78,7 @@ pub enum AuxiliaryDataKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ConwayFormatAuxData(cml_chain::auxdata::ConwayFormatAuxData);
+pub struct ConwayFormatAuxData(pub(crate) cml_chain::auxdata::ConwayFormatAuxData);
 
 impl_wasm_cbor_json_api!(ConwayFormatAuxData);
 
@@ -148,7 +144,7 @@ pub type ShelleyFormatAuxData = Metadata;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ShelleyMAFormatAuxData(cml_chain::auxdata::ShelleyMAFormatAuxData);
+pub struct ShelleyMAFormatAuxData(pub(crate) cml_chain::auxdata::ShelleyMAFormatAuxData);
 
 impl_wasm_cbor_json_api!(ShelleyMAFormatAuxData);
 

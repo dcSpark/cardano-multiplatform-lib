@@ -1425,3 +1425,232 @@ mod test {
         let _block = MaryBlock::from_cbor_bytes(&bytes).unwrap();
     }
 }
+
+// Impl-only extensions to generated era types, relocated out of the machine-owned
+// generated/ tree (per-scope thin-root migration). Impl blocks attach to the types,
+// so these private modules add no public paths; each was generated/<era>/utils.rs.
+mod shelley_impls {
+    use cml_chain::{
+        certs::{DNSName, PoolParams, PoolRegistration, Relay},
+        transaction::{NativeScript, TransactionWitnessSet},
+    };
+
+    use crate::shelley::{
+        MultisigScript, ShelleyPoolRegistration, ShelleyRelay, ShelleyTransactionBody,
+        ShelleyTransactionWitnessSet,
+    };
+
+    use cml_core::serialization::Serialize;
+    use cml_crypto::{TransactionHash, blake2b256};
+
+    impl ShelleyTransactionBody {
+        pub fn hash(&self) -> TransactionHash {
+            blake2b256(&self.to_cbor_bytes()).into()
+        }
+    }
+
+    impl From<ShelleyTransactionWitnessSet> for TransactionWitnessSet {
+        fn from(wits: ShelleyTransactionWitnessSet) -> Self {
+            let mut new_wits = TransactionWitnessSet::new();
+            new_wits.vkeywitnesses = wits.vkeywitnesses.map(Into::into);
+            new_wits.native_scripts = wits.native_scripts.map(|native_scripts| {
+                native_scripts
+                    .into_iter()
+                    .map(NativeScript::from)
+                    .collect::<Vec<_>>()
+                    .into()
+            });
+            new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.map(Into::into);
+            new_wits
+        }
+    }
+
+    impl From<MultisigScript> for NativeScript {
+        fn from(script: MultisigScript) -> Self {
+            match script {
+                MultisigScript::MultisigPubkey(key) => {
+                    NativeScript::new_script_pubkey(key.ed25519_key_hash)
+                }
+                MultisigScript::MultisigAll(all) => NativeScript::new_script_all(
+                    all.multisig_scripts
+                        .into_iter()
+                        .map(NativeScript::from)
+                        .collect(),
+                ),
+                MultisigScript::MultisigAny(any) => NativeScript::new_script_any(
+                    any.multisig_scripts
+                        .into_iter()
+                        .map(NativeScript::from)
+                        .collect(),
+                ),
+                MultisigScript::MultisigNOfK(nok) => NativeScript::new_script_n_of_k(
+                    nok.n,
+                    nok.multisig_scripts
+                        .into_iter()
+                        .map(NativeScript::from)
+                        .collect(),
+                ),
+            }
+        }
+    }
+
+    impl From<ShelleyPoolRegistration> for PoolRegistration {
+        fn from(pool_reg: ShelleyPoolRegistration) -> Self {
+            Self::new(PoolParams::new(
+                pool_reg.pool_params.operator,
+                pool_reg.pool_params.vrf_keyhash,
+                pool_reg.pool_params.pledge,
+                pool_reg.pool_params.cost,
+                pool_reg.pool_params.margin,
+                pool_reg.pool_params.reward_account,
+                pool_reg.pool_params.pool_owners.into(),
+                pool_reg
+                    .pool_params
+                    .relays
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
+                pool_reg.pool_params.pool_metadata,
+            ))
+        }
+    }
+
+    impl From<ShelleyRelay> for Relay {
+        fn from(relay: ShelleyRelay) -> Self {
+            match relay {
+                ShelleyRelay::SingleHostAddr(host) => {
+                    Self::new_single_host_addr(host.port, host.ipv4, host.ipv6)
+                }
+                ShelleyRelay::ShelleySingleHostName(host) => Self::new_single_host_name(
+                    host.port,
+                    DNSName::new(host.shelley_dns_name.get().clone()).unwrap(),
+                ),
+                ShelleyRelay::ShelleyMultiHostName(host) => Self::new_multi_host_name(
+                    DNSName::new(host.shelley_dns_name.get().clone()).unwrap(),
+                ),
+            }
+        }
+    }
+}
+
+mod allegra_impls {
+    use cml_chain::{auxdata::AuxiliaryData, transaction::TransactionWitnessSet};
+
+    use crate::allegra::{
+        AllegraAuxiliaryData, AllegraTransactionBody, AllegraTransactionWitnessSet,
+    };
+
+    use cml_core::serialization::Serialize;
+    use cml_crypto::{TransactionHash, blake2b256};
+
+    impl AllegraTransactionBody {
+        pub fn hash(&self) -> TransactionHash {
+            blake2b256(&self.to_cbor_bytes()).into()
+        }
+    }
+
+    impl From<AllegraAuxiliaryData> for AuxiliaryData {
+        fn from(aux: AllegraAuxiliaryData) -> Self {
+            match aux {
+                AllegraAuxiliaryData::Shelley(md) => AuxiliaryData::new_shelley(md),
+                AllegraAuxiliaryData::ShelleyMA(md) => AuxiliaryData::new_shelley_ma(md),
+            }
+        }
+    }
+
+    impl From<AllegraTransactionWitnessSet> for TransactionWitnessSet {
+        fn from(wits: AllegraTransactionWitnessSet) -> Self {
+            let mut new_wits = TransactionWitnessSet::new();
+            new_wits.vkeywitnesses = wits.vkeywitnesses.map(Into::into);
+            new_wits.native_scripts = wits.native_scripts.map(Into::into);
+            new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.map(Into::into);
+            new_wits
+        }
+    }
+}
+
+mod mary_impls {
+    use crate::mary::MaryTransactionBody;
+    use cml_core::serialization::Serialize;
+    use cml_crypto::{TransactionHash, blake2b256};
+
+    impl MaryTransactionBody {
+        pub fn hash(&self) -> TransactionHash {
+            blake2b256(&self.to_cbor_bytes()).into()
+        }
+    }
+}
+
+mod alonzo_impls {
+    use cml_chain::{
+        auxdata::{AuxiliaryData, ConwayFormatAuxData},
+        plutus::{LegacyRedeemer, RedeemerTag, Redeemers},
+        transaction::TransactionWitnessSet,
+    };
+
+    use crate::alonzo::{
+        AlonzoAuxiliaryData, AlonzoRedeemer, AlonzoRedeemerTag, AlonzoTransactionBody,
+        AlonzoTransactionWitnessSet,
+    };
+
+    use cml_core::non_empty::NonEmptyVec;
+    use cml_core::serialization::Serialize;
+    use cml_crypto::{TransactionHash, blake2b256};
+
+    impl AlonzoTransactionBody {
+        pub fn hash(&self) -> TransactionHash {
+            blake2b256(&self.to_cbor_bytes()).into()
+        }
+    }
+
+    impl From<AlonzoAuxiliaryData> for AuxiliaryData {
+        fn from(aux: AlonzoAuxiliaryData) -> Self {
+            match aux {
+                AlonzoAuxiliaryData::Shelley(md) => AuxiliaryData::new_shelley(md.clone()),
+                AlonzoAuxiliaryData::ShelleyMA(md) => AuxiliaryData::new_shelley_ma(md.clone()),
+                AlonzoAuxiliaryData::Alonzo(md) => AuxiliaryData::new_conway({
+                    let mut conway = ConwayFormatAuxData::new();
+                    conway.metadata.clone_from(&md.metadata);
+                    conway.native_scripts.clone_from(&md.native_scripts);
+                    conway.plutus_v1_scripts.clone_from(&md.plutus_v1_scripts);
+                    conway
+                }),
+            }
+        }
+    }
+
+    impl From<AlonzoTransactionWitnessSet> for TransactionWitnessSet {
+        fn from(wits: AlonzoTransactionWitnessSet) -> Self {
+            let mut new_wits = TransactionWitnessSet::new();
+            new_wits.vkeywitnesses = wits.vkeywitnesses.map(Into::into);
+            new_wits.native_scripts = wits.native_scripts.map(Into::into);
+            new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.map(Into::into);
+            // Conway `Redeemers` cannot be empty; an empty older-era redeemer list maps to no redeemers.
+            new_wits.redeemers = wits.redeemers.and_then(|r| {
+                NonEmptyVec::try_from(r.into_iter().map(Into::into).collect::<Vec<_>>())
+                    .ok()
+                    .map(Redeemers::new_arr_legacy_redeemer)
+            });
+            new_wits.plutus_datums = wits.plutus_datums.map(Into::into);
+            new_wits.plutus_v1_scripts = wits.plutus_v1_scripts.map(Into::into);
+            new_wits
+        }
+    }
+
+    impl From<AlonzoRedeemer> for LegacyRedeemer {
+        fn from(redeemer: AlonzoRedeemer) -> Self {
+            Self {
+                tag: match redeemer.tag {
+                    AlonzoRedeemerTag::Cert => RedeemerTag::Cert,
+                    AlonzoRedeemerTag::Mint => RedeemerTag::Mint,
+                    AlonzoRedeemerTag::Reward => RedeemerTag::Reward,
+                    AlonzoRedeemerTag::Spend => RedeemerTag::Spend,
+                },
+                index: redeemer.index,
+                data: redeemer.data,
+                ex_units: redeemer.ex_units,
+                encodings: None,
+            }
+        }
+    }
+}

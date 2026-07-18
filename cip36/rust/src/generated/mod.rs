@@ -9,9 +9,8 @@ pub mod serialization;
 pub use crate::PaymentAddress;
 
 use cbor_encodings::{
-    CIP36DelegationEncoding, CIP36DeregistrationWitnessEncoding,
-    CIP36KeyDeregistrationEncoding, CIP36KeyRegistrationEncoding,
-    CIP36RegistrationWitnessEncoding,
+    CIP36DelegationEncoding, CIP36DeregistrationWitnessEncoding, CIP36KeyDeregistrationEncoding,
+    CIP36KeyRegistrationEncoding, CIP36RegistrationWitnessEncoding,
 };
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::serialization::{LenEncoding, StringEncoding};

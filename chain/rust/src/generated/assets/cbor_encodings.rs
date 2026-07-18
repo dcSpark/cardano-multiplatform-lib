@@ -2,7 +2,7 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use super::*;
-use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_core::serialization::StringEncoding;
 
 #[derive(Clone, Debug, Default)]
 pub struct AssetNameEncoding {

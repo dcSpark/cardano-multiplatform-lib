@@ -101,7 +101,7 @@ impl Deserialize for BootstrapWitness {
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|(bytes, enc)| {
-                    if bytes.len() < 32 || bytes.len() > 32 {
+                    if bytes.len() != 32 {
                         Err(DeserializeFailure::RangeCheck {
                             found: bytes.len() as i128,
                             min: Some(32),
@@ -262,7 +262,7 @@ impl Deserialize for Nonce {
                     return Ok(Self::Identity {
                         identity_encoding,
                         len_encoding,
-                    })
+                    });
                 }
                 Err(e) => {
                     errs.push(e.annotate("Identity"));
@@ -379,7 +379,7 @@ impl Deserialize for VRFCert {
                 .bytes_sz()
                 .map_err(Into::<DeserializeError>::into)
                 .and_then(|(bytes, enc)| {
-                    if bytes.len() < 80 || bytes.len() > 80 {
+                    if bytes.len() != 80 {
                         Err(DeserializeFailure::RangeCheck {
                             found: bytes.len() as i128,
                             min: Some(80),

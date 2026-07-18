@@ -5,6 +5,7 @@ rust/target
 .vscode/
 .idea
 rust/.idea
+draft/
 
 target/
 

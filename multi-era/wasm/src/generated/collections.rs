@@ -7,9 +7,6 @@
 // line naming a removed wrapper fails this crate's own build — the index cannot
 // drift. Downstream crates point `--extern-wrapper-index <dep>=<this file>` here to
 // avoid re-minting these wrappers (a wasm duplicate-symbol link error otherwise).
-pub use crate::generated::alonzo::AlonzoProposedProtocolParameterUpdates;
-pub use crate::generated::babbage::BabbageProposedProtocolParameterUpdates;
-pub use crate::generated::shelley::ShelleyProposedProtocolParameterUpdates;
 pub use crate::generated::AllegraCertificateList;
 pub use crate::generated::AllegraTransactionBodyList;
 pub use crate::generated::AllegraTransactionWitnessSetList;
@@ -30,3 +27,6 @@ pub use crate::generated::ShelleyRelayList;
 pub use crate::generated::ShelleyTransactionBodyList;
 pub use crate::generated::ShelleyTransactionOutputList;
 pub use crate::generated::ShelleyTransactionWitnessSetList;
+pub use crate::generated::alonzo::AlonzoProposedProtocolParameterUpdates;
+pub use crate::generated::babbage::BabbageProposedProtocolParameterUpdates;
+pub use crate::generated::shelley::ShelleyProposedProtocolParameterUpdates;

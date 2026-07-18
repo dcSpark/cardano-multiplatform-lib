@@ -13,8 +13,8 @@ pub mod serialization;
 pub mod shelley;
 pub use crate::Block;
 pub use crate::ByronBlock;
+pub use crate::ByronTx;
 
-use crate::byron::transaction::ByronTx;
 use allegra::{AllegraBlock, AllegraTransactionBody};
 use alonzo::{AlonzoBlock, AlonzoTransactionBody};
 use babbage::{BabbageBlock, BabbageTransactionBody};
@@ -26,7 +26,6 @@ use cml_core::serialization::{LenEncoding, StringEncoding};
 use mary::{MaryBlock, MaryTransactionBody};
 use shelley::{ShelleyBlock, ShelleyTransactionBody};
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum MultiEraBlock {

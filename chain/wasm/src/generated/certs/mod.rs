@@ -1,18 +1,17 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-pub mod utils;
 use crate::generated::address::RewardAccount;
 use crate::generated::assets::Coin;
 use crate::generated::crypto::{Ed25519KeyHash, PoolMetadataHash, ScriptHash, VRFKeyHash};
 use crate::generated::governance::Anchor;
 use crate::generated::{Epoch, Port, RelayList, SetEd25519KeyHash, UnitInterval};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct AuthCommitteeHotCert(cml_chain::certs::AuthCommitteeHotCert);
+pub struct AuthCommitteeHotCert(pub(crate) cml_chain::certs::AuthCommitteeHotCert);
 
 impl_wasm_cbor_json_api!(AuthCommitteeHotCert);
 
@@ -41,7 +40,7 @@ impl AuthCommitteeHotCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Certificate(cml_chain::certs::Certificate);
+pub struct Certificate(pub(crate) cml_chain::certs::Certificate);
 
 impl_wasm_cbor_json_api!(Certificate);
 
@@ -425,7 +424,7 @@ pub type CommitteeHotCredential = Credential;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Credential(cml_chain::certs::Credential);
+pub struct Credential(pub(crate) cml_chain::certs::Credential);
 
 impl_wasm_cbor_json_api!(Credential);
 
@@ -475,7 +474,7 @@ pub enum CredentialKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct DNSName(cml_chain::certs::DNSName);
+pub struct DNSName(pub(crate) cml_chain::certs::DNSName);
 
 impl_wasm_cbor_json_api!(DNSName);
 
@@ -496,7 +495,7 @@ impl DNSName {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct DRep(cml_chain::certs::DRep);
+pub struct DRep(pub(crate) cml_chain::certs::DRep);
 
 impl_wasm_cbor_json_api!(DRep);
 
@@ -558,7 +557,7 @@ pub type DrepCredential = Credential;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Ipv4(cml_chain::certs::Ipv4);
+pub struct Ipv4(pub(crate) cml_chain::certs::Ipv4);
 
 impl_wasm_cbor_json_api!(Ipv4);
 
@@ -579,7 +578,7 @@ impl Ipv4 {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Ipv6(cml_chain::certs::Ipv6);
+pub struct Ipv6(pub(crate) cml_chain::certs::Ipv6);
 
 impl_wasm_cbor_json_api!(Ipv6);
 
@@ -600,7 +599,7 @@ impl Ipv6 {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MultiHostName(cml_chain::certs::MultiHostName);
+pub struct MultiHostName(pub(crate) cml_chain::certs::MultiHostName);
 
 impl_wasm_cbor_json_api!(MultiHostName);
 
@@ -622,7 +621,7 @@ impl MultiHostName {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct PoolMetadata(cml_chain::certs::PoolMetadata);
+pub struct PoolMetadata(pub(crate) cml_chain::certs::PoolMetadata);
 
 impl_wasm_cbor_json_api!(PoolMetadata);
 
@@ -648,7 +647,7 @@ impl PoolMetadata {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct PoolParams(cml_chain::certs::PoolParams);
+pub struct PoolParams(pub(crate) cml_chain::certs::PoolParams);
 
 impl_wasm_cbor_json_api!(PoolParams);
 
@@ -719,7 +718,7 @@ impl PoolParams {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct PoolRegistration(cml_chain::certs::PoolRegistration);
+pub struct PoolRegistration(pub(crate) cml_chain::certs::PoolRegistration);
 
 impl_wasm_cbor_json_api!(PoolRegistration);
 
@@ -740,7 +739,7 @@ impl PoolRegistration {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct PoolRetirement(cml_chain::certs::PoolRetirement);
+pub struct PoolRetirement(pub(crate) cml_chain::certs::PoolRetirement);
 
 impl_wasm_cbor_json_api!(PoolRetirement);
 
@@ -766,7 +765,7 @@ impl PoolRetirement {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct RegCert(cml_chain::certs::RegCert);
+pub struct RegCert(pub(crate) cml_chain::certs::RegCert);
 
 impl_wasm_cbor_json_api!(RegCert);
 
@@ -792,7 +791,7 @@ impl RegCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct RegDrepCert(cml_chain::certs::RegDrepCert);
+pub struct RegDrepCert(pub(crate) cml_chain::certs::RegDrepCert);
 
 impl_wasm_cbor_json_api!(RegDrepCert);
 
@@ -823,7 +822,7 @@ impl RegDrepCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Relay(cml_chain::certs::Relay);
+pub struct Relay(pub(crate) cml_chain::certs::Relay);
 
 impl_wasm_cbor_json_api!(Relay);
 
@@ -901,7 +900,7 @@ pub enum RelayKind {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct ResignCommitteeColdCert(cml_chain::certs::ResignCommitteeColdCert);
+pub struct ResignCommitteeColdCert(pub(crate) cml_chain::certs::ResignCommitteeColdCert);
 
 impl_wasm_cbor_json_api!(ResignCommitteeColdCert);
 
@@ -933,7 +932,7 @@ impl ResignCommitteeColdCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct SingleHostAddr(cml_chain::certs::SingleHostAddr);
+pub struct SingleHostAddr(pub(crate) cml_chain::certs::SingleHostAddr);
 
 impl_wasm_cbor_json_api!(SingleHostAddr);
 
@@ -964,7 +963,7 @@ impl SingleHostAddr {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct SingleHostName(cml_chain::certs::SingleHostName);
+pub struct SingleHostName(pub(crate) cml_chain::certs::SingleHostName);
 
 impl_wasm_cbor_json_api!(SingleHostName);
 
@@ -993,7 +992,7 @@ pub type StakeCredential = Credential;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct StakeDelegation(cml_chain::certs::StakeDelegation);
+pub struct StakeDelegation(pub(crate) cml_chain::certs::StakeDelegation);
 
 impl_wasm_cbor_json_api!(StakeDelegation);
 
@@ -1019,7 +1018,7 @@ impl StakeDelegation {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct StakeDeregistration(cml_chain::certs::StakeDeregistration);
+pub struct StakeDeregistration(pub(crate) cml_chain::certs::StakeDeregistration);
 
 impl_wasm_cbor_json_api!(StakeDeregistration);
 
@@ -1040,7 +1039,7 @@ impl StakeDeregistration {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct StakeRegDelegCert(cml_chain::certs::StakeRegDelegCert);
+pub struct StakeRegDelegCert(pub(crate) cml_chain::certs::StakeRegDelegCert);
 
 impl_wasm_cbor_json_api!(StakeRegDelegCert);
 
@@ -1071,7 +1070,7 @@ impl StakeRegDelegCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct StakeRegistration(cml_chain::certs::StakeRegistration);
+pub struct StakeRegistration(pub(crate) cml_chain::certs::StakeRegistration);
 
 impl_wasm_cbor_json_api!(StakeRegistration);
 
@@ -1092,7 +1091,7 @@ impl StakeRegistration {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct StakeVoteDelegCert(cml_chain::certs::StakeVoteDelegCert);
+pub struct StakeVoteDelegCert(pub(crate) cml_chain::certs::StakeVoteDelegCert);
 
 impl_wasm_cbor_json_api!(StakeVoteDelegCert);
 
@@ -1123,7 +1122,7 @@ impl StakeVoteDelegCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct StakeVoteRegDelegCert(cml_chain::certs::StakeVoteRegDelegCert);
+pub struct StakeVoteRegDelegCert(pub(crate) cml_chain::certs::StakeVoteRegDelegCert);
 
 impl_wasm_cbor_json_api!(StakeVoteRegDelegCert);
 
@@ -1167,7 +1166,7 @@ impl StakeVoteRegDelegCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct UnregCert(cml_chain::certs::UnregCert);
+pub struct UnregCert(pub(crate) cml_chain::certs::UnregCert);
 
 impl_wasm_cbor_json_api!(UnregCert);
 
@@ -1193,7 +1192,7 @@ impl UnregCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct UnregDrepCert(cml_chain::certs::UnregDrepCert);
+pub struct UnregDrepCert(pub(crate) cml_chain::certs::UnregDrepCert);
 
 impl_wasm_cbor_json_api!(UnregDrepCert);
 
@@ -1219,7 +1218,7 @@ impl UnregDrepCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct UpdateDrepCert(cml_chain::certs::UpdateDrepCert);
+pub struct UpdateDrepCert(pub(crate) cml_chain::certs::UpdateDrepCert);
 
 impl_wasm_cbor_json_api!(UpdateDrepCert);
 
@@ -1245,7 +1244,7 @@ impl UpdateDrepCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Url(cml_chain::certs::Url);
+pub struct Url(pub(crate) cml_chain::certs::Url);
 
 impl_wasm_cbor_json_api!(Url);
 
@@ -1266,7 +1265,7 @@ impl Url {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct VoteDelegCert(cml_chain::certs::VoteDelegCert);
+pub struct VoteDelegCert(pub(crate) cml_chain::certs::VoteDelegCert);
 
 impl_wasm_cbor_json_api!(VoteDelegCert);
 
@@ -1292,7 +1291,7 @@ impl VoteDelegCert {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct VoteRegDelegCert(cml_chain::certs::VoteRegDelegCert);
+pub struct VoteRegDelegCert(pub(crate) cml_chain::certs::VoteRegDelegCert);
 
 impl_wasm_cbor_json_api!(VoteRegDelegCert);
 

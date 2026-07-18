@@ -1,15 +1,16 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+use crate::auxdata::Metadata;
+use crate::certs::StakeCredential;
+use crate::crypto::GenesisHash;
+use crate::transaction::AlonzoFormatTxOut;
+
 use super::*;
 
-use auxdata::Metadata;
-use certs::StakeCredential;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use crypto::GenesisHash;
-use transaction::AlonzoFormatTxOut;
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 impl_wasm_list_needs_into!(
     cml_chain::transaction::AlonzoFormatTxOut,
@@ -30,7 +31,7 @@ impl_wasm_list_needs_into!(
 /// Generated at the request of: cml-multi-era.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MapAssetNameToI64(OrderedHashMap<cml_chain::assets::AssetName, i64>);
+pub struct MapAssetNameToI64(pub(crate) OrderedHashMap<cml_chain::assets::AssetName, i64>);
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::assets::AssetName, i64>, MapAssetNameToI64);
 
@@ -61,7 +62,7 @@ impl MapAssetNameToI64 {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapStakeCredentialToCoin(
-    OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>,
+    pub(crate) OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::assets::Coin>, MapStakeCredentialToCoin);
@@ -93,7 +94,7 @@ impl MapStakeCredentialToCoin {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapStakeCredentialToDeltaCoin(
-    OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>,
+    pub(crate) OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::certs::StakeCredential, cml_chain::DeltaCoin>, MapStakeCredentialToDeltaCoin);
@@ -127,7 +128,7 @@ impl MapStakeCredentialToDeltaCoin {
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapTransactionIndexToMetadata(
-    OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::Metadata>,
+    pub(crate) OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::Metadata>,
 );
 
 impl_wasm_conversions!(OrderedHashMap<cml_chain::TransactionIndex, cml_chain::auxdata::Metadata>, MapTransactionIndexToMetadata);

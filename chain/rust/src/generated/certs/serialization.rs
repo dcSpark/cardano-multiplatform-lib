@@ -223,7 +223,7 @@ impl Deserialize for Certificate {
             })(raw);
             match deser_variant {
                 Ok(stake_deregistration) => {
-                    return Ok(Self::StakeDeregistration(stake_deregistration))
+                    return Ok(Self::StakeDeregistration(stake_deregistration));
                 }
                 Err(e) => {
                     errs.push(e.annotate("StakeDeregistration"));
@@ -387,7 +387,7 @@ impl Deserialize for Certificate {
             })(raw);
             match deser_variant {
                 Ok(stake_vote_deleg_cert) => {
-                    return Ok(Self::StakeVoteDelegCert(stake_vote_deleg_cert))
+                    return Ok(Self::StakeVoteDelegCert(stake_vote_deleg_cert));
                 }
                 Err(e) => {
                     errs.push(e.annotate("StakeVoteDelegCert"));
@@ -412,7 +412,7 @@ impl Deserialize for Certificate {
             })(raw);
             match deser_variant {
                 Ok(stake_reg_deleg_cert) => {
-                    return Ok(Self::StakeRegDelegCert(stake_reg_deleg_cert))
+                    return Ok(Self::StakeRegDelegCert(stake_reg_deleg_cert));
                 }
                 Err(e) => {
                     errs.push(e.annotate("StakeRegDelegCert"));
@@ -461,7 +461,7 @@ impl Deserialize for Certificate {
             })(raw);
             match deser_variant {
                 Ok(stake_vote_reg_deleg_cert) => {
-                    return Ok(Self::StakeVoteRegDelegCert(stake_vote_reg_deleg_cert))
+                    return Ok(Self::StakeVoteRegDelegCert(stake_vote_reg_deleg_cert));
                 }
                 Err(e) => {
                     errs.push(e.annotate("StakeVoteRegDelegCert"));
@@ -487,7 +487,7 @@ impl Deserialize for Certificate {
             })(raw);
             match deser_variant {
                 Ok(auth_committee_hot_cert) => {
-                    return Ok(Self::AuthCommitteeHotCert(auth_committee_hot_cert))
+                    return Ok(Self::AuthCommitteeHotCert(auth_committee_hot_cert));
                 }
                 Err(e) => {
                     errs.push(e.annotate("AuthCommitteeHotCert"));
@@ -513,7 +513,7 @@ impl Deserialize for Certificate {
             })(raw);
             match deser_variant {
                 Ok(resign_committee_cold_cert) => {
-                    return Ok(Self::ResignCommitteeColdCert(resign_committee_cold_cert))
+                    return Ok(Self::ResignCommitteeColdCert(resign_committee_cold_cert));
                 }
                 Err(e) => {
                     errs.push(e.annotate("ResignCommitteeColdCert"));
@@ -995,7 +995,7 @@ impl Deserialize for DRep {
                     return Ok(Self::AlwaysAbstain {
                         always_abstain_encoding,
                         len_encoding,
-                    })
+                    });
                 }
                 Err(e) => {
                     errs.push(e.annotate("AlwaysAbstain"));
@@ -1032,7 +1032,7 @@ impl Deserialize for DRep {
                     return Ok(Self::AlwaysNoConfidence {
                         always_no_confidence_encoding,
                         len_encoding,
-                    })
+                    });
                 }
                 Err(e) => {
                     errs.push(e.annotate("AlwaysNoConfidence"));

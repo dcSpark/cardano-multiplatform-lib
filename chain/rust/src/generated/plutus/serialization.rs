@@ -3,7 +3,6 @@
 
 use super::cbor_encodings::*;
 use super::*;
-use crate::Rational;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
@@ -14,7 +13,6 @@ use std::io::{BufRead, Seek, SeekFrom, Write};
 // PlutusData::Bytes uses this specific encoding:
 use crate::utils::{read_bounded_bytes, write_bounded_bytes};
 // cddl-codegen:insert-end
-
 impl Serialize for CostModels {
     fn serialize<'se, W: Write>(
         &self,

@@ -4,20 +4,21 @@
 use crate::generated::allegra::{AllegraAuxiliaryData, AllegraTransactionWitnessSet};
 use crate::generated::shelley::{ShelleyHeader, ShelleyUpdate};
 use crate::generated::{
-    AllegraCertificateList, AllegraTransactionWitnessSetList,
-    MapTransactionIndexToAllegraAuxiliaryData, MaryTransactionBodyList, MaryTransactionOutputList,
+    AllegraCertificateList, AllegraTransactionWitnessSetList, MapPolicyIdToMapAssetNameToI64,
+    MapRewardAccountToCoin, MapTransactionIndexToAllegraAuxiliaryData, MaryTransactionBodyList,
+    MaryTransactionOutputList,
 };
+use cml_chain_wasm::Withdrawals;
 use cml_chain_wasm::address::Address;
 use cml_chain_wasm::assets::{Coin, Mint, Value};
 use cml_chain_wasm::collections::TransactionInputList;
 use cml_chain_wasm::crypto::AuxiliaryDataHash;
-use cml_chain_wasm::Withdrawals;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{wasm_bindgen, JsError};
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MaryBlock(cml_multi_era::mary::MaryBlock);
+pub struct MaryBlock(pub(crate) cml_multi_era::mary::MaryBlock);
 
 impl_wasm_cbor_json_api!(MaryBlock);
 
@@ -58,7 +59,7 @@ impl MaryBlock {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MaryTransaction(cml_multi_era::mary::MaryTransaction);
+pub struct MaryTransaction(pub(crate) cml_multi_era::mary::MaryTransaction);
 
 impl_wasm_cbor_json_api!(MaryTransaction);
 
@@ -93,7 +94,7 @@ impl MaryTransaction {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MaryTransactionBody(cml_multi_era::mary::MaryTransactionBody);
+pub struct MaryTransactionBody(pub(crate) cml_multi_era::mary::MaryTransactionBody);
 
 impl_wasm_cbor_json_api!(MaryTransactionBody);
 
@@ -190,7 +191,7 @@ impl MaryTransactionBody {
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MaryTransactionOutput(cml_multi_era::mary::MaryTransactionOutput);
+pub struct MaryTransactionOutput(pub(crate) cml_multi_era::mary::MaryTransactionOutput);
 
 impl_wasm_cbor_json_api!(MaryTransactionOutput);
 

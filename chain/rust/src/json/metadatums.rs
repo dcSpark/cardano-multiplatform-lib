@@ -1,8 +1,3 @@
-#[cfg(not(feature = "used_from_wasm"))]
-use noop_proc_macro::wasm_bindgen;
-#[cfg(feature = "used_from_wasm")]
-use wasm_bindgen::prelude::wasm_bindgen;
-
 use crate::{
     auxdata::{MetadatumMap, TransactionMetadatum},
     json::json_serialize::{JsonParseError, Value as JSONValue},
@@ -14,7 +9,7 @@ use cml_core::{DeserializeError, Int};
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
-#[wasm_bindgen]
+#[cfg_attr(feature = "used_from_wasm", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Copy, Clone, Eq, PartialEq)]
 // Different schema methods for mapping between JSON and the metadata CBOR.
 // This conversion should match TxMetadataJsonSchema in cardano-node defined (at time of writing) here:

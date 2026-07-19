@@ -5,8 +5,11 @@
 
 extern crate derivative;
 pub mod cbor_encodings;
+mod extern_interface_check;
 pub mod serialization;
+pub use crate::Ed25519Signature;
 pub use crate::PaymentAddress;
+pub use crate::PublicKey;
 
 use cbor_encodings::{
     CIP36DelegationEncoding, CIP36DeregistrationWitnessEncoding, CIP36KeyDeregistrationEncoding,
@@ -156,7 +159,7 @@ impl CIP36KeyRegistration {
     }
 }
 
-pub type CIP36LegacyKeyRegistration = cml_crypto::PublicKey;
+pub type CIP36LegacyKeyRegistration = PublicKey;
 
 /// The nonce is an unsigned integer that should be monotonically rising across all transactions with the same staking key.
 /// The advised way to construct a nonce is to use the current slot number.
@@ -199,16 +202,16 @@ impl CIP36RegistrationWitness {
     }
 }
 
-pub type CIP36StakeCredential = cml_crypto::PublicKey;
+pub type CIP36StakeCredential = PublicKey;
 
-pub type CIP36StakeWitness = cml_crypto::Ed25519Signature;
+pub type CIP36StakeWitness = Ed25519Signature;
 
-pub type CIP36StakingPubKey = cml_crypto::PublicKey;
+pub type CIP36StakingPubKey = PublicKey;
 
 /// To avoid linking voting keys directly with Cardano spending keys,
 /// the voting key derivation path must start with a specific segment:
 /// m / 1694' / 1815' / account' / chain / address_index
-pub type CIP36VotingPubKey = cml_crypto::PublicKey;
+pub type CIP36VotingPubKey = PublicKey;
 
 pub type CIP36VotingPurpose = u64;
 

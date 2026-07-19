@@ -10,8 +10,9 @@ pub mod utils;
 // Convenience re-exports (not referenced by the generated code itself).
 pub use cml_chain::{NetworkId, auxdata::Metadata};
 
-// Extern-type re-export so the generated glue (`pub use crate::PaymentAddress;`) resolves.
+// Extern-type re-exports so the generated glue (`pub use crate::PaymentAddress;` etc.) resolves.
 pub use cml_chain::address::Address as PaymentAddress;
+pub use cml_crypto::{Ed25519Signature, PublicKey};
 
 #[cfg(test)]
 mod tests {

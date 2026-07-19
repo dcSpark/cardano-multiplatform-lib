@@ -114,8 +114,7 @@ impl Deserialize for ByronBlock {
                 Ok(epoch_boundary) => return Ok(Self::EpochBoundary(epoch_boundary)),
                 Err(e) => {
                     errs.push(e.annotate("EpochBoundary"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> = ByronMainBlock::deserialize(raw);
@@ -123,8 +122,7 @@ impl Deserialize for ByronBlock {
                 Ok(main) => return Ok(Self::Main(main)),
                 Err(e) => {
                     errs.push(e.annotate("Main"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeError::new(
@@ -349,8 +347,7 @@ impl Deserialize for ByronBlockSignature {
                 Ok(signature) => return Ok(Self::Signature(signature)),
                 Err(e) => {
                     errs.push(e.annotate("Signature"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
@@ -359,8 +356,7 @@ impl Deserialize for ByronBlockSignature {
                 Ok(proxy_light) => return Ok(Self::ProxyLight(proxy_light)),
                 Err(e) => {
                     errs.push(e.annotate("ProxyLight"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
@@ -369,8 +365,7 @@ impl Deserialize for ByronBlockSignature {
                 Ok(proxy_heavy) => return Ok(Self::ProxyHeavy(proxy_heavy)),
                 Err(e) => {
                     errs.push(e.annotate("ProxyHeavy"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeError::new(
@@ -962,7 +957,7 @@ impl cbor_event::se::Serialize for TxAux {
         serializer: &'se mut Serializer,
     ) -> cbor_event::Result<&'se mut Serializer> {
         serializer.write_array(cbor_event::Len::Len(2))?;
-        self.byron_tx.serialize(serializer)?;
+        cbor_event::se::Serialize::serialize(&self.byron_tx, serializer)?;
         serializer.write_array(cbor_event::Len::Len(self.byron_tx_witnesss.len() as u64))?;
         for element in self.byron_tx_witnesss.iter() {
             element.serialize(serializer)?;

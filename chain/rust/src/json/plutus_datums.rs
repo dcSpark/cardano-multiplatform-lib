@@ -6,11 +6,6 @@ use crate::{
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
-#[cfg(not(feature = "used_from_wasm"))]
-use noop_proc_macro::wasm_bindgen;
-#[cfg(feature = "used_from_wasm")]
-use wasm_bindgen::prelude::wasm_bindgen;
-
 /// JSON <-> PlutusData conversion schemas.
 /// Follows ScriptDataJsonSchema in cardano-cli defined at:
 /// https://github.com/input-output-hk/cardano-node/blob/master/cardano-api/src/Cardano/Api/ScriptData.hs#L254
@@ -20,7 +15,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 /// * Hex strings for bytes don't accept odd-length (half-byte) strings.
 ///      cardano-cli seems to support these however but it seems to be different than just 0-padding
 ///      on either side when tested so proceed with caution
-#[wasm_bindgen]
+#[cfg_attr(feature = "used_from_wasm", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum CardanoNodePlutusDatumSchema {
     /// ScriptDataJsonNoSchema in cardano-node.

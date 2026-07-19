@@ -759,17 +759,17 @@ impl Serialize for CIP36KeyRegistration {
                     )?;
                 }
                 4 => {
-                     // cddl-codegen:replace-start
+                    // cddl-codegen:replace-start
                     if should_include_voting_purpose {
-                    // cddl-codegen:replaces
-                    // if self.voting_purpose != 0
-                    //     || self
-                    //         .encodings
-                    //         .as_ref()
-                    //         .map(|encs| encs.voting_purpose_default_present)
-                    //         .unwrap_or(false)
-                    // {
-                    // cddl-codegen:replace-end
+                        // cddl-codegen:replaces
+                        // if self.voting_purpose != 0
+                        //     || self
+                        //         .encodings
+                        //         .as_ref()
+                        //         .map(|encs| encs.voting_purpose_default_present)
+                        //         .unwrap_or(false)
+                        // {
+                        // cddl-codegen:replace-end
                         serializer.write_unsigned_integer_sz(
                             5u64,
                             fit_sz(

@@ -23,7 +23,7 @@ cml-crypto = { path = "../../crypto/rust", version = "6.2.0" }
 cml-crypto-wasm = { path = "../../crypto/wasm", version = "6.2.0" }
 cml-core = { path = "../../core/rust", version = "6.2.0" }
 cml-core-wasm = { path = "../../core/wasm", version = "6.2.0" }
-cml-multi-era = { path = "../rust" , version = "6.2.0", features = ["used_from_wasm"] }
+cml-multi-era = { path = "../rust", version = "6.2.0", features = ["used_from_wasm"] }
 cbor_event = "3.2.0"
 hex = "0.4.0"
 linked-hash-map = "0.5.6"

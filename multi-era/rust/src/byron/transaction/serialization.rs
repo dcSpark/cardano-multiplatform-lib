@@ -546,8 +546,7 @@ impl Deserialize for ByronTxIn {
                 Ok(byron_tx_in_regular) => return Ok(Self::ByronTxInRegular(byron_tx_in_regular)),
                 Err(e) => {
                     errs.push(e.annotate("ByronTxInRegular"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> = ByronTxInGenesis::deserialize(raw);
@@ -555,8 +554,7 @@ impl Deserialize for ByronTxIn {
                 Ok(byron_tx_in_genesis) => return Ok(Self::ByronTxInGenesis(byron_tx_in_genesis)),
                 Err(e) => {
                     errs.push(e.annotate("ByronTxInGenesis"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeError::new(
@@ -810,8 +808,7 @@ impl Deserialize for ByronTxWitness {
                 Ok(byron_pk_witness) => return Ok(Self::ByronPkWitness(byron_pk_witness)),
                 Err(e) => {
                     errs.push(e.annotate("ByronPkWitness"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
@@ -826,8 +823,7 @@ impl Deserialize for ByronTxWitness {
                 }
                 Err(e) => {
                     errs.push(e.annotate("ByronScriptWitness"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
@@ -842,8 +838,7 @@ impl Deserialize for ByronTxWitness {
                 }
                 Err(e) => {
                     errs.push(e.annotate("ByronRedeemWitness"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             match len {

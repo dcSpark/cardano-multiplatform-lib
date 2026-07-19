@@ -42,8 +42,7 @@ impl Deserialize for Ssc {
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscCommitmentsPayload"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> = SscOpeningsPayload::deserialize(raw);
@@ -53,8 +52,7 @@ impl Deserialize for Ssc {
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscOpeningsPayload"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> = SscSharesPayload::deserialize(raw);
@@ -62,8 +60,7 @@ impl Deserialize for Ssc {
                 Ok(ssc_shares_payload) => return Ok(Self::SscSharesPayload(ssc_shares_payload)),
                 Err(e) => {
                     errs.push(e.annotate("SscSharesPayload"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> =
@@ -74,8 +71,7 @@ impl Deserialize for Ssc {
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscCertificatesPayload"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeError::new(
@@ -710,8 +706,7 @@ impl Deserialize for SscProof {
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscCommitmentsProof"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> = SscOpeningsProof::deserialize(raw);
@@ -719,8 +714,7 @@ impl Deserialize for SscProof {
                 Ok(ssc_openings_proof) => return Ok(Self::SscOpeningsProof(ssc_openings_proof)),
                 Err(e) => {
                     errs.push(e.annotate("SscOpeningsProof"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> = SscSharesProof::deserialize(raw);
@@ -728,8 +722,7 @@ impl Deserialize for SscProof {
                 Ok(ssc_shares_proof) => return Ok(Self::SscSharesProof(ssc_shares_proof)),
                 Err(e) => {
                     errs.push(e.annotate("SscSharesProof"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             let deser_variant: Result<_, DeserializeError> = SscCertificatesProof::deserialize(raw);
@@ -739,8 +732,7 @@ impl Deserialize for SscProof {
                 }
                 Err(e) => {
                     errs.push(e.annotate("SscCertificatesProof"));
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                 }
             };
             Err(DeserializeError::new(

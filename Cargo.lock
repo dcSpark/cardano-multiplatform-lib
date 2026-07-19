@@ -365,7 +365,6 @@ dependencies = [
  "derivative",
  "hex",
  "linked-hash-map",
- "noop_proc_macro",
  "schemars",
  "serde",
  "serde_json",

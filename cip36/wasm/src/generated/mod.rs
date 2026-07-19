@@ -7,13 +7,14 @@
     clippy::new_without_default
 )]
 pub mod collections;
+pub use cml_crypto_wasm::Ed25519Signature;
 pub use crate::PaymentAddress;
+pub use cml_crypto_wasm::PublicKey;
 
 use cml_core::non_empty::NonEmptyVec;
 use cml_core_wasm::{
     impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_json_api, impl_wasm_list_needs_into,
 };
-use cml_crypto_wasm::{Ed25519Signature, PublicKey};
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]

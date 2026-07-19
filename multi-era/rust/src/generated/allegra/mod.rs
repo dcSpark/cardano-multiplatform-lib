@@ -4,11 +4,6 @@
 pub mod cbor_encodings;
 pub mod serialization;
 
-#[cfg(not(feature = "used_from_wasm"))]
-use noop_proc_macro::wasm_bindgen;
-#[cfg(feature = "used_from_wasm")]
-use wasm_bindgen::prelude::wasm_bindgen;
-
 use crate::generated::shelley::{
     GenesisKeyDelegation, ShelleyHeader, ShelleyPoolParams, ShelleyPoolRegistration,
     ShelleyTransactionOutput, ShelleyUpdate,
@@ -265,7 +260,7 @@ impl MIRAction {
     serde::Serialize,
     schemars::JsonSchema,
 )]
-#[wasm_bindgen]
+#[cfg_attr(feature = "used_from_wasm", wasm_bindgen::prelude::wasm_bindgen)]
 pub enum MIRPot {
     Reserve,
     Treasury,

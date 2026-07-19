@@ -28,3 +28,6 @@ thiserror = "2.0.18"
 
 [dev-dependencies]
 hex = "0.4.0"
+
+[features]
+used_from_wasm = []

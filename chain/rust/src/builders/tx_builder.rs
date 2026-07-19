@@ -47,11 +47,6 @@ use std::collections::BTreeSet;
 use std::convert::TryInto;
 use std::ops::DerefMut;
 
-#[cfg(not(feature = "used_from_wasm"))]
-use noop_proc_macro::wasm_bindgen;
-#[cfg(feature = "used_from_wasm")]
-use wasm_bindgen::prelude::wasm_bindgen;
-
 /**
  * A UTXO structure.
  * This is not used on-chain anywhere but is useful for the builders
@@ -269,7 +264,7 @@ fn min_fee_with_exunits(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuild
     .map_err(Into::into)
 }
 
-#[wasm_bindgen]
+#[cfg_attr(feature = "used_from_wasm", wasm_bindgen::prelude::wasm_bindgen)]
 pub enum CoinSelectionStrategyCIP2 {
     /// Performs CIP2's Largest First ada-only selection. Will error if outputs contain non-ADA assets.
     LargestFirst,
@@ -1703,7 +1698,7 @@ impl SignedTxBuilder {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(feature = "used_from_wasm", wasm_bindgen::prelude::wasm_bindgen)]
 pub enum ChangeSelectionAlgo {
     Default,
 }

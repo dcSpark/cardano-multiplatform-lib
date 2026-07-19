@@ -1,8 +1,3 @@
-#[cfg(not(feature = "used_from_wasm"))]
-use noop_proc_macro::wasm_bindgen;
-#[cfg(feature = "used_from_wasm")]
-use wasm_bindgen::prelude::wasm_bindgen;
-
 use cml_crypto::{Bip32PublicKey, PublicKey, chain_crypto::hash::Blake2b224};
 
 use crate::Coin;
@@ -76,7 +71,7 @@ impl Default for AddrAttributes {
     serde::Serialize,
     schemars::JsonSchema,
 )]
-#[wasm_bindgen]
+#[cfg_attr(feature = "used_from_wasm", wasm_bindgen::prelude::wasm_bindgen)]
 pub enum ByronAddrType {
     PublicKey = 0,
     Script = 1,

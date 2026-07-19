@@ -17,7 +17,7 @@ generated-with = "0.1.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-cip36 = { path = "../rust" , version = "6.2.0" }
+cml-cip36 = { path = "../rust", version = "6.2.0" , features = ["used_from_wasm"] }
 cml-crypto = { path = "../../crypto/rust", version = "6.2.0" }
 cml-crypto-wasm = { path = "../../crypto/wasm", version = "6.2.0" }
 cml-chain = { path = "../../chain/rust", version = "6.2.0" }

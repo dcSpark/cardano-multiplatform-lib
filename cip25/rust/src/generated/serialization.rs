@@ -78,7 +78,12 @@ impl Deserialize for CIP25FilesDetails {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
             let mut read_len = CBORReadLen::from(len);
+            // cddl-codegen:replace-start
             read_len.read_elems(3)?;
+            // cddl-codegen:replaces
+            // read_len.read_elems(3)?;
+            // read_len.finish()?;
+            // cddl-codegen:replace-end
             let mut src = None;
             let mut name = None;
             let mut media_type = None;
@@ -131,13 +136,22 @@ impl Deserialize for CIP25FilesDetails {
                                     .map_err(|e: DeserializeError| e.annotate("media_type"))?,
                             );
                         }
+                        // cddl-codegen:replace-start
                         _unknown_key => {
                             // CIP-25 allows permissive parsing
                             read_len.read_elems(1)?;
                             // we still need to read the data to move on to the CBOR after it
                             let _other_metadatum =
                                 cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
-                        }
+                        } 
+                        // cddl-codegen:replaces
+                        // unknown_key => {
+                        //     return Err(DeserializeFailure::UnknownKey(Key::Str(
+                        //         unknown_key.to_owned(),
+                        //     ))
+                        //     .into());
+                        // }
+                        // cddl-codegen:replace-end
                     },
                     cbor_event::Type::Special => match len {
                         cbor_event::Len::Len(_) => {
@@ -148,7 +162,8 @@ impl Deserialize for CIP25FilesDetails {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                     _other_type => {
+                    // cddl-codegen:replace-start
+                    _other_type => {
                         // CIP-25 allows permissive parsing
                         read_len.read_elems(1)?;
                         // we still need to read the data to move on to the CBOR after it
@@ -156,7 +171,12 @@ impl Deserialize for CIP25FilesDetails {
                             cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         let _other_value =
                             cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
-                    }
+                    } 
+                    // cddl-codegen:replaces
+                    // other_type => {
+                    //     return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
+                    // }
+                    // cddl-codegen:replace-end
                 }
                 read += 1;
             }
@@ -188,7 +208,9 @@ impl Deserialize for CIP25FilesDetails {
                     );
                 }
             };
+            // cddl-codegen:insert-start
             read_len.finish()?;
+            // cddl-codegen:insert-end
             Ok(Self {
                 name,
                 media_type,
@@ -216,7 +238,12 @@ impl Deserialize for CIP25Metadata {
         (|| -> Result<_, DeserializeError> {
             let len = raw.map()?;
             let mut read_len = CBORReadLen::from(len);
+            // cddl-codegen:replace-start
             read_len.read_elems(1)?;
+            // cddl-codegen:replaces
+            // read_len.read_elems(1)?;
+            // read_len.finish()?;
+            // cddl-codegen:replace-end
             let mut key_721 = None;
             let mut read = 0;
             while match len {
@@ -234,6 +261,7 @@ impl Deserialize for CIP25Metadata {
                                     .map_err(|e: DeserializeError| e.annotate("key_721"))?,
                             );
                         }
+                        // cddl-codegen:replace-start
                         _unknown_key => {
                             // CIP-25 allows permissive parsing
                             read_len.read_elems(1)?;
@@ -241,6 +269,13 @@ impl Deserialize for CIP25Metadata {
                             let _other_metadatum =
                                 cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         }
+                        // cddl-codegen:replaces
+                        // unknown_key => {
+                        //     return Err(
+                        //         DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
+                        //     );
+                        // }
+                        // cddl-codegen:replace-end
                     },
                     cbor_event::Type::Text => {
                         return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
@@ -266,7 +301,9 @@ impl Deserialize for CIP25Metadata {
                     return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(721)).into());
                 }
             };
+            // cddl-codegen:insert-start
             read_len.finish()?;
+            // cddl-codegen:insert-end
             Ok(Self { key_721 })
         })()
         .map_err(|e| e.annotate("CIP25Metadata"))
@@ -420,6 +457,7 @@ impl Deserialize for CIP25MetadataDetails {
                                 .map_err(|e| e.annotate("description"))?,
                             );
                         }
+                        // cddl-codegen:replace-start
                         _unknown_key => {
                             // CIP-25 allows permissive parsing
                             read_len.read_elems(1)?;
@@ -427,6 +465,14 @@ impl Deserialize for CIP25MetadataDetails {
                             let _other_metadatum =
                                 cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         }
+                        // cddl-codegen:replaces
+                        // unknown_key => {
+                        //     return Err(DeserializeFailure::UnknownKey(Key::Str(
+                        //         unknown_key.to_owned(),
+                        //     ))
+                        //     .into());
+                        // }
+                        // cddl-codegen:replace-end
                     },
                     cbor_event::Type::Special => match len {
                         cbor_event::Len::Len(_) => {
@@ -437,7 +483,8 @@ impl Deserialize for CIP25MetadataDetails {
                             _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
                         },
                     },
-                     _other_type => {
+                    // cddl-codegen:replace-start
+                    _other_type => {
                         // CIP-25 allows permissive parsing
                         read_len.read_elems(1)?;
                         // we still need to read the data to move on to the CBOR after it
@@ -445,7 +492,12 @@ impl Deserialize for CIP25MetadataDetails {
                             cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         let _other_value =
                             cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
-                    }
+                    } 
+                    // cddl-codegen:replaces
+                    // other_type => {
+                    //     return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
+                    // }
+                    // cddl-codegen:replace-end
                 }
                 read += 1;
             }

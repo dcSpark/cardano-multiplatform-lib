@@ -107,3 +107,26 @@ impl JsonSchema for ByronAny {
         String::inline_schema()
     }
 }
+
+// The extern contract for byron_block / byron_tx (specs/multiera/lib.cddl) demands
+// cml_core's Serialize. Byron's encoding is deterministic, so force_canonical is a no-op
+// and we can delegate straight to the cbor_event impls.
+impl cml_core::serialization::Serialize for super::block::ByronBlock {
+    fn serialize<'a>(
+        &self,
+        serializer: &'a mut Serializer,
+        _force_canonical: bool,
+    ) -> cbor_event::Result<&'a mut Serializer> {
+        cbor_event::se::Serialize::serialize(self, serializer)
+    }
+}
+
+impl cml_core::serialization::Serialize for super::transaction::ByronTx {
+    fn serialize<'a>(
+        &self,
+        serializer: &'a mut Serializer,
+        _force_canonical: bool,
+    ) -> cbor_event::Result<&'a mut Serializer> {
+        cbor_event::se::Serialize::serialize(self, serializer)
+    }
+}

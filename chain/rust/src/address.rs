@@ -6,11 +6,6 @@ use derivative::Derivative;
 use schemars::JsonSchema;
 use std::convert::{TryFrom, TryInto};
 
-#[cfg(not(feature = "used_from_wasm"))]
-use noop_proc_macro::wasm_bindgen;
-#[cfg(feature = "used_from_wasm")]
-use wasm_bindgen::prelude::wasm_bindgen;
-
 use cml_crypto::{Ed25519KeyHash, ScriptHash};
 
 use crate::certs::StakeCredential;
@@ -55,7 +50,7 @@ fn variable_nat_encode(mut num: num_bigint::BigUint) -> Vec<u8> {
     output
 }
 
-#[wasm_bindgen]
+#[cfg_attr(feature = "used_from_wasm", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum AddressKind {
     Base,
@@ -128,7 +123,7 @@ impl JsonSchema for Address {
 /// Careful: this enum doesn't include the network ID part of the header
 /// ex: base address isn't 0b0000_0000 but instead 0b0000
 /// Use `header_matches_kind` if you don't want to implement the bitwise operators yourself
-#[wasm_bindgen]
+#[cfg_attr(feature = "used_from_wasm", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(u8)]
 pub enum AddressHeaderKind {

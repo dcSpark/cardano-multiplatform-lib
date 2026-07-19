@@ -50,9 +50,30 @@ set -euo pipefail
 # static export (--export-static-crate, which replaced --export-static-dir and also merges
 # core/rust/Cargo.toml — the chain invocation below uses the NEW flag, so it needs a rev that
 # has it; an older rev fails loudly on the unknown flag).
+# The 2026-07-19 upstream cycle (see draft/migrations/RESPONSE-2026-07-19-*.md) added MORE the
+# bump rev must include:
+#   - --rust-wasm-feature (feature-gates the c-style-enum #[wasm_bindgen] in the RUST crate via
+#     cfg_attr, replacing the old noop_proc_macro import shim the committed generated code still
+#     carries; the flag is passed below, so an older rev fails loudly on it) and the automatic
+#     repair of the legacy `used_from_wasm = ["wasm-bindgen"]` feature list to ["dep:…"]
+#   - banner-only extern_interface_check.rs / key_demand_assertions.rs (per-row `// <rule>`
+#     markers removed — they self-perpetuated as unpreserved-comment traps after rule deletions;
+#     our tree carries no trap blocks, so no one-time hand-cleanup is needed here)
+#   - json-gen extern-row fixes (skips uncompilable rows for generic-extern bases and
+#     workspace-dep-owned types; KEEPS rows for own-spec externs, which now contractually need
+#     schemars::JsonSchema — all of CML's externs already impl it)
+#   - borrowed_key_types.rs self-check emits the dep's SCOPED path (bare machine rows unchanged;
+#     sidecar bytes only change if a map is keyed on a non-root dep type)
 # Bump to a rev with all of the above once they are on the GitHub remote — nothing earlier; e.g.
 # 2bff93f has --export-static-dir but not the alias fix, and 18fb7cc lacks the @custom_json fix.
-# Until then regen only works via CDDL_CODEGEN_DIR pointing at a local checkout.
+# As of 2026-07-19 the cycle's fixes are NOT yet pushed (only e07c3a0 of the referenced commits is
+# on the remote). Until then regen only works via CDDL_CODEGEN_DIR pointing at a local checkout.
+# KNOWN BLOCKER (2026-07-19): at rev ee85ccb the CHAIN regen aborts — the generic
+# `@raw_bytes_flavor` externs (specs/conway/lib.cddl set<T>/nonempty_set<T>) get their instance
+# repr (`NonemptySetRawBytes<Ed25519KeyHash>`) emitted WITH type args into transaction/mod.rs's
+# `use` list, which is invalid Rust. Filed upstream as draft/feature-requests/REQUEST-07-….md.
+# multi-era/cip36/cip25 regenerate clean at that rev (their 2026-07-19 diffs are already in this
+# tree); ONLY chain is blocked, and regens once REQUEST-07 is fixed.
 CDDL_CODEGEN_REV="77237871a3d2585996b103fbcc03bd227606c445"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -98,14 +119,20 @@ gen() {
 #     conversions) into a single impl_wasm_list_needs_into!(rust, wasm, Name, needs_into, is_copy)
 #     call. It supersedes --wasm-conversions-macro for list wrappers. The shim adapts the flag's
 #     needs_into polarity to cml_core_wasm::impl_wasm_list (whose 4th arg is inverted).
+#   --rust-wasm-feature=used_from_wasm: c-style enums are the one struct kind whose
+#     #[wasm_bindgen] lands in the RUST crate; the codegen gates that attribute behind a cargo
+#     feature (cfg_attr) and this flag names it. CML has always gated wasm-bindgen behind
+#     `used_from_wasm` (the wasm crates' path deps already enable it), so pass that name instead
+#     of the default "wasm". The regen also repairs the legacy `used_from_wasm = ["wasm-bindgen"]`
+#     feature list to ["dep:wasm-bindgen"] and replaces the old noop_proc_macro import shim.
 #   --no-synthesized-rust-collection-aliases=true suppresses the dead rust `pub type FooList =
 #     Vec<Foo>;` aliases minted for generator-SYNTHESIZED collection wrappers (table keys-lists,
 #     anonymous shapes). Rule-declared aliases are never touched. Generated code is structural, so
 #     this is emission-only; it removes public rust API in EVERY crate (incl. chain's own
 #     PolicyIdList etc.) — intentional, they were dead re-declarations.
 OVERRIDE=(--common-import-override=cml_core --no-synthesized-rust-collection-aliases=true)
-WASM_MACROS=(--wasm true --wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api --wasm-conversions-macro=cml_core_wasm::impl_wasm_conversions --wasm-list-macro=cml_core_wasm::impl_wasm_list_needs_into)
-CIP25_WASM_MACROS=(--wasm true --wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api_cbor_event_serialize --wasm-conversions-macro=cml_core_wasm::impl_wasm_conversions --wasm-list-macro=cml_core_wasm::impl_wasm_list_needs_into)
+WASM_MACROS=(--wasm true --rust-wasm-feature=used_from_wasm --wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api --wasm-conversions-macro=cml_core_wasm::impl_wasm_conversions --wasm-list-macro=cml_core_wasm::impl_wasm_list_needs_into)
+CIP25_WASM_MACROS=(--wasm true --rust-wasm-feature=used_from_wasm --wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api_cbor_event_serialize --wasm-conversions-macro=cml_core_wasm::impl_wasm_conversions --wasm-list-macro=cml_core_wasm::impl_wasm_list_needs_into)
 COMMON=(--preserve-encodings=true --canonical-form=true --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${WASM_MACROS[@]}")
 
 # --extern-wasm-crate=<dep>=<dep>_wasm: multi-era references chain types as cross-crate extern deps

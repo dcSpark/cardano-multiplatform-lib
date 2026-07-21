@@ -24,7 +24,7 @@ pub use crate::VRFKeyHash;
 pub use crate::VRFVkey;
 pub use crate::Vkey;
 
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
@@ -118,7 +118,7 @@ impl Nonce {
 
     pub fn as_hash(&self) -> Option<NonceHash> {
         match &self.0 {
-            cml_chain::crypto::Nonce::Hash { hash, .. } => Some(hash.clone().into()),
+            cml_chain::crypto::Nonce::Hash { hash, .. } => Some((*hash).into()),
             _ => None,
         }
     }

@@ -1,16 +1,15 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use super::*;
-
 use crate::generated::assets::Coin;
 use crate::generated::auxdata::Metadata;
-use crate::generated::certs::{Credential, StakeCredential};
+use crate::generated::certs::StakeCredential;
 use crate::generated::crypto::GenesisHash;
 use crate::generated::transaction::AlonzoFormatTxOut;
+use crate::generated::{DeltaCoin, TransactionIndex};
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{JsError, wasm_bindgen};
+use cml_core_wasm::{impl_wasm_conversions, impl_wasm_list_needs_into};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 impl_wasm_list_needs_into!(
     cml_chain::transaction::AlonzoFormatTxOut,

@@ -12,8 +12,8 @@ use cml_chain_wasm::address::Address;
 use cml_chain_wasm::assets::{Coin, Mint, Value};
 use cml_chain_wasm::collections::TransactionInputList;
 use cml_chain_wasm::crypto::AuxiliaryDataHash;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{JsError, wasm_bindgen};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -155,7 +155,6 @@ impl MaryTransactionBody {
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
         self.0
             .auxiliary_data_hash
-            .clone()
             .map(std::convert::Into::into)
     }
 

@@ -1,7 +1,11 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-#![allow(clippy::too_many_arguments)]
+#![allow(
+    clippy::too_many_arguments,
+    clippy::large_enum_variant,
+    clippy::result_large_err
+)]
 
 extern crate derivative;
 pub mod cbor_encodings;
@@ -9,12 +13,10 @@ mod extern_interface_check;
 pub mod serialization;
 
 use cbor_encodings::{
-    CIP36DelegationEncoding, CIP36DeregistrationWitnessEncoding,
-    CIP36KeyDeregistrationEncoding, CIP36KeyRegistrationEncoding,
-    CIP36RegistrationWitnessEncoding,
+    CIP36DelegationEncoding, CIP36DeregistrationWitnessEncoding, CIP36KeyDeregistrationEncoding,
+    CIP36KeyRegistrationEncoding, CIP36RegistrationWitnessEncoding,
 };
 use cml_chain::address::Address as PaymentAddress;
-use cml_core::error::*;
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use cml_crypto::{Ed25519Signature, PublicKey};

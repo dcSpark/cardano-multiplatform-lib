@@ -143,15 +143,14 @@ impl Deserialize for CIP25FilesDetails {
                             // we still need to read the data to move on to the CBOR after it
                             let _other_metadatum =
                                 cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
-                        } 
-                        // cddl-codegen:replaces
-                        // unknown_key => {
-                        //     return Err(DeserializeFailure::UnknownKey(Key::Str(
-                        //         unknown_key.to_owned(),
-                        //     ))
-                        //     .into());
-                        // }
-                        // cddl-codegen:replace-end
+                        } // cddl-codegen:replaces
+                          // unknown_key => {
+                          //     return Err(DeserializeFailure::UnknownKey(Key::Str(
+                          //         unknown_key.to_owned(),
+                          //     ))
+                          //     .into());
+                          // }
+                          // cddl-codegen:replace-end
                     },
                     cbor_event::Type::Special => match len {
                         cbor_event::Len::Len(_) => {
@@ -171,12 +170,11 @@ impl Deserialize for CIP25FilesDetails {
                             cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         let _other_value =
                             cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
-                    } 
-                    // cddl-codegen:replaces
-                    // other_type => {
-                    //     return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
-                    // }
-                    // cddl-codegen:replace-end
+                    } // cddl-codegen:replaces
+                      // other_type => {
+                      //     return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
+                      // }
+                      // cddl-codegen:replace-end
                 }
                 read += 1;
             }
@@ -268,14 +266,13 @@ impl Deserialize for CIP25Metadata {
                             // we still need to read the data to move on to the CBOR after it
                             let _other_metadatum =
                                 cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
-                        }
-                        // cddl-codegen:replaces
-                        // unknown_key => {
-                        //     return Err(
-                        //         DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
-                        //     );
-                        // }
-                        // cddl-codegen:replace-end
+                        } // cddl-codegen:replaces
+                          // unknown_key => {
+                          //     return Err(
+                          //         DeserializeFailure::UnknownKey(Key::Uint(unknown_key)).into()
+                          //     );
+                          // }
+                          // cddl-codegen:replace-end
                     },
                     cbor_event::Type::Text => {
                         return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
@@ -464,15 +461,14 @@ impl Deserialize for CIP25MetadataDetails {
                             // we still need to read the data to move on to the CBOR after it
                             let _other_metadatum =
                                 cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
-                        }
-                        // cddl-codegen:replaces
-                        // unknown_key => {
-                        //     return Err(DeserializeFailure::UnknownKey(Key::Str(
-                        //         unknown_key.to_owned(),
-                        //     ))
-                        //     .into());
-                        // }
-                        // cddl-codegen:replace-end
+                        } // cddl-codegen:replaces
+                          // unknown_key => {
+                          //     return Err(DeserializeFailure::UnknownKey(Key::Str(
+                          //         unknown_key.to_owned(),
+                          //     ))
+                          //     .into());
+                          // }
+                          // cddl-codegen:replace-end
                     },
                     cbor_event::Type::Special => match len {
                         cbor_event::Len::Len(_) => {
@@ -492,12 +488,11 @@ impl Deserialize for CIP25MetadataDetails {
                             cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
                         let _other_value =
                             cml_chain::auxdata::TransactionMetadatum::deserialize(raw)?;
-                    } 
-                    // cddl-codegen:replaces
-                    // other_type => {
-                    //     return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
-                    // }
-                    // cddl-codegen:replace-end
+                    } // cddl-codegen:replaces
+                      // other_type => {
+                      //     return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
+                      // }
+                      // cddl-codegen:replace-end
                 }
                 read += 1;
             }

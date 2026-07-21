@@ -72,7 +72,6 @@ impl AllegraBlock {
     }
 }
 
-#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AllegraCertificate {
     StakeRegistration(StakeRegistration),

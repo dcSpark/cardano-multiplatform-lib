@@ -16,9 +16,9 @@ use cml_chain_wasm::crypto::{AuxiliaryDataHash, GenesisHash, Nonce, ScriptDataHa
 use cml_chain_wasm::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData};
 use cml_chain_wasm::{Epoch, NetworkId, Rational, TransactionIndex, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 pub use cml_multi_era::alonzo::AlonzoRedeemerTag;
-use wasm_bindgen::prelude::{JsError, wasm_bindgen};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -494,7 +494,7 @@ impl AlonzoRedeemer {
 
     pub fn new(tag: AlonzoRedeemerTag, index: u64, data: &PlutusData, ex_units: &ExUnits) -> Self {
         Self(cml_multi_era::alonzo::AlonzoRedeemer::new(
-            tag.into(),
+            tag,
             index,
             data.clone().into(),
             ex_units.clone().into(),
@@ -607,7 +607,6 @@ impl AlonzoTransactionBody {
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
         self.0
             .auxiliary_data_hash
-            .clone()
             .map(std::convert::Into::into)
     }
 
@@ -634,7 +633,6 @@ impl AlonzoTransactionBody {
     pub fn script_data_hash(&self) -> Option<ScriptDataHash> {
         self.0
             .script_data_hash
-            .clone()
             .map(std::convert::Into::into)
     }
 

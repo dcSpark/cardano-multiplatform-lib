@@ -22,7 +22,7 @@ pub use cml_core_wasm::Int;
 use address::RewardAccount;
 use assets::{AssetName, Coin, NonZeroInt64};
 use auxdata::AuxiliaryData;
-use certs::{Certificate, CommitteeColdCredential, Credential, Relay};
+use certs::{Certificate, CommitteeColdCredential, Relay};
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;

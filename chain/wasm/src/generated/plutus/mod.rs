@@ -10,11 +10,11 @@ pub use crate::PlutusMap;
 
 use crate::generated::{
     MapU64ToArrI64, NonEmptyLegacyRedeemerList, NonEmptyMapRedeemerKeyToRedeemerVal,
-    PlutusDataList, Rational, SubCoin,
+    PlutusDataList, SubCoin,
 };
 pub use cml_chain::plutus::{Language, RedeemerTag};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{JsError, wasm_bindgen};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -112,7 +112,7 @@ impl LegacyRedeemer {
 
     pub fn new(tag: RedeemerTag, index: u64, data: &PlutusData, ex_units: &ExUnits) -> Self {
         Self(cml_chain::plutus::LegacyRedeemer::new(
-            tag.into(),
+            tag,
             index,
             data.clone().into(),
             ex_units.clone().into(),
@@ -287,7 +287,7 @@ impl RedeemerKey {
     }
 
     pub fn new(tag: RedeemerTag, index: u64) -> Self {
-        Self(cml_chain::plutus::RedeemerKey::new(tag.into(), index))
+        Self(cml_chain::plutus::RedeemerKey::new(tag, index))
     }
 }
 

@@ -89,73 +89,32 @@ impl ConwayFormatTxOut {
 #[derive(
     Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
 )]
-#[derivative(
-    Eq,
-    PartialEq,
-    Ord = "feature_allow_slow_enum",
-    PartialOrd = "feature_allow_slow_enum",
-    Hash
-)]
+#[derivative(Eq, PartialEq, Hash)]
 pub enum DatumOption {
     Hash {
         datum_hash: DatumHash,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         #[serde(skip)]
         len_encoding: LenEncoding,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         #[serde(skip)]
         tag_encoding: Option<cbor_event::Sz>,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         #[serde(skip)]
         datum_hash_encoding: StringEncoding,
     },
     Datum {
         datum: PlutusData,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         #[serde(skip)]
         len_encoding: LenEncoding,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         #[serde(skip)]
         tag_encoding: Option<cbor_event::Sz>,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         #[serde(skip)]
         datum_tag_encoding: Option<cbor_event::Sz>,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
+        #[derivative(PartialEq = "ignore", Hash = "ignore")]
         #[serde(skip)]
         datum_bytes_encoding: StringEncoding,
     },
@@ -395,15 +354,10 @@ impl ScriptPubkey {
 }
 
 #[derive(Clone, Debug, derivative::Derivative)]
-#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derivative(Eq, PartialEq, Hash)]
 pub struct ScriptRef {
     pub(crate) inner: Script,
-    #[derivative(
-        PartialEq = "ignore",
-        Ord = "ignore",
-        PartialOrd = "ignore",
-        Hash = "ignore"
-    )]
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
     pub encodings: Option<ScriptRefEncoding>,
 }
 

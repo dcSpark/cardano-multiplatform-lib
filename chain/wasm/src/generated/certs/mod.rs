@@ -6,7 +6,7 @@ use crate::generated::assets::Coin;
 use crate::generated::crypto::{Ed25519KeyHash, PoolMetadataHash, ScriptHash, VRFKeyHash};
 use crate::generated::governance::Anchor;
 use crate::generated::{Epoch, Port, RelayList, SetEd25519KeyHash, UnitInterval};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[derive(Clone, Debug)]
@@ -453,14 +453,14 @@ impl Credential {
 
     pub fn as_pub_key(&self) -> Option<Ed25519KeyHash> {
         match &self.0 {
-            cml_chain::certs::Credential::PubKey { hash, .. } => Some(hash.clone().into()),
+            cml_chain::certs::Credential::PubKey { hash, .. } => Some((*hash).into()),
             _ => None,
         }
     }
 
     pub fn as_script(&self) -> Option<ScriptHash> {
         match &self.0 {
-            cml_chain::certs::Credential::Script { hash, .. } => Some(hash.clone().into()),
+            cml_chain::certs::Credential::Script { hash, .. } => Some((*hash).into()),
             _ => None,
         }
     }
@@ -532,14 +532,14 @@ impl DRep {
 
     pub fn as_key(&self) -> Option<Ed25519KeyHash> {
         match &self.0 {
-            cml_chain::certs::DRep::Key { pool, .. } => Some(pool.clone().into()),
+            cml_chain::certs::DRep::Key { pool, .. } => Some((*pool).into()),
             _ => None,
         }
     }
 
     pub fn as_script(&self) -> Option<ScriptHash> {
         match &self.0 {
-            cml_chain::certs::DRep::Script { script_hash, .. } => Some(script_hash.clone().into()),
+            cml_chain::certs::DRep::Script { script_hash, .. } => Some((*script_hash).into()),
             _ => None,
         }
     }
@@ -634,7 +634,7 @@ impl PoolMetadata {
     }
 
     pub fn pool_metadata_hash(&self) -> PoolMetadataHash {
-        self.0.pool_metadata_hash.clone().into()
+        self.0.pool_metadata_hash.into()
     }
 
     pub fn new(url: &Url, pool_metadata_hash: &PoolMetadataHash) -> Self {
@@ -656,11 +656,11 @@ impl_wasm_conversions!(cml_chain::certs::PoolParams, PoolParams);
 #[wasm_bindgen]
 impl PoolParams {
     pub fn operator(&self) -> Ed25519KeyHash {
-        self.0.operator.clone().into()
+        self.0.operator.into()
     }
 
     pub fn vrf_keyhash(&self) -> VRFKeyHash {
-        self.0.vrf_keyhash.clone().into()
+        self.0.vrf_keyhash.into()
     }
 
     pub fn pledge(&self) -> Coin {
@@ -748,7 +748,7 @@ impl_wasm_conversions!(cml_chain::certs::PoolRetirement, PoolRetirement);
 #[wasm_bindgen]
 impl PoolRetirement {
     pub fn pool(&self) -> Ed25519KeyHash {
-        self.0.pool.clone().into()
+        self.0.pool.into()
     }
 
     pub fn epoch(&self) -> Epoch {
@@ -1005,7 +1005,7 @@ impl StakeDelegation {
     }
 
     pub fn pool(&self) -> Ed25519KeyHash {
-        self.0.pool.clone().into()
+        self.0.pool.into()
     }
 
     pub fn new(stake_credential: &StakeCredential, pool: &Ed25519KeyHash) -> Self {
@@ -1052,7 +1052,7 @@ impl StakeRegDelegCert {
     }
 
     pub fn pool(&self) -> Ed25519KeyHash {
-        self.0.pool.clone().into()
+        self.0.pool.into()
     }
 
     pub fn deposit(&self) -> Coin {
@@ -1104,7 +1104,7 @@ impl StakeVoteDelegCert {
     }
 
     pub fn pool(&self) -> Ed25519KeyHash {
-        self.0.pool.clone().into()
+        self.0.pool.into()
     }
 
     pub fn d_rep(&self) -> DRep {
@@ -1138,7 +1138,7 @@ impl StakeVoteRegDelegCert {
     }
 
     pub fn pool(&self) -> Ed25519KeyHash {
-        self.0.pool.clone().into()
+        self.0.pool.into()
     }
 
     pub fn d_rep(&self) -> DRep {

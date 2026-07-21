@@ -9,8 +9,8 @@ pub use crate::Metadata;
 use crate::generated::{
     NativeScriptList, PlutusV1ScriptList, PlutusV2ScriptList, PlutusV3ScriptList,
 };
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use wasm_bindgen::prelude::{JsError, wasm_bindgen};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

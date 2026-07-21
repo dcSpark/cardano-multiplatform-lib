@@ -21,9 +21,9 @@ use cml_chain_wasm::crypto::{
     AuxiliaryDataHash, Ed25519KeyHash, GenesisDelegateHash, GenesisHash, VRFKeyHash,
 };
 use cml_chain_wasm::{Epoch, Withdrawals};
-use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
 pub use cml_multi_era::allegra::MIRPot;
-use wasm_bindgen::prelude::{JsError, wasm_bindgen};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -412,7 +412,6 @@ impl AllegraTransactionBody {
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
         self.0
             .auxiliary_data_hash
-            .clone()
             .map(std::convert::Into::into)
     }
 
@@ -564,7 +563,7 @@ impl MoveInstantaneousReward {
 
     pub fn new(pot: MIRPot, action: &MIRAction) -> Self {
         Self(cml_multi_era::allegra::MoveInstantaneousReward::new(
-            pot.into(),
+            pot,
             action.clone().into(),
         ))
     }

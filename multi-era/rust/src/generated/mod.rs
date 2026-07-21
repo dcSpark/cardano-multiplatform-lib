@@ -1,7 +1,11 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-#![allow(clippy::too_many_arguments)]
+#![allow(
+    clippy::too_many_arguments,
+    clippy::large_enum_variant,
+    clippy::result_large_err
+)]
 
 extern crate derivative;
 pub mod allegra;
@@ -22,9 +26,12 @@ pub use crate::ByronTx;
 use allegra::{AllegraBlock, AllegraTransactionBody};
 use alonzo::{AlonzoBlock, AlonzoTransactionBody};
 use babbage::{BabbageBlock, BabbageTransactionBody};
+use cml_chain::crypto::GenesisHash;
 use cml_chain::transaction::TransactionBody;
 use mary::{MaryBlock, MaryTransactionBody};
 use shelley::{ShelleyBlock, ShelleyTransactionBody};
+
+pub type GenesisHashList = Vec<GenesisHash>;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum MultiEraBlock {

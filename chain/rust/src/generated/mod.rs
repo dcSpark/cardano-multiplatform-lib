@@ -1,7 +1,11 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-#![allow(clippy::too_many_arguments)]
+#![allow(
+    clippy::too_many_arguments,
+    clippy::large_enum_variant,
+    clippy::result_large_err
+)]
 
 extern crate derivative;
 pub mod address;
@@ -204,6 +208,8 @@ pub type NonemptySetTransactionInput = NonEmptyVec<TransactionInput>;
 pub type NonemptySetVkeywitness = NonEmptyVec<Vkeywitness>;
 
 pub type PolicyId = ScriptHash;
+
+pub type PolicyIdList = Vec<PolicyId>;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct PoolVotingThresholds {

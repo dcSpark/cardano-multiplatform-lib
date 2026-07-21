@@ -33,7 +33,6 @@ use babbage::{
     BabbageTransactionWitnessSet,
 };
 use cml_chain_wasm::TransactionIndex;
-use cml_chain_wasm::crypto::GenesisHash;
 use cml_chain_wasm::transaction::TransactionBody;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
@@ -42,7 +41,7 @@ use shelley::{
     MultisigScript, ShelleyBlock, ShelleyCertificate, ShelleyRelay, ShelleyTransactionBody,
     ShelleyTransactionOutput, ShelleyTransactionWitnessSet,
 };
-use wasm_bindgen::prelude::{JsError, wasm_bindgen};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 impl_wasm_list_needs_into!(
     cml_multi_era::allegra::AllegraCertificate,

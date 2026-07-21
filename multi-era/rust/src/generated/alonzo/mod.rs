@@ -19,7 +19,7 @@ use cml_chain::crypto::{
     Vkeywitness,
 };
 use cml_chain::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script};
-use cml_chain::transaction::{AlonzoFormatTxOut, NativeScript, RequiredSigners, TransactionInput};
+use cml_chain::transaction::{AlonzoFormatTxOut, NativeScript, TransactionInput};
 use cml_chain::{
     Epoch, NetworkId, PolicyId, Rational, TransactionIndex, UnitInterval, Withdrawals,
 };
@@ -261,7 +261,7 @@ pub struct AlonzoTransactionBody {
     pub mint: Option<Mint>,
     pub script_data_hash: Option<ScriptDataHash>,
     pub collateral_inputs: Option<Vec<TransactionInput>>,
-    pub required_signers: Option<RequiredSigners>,
+    pub required_signers: Option<Vec<Ed25519KeyHash>>,
     pub network_id: Option<NetworkId>,
     #[serde(skip)]
     pub encodings: Option<AlonzoTransactionBodyEncoding>,

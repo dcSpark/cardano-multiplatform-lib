@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    NativeScript, RequiredSigners, Script,
+    NativeScript, Script,
     byron::ByronAddress,
     certs::Credential,
     crypto::{BootstrapWitness, Vkey, Vkeywitness, hash::hash_plutus_data},
@@ -88,7 +88,11 @@ impl PartialPlutusWitness {
 #[derive(Clone, Debug)]
 pub enum InputAggregateWitnessData {
     NativeScript(NativeScript, NativeScriptWitnessInfo),
-    PlutusScript(PartialPlutusWitness, RequiredSigners, Option<PlutusData>),
+    PlutusScript(
+        PartialPlutusWitness,
+        Vec<Ed25519KeyHash>, /* required signers */
+        Option<PlutusData>,
+    ),
 }
 
 impl InputAggregateWitnessData {
@@ -450,33 +454,54 @@ impl TransactionWitnessSetBuilder {
         let plutus_v3_scripts = self.get_plutus_v3_script();
         let plutus_datums = self.get_plutus_datum();
 
+        // Each conversion is guarded by the matching is_empty check, so try_from cannot fail.
         if !self.vkeys.is_empty() {
-            result.vkeywitnesses = Some(self.vkeys.into_values().collect::<Vec<_>>().into());
+            result.vkeywitnesses = Some(
+                NonEmptyVec::try_from(self.vkeys.into_values().collect::<Vec<_>>())
+                    .expect("vkeys non-empty (guarded above)"),
+            );
         }
 
         if !self.bootstraps.is_empty() {
-            result.bootstrap_witnesses =
-                Some(self.bootstraps.into_values().collect::<Vec<_>>().into());
+            result.bootstrap_witnesses = Some(
+                NonEmptyVec::try_from(self.bootstraps.into_values().collect::<Vec<_>>())
+                    .expect("bootstraps non-empty (guarded above)"),
+            );
         }
 
         if !native_scripts.is_empty() {
-            result.native_scripts = Some(native_scripts.into());
+            result.native_scripts = Some(
+                NonEmptyVec::try_from(native_scripts)
+                    .expect("native_scripts non-empty (guarded above)"),
+            );
         }
 
         if !plutus_v1_scripts.is_empty() {
-            result.plutus_v1_scripts = Some(plutus_v1_scripts.into());
+            result.plutus_v1_scripts = Some(
+                NonEmptyVec::try_from(plutus_v1_scripts)
+                    .expect("plutus_v1_scripts non-empty (guarded above)"),
+            );
         }
 
         if !plutus_v2_scripts.is_empty() {
-            result.plutus_v2_scripts = Some(plutus_v2_scripts.into());
+            result.plutus_v2_scripts = Some(
+                NonEmptyVec::try_from(plutus_v2_scripts)
+                    .expect("plutus_v2_scripts non-empty (guarded above)"),
+            );
         }
 
         if !plutus_v3_scripts.is_empty() {
-            result.plutus_v3_scripts = Some(plutus_v3_scripts.into());
+            result.plutus_v3_scripts = Some(
+                NonEmptyVec::try_from(plutus_v3_scripts)
+                    .expect("plutus_v3_scripts non-empty (guarded above)"),
+            );
         }
 
         if !self.plutus_data.is_empty() {
-            result.plutus_datums = Some(plutus_datums.into());
+            result.plutus_datums = Some(
+                NonEmptyVec::try_from(plutus_datums)
+                    .expect("plutus_data non-empty (guarded above)"),
+            );
         }
 
         if !self.redeemers.is_empty() {
@@ -677,7 +702,7 @@ mod tests {
                 }
             };
             let missing_signers = vec![fake_raw_key_public(0).hash()];
-            InputAggregateWitnessData::PlutusScript(witness, missing_signers.into(), None)
+            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
         };
 
         assert_eq!(required_wits.vkeys.len(), 0);

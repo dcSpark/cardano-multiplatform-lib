@@ -6,8 +6,10 @@ use super::{
     witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet},
 };
 
+use cml_crypto::Ed25519KeyHash;
+
 use crate::{
-    NativeScript, RequiredSigners,
+    NativeScript,
     address::Address,
     certs::StakeCredential,
     crypto::hash::hash_plutus_data,
@@ -119,7 +121,7 @@ impl SingleInputBuilder {
     pub fn plutus_script(
         self,
         partial_witness: PartialPlutusWitness,
-        required_signers: RequiredSigners,
+        required_signers: Vec<Ed25519KeyHash>,
         datum: PlutusData,
     ) -> Result<InputBuilderResult, InputBuilderError> {
         self.plutus_script_inner(partial_witness, required_signers, Some(datum))
@@ -128,7 +130,7 @@ impl SingleInputBuilder {
     pub fn plutus_script_inline_datum(
         self,
         partial_witness: PartialPlutusWitness,
-        required_signers: RequiredSigners,
+        required_signers: Vec<Ed25519KeyHash>,
     ) -> Result<InputBuilderResult, InputBuilderError> {
         self.plutus_script_inner(partial_witness, required_signers, None)
     }
@@ -136,7 +138,7 @@ impl SingleInputBuilder {
     fn plutus_script_inner(
         self,
         partial_witness: PartialPlutusWitness,
-        required_signers: RequiredSigners,
+        required_signers: Vec<Ed25519KeyHash>,
         datum: Option<PlutusData>,
     ) -> Result<InputBuilderResult, InputBuilderError> {
         let mut required_wits = required_wits_from_required_signers(&required_signers);

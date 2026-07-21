@@ -1,0 +1,6 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+block = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Block
+byron_block = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ByronBlock
+byron_tx = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ByronTx
+multi_era_block = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name MultiEraBlock
+multi_era_transaction_body = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name MultiEraTransactionBody

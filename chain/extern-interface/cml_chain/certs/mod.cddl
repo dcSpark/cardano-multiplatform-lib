@@ -1,0 +1,35 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+; unexported: pool_params — unrenderable shape: a reference to `SetEd25519KeyHash` with no recorded source CDDL rule name
+; unexported: pool_registration — references excluded pool_params
+DNS_name = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name DNSName
+auth_committee_hot_cert = (index_0: 14, committee_cold_credential: committee_cold_credential, committee_hot_credential: committee_hot_credential) ; @rust_name AuthCommitteeHotCert
+certificate = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Certificate
+committee_cold_credential = credential ; @rust_name CommitteeColdCredential
+committee_hot_credential = credential ; @rust_name CommitteeHotCredential
+credential = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Credential
+d_rep = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name DRep
+drep_credential = credential ; @rust_name DrepCredential
+ipv4 = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Ipv4
+ipv6 = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Ipv6
+multi_host_name = (tag: 2, dns_name: DNS_name) ; @rust_name MultiHostName
+pool_metadata = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name PoolMetadata
+pool_retirement = (tag: 4, pool: ed25519_key_hash, epoch: epoch) ; @rust_name PoolRetirement
+reg_cert = (tag: 7, stake_credential: stake_credential, deposit: coin) ; @rust_name RegCert
+reg_drep_cert = (index_0: 16, drep_credential: drep_credential, deposit: coin, anchor: anchor / null) ; @rust_name RegDrepCert
+relay = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Relay
+resign_committee_cold_cert = (index_0: 15, committee_cold_credential: committee_cold_credential, anchor: anchor / null) ; @rust_name ResignCommitteeColdCert
+single_host_addr = (tag: 0, port: port / null, ipv4: ipv4 / null, ipv6: ipv6 / null) ; @rust_name SingleHostAddr
+single_host_name = (tag: 1, port: port / null, dns_name: DNS_name) ; @rust_name SingleHostName
+stake_credential = credential ; @rust_name StakeCredential
+stake_delegation = (tag: 2, stake_credential: stake_credential, pool: ed25519_key_hash) ; @rust_name StakeDelegation
+stake_deregistration = (tag: 1, stake_credential: stake_credential) ; @rust_name StakeDeregistration
+stake_reg_deleg_cert = (tag: 11, stake_credential: stake_credential, pool: ed25519_key_hash, deposit: coin) ; @rust_name StakeRegDelegCert
+stake_registration = (tag: 0, stake_credential: stake_credential) ; @rust_name StakeRegistration
+stake_vote_deleg_cert = (tag: 10, stake_credential: stake_credential, pool: ed25519_key_hash, d_rep: d_rep) ; @rust_name StakeVoteDelegCert
+stake_vote_reg_deleg_cert = (tag: 13, stake_credential: stake_credential, pool: ed25519_key_hash, d_rep: d_rep, deposit: coin) ; @rust_name StakeVoteRegDelegCert
+unreg_cert = (tag: 8, stake_credential: stake_credential, deposit: coin) ; @rust_name UnregCert
+unreg_drep_cert = (index_0: 17, drep_credential: drep_credential, deposit: coin) ; @rust_name UnregDrepCert
+update_drep_cert = (index_0: 18, drep_credential: drep_credential, anchor: anchor / null) ; @rust_name UpdateDrepCert
+url = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Url
+vote_deleg_cert = (tag: 9, stake_credential: stake_credential, d_rep: d_rep) ; @rust_name VoteDelegCert
+vote_reg_deleg_cert = (tag: 12, stake_credential: stake_credential, d_rep: d_rep, deposit: coin) ; @rust_name VoteRegDelegCert

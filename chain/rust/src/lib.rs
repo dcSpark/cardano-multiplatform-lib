@@ -62,7 +62,7 @@ pub mod transaction {
 //pub mod legacy_address;
 
 pub use crate::assets::{Coin, Value};
-pub use utils::{BigInteger, NonemptySet, NonemptySetRawBytes, Set, SetRawBytes};
+pub use utils::BigInteger;
 
 // Re-exported at the root because downstream crates' generated code imports these
 // through their extern dep (`use cml_chain::{LenEncoding, ...}`).
@@ -70,6 +70,12 @@ pub use cml_core::ordered_hash_map::OrderedHashMap;
 pub use cml_core::serialization::{Deserialize, LenEncoding, Serialize, StringEncoding};
 
 // Extern-type re-exports so the generated glue (`pub use crate::X;`) resolves.
+pub use cml_crypto::{
+    AnchorDocHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash,
+    Ed25519Signature, GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash,
+    ScriptDataHash, ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
+};
+pub type Vkey = cml_crypto::PublicKey;
 pub use crate::auxdata::metadata::Metadata;
 pub use crate::plutus::utils::{ConstrPlutusData, PlutusMap};
 pub use address::{Address, RewardAccount};

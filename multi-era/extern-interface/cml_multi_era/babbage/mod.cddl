@@ -1,0 +1,16 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+; unexported: babbage_cost_models — references excluded cost_models
+; unexported: babbage_proposed_protocol_parameter_updates — references excluded genesis_hash
+babbage_auxiliary_data = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageAuxiliaryData
+babbage_block = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageBlock
+babbage_format_aux_data = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageFormatAuxData
+babbage_format_tx_out = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageFormatTxOut
+babbage_mint = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageMint
+babbage_protocol_param_update = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageProtocolParamUpdate
+babbage_script = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageScript
+babbage_script_ref = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageScriptRef
+babbage_transaction = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageTransaction
+babbage_transaction_body = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageTransactionBody
+babbage_transaction_output = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageTransactionOutput
+babbage_transaction_witness_set = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageTransactionWitnessSet
+babbage_update = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BabbageUpdate

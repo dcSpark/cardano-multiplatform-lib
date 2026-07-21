@@ -6,13 +6,6 @@
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
-
-use certs::Certificate;
-use cml_core_wasm::Int;
-use crypto::{BootstrapWitness, Ed25519KeyHash, Vkeywitness};
-use governance::ProposalProcedure;
-use transaction::TransactionInput;
-
 pub mod address;
 pub mod assets;
 pub mod auxdata;
@@ -24,35 +17,25 @@ pub mod governance;
 pub mod plutus;
 pub mod requested_collections;
 pub mod transaction;
-pub use crate::NonemptySetBootstrapWitness;
-pub use crate::NonemptySetCertificate;
-pub use crate::NonemptySetNativeScript;
-pub use crate::NonemptySetPlutusData;
-pub use crate::NonemptySetPlutusV1Script;
-pub use crate::NonemptySetPlutusV2Script;
-pub use crate::NonemptySetPlutusV3Script;
-pub use crate::NonemptySetProposalProcedure;
-pub use crate::NonemptySetTransactionInput;
-pub use crate::NonemptySetVkeywitness;
-pub use crate::SetCommitteeColdCredential;
-pub use crate::SetEd25519KeyHash;
-pub use crate::SetTransactionInput;
+pub use cml_core_wasm::Int;
 
 use address::RewardAccount;
 use assets::{AssetName, Coin, NonZeroInt64};
 use auxdata::AuxiliaryData;
-use certs::{CommitteeColdCredential, Credential, Relay};
+use certs::{Certificate, CommitteeColdCredential, Credential, Relay};
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
-use crypto::ScriptHash;
-use governance::{GovActionId, Voter, VotingProcedure};
+use crypto::{BootstrapWitness, Ed25519KeyHash, ScriptHash, Vkeywitness};
+use governance::{GovActionId, ProposalProcedure, Voter, VotingProcedure};
 use plutus::{
     CostModels, ExUnitPrices, ExUnits, LegacyRedeemer, PlutusData, PlutusV1Script, PlutusV2Script,
     PlutusV3Script, RedeemerKey, RedeemerVal,
 };
-use transaction::{NativeScript, TransactionBody, TransactionOutput, TransactionWitnessSet};
+use transaction::{
+    NativeScript, TransactionBody, TransactionInput, TransactionOutput, TransactionWitnessSet,
+};
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 impl_wasm_list_needs_into!(
@@ -183,6 +166,8 @@ impl_wasm_list_needs_into!(
     true,
     false
 );
+
+pub type IntError = JsError;
 
 impl_wasm_list_needs_into!(
     cml_chain::plutus::LegacyRedeemer,
@@ -489,6 +474,84 @@ impl NetworkId {
     }
 }
 
+/// `[+ BootstrapWitness]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonEmptyBootstrapWitnessList(
+    pub(crate) NonEmptyVec<cml_chain::crypto::BootstrapWitness>,
+);
+
+impl_wasm_conversions!(
+    NonEmptyVec<cml_chain::crypto::BootstrapWitness>,
+    NonEmptyBootstrapWitnessList
+);
+
+#[wasm_bindgen]
+impl NonEmptyBootstrapWitnessList {
+    pub fn new(first: &BootstrapWitness) -> Self {
+        Self(NonEmptyVec::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> BootstrapWitness {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &BootstrapWitness) {
+        self.0.push(elem.clone().into());
+    }
+
+    pub fn try_from(list: &BootstrapWitnessList) -> Result<NonEmptyBootstrapWitnessList, JsError> {
+        let inner: Vec<cml_chain::crypto::BootstrapWitness> = list.clone().into();
+        NonEmptyVec::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+/// `[+ Certificate]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonEmptyCertificateList(pub(crate) NonEmptyVec<cml_chain::certs::Certificate>);
+
+impl_wasm_conversions!(
+    NonEmptyVec<cml_chain::certs::Certificate>,
+    NonEmptyCertificateList
+);
+
+#[wasm_bindgen]
+impl NonEmptyCertificateList {
+    pub fn new(first: &Certificate) -> Self {
+        Self(NonEmptyVec::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> Certificate {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &Certificate) {
+        self.0.push(elem.clone().into());
+    }
+
+    pub fn try_from(list: &CertificateList) -> Result<NonEmptyCertificateList, JsError> {
+        let inner: Vec<cml_chain::certs::Certificate> = list.clone().into();
+        NonEmptyVec::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
 /// `[+ LegacyRedeemer]`: at least one element, enforced by the `NonEmptyVec` representation.
 /// Enter via `try_from` or `new(first)`.
 /// `add` can never violate the bound; removal is checked in the core type.
@@ -633,6 +696,336 @@ impl NonEmptyMapRedeemerKeyToRedeemerVal {
             .map_err(|e| JsError::new(&e.to_string()))
     }
 }
+
+/// `[+ NativeScript]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonEmptyNativeScriptList(pub(crate) NonEmptyVec<cml_chain::transaction::NativeScript>);
+
+impl_wasm_conversions!(
+    NonEmptyVec<cml_chain::transaction::NativeScript>,
+    NonEmptyNativeScriptList
+);
+
+#[wasm_bindgen]
+impl NonEmptyNativeScriptList {
+    pub fn new(first: &NativeScript) -> Self {
+        Self(NonEmptyVec::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> NativeScript {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &NativeScript) {
+        self.0.push(elem.clone().into());
+    }
+
+    pub fn try_from(list: &NativeScriptList) -> Result<NonEmptyNativeScriptList, JsError> {
+        let inner: Vec<cml_chain::transaction::NativeScript> = list.clone().into();
+        NonEmptyVec::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+/// `[+ PlutusData]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonEmptyPlutusDataList(pub(crate) NonEmptyVec<cml_chain::plutus::PlutusData>);
+
+impl_wasm_conversions!(
+    NonEmptyVec<cml_chain::plutus::PlutusData>,
+    NonEmptyPlutusDataList
+);
+
+#[wasm_bindgen]
+impl NonEmptyPlutusDataList {
+    pub fn new(first: &PlutusData) -> Self {
+        Self(NonEmptyVec::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> PlutusData {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &PlutusData) {
+        self.0.push(elem.clone().into());
+    }
+
+    pub fn try_from(list: &PlutusDataList) -> Result<NonEmptyPlutusDataList, JsError> {
+        let inner: Vec<cml_chain::plutus::PlutusData> = list.clone().into();
+        NonEmptyVec::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+/// `[+ PlutusV1Script]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonEmptyPlutusV1ScriptList(pub(crate) NonEmptyVec<cml_chain::plutus::PlutusV1Script>);
+
+impl_wasm_conversions!(
+    NonEmptyVec<cml_chain::plutus::PlutusV1Script>,
+    NonEmptyPlutusV1ScriptList
+);
+
+#[wasm_bindgen]
+impl NonEmptyPlutusV1ScriptList {
+    pub fn new(first: &PlutusV1Script) -> Self {
+        Self(NonEmptyVec::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> PlutusV1Script {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &PlutusV1Script) {
+        self.0.push(elem.clone().into());
+    }
+
+    pub fn try_from(list: &PlutusV1ScriptList) -> Result<NonEmptyPlutusV1ScriptList, JsError> {
+        let inner: Vec<cml_chain::plutus::PlutusV1Script> = list.clone().into();
+        NonEmptyVec::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+/// `[+ PlutusV2Script]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonEmptyPlutusV2ScriptList(pub(crate) NonEmptyVec<cml_chain::plutus::PlutusV2Script>);
+
+impl_wasm_conversions!(
+    NonEmptyVec<cml_chain::plutus::PlutusV2Script>,
+    NonEmptyPlutusV2ScriptList
+);
+
+#[wasm_bindgen]
+impl NonEmptyPlutusV2ScriptList {
+    pub fn new(first: &PlutusV2Script) -> Self {
+        Self(NonEmptyVec::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> PlutusV2Script {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &PlutusV2Script) {
+        self.0.push(elem.clone().into());
+    }
+
+    pub fn try_from(list: &PlutusV2ScriptList) -> Result<NonEmptyPlutusV2ScriptList, JsError> {
+        let inner: Vec<cml_chain::plutus::PlutusV2Script> = list.clone().into();
+        NonEmptyVec::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+/// `[+ PlutusV3Script]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonEmptyPlutusV3ScriptList(pub(crate) NonEmptyVec<cml_chain::plutus::PlutusV3Script>);
+
+impl_wasm_conversions!(
+    NonEmptyVec<cml_chain::plutus::PlutusV3Script>,
+    NonEmptyPlutusV3ScriptList
+);
+
+#[wasm_bindgen]
+impl NonEmptyPlutusV3ScriptList {
+    pub fn new(first: &PlutusV3Script) -> Self {
+        Self(NonEmptyVec::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> PlutusV3Script {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &PlutusV3Script) {
+        self.0.push(elem.clone().into());
+    }
+
+    pub fn try_from(list: &PlutusV3ScriptList) -> Result<NonEmptyPlutusV3ScriptList, JsError> {
+        let inner: Vec<cml_chain::plutus::PlutusV3Script> = list.clone().into();
+        NonEmptyVec::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+/// `[+ ProposalProcedure]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonEmptyProposalProcedureList(
+    pub(crate) NonEmptyVec<cml_chain::governance::ProposalProcedure>,
+);
+
+impl_wasm_conversions!(
+    NonEmptyVec<cml_chain::governance::ProposalProcedure>,
+    NonEmptyProposalProcedureList
+);
+
+#[wasm_bindgen]
+impl NonEmptyProposalProcedureList {
+    pub fn new(first: &ProposalProcedure) -> Self {
+        Self(NonEmptyVec::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> ProposalProcedure {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &ProposalProcedure) {
+        self.0.push(elem.clone().into());
+    }
+
+    pub fn try_from(
+        list: &ProposalProcedureList,
+    ) -> Result<NonEmptyProposalProcedureList, JsError> {
+        let inner: Vec<cml_chain::governance::ProposalProcedure> = list.clone().into();
+        NonEmptyVec::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+/// `[+ TransactionInput]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonEmptyTransactionInputList(
+    pub(crate) NonEmptyVec<cml_chain::transaction::TransactionInput>,
+);
+
+impl_wasm_conversions!(
+    NonEmptyVec<cml_chain::transaction::TransactionInput>,
+    NonEmptyTransactionInputList
+);
+
+#[wasm_bindgen]
+impl NonEmptyTransactionInputList {
+    pub fn new(first: &TransactionInput) -> Self {
+        Self(NonEmptyVec::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> TransactionInput {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &TransactionInput) {
+        self.0.push(elem.clone().into());
+    }
+
+    pub fn try_from(list: &TransactionInputList) -> Result<NonEmptyTransactionInputList, JsError> {
+        let inner: Vec<cml_chain::transaction::TransactionInput> = list.clone().into();
+        NonEmptyVec::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+/// `[+ Vkeywitness]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonEmptyVkeywitnessList(pub(crate) NonEmptyVec<cml_chain::crypto::Vkeywitness>);
+
+impl_wasm_conversions!(
+    NonEmptyVec<cml_chain::crypto::Vkeywitness>,
+    NonEmptyVkeywitnessList
+);
+
+#[wasm_bindgen]
+impl NonEmptyVkeywitnessList {
+    pub fn new(first: &Vkeywitness) -> Self {
+        Self(NonEmptyVec::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> Vkeywitness {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &Vkeywitness) {
+        self.0.push(elem.clone().into());
+    }
+
+    pub fn try_from(list: &VkeywitnessList) -> Result<NonEmptyVkeywitnessList, JsError> {
+        let inner: Vec<cml_chain::crypto::Vkeywitness> = list.clone().into();
+        NonEmptyVec::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+pub type NonemptySetBootstrapWitness = NonEmptyBootstrapWitnessList;
+
+pub type NonemptySetCertificate = NonEmptyCertificateList;
+
+pub type NonemptySetNativeScript = NonEmptyNativeScriptList;
+
+pub type NonemptySetPlutusData = NonEmptyPlutusDataList;
+
+pub type NonemptySetPlutusV1Script = NonEmptyPlutusV1ScriptList;
+
+pub type NonemptySetPlutusV2Script = NonEmptyPlutusV2ScriptList;
+
+pub type NonemptySetPlutusV3Script = NonEmptyPlutusV3ScriptList;
+
+pub type NonemptySetProposalProcedure = NonEmptyProposalProcedureList;
+
+pub type NonemptySetTransactionInput = NonEmptyTransactionInputList;
+
+pub type NonemptySetVkeywitness = NonEmptyVkeywitnessList;
 
 impl_wasm_list_needs_into!(
     cml_chain::plutus::PlutusData,
@@ -1129,6 +1522,12 @@ pub enum ScriptKind {
     PlutusV2,
     PlutusV3,
 }
+
+pub type SetCommitteeColdCredential = CommitteeColdCredentialList;
+
+pub type SetEd25519KeyHash = Ed25519KeyHashList;
+
+pub type SetTransactionInput = TransactionInputList;
 
 pub type Slot = u64;
 

@@ -2,7 +2,7 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use super::*;
-use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_core::serialization::{LenEncoding, StringEncoding, TagPresenceEncoding};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
@@ -74,6 +74,8 @@ pub struct ScriptRefEncoding {
 pub struct TransactionBodyEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
+    pub inputs_tag_encoding: TagPresenceEncoding,
+    pub inputs_encoding: LenEncoding,
     pub inputs_key_encoding: Option<cbor_event::Sz>,
     pub outputs_encoding: LenEncoding,
     pub outputs_key_encoding: Option<cbor_event::Sz>,
@@ -81,6 +83,8 @@ pub struct TransactionBodyEncoding {
     pub fee_key_encoding: Option<cbor_event::Sz>,
     pub ttl_encoding: Option<cbor_event::Sz>,
     pub ttl_key_encoding: Option<cbor_event::Sz>,
+    pub certs_tag_encoding: TagPresenceEncoding,
+    pub certs_encoding: LenEncoding,
     pub certs_key_encoding: Option<cbor_event::Sz>,
     pub withdrawals_encoding: LenEncoding,
     pub withdrawals_value_encodings: BTreeMap<RewardAccount, Option<cbor_event::Sz>>,
@@ -96,16 +100,25 @@ pub struct TransactionBodyEncoding {
     pub mint_key_encoding: Option<cbor_event::Sz>,
     pub script_data_hash_encoding: StringEncoding,
     pub script_data_hash_key_encoding: Option<cbor_event::Sz>,
+    pub collateral_inputs_tag_encoding: TagPresenceEncoding,
+    pub collateral_inputs_encoding: LenEncoding,
     pub collateral_inputs_key_encoding: Option<cbor_event::Sz>,
+    pub required_signers_tag_encoding: TagPresenceEncoding,
+    pub required_signers_encoding: LenEncoding,
+    pub required_signers_elem_encodings: Vec<StringEncoding>,
     pub required_signers_key_encoding: Option<cbor_event::Sz>,
     pub network_id_key_encoding: Option<cbor_event::Sz>,
     pub collateral_return_key_encoding: Option<cbor_event::Sz>,
     pub total_collateral_encoding: Option<cbor_event::Sz>,
     pub total_collateral_key_encoding: Option<cbor_event::Sz>,
+    pub reference_inputs_tag_encoding: TagPresenceEncoding,
+    pub reference_inputs_encoding: LenEncoding,
     pub reference_inputs_key_encoding: Option<cbor_event::Sz>,
     pub voting_procedures_encoding: LenEncoding,
     pub voting_procedures_value_encodings: BTreeMap<Voter, LenEncoding>,
     pub voting_procedures_key_encoding: Option<cbor_event::Sz>,
+    pub proposal_procedures_tag_encoding: TagPresenceEncoding,
+    pub proposal_procedures_encoding: LenEncoding,
     pub proposal_procedures_key_encoding: Option<cbor_event::Sz>,
     pub current_treasury_value_encoding: Option<cbor_event::Sz>,
     pub current_treasury_value_key_encoding: Option<cbor_event::Sz>,
@@ -129,12 +142,26 @@ pub struct TransactionInputEncoding {
 pub struct TransactionWitnessSetEncoding {
     pub len_encoding: LenEncoding,
     pub orig_deser_order: Vec<usize>,
+    pub vkeywitnesses_tag_encoding: TagPresenceEncoding,
+    pub vkeywitnesses_encoding: LenEncoding,
     pub vkeywitnesses_key_encoding: Option<cbor_event::Sz>,
+    pub native_scripts_tag_encoding: TagPresenceEncoding,
+    pub native_scripts_encoding: LenEncoding,
     pub native_scripts_key_encoding: Option<cbor_event::Sz>,
+    pub bootstrap_witnesses_tag_encoding: TagPresenceEncoding,
+    pub bootstrap_witnesses_encoding: LenEncoding,
     pub bootstrap_witnesses_key_encoding: Option<cbor_event::Sz>,
+    pub plutus_v1_scripts_tag_encoding: TagPresenceEncoding,
+    pub plutus_v1_scripts_encoding: LenEncoding,
     pub plutus_v1_scripts_key_encoding: Option<cbor_event::Sz>,
+    pub plutus_datums_tag_encoding: TagPresenceEncoding,
+    pub plutus_datums_encoding: LenEncoding,
     pub plutus_datums_key_encoding: Option<cbor_event::Sz>,
     pub redeemers_key_encoding: Option<cbor_event::Sz>,
+    pub plutus_v2_scripts_tag_encoding: TagPresenceEncoding,
+    pub plutus_v2_scripts_encoding: LenEncoding,
     pub plutus_v2_scripts_key_encoding: Option<cbor_event::Sz>,
+    pub plutus_v3_scripts_tag_encoding: TagPresenceEncoding,
+    pub plutus_v3_scripts_encoding: LenEncoding,
     pub plutus_v3_scripts_key_encoding: Option<cbor_event::Sz>,
 }

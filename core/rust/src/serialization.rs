@@ -146,6 +146,30 @@ impl From<cbor_event::LenSz> for LenEncoding {
     }
 }
 
+/// Tracks whether a value that MAY carry a CBOR tag was tagged on the wire, so a roundtrip
+/// re-emits the arm it was read from. Used for the transparent tag-set idiom
+/// (`x = #6.N([* a]) / [* a]`), which cddl-codegen collapses into one transparent collection whose
+/// tag becomes an encoding detail rather than a type distinction.
+///
+/// `Tagged(Option<Sz>)` = present on the wire, carrying the tag head's size hint (`None` = emit the
+/// fit-minimal size). `Untagged` = absent. This is a strict superset of the `Option<Sz>` an
+/// always-written tag uses: `None`-as-untagged would conflate "untagged" with "tagged, default
+/// size", which is exactly the ambiguity this avoids.
+///
+/// `Default` is `Tagged(None)`: a newly constructed value serializes tagged with the fit-minimal
+/// size (for tag 258 that is `Sz::Two`)
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+pub enum TagPresenceEncoding {
+    Tagged(Option<cbor_event::Sz>),
+    Untagged,
+}
+
+impl Default for TagPresenceEncoding {
+    fn default() -> Self {
+        Self::Tagged(None)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub enum StringEncoding {
     #[default]

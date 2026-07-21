@@ -7,8 +7,8 @@
     clippy::new_without_default
 )]
 pub mod collections;
-pub use cml_crypto_wasm::Ed25519Signature;
 pub use crate::PaymentAddress;
+pub use cml_crypto_wasm::Ed25519Signature;
 pub use cml_crypto_wasm::PublicKey;
 
 use cml_core::non_empty::NonEmptyVec;

@@ -4,13 +4,24 @@
 pub mod cbor_encodings;
 pub mod serialization;
 pub use crate::AddrAttributes;
-
-pub use cml_crypto::{
-    AnchorDocHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash,
-    Ed25519Signature, GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash,
-    ScriptDataHash, ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
-};
-pub type Vkey = cml_crypto::PublicKey;
+pub use crate::AnchorDocHash;
+pub use crate::AuxiliaryDataHash;
+pub use crate::BlockBodyHash;
+pub use crate::BlockHeaderHash;
+pub use crate::DatumHash;
+pub use crate::Ed25519KeyHash;
+pub use crate::Ed25519Signature;
+pub use crate::GenesisDelegateHash;
+pub use crate::GenesisHash;
+pub use crate::KESVkey;
+pub use crate::NonceHash;
+pub use crate::PoolMetadataHash;
+pub use crate::ScriptDataHash;
+pub use crate::ScriptHash;
+pub use crate::TransactionHash;
+pub use crate::VRFKeyHash;
+pub use crate::VRFVkey;
+pub use crate::Vkey;
 
 use cbor_encodings::{
     BootstrapWitnessEncoding, KESSignatureEncoding, VRFCertEncoding, VkeywitnessEncoding,

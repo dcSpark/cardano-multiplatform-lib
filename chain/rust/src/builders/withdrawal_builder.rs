@@ -3,7 +3,8 @@ use crate::*;
 
 use super::witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet};
 
-use crate::{RequiredSigners, address::RewardAddress, certs::StakeCredential};
+use crate::{address::RewardAddress, certs::StakeCredential};
+use cml_crypto::Ed25519KeyHash;
 
 #[derive(Debug, thiserror::Error)]
 pub enum WithdrawalBuilderError {
@@ -99,7 +100,7 @@ impl SingleWithdrawalBuilder {
     pub fn plutus_script(
         self,
         partial_witness: PartialPlutusWitness,
-        required_signers: RequiredSigners,
+        required_signers: Vec<Ed25519KeyHash>,
     ) -> Result<WithdrawalBuilderResult, WithdrawalBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
         required_signers

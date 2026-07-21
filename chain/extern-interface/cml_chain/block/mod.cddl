@@ -1,0 +1,6 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+block = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Block
+header = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Header
+header_body = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name HeaderBody
+operational_cert = (hot_vkey: KES_vkey, sequence_number: uint, kes_period: uint, sigma: ed25519_signature) ; @rust_name OperationalCert
+protocol_version = (major: uint, minor: uint) ; @rust_name ProtocolVersion

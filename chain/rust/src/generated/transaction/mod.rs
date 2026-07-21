@@ -7,18 +7,23 @@ pub mod serialization;
 use crate::generated::address::{Address, RewardAccount};
 use crate::generated::assets::{AssetName, Coin, Mint, NonZeroInt64, PositiveCoin, Value};
 use crate::generated::auxdata::AuxiliaryData;
+use crate::generated::certs::Certificate;
 use crate::generated::crypto::{
-    AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, ScriptHash, TransactionHash,
+    AuxiliaryDataHash, BootstrapWitness, DatumHash, Ed25519KeyHash, ScriptDataHash, ScriptHash,
+    TransactionHash, Vkeywitness,
 };
-use crate::generated::governance::{GovActionId, Voter, VotingProcedure, VotingProcedures};
-use crate::generated::plutus::{PlutusData, Redeemers};
+use crate::generated::governance::{
+    GovActionId, ProposalProcedure, Voter, VotingProcedure, VotingProcedures,
+};
+use crate::generated::plutus::{
+    PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script, Redeemers,
+};
 use crate::generated::{
     NetworkId, NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetNativeScript,
     NonemptySetPlutusData, NonemptySetPlutusV1Script, NonemptySetPlutusV2Script,
     NonemptySetPlutusV3Script, NonemptySetProposalProcedure, NonemptySetTransactionInput,
     NonemptySetVkeywitness, PolicyId, Script, SetTransactionInput, Slot, Withdrawals,
 };
-use crate::utils::NonemptySetRawBytes;
 use cbor_encodings::{
     AlonzoFormatTxOutEncoding, ConwayFormatTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
     ScriptInvalidBeforeEncoding, ScriptInvalidHereafterEncoding, ScriptNOfKEncoding,
@@ -26,9 +31,10 @@ use cbor_encodings::{
     TransactionInputEncoding, TransactionWitnessSetEncoding,
 };
 use cml_core::error::*;
+use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_core::serialization::{LenEncoding, StringEncoding, TagPresenceEncoding};
 use std::collections::BTreeMap;
 
 #[derive(
@@ -226,7 +232,10 @@ impl NativeScript {
     }
 }
 
-pub type RequiredSigners = NonemptySetRawBytes<Ed25519KeyHash>;
+/// `[+ Ed25519KeyHash]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type RequiredSigners = NonEmptyVec<Ed25519KeyHash>;
 
 impl From<ScriptRef> for Script {
     fn from(wrapper: ScriptRef) -> Self {

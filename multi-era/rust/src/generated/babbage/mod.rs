@@ -23,9 +23,7 @@ use cml_chain::crypto::{
 use cml_chain::plutus::{
     CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script,
 };
-use cml_chain::transaction::{
-    AlonzoFormatTxOut, DatumOption, NativeScript, RequiredSigners, TransactionInput,
-};
+use cml_chain::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, TransactionInput};
 use cml_chain::{Epoch, NetworkId, Rational, TransactionIndex, UnitInterval, Withdrawals};
 use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
@@ -358,7 +356,7 @@ pub struct BabbageTransactionBody {
     pub mint: Option<BabbageMint>,
     pub script_data_hash: Option<ScriptDataHash>,
     pub collateral_inputs: Option<Vec<TransactionInput>>,
-    pub required_signers: Option<RequiredSigners>,
+    pub required_signers: Option<Vec<Ed25519KeyHash>>,
     pub network_id: Option<NetworkId>,
     pub collateral_return: Option<BabbageTransactionOutput>,
     pub total_collateral: Option<Coin>,

@@ -4,14 +4,42 @@ use cml_crypto::{
     blake2b256,
 };
 
+use cml_core::non_empty::NonEmptyVec;
+use cml_core::serialization::{TagPresenceEncoding, fit_sz};
+
 use crate::{
-    NonemptySetPlutusData,
     auxdata::AuxiliaryData,
     plutus::{CostModels, Language, PlutusData, Redeemers},
     transaction::{
         TransactionBody, TransactionWitnessSet, cbor_encodings::TransactionWitnessSetEncoding,
     },
 };
+
+/// Serializes datums exactly as the witness set they came from encoded them — the script-data
+/// format hashes "exactly the data present in the transaction witness set", so a deserialized
+/// witness (e.g. Alonzo-era untagged datums) must re-hash over its original encoding. A freshly
+/// built witness set (no stored encodings) gets the current-era default: tag 258, fit-minimal.
+fn serialize_datums(
+    datums: &NonEmptyVec<PlutusData>,
+    buf: &mut cbor_event::se::Serializer,
+    encoding: Option<&TransactionWitnessSetEncoding>,
+) {
+    if let TagPresenceEncoding::Tagged(tag_sz) = encoding
+        .map(|encs| encs.plutus_datums_tag_encoding)
+        .unwrap_or_default()
+    {
+        buf.write_tag_sz(258, fit_sz(258, tag_sz, false)).unwrap();
+    }
+    let len_encoding = encoding
+        .map(|encs| encs.plutus_datums_encoding)
+        .unwrap_or_default();
+    buf.write_array_sz(len_encoding.to_len_sz(datums.len() as u64, false))
+        .unwrap();
+    for datum in datums.iter() {
+        datum.serialize(buf, false).unwrap();
+    }
+    len_encoding.end(buf, false).unwrap();
+}
 
 pub fn hash_auxiliary_data(auxiliary_data: &AuxiliaryData) -> AuxiliaryDataHash {
     AuxiliaryDataHash::from(blake2b256(&auxiliary_data.to_cbor_bytes()))
@@ -35,9 +63,8 @@ pub fn hash_script_data(
     // so absence is modelled with `Option` rather than an empty value.
     redeemers: Option<&Redeemers>,
     cost_models: &CostModels,
-    datums: Option<&NonemptySetPlutusData>,
-    // this will be used again after Conway so we keep it here to avoid double breaking changes
-    _encoding: Option<&TransactionWitnessSetEncoding>,
+    datums: Option<&NonEmptyVec<PlutusData>>,
+    encoding: Option<&TransactionWitnessSetEncoding>,
 ) -> ScriptDataHash {
     let mut buf = cbor_event::se::Serializer::new_vec();
     match datums {
@@ -52,7 +79,7 @@ pub fn hash_script_data(
             ; [ A0 | datums | A0 ]
             */
             buf.write_raw_bytes(&[0xA0]).unwrap();
-            datums.serialize(&mut buf, false).unwrap();
+            serialize_datums(datums, &mut buf, encoding);
             buf.write_raw_bytes(&[0xA0]).unwrap();
         }
         _ => {
@@ -73,7 +100,7 @@ pub fn hash_script_data(
                 }
             }
             if let Some(datums) = datums {
-                datums.serialize(&mut buf, false).unwrap();
+                serialize_datums(datums, &mut buf, encoding);
             }
             buf.write_raw_bytes(&cost_models.language_views_encoding().unwrap())
                 .unwrap();
@@ -96,12 +123,12 @@ pub enum ScriptDataHashError {
 pub fn calc_script_data_hash(
     // None when there are no redeemers (see hash_script_data).
     redeemers: Option<&Redeemers>,
-    datums: &NonemptySetPlutusData,
+    datums: Option<&NonEmptyVec<PlutusData>>,
     cost_models: &CostModels,
     used_langs: &[Language],
     encoding: Option<&TransactionWitnessSetEncoding>,
 ) -> Result<Option<ScriptDataHash>, ScriptDataHashError> {
-    if redeemers.is_some() || !datums.is_empty() {
+    if redeemers.is_some() || datums.is_some() {
         let mut required_costmdls = CostModels::default();
         for lang in used_langs {
             required_costmdls.as_mut().insert(
@@ -117,11 +144,7 @@ pub fn calc_script_data_hash(
         Ok(Some(hash_script_data(
             redeemers,
             &required_costmdls,
-            if datums.is_empty() {
-                None
-            } else {
-                Some(datums)
-            },
+            datums,
             encoding,
         )))
     } else {
@@ -141,7 +164,7 @@ pub fn calc_script_data_hash_from_witness(
     if let (Some(redeemers), Some(datums)) = (&witnesses.redeemers, &witnesses.plutus_datums) {
         calc_script_data_hash(
             Some(redeemers),
-            datums,
+            Some(datums),
             cost_models,
             witnesses.languages().as_ref(),
             witnesses.encodings.as_ref(),
@@ -187,12 +210,14 @@ mod tests {
             .unwrap()
         ).unwrap();
 
+        // This tx is Alonzo-era: its datums are UNTAGGED on the wire and the recorded
+        // script_data_hash was computed over that encoding, so the preserved encodings matter.
         let script_data_hash = calc_script_data_hash(
             Some(&tx.witness_set.redeemers.unwrap()),
-            &tx.witness_set.plutus_datums.unwrap(),
+            Some(&tx.witness_set.plutus_datums.unwrap()),
             &plutus_alonzo_cost_models(),
             &[Language::PlutusV1],
-            None,
+            tx.witness_set.encodings.as_ref(),
         )
         .unwrap();
 

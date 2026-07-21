@@ -1,8 +1,6 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-pub use crate::RequiredSigners;
-
 use crate::generated::address::Address;
 use crate::generated::assets::{
     Coin, MapPolicyIdToMapAssetNameToNonZeroInt64, Mint, PositiveCoin, Value,
@@ -14,12 +12,16 @@ use crate::generated::crypto::{
 use crate::generated::governance::VotingProcedures;
 use crate::generated::plutus::{PlutusData, Redeemers};
 use crate::generated::{
-    MapRewardAccountToCoin, MapVoterToMapGovActionIdToVotingProcedure, NativeScriptList, NetworkId,
+    BootstrapWitnessList, CertificateList, Ed25519KeyHashList, MapRewardAccountToCoin,
+    MapVoterToMapGovActionIdToVotingProcedure, NativeScriptList, NetworkId,
     NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetNativeScript,
     NonemptySetPlutusData, NonemptySetPlutusV1Script, NonemptySetPlutusV2Script,
     NonemptySetPlutusV3Script, NonemptySetProposalProcedure, NonemptySetTransactionInput,
-    NonemptySetVkeywitness, Script, SetTransactionInput, Slot, TransactionOutputList, Withdrawals,
+    NonemptySetVkeywitness, PlutusDataList, PlutusV1ScriptList, PlutusV2ScriptList,
+    PlutusV3ScriptList, ProposalProcedureList, Script, SetTransactionInput, Slot,
+    TransactionInputList, TransactionOutputList, VkeywitnessList, Withdrawals,
 };
+use cml_core::non_empty::NonEmptyVec;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
@@ -277,6 +279,44 @@ pub enum NativeScriptKind {
     ScriptNOfK,
     ScriptInvalidBefore,
     ScriptInvalidHereafter,
+}
+
+/// `[+ Ed25519KeyHash]`: at least one element, enforced by the `NonEmptyVec` representation.
+/// Enter via `try_from` or `new(first)`.
+/// `add` can never violate the bound; removal is checked in the core type.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct RequiredSigners(pub(crate) NonEmptyVec<cml_chain::crypto::Ed25519KeyHash>);
+
+impl_wasm_conversions!(
+    NonEmptyVec<cml_chain::crypto::Ed25519KeyHash>,
+    RequiredSigners
+);
+
+#[wasm_bindgen]
+impl RequiredSigners {
+    pub fn new(first: &Ed25519KeyHash) -> Self {
+        Self(NonEmptyVec::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> Ed25519KeyHash {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &Ed25519KeyHash) {
+        self.0.push(elem.clone().into());
+    }
+
+    pub fn try_from(list: &Ed25519KeyHashList) -> Result<RequiredSigners, JsError> {
+        let inner: Vec<cml_chain::crypto::Ed25519KeyHash> = list.clone().into();
+        NonEmptyVec::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -10,7 +10,7 @@ use crate::{
 
 use cml_crypto_wasm::{AuxiliaryDataHash, DatumHash, ScriptDataHash, TransactionHash};
 
-use cml_chain::NonemptySet;
+use cml_core::non_empty::NonEmptyVec;
 
 #[wasm_bindgen]
 pub fn hash_auxiliary_data(auxiliary_data: &AuxiliaryData) -> AuxiliaryDataHash {
@@ -44,7 +44,11 @@ pub fn hash_script_data(
     datums: Option<PlutusDataList>,
     //    encoding: Option<TransactionWitnessSetEncoding>,
 ) -> ScriptDataHash {
-    let datums = datums.map(|datums| NonemptySet::from(Into::<Vec<_>>::into(datums)));
+    // An empty list means no datums (a witness set cannot carry an empty datum list).
+    let datums = datums
+        .map(Into::<Vec<_>>::into)
+        .filter(|datums: &Vec<_>| !datums.is_empty())
+        .map(|datums| NonEmptyVec::try_from(datums).expect("non-empty (filtered above)"));
     cml_chain::crypto::hash::hash_script_data(
         Some(redeemers.as_ref()),
         cost_models.as_ref(),
@@ -72,9 +76,12 @@ pub fn calc_script_data_hash(
     used_langs: &LanguageList,
     //    encoding: Option<TransactionWitnessSetEncoding>,
 ) -> Result<Option<ScriptDataHash>, JsError> {
+    // An empty list means no datums, matching the previous behavior (the rust side used to
+    // map an empty set to None internally).
+    let datums = NonEmptyVec::try_from(Into::<Vec<_>>::into(datums.clone())).ok();
     cml_chain::crypto::hash::calc_script_data_hash(
         Some(redeemers.as_ref()),
-        &NonemptySet::from(Into::<Vec<_>>::into(datums.clone())),
+        datums.as_ref(),
         cost_models.as_ref(),
         used_langs.as_ref(),
         None,

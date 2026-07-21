@@ -115,7 +115,6 @@ pub fn export_schemas() {
     gen_json_schema!(cml_chain::crypto::GenesisHash);
     gen_json_schema!(cml_chain::crypto::KESSignature);
     gen_json_schema!(cml_chain::crypto::KESVkey);
-    // gen_json_schema!(cml_chain::crypto::Natural);
     gen_json_schema!(cml_chain::crypto::Nonce);
     gen_json_schema!(cml_chain::crypto::NonceHash);
     gen_json_schema!(cml_chain::crypto::PoolMetadataHash);

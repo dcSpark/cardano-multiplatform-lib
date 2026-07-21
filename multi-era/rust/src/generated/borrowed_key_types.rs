@@ -13,7 +13,7 @@ fn _borrowed_key_types_self_check() {
     _assert_key_traits::<cml_chain::assets::AssetName>();
     _assert_key_traits::<cml_chain::crypto::GenesisHash>();
     _assert_key_traits::<cml_chain::PolicyId>();
-    _assert_key_traits::<cml_chain::RewardAccount>();
+    _assert_key_traits::<cml_chain::address::RewardAccount>();
     _assert_key_traits::<cml_chain::certs::StakeCredential>();
 }
 #[allow(dead_code)]

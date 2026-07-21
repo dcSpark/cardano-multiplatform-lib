@@ -1,0 +1,11 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+MIR_action = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name MIRAction
+MIR_pot = 0 / 1 ; @rust_name MIRPot
+allegra_auxiliary_data = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AllegraAuxiliaryData
+allegra_block = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AllegraBlock
+allegra_certificate = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AllegraCertificate
+allegra_transaction = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AllegraTransaction
+allegra_transaction_body = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AllegraTransactionBody
+allegra_transaction_witness_set = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AllegraTransactionWitnessSet
+move_instantaneous_reward = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name MoveInstantaneousReward
+move_instantaneous_rewards_cert = (tag: 6, move_instantaneous_reward: move_instantaneous_reward) ; @rust_name MoveInstantaneousRewardsCert

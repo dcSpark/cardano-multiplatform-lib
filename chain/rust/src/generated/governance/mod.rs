@@ -4,11 +4,6 @@
 pub mod cbor_encodings;
 pub mod serialization;
 
-#[cfg(not(feature = "used_from_wasm"))]
-use noop_proc_macro::wasm_bindgen;
-#[cfg(feature = "used_from_wasm")]
-use wasm_bindgen::prelude::wasm_bindgen;
-
 use crate::generated::address::RewardAccount;
 use crate::generated::assets::Coin;
 use crate::generated::block::ProtocolVersion;
@@ -24,7 +19,7 @@ use cbor_encodings::{
 use cml_core::error::*;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_core::serialization::{LenEncoding, StringEncoding, TagPresenceEncoding};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -325,7 +320,7 @@ impl UpdateCommittee {
     serde::Serialize,
     schemars::JsonSchema,
 )]
-#[wasm_bindgen]
+#[cfg_attr(feature = "used_from_wasm", wasm_bindgen::prelude::wasm_bindgen)]
 pub enum Vote {
     No,
     Yes,

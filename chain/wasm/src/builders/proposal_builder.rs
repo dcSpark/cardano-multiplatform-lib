@@ -69,7 +69,7 @@ impl ProposalBuilder {
             .with_plutus_proposal(
                 proposal.clone().into(),
                 partial_witness.clone().into(),
-                required_signers.clone().into(),
+                required_signers.clone().0.into(),
                 datum.clone().into(),
             )
             .map(Into::into)
@@ -87,7 +87,7 @@ impl ProposalBuilder {
             .with_plutus_proposal_inline_datum(
                 proposal.clone().into(),
                 partial_witness.clone().into(),
-                required_signers.clone().into(),
+                required_signers.clone().0.into(),
             )
             .map(Into::into)
             .map_err(Into::into)

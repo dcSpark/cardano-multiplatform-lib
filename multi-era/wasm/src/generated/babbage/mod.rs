@@ -28,7 +28,7 @@ use cml_chain_wasm::collections::{
 };
 use cml_chain_wasm::crypto::{AuxiliaryDataHash, GenesisHash, ScriptDataHash};
 use cml_chain_wasm::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script};
-use cml_chain_wasm::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, RequiredSigners};
+use cml_chain_wasm::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript};
 use cml_chain_wasm::{Epoch, NetworkId, Rational, TransactionIndex, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
@@ -785,11 +785,11 @@ impl BabbageTransactionBody {
             .map(std::convert::Into::into)
     }
 
-    pub fn set_required_signers(&mut self, required_signers: &RequiredSigners) {
+    pub fn set_required_signers(&mut self, required_signers: &Ed25519KeyHashList) {
         self.0.required_signers = Some(required_signers.clone().into())
     }
 
-    pub fn required_signers(&self) -> Option<RequiredSigners> {
+    pub fn required_signers(&self) -> Option<Ed25519KeyHashList> {
         self.0
             .required_signers
             .clone()

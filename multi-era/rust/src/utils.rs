@@ -1440,6 +1440,7 @@ mod shelley_impls {
         ShelleyTransactionWitnessSet,
     };
 
+    use cml_core::non_empty::NonEmptyVec;
     use cml_core::serialization::Serialize;
     use cml_crypto::{TransactionHash, blake2b256};
 
@@ -1452,15 +1453,22 @@ mod shelley_impls {
     impl From<ShelleyTransactionWitnessSet> for TransactionWitnessSet {
         fn from(wits: ShelleyTransactionWitnessSet) -> Self {
             let mut new_wits = TransactionWitnessSet::new();
-            new_wits.vkeywitnesses = wits.vkeywitnesses.map(Into::into);
-            new_wits.native_scripts = wits.native_scripts.map(|native_scripts| {
-                native_scripts
-                    .into_iter()
-                    .map(NativeScript::from)
-                    .collect::<Vec<_>>()
-                    .into()
+            // Conway witness-set collections cannot be empty; an empty older-era list maps to absent.
+            new_wits.vkeywitnesses = wits
+                .vkeywitnesses
+                .and_then(|v| NonEmptyVec::try_from(v).ok());
+            new_wits.native_scripts = wits.native_scripts.and_then(|native_scripts| {
+                NonEmptyVec::try_from(
+                    native_scripts
+                        .into_iter()
+                        .map(NativeScript::from)
+                        .collect::<Vec<_>>(),
+                )
+                .ok()
             });
-            new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.map(Into::into);
+            new_wits.bootstrap_witnesses = wits
+                .bootstrap_witnesses
+                .and_then(|v| NonEmptyVec::try_from(v).ok());
             new_wits
         }
     }
@@ -1540,6 +1548,7 @@ mod allegra_impls {
         AllegraAuxiliaryData, AllegraTransactionBody, AllegraTransactionWitnessSet,
     };
 
+    use cml_core::non_empty::NonEmptyVec;
     use cml_core::serialization::Serialize;
     use cml_crypto::{TransactionHash, blake2b256};
 
@@ -1561,9 +1570,16 @@ mod allegra_impls {
     impl From<AllegraTransactionWitnessSet> for TransactionWitnessSet {
         fn from(wits: AllegraTransactionWitnessSet) -> Self {
             let mut new_wits = TransactionWitnessSet::new();
-            new_wits.vkeywitnesses = wits.vkeywitnesses.map(Into::into);
-            new_wits.native_scripts = wits.native_scripts.map(Into::into);
-            new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.map(Into::into);
+            // Conway witness-set collections cannot be empty; an empty older-era list maps to absent.
+            new_wits.vkeywitnesses = wits
+                .vkeywitnesses
+                .and_then(|v| NonEmptyVec::try_from(v).ok());
+            new_wits.native_scripts = wits
+                .native_scripts
+                .and_then(|v| NonEmptyVec::try_from(v).ok());
+            new_wits.bootstrap_witnesses = wits
+                .bootstrap_witnesses
+                .and_then(|v| NonEmptyVec::try_from(v).ok());
             new_wits
         }
     }
@@ -1622,17 +1638,27 @@ mod alonzo_impls {
     impl From<AlonzoTransactionWitnessSet> for TransactionWitnessSet {
         fn from(wits: AlonzoTransactionWitnessSet) -> Self {
             let mut new_wits = TransactionWitnessSet::new();
-            new_wits.vkeywitnesses = wits.vkeywitnesses.map(Into::into);
-            new_wits.native_scripts = wits.native_scripts.map(Into::into);
-            new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.map(Into::into);
-            // Conway `Redeemers` cannot be empty; an empty older-era redeemer list maps to no redeemers.
+            // Conway witness-set collections cannot be empty; an empty older-era list maps to absent.
+            new_wits.vkeywitnesses = wits
+                .vkeywitnesses
+                .and_then(|v| NonEmptyVec::try_from(v).ok());
+            new_wits.native_scripts = wits
+                .native_scripts
+                .and_then(|v| NonEmptyVec::try_from(v).ok());
+            new_wits.bootstrap_witnesses = wits
+                .bootstrap_witnesses
+                .and_then(|v| NonEmptyVec::try_from(v).ok());
             new_wits.redeemers = wits.redeemers.and_then(|r| {
                 NonEmptyVec::try_from(r.into_iter().map(Into::into).collect::<Vec<_>>())
                     .ok()
                     .map(Redeemers::new_arr_legacy_redeemer)
             });
-            new_wits.plutus_datums = wits.plutus_datums.map(Into::into);
-            new_wits.plutus_v1_scripts = wits.plutus_v1_scripts.map(Into::into);
+            new_wits.plutus_datums = wits
+                .plutus_datums
+                .and_then(|v| NonEmptyVec::try_from(v).ok());
+            new_wits.plutus_v1_scripts = wits
+                .plutus_v1_scripts
+                .and_then(|v| NonEmptyVec::try_from(v).ok());
             new_wits
         }
     }

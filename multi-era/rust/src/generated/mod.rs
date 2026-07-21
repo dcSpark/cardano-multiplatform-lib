@@ -8,6 +8,7 @@ pub mod allegra;
 pub mod alonzo;
 pub mod babbage;
 mod borrowed_key_types;
+mod extern_interface_check;
 pub mod mary;
 pub mod serialization;
 pub mod shelley;

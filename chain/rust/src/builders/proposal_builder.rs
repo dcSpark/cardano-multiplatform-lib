@@ -1,6 +1,8 @@
+use cml_crypto::Ed25519KeyHash;
+
 use crate::{
-    RequiredSigners, crypto::hash::hash_plutus_data, governance::ProposalProcedure,
-    plutus::PlutusData, transaction::NativeScript,
+    crypto::hash::hash_plutus_data, governance::ProposalProcedure, plutus::PlutusData,
+    transaction::NativeScript,
 };
 
 use super::{
@@ -94,7 +96,7 @@ impl ProposalBuilder {
         self,
         proposal: ProposalProcedure,
         partial_witness: PartialPlutusWitness,
-        required_signers: RequiredSigners,
+        required_signers: Vec<Ed25519KeyHash>,
         datum: PlutusData,
     ) -> Result<Self, ProposalBuilderError> {
         self.with_plutus_proposal_impl(proposal, partial_witness, required_signers, Some(datum))
@@ -104,7 +106,7 @@ impl ProposalBuilder {
         self,
         proposal: ProposalProcedure,
         partial_witness: PartialPlutusWitness,
-        required_signers: RequiredSigners,
+        required_signers: Vec<Ed25519KeyHash>,
     ) -> Result<Self, ProposalBuilderError> {
         self.with_plutus_proposal_impl(proposal, partial_witness, required_signers, None)
     }
@@ -113,7 +115,7 @@ impl ProposalBuilder {
         mut self,
         proposal: ProposalProcedure,
         partial_witness: PartialPlutusWitness,
-        required_signers: RequiredSigners,
+        required_signers: Vec<Ed25519KeyHash>,
         datum: Option<PlutusData>,
     ) -> Result<Self, ProposalBuilderError> {
         let mut required_wits = required_wits_from_required_signers(&required_signers);

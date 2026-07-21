@@ -1,0 +1,5 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+mary_block = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name MaryBlock
+mary_transaction = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name MaryTransaction
+mary_transaction_body = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name MaryTransactionBody
+mary_transaction_output = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name MaryTransactionOutput

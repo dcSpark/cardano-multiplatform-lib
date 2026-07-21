@@ -64,7 +64,7 @@ impl SingleWithdrawalBuilder {
         required_signers: RequiredSigners,
     ) -> Result<WithdrawalBuilderResult, JsError> {
         self.0
-            .plutus_script(partial_witness.into(), required_signers.into())
+            .plutus_script(partial_witness.into(), required_signers.0.into())
             .map(Into::into)
             .map_err(Into::into)
     }

@@ -30,7 +30,7 @@ alonzo_transaction_body = {
   ? 9 : mint,                     ; @name mint
   ? 11 : script_data_hash,        ; @name script_data_hash
   ? 13 : [* transaction_input],   ; @name collateral_inputs
-  ? 14 : required_signers,        ; @name required_signers
+  ? 14 : [* ed25519_key_hash],    ; @name required_signers
   ? 15 : network_id,              ; @name network_id
  }
 

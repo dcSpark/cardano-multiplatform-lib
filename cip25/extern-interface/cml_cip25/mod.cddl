@@ -1,0 +1,7 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+CIP25_chunkable_string = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP25ChunkableString
+CIP25_files_details = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP25FilesDetails
+CIP25_label_metadata = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP25LabelMetadata
+CIP25_metadata = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP25Metadata
+CIP25_metadata_details = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP25MetadataDetails
+CIP25_string64 = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP25String64

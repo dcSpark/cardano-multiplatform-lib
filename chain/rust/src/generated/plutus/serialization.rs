@@ -624,8 +624,7 @@ impl Deserialize for PlutusData {
                     // could be large BigInteger or ConstrPlutusData so check tag to see which it is
                     let initial_position = raw.position();
                     let tag = raw.tag()?;
-                    raw.set_position(initial_position)
-                        .unwrap();
+                    raw.set_position(initial_position).unwrap();
                     if tag == 2 || tag == 3 {
                         BigInteger::deserialize(raw)
                             .map(Self::Integer)
@@ -677,7 +676,7 @@ impl Deserialize for PlutusData {
                     .map_err(|e| e.annotate("Bytes")),
                 _ => Err(DeserializeFailure::NoVariantMatched.into()),
             }
-             // cddl-codegen:replaces
+            // cddl-codegen:replaces
             // let initial_position = raw.position();
             // let mut errs = Vec::new();
             // let deser_variant: Result<_, DeserializeError> = ConstrPlutusData::deserialize(raw);

@@ -1370,13 +1370,14 @@ impl TransactionBuilder {
                     let redeemers = NonEmptyVec::try_from(redeemers.clone())
                         .ok()
                         .map(Redeemers::new_arr_legacy_redeemer);
+                    // Empty datum list means no datums: pass None (same .ok() idiom as redeemers).
+                    let datums = NonEmptyVec::try_from(
+                        self.witness_builders.witness_set_builder.get_plutus_datum(),
+                    )
+                    .ok();
                     calc_script_data_hash(
                         redeemers.as_ref(),
-                        &self
-                            .witness_builders
-                            .witness_set_builder
-                            .get_plutus_datum()
-                            .into(),
+                        datums.as_ref(),
                         &self.config.cost_models,
                         &languages.iter().copied().collect::<Vec<_>>(),
                         None,
@@ -1394,38 +1395,44 @@ impl TransactionBuilder {
             outputs: self.outputs.clone(),
             fee,
             ttl: self.ttl,
-            certs: self.certs.as_ref().map(|certs| certs.clone().into()),
+            certs: self
+                .certs
+                .as_ref()
+                .and_then(|certs| NonEmptyVec::try_from(certs.clone()).ok()),
             withdrawals: self.withdrawals.clone(),
             auxiliary_data_hash: self.auxiliary_data.as_ref().map(hash_auxiliary_data),
             validity_interval_start: self.validity_start_interval,
             mint: self.mint.clone(),
             script_data_hash,
-            collateral_inputs: self.collateral.as_ref().map(|collateral| {
-                collateral
-                    .iter()
-                    .map(|c| c.input.clone())
-                    .collect::<Vec<_>>()
-                    .into()
+            collateral_inputs: self.collateral.as_ref().and_then(|collateral| {
+                NonEmptyVec::try_from(
+                    collateral
+                        .iter()
+                        .map(|c| c.input.clone())
+                        .collect::<Vec<_>>(),
+                )
+                .ok()
             }),
-            required_signers: self
-                .required_signers
-                .as_ref()
-                .map(|set| set.iter().cloned().collect::<Vec<_>>().into()),
+            required_signers: self.required_signers.as_ref().and_then(|set| {
+                NonEmptyVec::try_from(set.iter().cloned().collect::<Vec<_>>()).ok()
+            }),
             network_id: self.network_id.clone(),
             collateral_return: self.collateral_return.clone(),
             total_collateral: self.calc_collateral_total()?,
-            reference_inputs: self.reference_inputs.as_ref().map(|inputs| {
-                inputs
-                    .iter()
-                    .map(|utxo| utxo.input.clone())
-                    .collect::<Vec<_>>()
-                    .into()
+            reference_inputs: self.reference_inputs.as_ref().and_then(|inputs| {
+                NonEmptyVec::try_from(
+                    inputs
+                        .iter()
+                        .map(|utxo| utxo.input.clone())
+                        .collect::<Vec<_>>(),
+                )
+                .ok()
             }),
             voting_procedures: self.votes.clone(),
             proposal_procedures: self
                 .proposals
                 .as_ref()
-                .map(|proposals| proposals.clone().into()),
+                .and_then(|proposals| NonEmptyVec::try_from(proposals.clone()).ok()),
             current_treasury_value: self.current_treasury_value,
             donation: self.donation,
             encodings: None,
@@ -4352,7 +4359,7 @@ mod tests {
         let mut witness_set = TransactionWitnessSet::new();
 
         witness_set.vkeywitnesses = Some(
-            vec![make_vkey_witness(
+            NonEmptyVec::try_from(vec![make_vkey_witness(
                 &hash_transaction(&body),
                 &PrivateKey::from_normal_bytes(
                     &hex::decode(
@@ -4361,8 +4368,8 @@ mod tests {
                     .unwrap(),
                 )
                 .unwrap(),
-            )]
-            .into(),
+            )])
+            .unwrap(),
         );
 
         let final_tx = Transaction::new(body, witness_set, true, None);
@@ -5400,7 +5407,7 @@ mod tests {
                     ),
                     PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                required_signers.into(),
+                required_signers.try_into().unwrap(),
                 PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
@@ -5551,7 +5558,7 @@ mod tests {
                     ),
                     PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                required_signers.into(),
+                required_signers.try_into().unwrap(),
                 PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
@@ -5732,7 +5739,7 @@ mod tests {
                     ),
                     PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                required_signers.into(),
+                required_signers.try_into().unwrap(),
                 PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
@@ -5990,7 +5997,7 @@ mod tests {
                     PlutusScriptWitness::from(script_hash),
                     PlutusData::new_bytes(vec![]),
                 ),
-                vec![].into(),
+                vec![],
                 PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
             )
             .unwrap()

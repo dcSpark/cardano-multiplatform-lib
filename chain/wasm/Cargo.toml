@@ -17,7 +17,7 @@ generated-with = "0.1.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-chain = { path = "../rust" , version = "6.2.0", features = ["used_from_wasm"] }
+cml-chain = { path = "../rust", version = "6.2.0", features = ["used_from_wasm"] }
 cml-core = { path = "../../core/rust", version = "6.2.0" }
 cml-core-wasm = { path = "../../core/wasm", version = "6.2.0" }
 # TODO: remove this dependency if possible to reduce confusion? maybe pub export necessary things in crypto-wasm?

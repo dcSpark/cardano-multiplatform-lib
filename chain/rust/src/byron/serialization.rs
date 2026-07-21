@@ -60,6 +60,18 @@ impl cbor_event::se::Serialize for AddrAttributes {
     }
 }
 
+// Byron's wire format predates canonical-CBOR encoding options, so force_canonical is
+// meaningless here; both paths emit the one legacy encoding above.
+impl cml_core::serialization::Serialize for AddrAttributes {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        _force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        cbor_event::se::Serialize::serialize(self, serializer)
+    }
+}
+
 impl Deserialize for AddrAttributes {
     fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         let len = raw.map()?;
@@ -82,7 +94,8 @@ impl Deserialize for AddrAttributes {
                             stake_distribution = Some(
                                 (|| -> Result<_, DeserializeError> {
                                     let stake_distribution_bytes = raw.bytes()?;
-                                    let inner_de = &mut Deserializer::from(stake_distribution_bytes);
+                                    let inner_de =
+                                        &mut Deserializer::from(stake_distribution_bytes);
                                     read_len.read_elems(1)?;
                                     StakeDistribution::deserialize(inner_de)
                                 })()
@@ -203,9 +216,7 @@ impl Deserialize for AddressContent {
                 })(raw);
                 match deser_variant {
                     Ok(()) => return Ok(ByronAddrType::PublicKey),
-                    Err(_) => raw
-                        .set_position(initial_position)
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
                 let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let script_value = raw.unsigned_integer()?;
@@ -220,9 +231,7 @@ impl Deserialize for AddressContent {
                 })(raw);
                 match deser_variant {
                     Ok(()) => return Ok(ByronAddrType::Script),
-                    Err(_) => raw
-                        .set_position(initial_position)
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
                 let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                     let redeem_value = raw.unsigned_integer()?;
@@ -237,9 +246,7 @@ impl Deserialize for AddressContent {
                 })(raw);
                 match deser_variant {
                     Ok(()) => return Ok(ByronAddrType::Redeem),
-                    Err(_) => raw
-                        .set_position(initial_position)
-                        .unwrap(),
+                    Err(_) => raw.set_position(initial_position).unwrap(),
                 };
                 Err(DeserializeError::new(
                     "ByronAddrType",
@@ -441,9 +448,7 @@ impl Deserialize for SpendingData {
             })(raw);
             match deser_variant {
                 Ok(variant) => return Ok(variant),
-                Err(_) => raw
-                    .set_position(initial_position)
-                    .unwrap(),
+                Err(_) => raw.set_position(initial_position).unwrap(),
             };
             let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 (|| -> Result<_, DeserializeError> {
@@ -477,9 +482,7 @@ impl Deserialize for SpendingData {
             })(raw);
             match deser_variant {
                 Ok(variant) => return Ok(variant),
-                Err(_) => raw
-                    .set_position(initial_position)
-                    .unwrap(),
+                Err(_) => raw.set_position(initial_position).unwrap(),
             };
             let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 (|| -> Result<_, DeserializeError> {
@@ -513,9 +516,7 @@ impl Deserialize for SpendingData {
             })(raw);
             match deser_variant {
                 Ok(variant) => return Ok(variant),
-                Err(_) => raw
-                    .set_position(initial_position)
-                    .unwrap(),
+                Err(_) => raw.set_position(initial_position).unwrap(),
             };
             match len {
                 cbor_event::Len::Len(_) => (),
@@ -591,9 +592,7 @@ impl Deserialize for StakeDistribution {
             })(raw);
             match deser_variant {
                 Ok(variant) => return Ok(variant),
-                Err(_) => raw
-                    .set_position(initial_position)
-                    .unwrap(),
+                Err(_) => raw.set_position(initial_position).unwrap(),
             };
             let deser_variant = (|raw: &mut Deserializer| -> Result<_, DeserializeError> {
                 let bootstrap_era_distr_value = raw.unsigned_integer()?;
@@ -608,9 +607,7 @@ impl Deserialize for StakeDistribution {
             })(raw);
             match deser_variant {
                 Ok(()) => return Ok(StakeDistribution::BootstrapEra),
-                Err(_) => raw
-                    .set_position(initial_position)
-                    .unwrap(),
+                Err(_) => raw.set_position(initial_position).unwrap(),
             };
             match len {
                 cbor_event::Len::Len(_) => (),

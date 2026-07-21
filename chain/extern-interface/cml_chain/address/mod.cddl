@@ -1,0 +1,3 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+address = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Address
+reward_account = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name RewardAccount

@@ -1,0 +1,9 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+asset_name = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AssetName
+coin = uint ; @rust_name Coin
+int64 = int ; @no_alias @rust_name Int64
+mint = {* policy_id => {* asset_name => non_zero_int_64}} ; @rust_name Mint
+multi_asset = {* policy_id => {* asset_name => uint}} ; @rust_name MultiAsset
+non_zero_int_64 = int ; @rust_name NonZeroInt64
+positive_coin = coin ; @rust_name PositiveCoin
+value = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Value

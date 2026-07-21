@@ -66,14 +66,19 @@ set -euo pipefail
 #     sidecar bytes only change if a map is keyed on a non-root dep type)
 # Bump to a rev with all of the above once they are on the GitHub remote — nothing earlier; e.g.
 # 2bff93f has --export-static-dir but not the alias fix, and 18fb7cc lacks the @custom_json fix.
-# As of 2026-07-19 the cycle's fixes are NOT yet pushed (only e07c3a0 of the referenced commits is
-# on the remote). Until then regen only works via CDDL_CODEGEN_DIR pointing at a local checkout.
-# KNOWN BLOCKER (2026-07-19): at rev ee85ccb the CHAIN regen aborts — the generic
-# `@raw_bytes_flavor` externs (specs/conway/lib.cddl set<T>/nonempty_set<T>) get their instance
-# repr (`NonemptySetRawBytes<Ed25519KeyHash>`) emitted WITH type args into transaction/mod.rs's
-# `use` list, which is invalid Rust. Filed upstream as draft/feature-requests/REQUEST-07-….md.
-# multi-era/cip36/cip25 regenerate clean at that rev (their 2026-07-19 diffs are already in this
-# tree); ONLY chain is blocked, and regens once REQUEST-07 is fixed.
+# The 2026-07-20 cycle added two more requirements (both shipped upstream, see
+# draft/feature-requests/RESPONSE-2026-07-20-request-0{7,8}.md in the cddl-codegen repo):
+#   - the REQUEST-07 fix (generic-extern instance `Base<Args>` leaked into scope `use` lists;
+#     previously blocked the chain regen entirely)
+#   - the REQUEST-08 series (transparent tag-258 set idiom, branch feature/request-08-cbor-set):
+#     specs/conway/lib.cddl now DEFINES set<T>/nonempty_set<T> as the `#6.258([* T]) / [* T]`
+#     choice instead of externing them, and the hand NonemptySet/NonemptySetRawBytes impls
+#     (chain/rust/src/utils.rs) plus the wasm alias/conversion shims were DELETED. A rev without
+#     the request-08 collapse mis-models these rules as two-variant enums — do not regen chain
+#     on anything older.
+# As of 2026-07-19 the earlier cycle's fixes are NOT yet pushed (only e07c3a0 of the referenced
+# commits is on the remote). Until everything above lands on the remote, regen only works via
+# CDDL_CODEGEN_DIR pointing at a local checkout.
 CDDL_CODEGEN_REV="77237871a3d2585996b103fbcc03bd227606c445"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,0 +1,13 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+; unexported: alonzo_cost_models — references excluded cost_models
+; unexported: alonzo_proposed_protocol_parameter_updates — references excluded genesis_hash
+alonzo_auxiliary_data = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AlonzoAuxiliaryData
+alonzo_block = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AlonzoBlock
+alonzo_format_aux_data = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AlonzoFormatAuxData
+alonzo_protocol_param_update = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AlonzoProtocolParamUpdate
+alonzo_redeemer = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AlonzoRedeemer
+alonzo_redeemer_tag = 0 / 1 / 2 / 3 ; @rust_name AlonzoRedeemerTag
+alonzo_transaction = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AlonzoTransaction
+alonzo_transaction_body = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AlonzoTransactionBody
+alonzo_transaction_witness_set = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AlonzoTransactionWitnessSet
+alonzo_update = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AlonzoUpdate

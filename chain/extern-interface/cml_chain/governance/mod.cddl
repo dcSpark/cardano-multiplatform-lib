@@ -1,0 +1,16 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+; unexported: update_committee — unrenderable shape: a reference to `SetCommitteeColdCredential` with no recorded source CDDL rule name
+anchor = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Anchor
+constitution = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Constitution
+gov_action = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name GovAction
+gov_action_id = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name GovActionId
+hard_fork_initiation_action = (tag: 1, action_id: gov_action_id / null, version: protocol_version) ; @rust_name HardForkInitiationAction
+new_constitution = (tag: 5, action_id: gov_action_id / null, constitution: constitution) ; @rust_name NewConstitution
+no_confidence = (tag: 3, action_id: gov_action_id / null) ; @rust_name NoConfidence
+parameter_change_action = (tag: 0, action_id: gov_action_id / null, update: protocol_param_update, policy_hash: script_hash / null) ; @rust_name ParameterChangeAction
+proposal_procedure = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ProposalProcedure
+treasury_withdrawals_action = (tag: 2, withdrawal: {* reward_account => coin}, policy_hash: script_hash / null) ; @rust_name TreasuryWithdrawalsAction
+vote = 0 / 1 / 2 ; @rust_name Vote
+voter = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Voter
+voting_procedure = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name VotingProcedure
+voting_procedures = {+ voter => {+ gov_action_id => voting_procedure}} ; @rust_name VotingProcedures

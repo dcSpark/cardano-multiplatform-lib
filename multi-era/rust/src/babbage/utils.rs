@@ -78,18 +78,31 @@ impl From<BabbageAuxiliaryData> for AuxiliaryData {
 impl From<BabbageTransactionWitnessSet> for TransactionWitnessSet {
     fn from(wits: BabbageTransactionWitnessSet) -> Self {
         let mut new_wits = TransactionWitnessSet::new();
-        new_wits.vkeywitnesses = wits.vkeywitnesses.map(Into::into);
-        new_wits.native_scripts = wits.native_scripts.map(Into::into);
-        new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.map(Into::into);
+        // Conway witness-set collections cannot be empty; an empty older-era list maps to absent.
+        new_wits.vkeywitnesses = wits
+            .vkeywitnesses
+            .and_then(|v| NonEmptyVec::try_from(v).ok());
+        new_wits.native_scripts = wits
+            .native_scripts
+            .and_then(|v| NonEmptyVec::try_from(v).ok());
+        new_wits.bootstrap_witnesses = wits
+            .bootstrap_witnesses
+            .and_then(|v| NonEmptyVec::try_from(v).ok());
         // Conway `Redeemers` cannot be empty; an empty older-era redeemer list maps to no redeemers.
         new_wits.redeemers = wits.redeemers.and_then(|rs| {
             NonEmptyVec::try_from(rs.into_iter().map(Into::into).collect::<Vec<_>>())
                 .ok()
                 .map(Redeemers::new_arr_legacy_redeemer)
         });
-        new_wits.plutus_datums = wits.plutus_datums.map(Into::into);
-        new_wits.plutus_v1_scripts = wits.plutus_v1_scripts.map(Into::into);
-        new_wits.plutus_v2_scripts = wits.plutus_v2_scripts.map(Into::into);
+        new_wits.plutus_datums = wits
+            .plutus_datums
+            .and_then(|v| NonEmptyVec::try_from(v).ok());
+        new_wits.plutus_v1_scripts = wits
+            .plutus_v1_scripts
+            .and_then(|v| NonEmptyVec::try_from(v).ok());
+        new_wits.plutus_v2_scripts = wits
+            .plutus_v2_scripts
+            .and_then(|v| NonEmptyVec::try_from(v).ok());
         new_wits
     }
 }

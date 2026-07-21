@@ -75,7 +75,7 @@ impl SingleInputBuilder {
             .clone()
             .plutus_script(
                 partial_witness.clone().into(),
-                required_signers.clone().into(),
+                required_signers.clone().0.into(),
                 datum.clone().into(),
             )
             .map(Into::into)
@@ -91,7 +91,7 @@ impl SingleInputBuilder {
             .clone()
             .plutus_script_inline_datum(
                 partial_witness.clone().into(),
-                required_signers.clone().into(),
+                required_signers.clone().0.into(),
             )
             .map(Into::into)
             .map_err(Into::into)

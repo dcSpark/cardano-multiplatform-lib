@@ -11,8 +11,9 @@ use crate::generated::block::ProtocolVersion;
 use crate::generated::certs::Url;
 use crate::generated::crypto::{AnchorDocHash, Ed25519KeyHash, ScriptHash, TransactionHash};
 use crate::generated::{
-    MapCommitteeColdCredentialToEpoch, MapGovActionIdToVotingProcedure, MapRewardAccountToCoin,
-    ProtocolParamUpdate, SetCommitteeColdCredential, UnitInterval, VoterList,
+    CommitteeColdCredentialList, MapCommitteeColdCredentialToEpoch,
+    MapGovActionIdToVotingProcedure, MapRewardAccountToCoin, ProtocolParamUpdate,
+    SetCommitteeColdCredential, UnitInterval, VoterList,
 };
 pub use cml_chain::governance::Vote;
 use cml_core::non_empty_map::NonEmptyMap;

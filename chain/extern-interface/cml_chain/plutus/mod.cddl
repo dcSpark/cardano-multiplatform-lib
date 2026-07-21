@@ -1,0 +1,18 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+big_integer = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BigInteger
+bounded_bytes = bytes ; @no_alias @rust_name BoundedBytes
+constr_plutus_data = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ConstrPlutusData
+cost_models = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CostModels
+ex_unit_prices = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ExUnitPrices
+ex_units = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ExUnits
+language = 0 / 1 / 2 ; @rust_name Language
+legacy_redeemer = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name LegacyRedeemer
+plutus_data = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name PlutusData
+plutus_map = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name PlutusMap
+plutus_v1_script = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name PlutusV1Script
+plutus_v2_script = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name PlutusV2Script
+plutus_v3_script = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name PlutusV3Script
+redeemer_key = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name RedeemerKey
+redeemer_tag = 0 / 1 / 2 / 3 / 4 / 5 ; @rust_name RedeemerTag
+redeemer_val = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name RedeemerVal
+redeemers = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Redeemers

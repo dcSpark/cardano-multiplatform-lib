@@ -59,9 +59,16 @@ pub mod transaction {
 }
 
 // Extern-type re-exports so the generated glue (`pub use crate::X;`) resolves.
+pub use cml_crypto_wasm::{
+    AnchorDocHash, AuxiliaryDataHash, BlockBodyHash, BlockHeaderHash, DatumHash, Ed25519KeyHash,
+    Ed25519Signature, GenesisDelegateHash, GenesisHash, KESVkey, NonceHash, PoolMetadataHash,
+    ScriptDataHash, ScriptHash, TransactionHash, VRFKeyHash, VRFVkey,
+};
+pub type Vkey = cml_crypto_wasm::PublicKey;
 pub use crate::assets::utils::Value;
 pub use crate::auxdata::metadata::Metadata;
 pub use crate::plutus::utils::{ConstrPlutusData, PlutusMap};
+pub use crate::transaction::RequiredSigners;
 pub use address::{Address, RewardAccount};
 pub use byron::AddrAttributes;
 pub use cml_chain::Coin;
@@ -71,23 +78,6 @@ pub use utils::BigInteger;
 // `use crate::*` or reference bare as `crate::X` (these were private root
 // imports in the pre-thin-root lib.rs).
 use crate::assets::AssetName;
-use crate::crypto::{ScriptHash, Vkeywitness};
+use crate::crypto::Vkeywitness;
 use crate::transaction::NativeScript;
 use ::wasm_bindgen::prelude::{JsError, wasm_bindgen};
-
-// Generic-extern list aliases. The generator cannot emit these itself; it emits
-// `pub use crate::X;` glue in the generated module that resolves back to here.
-pub type SetTransactionInput = TransactionInputList;
-pub type NonemptySetBootstrapWitness = BootstrapWitnessList;
-pub type NonemptySetCertificate = CertificateList;
-pub type NonemptySetNativeScript = NativeScriptList;
-pub type NonemptySetPlutusData = PlutusDataList;
-pub type NonemptySetPlutusV1Script = PlutusV1ScriptList;
-pub type NonemptySetPlutusV2Script = PlutusV2ScriptList;
-pub type NonemptySetPlutusV3Script = PlutusV3ScriptList;
-pub type NonemptySetProposalProcedure = ProposalProcedureList;
-pub type NonemptySetTransactionInput = TransactionInputList;
-pub type NonemptySetVkeywitness = VkeywitnessList;
-pub type RequiredSigners = Ed25519KeyHashList;
-pub type SetCommitteeColdCredential = CommitteeColdCredentialList;
-pub type SetEd25519KeyHash = Ed25519KeyHashList;

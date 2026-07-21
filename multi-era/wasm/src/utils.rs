@@ -2,8 +2,8 @@ use cml_chain::{Coin, assets::PositiveCoin};
 use cml_chain::{Epoch, TransactionIndex};
 use cml_chain_wasm::{
     DRepVotingThresholds, MapTransactionIndexToAuxiliaryData, NetworkId, PoolVotingThresholds,
-    ProposalProcedureList, Rational, RequiredSigners, TransactionInputList,
-    TransactionWitnessSetList, UnitInterval, Withdrawals,
+    ProposalProcedureList, Rational, TransactionInputList, TransactionWitnessSetList, UnitInterval,
+    Withdrawals,
     address::Address,
     assets::{Mint, Value},
     block::{OperationalCert, ProtocolVersion},
@@ -13,6 +13,7 @@ use cml_chain_wasm::{
         StakeRegistration, StakeVoteDelegCert, StakeVoteRegDelegCert, UnregCert, UnregDrepCert,
         UpdateDrepCert, VoteDelegCert, VoteRegDelegCert,
     },
+    collections::Ed25519KeyHashList,
     crypto::{GenesisHash, Nonce, VRFCert, Vkey},
     governance::VotingProcedures,
     plutus::{CostModels, ExUnitPrices, ExUnits},
@@ -624,7 +625,9 @@ impl MultiEraTransactionBody {
             .map(|inputs| inputs.to_vec().into())
     }
 
-    pub fn required_signers(&self) -> Option<RequiredSigners> {
+    // Loose list, not chain's non-empty `RequiredSigners`: pre-Conway eras admit a
+    // present-but-empty field on the wire.
+    pub fn required_signers(&self) -> Option<Ed25519KeyHashList> {
         self.as_ref()
             .required_signers()
             .map(|signers| signers.to_vec().into())

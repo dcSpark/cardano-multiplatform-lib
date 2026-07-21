@@ -1,0 +1,20 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+CIP36_delegation = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP36Delegation
+CIP36_delegation_distribution = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP36DelegationDistribution
+CIP36_deregistration_cbor = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP36DeregistrationCbor
+CIP36_deregistration_witness = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP36DeregistrationWitness
+CIP36_key_deregistration = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP36KeyDeregistration
+CIP36_key_registration = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP36KeyRegistration
+CIP36_legacy_key_registration = CIP36_voting_pub_key ; @rust_name CIP36LegacyKeyRegistration
+CIP36_nonce = uint ; @rust_name CIP36Nonce
+CIP36_registration_cbor = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP36RegistrationCbor
+CIP36_registration_witness = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name CIP36RegistrationWitness
+CIP36_stake_credential = CIP36_staking_pub_key ; @rust_name CIP36StakeCredential
+CIP36_stake_witness = ed25519_signature ; @rust_name CIP36StakeWitness
+CIP36_staking_pub_key = public_key ; @rust_name CIP36StakingPubKey
+CIP36_voting_pub_key = public_key ; @rust_name CIP36VotingPubKey
+CIP36_voting_purpose = uint ; @rust_name CIP36VotingPurpose
+CIP36_weight = uint .size 4 ; @rust_name CIP36Weight
+ed25519_signature = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name Ed25519Signature
+payment_address = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name PaymentAddress
+public_key = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name PublicKey

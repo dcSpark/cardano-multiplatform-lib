@@ -2,7 +2,7 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use super::*;
-use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_core::serialization::{LenEncoding, StringEncoding, TagPresenceEncoding};
 
 #[derive(Clone, Debug, Default)]
 pub struct AuthCommitteeHotCertEncoding {
@@ -44,6 +44,9 @@ pub struct PoolParamsEncoding {
     pub vrf_keyhash_encoding: StringEncoding,
     pub pledge_encoding: Option<cbor_event::Sz>,
     pub cost_encoding: Option<cbor_event::Sz>,
+    pub pool_owners_tag_encoding: TagPresenceEncoding,
+    pub pool_owners_encoding: LenEncoding,
+    pub pool_owners_elem_encodings: Vec<StringEncoding>,
     pub relays_encoding: LenEncoding,
 }
 

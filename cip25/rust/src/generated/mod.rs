@@ -3,6 +3,7 @@
 
 #![allow(clippy::too_many_arguments)]
 
+mod extern_interface_check;
 pub mod serialization;
 pub use crate::CIP25LabelMetadata;
 

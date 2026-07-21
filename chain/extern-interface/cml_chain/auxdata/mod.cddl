@@ -1,0 +1,6 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+auxiliary_data = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AuxiliaryData
+conway_format_aux_data = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ConwayFormatAuxData
+metadata = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Metadata
+shelley_MA_format_aux_data = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyMAFormatAuxData
+shelley_format_aux_data = metadata ; @rust_name ShelleyFormatAuxData

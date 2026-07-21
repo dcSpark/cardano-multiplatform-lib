@@ -1,0 +1,16 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+d_rep_voting_thresholds = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name DRepVotingThresholds
+delta_coin = int ; @rust_name DeltaCoin
+epoch = uint ; @rust_name Epoch
+network_id = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name NetworkId
+policy_id = script_hash ; @rust_name PolicyId
+pool_voting_thresholds = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name PoolVotingThresholds
+port = uint .size 2 ; @rust_name Port
+protocol_param_update = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ProtocolParamUpdate
+rational = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Rational
+slot = uint ; @rust_name Slot
+sub_coin = rational ; @rust_name SubCoin
+transaction_index = uint .size 2 ; @rust_name TransactionIndex
+transaction_metadatum_label = uint ; @rust_name TransactionMetadatumLabel
+unit_interval = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name UnitInterval
+withdrawals = {* reward_account => coin} ; @rust_name Withdrawals

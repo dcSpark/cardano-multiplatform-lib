@@ -4,7 +4,8 @@ use super::witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet};
 
 use cml_core::ordered_hash_map::OrderedHashMap;
 
-use crate::{NativeScript, PolicyId, RequiredSigners, assets::AssetName};
+use crate::{NativeScript, PolicyId, assets::AssetName};
+use cml_crypto::Ed25519KeyHash;
 
 #[derive(Clone)]
 pub struct MintBuilderResult {
@@ -53,7 +54,7 @@ impl SingleMintBuilder {
     pub fn plutus_script(
         self,
         partial_witness: PartialPlutusWitness,
-        required_signers: RequiredSigners,
+        required_signers: Vec<Ed25519KeyHash>,
     ) -> MintBuilderResult {
         let mut required_wits = RequiredWitnessSet::default();
 

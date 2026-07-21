@@ -1748,7 +1748,29 @@ impl Serialize for TransactionBody {
                             force_canonical,
                         ),
                     )?;
-                    self.inputs.serialize(serializer, force_canonical)?;
+                    if let TagPresenceEncoding::Tagged(tag_sz) = self
+                        .encodings
+                        .as_ref()
+                        .map(|encs| encs.inputs_tag_encoding)
+                        .unwrap_or_default()
+                    {
+                        serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                    }
+                    serializer.write_array_sz(
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.inputs_encoding)
+                            .unwrap_or_default()
+                            .to_len_sz(self.inputs.len() as u64, force_canonical),
+                    )?;
+                    for element in self.inputs.iter() {
+                        element.serialize(serializer, force_canonical)?;
+                    }
+                    self.encodings
+                        .as_ref()
+                        .map(|encs| encs.inputs_encoding)
+                        .unwrap_or_default()
+                        .end(serializer, force_canonical)?;
                 }
                 1 => {
                     serializer.write_unsigned_integer_sz(
@@ -1841,7 +1863,30 @@ impl Serialize for TransactionBody {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        if let TagPresenceEncoding::Tagged(tag_sz) = self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.certs_tag_encoding)
+                            .unwrap_or_default()
+                        {
+                            serializer
+                                .write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                        }
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.certs_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.certs_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 5 => {
@@ -2101,7 +2146,30 @@ impl Serialize for TransactionBody {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        if let TagPresenceEncoding::Tagged(tag_sz) = self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.collateral_inputs_tag_encoding)
+                            .unwrap_or_default()
+                        {
+                            serializer
+                                .write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                        }
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.collateral_inputs_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.collateral_inputs_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 11 => {
@@ -2117,7 +2185,42 @@ impl Serialize for TransactionBody {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        if let TagPresenceEncoding::Tagged(tag_sz) = self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.required_signers_tag_encoding)
+                            .unwrap_or_default()
+                        {
+                            serializer
+                                .write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                        }
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.required_signers_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for (i, element) in field.iter().enumerate() {
+                            let required_signers_elem_encoding = self
+                                .encodings
+                                .as_ref()
+                                .and_then(|encs| encs.required_signers_elem_encodings.get(i))
+                                .cloned()
+                                .unwrap_or_default();
+                            serializer.write_bytes_sz(
+                                element.to_raw_bytes(),
+                                required_signers_elem_encoding.to_str_len_sz(
+                                    element.to_raw_bytes().len() as u64,
+                                    force_canonical,
+                                ),
+                            )?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.required_signers_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 12 => {
@@ -2191,7 +2294,30 @@ impl Serialize for TransactionBody {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        if let TagPresenceEncoding::Tagged(tag_sz) = self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.reference_inputs_tag_encoding)
+                            .unwrap_or_default()
+                        {
+                            serializer
+                                .write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                        }
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.reference_inputs_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.reference_inputs_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 16 => {
@@ -2287,7 +2413,30 @@ impl Serialize for TransactionBody {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        if let TagPresenceEncoding::Tagged(tag_sz) = self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.proposal_procedures_tag_encoding)
+                            .unwrap_or_default()
+                        {
+                            serializer
+                                .write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                        }
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.proposal_procedures_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.proposal_procedures_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 18 => {
@@ -2361,6 +2510,8 @@ impl Deserialize for TransactionBody {
             let mut read_len = CBORReadLen::new(len);
             read_len.read_elems(3)?;
             let mut orig_deser_order = Vec::new();
+            let mut inputs_tag_encoding = TagPresenceEncoding::default();
+            let mut inputs_encoding = LenEncoding::default();
             let mut inputs_key_encoding = None;
             let mut inputs = None;
             let mut outputs_encoding = LenEncoding::default();
@@ -2372,6 +2523,8 @@ impl Deserialize for TransactionBody {
             let mut ttl_encoding = None;
             let mut ttl_key_encoding = None;
             let mut ttl = None;
+            let mut certs_tag_encoding = TagPresenceEncoding::default();
+            let mut certs_encoding = LenEncoding::default();
             let mut certs_key_encoding = None;
             let mut certs = None;
             let mut withdrawals_encoding = LenEncoding::default();
@@ -2392,8 +2545,13 @@ impl Deserialize for TransactionBody {
             let mut script_data_hash_encoding = StringEncoding::default();
             let mut script_data_hash_key_encoding = None;
             let mut script_data_hash = None;
+            let mut collateral_inputs_tag_encoding = TagPresenceEncoding::default();
+            let mut collateral_inputs_encoding = LenEncoding::default();
             let mut collateral_inputs_key_encoding = None;
             let mut collateral_inputs = None;
+            let mut required_signers_tag_encoding = TagPresenceEncoding::default();
+            let mut required_signers_encoding = LenEncoding::default();
+            let mut required_signers_elem_encodings = Vec::new();
             let mut required_signers_key_encoding = None;
             let mut required_signers = None;
             let mut network_id_key_encoding = None;
@@ -2403,12 +2561,16 @@ impl Deserialize for TransactionBody {
             let mut total_collateral_encoding = None;
             let mut total_collateral_key_encoding = None;
             let mut total_collateral = None;
+            let mut reference_inputs_tag_encoding = TagPresenceEncoding::default();
+            let mut reference_inputs_encoding = LenEncoding::default();
             let mut reference_inputs_key_encoding = None;
             let mut reference_inputs = None;
             let mut voting_procedures_encoding = LenEncoding::default();
             let mut voting_procedures_value_encodings = BTreeMap::new();
             let mut voting_procedures_key_encoding = None;
             let mut voting_procedures = None;
+            let mut proposal_procedures_tag_encoding = TagPresenceEncoding::default();
+            let mut proposal_procedures_encoding = LenEncoding::default();
             let mut proposal_procedures_key_encoding = None;
             let mut proposal_procedures = None;
             let mut current_treasury_value_encoding = None;
@@ -2425,8 +2587,31 @@ impl Deserialize for TransactionBody {
                             if inputs.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(0)).into());
                             }
-                            let tmp_inputs = SetTransactionInput::deserialize(raw).map_err(|e: DeserializeError| e.annotate("inputs"))?;
+                            let (tmp_inputs, tmp_inputs_tag_encoding, tmp_inputs_encoding) = (|| -> Result<_, DeserializeError> {
+                                let inputs_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch { found: tag, expected: 258 }.into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    },
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut inputs_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let inputs_encoding = len.into();
+                                while match len { cbor_event::LenSz::Len(n, _) => (inputs_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                        break;
+                                    }
+                                    inputs_arr.push(TransactionInput::deserialize(raw)?);
+                                }
+                                Ok((inputs_arr, inputs_tag_encoding, inputs_encoding))
+                            })().map_err(|e| e.annotate("inputs"))?;
                             inputs = Some(tmp_inputs);
+                            inputs_tag_encoding = tmp_inputs_tag_encoding;
+                            inputs_encoding = tmp_inputs_encoding;
                             inputs_key_encoding = Some(key_enc);
                             orig_deser_order.push(0);
                         },
@@ -2478,11 +2663,33 @@ impl Deserialize for TransactionBody {
                             if certs.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(4)).into());
                             }
-                            let tmp_certs = (|| -> Result<_, DeserializeError> {
+                            let (tmp_certs, tmp_certs_tag_encoding, tmp_certs_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                NonemptySetCertificate::deserialize(raw)
+                                let certs_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch { found: tag, expected: 258 }.into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    },
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut certs_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let certs_encoding = len.into();
+                                while match len { cbor_event::LenSz::Len(n, _) => (certs_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                        break;
+                                    }
+                                    certs_arr.push(Certificate::deserialize(raw)?);
+                                }
+                                let certs_arr = NonEmptyVec::try_from(certs_arr)?;
+                                Ok((certs_arr, certs_tag_encoding, certs_encoding))
                             })().map_err(|e| e.annotate("certs"))?;
                             certs = Some(tmp_certs);
+                            certs_tag_encoding = tmp_certs_tag_encoding;
+                            certs_encoding = tmp_certs_encoding;
                             certs_key_encoding = Some(key_enc);
                             orig_deser_order.push(4);
                         },
@@ -2614,11 +2821,33 @@ impl Deserialize for TransactionBody {
                             if collateral_inputs.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(13)).into());
                             }
-                            let tmp_collateral_inputs = (|| -> Result<_, DeserializeError> {
+                            let (tmp_collateral_inputs, tmp_collateral_inputs_tag_encoding, tmp_collateral_inputs_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                NonemptySetTransactionInput::deserialize(raw)
+                                let collateral_inputs_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch { found: tag, expected: 258 }.into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    },
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut collateral_inputs_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let collateral_inputs_encoding = len.into();
+                                while match len { cbor_event::LenSz::Len(n, _) => (collateral_inputs_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                        break;
+                                    }
+                                    collateral_inputs_arr.push(TransactionInput::deserialize(raw)?);
+                                }
+                                let collateral_inputs_arr = NonEmptyVec::try_from(collateral_inputs_arr)?;
+                                Ok((collateral_inputs_arr, collateral_inputs_tag_encoding, collateral_inputs_encoding))
                             })().map_err(|e| e.annotate("collateral_inputs"))?;
                             collateral_inputs = Some(tmp_collateral_inputs);
+                            collateral_inputs_tag_encoding = tmp_collateral_inputs_tag_encoding;
+                            collateral_inputs_encoding = tmp_collateral_inputs_encoding;
                             collateral_inputs_key_encoding = Some(key_enc);
                             orig_deser_order.push(10);
                         },
@@ -2626,11 +2855,37 @@ impl Deserialize for TransactionBody {
                             if required_signers.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(14)).into());
                             }
-                            let tmp_required_signers = (|| -> Result<_, DeserializeError> {
+                            let (tmp_required_signers, tmp_required_signers_tag_encoding, tmp_required_signers_encoding, tmp_required_signers_elem_encodings) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                RequiredSigners::deserialize(raw)
+                                let required_signers_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch { found: tag, expected: 258 }.into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    },
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut required_signers_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let required_signers_encoding = len.into();
+                                let mut required_signers_elem_encodings = Vec::new();
+                                while match len { cbor_event::LenSz::Len(n, _) => (required_signers_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                        break;
+                                    }
+                                    let (required_signers_elem, required_signers_elem_encoding) = raw.bytes_sz().map_err(Into::<DeserializeError>::into).and_then(|(bytes, enc)| Ed25519KeyHash::from_raw_bytes(&bytes).map(|bytes| (bytes, StringEncoding::from(enc))).map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into()))?;
+                                    required_signers_arr.push(required_signers_elem);
+                                    required_signers_elem_encodings.push(required_signers_elem_encoding);
+                                }
+                                let required_signers_arr = NonEmptyVec::try_from(required_signers_arr)?;
+                                Ok((required_signers_arr, required_signers_tag_encoding, required_signers_encoding, required_signers_elem_encodings))
                             })().map_err(|e| e.annotate("required_signers"))?;
                             required_signers = Some(tmp_required_signers);
+                            required_signers_tag_encoding = tmp_required_signers_tag_encoding;
+                            required_signers_encoding = tmp_required_signers_encoding;
+                            required_signers_elem_encodings = tmp_required_signers_elem_encodings;
                             required_signers_key_encoding = Some(key_enc);
                             orig_deser_order.push(11);
                         },
@@ -2675,11 +2930,33 @@ impl Deserialize for TransactionBody {
                             if reference_inputs.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(18)).into());
                             }
-                            let tmp_reference_inputs = (|| -> Result<_, DeserializeError> {
+                            let (tmp_reference_inputs, tmp_reference_inputs_tag_encoding, tmp_reference_inputs_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                NonemptySetTransactionInput::deserialize(raw)
+                                let reference_inputs_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch { found: tag, expected: 258 }.into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    },
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut reference_inputs_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let reference_inputs_encoding = len.into();
+                                while match len { cbor_event::LenSz::Len(n, _) => (reference_inputs_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                        break;
+                                    }
+                                    reference_inputs_arr.push(TransactionInput::deserialize(raw)?);
+                                }
+                                let reference_inputs_arr = NonEmptyVec::try_from(reference_inputs_arr)?;
+                                Ok((reference_inputs_arr, reference_inputs_tag_encoding, reference_inputs_encoding))
                             })().map_err(|e| e.annotate("reference_inputs"))?;
                             reference_inputs = Some(tmp_reference_inputs);
+                            reference_inputs_tag_encoding = tmp_reference_inputs_tag_encoding;
+                            reference_inputs_encoding = tmp_reference_inputs_encoding;
                             reference_inputs_key_encoding = Some(key_enc);
                             orig_deser_order.push(15);
                         },
@@ -2731,11 +3008,33 @@ impl Deserialize for TransactionBody {
                             if proposal_procedures.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(20)).into());
                             }
-                            let tmp_proposal_procedures = (|| -> Result<_, DeserializeError> {
+                            let (tmp_proposal_procedures, tmp_proposal_procedures_tag_encoding, tmp_proposal_procedures_encoding) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                NonemptySetProposalProcedure::deserialize(raw)
+                                let proposal_procedures_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch { found: tag, expected: 258 }.into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    },
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut proposal_procedures_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let proposal_procedures_encoding = len.into();
+                                while match len { cbor_event::LenSz::Len(n, _) => (proposal_procedures_arr.len() as u64) < n, cbor_event::LenSz::Indefinite => true, } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite) && raw.cbor_type()? == cbor_event::Type::Special && raw.special_break()? {
+                                        break;
+                                    }
+                                    proposal_procedures_arr.push(ProposalProcedure::deserialize(raw)?);
+                                }
+                                let proposal_procedures_arr = NonEmptyVec::try_from(proposal_procedures_arr)?;
+                                Ok((proposal_procedures_arr, proposal_procedures_tag_encoding, proposal_procedures_encoding))
                             })().map_err(|e| e.annotate("proposal_procedures"))?;
                             proposal_procedures = Some(tmp_proposal_procedures);
+                            proposal_procedures_tag_encoding = tmp_proposal_procedures_tag_encoding;
+                            proposal_procedures_encoding = tmp_proposal_procedures_encoding;
                             proposal_procedures_key_encoding = Some(key_enc);
                             orig_deser_order.push(17);
                         },
@@ -2822,6 +3121,8 @@ impl Deserialize for TransactionBody {
                     len_encoding,
                     orig_deser_order,
                     inputs_key_encoding,
+                    inputs_tag_encoding,
+                    inputs_encoding,
                     outputs_key_encoding,
                     outputs_encoding,
                     fee_key_encoding,
@@ -2829,6 +3130,8 @@ impl Deserialize for TransactionBody {
                     ttl_key_encoding,
                     ttl_encoding,
                     certs_key_encoding,
+                    certs_tag_encoding,
+                    certs_encoding,
                     withdrawals_key_encoding,
                     withdrawals_encoding,
                     withdrawals_value_encodings,
@@ -2843,16 +3146,25 @@ impl Deserialize for TransactionBody {
                     script_data_hash_key_encoding,
                     script_data_hash_encoding,
                     collateral_inputs_key_encoding,
+                    collateral_inputs_tag_encoding,
+                    collateral_inputs_encoding,
                     required_signers_key_encoding,
+                    required_signers_tag_encoding,
+                    required_signers_encoding,
+                    required_signers_elem_encodings,
                     network_id_key_encoding,
                     collateral_return_key_encoding,
                     total_collateral_key_encoding,
                     total_collateral_encoding,
                     reference_inputs_key_encoding,
+                    reference_inputs_tag_encoding,
+                    reference_inputs_encoding,
                     voting_procedures_key_encoding,
                     voting_procedures_encoding,
                     voting_procedures_value_encodings,
                     proposal_procedures_key_encoding,
+                    proposal_procedures_tag_encoding,
+                    proposal_procedures_encoding,
                     current_treasury_value_key_encoding,
                     current_treasury_value_encoding,
                     donation_key_encoding,
@@ -3072,7 +3384,30 @@ impl Serialize for TransactionWitnessSet {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        if let TagPresenceEncoding::Tagged(tag_sz) = self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.vkeywitnesses_tag_encoding)
+                            .unwrap_or_default()
+                        {
+                            serializer
+                                .write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                        }
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.vkeywitnesses_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.vkeywitnesses_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 1 => {
@@ -3088,7 +3423,30 @@ impl Serialize for TransactionWitnessSet {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        if let TagPresenceEncoding::Tagged(tag_sz) = self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.native_scripts_tag_encoding)
+                            .unwrap_or_default()
+                        {
+                            serializer
+                                .write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                        }
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.native_scripts_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.native_scripts_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 2 => {
@@ -3104,7 +3462,30 @@ impl Serialize for TransactionWitnessSet {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        if let TagPresenceEncoding::Tagged(tag_sz) = self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.bootstrap_witnesses_tag_encoding)
+                            .unwrap_or_default()
+                        {
+                            serializer
+                                .write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                        }
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.bootstrap_witnesses_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.bootstrap_witnesses_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 3 => {
@@ -3120,7 +3501,30 @@ impl Serialize for TransactionWitnessSet {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        if let TagPresenceEncoding::Tagged(tag_sz) = self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.plutus_v1_scripts_tag_encoding)
+                            .unwrap_or_default()
+                        {
+                            serializer
+                                .write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                        }
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.plutus_v1_scripts_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.plutus_v1_scripts_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 4 => {
@@ -3136,7 +3540,30 @@ impl Serialize for TransactionWitnessSet {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        if let TagPresenceEncoding::Tagged(tag_sz) = self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.plutus_datums_tag_encoding)
+                            .unwrap_or_default()
+                        {
+                            serializer
+                                .write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                        }
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.plutus_datums_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.plutus_datums_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 5 => {
@@ -3168,7 +3595,30 @@ impl Serialize for TransactionWitnessSet {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        if let TagPresenceEncoding::Tagged(tag_sz) = self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.plutus_v2_scripts_tag_encoding)
+                            .unwrap_or_default()
+                        {
+                            serializer
+                                .write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                        }
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.plutus_v2_scripts_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.plutus_v2_scripts_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 7 => {
@@ -3184,7 +3634,30 @@ impl Serialize for TransactionWitnessSet {
                                 force_canonical,
                             ),
                         )?;
-                        field.serialize(serializer, force_canonical)?;
+                        if let TagPresenceEncoding::Tagged(tag_sz) = self
+                            .encodings
+                            .as_ref()
+                            .map(|encs| encs.plutus_v3_scripts_tag_encoding)
+                            .unwrap_or_default()
+                        {
+                            serializer
+                                .write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+                        }
+                        serializer.write_array_sz(
+                            self.encodings
+                                .as_ref()
+                                .map(|encs| encs.plutus_v3_scripts_encoding)
+                                .unwrap_or_default()
+                                .to_len_sz(field.len() as u64, force_canonical),
+                        )?;
+                        for element in field.iter() {
+                            element.serialize(serializer, force_canonical)?;
+                        }
+                        self.encodings
+                            .as_ref()
+                            .map(|encs| encs.plutus_v3_scripts_encoding)
+                            .unwrap_or_default()
+                            .end(serializer, force_canonical)?;
                     }
                 }
                 _ => unreachable!(),
@@ -3205,20 +3678,34 @@ impl Deserialize for TransactionWitnessSet {
             let len_encoding: LenEncoding = len.into();
             let mut read_len = CBORReadLen::new(len);
             let mut orig_deser_order = Vec::new();
+            let mut vkeywitnesses_tag_encoding = TagPresenceEncoding::default();
+            let mut vkeywitnesses_encoding = LenEncoding::default();
             let mut vkeywitnesses_key_encoding = None;
             let mut vkeywitnesses = None;
+            let mut native_scripts_tag_encoding = TagPresenceEncoding::default();
+            let mut native_scripts_encoding = LenEncoding::default();
             let mut native_scripts_key_encoding = None;
             let mut native_scripts = None;
+            let mut bootstrap_witnesses_tag_encoding = TagPresenceEncoding::default();
+            let mut bootstrap_witnesses_encoding = LenEncoding::default();
             let mut bootstrap_witnesses_key_encoding = None;
             let mut bootstrap_witnesses = None;
+            let mut plutus_v1_scripts_tag_encoding = TagPresenceEncoding::default();
+            let mut plutus_v1_scripts_encoding = LenEncoding::default();
             let mut plutus_v1_scripts_key_encoding = None;
             let mut plutus_v1_scripts = None;
+            let mut plutus_datums_tag_encoding = TagPresenceEncoding::default();
+            let mut plutus_datums_encoding = LenEncoding::default();
             let mut plutus_datums_key_encoding = None;
             let mut plutus_datums = None;
             let mut redeemers_key_encoding = None;
             let mut redeemers = None;
+            let mut plutus_v2_scripts_tag_encoding = TagPresenceEncoding::default();
+            let mut plutus_v2_scripts_encoding = LenEncoding::default();
             let mut plutus_v2_scripts_key_encoding = None;
             let mut plutus_v2_scripts = None;
+            let mut plutus_v3_scripts_tag_encoding = TagPresenceEncoding::default();
+            let mut plutus_v3_scripts_encoding = LenEncoding::default();
             let mut plutus_v3_scripts_key_encoding = None;
             let mut plutus_v3_scripts = None;
             let mut read = 0;
@@ -3232,12 +3719,54 @@ impl Deserialize for TransactionWitnessSet {
                             if vkeywitnesses.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(0)).into());
                             }
-                            let tmp_vkeywitnesses = (|| -> Result<_, DeserializeError> {
+                            let (
+                                tmp_vkeywitnesses,
+                                tmp_vkeywitnesses_tag_encoding,
+                                tmp_vkeywitnesses_encoding,
+                            ) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                NonemptySetVkeywitness::deserialize(raw)
+                                let vkeywitnesses_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch {
+                                                found: tag,
+                                                expected: 258,
+                                            }
+                                            .into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    }
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut vkeywitnesses_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let vkeywitnesses_encoding = len.into();
+                                while match len {
+                                    cbor_event::LenSz::Len(n, _) => {
+                                        (vkeywitnesses_arr.len() as u64) < n
+                                    }
+                                    cbor_event::LenSz::Indefinite => true,
+                                } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite)
+                                        && raw.cbor_type()? == cbor_event::Type::Special
+                                        && raw.special_break()?
+                                    {
+                                        break;
+                                    }
+                                    vkeywitnesses_arr.push(Vkeywitness::deserialize(raw)?);
+                                }
+                                let vkeywitnesses_arr = NonEmptyVec::try_from(vkeywitnesses_arr)?;
+                                Ok((
+                                    vkeywitnesses_arr,
+                                    vkeywitnesses_tag_encoding,
+                                    vkeywitnesses_encoding,
+                                ))
                             })()
                             .map_err(|e| e.annotate("vkeywitnesses"))?;
                             vkeywitnesses = Some(tmp_vkeywitnesses);
+                            vkeywitnesses_tag_encoding = tmp_vkeywitnesses_tag_encoding;
+                            vkeywitnesses_encoding = tmp_vkeywitnesses_encoding;
                             vkeywitnesses_key_encoding = Some(key_enc);
                             orig_deser_order.push(0);
                         }
@@ -3245,12 +3774,54 @@ impl Deserialize for TransactionWitnessSet {
                             if native_scripts.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(1)).into());
                             }
-                            let tmp_native_scripts = (|| -> Result<_, DeserializeError> {
+                            let (
+                                tmp_native_scripts,
+                                tmp_native_scripts_tag_encoding,
+                                tmp_native_scripts_encoding,
+                            ) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                NonemptySetNativeScript::deserialize(raw)
+                                let native_scripts_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch {
+                                                found: tag,
+                                                expected: 258,
+                                            }
+                                            .into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    }
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut native_scripts_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let native_scripts_encoding = len.into();
+                                while match len {
+                                    cbor_event::LenSz::Len(n, _) => {
+                                        (native_scripts_arr.len() as u64) < n
+                                    }
+                                    cbor_event::LenSz::Indefinite => true,
+                                } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite)
+                                        && raw.cbor_type()? == cbor_event::Type::Special
+                                        && raw.special_break()?
+                                    {
+                                        break;
+                                    }
+                                    native_scripts_arr.push(NativeScript::deserialize(raw)?);
+                                }
+                                let native_scripts_arr = NonEmptyVec::try_from(native_scripts_arr)?;
+                                Ok((
+                                    native_scripts_arr,
+                                    native_scripts_tag_encoding,
+                                    native_scripts_encoding,
+                                ))
                             })()
                             .map_err(|e| e.annotate("native_scripts"))?;
                             native_scripts = Some(tmp_native_scripts);
+                            native_scripts_tag_encoding = tmp_native_scripts_tag_encoding;
+                            native_scripts_encoding = tmp_native_scripts_encoding;
                             native_scripts_key_encoding = Some(key_enc);
                             orig_deser_order.push(1);
                         }
@@ -3258,12 +3829,56 @@ impl Deserialize for TransactionWitnessSet {
                             if bootstrap_witnesses.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(2)).into());
                             }
-                            let tmp_bootstrap_witnesses = (|| -> Result<_, DeserializeError> {
+                            let (
+                                tmp_bootstrap_witnesses,
+                                tmp_bootstrap_witnesses_tag_encoding,
+                                tmp_bootstrap_witnesses_encoding,
+                            ) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                NonemptySetBootstrapWitness::deserialize(raw)
+                                let bootstrap_witnesses_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch {
+                                                found: tag,
+                                                expected: 258,
+                                            }
+                                            .into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    }
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut bootstrap_witnesses_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let bootstrap_witnesses_encoding = len.into();
+                                while match len {
+                                    cbor_event::LenSz::Len(n, _) => {
+                                        (bootstrap_witnesses_arr.len() as u64) < n
+                                    }
+                                    cbor_event::LenSz::Indefinite => true,
+                                } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite)
+                                        && raw.cbor_type()? == cbor_event::Type::Special
+                                        && raw.special_break()?
+                                    {
+                                        break;
+                                    }
+                                    bootstrap_witnesses_arr
+                                        .push(BootstrapWitness::deserialize(raw)?);
+                                }
+                                let bootstrap_witnesses_arr =
+                                    NonEmptyVec::try_from(bootstrap_witnesses_arr)?;
+                                Ok((
+                                    bootstrap_witnesses_arr,
+                                    bootstrap_witnesses_tag_encoding,
+                                    bootstrap_witnesses_encoding,
+                                ))
                             })()
                             .map_err(|e| e.annotate("bootstrap_witnesses"))?;
                             bootstrap_witnesses = Some(tmp_bootstrap_witnesses);
+                            bootstrap_witnesses_tag_encoding = tmp_bootstrap_witnesses_tag_encoding;
+                            bootstrap_witnesses_encoding = tmp_bootstrap_witnesses_encoding;
                             bootstrap_witnesses_key_encoding = Some(key_enc);
                             orig_deser_order.push(2);
                         }
@@ -3271,12 +3886,55 @@ impl Deserialize for TransactionWitnessSet {
                             if plutus_v1_scripts.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(3)).into());
                             }
-                            let tmp_plutus_v1_scripts = (|| -> Result<_, DeserializeError> {
+                            let (
+                                tmp_plutus_v1_scripts,
+                                tmp_plutus_v1_scripts_tag_encoding,
+                                tmp_plutus_v1_scripts_encoding,
+                            ) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                NonemptySetPlutusV1Script::deserialize(raw)
+                                let plutus_v1_scripts_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch {
+                                                found: tag,
+                                                expected: 258,
+                                            }
+                                            .into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    }
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut plutus_v1_scripts_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let plutus_v1_scripts_encoding = len.into();
+                                while match len {
+                                    cbor_event::LenSz::Len(n, _) => {
+                                        (plutus_v1_scripts_arr.len() as u64) < n
+                                    }
+                                    cbor_event::LenSz::Indefinite => true,
+                                } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite)
+                                        && raw.cbor_type()? == cbor_event::Type::Special
+                                        && raw.special_break()?
+                                    {
+                                        break;
+                                    }
+                                    plutus_v1_scripts_arr.push(PlutusV1Script::deserialize(raw)?);
+                                }
+                                let plutus_v1_scripts_arr =
+                                    NonEmptyVec::try_from(plutus_v1_scripts_arr)?;
+                                Ok((
+                                    plutus_v1_scripts_arr,
+                                    plutus_v1_scripts_tag_encoding,
+                                    plutus_v1_scripts_encoding,
+                                ))
                             })()
                             .map_err(|e| e.annotate("plutus_v1_scripts"))?;
                             plutus_v1_scripts = Some(tmp_plutus_v1_scripts);
+                            plutus_v1_scripts_tag_encoding = tmp_plutus_v1_scripts_tag_encoding;
+                            plutus_v1_scripts_encoding = tmp_plutus_v1_scripts_encoding;
                             plutus_v1_scripts_key_encoding = Some(key_enc);
                             orig_deser_order.push(3);
                         }
@@ -3284,12 +3942,54 @@ impl Deserialize for TransactionWitnessSet {
                             if plutus_datums.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(4)).into());
                             }
-                            let tmp_plutus_datums = (|| -> Result<_, DeserializeError> {
+                            let (
+                                tmp_plutus_datums,
+                                tmp_plutus_datums_tag_encoding,
+                                tmp_plutus_datums_encoding,
+                            ) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                NonemptySetPlutusData::deserialize(raw)
+                                let plutus_datums_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch {
+                                                found: tag,
+                                                expected: 258,
+                                            }
+                                            .into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    }
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut plutus_datums_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let plutus_datums_encoding = len.into();
+                                while match len {
+                                    cbor_event::LenSz::Len(n, _) => {
+                                        (plutus_datums_arr.len() as u64) < n
+                                    }
+                                    cbor_event::LenSz::Indefinite => true,
+                                } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite)
+                                        && raw.cbor_type()? == cbor_event::Type::Special
+                                        && raw.special_break()?
+                                    {
+                                        break;
+                                    }
+                                    plutus_datums_arr.push(PlutusData::deserialize(raw)?);
+                                }
+                                let plutus_datums_arr = NonEmptyVec::try_from(plutus_datums_arr)?;
+                                Ok((
+                                    plutus_datums_arr,
+                                    plutus_datums_tag_encoding,
+                                    plutus_datums_encoding,
+                                ))
                             })()
                             .map_err(|e| e.annotate("plutus_datums"))?;
                             plutus_datums = Some(tmp_plutus_datums);
+                            plutus_datums_tag_encoding = tmp_plutus_datums_tag_encoding;
+                            plutus_datums_encoding = tmp_plutus_datums_encoding;
                             plutus_datums_key_encoding = Some(key_enc);
                             orig_deser_order.push(4);
                         }
@@ -3310,12 +4010,55 @@ impl Deserialize for TransactionWitnessSet {
                             if plutus_v2_scripts.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(6)).into());
                             }
-                            let tmp_plutus_v2_scripts = (|| -> Result<_, DeserializeError> {
+                            let (
+                                tmp_plutus_v2_scripts,
+                                tmp_plutus_v2_scripts_tag_encoding,
+                                tmp_plutus_v2_scripts_encoding,
+                            ) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                NonemptySetPlutusV2Script::deserialize(raw)
+                                let plutus_v2_scripts_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch {
+                                                found: tag,
+                                                expected: 258,
+                                            }
+                                            .into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    }
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut plutus_v2_scripts_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let plutus_v2_scripts_encoding = len.into();
+                                while match len {
+                                    cbor_event::LenSz::Len(n, _) => {
+                                        (plutus_v2_scripts_arr.len() as u64) < n
+                                    }
+                                    cbor_event::LenSz::Indefinite => true,
+                                } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite)
+                                        && raw.cbor_type()? == cbor_event::Type::Special
+                                        && raw.special_break()?
+                                    {
+                                        break;
+                                    }
+                                    plutus_v2_scripts_arr.push(PlutusV2Script::deserialize(raw)?);
+                                }
+                                let plutus_v2_scripts_arr =
+                                    NonEmptyVec::try_from(plutus_v2_scripts_arr)?;
+                                Ok((
+                                    plutus_v2_scripts_arr,
+                                    plutus_v2_scripts_tag_encoding,
+                                    plutus_v2_scripts_encoding,
+                                ))
                             })()
                             .map_err(|e| e.annotate("plutus_v2_scripts"))?;
                             plutus_v2_scripts = Some(tmp_plutus_v2_scripts);
+                            plutus_v2_scripts_tag_encoding = tmp_plutus_v2_scripts_tag_encoding;
+                            plutus_v2_scripts_encoding = tmp_plutus_v2_scripts_encoding;
                             plutus_v2_scripts_key_encoding = Some(key_enc);
                             orig_deser_order.push(6);
                         }
@@ -3323,12 +4066,55 @@ impl Deserialize for TransactionWitnessSet {
                             if plutus_v3_scripts.is_some() {
                                 return Err(DeserializeFailure::DuplicateKey(Key::Uint(7)).into());
                             }
-                            let tmp_plutus_v3_scripts = (|| -> Result<_, DeserializeError> {
+                            let (
+                                tmp_plutus_v3_scripts,
+                                tmp_plutus_v3_scripts_tag_encoding,
+                                tmp_plutus_v3_scripts_encoding,
+                            ) = (|| -> Result<_, DeserializeError> {
                                 read_len.read_elems(1)?;
-                                NonemptySetPlutusV3Script::deserialize(raw)
+                                let plutus_v3_scripts_tag_encoding = match raw.cbor_type()? {
+                                    cbor_event::Type::Tag => {
+                                        let (tag, tag_enc) = raw.tag_sz()?;
+                                        if tag != 258 {
+                                            return Err(DeserializeFailure::TagMismatch {
+                                                found: tag,
+                                                expected: 258,
+                                            }
+                                            .into());
+                                        }
+                                        TagPresenceEncoding::Tagged(Some(tag_enc))
+                                    }
+                                    _ => TagPresenceEncoding::Untagged,
+                                };
+                                let mut plutus_v3_scripts_arr = Vec::new();
+                                let len = raw.array_sz()?;
+                                let plutus_v3_scripts_encoding = len.into();
+                                while match len {
+                                    cbor_event::LenSz::Len(n, _) => {
+                                        (plutus_v3_scripts_arr.len() as u64) < n
+                                    }
+                                    cbor_event::LenSz::Indefinite => true,
+                                } {
+                                    if matches!(len, cbor_event::LenSz::Indefinite)
+                                        && raw.cbor_type()? == cbor_event::Type::Special
+                                        && raw.special_break()?
+                                    {
+                                        break;
+                                    }
+                                    plutus_v3_scripts_arr.push(PlutusV3Script::deserialize(raw)?);
+                                }
+                                let plutus_v3_scripts_arr =
+                                    NonEmptyVec::try_from(plutus_v3_scripts_arr)?;
+                                Ok((
+                                    plutus_v3_scripts_arr,
+                                    plutus_v3_scripts_tag_encoding,
+                                    plutus_v3_scripts_encoding,
+                                ))
                             })()
                             .map_err(|e| e.annotate("plutus_v3_scripts"))?;
                             plutus_v3_scripts = Some(tmp_plutus_v3_scripts);
+                            plutus_v3_scripts_tag_encoding = tmp_plutus_v3_scripts_tag_encoding;
+                            plutus_v3_scripts_encoding = tmp_plutus_v3_scripts_encoding;
                             plutus_v3_scripts_key_encoding = Some(key_enc);
                             orig_deser_order.push(7);
                         }
@@ -3370,13 +4156,27 @@ impl Deserialize for TransactionWitnessSet {
                     len_encoding,
                     orig_deser_order,
                     vkeywitnesses_key_encoding,
+                    vkeywitnesses_tag_encoding,
+                    vkeywitnesses_encoding,
                     native_scripts_key_encoding,
+                    native_scripts_tag_encoding,
+                    native_scripts_encoding,
                     bootstrap_witnesses_key_encoding,
+                    bootstrap_witnesses_tag_encoding,
+                    bootstrap_witnesses_encoding,
                     plutus_v1_scripts_key_encoding,
+                    plutus_v1_scripts_tag_encoding,
+                    plutus_v1_scripts_encoding,
                     plutus_datums_key_encoding,
+                    plutus_datums_tag_encoding,
+                    plutus_datums_encoding,
                     redeemers_key_encoding,
                     plutus_v2_scripts_key_encoding,
+                    plutus_v2_scripts_tag_encoding,
+                    plutus_v2_scripts_encoding,
                     plutus_v3_scripts_key_encoding,
+                    plutus_v3_scripts_tag_encoding,
+                    plutus_v3_scripts_encoding,
                 }),
             })
         })()

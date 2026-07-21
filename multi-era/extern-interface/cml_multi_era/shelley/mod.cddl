@@ -1,0 +1,28 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+; unexported: genesis_key_delegation — references excluded genesis_delegate_hash
+; unexported: multisig_pubkey — references excluded ed25519_key_hash
+; unexported: shelley_pool_params — references excluded coin
+; unexported: shelley_pool_registration — references excluded coin
+; unexported: shelley_proposed_protocol_parameter_updates — references excluded genesis_hash
+; unexported: shelley_single_host_name — references excluded port
+multisig_all = (tag: 1, multisig_scripts: [* multisig_script]) ; @rust_name MultisigAll
+multisig_any = (tag: 2, multisig_scripts: [* multisig_script]) ; @rust_name MultisigAny
+multisig_n_of_k = (tag: 3, n: uint, multisig_scripts: [* multisig_script]) ; @rust_name MultisigNOfK
+multisig_script = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name MultisigScript
+protocol_version_struct = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ProtocolVersionStruct
+shelley_DNS_name = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyDNSName
+shelley_block = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyBlock
+shelley_certificate = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyCertificate
+shelley_header = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyHeader
+shelley_header_body = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyHeaderBody
+shelley_move_instantaneous_reward = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyMoveInstantaneousReward
+shelley_move_instantaneous_rewards_cert = (tag: 6, shelley_move_instantaneous_reward: shelley_move_instantaneous_reward) ; @rust_name ShelleyMoveInstantaneousRewardsCert
+shelley_multi_host_name = (tag: 2, shelley_dns_name: shelley_DNS_name) ; @rust_name ShelleyMultiHostName
+shelley_protocol_param_update = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyProtocolParamUpdate
+shelley_relay = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyRelay
+shelley_transaction = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyTransaction
+shelley_transaction_body = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyTransactionBody
+shelley_transaction_index = uint .size 2 ; @rust_name ShelleyTransactionIndex
+shelley_transaction_output = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyTransactionOutput
+shelley_transaction_witness_set = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyTransactionWitnessSet
+shelley_update = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name ShelleyUpdate

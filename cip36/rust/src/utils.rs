@@ -83,9 +83,7 @@ impl CIP36DeregistrationCbor {
 
     /// Deserializes a CIP36 view from either a Metadata or a CIP36DeregistrationCbor
     /// This contains ONLY the relevant fields for CIP36 if created from a Metadata
-    pub fn deserialize(
-        raw: &mut Deserializer,
-    ) -> Result<Self, DeserializeError> {
+    pub fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         use cml_core::{Key, serialization::CBORReadLen};
 
         let len = raw.map_sz()?;
@@ -306,9 +304,7 @@ impl CIP36RegistrationCbor {
 
     /// Deserializes a CIP36 view from either a Metadata or a CIP36RegistrationCbor
     /// This contains ONLY the relevant fields for CIP36 if created from a Metadata
-    fn deserialize(
-        raw: &mut Deserializer,
-    ) -> Result<Self, DeserializeError> {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
         use cml_core::{error::Key, serialization::CBORReadLen};
         let len = raw.map_sz()?;
         let mut read_len = CBORReadLen::new(len);

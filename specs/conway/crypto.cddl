@@ -4,7 +4,6 @@
 ;$vkey /= bytes .size 8
 
 ;$vrf_vkey /= bytes .size 8
-;natural = #6.2(bytes)
 
 ;$kes_vkey /= bytes .size 8
 
@@ -65,7 +64,6 @@ bootstrap_witness =
 ; all types hand-coded here:
 vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 VRF_vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-natural = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 KES_vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 ed25519_signature = _CDDL_CODEGEN_RAW_BYTES_TYPE_
 ed25519_key_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @used_as_elem

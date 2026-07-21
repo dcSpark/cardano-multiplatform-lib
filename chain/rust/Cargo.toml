@@ -17,7 +17,7 @@ generated-with = "0.1.0"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-used_from_wasm = ["wasm-bindgen"]
+used_from_wasm = ["dep:wasm-bindgen"]
 
 [dependencies]
 cml-core = { "path" = "../../core/rust", version = "6.2.0" }

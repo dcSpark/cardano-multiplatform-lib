@@ -3066,11 +3066,7 @@ impl Deserialize for AlonzoTransactionBody {
                 // cddl-codegen:replace-end
                 script_data_hash,
                 collateral_inputs,
-                // cddl-codegen:replace-start
-                required_signers: required_signers.map(Into::into),
-                // cddl-codegen:replaces
-                // required_signers,
-                // cddl-codegen:replace-end
+                required_signers,
                 network_id,
                 encodings: Some(AlonzoTransactionBodyEncoding {
                     len_encoding,

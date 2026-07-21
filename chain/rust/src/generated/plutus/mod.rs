@@ -3,12 +3,6 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
-
-#[cfg(not(feature = "used_from_wasm"))]
-use noop_proc_macro::wasm_bindgen;
-#[cfg(feature = "used_from_wasm")]
-use wasm_bindgen::prelude::wasm_bindgen;
-
 pub use crate::BigInteger;
 pub use crate::ConstrPlutusData;
 pub use crate::PlutusMap;
@@ -148,7 +142,7 @@ impl ExUnits {
     serde::Serialize,
     schemars::JsonSchema,
 )]
-#[wasm_bindgen]
+#[cfg_attr(feature = "used_from_wasm", wasm_bindgen::prelude::wasm_bindgen)]
 pub enum Language {
     PlutusV1,
     PlutusV2,
@@ -501,7 +495,7 @@ impl RedeemerKey {
     PartialOrd = "feature_allow_slow_enum",
     Hash
 )]
-#[wasm_bindgen]
+#[cfg_attr(feature = "used_from_wasm", wasm_bindgen::prelude::wasm_bindgen)]
 pub enum RedeemerTag {
     Spend,
     Mint,

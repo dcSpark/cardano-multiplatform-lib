@@ -86,7 +86,7 @@ impl VoteBuilder {
                 gov_action_id.clone().into(),
                 procedure.clone().into(),
                 partial_witness.clone().into(),
-                required_signers.clone().into(),
+                required_signers.clone().0.into(),
                 datum.clone().into(),
             )
             .map(Into::into)
@@ -108,7 +108,7 @@ impl VoteBuilder {
                 gov_action_id.clone().into(),
                 procedure.clone().into(),
                 partial_witness.clone().into(),
-                required_signers.clone().into(),
+                required_signers.clone().0.into(),
             )
             .map(Into::into)
             .map_err(Into::into)

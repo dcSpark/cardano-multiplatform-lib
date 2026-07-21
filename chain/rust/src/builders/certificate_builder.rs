@@ -4,10 +4,7 @@ use std::collections::HashSet;
 
 use super::witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet};
 
-use crate::{
-    RequiredSigners,
-    certs::{Certificate, StakeCredential},
-};
+use crate::certs::{Certificate, StakeCredential};
 
 use cml_crypto::{Ed25519KeyHash, ScriptHash};
 
@@ -35,7 +32,7 @@ pub fn cert_required_wits(cert: &Certificate, required_witnesses: &mut RequiredW
             required_witnesses.add_from_credential(cert.stake_credential.clone());
         }
         Certificate::PoolRegistration(cert) => {
-            for owner in cert.pool_params.pool_owners.as_ref() {
+            for owner in cert.pool_params.pool_owners.iter() {
                 required_witnesses.add_vkey_key_hash(*owner);
             }
             required_witnesses.add_vkey_key_hash(cert.pool_params.operator);
@@ -108,7 +105,7 @@ pub fn add_cert_vkeys(
             }
         },
         Certificate::PoolRegistration(cert) => {
-            for owner in cert.pool_params.pool_owners.as_ref() {
+            for owner in cert.pool_params.pool_owners.iter() {
                 vkeys.insert(*owner);
             }
             vkeys.insert(cert.pool_params.operator);
@@ -298,7 +295,7 @@ impl SingleCertificateBuilder {
     pub fn plutus_script(
         self,
         partial_witness: PartialPlutusWitness,
-        required_signers: RequiredSigners,
+        required_signers: Vec<Ed25519KeyHash>,
     ) -> Result<CertificateBuilderResult, CertBuilderError> {
         let mut required_wits = RequiredWitnessSet::default();
         required_signers

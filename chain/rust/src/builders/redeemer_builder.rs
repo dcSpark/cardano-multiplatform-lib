@@ -388,7 +388,7 @@ mod tests {
                 }
             };
             let missing_signers = vec![fake_raw_key_public(0).hash()];
-            InputAggregateWitnessData::PlutusScript(witness, missing_signers.into(), None)
+            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
         };
 
         let address = Address::from_bech32("addr1qxeqxcja25k8q05evyngf4f88xn89asl54x2zg3ephgj26ndyt5qk02xmmras5pe9jz2c7tc93wu4c96rqwvg6e2v50qlpmx70").unwrap();

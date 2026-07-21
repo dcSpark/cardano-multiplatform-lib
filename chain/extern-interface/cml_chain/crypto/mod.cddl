@@ -1,0 +1,25 @@
+; _CDDL_CODEGEN_EXTERN_INTERFACE_ v1
+KES_signature = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name KESSignature
+KES_vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name KESVkey
+VRF_cert = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name VRFCert
+VRF_key_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name VRFKeyHash
+VRF_vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name VRFVkey
+addr_attributes = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name AddrAttributes
+anchor_doc_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name AnchorDocHash
+auxiliary_data_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name AuxiliaryDataHash
+block_body_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name BlockBodyHash
+block_header_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name BlockHeaderHash
+bootstrap_witness = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name BootstrapWitness
+datum_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name DatumHash
+ed25519_key_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name Ed25519KeyHash
+ed25519_signature = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name Ed25519Signature
+genesis_delegate_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name GenesisDelegateHash
+genesis_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name GenesisHash
+nonce = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Nonce
+nonce_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name NonceHash
+pool_metadata_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name PoolMetadataHash
+script_data_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name ScriptDataHash
+script_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name ScriptHash
+transaction_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name TransactionHash
+vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @rust_name Vkey
+vkeywitness = _CDDL_CODEGEN_EXTERN_TYPE_ ; @rust_name Vkeywitness

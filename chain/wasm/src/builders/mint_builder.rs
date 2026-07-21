@@ -55,7 +55,7 @@ impl SingleMintBuilder {
         self.0
             .plutus_script(
                 partial_witness.clone().into(),
-                required_signers.clone().into(),
+                required_signers.clone().0.into(),
             )
             .into()
     }

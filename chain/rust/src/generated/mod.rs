@@ -8,42 +8,36 @@ pub mod address;
 pub mod assets;
 pub mod auxdata;
 pub mod block;
-pub mod cbor_encodings;
 pub mod certs;
 pub mod crypto;
+mod extern_interface_check;
 pub mod governance;
 mod key_demand_assertions;
 pub mod plutus;
-pub mod serialization;
 pub mod transaction;
-pub use crate::NonemptySet;
-pub use crate::NonemptySetRawBytes;
-pub use crate::Set;
-pub use crate::SetRawBytes;
+pub use cml_core::{Int, IntError};
+pub mod cbor_encodings;
+pub mod serialization;
 
-use crate::certs::{Certificate, CommitteeColdCredential};
-use crate::crypto::{BootstrapWitness, Vkeywitness};
-use crate::governance::ProposalProcedure;
-use crate::plutus::PlutusData;
-use crate::transaction::TransactionInput;
 use address::RewardAccount;
 use assets::Coin;
 use cbor_encodings::{
     DRepVotingThresholdsEncoding, NetworkIdEncoding, PoolVotingThresholdsEncoding,
     ProtocolParamUpdateEncoding, RationalEncoding, UnitIntervalEncoding,
 };
-pub use cml_core::Int;
+use certs::{Certificate, CommitteeColdCredential, Credential};
 use cml_core::error::*;
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
-use cml_crypto::Ed25519KeyHash;
-use crypto::ScriptHash;
-use governance::Voter;
-use plutus::{CostModels, ExUnitPrices, ExUnits, PlutusV1Script, PlutusV2Script, PlutusV3Script};
+use cml_core::serialization::{LenEncoding, StringEncoding, TagPresenceEncoding};
+use crypto::{BootstrapWitness, Ed25519KeyHash, ScriptHash, Vkeywitness};
+use governance::{ProposalProcedure, Voter};
+use plutus::{
+    CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script,
+};
 use std::collections::BTreeMap;
-use transaction::NativeScript;
+use transaction::{NativeScript, TransactionInput};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct DRepVotingThresholds {
@@ -152,25 +146,55 @@ impl schemars::JsonSchema for NetworkId {
     }
 }
 
-pub type NonemptySetBootstrapWitness = NonemptySet<BootstrapWitness>;
+/// `[+ BootstrapWitness]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type NonemptySetBootstrapWitness = NonEmptyVec<BootstrapWitness>;
 
-pub type NonemptySetCertificate = NonemptySet<Certificate>;
+/// `[+ Certificate]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type NonemptySetCertificate = NonEmptyVec<Certificate>;
 
-pub type NonemptySetNativeScript = NonemptySet<NativeScript>;
+/// `[+ NativeScript]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type NonemptySetNativeScript = NonEmptyVec<NativeScript>;
 
-pub type NonemptySetPlutusData = NonemptySet<PlutusData>;
+/// `[+ PlutusData]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type NonemptySetPlutusData = NonEmptyVec<PlutusData>;
 
-pub type NonemptySetPlutusV1Script = NonemptySet<PlutusV1Script>;
+/// `[+ PlutusV1Script]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type NonemptySetPlutusV1Script = NonEmptyVec<PlutusV1Script>;
 
-pub type NonemptySetPlutusV2Script = NonemptySet<PlutusV2Script>;
+/// `[+ PlutusV2Script]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type NonemptySetPlutusV2Script = NonEmptyVec<PlutusV2Script>;
 
-pub type NonemptySetPlutusV3Script = NonemptySet<PlutusV3Script>;
+/// `[+ PlutusV3Script]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type NonemptySetPlutusV3Script = NonEmptyVec<PlutusV3Script>;
 
-pub type NonemptySetProposalProcedure = NonemptySet<ProposalProcedure>;
+/// `[+ ProposalProcedure]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type NonemptySetProposalProcedure = NonEmptyVec<ProposalProcedure>;
 
-pub type NonemptySetTransactionInput = NonemptySet<TransactionInput>;
+/// `[+ TransactionInput]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type NonemptySetTransactionInput = NonEmptyVec<TransactionInput>;
 
-pub type NonemptySetVkeywitness = NonemptySet<Vkeywitness>;
+/// `[+ Vkeywitness]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type NonemptySetVkeywitness = NonEmptyVec<Vkeywitness>;
 
 pub type PolicyId = ScriptHash;
 
@@ -427,11 +451,17 @@ impl Script {
     }
 }
 
-pub type SetCommitteeColdCredential = Set<CommitteeColdCredential>;
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type SetCommitteeColdCredential = Vec<CommitteeColdCredential>;
 
-pub type SetEd25519KeyHash = NonemptySetRawBytes<Ed25519KeyHash>;
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type SetEd25519KeyHash = Vec<Ed25519KeyHash>;
 
-pub type SetTransactionInput = Set<TransactionInput>;
+/// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
+/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
+pub type SetTransactionInput = Vec<TransactionInput>;
 
 pub type Slot = u64;
 

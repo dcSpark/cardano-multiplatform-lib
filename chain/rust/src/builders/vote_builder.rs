@@ -1,7 +1,8 @@
 use cml_core::non_empty_map::NonEmptyMap;
 
+use cml_crypto::Ed25519KeyHash;
+
 use crate::{
-    RequiredSigners,
     crypto::hash::hash_plutus_data,
     governance::{GovActionId, Voter, VotingProcedure, VotingProcedures},
     plutus::PlutusData,
@@ -139,7 +140,7 @@ impl VoteBuilder {
         gov_action_id: GovActionId,
         procedure: VotingProcedure,
         partial_witness: PartialPlutusWitness,
-        required_signers: RequiredSigners,
+        required_signers: Vec<Ed25519KeyHash>,
         datum: PlutusData,
     ) -> Result<Self, VoteBuilderError> {
         self.with_plutus_vote_impl(
@@ -158,7 +159,7 @@ impl VoteBuilder {
         gov_action_id: GovActionId,
         procedure: VotingProcedure,
         partial_witness: PartialPlutusWitness,
-        required_signers: RequiredSigners,
+        required_signers: Vec<Ed25519KeyHash>,
     ) -> Result<Self, VoteBuilderError> {
         self.with_plutus_vote_impl(
             voter,
@@ -176,7 +177,7 @@ impl VoteBuilder {
         gov_action_id: GovActionId,
         procedure: VotingProcedure,
         partial_witness: PartialPlutusWitness,
-        required_signers: RequiredSigners,
+        required_signers: Vec<Ed25519KeyHash>,
         datum: Option<PlutusData>,
     ) -> Result<Self, VoteBuilderError> {
         let mut required_wits = required_wits_from_required_signers(&required_signers);

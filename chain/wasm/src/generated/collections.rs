@@ -57,7 +57,6 @@ pub use crate::generated::assets::MultiAsset;
 pub use crate::generated::governance::VotingProcedures;
 pub use crate::generated::requested_collections::AlonzoFormatTxOutList;
 pub use crate::generated::requested_collections::GenesisHashList;
-pub use crate::generated::requested_collections::MapAssetNameToI64;
 pub use crate::generated::requested_collections::MapStakeCredentialToCoin;
 pub use crate::generated::requested_collections::MapStakeCredentialToDeltaCoin;
 pub use crate::generated::requested_collections::MapTransactionIndexToMetadata;

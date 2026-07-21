@@ -5,7 +5,7 @@ pub mod cbor_encodings;
 pub mod serialization;
 
 use crate::generated::address::{Address, RewardAccount};
-use crate::generated::assets::{AssetName, Coin, Mint, NonZeroInt64, PositiveCoin, Value};
+use crate::generated::assets::{AssetName, Coin, Mint, PositiveCoin, Value};
 use crate::generated::auxdata::AuxiliaryData;
 use crate::generated::certs::Certificate;
 use crate::generated::crypto::{
@@ -22,7 +22,7 @@ use crate::generated::{
     NetworkId, NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetNativeScript,
     NonemptySetPlutusData, NonemptySetPlutusV1Script, NonemptySetPlutusV2Script,
     NonemptySetPlutusV3Script, NonemptySetProposalProcedure, NonemptySetTransactionInput,
-    NonemptySetVkeywitness, PolicyId, Script, SetTransactionInput, Slot, Withdrawals,
+    NonemptySetVkeywitness, Script, SetTransactionInput, Slot, Withdrawals,
 };
 use cbor_encodings::{
     AlonzoFormatTxOutEncoding, ConwayFormatTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
@@ -30,11 +30,10 @@ use cbor_encodings::{
     ScriptPubkeyEncoding, ScriptRefEncoding, TransactionBodyEncoding, TransactionEncoding,
     TransactionInputEncoding, TransactionWitnessSetEncoding,
 };
-use cml_core::error::*;
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding, TagPresenceEncoding};
+use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 
 #[derive(
@@ -423,7 +422,7 @@ impl ScriptRef {
 
 impl From<Script> for ScriptRef {
     fn from(inner: Script) -> Self {
-        ScriptRef::new(inner.clone().into())
+        ScriptRef::new(inner.clone())
     }
 }
 

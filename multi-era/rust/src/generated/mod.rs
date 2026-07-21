@@ -12,6 +12,9 @@ mod extern_interface_check;
 pub mod mary;
 pub mod serialization;
 pub mod shelley;
+// cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
+// each name below (`pub use <your_module>::<Name>;`) so the generated glue resolves against the
+// user-owned definition. See the extern types section of docs/output_format.
 pub use crate::Block;
 pub use crate::ByronBlock;
 pub use crate::ByronTx;
@@ -19,14 +22,9 @@ pub use crate::ByronTx;
 use allegra::{AllegraBlock, AllegraTransactionBody};
 use alonzo::{AlonzoBlock, AlonzoTransactionBody};
 use babbage::{BabbageBlock, BabbageTransactionBody};
-use cml_chain::crypto::GenesisHash;
 use cml_chain::transaction::TransactionBody;
-use cml_core::error::*;
-use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
 use mary::{MaryBlock, MaryTransactionBody};
 use shelley::{ShelleyBlock, ShelleyTransactionBody};
-use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum MultiEraBlock {

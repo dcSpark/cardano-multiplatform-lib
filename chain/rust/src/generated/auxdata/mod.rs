@@ -3,13 +3,14 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
+// cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
+// each name below (`pub use <your_module>::<Name>;`) so the generated glue resolves against the
+// user-owned definition. See the extern types section of docs/output_format.
 pub use crate::Metadata;
 
 use crate::generated::plutus::{PlutusV1Script, PlutusV2Script, PlutusV3Script};
 use crate::generated::transaction::NativeScript;
 use cbor_encodings::{ConwayFormatAuxDataEncoding, ShelleyMAFormatAuxDataEncoding};
-use cml_core::error::*;
-use cml_core::serialization::LenEncoding;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum AuxiliaryData {

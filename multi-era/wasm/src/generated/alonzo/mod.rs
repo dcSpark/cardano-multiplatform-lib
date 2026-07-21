@@ -4,8 +4,7 @@
 use crate::generated::shelley::{ProtocolVersionStruct, ShelleyHeader};
 use crate::generated::{
     AllegraCertificateList, AlonzoRedeemerList, AlonzoTransactionBodyList,
-    AlonzoTransactionWitnessSetList, MapPolicyIdToMapAssetNameToI64, MapRewardAccountToCoin,
-    MapTransactionIndexToAlonzoAuxiliaryData,
+    AlonzoTransactionWitnessSetList, MapTransactionIndexToAlonzoAuxiliaryData,
 };
 use cml_chain_wasm::assets::{Coin, Mint};
 use cml_chain_wasm::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};

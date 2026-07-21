@@ -2,9 +2,7 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use crate::generated::address::Address;
-use crate::generated::assets::{
-    Coin, MapPolicyIdToMapAssetNameToNonZeroInt64, Mint, PositiveCoin, Value,
-};
+use crate::generated::assets::{Coin, Mint, PositiveCoin, Value};
 use crate::generated::auxdata::AuxiliaryData;
 use crate::generated::crypto::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
@@ -12,14 +10,11 @@ use crate::generated::crypto::{
 use crate::generated::governance::VotingProcedures;
 use crate::generated::plutus::{PlutusData, Redeemers};
 use crate::generated::{
-    BootstrapWitnessList, CertificateList, Ed25519KeyHashList, MapRewardAccountToCoin,
-    MapVoterToMapGovActionIdToVotingProcedure, NativeScriptList, NetworkId,
-    NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetNativeScript,
-    NonemptySetPlutusData, NonemptySetPlutusV1Script, NonemptySetPlutusV2Script,
-    NonemptySetPlutusV3Script, NonemptySetProposalProcedure, NonemptySetTransactionInput,
-    NonemptySetVkeywitness, PlutusDataList, PlutusV1ScriptList, PlutusV2ScriptList,
-    PlutusV3ScriptList, ProposalProcedureList, Script, SetTransactionInput, Slot,
-    TransactionInputList, TransactionOutputList, VkeywitnessList, Withdrawals,
+    Ed25519KeyHashList, NativeScriptList, NetworkId, NonemptySetBootstrapWitness,
+    NonemptySetCertificate, NonemptySetNativeScript, NonemptySetPlutusData,
+    NonemptySetPlutusV1Script, NonemptySetPlutusV2Script, NonemptySetPlutusV3Script,
+    NonemptySetProposalProcedure, NonemptySetTransactionInput, NonemptySetVkeywitness, Script,
+    SetTransactionInput, Slot, TransactionOutputList, Withdrawals,
 };
 use cml_core::non_empty::NonEmptyVec;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};

@@ -12,7 +12,7 @@ mod borrowed {
     use cml_chain_wasm::collections::BootstrapWitnessList;
     use cml_chain_wasm::collections::Ed25519KeyHashList;
     use cml_chain_wasm::collections::GenesisHashList;
-    use cml_chain_wasm::collections::MapAssetNameToI64;
+    use cml_chain_wasm::collections::MapAssetNameToNonZeroInt64;
     use cml_chain_wasm::collections::MapStakeCredentialToCoin;
     use cml_chain_wasm::collections::MapStakeCredentialToDeltaCoin;
     use cml_chain_wasm::collections::MapTransactionIndexToMetadata;
@@ -37,7 +37,11 @@ pub(crate) const BORROWED_SHAPES: &[(&str, &str, &str)] = &[
     ("cml_chain", "BootstrapWitnessList", "[* bootstrap_witness]"),
     ("cml_chain", "Ed25519KeyHashList", "[* ed25519_key_hash]"),
     ("cml_chain", "GenesisHashList", "[* genesis_hash]"),
-    ("cml_chain", "MapAssetNameToI64", "{* asset_name => i64}"),
+    (
+        "cml_chain",
+        "MapAssetNameToNonZeroInt64",
+        "{* asset_name => non_zero_int64}",
+    ),
     (
         "cml_chain",
         "MapStakeCredentialToCoin",

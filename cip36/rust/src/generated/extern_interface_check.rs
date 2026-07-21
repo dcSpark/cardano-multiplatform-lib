@@ -17,20 +17,8 @@
 fn _assert_serialize<T: cml_core::serialization::Serialize>() {}
 #[allow(dead_code)]
 fn _assert_deserialize<T: cml_core::serialization::Deserialize>() {}
-#[allow(dead_code)]
-fn _assert_raw_bytes<T: cml_core::serialization::RawBytesEncoding>() {}
-#[allow(unused_imports)]
-use crate::generated::CIP36LegacyKeyRegistration as _;
 #[allow(unused_imports)]
 use crate::generated::CIP36Nonce as _;
-#[allow(unused_imports)]
-use crate::generated::CIP36StakeCredential as _;
-#[allow(unused_imports)]
-use crate::generated::CIP36StakeWitness as _;
-#[allow(unused_imports)]
-use crate::generated::CIP36StakingPubKey as _;
-#[allow(unused_imports)]
-use crate::generated::CIP36VotingPubKey as _;
 #[allow(unused_imports)]
 use crate::generated::CIP36VotingPurpose as _;
 #[allow(unused_imports)]
@@ -49,8 +37,4 @@ fn _extern_interface_self_check() {
     _assert_deserialize::<crate::generated::CIP36KeyRegistration>();
     _assert_serialize::<crate::generated::CIP36RegistrationWitness>();
     _assert_deserialize::<crate::generated::CIP36RegistrationWitness>();
-    _assert_raw_bytes::<crate::generated::Ed25519Signature>();
-    _assert_serialize::<crate::generated::PaymentAddress>();
-    _assert_deserialize::<crate::generated::PaymentAddress>();
-    _assert_raw_bytes::<crate::generated::PublicKey>();
 }

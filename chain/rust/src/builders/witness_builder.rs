@@ -726,7 +726,7 @@ mod tests {
                 }
             };
             let missing_signers = vec![hash];
-            InputAggregateWitnessData::PlutusScript(witness, missing_signers.into(), None)
+            InputAggregateWitnessData::PlutusScript(witness, missing_signers, None)
         };
 
         assert_eq!(required_wits.vkeys.len(), 1);

@@ -150,7 +150,7 @@ impl Deserialize for CostModels {
                                 .and_then(|(x, enc)| {
                                     if x < -9223372036854775808 {
                                         Err(DeserializeFailure::RangeCheck {
-                                            found: x as i128,
+                                            found: x,
                                             min: Some(-9223372036854775808),
                                             max: Some(9223372036854775807),
                                         }

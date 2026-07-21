@@ -6,10 +6,6 @@
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
-
-pub type MapRewardAccountToCoin = cml_chain_wasm::Withdrawals;
-pub type MapPolicyIdToMapAssetNameToI64 = cml_chain_wasm::assets::Mint;
-
 pub mod allegra;
 pub mod alonzo;
 pub mod babbage;
@@ -17,6 +13,9 @@ mod borrowed_collections;
 pub mod collections;
 pub mod mary;
 pub mod shelley;
+// cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
+// each name below (`pub use <your_module>::<Name>;`) so the generated glue resolves against the
+// user-owned definition. See the extern types section of docs/output_format.
 pub use crate::Block;
 pub use crate::ByronBlock;
 pub use crate::ByronTx;
@@ -33,12 +32,9 @@ use babbage::{
     BabbageAuxiliaryData, BabbageBlock, BabbageTransactionBody, BabbageTransactionOutput,
     BabbageTransactionWitnessSet,
 };
-use cml_chain_wasm::address::RewardAccount;
-use cml_chain_wasm::assets::Coin;
-use cml_chain_wasm::collections::{MapAssetNameToI64, PolicyIdList, RewardAccountList};
+use cml_chain_wasm::TransactionIndex;
 use cml_chain_wasm::crypto::GenesisHash;
 use cml_chain_wasm::transaction::TransactionBody;
-use cml_chain_wasm::{PolicyId, TransactionIndex};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
 use mary::{MaryBlock, MaryTransactionBody, MaryTransactionOutput};

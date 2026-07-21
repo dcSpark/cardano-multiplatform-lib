@@ -6,8 +6,7 @@ use crate::generated::shelley::{
 };
 use crate::generated::{
     AllegraCertificateList, AllegraTransactionBodyList, AllegraTransactionWitnessSetList,
-    MapRewardAccountToCoin, MapTransactionIndexToAllegraAuxiliaryData,
-    ShelleyTransactionOutputList,
+    MapTransactionIndexToAllegraAuxiliaryData, ShelleyTransactionOutputList,
 };
 use cml_chain_wasm::assets::Coin;
 use cml_chain_wasm::auxdata::{ShelleyFormatAuxData, ShelleyMAFormatAuxData};

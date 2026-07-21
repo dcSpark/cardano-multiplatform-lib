@@ -104,7 +104,7 @@ pub fn parse_genesis_data<R: Read>(
                             &params.rewardAccount.credential.keyHash,
                         )?),
                     ),
-                    owners.into(),
+                    owners,
                     relays,
                     pool_metadata,
                 );

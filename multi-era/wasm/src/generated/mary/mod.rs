@@ -4,9 +4,8 @@
 use crate::generated::allegra::{AllegraAuxiliaryData, AllegraTransactionWitnessSet};
 use crate::generated::shelley::{ShelleyHeader, ShelleyUpdate};
 use crate::generated::{
-    AllegraCertificateList, AllegraTransactionWitnessSetList, MapPolicyIdToMapAssetNameToI64,
-    MapRewardAccountToCoin, MapTransactionIndexToAllegraAuxiliaryData, MaryTransactionBodyList,
-    MaryTransactionOutputList,
+    AllegraCertificateList, AllegraTransactionWitnessSetList,
+    MapTransactionIndexToAllegraAuxiliaryData, MaryTransactionBodyList, MaryTransactionOutputList,
 };
 use cml_chain_wasm::Withdrawals;
 use cml_chain_wasm::address::Address;

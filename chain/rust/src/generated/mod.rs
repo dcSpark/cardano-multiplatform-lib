@@ -25,18 +25,15 @@ use cbor_encodings::{
     DRepVotingThresholdsEncoding, NetworkIdEncoding, PoolVotingThresholdsEncoding,
     ProtocolParamUpdateEncoding, RationalEncoding, UnitIntervalEncoding,
 };
-use certs::{Certificate, CommitteeColdCredential, Credential};
-use cml_core::error::*;
+use certs::{Certificate, CommitteeColdCredential};
 use cml_core::non_empty::NonEmptyVec;
-use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding, TagPresenceEncoding};
+use cml_core::serialization::LenEncoding;
 use crypto::{BootstrapWitness, Ed25519KeyHash, ScriptHash, Vkeywitness};
-use governance::{ProposalProcedure, Voter};
+use governance::ProposalProcedure;
 use plutus::{
     CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script,
 };
-use std::collections::BTreeMap;
 use transaction::{NativeScript, TransactionInput};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -146,51 +143,61 @@ impl schemars::JsonSchema for NetworkId {
     }
 }
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// `[+ BootstrapWitness]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
 pub type NonemptySetBootstrapWitness = NonEmptyVec<BootstrapWitness>;
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// `[+ Certificate]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
 pub type NonemptySetCertificate = NonEmptyVec<Certificate>;
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// `[+ NativeScript]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
 pub type NonemptySetNativeScript = NonEmptyVec<NativeScript>;
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// `[+ PlutusData]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
 pub type NonemptySetPlutusData = NonEmptyVec<PlutusData>;
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// `[+ PlutusV1Script]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
 pub type NonemptySetPlutusV1Script = NonEmptyVec<PlutusV1Script>;
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// `[+ PlutusV2Script]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
 pub type NonemptySetPlutusV2Script = NonEmptyVec<PlutusV2Script>;
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// `[+ PlutusV3Script]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
 pub type NonemptySetPlutusV3Script = NonEmptyVec<PlutusV3Script>;
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// `[+ ProposalProcedure]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
 pub type NonemptySetProposalProcedure = NonEmptyVec<ProposalProcedure>;
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// `[+ TransactionInput]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
 pub type NonemptySetTransactionInput = NonEmptyVec<TransactionInput>;
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// `[+ Vkeywitness]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
@@ -451,14 +458,17 @@ impl Script {
     }
 }
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
 pub type SetCommitteeColdCredential = Vec<CommitteeColdCredential>;
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
 pub type SetEd25519KeyHash = Vec<Ed25519KeyHash>;
 
+/// Synthesized convenience alias for an anonymous generic-collection instance (not a CDDL rule name).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
 /// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
 pub type SetTransactionInput = Vec<TransactionInput>;

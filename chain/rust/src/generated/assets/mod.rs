@@ -3,14 +3,13 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
+// cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
+// each name below (`pub use <your_module>::<Name>;`) so the generated glue resolves against the
+// user-owned definition. See the extern types section of docs/output_format.
 pub use crate::Value;
 
-use crate::generated::PolicyId;
-use crate::generated::crypto::ScriptHash;
 use cbor_encodings::AssetNameEncoding;
 use cml_core::error::*;
-use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::StringEncoding;
 
 /// Use TryFrom<&str> / TryInto<&str> for utf8 text conversion and RawBytesEncoding for direct bytes access
 #[derive(Clone, Debug, derivative::Derivative)]

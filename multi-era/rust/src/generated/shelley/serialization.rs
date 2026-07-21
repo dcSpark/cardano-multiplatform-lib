@@ -4792,7 +4792,7 @@ impl Deserialize for ShelleyUpdate {
                         ShelleyProtocolParamUpdate::deserialize(raw)?;
                     if shelley_proposed_protocol_parameter_updates_table
                         .insert(
-                            shelley_proposed_protocol_parameter_updates_key.clone(),
+                            shelley_proposed_protocol_parameter_updates_key,
                             shelley_proposed_protocol_parameter_updates_value,
                         )
                         .is_some()
@@ -4803,7 +4803,7 @@ impl Deserialize for ShelleyUpdate {
                         .into());
                     }
                     shelley_proposed_protocol_parameter_updates_key_encodings.insert(
-                        shelley_proposed_protocol_parameter_updates_key.clone(),
+                        shelley_proposed_protocol_parameter_updates_key,
                         shelley_proposed_protocol_parameter_updates_key_encoding,
                     );
                 }

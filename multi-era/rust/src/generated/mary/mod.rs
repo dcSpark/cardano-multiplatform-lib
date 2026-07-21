@@ -17,9 +17,7 @@ use cml_chain::assets::{AssetName, Coin, Mint, Value};
 use cml_chain::crypto::AuxiliaryDataHash;
 use cml_chain::transaction::TransactionInput;
 use cml_chain::{PolicyId, TransactionIndex, Withdrawals};
-use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]

@@ -3,6 +3,9 @@
 
 pub mod cbor_encodings;
 pub mod serialization;
+// cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
+// each name below (`pub use <your_module>::<Name>;`) so the generated glue resolves against the
+// user-owned definition. See the extern types section of docs/output_format.
 pub use crate::BabbageMint;
 
 use crate::generated::allegra::AllegraCertificate;
@@ -25,9 +28,8 @@ use cml_chain::plutus::{
 };
 use cml_chain::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, TransactionInput};
 use cml_chain::{Epoch, NetworkId, Rational, TransactionIndex, UnitInterval, Withdrawals};
-use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_core::serialization::LenEncoding;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -278,7 +280,7 @@ impl BabbageScriptRef {
 
 impl From<BabbageScript> for BabbageScriptRef {
     fn from(inner: BabbageScript) -> Self {
-        BabbageScriptRef::new(inner.clone().into())
+        BabbageScriptRef::new(inner.clone())
     }
 }
 

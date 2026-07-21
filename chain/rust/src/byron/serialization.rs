@@ -298,7 +298,7 @@ impl Deserialize for ByronAddress {
                     24 => {
                         let content_bytes = raw.bytes()?;
                         let crc = crate::byron::crc32::crc32(&content_bytes);
-                        let inner_de = &mut Deserializer::from((content_bytes));
+                        let inner_de = &mut Deserializer::from(content_bytes);
                         Ok((AddressContent::deserialize(inner_de)?, crc))
                     }
                     tag => Err(DeserializeFailure::TagMismatch {

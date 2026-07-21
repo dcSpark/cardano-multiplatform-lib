@@ -25,9 +25,8 @@ use cml_chain::crypto::{
 };
 use cml_chain::transaction::{NativeScript, TransactionInput};
 use cml_chain::{DeltaCoin, Epoch, TransactionIndex, Withdrawals};
-use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_core::serialization::LenEncoding;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]

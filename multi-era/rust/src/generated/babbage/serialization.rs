@@ -4165,7 +4165,7 @@ impl Deserialize for BabbageUpdate {
                             })?;
                         let updates_value = BabbageProtocolParamUpdate::deserialize(raw)?;
                         if updates_table
-                            .insert(updates_key.clone(), updates_value)
+                            .insert(updates_key, updates_value)
                             .is_some()
                         {
                             return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from(
@@ -4173,7 +4173,7 @@ impl Deserialize for BabbageUpdate {
                             )))
                             .into());
                         }
-                        updates_key_encodings.insert(updates_key.clone(), updates_key_encoding);
+                        updates_key_encodings.insert(updates_key, updates_key_encoding);
                     }
                     Ok((updates_table, updates_encoding, updates_key_encodings))
                 })()

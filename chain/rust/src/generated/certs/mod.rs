@@ -20,7 +20,7 @@ use cbor_encodings::{
     VoteRegDelegCertEncoding,
 };
 use cml_core::error::*;
-use cml_core::serialization::{LenEncoding, StringEncoding, TagPresenceEncoding};
+use cml_core::serialization::{LenEncoding, StringEncoding};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct AuthCommitteeHotCert {

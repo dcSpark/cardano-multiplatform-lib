@@ -2779,7 +2779,7 @@ impl Deserialize for TransactionBody {
                                                 (x as i64, Some(enc))
                                             },
                                             _ => {
-                                                let (x, enc) = raw.negative_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x < -9223372036854775808 { Err(DeserializeFailure::RangeCheck{ found: x as i128, min: Some(-9223372036854775808), max: Some(9223372036854775807) }.into()) } else { Ok((x, enc)) })?;
+                                                let (x, enc) = raw.negative_integer_sz().map_err(Into::<DeserializeError>::into).and_then(|(x, enc)| if x < -9223372036854775808 { Err(DeserializeFailure::RangeCheck{ found: x, min: Some(-9223372036854775808), max: Some(9223372036854775807) }.into()) } else { Ok((x, enc)) })?;
                                                 (x as i64, Some(enc))
                                             },
                                         };
@@ -2789,11 +2789,11 @@ impl Deserialize for TransactionBody {
                                         mint_value_value_encodings.insert(mint_value_key.clone(), mint_value_value_encoding);
                                     }
                                     let (mint_value, mint_value_encoding, mint_value_value_encodings) = (mint_value_table, mint_value_encoding, mint_value_value_encodings);
-                                    if mint_table.insert(mint_key.clone(), mint_value).is_some() {
+                                    if mint_table.insert(mint_key, mint_value).is_some() {
                                         return Err(DeserializeFailure::DuplicateKey(Key::Str(String::from("some complicated/unsupported type"))).into());
                                     }
-                                    mint_key_encodings.insert(mint_key.clone(), mint_key_encoding);
-                                    mint_value_encodings.insert(mint_key.clone(), (mint_value_encoding, mint_value_value_encodings));
+                                    mint_key_encodings.insert(mint_key, mint_key_encoding);
+                                    mint_value_encodings.insert(mint_key, (mint_value_encoding, mint_value_value_encodings));
                                 }
                                 Ok((mint_table, mint_encoding, mint_key_encodings, mint_value_encodings))
                             })().map_err(|e| e.annotate("mint"))?;

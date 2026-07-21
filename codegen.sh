@@ -187,7 +187,7 @@ fi
 # Crate              spec input                 args
 #   multi-era  <- specs/multiera      (uses _CDDL_CODEGEN_EXTERN_DEPS_DIR_/cml_chain to reference chain)
 #   chain      <- specs/conway        (Conway-era on-chain types; README.md historically said babbage)
-#   cip36      <- specs/cip36.cddl
+#   cip36      <- specs/cip36   (extern-deps dirs attribute crypto/chain types to their crates)
 #   cip25      <- specs/cip25.cddl    (no preserve-encodings)
 # multi-era BEFORE chain: workspace-mode reverse dependency order (see comment above).
 want multi-era && gen multi-era "$SPECS/multiera" --lib-name=cml-multi-era "${COMMON[@]}" "${EXTERN_WASM_MULTIERA[@]}"
@@ -206,7 +206,13 @@ if want chain; then
     # re-applied by the preservation overlay on every regen; anything it can't re-place traps in
     # a loud compile_error!, never silently dropped. Hand-added manifest deps/keys pass through
     # the merge untouched. Everything else in core/ stays hand-owned.
+    # --extern-wasm-crate=cml_core=cml_core_wasm: chain's spec references the built-in `int`
+    # (DeltaCoin), whose wasm face must resolve through cml_core_wasm in wasm-bindgen-exported
+    # signatures (otherwise `pub use cml_core::Int;` → E0277 on every DeltaCoin API). Accepting
+    # the common-import-override crate as a mapping key landed upstream in 71e1d87 (cycle-2
+    # response); this is the flag doc's own documented pairing with --common-import-override.
     gen chain "$SPECS/conway" --lib-name=cml-chain "${COMMON[@]}" "${WRAPPER_REQUESTS_CHAIN[@]}" \
+      --extern-wasm-crate=cml_core=cml_core_wasm \
       --export-static-crate="$REPO_ROOT/core/rust"
   else
     # Only possible before the first multi-era regen under workspace mode. Without the sidecar,
@@ -215,7 +221,13 @@ if want chain; then
     exit 1
   fi
 fi
-want cip36     && gen cip36     "$SPECS/cip36.cddl" --lib-name=cml-cip36    "${COMMON[@]}"
+# cip36's crypto/chain types are declared in _CDDL_CODEGEN_EXTERN_DEPS_DIR_/{cml_crypto,cml_chain}
+# (dep-owned, NOT bare own-spec externs), so the generator emits qualified dep paths in rust and —
+# via the --extern-wasm-crate mappings — in wasm, and json-gen skips the dep-owned schema rows.
+# See draft/remaining/ISSUE-crypto-extern-crate-attribution.md for the rationale (chain's crypto
+# externs are the remaining unmigrated case of the same pattern).
+want cip36     && gen cip36     "$SPECS/cip36" --lib-name=cml-cip36    "${COMMON[@]}" \
+  --extern-wasm-crate=cml_crypto=cml_crypto_wasm --extern-wasm-crate=cml_chain=cml_chain_wasm
 #    cip25 doesn't use COMMON as it deliberately omits preserve-encodings/canonical-form (it never had them).
 want cip25     && gen cip25     "$SPECS/cip25.cddl" --lib-name=cml-cip25 --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${CIP25_WASM_MACROS[@]}"
 

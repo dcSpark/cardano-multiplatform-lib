@@ -23,9 +23,7 @@ use cml_chain::transaction::{AlonzoFormatTxOut, NativeScript, TransactionInput};
 use cml_chain::{
     Epoch, NetworkId, PolicyId, Rational, TransactionIndex, UnitInterval, Withdrawals,
 };
-use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]

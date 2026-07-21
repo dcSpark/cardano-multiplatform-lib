@@ -7,16 +7,17 @@ extern crate derivative;
 pub mod cbor_encodings;
 mod extern_interface_check;
 pub mod serialization;
-pub use crate::Ed25519Signature;
-pub use crate::PaymentAddress;
-pub use crate::PublicKey;
 
 use cbor_encodings::{
-    CIP36DelegationEncoding, CIP36DeregistrationWitnessEncoding, CIP36KeyDeregistrationEncoding,
-    CIP36KeyRegistrationEncoding, CIP36RegistrationWitnessEncoding,
+    CIP36DelegationEncoding, CIP36DeregistrationWitnessEncoding,
+    CIP36KeyDeregistrationEncoding, CIP36KeyRegistrationEncoding,
+    CIP36RegistrationWitnessEncoding,
 };
+use cml_chain::address::Address as PaymentAddress;
+use cml_core::error::*;
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_crypto::{Ed25519Signature, PublicKey};
 
 /// Weighted delegation input.
 /// This is the proportion of weight to assign to this public key relative to the weights

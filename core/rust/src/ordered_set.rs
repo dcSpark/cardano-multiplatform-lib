@@ -19,9 +19,10 @@ use super::error::{DeserializeError, DeserializeFailure, Key};
 /// Staging a not-yet-unique collection is done with a plain `Vec<T>` (`push`/`extend`/`collect`) and
 /// a final `OrderedSet::try_from(vec)` — the loose `Vec` is the builder, so no builder type is needed.
 //
-// ponytail: duplicate detection is a linear `contains` scan (`T: PartialEq`, zero extra storage,
+// careful: duplicate detection is a linear `contains` scan (`T: PartialEq`, zero extra storage,
 // O(n²) build). Real sets here are small (signers, certificates); a shadow hash/sorted set is a
 // purely internal upgrade that would not change these public bounds if it is ever profiled to matter.
+// ponytail: duplicate detection is a linear `contains` scan (`T: PartialEq`, zero extra storage,
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OrderedSet<T>(Vec<T>);
 

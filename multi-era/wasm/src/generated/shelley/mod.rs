@@ -3,8 +3,8 @@
 
 use crate::generated::allegra::MIRPot;
 use crate::generated::{
-    MapRewardAccountToCoin, MultisigScriptList, ShelleyCertificateList, ShelleyRelayList,
-    ShelleyTransactionBodyList, ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
+    MultisigScriptList, ShelleyCertificateList, ShelleyRelayList, ShelleyTransactionBodyList,
+    ShelleyTransactionOutputList, ShelleyTransactionWitnessSetList,
 };
 use cml_chain_wasm::address::{Address, RewardAccount};
 use cml_chain_wasm::assets::Coin;

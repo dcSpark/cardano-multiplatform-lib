@@ -1,19 +1,15 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::generated::{
-    MapVoterToMapGovActionIdToVotingProcedure, NonEmptyMapGovActionIdToVotingProcedure,
-};
-
 use crate::generated::address::RewardAccount;
 use crate::generated::assets::Coin;
 use crate::generated::block::ProtocolVersion;
 use crate::generated::certs::Url;
 use crate::generated::crypto::{AnchorDocHash, Ed25519KeyHash, ScriptHash, TransactionHash};
 use crate::generated::{
-    CommitteeColdCredentialList, MapCommitteeColdCredentialToEpoch,
-    MapGovActionIdToVotingProcedure, MapRewardAccountToCoin, ProtocolParamUpdate,
-    SetCommitteeColdCredential, UnitInterval, VoterList,
+    MapCommitteeColdCredentialToEpoch, MapRewardAccountToCoin,
+    MapVoterToMapGovActionIdToVotingProcedure, NonEmptyMapGovActionIdToVotingProcedure,
+    ProtocolParamUpdate, SetCommitteeColdCredential, UnitInterval, VoterList,
 };
 pub use cml_chain::governance::Vote;
 use cml_core::non_empty_map::NonEmptyMap;

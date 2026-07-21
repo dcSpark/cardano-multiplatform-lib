@@ -1511,7 +1511,7 @@ mod shelley_impls {
                 pool_reg.pool_params.cost,
                 pool_reg.pool_params.margin,
                 pool_reg.pool_params.reward_account,
-                pool_reg.pool_params.pool_owners.into(),
+                pool_reg.pool_params.pool_owners,
                 pool_reg
                     .pool_params
                     .relays

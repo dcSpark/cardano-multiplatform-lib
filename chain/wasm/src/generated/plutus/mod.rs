@@ -1,15 +1,16 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use crate::generated::{NonEmptyLegacyRedeemerList, NonEmptyMapRedeemerKeyToRedeemerVal};
-
+// cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
+// each name below (`pub use <your_module>::<Name>;`) so the generated glue resolves against the
+// user-owned definition. See the extern types section of docs/output_format.
 pub use crate::BigInteger;
 pub use crate::ConstrPlutusData;
 pub use crate::PlutusMap;
 
 use crate::generated::{
-    LegacyRedeemerList, MapRedeemerKeyToRedeemerVal, MapU64ToArrI64, PlutusDataList, Rational,
-    SubCoin,
+    MapU64ToArrI64, NonEmptyLegacyRedeemerList, NonEmptyMapRedeemerKeyToRedeemerVal,
+    PlutusDataList, Rational, SubCoin,
 };
 pub use cml_chain::plutus::{Language, RedeemerTag};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};

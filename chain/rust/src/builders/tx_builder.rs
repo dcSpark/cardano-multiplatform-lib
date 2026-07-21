@@ -1390,8 +1390,7 @@ impl TransactionBuilder {
                 .inputs
                 .iter()
                 .map(|tx_builder_input| tx_builder_input.input.clone())
-                .collect::<Vec<_>>()
-                .into(),
+                .collect::<Vec<_>>(),
             outputs: self.outputs.clone(),
             fee,
             ttl: self.ttl,

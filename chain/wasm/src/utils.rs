@@ -1,3 +1,4 @@
+use crate::NetworkId;
 use crate::SubCoin;
 
 use super::{Script, ScriptHash};
@@ -61,14 +62,6 @@ impl Script {
         self.as_ref().language()
     }
 }
-
-#[derive(Clone, Debug)]
-#[wasm_bindgen]
-pub struct NetworkId(cml_chain::NetworkId);
-
-impl_wasm_cbor_json_api!(NetworkId);
-
-impl_wasm_conversions!(cml_chain::NetworkId, NetworkId);
 
 #[wasm_bindgen]
 impl NetworkId {

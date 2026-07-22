@@ -10,7 +10,7 @@ use crate::{
 
 use cml_crypto_wasm::{AuxiliaryDataHash, DatumHash, ScriptDataHash, TransactionHash};
 
-use cml_core::non_empty::NonEmptyVec;
+use cml_chain::NonemptySetPlutusData;
 
 #[wasm_bindgen]
 pub fn hash_auxiliary_data(auxiliary_data: &AuxiliaryData) -> AuxiliaryDataHash {
@@ -42,20 +42,20 @@ pub fn hash_script_data(
     redeemers: &Redeemers,
     cost_models: &CostModels,
     datums: Option<PlutusDataList>,
-    //    encoding: Option<TransactionWitnessSetEncoding>,
-) -> ScriptDataHash {
-    // An empty list means no datums (a witness set cannot carry an empty datum list).
+) -> Result<ScriptDataHash, JsError> {
+    // try_opt_from: an empty list means no datums (a witness set cannot carry an empty datum
+    // list); a duplicate datum is a caller error (the field is a set as of Conway).
     let datums = datums
-        .map(Into::<Vec<_>>::into)
-        .filter(|datums: &Vec<_>| !datums.is_empty())
-        .map(|datums| NonEmptyVec::try_from(datums).expect("non-empty (filtered above)"));
-    cml_chain::crypto::hash::hash_script_data(
+        .map(|datums| NonemptySetPlutusData::try_opt_from(datums.into()))
+        .transpose()
+        .map_err(|e| JsError::new(&e.to_string()))?
+        .flatten();
+    Ok(cml_chain::crypto::hash::hash_script_data(
         Some(redeemers.as_ref()),
         cost_models.as_ref(),
         datums.as_ref(),
-        None,
     )
-    .into()
+    .into())
 }
 
 /// Calculates the hash for script data (with plutus scripts) if it is necessary.
@@ -74,17 +74,16 @@ pub fn calc_script_data_hash(
     datums: &PlutusDataList,
     cost_models: &CostModels,
     used_langs: &LanguageList,
-    //    encoding: Option<TransactionWitnessSetEncoding>,
 ) -> Result<Option<ScriptDataHash>, JsError> {
-    // An empty list means no datums, matching the previous behavior (the rust side used to
-    // map an empty set to None internally).
-    let datums = NonEmptyVec::try_from(Into::<Vec<_>>::into(datums.clone())).ok();
+    // try_opt_from: an empty list means no datums; a duplicate datum is a caller error (the
+    // field is a set as of Conway).
+    let datums = NonemptySetPlutusData::try_opt_from(datums.clone().into())
+        .map_err(|e| JsError::new(&e.to_string()))?;
     cml_chain::crypto::hash::calc_script_data_hash(
         Some(redeemers.as_ref()),
         datums.as_ref(),
         cost_models.as_ref(),
         used_langs.as_ref(),
-        None,
     )
     .map(|sdh| sdh.map(Into::into))
     .map_err(Into::into)

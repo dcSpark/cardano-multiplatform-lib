@@ -6,7 +6,9 @@ use std::{
 };
 
 use crate::{
-    NativeScript, Script,
+    NativeScript, NonemptySetBootstrapWitness, NonemptySetNativeScript, NonemptySetPlutusData,
+    NonemptySetPlutusV1Script, NonemptySetPlutusV2Script, NonemptySetPlutusV3Script,
+    NonemptySetVkeywitness, Script,
     byron::ByronAddress,
     certs::Credential,
     crypto::{BootstrapWitness, Vkey, Vkeywitness, hash::hash_plutus_data},
@@ -454,54 +456,60 @@ impl TransactionWitnessSetBuilder {
         let plutus_v3_scripts = self.get_plutus_v3_script();
         let plutus_datums = self.get_plutus_datum();
 
-        // Each conversion is guarded by the matching is_empty check, so try_from cannot fail.
+        // Each conversion is guarded by the matching is_empty check, and every source is a map
+        // keyed by the element's identity (vkey / script hash / datum hash), so the set door's
+        // uniqueness check cannot fail either: try_from is infallible here.
         if !self.vkeys.is_empty() {
             result.vkeywitnesses = Some(
-                NonEmptyVec::try_from(self.vkeys.into_values().collect::<Vec<_>>())
-                    .expect("vkeys non-empty (guarded above)"),
+                NonemptySetVkeywitness::try_from(self.vkeys.into_values().collect::<Vec<_>>())
+                    .expect("vkeys non-empty (guarded above) and unique (keyed by vkey)"),
             );
         }
 
         if !self.bootstraps.is_empty() {
             result.bootstrap_witnesses = Some(
-                NonEmptyVec::try_from(self.bootstraps.into_values().collect::<Vec<_>>())
-                    .expect("bootstraps non-empty (guarded above)"),
+                NonemptySetBootstrapWitness::try_from(
+                    self.bootstraps.into_values().collect::<Vec<_>>(),
+                )
+                .expect("bootstraps non-empty (guarded above) and unique (keyed by vkey)"),
             );
         }
 
         if !native_scripts.is_empty() {
-            result.native_scripts = Some(
-                NonEmptyVec::try_from(native_scripts)
-                    .expect("native_scripts non-empty (guarded above)"),
-            );
+            result.native_scripts = Some(NonemptySetNativeScript::try_from(native_scripts).expect(
+                "native_scripts non-empty (guarded above) and unique (keyed by script hash)",
+            ));
         }
 
         if !plutus_v1_scripts.is_empty() {
             result.plutus_v1_scripts = Some(
-                NonEmptyVec::try_from(plutus_v1_scripts)
-                    .expect("plutus_v1_scripts non-empty (guarded above)"),
+                NonemptySetPlutusV1Script::try_from(plutus_v1_scripts).expect(
+                    "plutus_v1_scripts non-empty (guarded above) and unique (keyed by script hash)",
+                ),
             );
         }
 
         if !plutus_v2_scripts.is_empty() {
             result.plutus_v2_scripts = Some(
-                NonEmptyVec::try_from(plutus_v2_scripts)
-                    .expect("plutus_v2_scripts non-empty (guarded above)"),
+                NonemptySetPlutusV2Script::try_from(plutus_v2_scripts).expect(
+                    "plutus_v2_scripts non-empty (guarded above) and unique (keyed by script hash)",
+                ),
             );
         }
 
         if !plutus_v3_scripts.is_empty() {
             result.plutus_v3_scripts = Some(
-                NonEmptyVec::try_from(plutus_v3_scripts)
-                    .expect("plutus_v3_scripts non-empty (guarded above)"),
+                NonemptySetPlutusV3Script::try_from(plutus_v3_scripts).expect(
+                    "plutus_v3_scripts non-empty (guarded above) and unique (keyed by script hash)",
+                ),
             );
         }
 
         if !self.plutus_data.is_empty() {
-            result.plutus_datums = Some(
-                NonEmptyVec::try_from(plutus_datums)
-                    .expect("plutus_data non-empty (guarded above)"),
-            );
+            result.plutus_datums =
+                Some(NonemptySetPlutusData::try_from(plutus_datums).expect(
+                    "plutus_data non-empty (guarded above) and unique (keyed by datum hash)",
+                ));
         }
 
         if !self.redeemers.is_empty() {

@@ -11,6 +11,7 @@ use super::{
     BabbageAuxiliaryData, BabbageScript, BabbageTransactionBody, BabbageTransactionWitnessSet,
 };
 
+use crate::utils::dedup_nonempty_set;
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::{
     DeserializeError, DeserializeFailure,
@@ -78,31 +79,21 @@ impl From<BabbageAuxiliaryData> for AuxiliaryData {
 impl From<BabbageTransactionWitnessSet> for TransactionWitnessSet {
     fn from(wits: BabbageTransactionWitnessSet) -> Self {
         let mut new_wits = TransactionWitnessSet::new();
-        // Conway witness-set collections cannot be empty; an empty older-era list maps to absent.
-        new_wits.vkeywitnesses = wits
-            .vkeywitnesses
-            .and_then(|v| NonEmptyVec::try_from(v).ok());
-        new_wits.native_scripts = wits
-            .native_scripts
-            .and_then(|v| NonEmptyVec::try_from(v).ok());
-        new_wits.bootstrap_witnesses = wits
-            .bootstrap_witnesses
-            .and_then(|v| NonEmptyVec::try_from(v).ok());
-        // Conway `Redeemers` cannot be empty; an empty older-era redeemer list maps to no redeemers.
+        // Conway witness-set collections are non-empty sets; an empty older-era list maps
+        // to absent and duplicate entries are dedup'd (see dedup_nonempty_set).
+        new_wits.vkeywitnesses = wits.vkeywitnesses.and_then(dedup_nonempty_set);
+        new_wits.native_scripts = wits.native_scripts.and_then(dedup_nonempty_set);
+        new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.and_then(dedup_nonempty_set);
+        // Conway `Redeemers` cannot be empty; an empty older-era redeemer list maps to no
+        // redeemers. Redeemers remain a list (not a set): no dedup.
         new_wits.redeemers = wits.redeemers.and_then(|rs| {
             NonEmptyVec::try_from(rs.into_iter().map(Into::into).collect::<Vec<_>>())
                 .ok()
                 .map(Redeemers::new_arr_legacy_redeemer)
         });
-        new_wits.plutus_datums = wits
-            .plutus_datums
-            .and_then(|v| NonEmptyVec::try_from(v).ok());
-        new_wits.plutus_v1_scripts = wits
-            .plutus_v1_scripts
-            .and_then(|v| NonEmptyVec::try_from(v).ok());
-        new_wits.plutus_v2_scripts = wits
-            .plutus_v2_scripts
-            .and_then(|v| NonEmptyVec::try_from(v).ok());
+        new_wits.plutus_datums = wits.plutus_datums.and_then(dedup_nonempty_set);
+        new_wits.plutus_v1_scripts = wits.plutus_v1_scripts.and_then(dedup_nonempty_set);
+        new_wits.plutus_v2_scripts = wits.plutus_v2_scripts.and_then(dedup_nonempty_set);
         new_wits
     }
 }

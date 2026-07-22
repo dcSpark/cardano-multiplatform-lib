@@ -1,7 +1,7 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_core::serialization::LenEncoding;
+use cml_core::serialization::{LenEncoding, StringEncoding, TagPresenceEncoding};
 
 #[derive(Clone, Debug, Default)]
 pub struct DRepVotingThresholdsEncoding {
@@ -11,6 +11,73 @@ pub struct DRepVotingThresholdsEncoding {
 #[derive(Clone, Debug, Default)]
 pub struct NetworkIdEncoding {
     pub inner_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NonemptySetBootstrapWitnessEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NonemptySetCertificateEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NonemptySetEd25519KeyHashEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
+    pub inner_elem_encodings: Vec<StringEncoding>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NonemptySetNativeScriptEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NonemptySetPlutusDataEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NonemptySetPlutusV1ScriptEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NonemptySetPlutusV2ScriptEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NonemptySetPlutusV3ScriptEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NonemptySetProposalProcedureEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NonemptySetTransactionInputEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NonemptySetVkeywitnessEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -80,6 +147,25 @@ pub struct RationalEncoding {
     pub tag_encoding: Option<cbor_event::Sz>,
     pub numerator_encoding: Option<cbor_event::Sz>,
     pub denominator_encoding: Option<cbor_event::Sz>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct SetCommitteeColdCredentialEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct SetEd25519KeyHashEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
+    pub inner_elem_encodings: Vec<StringEncoding>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct SetTransactionInputEncoding {
+    pub inner_tag_encoding: TagPresenceEncoding,
+    pub inner_encoding: LenEncoding,
 }
 
 #[derive(Clone, Debug, Default)]

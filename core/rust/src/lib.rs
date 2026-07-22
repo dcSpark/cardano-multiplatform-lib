@@ -17,6 +17,7 @@ pub mod network;
 pub mod non_empty;
 pub mod non_empty_map;
 pub mod ordered_hash_map;
+pub mod ordered_set;
 pub mod serialization;
 
 use crate::serialization::{Deserialize, Serialize, fit_sz};

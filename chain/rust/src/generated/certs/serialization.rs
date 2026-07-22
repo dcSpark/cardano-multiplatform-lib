@@ -1326,39 +1326,7 @@ impl SerializeEmbeddedGroup for PoolParams {
         )?;
         self.margin.serialize(serializer, force_canonical)?;
         self.reward_account.serialize(serializer, force_canonical)?;
-        if let TagPresenceEncoding::Tagged(tag_sz) = self
-            .encodings
-            .as_ref()
-            .map(|encs| encs.pool_owners_tag_encoding)
-            .unwrap_or_default()
-        {
-            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
-        }
-        serializer.write_array_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.pool_owners_encoding)
-                .unwrap_or_default()
-                .to_len_sz(self.pool_owners.len() as u64, force_canonical),
-        )?;
-        for (i, element) in self.pool_owners.iter().enumerate() {
-            let pool_owners_elem_encoding = self
-                .encodings
-                .as_ref()
-                .and_then(|encs| encs.pool_owners_elem_encodings.get(i))
-                .cloned()
-                .unwrap_or_default();
-            serializer.write_bytes_sz(
-                element.to_raw_bytes(),
-                pool_owners_elem_encoding
-                    .to_str_len_sz(element.to_raw_bytes().len() as u64, force_canonical),
-            )?;
-        }
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.pool_owners_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)?;
+        self.pool_owners.serialize(serializer, force_canonical)?;
         serializer.write_array_sz(
             self.encodings
                 .as_ref()
@@ -1452,61 +1420,8 @@ impl DeserializeEmbeddedGroup for PoolParams {
                 .map_err(|e: DeserializeError| e.annotate("margin"))?;
             let reward_account = RewardAccount::deserialize(raw)
                 .map_err(|e: DeserializeError| e.annotate("reward_account"))?;
-            let (
-                pool_owners,
-                pool_owners_tag_encoding,
-                pool_owners_encoding,
-                pool_owners_elem_encodings,
-            ) = (|| -> Result<_, DeserializeError> {
-                let pool_owners_tag_encoding = match raw.cbor_type()? {
-                    cbor_event::Type::Tag => {
-                        let (tag, tag_enc) = raw.tag_sz()?;
-                        if tag != 258 {
-                            return Err(DeserializeFailure::TagMismatch {
-                                found: tag,
-                                expected: 258,
-                            }
-                            .into());
-                        }
-                        TagPresenceEncoding::Tagged(Some(tag_enc))
-                    }
-                    _ => TagPresenceEncoding::Untagged,
-                };
-                let mut pool_owners_arr = Vec::new();
-                let len = raw.array_sz()?;
-                let pool_owners_encoding = len.into();
-                let mut pool_owners_elem_encodings = Vec::new();
-                while match len {
-                    cbor_event::LenSz::Len(n, _) => (pool_owners_arr.len() as u64) < n,
-                    cbor_event::LenSz::Indefinite => true,
-                } {
-                    if matches!(len, cbor_event::LenSz::Indefinite)
-                        && raw.cbor_type()? == cbor_event::Type::Special
-                        && raw.special_break()?
-                    {
-                        break;
-                    }
-                    let (pool_owners_elem, pool_owners_elem_encoding) = raw
-                        .bytes_sz()
-                        .map_err(Into::<DeserializeError>::into)
-                        .and_then(|(bytes, enc)| {
-                            Ed25519KeyHash::from_raw_bytes(&bytes)
-                                .map(|bytes| (bytes, StringEncoding::from(enc)))
-                                .map_err(|e| {
-                                    DeserializeFailure::InvalidStructure(Box::new(e)).into()
-                                })
-                        })?;
-                    pool_owners_arr.push(pool_owners_elem);
-                    pool_owners_elem_encodings.push(pool_owners_elem_encoding);
-                }
-                Ok((
-                    pool_owners_arr,
-                    pool_owners_tag_encoding,
-                    pool_owners_encoding,
-                    pool_owners_elem_encodings,
-                ))
-            })()
-            .map_err(|e| e.annotate("pool_owners"))?;
+            let pool_owners = SetEd25519KeyHash::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("pool_owners"))?;
             let (relays, relays_encoding) = (|| -> Result<_, DeserializeError> {
                 let mut relays_arr = Vec::new();
                 let len = raw.array_sz()?;
@@ -1554,9 +1469,6 @@ impl DeserializeEmbeddedGroup for PoolParams {
                     vrf_keyhash_encoding,
                     pledge_encoding,
                     cost_encoding,
-                    pool_owners_tag_encoding,
-                    pool_owners_encoding,
-                    pool_owners_elem_encodings,
                     relays_encoding,
                 }),
             })

@@ -22,10 +22,19 @@ use cbor_encodings::{
 use cml_core::error::*;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct AuthCommitteeHotCert {
     pub committee_cold_credential: CommitteeColdCredential,
     pub committee_hot_credential: CommitteeHotCredential,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<AuthCommitteeHotCertEncoding>,
 }
@@ -43,7 +52,16 @@ impl AuthCommitteeHotCert {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(
+    Eq,
+    PartialEq,
+    Ord = "feature_allow_slow_enum",
+    PartialOrd = "feature_allow_slow_enum",
+    Hash
+)]
 pub enum Certificate {
     /// Will be deprecated in the next era. Use RegCert instead which takes an explicit deposit amount, as that can change.
     StakeRegistration(StakeRegistration),
@@ -283,9 +301,16 @@ impl Credential {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, derivative::Derivative)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct DNSName {
     pub(crate) inner: String,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     pub encodings: Option<DNSNameEncoding>,
 }
 
@@ -355,35 +380,104 @@ impl schemars::JsonSchema for DNSName {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(
+    Eq,
+    PartialEq,
+    Ord = "feature_allow_slow_enum",
+    PartialOrd = "feature_allow_slow_enum",
+    Hash
+)]
 pub enum DRep {
     Key {
         pool: Ed25519KeyHash,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         index_0_encoding: Option<cbor_event::Sz>,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         pool_encoding: StringEncoding,
     },
     Script {
         script_hash: ScriptHash,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         index_0_encoding: Option<cbor_event::Sz>,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         script_hash_encoding: StringEncoding,
     },
     AlwaysAbstain {
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         always_abstain_encoding: Option<cbor_event::Sz>,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         len_encoding: LenEncoding,
     },
     AlwaysNoConfidence {
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         always_no_confidence_encoding: Option<cbor_event::Sz>,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         len_encoding: LenEncoding,
     },
@@ -425,9 +519,16 @@ impl DRep {
 
 pub type DrepCredential = Credential;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, derivative::Derivative)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Ipv4 {
     pub(crate) inner: Vec<u8>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     pub encodings: Option<Ipv4Encoding>,
 }
 
@@ -468,9 +569,16 @@ impl From<Ipv4> for Vec<u8> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, derivative::Derivative)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Ipv6 {
     pub(crate) inner: Vec<u8>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     pub encodings: Option<Ipv6Encoding>,
 }
 
@@ -511,10 +619,19 @@ impl From<Ipv6> for Vec<u8> {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct MultiHostName {
     /// A SRV DNS record
     pub dns_name: DNSName,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<MultiHostNameEncoding>,
 }
@@ -529,10 +646,19 @@ impl MultiHostName {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PoolMetadata {
     pub url: Url,
     pub pool_metadata_hash: PoolMetadataHash,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<PoolMetadataEncoding>,
 }
@@ -547,7 +673,10 @@ impl PoolMetadata {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PoolParams {
     pub operator: Ed25519KeyHash,
     pub vrf_keyhash: VRFKeyHash,
@@ -558,6 +687,12 @@ pub struct PoolParams {
     pub pool_owners: SetEd25519KeyHash,
     pub relays: Vec<Relay>,
     pub pool_metadata: Option<PoolMetadata>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<PoolParamsEncoding>,
 }
@@ -589,9 +724,18 @@ impl PoolParams {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PoolRegistration {
     pub pool_params: PoolParams,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<PoolRegistrationEncoding>,
 }
@@ -605,10 +749,19 @@ impl PoolRegistration {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PoolRetirement {
     pub pool: Ed25519KeyHash,
     pub epoch: Epoch,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<PoolRetirementEncoding>,
 }
@@ -623,10 +776,19 @@ impl PoolRetirement {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RegCert {
     pub stake_credential: StakeCredential,
     pub deposit: Coin,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<RegCertEncoding>,
 }
@@ -641,11 +803,20 @@ impl RegCert {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RegDrepCert {
     pub drep_credential: DrepCredential,
     pub deposit: Coin,
     pub anchor: Option<Anchor>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<RegDrepCertEncoding>,
 }
@@ -661,7 +832,16 @@ impl RegDrepCert {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(
+    Eq,
+    PartialEq,
+    Ord = "feature_allow_slow_enum",
+    PartialOrd = "feature_allow_slow_enum",
+    Hash
+)]
 pub enum Relay {
     SingleHostAddr(SingleHostAddr),
     SingleHostName(SingleHostName),
@@ -686,10 +866,19 @@ impl Relay {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ResignCommitteeColdCert {
     pub committee_cold_credential: CommitteeColdCredential,
     pub anchor: Option<Anchor>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<ResignCommitteeColdCertEncoding>,
 }
@@ -704,11 +893,20 @@ impl ResignCommitteeColdCert {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct SingleHostAddr {
     pub port: Option<Port>,
     pub ipv4: Option<Ipv4>,
     pub ipv6: Option<Ipv6>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<SingleHostAddrEncoding>,
 }
@@ -724,11 +922,20 @@ impl SingleHostAddr {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct SingleHostName {
     pub port: Option<Port>,
     /// An A or AAAA DNS record
     pub dns_name: DNSName,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<SingleHostNameEncoding>,
 }
@@ -746,10 +953,19 @@ impl SingleHostName {
 
 pub type StakeCredential = Credential;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct StakeDelegation {
     pub stake_credential: StakeCredential,
     pub pool: Ed25519KeyHash,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<StakeDelegationEncoding>,
 }
@@ -764,9 +980,18 @@ impl StakeDelegation {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct StakeDeregistration {
     pub stake_credential: StakeCredential,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<StakeDeregistrationEncoding>,
 }
@@ -780,11 +1005,20 @@ impl StakeDeregistration {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct StakeRegDelegCert {
     pub stake_credential: StakeCredential,
     pub pool: Ed25519KeyHash,
     pub deposit: Coin,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<StakeRegDelegCertEncoding>,
 }
@@ -800,9 +1034,18 @@ impl StakeRegDelegCert {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct StakeRegistration {
     pub stake_credential: StakeCredential,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<StakeRegistrationEncoding>,
 }
@@ -816,11 +1059,20 @@ impl StakeRegistration {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct StakeVoteDelegCert {
     pub stake_credential: StakeCredential,
     pub pool: Ed25519KeyHash,
     pub d_rep: DRep,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<StakeVoteDelegCertEncoding>,
 }
@@ -836,12 +1088,21 @@ impl StakeVoteDelegCert {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct StakeVoteRegDelegCert {
     pub stake_credential: StakeCredential,
     pub pool: Ed25519KeyHash,
     pub d_rep: DRep,
     pub deposit: Coin,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<StakeVoteRegDelegCertEncoding>,
 }
@@ -875,10 +1136,19 @@ impl From<Url> for String {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct UnregCert {
     pub stake_credential: StakeCredential,
     pub deposit: Coin,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<UnregCertEncoding>,
 }
@@ -893,10 +1163,19 @@ impl UnregCert {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct UnregDrepCert {
     pub drep_credential: DrepCredential,
     pub deposit: Coin,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<UnregDrepCertEncoding>,
 }
@@ -911,10 +1190,19 @@ impl UnregDrepCert {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct UpdateDrepCert {
     pub drep_credential: DrepCredential,
     pub anchor: Option<Anchor>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<UpdateDrepCertEncoding>,
 }
@@ -929,9 +1217,16 @@ impl UpdateDrepCert {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, derivative::Derivative)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Url {
     pub(crate) inner: String,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     pub encodings: Option<UrlEncoding>,
 }
 
@@ -1001,10 +1296,19 @@ impl schemars::JsonSchema for Url {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct VoteDelegCert {
     pub stake_credential: StakeCredential,
     pub d_rep: DRep,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<VoteDelegCertEncoding>,
 }
@@ -1019,11 +1323,20 @@ impl VoteDelegCert {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct VoteRegDelegCert {
     pub stake_credential: StakeCredential,
     pub d_rep: DRep,
     pub deposit: Coin,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<VoteRegDelegCertEncoding>,
 }

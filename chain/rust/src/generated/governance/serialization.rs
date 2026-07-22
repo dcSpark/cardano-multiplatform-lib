@@ -1367,29 +1367,8 @@ impl SerializeEmbeddedGroup for UpdateCommittee {
                 serializer.write_special(cbor_event::Special::Null)?;
             }
         };
-        if let TagPresenceEncoding::Tagged(tag_sz) = self
-            .encodings
-            .as_ref()
-            .map(|encs| encs.cold_credentials_tag_encoding)
-            .unwrap_or_default()
-        {
-            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
-        }
-        serializer.write_array_sz(
-            self.encodings
-                .as_ref()
-                .map(|encs| encs.cold_credentials_encoding)
-                .unwrap_or_default()
-                .to_len_sz(self.cold_credentials.len() as u64, force_canonical),
-        )?;
-        for element in self.cold_credentials.iter() {
-            element.serialize(serializer, force_canonical)?;
-        }
-        self.encodings
-            .as_ref()
-            .map(|encs| encs.cold_credentials_encoding)
-            .unwrap_or_default()
-            .end(serializer, force_canonical)?;
+        self.cold_credentials
+            .serialize(serializer, force_canonical)?;
         serializer.write_map_sz(
             self.encodings
                 .as_ref()
@@ -1495,44 +1474,8 @@ impl DeserializeEmbeddedGroup for UpdateCommittee {
                 })
             })()
             .map_err(|e| e.annotate("action_id"))?;
-            let (cold_credentials, cold_credentials_tag_encoding, cold_credentials_encoding) =
-                (|| -> Result<_, DeserializeError> {
-                    let cold_credentials_tag_encoding = match raw.cbor_type()? {
-                        cbor_event::Type::Tag => {
-                            let (tag, tag_enc) = raw.tag_sz()?;
-                            if tag != 258 {
-                                return Err(DeserializeFailure::TagMismatch {
-                                    found: tag,
-                                    expected: 258,
-                                }
-                                .into());
-                            }
-                            TagPresenceEncoding::Tagged(Some(tag_enc))
-                        }
-                        _ => TagPresenceEncoding::Untagged,
-                    };
-                    let mut cold_credentials_arr = Vec::new();
-                    let len = raw.array_sz()?;
-                    let cold_credentials_encoding = len.into();
-                    while match len {
-                        cbor_event::LenSz::Len(n, _) => (cold_credentials_arr.len() as u64) < n,
-                        cbor_event::LenSz::Indefinite => true,
-                    } {
-                        if matches!(len, cbor_event::LenSz::Indefinite)
-                            && raw.cbor_type()? == cbor_event::Type::Special
-                            && raw.special_break()?
-                        {
-                            break;
-                        }
-                        cold_credentials_arr.push(Credential::deserialize(raw)?);
-                    }
-                    Ok((
-                        cold_credentials_arr,
-                        cold_credentials_tag_encoding,
-                        cold_credentials_encoding,
-                    ))
-                })()
-                .map_err(|e| e.annotate("cold_credentials"))?;
+            let cold_credentials = SetCommitteeColdCredential::deserialize(raw)
+                .map_err(|e: DeserializeError| e.annotate("cold_credentials"))?;
             let (credentials, credentials_encoding, credentials_value_encodings) =
                 (|| -> Result<_, DeserializeError> {
                     let mut credentials_table = OrderedHashMap::new();
@@ -1581,8 +1524,6 @@ impl DeserializeEmbeddedGroup for UpdateCommittee {
                 encodings: Some(UpdateCommitteeEncoding {
                     len_encoding,
                     tag_encoding,
-                    cold_credentials_tag_encoding,
-                    cold_credentials_encoding,
                     credentials_encoding,
                     credentials_value_encodings,
                 }),

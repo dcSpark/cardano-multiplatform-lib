@@ -148,6 +148,7 @@ pub fn export_schemas() {
     // gen_json_schema!(cml_chain::NonemptySet);
     gen_json_schema!(cml_chain::NonemptySetBootstrapWitness);
     gen_json_schema!(cml_chain::NonemptySetCertificate);
+    gen_json_schema!(cml_chain::NonemptySetEd25519KeyHash);
     gen_json_schema!(cml_chain::NonemptySetNativeScript);
     gen_json_schema!(cml_chain::NonemptySetPlutusData);
     gen_json_schema!(cml_chain::NonemptySetPlutusV1Script);

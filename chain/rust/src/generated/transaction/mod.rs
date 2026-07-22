@@ -7,22 +7,17 @@ pub mod serialization;
 use crate::generated::address::{Address, RewardAccount};
 use crate::generated::assets::{AssetName, Coin, Mint, PositiveCoin, Value};
 use crate::generated::auxdata::AuxiliaryData;
-use crate::generated::certs::Certificate;
 use crate::generated::crypto::{
-    AuxiliaryDataHash, BootstrapWitness, DatumHash, Ed25519KeyHash, ScriptDataHash, ScriptHash,
-    TransactionHash, Vkeywitness,
+    AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, ScriptHash, TransactionHash,
 };
-use crate::generated::governance::{
-    GovActionId, ProposalProcedure, Voter, VotingProcedure, VotingProcedures,
-};
-use crate::generated::plutus::{
-    PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script, Redeemers,
-};
+use crate::generated::governance::{GovActionId, Voter, VotingProcedure, VotingProcedures};
+use crate::generated::plutus::{PlutusData, Redeemers};
 use crate::generated::{
-    NetworkId, NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetNativeScript,
-    NonemptySetPlutusData, NonemptySetPlutusV1Script, NonemptySetPlutusV2Script,
-    NonemptySetPlutusV3Script, NonemptySetProposalProcedure, NonemptySetTransactionInput,
-    NonemptySetVkeywitness, Script, SetTransactionInput, Slot, Withdrawals,
+    NetworkId, NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetEd25519KeyHash,
+    NonemptySetNativeScript, NonemptySetPlutusData, NonemptySetPlutusV1Script,
+    NonemptySetPlutusV2Script, NonemptySetPlutusV3Script, NonemptySetProposalProcedure,
+    NonemptySetTransactionInput, NonemptySetVkeywitness, Script, SetTransactionInput, Slot,
+    Withdrawals,
 };
 use cbor_encodings::{
     AlonzoFormatTxOutEncoding, ConwayFormatTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
@@ -30,7 +25,6 @@ use cbor_encodings::{
     ScriptPubkeyEncoding, ScriptRefEncoding, TransactionBodyEncoding, TransactionEncoding,
     TransactionInputEncoding, TransactionWitnessSetEncoding,
 };
-use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
@@ -190,10 +184,11 @@ impl NativeScript {
     }
 }
 
-/// `[+ Ed25519KeyHash]`: at least one element, enforced at the `NonEmptyVec` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
+/// `[+ Ed25519KeyHash]`: at least one element, enforced at the `NonEmptyOrderedSet` `TryFrom<Vec<_>>` door (the CBOR decoder routes through the same door, so wire-side and API-side rejection are identical).
 /// The tag-258 set idiom: the tag is an encoding detail — both the `#6.258(...)` and the bare-array wire forms are accepted (serialization defaults to tagged), so either round-trips byte-exactly.
-/// Duplicate elements are preserved and re-emitted byte-exactly in wire order (the default for a set idiom; opt into rejection with `@duplicates reject`).
-pub type RequiredSigners = NonEmptyVec<Ed25519KeyHash>;
+/// `@duplicates reject`: a repeated element is refused (a `DuplicateKey` error) on both the wire and the API; accepted (duplicate-free) input re-emits byte-exactly in wire order (the set is order-preserving, never sorted).
+/// wasm/JS: this rule has no class of its own — the wasm surface is the nominal class `NonemptySetEd25519KeyHash`. TypeScript keeps `RequiredSigners` as a generated type alias (`export type RequiredSigners = NonemptySetEd25519KeyHash;`), but JS call sites re-key to `NonemptySetEd25519KeyHash`.
+pub type RequiredSigners = NonemptySetEd25519KeyHash;
 
 impl From<ScriptRef> for Script {
     fn from(wrapper: ScriptRef) -> Self {

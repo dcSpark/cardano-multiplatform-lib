@@ -33,7 +33,9 @@ use crate::transaction::{
     TransactionWitnessSet,
 };
 use crate::{
-    Coin, ExUnitPrices, NetworkId, PolicyId, Script, Value, Withdrawals, assets::AssetName,
+    Coin, ExUnitPrices, NetworkId, NonemptySetCertificate, NonemptySetEd25519KeyHash,
+    NonemptySetPlutusData, NonemptySetProposalProcedure, NonemptySetTransactionInput, PolicyId,
+    Script, SetTransactionInput, Value, Withdrawals, assets::AssetName,
 };
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::non_empty::NonEmptyVec;
@@ -211,6 +213,8 @@ pub enum TxBuilderError {
     ScriptDatumHashFailed(#[from] ScriptDataHashError),
     #[error("Duplicate Mint Asset: {0:?}:{1:?}")]
     DuplicateMint(PolicyId, AssetName),
+    #[error("Duplicate element in a set-typed transaction field: {0}")]
+    DuplicateSetElement(#[from] DeserializeError),
 }
 
 fn min_fee(tx_builder: &TransactionBuilder) -> Result<Coin, TxBuilderError> {
@@ -1370,68 +1374,70 @@ impl TransactionBuilder {
                     let redeemers = NonEmptyVec::try_from(redeemers.clone())
                         .ok()
                         .map(Redeemers::new_arr_legacy_redeemer);
-                    // Empty datum list means no datums: pass None (same .ok() idiom as redeemers).
-                    let datums = NonEmptyVec::try_from(
+                    // Empty datum list means no datums (try_opt_from maps empty to None);
+                    // the uniqueness door cannot fire: the builder keys datums by datum hash.
+                    let datums = NonemptySetPlutusData::try_opt_from(
                         self.witness_builders.witness_set_builder.get_plutus_datum(),
                     )
-                    .ok();
+                    .expect("datums unique (keyed by datum hash)");
                     calc_script_data_hash(
                         redeemers.as_ref(),
                         datums.as_ref(),
                         &self.config.cost_models,
                         &languages.iter().copied().collect::<Vec<_>>(),
-                        None,
                     )?
                 }
             },
         };
+        // indices for redeemers in smart contract txs require inputs to be sorted, and the
+        // ordering must be established before the set door: a `SetTransactionInput` re-emits
+        // its elements in insertion order.
+        let mut inputs = self
+            .inputs
+            .iter()
+            .map(|tx_builder_input| tx_builder_input.input.clone())
+            .collect::<Vec<_>>();
+        inputs.sort_by(|a, b| match a.transaction_id.cmp(&b.transaction_id) {
+            std::cmp::Ordering::Equal => a.index.cmp(&b.index),
+            rest => rest,
+        });
         let mut built = TransactionBody {
-            inputs: self
-                .inputs
-                .iter()
-                .map(|tx_builder_input| tx_builder_input.input.clone())
-                .collect::<Vec<_>>(),
+            inputs: SetTransactionInput::try_from(inputs)?,
             outputs: self.outputs.clone(),
             fee,
             ttl: self.ttl,
-            certs: self
-                .certs
-                .as_ref()
-                .and_then(|certs| NonEmptyVec::try_from(certs.clone()).ok()),
+            // set fields: try_opt_from maps an empty list to "field absent" (None); a
+            // duplicate element is a caller bug surfaced as DuplicateSetElement via `?`
+            certs: NonemptySetCertificate::try_opt_from(self.certs.clone().unwrap_or_default())?,
             withdrawals: self.withdrawals.clone(),
             auxiliary_data_hash: self.auxiliary_data.as_ref().map(hash_auxiliary_data),
             validity_interval_start: self.validity_start_interval,
             mint: self.mint.clone(),
             script_data_hash,
-            collateral_inputs: self.collateral.as_ref().and_then(|collateral| {
-                NonEmptyVec::try_from(
-                    collateral
-                        .iter()
-                        .map(|c| c.input.clone())
-                        .collect::<Vec<_>>(),
-                )
-                .ok()
-            }),
-            required_signers: self.required_signers.as_ref().and_then(|set| {
-                NonEmptyVec::try_from(set.iter().cloned().collect::<Vec<_>>()).ok()
-            }),
+            collateral_inputs: NonemptySetTransactionInput::try_opt_from(
+                self.collateral
+                    .iter()
+                    .flatten()
+                    .map(|c| c.input.clone())
+                    .collect(),
+            )?,
+            required_signers: NonemptySetEd25519KeyHash::try_opt_from(
+                self.required_signers.iter().flatten().cloned().collect(),
+            )?,
             network_id: self.network_id.clone(),
             collateral_return: self.collateral_return.clone(),
             total_collateral: self.calc_collateral_total()?,
-            reference_inputs: self.reference_inputs.as_ref().and_then(|inputs| {
-                NonEmptyVec::try_from(
-                    inputs
-                        .iter()
-                        .map(|utxo| utxo.input.clone())
-                        .collect::<Vec<_>>(),
-                )
-                .ok()
-            }),
+            reference_inputs: NonemptySetTransactionInput::try_opt_from(
+                self.reference_inputs
+                    .iter()
+                    .flatten()
+                    .map(|utxo| utxo.input.clone())
+                    .collect(),
+            )?,
             voting_procedures: self.votes.clone(),
-            proposal_procedures: self
-                .proposals
-                .as_ref()
-                .and_then(|proposals| NonEmptyVec::try_from(proposals.clone()).ok()),
+            proposal_procedures: NonemptySetProposalProcedure::try_opt_from(
+                self.proposals.clone().unwrap_or_default(),
+            )?,
             current_treasury_value: self.current_treasury_value,
             donation: self.donation,
             encodings: None,
@@ -1439,15 +1445,9 @@ impl TransactionBuilder {
 
         // indices for redeemers in smart contract txs require fields to be sorted
         {
-            // We sort inputs and withdrawals only since certs remain in the order given and
-            // mint is sorted as items are added (by the nature of BTreeMaps)
-            built
-                .inputs
-                .sort_by(|a, b| match a.transaction_id.cmp(&b.transaction_id) {
-                    std::cmp::Ordering::Equal => a.index.cmp(&b.index),
-                    rest => rest,
-                });
-
+            // We sort withdrawals here (inputs were sorted above, before the set door);
+            // certs remain in the order given and mint is sorted as items are added
+            // (by the nature of BTreeMaps)
             if let Some(withdrawals) = built.withdrawals {
                 let mut sorted_keys = withdrawals.keys().collect::<Vec<_>>();
                 sorted_keys.sort();
@@ -2084,7 +2084,7 @@ mod tests {
     use crate::genesis::network_info::{NetworkInfo, plutus_alonzo_cost_models};
     use crate::plutus::{PlutusScript, PlutusV1Script, PlutusV2Script, RedeemerTag};
     use crate::transaction::NativeScript;
-    use crate::{Script, SubCoin};
+    use crate::{NonemptySetVkeywitness, Script, SubCoin};
 
     use super::*;
     use crate::builders::output_builder::TransactionOutputBuilder;
@@ -2906,13 +2906,18 @@ mod tests {
             })
             .collect::<Vec<MultiAsset>>();
 
-        for (multiasset, ada) in multiassets.iter().zip([500u64, 500].iter().cloned()) {
+        for (i, (multiasset, ada)) in multiassets
+            .iter()
+            .zip([500u64, 500].iter().cloned())
+            .enumerate()
+        {
             let mut input_amount = Value::from(ada);
             input_amount.multiasset = multiasset.clone();
 
             let input = {
                 SingleInputBuilder::new(
-                    TransactionInput::new(genesis_id(), 0),
+                    // distinct indices: tx inputs are a set, the same outpoint twice is invalid
+                    TransactionInput::new(genesis_id(), i as u64),
                     TransactionOutput::new(addr_net_0.clone(), input_amount, None, None),
                 )
                 .payment_key()
@@ -2988,13 +2993,18 @@ mod tests {
             })
             .collect::<Vec<MultiAsset>>();
 
-        for (multiasset, ada) in multiassets.iter().zip([500u64, 500].iter().cloned()) {
+        for (i, (multiasset, ada)) in multiassets
+            .iter()
+            .zip([500u64, 500].iter().cloned())
+            .enumerate()
+        {
             let mut input_amount = Value::from(ada);
             input_amount.multiasset = multiasset.clone();
 
             let input = {
                 SingleInputBuilder::new(
-                    TransactionInput::new(genesis_id(), 0),
+                    // distinct indices: tx inputs are a set, the same outpoint twice is invalid
+                    TransactionInput::new(genesis_id(), i as u64),
                     TransactionOutput::new(addr_net_0.clone(), input_amount, None, None),
                 )
                 .payment_key()
@@ -3075,13 +3085,18 @@ mod tests {
             })
             .collect::<Vec<MultiAsset>>();
 
-        for (multiasset, ada) in multiassets.iter().zip([500u64, 500].iter().cloned()) {
+        for (i, (multiasset, ada)) in multiassets
+            .iter()
+            .zip([500u64, 500].iter().cloned())
+            .enumerate()
+        {
             let mut input_amount = Value::from(ada);
             input_amount.multiasset = multiasset.clone();
 
             let input = {
                 SingleInputBuilder::new(
-                    TransactionInput::new(genesis_id(), 0),
+                    // distinct indices: tx inputs are a set, the same outpoint twice is invalid
+                    TransactionInput::new(genesis_id(), i as u64),
                     TransactionOutput::new(addr_net_0.clone(), input_amount, None, None),
                 )
                 .payment_key()
@@ -4358,7 +4373,7 @@ mod tests {
         let mut witness_set = TransactionWitnessSet::new();
 
         witness_set.vkeywitnesses = Some(
-            NonEmptyVec::try_from(vec![make_vkey_witness(
+            NonemptySetVkeywitness::try_from(vec![make_vkey_witness(
                 &hash_transaction(&body),
                 &PrivateKey::from_normal_bytes(
                     &hex::decode(
@@ -4922,11 +4937,17 @@ mod tests {
         let name4 = AssetName::new(vec![3u8, 1, 2, 3]).unwrap();
         let amount = 1234;
 
+        let mut index = 0u64;
+
+        let mut next_index = move || {
+            let next = index + 1;
+            std::mem::replace(&mut index, next)
+        };
         // One input from an unrelated address
         let input = {
             let ((_spend, _), _, address) = create_account();
             SingleInputBuilder::new(
-                TransactionInput::new(genesis_id(), 0),
+                TransactionInput::new(genesis_id(), next_index()),
                 TransactionOutput::new(address, Value::from(10_000_000), None, None),
             )
             .payment_key()
@@ -4940,7 +4961,8 @@ mod tests {
             let address = BaseAddress::new(NetworkInfo::testnet().network_id(), cred.clone(), cred)
                 .to_address();
             let builder = SingleInputBuilder::new(
-                TransactionInput::new(genesis_id(), 0),
+                // distinct index: tx inputs are a set, the same outpoint twice is invalid
+                TransactionInput::new(genesis_id(), next_index()),
                 TransactionOutput::new(address, Value::from(10_000_000), None, None),
             );
             builder

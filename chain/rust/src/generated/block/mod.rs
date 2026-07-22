@@ -137,10 +137,19 @@ impl OperationalCert {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ProtocolVersion {
     pub major: u64,
     pub minor: u64,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<ProtocolVersionEncoding>,
 }

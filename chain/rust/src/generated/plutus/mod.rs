@@ -22,9 +22,16 @@ use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, derivative::Derivative)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct CostModels {
     pub(crate) inner: OrderedHashMap<u64, Vec<i64>>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     pub encodings: Option<CostModelsEncoding>,
 }
 
@@ -87,10 +94,19 @@ impl schemars::JsonSchema for CostModels {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ExUnitPrices {
     pub mem_price: SubCoin,
     pub step_price: SubCoin,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<ExUnitPricesEncoding>,
 }

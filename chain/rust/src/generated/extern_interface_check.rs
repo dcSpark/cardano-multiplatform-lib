@@ -71,8 +71,6 @@ use crate::generated::governance::VotingProcedures as _;
 use crate::generated::plutus::Language as _;
 #[allow(unused_imports)]
 use crate::generated::plutus::RedeemerTag as _;
-#[allow(unused_imports)]
-use crate::generated::transaction::RequiredSigners as _;
 #[allow(dead_code)]
 fn _extern_interface_self_check() {
     _assert_serialize::<crate::generated::crypto::AddrAttributes>();
@@ -238,6 +236,8 @@ fn _extern_interface_self_check() {
     _assert_deserialize_embedded_group::<crate::generated::certs::RegDrepCert>();
     _assert_serialize::<crate::generated::certs::Relay>();
     _assert_deserialize::<crate::generated::certs::Relay>();
+    _assert_serialize::<crate::generated::transaction::RequiredSigners>();
+    _assert_deserialize::<crate::generated::transaction::RequiredSigners>();
     _assert_serialize::<crate::generated::certs::ResignCommitteeColdCert>();
     _assert_serialize_embedded_group::<crate::generated::certs::ResignCommitteeColdCert>();
     _assert_deserialize::<crate::generated::certs::ResignCommitteeColdCert>();

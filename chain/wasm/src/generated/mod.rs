@@ -26,6 +26,7 @@ use certs::{Certificate, CommitteeColdCredential, Relay};
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core::ordered_set::{NonEmptyOrderedSet, OrderedSet};
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
 use crypto::{BootstrapWitness, Ed25519KeyHash, ScriptHash, Vkeywitness};
 use governance::{GovActionId, ProposalProcedure, Voter, VotingProcedure};
@@ -69,6 +70,56 @@ impl_wasm_list_needs_into!(
     true,
     false
 );
+
+/// `[* committee_cold_credential] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct CommitteeColdCredentialOrderedSet(
+    pub(crate) OrderedSet<cml_chain::certs::CommitteeColdCredential>,
+);
+
+impl_wasm_conversions!(
+    OrderedSet<cml_chain::certs::CommitteeColdCredential>,
+    CommitteeColdCredentialOrderedSet
+);
+
+#[wasm_bindgen]
+impl CommitteeColdCredentialOrderedSet {
+    pub fn new() -> Self {
+        Self(OrderedSet::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> CommitteeColdCredential {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &CommitteeColdCredential) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &CommitteeColdCredential) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &CommitteeColdCredential) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(
+        list: &CommitteeColdCredentialList,
+    ) -> Result<CommitteeColdCredentialOrderedSet, JsError> {
+        let inner: Vec<cml_chain::certs::CommitteeColdCredential> = list.clone().into();
+        OrderedSet::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
@@ -156,6 +207,52 @@ impl_wasm_list_needs_into!(
     true,
     true
 );
+
+/// `[* ed25519_key_hash] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct Ed25519KeyHashOrderedSet(pub(crate) OrderedSet<cml_chain::crypto::Ed25519KeyHash>);
+
+impl_wasm_conversions!(
+    OrderedSet<cml_chain::crypto::Ed25519KeyHash>,
+    Ed25519KeyHashOrderedSet
+);
+
+#[wasm_bindgen]
+impl Ed25519KeyHashOrderedSet {
+    pub fn new() -> Self {
+        Self(OrderedSet::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> Ed25519KeyHash {
+        self.0[index].into()
+    }
+
+    pub fn add(&mut self, elem: &Ed25519KeyHash) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &Ed25519KeyHash) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &Ed25519KeyHash) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &Ed25519KeyHashList) -> Result<Ed25519KeyHashOrderedSet, JsError> {
+        let inner: Vec<cml_chain::crypto::Ed25519KeyHash> = list.clone().into();
+        OrderedSet::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
 
 pub type Epoch = u64;
 
@@ -474,24 +571,22 @@ impl NetworkId {
     }
 }
 
-/// `[+ BootstrapWitness]`: at least one element, enforced by the `NonEmptyVec` representation.
-/// Enter via `try_from` or `new(first)`.
-/// `add` can never violate the bound; removal is checked in the core type.
+/// `[+ bootstrap_witness] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NonEmptyBootstrapWitnessList(
-    pub(crate) NonEmptyVec<cml_chain::crypto::BootstrapWitness>,
+pub struct NonEmptyBootstrapWitnessOrderedSet(
+    pub(crate) NonEmptyOrderedSet<cml_chain::crypto::BootstrapWitness>,
 );
 
 impl_wasm_conversions!(
-    NonEmptyVec<cml_chain::crypto::BootstrapWitness>,
-    NonEmptyBootstrapWitnessList
+    NonEmptyOrderedSet<cml_chain::crypto::BootstrapWitness>,
+    NonEmptyBootstrapWitnessOrderedSet
 );
 
 #[wasm_bindgen]
-impl NonEmptyBootstrapWitnessList {
+impl NonEmptyBootstrapWitnessOrderedSet {
     pub fn new(first: &BootstrapWitness) -> Self {
-        Self(NonEmptyVec::new(first.clone().into()))
+        Self(NonEmptyOrderedSet::new(first.clone().into()))
     }
 
     pub fn len(&self) -> usize {
@@ -502,34 +597,46 @@ impl NonEmptyBootstrapWitnessList {
         self.0[index].clone().into()
     }
 
-    pub fn add(&mut self, elem: &BootstrapWitness) {
-        self.0.push(elem.clone().into());
+    pub fn add(&mut self, elem: &BootstrapWitness) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    pub fn try_from(list: &BootstrapWitnessList) -> Result<NonEmptyBootstrapWitnessList, JsError> {
+    pub fn insert(&mut self, elem: &BootstrapWitness) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &BootstrapWitness) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(
+        list: &BootstrapWitnessList,
+    ) -> Result<NonEmptyBootstrapWitnessOrderedSet, JsError> {
         let inner: Vec<cml_chain::crypto::BootstrapWitness> = list.clone().into();
-        NonEmptyVec::try_from(inner)
+        NonEmptyOrderedSet::try_from(inner)
             .map(Self)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 }
 
-/// `[+ Certificate]`: at least one element, enforced by the `NonEmptyVec` representation.
-/// Enter via `try_from` or `new(first)`.
-/// `add` can never violate the bound; removal is checked in the core type.
+/// `[+ certificate] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NonEmptyCertificateList(pub(crate) NonEmptyVec<cml_chain::certs::Certificate>);
+pub struct NonEmptyCertificateOrderedSet(
+    pub(crate) NonEmptyOrderedSet<cml_chain::certs::Certificate>,
+);
 
 impl_wasm_conversions!(
-    NonEmptyVec<cml_chain::certs::Certificate>,
-    NonEmptyCertificateList
+    NonEmptyOrderedSet<cml_chain::certs::Certificate>,
+    NonEmptyCertificateOrderedSet
 );
 
 #[wasm_bindgen]
-impl NonEmptyCertificateList {
+impl NonEmptyCertificateOrderedSet {
     pub fn new(first: &Certificate) -> Self {
-        Self(NonEmptyVec::new(first.clone().into()))
+        Self(NonEmptyOrderedSet::new(first.clone().into()))
     }
 
     pub fn len(&self) -> usize {
@@ -540,13 +647,73 @@ impl NonEmptyCertificateList {
         self.0[index].clone().into()
     }
 
-    pub fn add(&mut self, elem: &Certificate) {
-        self.0.push(elem.clone().into());
+    pub fn add(&mut self, elem: &Certificate) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    pub fn try_from(list: &CertificateList) -> Result<NonEmptyCertificateList, JsError> {
+    pub fn insert(&mut self, elem: &Certificate) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &Certificate) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &CertificateList) -> Result<NonEmptyCertificateOrderedSet, JsError> {
         let inner: Vec<cml_chain::certs::Certificate> = list.clone().into();
-        NonEmptyVec::try_from(inner)
+        NonEmptyOrderedSet::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+/// `[+ ed25519_key_hash] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonEmptyEd25519KeyHashOrderedSet(
+    pub(crate) NonEmptyOrderedSet<cml_chain::crypto::Ed25519KeyHash>,
+);
+
+impl_wasm_conversions!(
+    NonEmptyOrderedSet<cml_chain::crypto::Ed25519KeyHash>,
+    NonEmptyEd25519KeyHashOrderedSet
+);
+
+#[wasm_bindgen]
+impl NonEmptyEd25519KeyHashOrderedSet {
+    pub fn new(first: &Ed25519KeyHash) -> Self {
+        Self(NonEmptyOrderedSet::new(first.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> Ed25519KeyHash {
+        self.0[index].into()
+    }
+
+    pub fn add(&mut self, elem: &Ed25519KeyHash) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &Ed25519KeyHash) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &Ed25519KeyHash) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(
+        list: &Ed25519KeyHashList,
+    ) -> Result<NonEmptyEd25519KeyHashOrderedSet, JsError> {
+        let inner: Vec<cml_chain::crypto::Ed25519KeyHash> = list.clone().into();
+        NonEmptyOrderedSet::try_from(inner)
             .map(Self)
             .map_err(|e| JsError::new(&e.to_string()))
     }
@@ -697,22 +864,22 @@ impl NonEmptyMapRedeemerKeyToRedeemerVal {
     }
 }
 
-/// `[+ NativeScript]`: at least one element, enforced by the `NonEmptyVec` representation.
-/// Enter via `try_from` or `new(first)`.
-/// `add` can never violate the bound; removal is checked in the core type.
+/// `[+ native_script] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NonEmptyNativeScriptList(pub(crate) NonEmptyVec<cml_chain::transaction::NativeScript>);
+pub struct NonEmptyNativeScriptOrderedSet(
+    pub(crate) NonEmptyOrderedSet<cml_chain::transaction::NativeScript>,
+);
 
 impl_wasm_conversions!(
-    NonEmptyVec<cml_chain::transaction::NativeScript>,
-    NonEmptyNativeScriptList
+    NonEmptyOrderedSet<cml_chain::transaction::NativeScript>,
+    NonEmptyNativeScriptOrderedSet
 );
 
 #[wasm_bindgen]
-impl NonEmptyNativeScriptList {
+impl NonEmptyNativeScriptOrderedSet {
     pub fn new(first: &NativeScript) -> Self {
-        Self(NonEmptyVec::new(first.clone().into()))
+        Self(NonEmptyOrderedSet::new(first.clone().into()))
     }
 
     pub fn len(&self) -> usize {
@@ -723,34 +890,44 @@ impl NonEmptyNativeScriptList {
         self.0[index].clone().into()
     }
 
-    pub fn add(&mut self, elem: &NativeScript) {
-        self.0.push(elem.clone().into());
+    pub fn add(&mut self, elem: &NativeScript) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    pub fn try_from(list: &NativeScriptList) -> Result<NonEmptyNativeScriptList, JsError> {
+    pub fn insert(&mut self, elem: &NativeScript) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &NativeScript) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &NativeScriptList) -> Result<NonEmptyNativeScriptOrderedSet, JsError> {
         let inner: Vec<cml_chain::transaction::NativeScript> = list.clone().into();
-        NonEmptyVec::try_from(inner)
+        NonEmptyOrderedSet::try_from(inner)
             .map(Self)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 }
 
-/// `[+ PlutusData]`: at least one element, enforced by the `NonEmptyVec` representation.
-/// Enter via `try_from` or `new(first)`.
-/// `add` can never violate the bound; removal is checked in the core type.
+/// `[+ plutus_data] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NonEmptyPlutusDataList(pub(crate) NonEmptyVec<cml_chain::plutus::PlutusData>);
+pub struct NonEmptyPlutusDataOrderedSet(
+    pub(crate) NonEmptyOrderedSet<cml_chain::plutus::PlutusData>,
+);
 
 impl_wasm_conversions!(
-    NonEmptyVec<cml_chain::plutus::PlutusData>,
-    NonEmptyPlutusDataList
+    NonEmptyOrderedSet<cml_chain::plutus::PlutusData>,
+    NonEmptyPlutusDataOrderedSet
 );
 
 #[wasm_bindgen]
-impl NonEmptyPlutusDataList {
+impl NonEmptyPlutusDataOrderedSet {
     pub fn new(first: &PlutusData) -> Self {
-        Self(NonEmptyVec::new(first.clone().into()))
+        Self(NonEmptyOrderedSet::new(first.clone().into()))
     }
 
     pub fn len(&self) -> usize {
@@ -761,34 +938,44 @@ impl NonEmptyPlutusDataList {
         self.0[index].clone().into()
     }
 
-    pub fn add(&mut self, elem: &PlutusData) {
-        self.0.push(elem.clone().into());
+    pub fn add(&mut self, elem: &PlutusData) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    pub fn try_from(list: &PlutusDataList) -> Result<NonEmptyPlutusDataList, JsError> {
+    pub fn insert(&mut self, elem: &PlutusData) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &PlutusData) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &PlutusDataList) -> Result<NonEmptyPlutusDataOrderedSet, JsError> {
         let inner: Vec<cml_chain::plutus::PlutusData> = list.clone().into();
-        NonEmptyVec::try_from(inner)
+        NonEmptyOrderedSet::try_from(inner)
             .map(Self)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 }
 
-/// `[+ PlutusV1Script]`: at least one element, enforced by the `NonEmptyVec` representation.
-/// Enter via `try_from` or `new(first)`.
-/// `add` can never violate the bound; removal is checked in the core type.
+/// `[+ plutus_v1_script] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NonEmptyPlutusV1ScriptList(pub(crate) NonEmptyVec<cml_chain::plutus::PlutusV1Script>);
+pub struct NonEmptyPlutusV1ScriptOrderedSet(
+    pub(crate) NonEmptyOrderedSet<cml_chain::plutus::PlutusV1Script>,
+);
 
 impl_wasm_conversions!(
-    NonEmptyVec<cml_chain::plutus::PlutusV1Script>,
-    NonEmptyPlutusV1ScriptList
+    NonEmptyOrderedSet<cml_chain::plutus::PlutusV1Script>,
+    NonEmptyPlutusV1ScriptOrderedSet
 );
 
 #[wasm_bindgen]
-impl NonEmptyPlutusV1ScriptList {
+impl NonEmptyPlutusV1ScriptOrderedSet {
     pub fn new(first: &PlutusV1Script) -> Self {
-        Self(NonEmptyVec::new(first.clone().into()))
+        Self(NonEmptyOrderedSet::new(first.clone().into()))
     }
 
     pub fn len(&self) -> usize {
@@ -799,34 +986,46 @@ impl NonEmptyPlutusV1ScriptList {
         self.0[index].clone().into()
     }
 
-    pub fn add(&mut self, elem: &PlutusV1Script) {
-        self.0.push(elem.clone().into());
+    pub fn add(&mut self, elem: &PlutusV1Script) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    pub fn try_from(list: &PlutusV1ScriptList) -> Result<NonEmptyPlutusV1ScriptList, JsError> {
+    pub fn insert(&mut self, elem: &PlutusV1Script) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &PlutusV1Script) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(
+        list: &PlutusV1ScriptList,
+    ) -> Result<NonEmptyPlutusV1ScriptOrderedSet, JsError> {
         let inner: Vec<cml_chain::plutus::PlutusV1Script> = list.clone().into();
-        NonEmptyVec::try_from(inner)
+        NonEmptyOrderedSet::try_from(inner)
             .map(Self)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 }
 
-/// `[+ PlutusV2Script]`: at least one element, enforced by the `NonEmptyVec` representation.
-/// Enter via `try_from` or `new(first)`.
-/// `add` can never violate the bound; removal is checked in the core type.
+/// `[+ plutus_v2_script] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NonEmptyPlutusV2ScriptList(pub(crate) NonEmptyVec<cml_chain::plutus::PlutusV2Script>);
+pub struct NonEmptyPlutusV2ScriptOrderedSet(
+    pub(crate) NonEmptyOrderedSet<cml_chain::plutus::PlutusV2Script>,
+);
 
 impl_wasm_conversions!(
-    NonEmptyVec<cml_chain::plutus::PlutusV2Script>,
-    NonEmptyPlutusV2ScriptList
+    NonEmptyOrderedSet<cml_chain::plutus::PlutusV2Script>,
+    NonEmptyPlutusV2ScriptOrderedSet
 );
 
 #[wasm_bindgen]
-impl NonEmptyPlutusV2ScriptList {
+impl NonEmptyPlutusV2ScriptOrderedSet {
     pub fn new(first: &PlutusV2Script) -> Self {
-        Self(NonEmptyVec::new(first.clone().into()))
+        Self(NonEmptyOrderedSet::new(first.clone().into()))
     }
 
     pub fn len(&self) -> usize {
@@ -837,34 +1036,46 @@ impl NonEmptyPlutusV2ScriptList {
         self.0[index].clone().into()
     }
 
-    pub fn add(&mut self, elem: &PlutusV2Script) {
-        self.0.push(elem.clone().into());
+    pub fn add(&mut self, elem: &PlutusV2Script) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    pub fn try_from(list: &PlutusV2ScriptList) -> Result<NonEmptyPlutusV2ScriptList, JsError> {
+    pub fn insert(&mut self, elem: &PlutusV2Script) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &PlutusV2Script) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(
+        list: &PlutusV2ScriptList,
+    ) -> Result<NonEmptyPlutusV2ScriptOrderedSet, JsError> {
         let inner: Vec<cml_chain::plutus::PlutusV2Script> = list.clone().into();
-        NonEmptyVec::try_from(inner)
+        NonEmptyOrderedSet::try_from(inner)
             .map(Self)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 }
 
-/// `[+ PlutusV3Script]`: at least one element, enforced by the `NonEmptyVec` representation.
-/// Enter via `try_from` or `new(first)`.
-/// `add` can never violate the bound; removal is checked in the core type.
+/// `[+ plutus_v3_script] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NonEmptyPlutusV3ScriptList(pub(crate) NonEmptyVec<cml_chain::plutus::PlutusV3Script>);
+pub struct NonEmptyPlutusV3ScriptOrderedSet(
+    pub(crate) NonEmptyOrderedSet<cml_chain::plutus::PlutusV3Script>,
+);
 
 impl_wasm_conversions!(
-    NonEmptyVec<cml_chain::plutus::PlutusV3Script>,
-    NonEmptyPlutusV3ScriptList
+    NonEmptyOrderedSet<cml_chain::plutus::PlutusV3Script>,
+    NonEmptyPlutusV3ScriptOrderedSet
 );
 
 #[wasm_bindgen]
-impl NonEmptyPlutusV3ScriptList {
+impl NonEmptyPlutusV3ScriptOrderedSet {
     pub fn new(first: &PlutusV3Script) -> Self {
-        Self(NonEmptyVec::new(first.clone().into()))
+        Self(NonEmptyOrderedSet::new(first.clone().into()))
     }
 
     pub fn len(&self) -> usize {
@@ -875,36 +1086,46 @@ impl NonEmptyPlutusV3ScriptList {
         self.0[index].clone().into()
     }
 
-    pub fn add(&mut self, elem: &PlutusV3Script) {
-        self.0.push(elem.clone().into());
+    pub fn add(&mut self, elem: &PlutusV3Script) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    pub fn try_from(list: &PlutusV3ScriptList) -> Result<NonEmptyPlutusV3ScriptList, JsError> {
+    pub fn insert(&mut self, elem: &PlutusV3Script) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &PlutusV3Script) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(
+        list: &PlutusV3ScriptList,
+    ) -> Result<NonEmptyPlutusV3ScriptOrderedSet, JsError> {
         let inner: Vec<cml_chain::plutus::PlutusV3Script> = list.clone().into();
-        NonEmptyVec::try_from(inner)
+        NonEmptyOrderedSet::try_from(inner)
             .map(Self)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 }
 
-/// `[+ ProposalProcedure]`: at least one element, enforced by the `NonEmptyVec` representation.
-/// Enter via `try_from` or `new(first)`.
-/// `add` can never violate the bound; removal is checked in the core type.
+/// `[+ proposal_procedure] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NonEmptyProposalProcedureList(
-    pub(crate) NonEmptyVec<cml_chain::governance::ProposalProcedure>,
+pub struct NonEmptyProposalProcedureOrderedSet(
+    pub(crate) NonEmptyOrderedSet<cml_chain::governance::ProposalProcedure>,
 );
 
 impl_wasm_conversions!(
-    NonEmptyVec<cml_chain::governance::ProposalProcedure>,
-    NonEmptyProposalProcedureList
+    NonEmptyOrderedSet<cml_chain::governance::ProposalProcedure>,
+    NonEmptyProposalProcedureOrderedSet
 );
 
 #[wasm_bindgen]
-impl NonEmptyProposalProcedureList {
+impl NonEmptyProposalProcedureOrderedSet {
     pub fn new(first: &ProposalProcedure) -> Self {
-        Self(NonEmptyVec::new(first.clone().into()))
+        Self(NonEmptyOrderedSet::new(first.clone().into()))
     }
 
     pub fn len(&self) -> usize {
@@ -915,38 +1136,46 @@ impl NonEmptyProposalProcedureList {
         self.0[index].clone().into()
     }
 
-    pub fn add(&mut self, elem: &ProposalProcedure) {
-        self.0.push(elem.clone().into());
+    pub fn add(&mut self, elem: &ProposalProcedure) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &ProposalProcedure) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &ProposalProcedure) -> bool {
+        self.0.contains(&elem.clone().into())
     }
 
     pub fn try_from(
         list: &ProposalProcedureList,
-    ) -> Result<NonEmptyProposalProcedureList, JsError> {
+    ) -> Result<NonEmptyProposalProcedureOrderedSet, JsError> {
         let inner: Vec<cml_chain::governance::ProposalProcedure> = list.clone().into();
-        NonEmptyVec::try_from(inner)
+        NonEmptyOrderedSet::try_from(inner)
             .map(Self)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 }
 
-/// `[+ TransactionInput]`: at least one element, enforced by the `NonEmptyVec` representation.
-/// Enter via `try_from` or `new(first)`.
-/// `add` can never violate the bound; removal is checked in the core type.
+/// `[+ transaction_input] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NonEmptyTransactionInputList(
-    pub(crate) NonEmptyVec<cml_chain::transaction::TransactionInput>,
+pub struct NonEmptyTransactionInputOrderedSet(
+    pub(crate) NonEmptyOrderedSet<cml_chain::transaction::TransactionInput>,
 );
 
 impl_wasm_conversions!(
-    NonEmptyVec<cml_chain::transaction::TransactionInput>,
-    NonEmptyTransactionInputList
+    NonEmptyOrderedSet<cml_chain::transaction::TransactionInput>,
+    NonEmptyTransactionInputOrderedSet
 );
 
 #[wasm_bindgen]
-impl NonEmptyTransactionInputList {
+impl NonEmptyTransactionInputOrderedSet {
     pub fn new(first: &TransactionInput) -> Self {
-        Self(NonEmptyVec::new(first.clone().into()))
+        Self(NonEmptyOrderedSet::new(first.clone().into()))
     }
 
     pub fn len(&self) -> usize {
@@ -957,34 +1186,46 @@ impl NonEmptyTransactionInputList {
         self.0[index].clone().into()
     }
 
-    pub fn add(&mut self, elem: &TransactionInput) {
-        self.0.push(elem.clone().into());
+    pub fn add(&mut self, elem: &TransactionInput) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    pub fn try_from(list: &TransactionInputList) -> Result<NonEmptyTransactionInputList, JsError> {
+    pub fn insert(&mut self, elem: &TransactionInput) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &TransactionInput) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(
+        list: &TransactionInputList,
+    ) -> Result<NonEmptyTransactionInputOrderedSet, JsError> {
         let inner: Vec<cml_chain::transaction::TransactionInput> = list.clone().into();
-        NonEmptyVec::try_from(inner)
+        NonEmptyOrderedSet::try_from(inner)
             .map(Self)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 }
 
-/// `[+ Vkeywitness]`: at least one element, enforced by the `NonEmptyVec` representation.
-/// Enter via `try_from` or `new(first)`.
-/// `add` can never violate the bound; removal is checked in the core type.
+/// `[+ vkeywitness] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct NonEmptyVkeywitnessList(pub(crate) NonEmptyVec<cml_chain::crypto::Vkeywitness>);
+pub struct NonEmptyVkeywitnessOrderedSet(
+    pub(crate) NonEmptyOrderedSet<cml_chain::crypto::Vkeywitness>,
+);
 
 impl_wasm_conversions!(
-    NonEmptyVec<cml_chain::crypto::Vkeywitness>,
-    NonEmptyVkeywitnessList
+    NonEmptyOrderedSet<cml_chain::crypto::Vkeywitness>,
+    NonEmptyVkeywitnessOrderedSet
 );
 
 #[wasm_bindgen]
-impl NonEmptyVkeywitnessList {
+impl NonEmptyVkeywitnessOrderedSet {
     pub fn new(first: &Vkeywitness) -> Self {
-        Self(NonEmptyVec::new(first.clone().into()))
+        Self(NonEmptyOrderedSet::new(first.clone().into()))
     }
 
     pub fn len(&self) -> usize {
@@ -995,37 +1236,641 @@ impl NonEmptyVkeywitnessList {
         self.0[index].clone().into()
     }
 
-    pub fn add(&mut self, elem: &Vkeywitness) {
-        self.0.push(elem.clone().into());
+    pub fn add(&mut self, elem: &Vkeywitness) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    pub fn try_from(list: &VkeywitnessList) -> Result<NonEmptyVkeywitnessList, JsError> {
+    pub fn insert(&mut self, elem: &Vkeywitness) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &Vkeywitness) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &VkeywitnessList) -> Result<NonEmptyVkeywitnessOrderedSet, JsError> {
         let inner: Vec<cml_chain::crypto::Vkeywitness> = list.clone().into();
-        NonEmptyVec::try_from(inner)
+        NonEmptyOrderedSet::try_from(inner)
             .map(Self)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 }
 
-pub type NonemptySetBootstrapWitness = NonEmptyBootstrapWitnessList;
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonemptySetBootstrapWitness(pub(crate) cml_chain::NonemptySetBootstrapWitness);
 
-pub type NonemptySetCertificate = NonEmptyCertificateList;
+impl_wasm_cbor_json_api!(NonemptySetBootstrapWitness);
 
-pub type NonemptySetNativeScript = NonEmptyNativeScriptList;
+impl_wasm_conversions!(
+    cml_chain::NonemptySetBootstrapWitness,
+    NonemptySetBootstrapWitness
+);
 
-pub type NonemptySetPlutusData = NonEmptyPlutusDataList;
+#[wasm_bindgen]
+impl NonemptySetBootstrapWitness {
+    pub fn new(inner: &NonEmptyBootstrapWitnessOrderedSet) -> Self {
+        Self(cml_chain::NonemptySetBootstrapWitness::new(
+            inner.clone().into(),
+        ))
+    }
 
-pub type NonemptySetPlutusV1Script = NonEmptyPlutusV1ScriptList;
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 
-pub type NonemptySetPlutusV2Script = NonEmptyPlutusV2ScriptList;
+    pub fn get(&self, index: usize) -> BootstrapWitness {
+        self.0[index].clone().into()
+    }
 
-pub type NonemptySetPlutusV3Script = NonEmptyPlutusV3ScriptList;
+    pub fn add(&mut self, elem: &BootstrapWitness) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
 
-pub type NonemptySetProposalProcedure = NonEmptyProposalProcedureList;
+    pub fn insert(&mut self, elem: &BootstrapWitness) -> bool {
+        self.0.insert(elem.clone().into())
+    }
 
-pub type NonemptySetTransactionInput = NonEmptyTransactionInputList;
+    pub fn contains(&self, elem: &BootstrapWitness) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
 
-pub type NonemptySetVkeywitness = NonEmptyVkeywitnessList;
+    pub fn try_from(list: &BootstrapWitnessList) -> Result<NonemptySetBootstrapWitness, JsError> {
+        let list: Vec<cml_chain::crypto::BootstrapWitness> = list.clone().into();
+        cml_chain::NonemptySetBootstrapWitness::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(
+        list: &BootstrapWitnessList,
+    ) -> Result<Option<NonemptySetBootstrapWitness>, JsError> {
+        let list: Vec<cml_chain::crypto::BootstrapWitness> = list.clone().into();
+        cml_chain::NonemptySetBootstrapWitness::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonemptySetCertificate(pub(crate) cml_chain::NonemptySetCertificate);
+
+impl_wasm_cbor_json_api!(NonemptySetCertificate);
+
+impl_wasm_conversions!(cml_chain::NonemptySetCertificate, NonemptySetCertificate);
+
+#[wasm_bindgen]
+impl NonemptySetCertificate {
+    pub fn new(inner: &NonEmptyCertificateOrderedSet) -> Self {
+        Self(cml_chain::NonemptySetCertificate::new(inner.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> Certificate {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &Certificate) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &Certificate) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &Certificate) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &CertificateList) -> Result<NonemptySetCertificate, JsError> {
+        let list: Vec<cml_chain::certs::Certificate> = list.clone().into();
+        cml_chain::NonemptySetCertificate::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(list: &CertificateList) -> Result<Option<NonemptySetCertificate>, JsError> {
+        let list: Vec<cml_chain::certs::Certificate> = list.clone().into();
+        cml_chain::NonemptySetCertificate::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonemptySetEd25519KeyHash(pub(crate) cml_chain::NonemptySetEd25519KeyHash);
+
+impl_wasm_cbor_json_api!(NonemptySetEd25519KeyHash);
+
+impl_wasm_conversions!(
+    cml_chain::NonemptySetEd25519KeyHash,
+    NonemptySetEd25519KeyHash
+);
+
+#[wasm_bindgen]
+impl NonemptySetEd25519KeyHash {
+    pub fn new(inner: &NonEmptyEd25519KeyHashOrderedSet) -> Self {
+        Self(cml_chain::NonemptySetEd25519KeyHash::new(
+            inner.clone().into(),
+        ))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> Ed25519KeyHash {
+        self.0[index].into()
+    }
+
+    pub fn add(&mut self, elem: &Ed25519KeyHash) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &Ed25519KeyHash) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &Ed25519KeyHash) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &Ed25519KeyHashList) -> Result<NonemptySetEd25519KeyHash, JsError> {
+        let list: Vec<cml_chain::crypto::Ed25519KeyHash> = list.clone().into();
+        cml_chain::NonemptySetEd25519KeyHash::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(
+        list: &Ed25519KeyHashList,
+    ) -> Result<Option<NonemptySetEd25519KeyHash>, JsError> {
+        let list: Vec<cml_chain::crypto::Ed25519KeyHash> = list.clone().into();
+        cml_chain::NonemptySetEd25519KeyHash::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonemptySetNativeScript(pub(crate) cml_chain::NonemptySetNativeScript);
+
+impl_wasm_cbor_json_api!(NonemptySetNativeScript);
+
+impl_wasm_conversions!(cml_chain::NonemptySetNativeScript, NonemptySetNativeScript);
+
+#[wasm_bindgen]
+impl NonemptySetNativeScript {
+    pub fn new(inner: &NonEmptyNativeScriptOrderedSet) -> Self {
+        Self(cml_chain::NonemptySetNativeScript::new(
+            inner.clone().into(),
+        ))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> NativeScript {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &NativeScript) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &NativeScript) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &NativeScript) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &NativeScriptList) -> Result<NonemptySetNativeScript, JsError> {
+        let list: Vec<cml_chain::transaction::NativeScript> = list.clone().into();
+        cml_chain::NonemptySetNativeScript::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(
+        list: &NativeScriptList,
+    ) -> Result<Option<NonemptySetNativeScript>, JsError> {
+        let list: Vec<cml_chain::transaction::NativeScript> = list.clone().into();
+        cml_chain::NonemptySetNativeScript::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonemptySetPlutusData(pub(crate) cml_chain::NonemptySetPlutusData);
+
+impl_wasm_cbor_json_api!(NonemptySetPlutusData);
+
+impl_wasm_conversions!(cml_chain::NonemptySetPlutusData, NonemptySetPlutusData);
+
+#[wasm_bindgen]
+impl NonemptySetPlutusData {
+    pub fn new(inner: &NonEmptyPlutusDataOrderedSet) -> Self {
+        Self(cml_chain::NonemptySetPlutusData::new(inner.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> PlutusData {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &PlutusData) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &PlutusData) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &PlutusData) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &PlutusDataList) -> Result<NonemptySetPlutusData, JsError> {
+        let list: Vec<cml_chain::plutus::PlutusData> = list.clone().into();
+        cml_chain::NonemptySetPlutusData::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(list: &PlutusDataList) -> Result<Option<NonemptySetPlutusData>, JsError> {
+        let list: Vec<cml_chain::plutus::PlutusData> = list.clone().into();
+        cml_chain::NonemptySetPlutusData::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonemptySetPlutusV1Script(pub(crate) cml_chain::NonemptySetPlutusV1Script);
+
+impl_wasm_cbor_json_api!(NonemptySetPlutusV1Script);
+
+impl_wasm_conversions!(
+    cml_chain::NonemptySetPlutusV1Script,
+    NonemptySetPlutusV1Script
+);
+
+#[wasm_bindgen]
+impl NonemptySetPlutusV1Script {
+    pub fn new(inner: &NonEmptyPlutusV1ScriptOrderedSet) -> Self {
+        Self(cml_chain::NonemptySetPlutusV1Script::new(
+            inner.clone().into(),
+        ))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> PlutusV1Script {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &PlutusV1Script) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &PlutusV1Script) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &PlutusV1Script) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &PlutusV1ScriptList) -> Result<NonemptySetPlutusV1Script, JsError> {
+        let list: Vec<cml_chain::plutus::PlutusV1Script> = list.clone().into();
+        cml_chain::NonemptySetPlutusV1Script::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(
+        list: &PlutusV1ScriptList,
+    ) -> Result<Option<NonemptySetPlutusV1Script>, JsError> {
+        let list: Vec<cml_chain::plutus::PlutusV1Script> = list.clone().into();
+        cml_chain::NonemptySetPlutusV1Script::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonemptySetPlutusV2Script(pub(crate) cml_chain::NonemptySetPlutusV2Script);
+
+impl_wasm_cbor_json_api!(NonemptySetPlutusV2Script);
+
+impl_wasm_conversions!(
+    cml_chain::NonemptySetPlutusV2Script,
+    NonemptySetPlutusV2Script
+);
+
+#[wasm_bindgen]
+impl NonemptySetPlutusV2Script {
+    pub fn new(inner: &NonEmptyPlutusV2ScriptOrderedSet) -> Self {
+        Self(cml_chain::NonemptySetPlutusV2Script::new(
+            inner.clone().into(),
+        ))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> PlutusV2Script {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &PlutusV2Script) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &PlutusV2Script) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &PlutusV2Script) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &PlutusV2ScriptList) -> Result<NonemptySetPlutusV2Script, JsError> {
+        let list: Vec<cml_chain::plutus::PlutusV2Script> = list.clone().into();
+        cml_chain::NonemptySetPlutusV2Script::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(
+        list: &PlutusV2ScriptList,
+    ) -> Result<Option<NonemptySetPlutusV2Script>, JsError> {
+        let list: Vec<cml_chain::plutus::PlutusV2Script> = list.clone().into();
+        cml_chain::NonemptySetPlutusV2Script::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonemptySetPlutusV3Script(pub(crate) cml_chain::NonemptySetPlutusV3Script);
+
+impl_wasm_cbor_json_api!(NonemptySetPlutusV3Script);
+
+impl_wasm_conversions!(
+    cml_chain::NonemptySetPlutusV3Script,
+    NonemptySetPlutusV3Script
+);
+
+#[wasm_bindgen]
+impl NonemptySetPlutusV3Script {
+    pub fn new(inner: &NonEmptyPlutusV3ScriptOrderedSet) -> Self {
+        Self(cml_chain::NonemptySetPlutusV3Script::new(
+            inner.clone().into(),
+        ))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> PlutusV3Script {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &PlutusV3Script) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &PlutusV3Script) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &PlutusV3Script) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &PlutusV3ScriptList) -> Result<NonemptySetPlutusV3Script, JsError> {
+        let list: Vec<cml_chain::plutus::PlutusV3Script> = list.clone().into();
+        cml_chain::NonemptySetPlutusV3Script::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(
+        list: &PlutusV3ScriptList,
+    ) -> Result<Option<NonemptySetPlutusV3Script>, JsError> {
+        let list: Vec<cml_chain::plutus::PlutusV3Script> = list.clone().into();
+        cml_chain::NonemptySetPlutusV3Script::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonemptySetProposalProcedure(pub(crate) cml_chain::NonemptySetProposalProcedure);
+
+impl_wasm_cbor_json_api!(NonemptySetProposalProcedure);
+
+impl_wasm_conversions!(
+    cml_chain::NonemptySetProposalProcedure,
+    NonemptySetProposalProcedure
+);
+
+#[wasm_bindgen]
+impl NonemptySetProposalProcedure {
+    pub fn new(inner: &NonEmptyProposalProcedureOrderedSet) -> Self {
+        Self(cml_chain::NonemptySetProposalProcedure::new(
+            inner.clone().into(),
+        ))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> ProposalProcedure {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &ProposalProcedure) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &ProposalProcedure) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &ProposalProcedure) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &ProposalProcedureList) -> Result<NonemptySetProposalProcedure, JsError> {
+        let list: Vec<cml_chain::governance::ProposalProcedure> = list.clone().into();
+        cml_chain::NonemptySetProposalProcedure::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(
+        list: &ProposalProcedureList,
+    ) -> Result<Option<NonemptySetProposalProcedure>, JsError> {
+        let list: Vec<cml_chain::governance::ProposalProcedure> = list.clone().into();
+        cml_chain::NonemptySetProposalProcedure::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonemptySetTransactionInput(pub(crate) cml_chain::NonemptySetTransactionInput);
+
+impl_wasm_cbor_json_api!(NonemptySetTransactionInput);
+
+impl_wasm_conversions!(
+    cml_chain::NonemptySetTransactionInput,
+    NonemptySetTransactionInput
+);
+
+#[wasm_bindgen]
+impl NonemptySetTransactionInput {
+    pub fn new(inner: &NonEmptyTransactionInputOrderedSet) -> Self {
+        Self(cml_chain::NonemptySetTransactionInput::new(
+            inner.clone().into(),
+        ))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> TransactionInput {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &TransactionInput) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &TransactionInput) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &TransactionInput) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &TransactionInputList) -> Result<NonemptySetTransactionInput, JsError> {
+        let list: Vec<cml_chain::transaction::TransactionInput> = list.clone().into();
+        cml_chain::NonemptySetTransactionInput::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(
+        list: &TransactionInputList,
+    ) -> Result<Option<NonemptySetTransactionInput>, JsError> {
+        let list: Vec<cml_chain::transaction::TransactionInput> = list.clone().into();
+        cml_chain::NonemptySetTransactionInput::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct NonemptySetVkeywitness(pub(crate) cml_chain::NonemptySetVkeywitness);
+
+impl_wasm_cbor_json_api!(NonemptySetVkeywitness);
+
+impl_wasm_conversions!(cml_chain::NonemptySetVkeywitness, NonemptySetVkeywitness);
+
+#[wasm_bindgen]
+impl NonemptySetVkeywitness {
+    pub fn new(inner: &NonEmptyVkeywitnessOrderedSet) -> Self {
+        Self(cml_chain::NonemptySetVkeywitness::new(inner.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> Vkeywitness {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &Vkeywitness) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &Vkeywitness) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &Vkeywitness) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &VkeywitnessList) -> Result<NonemptySetVkeywitness, JsError> {
+        let list: Vec<cml_chain::crypto::Vkeywitness> = list.clone().into();
+        cml_chain::NonemptySetVkeywitness::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(list: &VkeywitnessList) -> Result<Option<NonemptySetVkeywitness>, JsError> {
+        let list: Vec<cml_chain::crypto::Vkeywitness> = list.clone().into();
+        cml_chain::NonemptySetVkeywitness::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
 
 impl_wasm_list_needs_into!(
     cml_chain::plutus::PlutusData,
@@ -1523,11 +2368,169 @@ pub enum ScriptKind {
     PlutusV3,
 }
 
-pub type SetCommitteeColdCredential = CommitteeColdCredentialList;
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct SetCommitteeColdCredential(pub(crate) cml_chain::SetCommitteeColdCredential);
 
-pub type SetEd25519KeyHash = Ed25519KeyHashList;
+impl_wasm_cbor_json_api!(SetCommitteeColdCredential);
 
-pub type SetTransactionInput = TransactionInputList;
+impl_wasm_conversions!(
+    cml_chain::SetCommitteeColdCredential,
+    SetCommitteeColdCredential
+);
+
+#[wasm_bindgen]
+impl SetCommitteeColdCredential {
+    pub fn new(inner: &CommitteeColdCredentialOrderedSet) -> Self {
+        Self(cml_chain::SetCommitteeColdCredential::new(
+            inner.clone().into(),
+        ))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> CommitteeColdCredential {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &CommitteeColdCredential) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &CommitteeColdCredential) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &CommitteeColdCredential) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(
+        list: &CommitteeColdCredentialList,
+    ) -> Result<SetCommitteeColdCredential, JsError> {
+        let list: Vec<cml_chain::certs::CommitteeColdCredential> = list.clone().into();
+        cml_chain::SetCommitteeColdCredential::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(
+        list: &CommitteeColdCredentialList,
+    ) -> Result<Option<SetCommitteeColdCredential>, JsError> {
+        let list: Vec<cml_chain::certs::CommitteeColdCredential> = list.clone().into();
+        cml_chain::SetCommitteeColdCredential::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct SetEd25519KeyHash(pub(crate) cml_chain::SetEd25519KeyHash);
+
+impl_wasm_cbor_json_api!(SetEd25519KeyHash);
+
+impl_wasm_conversions!(cml_chain::SetEd25519KeyHash, SetEd25519KeyHash);
+
+#[wasm_bindgen]
+impl SetEd25519KeyHash {
+    pub fn new(inner: &Ed25519KeyHashOrderedSet) -> Self {
+        Self(cml_chain::SetEd25519KeyHash::new(inner.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> Ed25519KeyHash {
+        self.0[index].into()
+    }
+
+    pub fn add(&mut self, elem: &Ed25519KeyHash) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &Ed25519KeyHash) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &Ed25519KeyHash) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &Ed25519KeyHashList) -> Result<SetEd25519KeyHash, JsError> {
+        let list: Vec<cml_chain::crypto::Ed25519KeyHash> = list.clone().into();
+        cml_chain::SetEd25519KeyHash::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(list: &Ed25519KeyHashList) -> Result<Option<SetEd25519KeyHash>, JsError> {
+        let list: Vec<cml_chain::crypto::Ed25519KeyHash> = list.clone().into();
+        cml_chain::SetEd25519KeyHash::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct SetTransactionInput(pub(crate) cml_chain::SetTransactionInput);
+
+impl_wasm_cbor_json_api!(SetTransactionInput);
+
+impl_wasm_conversions!(cml_chain::SetTransactionInput, SetTransactionInput);
+
+#[wasm_bindgen]
+impl SetTransactionInput {
+    pub fn new(inner: &TransactionInputOrderedSet) -> Self {
+        Self(cml_chain::SetTransactionInput::new(inner.clone().into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> TransactionInput {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &TransactionInput) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &TransactionInput) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &TransactionInput) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &TransactionInputList) -> Result<SetTransactionInput, JsError> {
+        let list: Vec<cml_chain::transaction::TransactionInput> = list.clone().into();
+        cml_chain::SetTransactionInput::try_from(list)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn try_opt_from(
+        list: &TransactionInputList,
+    ) -> Result<Option<SetTransactionInput>, JsError> {
+        let list: Vec<cml_chain::transaction::TransactionInput> = list.clone().into();
+        cml_chain::SetTransactionInput::try_opt_from(list)
+            .map(|opt| opt.map(Self))
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
 
 pub type Slot = u64;
 
@@ -1550,6 +2553,54 @@ impl_wasm_list_needs_into!(
     true,
     false
 );
+
+/// `[* transaction_input] @duplicates reject`: an insertion-ordered, duplicate-free set (order preserved for byte-exact round-trip). `add` is checked — an already-present element is refused; construct via `try_from` (the uniqueness door). `insert` is the std-set door (returns `false`, set unchanged, for an already-present element); `contains` tests membership.
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+pub struct TransactionInputOrderedSet(
+    pub(crate) OrderedSet<cml_chain::transaction::TransactionInput>,
+);
+
+impl_wasm_conversions!(
+    OrderedSet<cml_chain::transaction::TransactionInput>,
+    TransactionInputOrderedSet
+);
+
+#[wasm_bindgen]
+impl TransactionInputOrderedSet {
+    pub fn new() -> Self {
+        Self(OrderedSet::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, index: usize) -> TransactionInput {
+        self.0[index].clone().into()
+    }
+
+    pub fn add(&mut self, elem: &TransactionInput) -> Result<(), JsError> {
+        self.0
+            .push(elem.clone().into())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn insert(&mut self, elem: &TransactionInput) -> bool {
+        self.0.insert(elem.clone().into())
+    }
+
+    pub fn contains(&self, elem: &TransactionInput) -> bool {
+        self.0.contains(&elem.clone().into())
+    }
+
+    pub fn try_from(list: &TransactionInputList) -> Result<TransactionInputOrderedSet, JsError> {
+        let inner: Vec<cml_chain::transaction::TransactionInput> = list.clone().into();
+        OrderedSet::try_from(inner)
+            .map(Self)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
 
 pub type TransactionMetadatumLabel = u64;
 

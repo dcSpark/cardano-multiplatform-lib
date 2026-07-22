@@ -360,7 +360,16 @@ impl RawBytesEncoding for PrivateKey {
 
 /// ED25519 key used as public key
 #[derive(
-    Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
+    Clone,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    schemars::JsonSchema,
 )]
 pub struct PublicKey(pub chain_crypto::PublicKey<chain_crypto::Ed25519>);
 

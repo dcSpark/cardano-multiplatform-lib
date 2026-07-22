@@ -1,7 +1,7 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
-use cml_core::serialization::{LenEncoding, StringEncoding, TagPresenceEncoding};
+use cml_core::serialization::{LenEncoding, StringEncoding};
 
 #[derive(Clone, Debug, Default)]
 pub struct AuthCommitteeHotCertEncoding {
@@ -43,9 +43,6 @@ pub struct PoolParamsEncoding {
     pub vrf_keyhash_encoding: StringEncoding,
     pub pledge_encoding: Option<cbor_event::Sz>,
     pub cost_encoding: Option<cbor_event::Sz>,
-    pub pool_owners_tag_encoding: TagPresenceEncoding,
-    pub pool_owners_encoding: LenEncoding,
-    pub pool_owners_elem_encodings: Vec<StringEncoding>,
     pub relays_encoding: LenEncoding,
 }
 

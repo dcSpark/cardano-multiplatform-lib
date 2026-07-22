@@ -136,6 +136,900 @@ impl Deserialize for NetworkId {
     }
 }
 
+impl Serialize for NonemptySetBootstrapWitness {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for element in self.inner.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for NonemptySetBootstrapWitness {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                inner_arr.push(BootstrapWitness::deserialize(raw)?);
+            }
+            let inner_arr = NonEmptyOrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding) =
+                (inner_arr, inner_tag_encoding, inner_encoding);
+            Ok(Self {
+                inner,
+                encodings: Some(NonemptySetBootstrapWitnessEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySetBootstrapWitness"))
+    }
+}
+
+impl Serialize for NonemptySetCertificate {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for element in self.inner.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for NonemptySetCertificate {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                inner_arr.push(Certificate::deserialize(raw)?);
+            }
+            let inner_arr = NonEmptyOrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding) =
+                (inner_arr, inner_tag_encoding, inner_encoding);
+            Ok(Self {
+                inner,
+                encodings: Some(NonemptySetCertificateEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySetCertificate"))
+    }
+}
+
+impl Serialize for NonemptySetEd25519KeyHash {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for (i, element) in self.inner.iter().enumerate() {
+            let inner_elem_encoding = self
+                .encodings
+                .as_ref()
+                .and_then(|encs| encs.inner_elem_encodings.get(i))
+                .cloned()
+                .unwrap_or_default();
+            serializer.write_bytes_sz(
+                element.to_raw_bytes(),
+                inner_elem_encoding
+                    .to_str_len_sz(element.to_raw_bytes().len() as u64, force_canonical),
+            )?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for NonemptySetEd25519KeyHash {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            let mut inner_elem_encodings = Vec::new();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                let (inner_elem, inner_elem_encoding) = raw
+                    .bytes_sz()
+                    .map_err(Into::<DeserializeError>::into)
+                    .and_then(|(bytes, enc)| {
+                        Ed25519KeyHash::from_raw_bytes(&bytes)
+                            .map(|bytes| (bytes, StringEncoding::from(enc)))
+                            .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
+                    })?;
+                inner_arr.push(inner_elem);
+                inner_elem_encodings.push(inner_elem_encoding);
+            }
+            let inner_arr = NonEmptyOrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding, inner_elem_encodings) = (
+                inner_arr,
+                inner_tag_encoding,
+                inner_encoding,
+                inner_elem_encodings,
+            );
+            Ok(Self {
+                inner,
+                encodings: Some(NonemptySetEd25519KeyHashEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                    inner_elem_encodings,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySetEd25519KeyHash"))
+    }
+}
+
+impl Serialize for NonemptySetNativeScript {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for element in self.inner.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for NonemptySetNativeScript {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                inner_arr.push(NativeScript::deserialize(raw)?);
+            }
+            let inner_arr = NonEmptyOrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding) =
+                (inner_arr, inner_tag_encoding, inner_encoding);
+            Ok(Self {
+                inner,
+                encodings: Some(NonemptySetNativeScriptEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySetNativeScript"))
+    }
+}
+
+impl Serialize for NonemptySetPlutusData {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for element in self.inner.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for NonemptySetPlutusData {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                inner_arr.push(PlutusData::deserialize(raw)?);
+            }
+            let inner_arr = NonEmptyOrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding) =
+                (inner_arr, inner_tag_encoding, inner_encoding);
+            Ok(Self {
+                inner,
+                encodings: Some(NonemptySetPlutusDataEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySetPlutusData"))
+    }
+}
+
+impl Serialize for NonemptySetPlutusV1Script {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for element in self.inner.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for NonemptySetPlutusV1Script {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                inner_arr.push(PlutusV1Script::deserialize(raw)?);
+            }
+            let inner_arr = NonEmptyOrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding) =
+                (inner_arr, inner_tag_encoding, inner_encoding);
+            Ok(Self {
+                inner,
+                encodings: Some(NonemptySetPlutusV1ScriptEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySetPlutusV1Script"))
+    }
+}
+
+impl Serialize for NonemptySetPlutusV2Script {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for element in self.inner.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for NonemptySetPlutusV2Script {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                inner_arr.push(PlutusV2Script::deserialize(raw)?);
+            }
+            let inner_arr = NonEmptyOrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding) =
+                (inner_arr, inner_tag_encoding, inner_encoding);
+            Ok(Self {
+                inner,
+                encodings: Some(NonemptySetPlutusV2ScriptEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySetPlutusV2Script"))
+    }
+}
+
+impl Serialize for NonemptySetPlutusV3Script {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for element in self.inner.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for NonemptySetPlutusV3Script {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                inner_arr.push(PlutusV3Script::deserialize(raw)?);
+            }
+            let inner_arr = NonEmptyOrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding) =
+                (inner_arr, inner_tag_encoding, inner_encoding);
+            Ok(Self {
+                inner,
+                encodings: Some(NonemptySetPlutusV3ScriptEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySetPlutusV3Script"))
+    }
+}
+
+impl Serialize for NonemptySetProposalProcedure {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for element in self.inner.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for NonemptySetProposalProcedure {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                inner_arr.push(ProposalProcedure::deserialize(raw)?);
+            }
+            let inner_arr = NonEmptyOrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding) =
+                (inner_arr, inner_tag_encoding, inner_encoding);
+            Ok(Self {
+                inner,
+                encodings: Some(NonemptySetProposalProcedureEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySetProposalProcedure"))
+    }
+}
+
+impl Serialize for NonemptySetTransactionInput {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for element in self.inner.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for NonemptySetTransactionInput {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                inner_arr.push(TransactionInput::deserialize(raw)?);
+            }
+            let inner_arr = NonEmptyOrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding) =
+                (inner_arr, inner_tag_encoding, inner_encoding);
+            Ok(Self {
+                inner,
+                encodings: Some(NonemptySetTransactionInputEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySetTransactionInput"))
+    }
+}
+
+impl Serialize for NonemptySetVkeywitness {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for element in self.inner.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for NonemptySetVkeywitness {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                inner_arr.push(Vkeywitness::deserialize(raw)?);
+            }
+            let inner_arr = NonEmptyOrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding) =
+                (inner_arr, inner_tag_encoding, inner_encoding);
+            Ok(Self {
+                inner,
+                encodings: Some(NonemptySetVkeywitnessEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("NonemptySetVkeywitness"))
+    }
+}
+
 impl Serialize for PoolVotingThresholds {
     fn serialize<'se>(
         &self,
@@ -2018,6 +2912,268 @@ impl Deserialize for Script {
             Err(DeserializeFailure::NoVariantMatchedWithCauses(errs).into())
         })()
         .map_err(|e| e.annotate("Script"))
+    }
+}
+
+impl Serialize for SetCommitteeColdCredential {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for element in self.inner.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for SetCommitteeColdCredential {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                inner_arr.push(Credential::deserialize(raw)?);
+            }
+            let inner_arr = OrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding) =
+                (inner_arr, inner_tag_encoding, inner_encoding);
+            Ok(Self {
+                inner,
+                encodings: Some(SetCommitteeColdCredentialEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("SetCommitteeColdCredential"))
+    }
+}
+
+impl Serialize for SetEd25519KeyHash {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for (i, element) in self.inner.iter().enumerate() {
+            let inner_elem_encoding = self
+                .encodings
+                .as_ref()
+                .and_then(|encs| encs.inner_elem_encodings.get(i))
+                .cloned()
+                .unwrap_or_default();
+            serializer.write_bytes_sz(
+                element.to_raw_bytes(),
+                inner_elem_encoding
+                    .to_str_len_sz(element.to_raw_bytes().len() as u64, force_canonical),
+            )?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for SetEd25519KeyHash {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            let mut inner_elem_encodings = Vec::new();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                let (inner_elem, inner_elem_encoding) = raw
+                    .bytes_sz()
+                    .map_err(Into::<DeserializeError>::into)
+                    .and_then(|(bytes, enc)| {
+                        Ed25519KeyHash::from_raw_bytes(&bytes)
+                            .map(|bytes| (bytes, StringEncoding::from(enc)))
+                            .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
+                    })?;
+                inner_arr.push(inner_elem);
+                inner_elem_encodings.push(inner_elem_encoding);
+            }
+            let inner_arr = OrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding, inner_elem_encodings) = (
+                inner_arr,
+                inner_tag_encoding,
+                inner_encoding,
+                inner_elem_encodings,
+            );
+            Ok(Self {
+                inner,
+                encodings: Some(SetEd25519KeyHashEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                    inner_elem_encodings,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("SetEd25519KeyHash"))
+    }
+}
+
+impl Serialize for SetTransactionInput {
+    fn serialize<'se>(
+        &self,
+        serializer: &'se mut Serializer,
+        force_canonical: bool,
+    ) -> cbor_event::Result<&'se mut Serializer> {
+        if let TagPresenceEncoding::Tagged(tag_sz) = self
+            .encodings
+            .as_ref()
+            .map(|encs| encs.inner_tag_encoding)
+            .unwrap_or_default()
+        {
+            serializer.write_tag_sz(258u64, fit_sz(258u64, tag_sz, force_canonical))?;
+        }
+        serializer.write_array_sz(
+            self.encodings
+                .as_ref()
+                .map(|encs| encs.inner_encoding)
+                .unwrap_or_default()
+                .to_len_sz(self.inner.len() as u64, force_canonical),
+        )?;
+        for element in self.inner.iter() {
+            element.serialize(serializer, force_canonical)?;
+        }
+        self.encodings
+            .as_ref()
+            .map(|encs| encs.inner_encoding)
+            .unwrap_or_default()
+            .end(serializer, force_canonical)
+    }
+}
+
+impl Deserialize for SetTransactionInput {
+    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
+        (|| -> Result<_, DeserializeError> {
+            let inner_tag_encoding = match raw.cbor_type()? {
+                cbor_event::Type::Tag => {
+                    let (tag, tag_enc) = raw.tag_sz()?;
+                    if tag != 258 {
+                        return Err(DeserializeFailure::TagMismatch {
+                            found: tag,
+                            expected: 258,
+                        }
+                        .into());
+                    }
+                    TagPresenceEncoding::Tagged(Some(tag_enc))
+                }
+                _ => TagPresenceEncoding::Untagged,
+            };
+            let mut inner_arr = Vec::new();
+            let len = raw.array_sz()?;
+            let inner_encoding = len.into();
+            while match len {
+                cbor_event::LenSz::Len(n, _) => (inner_arr.len() as u64) < n,
+                cbor_event::LenSz::Indefinite => true,
+            } {
+                if matches!(len, cbor_event::LenSz::Indefinite)
+                    && raw.cbor_type()? == cbor_event::Type::Special
+                    && raw.special_break()?
+                {
+                    break;
+                }
+                inner_arr.push(TransactionInput::deserialize(raw)?);
+            }
+            let inner_arr = OrderedSet::try_from(inner_arr)?;
+            let (inner, inner_tag_encoding, inner_encoding) =
+                (inner_arr, inner_tag_encoding, inner_encoding);
+            Ok(Self {
+                inner,
+                encodings: Some(SetTransactionInputEncoding {
+                    inner_tag_encoding,
+                    inner_encoding,
+                }),
+            })
+        })()
+        .map_err(|e| e.annotate("SetTransactionInput"))
     }
 }
 

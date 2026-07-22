@@ -21,10 +21,19 @@ use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Anchor {
     pub anchor_url: Url,
     pub anchor_doc_hash: AnchorDocHash,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<AnchorEncoding>,
 }
@@ -39,10 +48,19 @@ impl Anchor {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Constitution {
     pub anchor: Anchor,
     pub script_hash: Option<ScriptHash>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<ConstitutionEncoding>,
 }
@@ -57,7 +75,16 @@ impl Constitution {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(
+    Eq,
+    PartialEq,
+    Ord = "feature_allow_slow_enum",
+    PartialOrd = "feature_allow_slow_enum",
+    Hash
+)]
 pub enum GovAction {
     ParameterChangeAction(ParameterChangeAction),
     HardForkInitiationAction(HardForkInitiationAction),
@@ -66,8 +93,20 @@ pub enum GovAction {
     UpdateCommittee(UpdateCommittee),
     NewConstitution(NewConstitution),
     InfoAction {
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         info_action_encoding: Option<cbor_event::Sz>,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
         #[serde(skip)]
         len_encoding: LenEncoding,
     },
@@ -156,10 +195,19 @@ impl GovActionId {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct HardForkInitiationAction {
     pub action_id: Option<GovActionId>,
     pub version: ProtocolVersion,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<HardForkInitiationActionEncoding>,
 }
@@ -174,10 +222,19 @@ impl HardForkInitiationAction {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NewConstitution {
     pub action_id: Option<GovActionId>,
     pub constitution: Constitution,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<NewConstitutionEncoding>,
 }
@@ -192,9 +249,18 @@ impl NewConstitution {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NoConfidence {
     pub action_id: Option<GovActionId>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<NoConfidenceEncoding>,
 }
@@ -208,11 +274,20 @@ impl NoConfidence {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ParameterChangeAction {
     pub action_id: Option<GovActionId>,
     pub update: ProtocolParamUpdate,
     pub policy_hash: Option<ScriptHash>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<ParameterChangeActionEncoding>,
 }
@@ -232,12 +307,21 @@ impl ParameterChangeAction {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ProposalProcedure {
     pub deposit: Coin,
     pub reward_account: RewardAccount,
     pub gov_action: GovAction,
     pub anchor: Anchor,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<ProposalProcedureEncoding>,
 }
@@ -259,10 +343,19 @@ impl ProposalProcedure {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct TreasuryWithdrawalsAction {
     pub withdrawal: OrderedHashMap<RewardAccount, Coin>,
     pub policy_hash: Option<ScriptHash>,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<TreasuryWithdrawalsActionEncoding>,
 }
@@ -280,12 +373,21 @@ impl TreasuryWithdrawalsAction {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct UpdateCommittee {
     pub action_id: Option<GovActionId>,
     pub cold_credentials: SetCommitteeColdCredential,
     pub credentials: OrderedHashMap<CommitteeColdCredential, Epoch>,
     pub unit_interval: UnitInterval,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<UpdateCommitteeEncoding>,
 }

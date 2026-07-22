@@ -32,12 +32,21 @@ use cbor_encodings::{
 use cml_core::error::*;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct BootstrapWitness {
     pub public_key: Vkey,
     pub signature: Ed25519Signature,
     pub chain_code: Vec<u8>,
     pub attributes: AddrAttributes,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<BootstrapWitnessEncoding>,
 }
@@ -214,10 +223,19 @@ impl VRFCert {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Vkeywitness {
     pub vkey: Vkey,
     pub ed25519_signature: Ed25519Signature,
+    #[derivative(
+        PartialEq = "ignore",
+        Ord = "ignore",
+        PartialOrd = "ignore",
+        Hash = "ignore"
+    )]
     #[serde(skip)]
     pub encodings: Option<VkeywitnessEncoding>,
 }

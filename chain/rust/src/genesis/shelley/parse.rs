@@ -9,7 +9,7 @@ use std::io::Read;
 use std::str::FromStr;
 
 use crate::{
-    UnitInterval,
+    SetEd25519KeyHash, UnitInterval,
     address::{Address, RewardAccount},
     block::ProtocolVersion,
     certs::{Ipv4, Ipv6, PoolMetadata, PoolParams, Relay, StakeCredential, Url},
@@ -104,7 +104,9 @@ pub fn parse_genesis_data<R: Read>(
                             &params.rewardAccount.credential.keyHash,
                         )?),
                     ),
-                    owners,
+                    // pool owners are a set on-chain; duplicates in the genesis JSON are
+                    // invalid and surface via the GenesisJSONError::Deserialize conversion
+                    SetEd25519KeyHash::try_from(owners)?,
                     relays,
                     pool_metadata,
                 );

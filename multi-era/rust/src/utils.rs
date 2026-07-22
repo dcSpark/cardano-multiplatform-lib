@@ -49,6 +49,23 @@ use cml_crypto::{
     RawBytesEncoding, ScriptDataHash, TransactionHash, VRFVkey, blake2b256,
 };
 
+use cml_core::ordered_set::{NonEmptyOrderedSet, OrderedSet};
+
+/// Normalize an older-era list into a Conway non-empty set wrapper. Older eras allow duplicate
+/// entries on the wire where Conway models the field as a set; a duplicate entry is semantically
+/// redundant, so this lossy view keeps the first occurrence (set `collect` semantics) rather
+/// than failing. An empty list maps to `None` (Conway's non-empty sets model emptiness as
+/// field absence).
+pub(crate) fn dedup_nonempty_set<S, T>(elems: Vec<T>) -> Option<S>
+where
+    S: From<NonEmptyOrderedSet<T>>,
+    T: PartialEq,
+{
+    NonEmptyOrderedSet::try_from(elems.into_iter().collect::<OrderedSet<T>>())
+        .ok()
+        .map(S::from)
+}
+
 impl MultiEraBlock {
     /**
      * Parses a block given the network block format with explicit era tag
@@ -1440,7 +1457,8 @@ mod shelley_impls {
         ShelleyTransactionWitnessSet,
     };
 
-    use cml_core::non_empty::NonEmptyVec;
+    use super::dedup_nonempty_set;
+    use cml_core::ordered_set::OrderedSet;
     use cml_core::serialization::Serialize;
     use cml_crypto::{TransactionHash, blake2b256};
 
@@ -1453,22 +1471,18 @@ mod shelley_impls {
     impl From<ShelleyTransactionWitnessSet> for TransactionWitnessSet {
         fn from(wits: ShelleyTransactionWitnessSet) -> Self {
             let mut new_wits = TransactionWitnessSet::new();
-            // Conway witness-set collections cannot be empty; an empty older-era list maps to absent.
-            new_wits.vkeywitnesses = wits
-                .vkeywitnesses
-                .and_then(|v| NonEmptyVec::try_from(v).ok());
+            // Conway witness-set collections are non-empty sets; an empty older-era list maps
+            // to absent and duplicate entries are dedup'd (see dedup_nonempty_set).
+            new_wits.vkeywitnesses = wits.vkeywitnesses.and_then(dedup_nonempty_set);
             new_wits.native_scripts = wits.native_scripts.and_then(|native_scripts| {
-                NonEmptyVec::try_from(
+                dedup_nonempty_set(
                     native_scripts
                         .into_iter()
                         .map(NativeScript::from)
                         .collect::<Vec<_>>(),
                 )
-                .ok()
             });
-            new_wits.bootstrap_witnesses = wits
-                .bootstrap_witnesses
-                .and_then(|v| NonEmptyVec::try_from(v).ok());
+            new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.and_then(dedup_nonempty_set);
             new_wits
         }
     }
@@ -1511,7 +1525,13 @@ mod shelley_impls {
                 pool_reg.pool_params.cost,
                 pool_reg.pool_params.margin,
                 pool_reg.pool_params.reward_account,
-                pool_reg.pool_params.pool_owners,
+                // set `collect` dedups keep-first: legacy duplicate owners normalize away
+                pool_reg
+                    .pool_params
+                    .pool_owners
+                    .into_iter()
+                    .collect::<OrderedSet<_>>()
+                    .into(),
                 pool_reg
                     .pool_params
                     .relays
@@ -1548,7 +1568,7 @@ mod allegra_impls {
         AllegraAuxiliaryData, AllegraTransactionBody, AllegraTransactionWitnessSet,
     };
 
-    use cml_core::non_empty::NonEmptyVec;
+    use super::dedup_nonempty_set;
     use cml_core::serialization::Serialize;
     use cml_crypto::{TransactionHash, blake2b256};
 
@@ -1570,16 +1590,11 @@ mod allegra_impls {
     impl From<AllegraTransactionWitnessSet> for TransactionWitnessSet {
         fn from(wits: AllegraTransactionWitnessSet) -> Self {
             let mut new_wits = TransactionWitnessSet::new();
-            // Conway witness-set collections cannot be empty; an empty older-era list maps to absent.
-            new_wits.vkeywitnesses = wits
-                .vkeywitnesses
-                .and_then(|v| NonEmptyVec::try_from(v).ok());
-            new_wits.native_scripts = wits
-                .native_scripts
-                .and_then(|v| NonEmptyVec::try_from(v).ok());
-            new_wits.bootstrap_witnesses = wits
-                .bootstrap_witnesses
-                .and_then(|v| NonEmptyVec::try_from(v).ok());
+            // Conway witness-set collections are non-empty sets; an empty older-era list maps
+            // to absent and duplicate entries are dedup'd (see dedup_nonempty_set).
+            new_wits.vkeywitnesses = wits.vkeywitnesses.and_then(dedup_nonempty_set);
+            new_wits.native_scripts = wits.native_scripts.and_then(dedup_nonempty_set);
+            new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.and_then(dedup_nonempty_set);
             new_wits
         }
     }
@@ -1609,6 +1624,7 @@ mod alonzo_impls {
         AlonzoTransactionWitnessSet,
     };
 
+    use super::dedup_nonempty_set;
     use cml_core::non_empty::NonEmptyVec;
     use cml_core::serialization::Serialize;
     use cml_crypto::{TransactionHash, blake2b256};
@@ -1638,27 +1654,20 @@ mod alonzo_impls {
     impl From<AlonzoTransactionWitnessSet> for TransactionWitnessSet {
         fn from(wits: AlonzoTransactionWitnessSet) -> Self {
             let mut new_wits = TransactionWitnessSet::new();
-            // Conway witness-set collections cannot be empty; an empty older-era list maps to absent.
-            new_wits.vkeywitnesses = wits
-                .vkeywitnesses
-                .and_then(|v| NonEmptyVec::try_from(v).ok());
-            new_wits.native_scripts = wits
-                .native_scripts
-                .and_then(|v| NonEmptyVec::try_from(v).ok());
-            new_wits.bootstrap_witnesses = wits
-                .bootstrap_witnesses
-                .and_then(|v| NonEmptyVec::try_from(v).ok());
+            // Conway witness-set collections are non-empty sets; an empty older-era list maps
+            // to absent and duplicate entries are dedup'd (see dedup_nonempty_set).
+            new_wits.vkeywitnesses = wits.vkeywitnesses.and_then(dedup_nonempty_set);
+            new_wits.native_scripts = wits.native_scripts.and_then(dedup_nonempty_set);
+            new_wits.bootstrap_witnesses = wits.bootstrap_witnesses.and_then(dedup_nonempty_set);
+            // Conway `Redeemers` cannot be empty; an empty older-era redeemer list maps to no
+            // redeemers. Redeemers remain a list (not a set): no dedup.
             new_wits.redeemers = wits.redeemers.and_then(|r| {
                 NonEmptyVec::try_from(r.into_iter().map(Into::into).collect::<Vec<_>>())
                     .ok()
                     .map(Redeemers::new_arr_legacy_redeemer)
             });
-            new_wits.plutus_datums = wits
-                .plutus_datums
-                .and_then(|v| NonEmptyVec::try_from(v).ok());
-            new_wits.plutus_v1_scripts = wits
-                .plutus_v1_scripts
-                .and_then(|v| NonEmptyVec::try_from(v).ok());
+            new_wits.plutus_datums = wits.plutus_datums.and_then(dedup_nonempty_set);
+            new_wits.plutus_v1_scripts = wits.plutus_v1_scripts.and_then(dedup_nonempty_set);
             new_wits
         }
     }

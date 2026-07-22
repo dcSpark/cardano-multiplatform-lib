@@ -18,6 +18,12 @@ use super::error::{DeserializeError, DeserializeFailure, Key};
 ///
 /// Staging a not-yet-unique collection is done with a plain `Vec<T>` (`push`/`extend`/`collect`) and
 /// a final `OrderedSet::try_from(vec)` — the loose `Vec` is the builder, so no builder type is needed.
+///
+/// For working WITH a set, the std set contract is also provided (`HashSet`/`BTreeSet`/`IndexSet`):
+/// `insert -> bool` (`false` = already present), `contains`, `Extend` and `FromIterator` (both
+/// dedup keep-first, so `extend` is union and `collect` is a normalizing conversion), and `sort`.
+/// `try_opt_from` is the empty-means-absent constructor for optional fields. The strict `push -> Result`
+/// stays as the duplicate-is-a-bug door (the one the decoder uses).
 //
 // careful: duplicate detection is a linear `contains` scan (`T: PartialEq`, zero extra storage,
 // O(n²) build). Real sets here are small (signers, certificates); a shadow hash/sorted set is a
@@ -35,6 +41,14 @@ impl<T> OrderedSet<T> {
     /// Append an element, unless it is already present (which would break uniqueness). On refusal the
     /// `Err`'s `DuplicateKey` carries the INDEX the element would have occupied (the current length);
     /// the element itself is not returned and the collection is left unchanged.
+    ///
+    /// The would-be index this reports is the SAME index the `TryFrom<Vec<T>>` door (`scan_unique`)
+    /// reports for the identical duplicate: a `Vec` grown by appending has its first repeat sitting at
+    /// exactly the length the collection held when that repeat was appended, so the strict-door
+    /// (`push`) and the bulk-door (`try_from`) index conventions agree by construction.
+    ///
+    /// This is the strict, duplicate-is-a-bug door. For the std set contract ("already present" is a
+    /// benign no-op, not an error), use [`insert`](Self::insert), which returns `bool`.
     pub fn push(&mut self, value: T) -> Result<(), DeserializeError>
     where
         T: PartialEq,
@@ -44,6 +58,56 @@ impl<T> OrderedSet<T> {
         }
         self.0.push(value);
         Ok(())
+    }
+
+    /// Insert an element, returning `true` if it was newly added and `false` if it was already present
+    /// (the set is left unchanged). This is the std set contract (`HashSet`/`BTreeSet`/`IndexSet`
+    /// `insert`): a duplicate is a benign no-op, not an error, so a set union is a plain `insert` loop
+    /// with nothing to discard. For duplicate-is-a-bug strictness use [`push`](Self::push).
+    pub fn insert(&mut self, value: T) -> bool
+    where
+        T: PartialEq,
+    {
+        if self.0.contains(&value) {
+            false
+        } else {
+            self.0.push(value);
+            true
+        }
+    }
+
+    /// Whether the set already contains `value` (std set contract).
+    pub fn contains(&self, value: &T) -> bool
+    where
+        T: PartialEq,
+    {
+        self.0.contains(value)
+    }
+
+    /// Sort the set in place by element `Ord` (the `IndexSet::sort` precedent — sorting a set of
+    /// unique elements cannot create a duplicate, so the uniqueness invariant is preserved). This
+    /// CHANGES the byte order the set re-emits: the wire-order round-trip guarantee applies to an
+    /// UNTOUCHED decoded set, and deliberately sorting is opting out of it.
+    pub fn sort(&mut self)
+    where
+        T: Ord,
+    {
+        self.0.sort();
+    }
+
+    /// The empty-means-absent constructor for an optional set field: an empty input is `Ok(None)` (the
+    /// field is absent), and a non-empty input goes through the `TryFrom<Vec<T>>` uniqueness door
+    /// wrapped in `Some`. Only the duplicate failure surfaces as `Err` — unlike `TryFrom::try_from(v).ok()`,
+    /// which would silently swallow it.
+    pub fn try_opt_from(vec: Vec<T>) -> Result<Option<Self>, DeserializeError>
+    where
+        T: PartialEq,
+    {
+        if vec.is_empty() {
+            Ok(None)
+        } else {
+            Self::try_from(vec).map(Some)
+        }
     }
 
     /// Remove and return the last element (`None` if empty). Cannot create a duplicate, so unchecked.
@@ -137,6 +201,30 @@ impl<'a, T> IntoIterator for &'a OrderedSet<T> {
     }
 }
 
+/// std SET `Extend`: a duplicate is IGNORED (keep-first), the same semantics `HashSet`/`IndexSet`
+/// settled decades ago — so `dst.extend(src)` is a set union. For duplicate-is-a-bug strictness on a
+/// single element use [`OrderedSet::push`] instead; `Extend` never surfaces the duplicate.
+impl<T: PartialEq> Extend<T> for OrderedSet<T> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        for value in iter {
+            self.insert(value);
+        }
+    }
+}
+
+/// std SET `FromIterator`: collect DEDUPS keep-first (`IndexSet::from_iter` semantics). This is the
+/// order-preserving normalizing conversion — `vec.into_iter().collect::<OrderedSet<_>>()` — and, for
+/// the non-empty twin, `…collect::<OrderedSet<_>>().try_into()` composes it with the min-1 refinement
+/// door. There is deliberately no `FromIterator` on `NonEmptyOrderedSet` (an empty iterator is
+/// unrepresentable there).
+impl<T: PartialEq> FromIterator<T> for OrderedSet<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut set = Self::new();
+        set.extend(iter);
+        set
+    }
+}
+
 /// A `Vec<T>` guaranteed to hold at least one element AND no duplicates — the uniqueness twin of
 /// `NonEmptyVec<T>` for a `[+ T]` collection rule carrying `@duplicates reject`.
 ///
@@ -154,7 +242,9 @@ impl<T> NonEmptyOrderedSet<T> {
     }
 
     /// Append an element, unless it is already present (uniqueness). Growing can never violate the
-    /// `>= 1` lower bound, so the only failure is a duplicate.
+    /// `>= 1` lower bound, so the only failure is a duplicate. The would-be index reported here agrees
+    /// with the `TryFrom<Vec<T>>` door's for the same duplicate (see `OrderedSet::push`). This is the
+    /// strict, duplicate-is-a-bug door; for the std set contract use [`insert`](Self::insert).
     pub fn push(&mut self, value: T) -> Result<(), DeserializeError>
     where
         T: PartialEq,
@@ -164,6 +254,54 @@ impl<T> NonEmptyOrderedSet<T> {
         }
         self.0.push(value);
         Ok(())
+    }
+
+    /// Insert an element, returning `true` if newly added and `false` if already present (std set
+    /// contract). Growing can never break the `>= 1` bound, so this is infallible even though the
+    /// strict [`push`](Self::push) reports a duplicate as an error.
+    pub fn insert(&mut self, value: T) -> bool
+    where
+        T: PartialEq,
+    {
+        if self.0.contains(&value) {
+            false
+        } else {
+            self.0.push(value);
+            true
+        }
+    }
+
+    /// Whether the set already contains `value` (std set contract).
+    pub fn contains(&self, value: &T) -> bool
+    where
+        T: PartialEq,
+    {
+        self.0.contains(value)
+    }
+
+    /// Sort the set in place by element `Ord` (`IndexSet::sort` precedent). Sorting can create neither
+    /// a duplicate nor emptiness, so both invariants hold; it CHANGES the re-emitted byte order (the
+    /// wire-order round-trip guarantee applies to an UNTOUCHED decoded set).
+    pub fn sort(&mut self)
+    where
+        T: Ord,
+    {
+        self.0.sort();
+    }
+
+    /// The empty-means-absent constructor for an optional non-empty set field: an empty input is
+    /// `Ok(None)` (the field is absent — the min-1 `RangeCheck` deliberately does NOT fire), and a
+    /// non-empty input goes through the `TryFrom<Vec<T>>` door (uniqueness) wrapped in `Some`. Only the
+    /// duplicate failure surfaces as `Err`.
+    pub fn try_opt_from(vec: Vec<T>) -> Result<Option<Self>, DeserializeError>
+    where
+        T: PartialEq,
+    {
+        if vec.is_empty() {
+            Ok(None)
+        } else {
+            Self::try_from(vec).map(Some)
+        }
     }
 
     /// Remove and return the last element, unless doing so would empty the collection (refused at
@@ -270,6 +408,43 @@ impl<'a, T> IntoIterator for &'a NonEmptyOrderedSet<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
+    }
+}
+
+/// std SET `Extend`: a duplicate is IGNORED (keep-first), same as `OrderedSet`; growing can never
+/// break the `>= 1` bound. `dst.extend(src)` is a union.
+impl<T: PartialEq> Extend<T> for NonEmptyOrderedSet<T> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        for value in iter {
+            self.insert(value);
+        }
+    }
+}
+
+/// The refinement door OrderedSet → NonEmptyOrderedSet: elements are ALREADY unique, so the only check
+/// is non-emptiness — an empty `OrderedSet` fails with the same `RangeCheck { min: Some(1), .. }`
+/// (`0 not at least 1`) as every other min-1 door.
+impl<T> TryFrom<OrderedSet<T>> for NonEmptyOrderedSet<T> {
+    type Error = DeserializeError;
+
+    fn try_from(set: OrderedSet<T>) -> Result<Self, Self::Error> {
+        if set.0.is_empty() {
+            return Err(DeserializeFailure::RangeCheck {
+                found: 0,
+                min: Some(1),
+                max: None,
+            }
+            .into());
+        }
+        Ok(Self(set.0))
+    }
+}
+
+/// The widening door NonEmptyOrderedSet → OrderedSet: dropping the min-1 refinement is infallible
+/// (uniqueness is retained, and every non-empty set is a valid possibly-empty set).
+impl<T> From<NonEmptyOrderedSet<T>> for OrderedSet<T> {
+    fn from(set: NonEmptyOrderedSet<T>) -> Self {
+        OrderedSet(set.0)
     }
 }
 impl<T: serde::Serialize> serde::Serialize for OrderedSet<T> {

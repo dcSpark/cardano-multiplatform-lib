@@ -2,7 +2,7 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use super::*;
-use cml_core::serialization::{LenEncoding, StringEncoding, TagPresenceEncoding};
+use cml_core::serialization::{LenEncoding, StringEncoding};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
@@ -68,8 +68,6 @@ pub struct TreasuryWithdrawalsActionEncoding {
 pub struct UpdateCommitteeEncoding {
     pub len_encoding: LenEncoding,
     pub tag_encoding: Option<cbor_event::Sz>,
-    pub cold_credentials_tag_encoding: TagPresenceEncoding,
-    pub cold_credentials_encoding: LenEncoding,
     pub credentials_encoding: LenEncoding,
     pub credentials_value_encodings: BTreeMap<Credential, Option<cbor_event::Sz>>,
 }

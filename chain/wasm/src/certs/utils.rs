@@ -1,10 +1,10 @@
 use std::str::FromStr;
 
-use super::{Ipv4, Ipv6, StakeCredential};
+use super::{Credential, Ipv4, Ipv6};
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[wasm_bindgen]
-impl StakeCredential {
+impl Credential {
     // we don't implement RawBytesEncoding as from_raw_bytes() would be unable to distinguish
     pub fn to_raw_bytes(&self) -> Vec<u8> {
         self.0.to_raw_bytes().into()

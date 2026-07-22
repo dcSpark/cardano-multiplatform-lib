@@ -1,5 +1,5 @@
 use crate::NetworkId;
-use crate::SubCoin;
+use crate::Rational;
 
 use super::{Script, ScriptHash};
 use cml_chain::plutus::Language;
@@ -75,8 +75,8 @@ impl NetworkId {
 }
 
 #[wasm_bindgen]
-impl SubCoin {
-    /// Converts base 10 floats to SubCoin.
+impl Rational {
+    /// Converts base 10 floats to Rational.
     /// This is the format used by blockfrost for ex units
     /// Warning: If the passed in float was not meant to be base 10
     /// this might result in a slightly inaccurate fraction.

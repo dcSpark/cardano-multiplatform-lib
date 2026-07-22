@@ -39,7 +39,7 @@ VRF_cert = [
   proof: bytes .size 80
 ]
 
-nonce_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+nonce_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
 
 nonce = [
   ; @name identity
@@ -63,19 +63,19 @@ bootstrap_witness =
 
 ; all types hand-coded here:
 vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-VRF_vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-KES_vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+VRF_vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
+KES_vkey = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
 ed25519_signature = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-ed25519_key_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @used_as_elem
-genesis_delegate_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-genesis_hash           = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-VRF_key_hash           = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-auxiliary_data_hash   = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-pool_metadata_hash    = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-script_hash            = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-datum_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-block_body_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-block_header_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-transaction_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-script_data_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
-anchor_doc_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+ed25519_key_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @used_as_elem @copy
+genesis_delegate_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
+genesis_hash           = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
+VRF_key_hash           = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
+auxiliary_data_hash   = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
+pool_metadata_hash    = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
+script_hash            = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
+datum_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
+block_body_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
+block_header_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
+transaction_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
+script_data_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy
+anchor_doc_hash = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy

@@ -280,7 +280,7 @@ impl BabbageScriptRef {
 
 impl From<BabbageScript> for BabbageScriptRef {
     fn from(inner: BabbageScript) -> Self {
-        BabbageScriptRef::new(inner.clone())
+        BabbageScriptRef::new(inner)
     }
 }
 

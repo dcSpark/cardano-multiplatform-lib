@@ -20,6 +20,8 @@ fn _assert_deserialize<T: cml_core::serialization::Deserialize>() {}
 #[allow(dead_code)]
 fn _assert_raw_bytes<T: cml_core::serialization::RawBytesEncoding>() {}
 #[allow(dead_code)]
+fn _assert_copy<T: Copy>() {}
+#[allow(dead_code)]
 fn _assert_serialize_embedded_group<T: cml_core::serialization::SerializeEmbeddedGroup>() {}
 #[allow(dead_code)]
 fn _assert_deserialize_embedded_group<T: cml_core::serialization::DeserializeEmbeddedGroup>() {}
@@ -82,6 +84,7 @@ fn _extern_interface_self_check() {
     _assert_serialize::<crate::generated::governance::Anchor>();
     _assert_deserialize::<crate::generated::governance::Anchor>();
     _assert_raw_bytes::<crate::generated::crypto::AnchorDocHash>();
+    _assert_copy::<crate::generated::crypto::AnchorDocHash>();
     _assert_serialize::<crate::generated::assets::AssetName>();
     _assert_deserialize::<crate::generated::assets::AssetName>();
     _assert_serialize::<crate::generated::certs::AuthCommitteeHotCert>();
@@ -91,12 +94,15 @@ fn _extern_interface_self_check() {
     _assert_serialize::<crate::generated::auxdata::AuxiliaryData>();
     _assert_deserialize::<crate::generated::auxdata::AuxiliaryData>();
     _assert_raw_bytes::<crate::generated::crypto::AuxiliaryDataHash>();
+    _assert_copy::<crate::generated::crypto::AuxiliaryDataHash>();
     _assert_serialize::<crate::generated::plutus::BigInteger>();
     _assert_deserialize::<crate::generated::plutus::BigInteger>();
     _assert_serialize::<crate::generated::block::Block>();
     _assert_deserialize::<crate::generated::block::Block>();
     _assert_raw_bytes::<crate::generated::crypto::BlockBodyHash>();
+    _assert_copy::<crate::generated::crypto::BlockBodyHash>();
     _assert_raw_bytes::<crate::generated::crypto::BlockHeaderHash>();
+    _assert_copy::<crate::generated::crypto::BlockHeaderHash>();
     _assert_serialize::<crate::generated::crypto::BootstrapWitness>();
     _assert_deserialize::<crate::generated::crypto::BootstrapWitness>();
     _assert_serialize::<crate::generated::certs::Certificate>();
@@ -120,16 +126,20 @@ fn _extern_interface_self_check() {
     _assert_serialize::<crate::generated::DRepVotingThresholds>();
     _assert_deserialize::<crate::generated::DRepVotingThresholds>();
     _assert_raw_bytes::<crate::generated::crypto::DatumHash>();
+    _assert_copy::<crate::generated::crypto::DatumHash>();
     _assert_serialize::<crate::generated::transaction::DatumOption>();
     _assert_deserialize::<crate::generated::transaction::DatumOption>();
     _assert_raw_bytes::<crate::generated::crypto::Ed25519KeyHash>();
+    _assert_copy::<crate::generated::crypto::Ed25519KeyHash>();
     _assert_raw_bytes::<crate::generated::crypto::Ed25519Signature>();
     _assert_serialize::<crate::generated::plutus::ExUnitPrices>();
     _assert_deserialize::<crate::generated::plutus::ExUnitPrices>();
     _assert_serialize::<crate::generated::plutus::ExUnits>();
     _assert_deserialize::<crate::generated::plutus::ExUnits>();
     _assert_raw_bytes::<crate::generated::crypto::GenesisDelegateHash>();
+    _assert_copy::<crate::generated::crypto::GenesisDelegateHash>();
     _assert_raw_bytes::<crate::generated::crypto::GenesisHash>();
+    _assert_copy::<crate::generated::crypto::GenesisHash>();
     _assert_serialize::<crate::generated::governance::GovAction>();
     _assert_deserialize::<crate::generated::governance::GovAction>();
     _assert_serialize::<crate::generated::governance::GovActionId>();
@@ -149,6 +159,7 @@ fn _extern_interface_self_check() {
     _assert_serialize::<crate::generated::crypto::KESSignature>();
     _assert_deserialize::<crate::generated::crypto::KESSignature>();
     _assert_raw_bytes::<crate::generated::crypto::KESVkey>();
+    _assert_copy::<crate::generated::crypto::KESVkey>();
     _assert_serialize::<crate::generated::plutus::LegacyRedeemer>();
     _assert_deserialize::<crate::generated::plutus::LegacyRedeemer>();
     _assert_serialize::<crate::generated::auxdata::Metadata>();
@@ -172,6 +183,7 @@ fn _extern_interface_self_check() {
     _assert_serialize::<crate::generated::crypto::Nonce>();
     _assert_deserialize::<crate::generated::crypto::Nonce>();
     _assert_raw_bytes::<crate::generated::crypto::NonceHash>();
+    _assert_copy::<crate::generated::crypto::NonceHash>();
     _assert_serialize::<crate::generated::block::OperationalCert>();
     _assert_serialize_embedded_group::<crate::generated::block::OperationalCert>();
     _assert_deserialize::<crate::generated::block::OperationalCert>();
@@ -193,6 +205,7 @@ fn _extern_interface_self_check() {
     _assert_serialize::<crate::generated::certs::PoolMetadata>();
     _assert_deserialize::<crate::generated::certs::PoolMetadata>();
     _assert_raw_bytes::<crate::generated::crypto::PoolMetadataHash>();
+    _assert_copy::<crate::generated::crypto::PoolMetadataHash>();
     _assert_serialize::<crate::generated::certs::PoolRetirement>();
     _assert_serialize_embedded_group::<crate::generated::certs::PoolRetirement>();
     _assert_deserialize::<crate::generated::certs::PoolRetirement>();
@@ -240,7 +253,9 @@ fn _extern_interface_self_check() {
     _assert_deserialize::<crate::generated::transaction::ScriptAny>();
     _assert_deserialize_embedded_group::<crate::generated::transaction::ScriptAny>();
     _assert_raw_bytes::<crate::generated::crypto::ScriptDataHash>();
+    _assert_copy::<crate::generated::crypto::ScriptDataHash>();
     _assert_raw_bytes::<crate::generated::crypto::ScriptHash>();
+    _assert_copy::<crate::generated::crypto::ScriptHash>();
     _assert_serialize::<crate::generated::transaction::ScriptInvalidBefore>();
     _assert_serialize_embedded_group::<crate::generated::transaction::ScriptInvalidBefore>();
     _assert_deserialize::<crate::generated::transaction::ScriptInvalidBefore>();
@@ -298,6 +313,7 @@ fn _extern_interface_self_check() {
     _assert_serialize::<crate::generated::transaction::TransactionBody>();
     _assert_deserialize::<crate::generated::transaction::TransactionBody>();
     _assert_raw_bytes::<crate::generated::crypto::TransactionHash>();
+    _assert_copy::<crate::generated::crypto::TransactionHash>();
     _assert_serialize::<crate::generated::transaction::TransactionInput>();
     _assert_deserialize::<crate::generated::transaction::TransactionInput>();
     _assert_serialize::<crate::generated::transaction::TransactionOutput>();
@@ -327,7 +343,9 @@ fn _extern_interface_self_check() {
     _assert_serialize::<crate::generated::crypto::VRFCert>();
     _assert_deserialize::<crate::generated::crypto::VRFCert>();
     _assert_raw_bytes::<crate::generated::crypto::VRFKeyHash>();
+    _assert_copy::<crate::generated::crypto::VRFKeyHash>();
     _assert_raw_bytes::<crate::generated::crypto::VRFVkey>();
+    _assert_copy::<crate::generated::crypto::VRFVkey>();
     _assert_serialize::<crate::generated::assets::Value>();
     _assert_deserialize::<crate::generated::assets::Value>();
     _assert_raw_bytes::<crate::generated::crypto::Vkey>();

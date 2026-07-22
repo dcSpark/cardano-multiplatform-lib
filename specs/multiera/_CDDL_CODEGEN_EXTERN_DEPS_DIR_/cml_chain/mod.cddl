@@ -22,4 +22,4 @@ port = uint .le 65535
 withdrawals = { * reward_account => coin } ; @rust_name Withdrawals
 
 transaction_index = uint .size 2
-policy_id = _CDDL_CODEGEN_RAW_BYTES_TYPE_
+policy_id = _CDDL_CODEGEN_RAW_BYTES_TYPE_ ; @copy

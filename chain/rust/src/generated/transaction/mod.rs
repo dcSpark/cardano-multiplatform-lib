@@ -376,7 +376,7 @@ impl ScriptRef {
 
 impl From<Script> for ScriptRef {
     fn from(inner: Script) -> Self {
-        ScriptRef::new(inner.clone())
+        ScriptRef::new(inner)
     }
 }
 

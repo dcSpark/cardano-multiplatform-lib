@@ -21,7 +21,7 @@ impl Serialize for AlonzoFormatTxOut {
                 .unwrap_or_default()
                 .to_len_sz(
                     2 + match &self.datum_hash {
-                        Some(x) => 1,
+                        Some(_) => 1,
                         None => 0,
                     },
                     force_canonical,

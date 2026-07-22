@@ -81,7 +81,7 @@ impl Mint {
     }
 
     pub fn keys(&self) -> PolicyIdList {
-        PolicyIdList(self.0.keys().cloned().collect::<Vec<_>>())
+        PolicyIdList(self.0.keys().copied().collect::<Vec<_>>())
     }
 }
 
@@ -124,7 +124,7 @@ impl MultiAsset {
     }
 
     pub fn keys(&self) -> PolicyIdList {
-        PolicyIdList(self.0.keys().cloned().collect::<Vec<_>>())
+        PolicyIdList(self.0.keys().copied().collect::<Vec<_>>())
     }
 }
 

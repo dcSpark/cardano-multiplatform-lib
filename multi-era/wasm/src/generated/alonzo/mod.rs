@@ -230,7 +230,7 @@ impl AlonzoProposedProtocolParameterUpdates {
     }
 
     pub fn keys(&self) -> GenesisHashList {
-        self.0.keys().cloned().collect::<Vec<_>>().into()
+        self.0.keys().copied().collect::<Vec<_>>().into()
     }
 }
 
@@ -605,9 +605,7 @@ impl AlonzoTransactionBody {
     }
 
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
-        self.0
-            .auxiliary_data_hash
-            .map(std::convert::Into::into)
+        self.0.auxiliary_data_hash.map(std::convert::Into::into)
     }
 
     pub fn set_validity_interval_start(&mut self, validity_interval_start: u64) {
@@ -631,9 +629,7 @@ impl AlonzoTransactionBody {
     }
 
     pub fn script_data_hash(&self) -> Option<ScriptDataHash> {
-        self.0
-            .script_data_hash
-            .map(std::convert::Into::into)
+        self.0.script_data_hash.map(std::convert::Into::into)
     }
 
     pub fn set_collateral_inputs(&mut self, collateral_inputs: &TransactionInputList) {

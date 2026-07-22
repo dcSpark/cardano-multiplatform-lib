@@ -24,7 +24,7 @@ impl_wasm_list_needs_into!(
     GenesisHash,
     GenesisHashList,
     true,
-    false
+    true
 );
 
 /// Generated at the request of: cml-multi-era.

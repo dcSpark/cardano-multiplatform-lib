@@ -5406,7 +5406,7 @@ mod tests {
                     ),
                     PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                required_signers.try_into().unwrap(),
+                required_signers,
                 PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
@@ -5557,7 +5557,7 @@ mod tests {
                     ),
                     PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                required_signers.try_into().unwrap(),
+                required_signers,
                 PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }
@@ -5738,7 +5738,7 @@ mod tests {
                     ),
                     PlutusData::from_cbor_bytes(&hex::decode("D866820380").unwrap()).unwrap(),
                 ),
-                required_signers.try_into().unwrap(),
+                required_signers,
                 PlutusData::from_cbor_bytes(&hex::decode("d866820181d866820083581c5627217786eb781fbfb51911a253f4d250fdbfdcf1198e70d35985a9443330353301").unwrap()).unwrap()
             ).unwrap()).unwrap();
         }

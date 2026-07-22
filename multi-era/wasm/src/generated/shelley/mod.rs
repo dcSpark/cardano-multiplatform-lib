@@ -848,7 +848,7 @@ impl ShelleyProposedProtocolParameterUpdates {
     }
 
     pub fn keys(&self) -> GenesisHashList {
-        self.0.keys().cloned().collect::<Vec<_>>().into()
+        self.0.keys().copied().collect::<Vec<_>>().into()
     }
 }
 
@@ -1229,9 +1229,7 @@ impl ShelleyTransactionBody {
     }
 
     pub fn auxiliary_data_hash(&self) -> Option<AuxiliaryDataHash> {
-        self.0
-            .auxiliary_data_hash
-            .map(std::convert::Into::into)
+        self.0.auxiliary_data_hash.map(std::convert::Into::into)
     }
 
     pub fn new(

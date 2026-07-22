@@ -154,7 +154,7 @@ impl_wasm_list_needs_into!(
     Ed25519KeyHash,
     Ed25519KeyHashList,
     true,
-    false
+    true
 );
 
 pub type Epoch = u64;
@@ -1061,7 +1061,7 @@ impl_wasm_list_needs_into!(
 
 pub type PolicyId = ScriptHash;
 
-impl_wasm_list_needs_into!(cml_chain::PolicyId, PolicyId, PolicyIdList, true, false);
+impl_wasm_list_needs_into!(cml_chain::PolicyId, PolicyId, PolicyIdList, true, true);
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

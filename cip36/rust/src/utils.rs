@@ -254,7 +254,8 @@ impl CIP36RegistrationCbor {
             if weighted.is_empty() {
                 return Err(CIP36Error::EmptyDelegationArray);
             }
-            if weighted.iter().any(|d| d.weight != 0) {
+            // CIP-36: "The weights in the delegation array are not all zero"
+            if weighted.iter().all(|d| d.weight == 0) {
                 return Err(CIP36Error::DelegationWeightsZero);
             }
         }

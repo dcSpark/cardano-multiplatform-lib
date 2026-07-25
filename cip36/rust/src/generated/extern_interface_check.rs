@@ -29,12 +29,16 @@ fn _extern_interface_self_check() {
     _assert_deserialize::<crate::generated::CIP36Delegation>();
     _assert_serialize::<crate::generated::CIP36DelegationDistribution>();
     _assert_deserialize::<crate::generated::CIP36DelegationDistribution>();
+    _assert_serialize::<crate::generated::CIP36DeregistrationCbor>();
+    _assert_deserialize::<crate::generated::CIP36DeregistrationCbor>();
     _assert_serialize::<crate::generated::CIP36DeregistrationWitness>();
     _assert_deserialize::<crate::generated::CIP36DeregistrationWitness>();
     _assert_serialize::<crate::generated::CIP36KeyDeregistration>();
     _assert_deserialize::<crate::generated::CIP36KeyDeregistration>();
     _assert_serialize::<crate::generated::CIP36KeyRegistration>();
     _assert_deserialize::<crate::generated::CIP36KeyRegistration>();
+    _assert_serialize::<crate::generated::CIP36RegistrationCbor>();
+    _assert_deserialize::<crate::generated::CIP36RegistrationCbor>();
     _assert_serialize::<crate::generated::CIP36RegistrationWitness>();
     _assert_deserialize::<crate::generated::CIP36RegistrationWitness>();
 }

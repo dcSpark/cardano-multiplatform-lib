@@ -1,6 +1,12 @@
+; This type is a view over full transaction metadata (labels 61284/61285 among
+; arbitrary other metadatum labels). The rest row captures all non-CIP36 labels so
+; that a value parsed from a Metadata map round-trips byte-exactly instead of
+; silently projecting down to only the CIP36 entries — the reason the generated
+; CBOR API used to be hand-suppressed in favor of to/from_metadata_bytes.
 CIP36_registration_cbor = {
   61284: CIP36_key_registration, ; @name key_registration
   61285: CIP36_registration_witness, ; @name registration_witness
+  * transaction_metadatum_label => transaction_metadatum,
 }
 
 CIP36_voting_pub_key = public_key
@@ -42,9 +48,12 @@ CIP36_registration_witness = {
 }
 
 
+; Same metadata-view shape as CIP36_registration_cbor (labels 61286/61285): the
+; rest row captures all non-CIP36 metadatum labels for byte-exact round-trips.
 CIP36_deregistration_cbor = {
   61286: CIP36_key_deregistration, ; @name key_deregistration
   61285: CIP36_deregistration_witness, ; @name deregistration_witness
+  * transaction_metadatum_label => transaction_metadatum,
 }
 
 CIP36_key_deregistration = {

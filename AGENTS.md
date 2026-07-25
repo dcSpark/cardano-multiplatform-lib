@@ -85,8 +85,15 @@ note: a stranded half-pass surfaces as unresolved-import errors, but `codegen.sh
 
 `cargo test --workspace` is the gate. The `multi-era` golden tests round-trip real block CBOR
 byte-for-byte, and the `chain` address tests assert known `addr1…` strings — so serialization or
-dependency changes that alter behavior get caught. CI also runs `cargo fmt --check`, `cargo clippy`
-(with an allow-list for generated-code lints), and an advisory `cargo deny`; mirror these locally.
+dependency changes that alter behavior get caught. CI also runs `cargo fmt --check`, the clippy
+gate, and an advisory `cargo deny`; mirror these locally. The clippy gate is defined once in
+`./clippy.sh` and run by both CI and `codegen.sh` — never restate lint flags at a call site. It is
+a two-owner gate: a lint in hand-written code is ours to fix at the site, while a lint under
+`src/generated/` is an upstream cddl-codegen regression to report (the generator scopes its own
+allows inside the generated module roots, so nothing should escape them). Never widen
+`clippy.sh`'s allow list to cover generated code — that both blinds the same lint for hand-written
+code and switches off the regression signal the check exists for. Read the script's header before
+changing the policy.
 
 ## Conventions to check before changing them
 

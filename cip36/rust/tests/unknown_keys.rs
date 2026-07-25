@@ -167,8 +167,11 @@ fn fail_of<T>(r: Result<T, DeserializeError>) -> String {
 
 // ===========================================================================
 // SCENARIO 1: unknown integer label BEFORE the CIP-36 labels.
-// The unknown value is never consumed, so it is re-read as the next key and the
-// outcome diverges by the value's CBOR type. This is the headline consume-bug.
+// unknown labels are CAPTURED into
+// `rest` — key encoding, value, and wire position included — and round-trip
+// byte-exactly. (avoids a skip arm never consumed
+// the unknown VALUE, which would diverge by the value's CBOR type — e.g. an
+// int-valued unknown label would silent eat a mandatory field.)
 // ===========================================================================
 
 #[test]
@@ -186,49 +189,23 @@ fn scenario1_unknown_label_before_cip36_labels() {
             ],
         )
     };
-
-    // QUIRK: value is an UNSIGNED INT. The bug reads label 99 (skip, no value),
-    // then reads the int value 42 AS A KEY (also unknown, skip), then reads
-    // 61284 and parses key_registration as the "3rd pair" -> the definite loop
-    // (n=3) then ends, so 61285 is NEVER reached and the witness looks missing.
-    // Net effect: a stray int-valued unknown key silently eats the witness.
-    assert_eq!(
-        fail_of(CIP36RegistrationCbor::from_metadata_bytes(&reg(cbor_uint(
-            42
-        )))),
-        "MandatoryFieldMissing(Uint(61285))"
-    );
-
-    // QUIRK: value is TEXT. It is re-read as a key and hits the registration
-    // loop's dedicated Text arm -> UnknownKey(Str(<the value text>)). The error
-    // even leaks the unknown VALUE's contents as if it were a key name.
-    assert_eq!(
-        fail_of(CIP36RegistrationCbor::from_metadata_bytes(&reg(cbor_text(
-            "foo"
-        )))),
-        "UnknownKey(Str(\"foo\"))"
-    );
-
-    // QUIRK: value is a MAP / ARRAY / BYTES. Re-read as a key, it hits the
-    // `other_type` arm -> UnexpectedKeyType(<that type>).
-    assert_eq!(
-        fail_of(CIP36RegistrationCbor::from_metadata_bytes(
-            &reg(cbor_map0())
-        )),
-        "UnexpectedKeyType(Map)"
-    );
-    assert_eq!(
-        fail_of(CIP36RegistrationCbor::from_metadata_bytes(
-            &reg(cbor_arr0())
-        )),
-        "UnexpectedKeyType(Array)"
-    );
-    assert_eq!(
-        fail_of(CIP36RegistrationCbor::from_metadata_bytes(&reg(
-            cbor_bytes()
-        ))),
-        "UnexpectedKeyType(Bytes)"
-    );
+    for val in [
+        cbor_uint(42),
+        cbor_text("foo"),
+        cbor_map0(),
+        cbor_arr0(),
+        cbor_bytes(),
+    ] {
+        let bytes = reg(val);
+        let parsed = CIP36RegistrationCbor::from_metadata_bytes(&bytes)
+            .expect("contract: unknown labels are captured, not rejected");
+        assert_eq!(parsed.rest.len(), 1, "unknown entry lands in rest");
+        assert_eq!(
+            parsed.to_metadata_bytes(),
+            bytes,
+            "unknown entry round-trips byte-exactly (position + encodings)"
+        );
+    }
 
     // ---- DEREGISTRATION ---------------------------------------------------
     let dereg_key = dereg_key_bytes();
@@ -243,50 +220,26 @@ fn scenario1_unknown_label_before_cip36_labels() {
             ],
         )
     };
-
-    // QUIRK: same int-value consume-bug, but here the swallowed field is the
-    // key_deregistration (61286).
-    assert_eq!(
-        fail_of(CIP36DeregistrationCbor::from_metadata_bytes(&dereg(
-            cbor_uint(42)
-        ))),
-        "MandatoryFieldMissing(Uint(61286))"
-    );
-
-    // QUIRK-WATCH: ASYMMETRY vs registration. The deregistration loop has NO
-    // dedicated Text arm, so a TEXT value falls through to `other_type` and
-    // yields UnexpectedKeyType(Text) instead of UnknownKey(Str(..)). See
-    // scenario3 for the same asymmetry on a genuine text KEY.
-    assert_eq!(
-        fail_of(CIP36DeregistrationCbor::from_metadata_bytes(&dereg(
-            cbor_text("foo")
-        ))),
-        "UnexpectedKeyType(Text)"
-    );
-    assert_eq!(
-        fail_of(CIP36DeregistrationCbor::from_metadata_bytes(&dereg(
-            cbor_map0()
-        ))),
-        "UnexpectedKeyType(Map)"
-    );
-    assert_eq!(
-        fail_of(CIP36DeregistrationCbor::from_metadata_bytes(&dereg(
-            cbor_arr0()
-        ))),
-        "UnexpectedKeyType(Array)"
-    );
-    assert_eq!(
-        fail_of(CIP36DeregistrationCbor::from_metadata_bytes(&dereg(
-            cbor_bytes()
-        ))),
-        "UnexpectedKeyType(Bytes)"
-    );
+    for val in [
+        cbor_uint(42),
+        cbor_text("foo"),
+        cbor_map0(),
+        cbor_arr0(),
+        cbor_bytes(),
+    ] {
+        let bytes = dereg(val);
+        let parsed = CIP36DeregistrationCbor::from_metadata_bytes(&bytes)
+            .expect("contract: unknown labels are captured, not rejected");
+        assert_eq!(parsed.rest.len(), 1, "unknown entry lands in rest");
+        assert_eq!(parsed.to_metadata_bytes(), bytes);
+    }
 }
 
 // ===========================================================================
 // SCENARIO 2: unknown integer label AFTER the two CIP-36 pairs.
-// Interaction of the consume-bug with the outer `read_elems(2)` / `finish()`
-// bookkeeping, split by definite vs indefinite outer length.
+// captured and preserved for BOTH definite and
+// indefinite outer maps. (avoids definite maps with extras failing
+// if indefinite maps silently DROPPED the unknown entry on re-serialization.)
 // ===========================================================================
 
 #[test]
@@ -296,73 +249,45 @@ fn scenario2_unknown_label_after_cip36_labels() {
     let dereg_key = dereg_key_bytes();
     let dereg_wit = dereg_witness_bytes();
 
-    // DEFINITE length 3: both mandatory fields parse fine, then label 99 is read
-    // (its value left unconsumed) and the loop ends by count. But the outer
-    // read-len only ever counted 2 (`read_elems(2)`), so `finish()` sees n=3.
-    // QUIRK-WATCH: a trailing unknown key in a DEFINITE map is rejected not as an
-    // unknown-key error but as a length mismatch.
-    assert_eq!(
-        fail_of(CIP36RegistrationCbor::from_metadata_bytes(&assemble(
-            Some(3),
+    for len in [Some(3), None] {
+        let reg_bytes = assemble(
+            len,
             &[
                 (61284, reg_key.clone()),
                 (61285, reg_wit.clone()),
                 (99, cbor_uint(42)),
             ],
-        ))),
-        "DefiniteLenMismatch(3, Some(2))"
-    );
-    assert_eq!(
-        fail_of(CIP36DeregistrationCbor::from_metadata_bytes(&assemble(
-            Some(3),
+        );
+        let parsed = CIP36RegistrationCbor::from_metadata_bytes(&reg_bytes)
+            .expect("contract: trailing unknown label is captured (definite or indefinite)");
+        assert_eq!(parsed.rest.len(), 1);
+        assert_eq!(
+            parsed.to_metadata_bytes(),
+            reg_bytes,
+            "trailing unknown entry (and the outer length encoding) must be preserved"
+        );
+
+        let dereg_bytes = assemble(
+            len,
             &[
                 (61285, dereg_wit.clone()),
                 (61286, dereg_key.clone()),
                 (99, cbor_uint(42)),
             ],
-        ))),
-        "DefiniteLenMismatch(3, Some(2))"
-    );
-
-    // INDEFINITE length: the same trailing unknown int label is tolerated. The
-    // loop reads 99 (skip), re-reads its int value 42 as an (unknown) key (skip),
-    // then hits the break. `finish()` is a no-op for indefinite maps.
-    // QUIRK-WATCH: unknown entry is silently DROPPED; the result round-trips to
-    // exactly the canonical baseline (unknown data is not preserved).
-    let reg_ok = CIP36RegistrationCbor::from_metadata_bytes(&assemble(
-        None,
-        &[
-            (61284, reg_key.clone()),
-            (61285, reg_wit.clone()),
-            (99, cbor_uint(42)),
-        ],
-    ))
-    .expect("indefinite outer map with trailing unknown int label should be Ok");
-    assert_eq!(
-        reg_ok.to_metadata_bytes(),
-        baseline_reg().to_metadata_bytes(),
-        "unknown trailing entry must be dropped, not preserved"
-    );
-
-    let dereg_ok = CIP36DeregistrationCbor::from_metadata_bytes(&assemble(
-        None,
-        &[
-            (61285, dereg_wit.clone()),
-            (61286, dereg_key.clone()),
-            (99, cbor_uint(42)),
-        ],
-    ))
-    .expect("indefinite outer map with trailing unknown int label should be Ok");
-    assert_eq!(
-        dereg_ok.to_metadata_bytes(),
-        baseline_dereg().to_metadata_bytes(),
-        "unknown trailing entry must be dropped, not preserved"
-    );
+        );
+        let parsed = CIP36DeregistrationCbor::from_metadata_bytes(&dereg_bytes)
+            .expect("contract: trailing unknown label is captured (definite or indefinite)");
+        assert_eq!(parsed.rest.len(), 1);
+        assert_eq!(parsed.to_metadata_bytes(), dereg_bytes);
+    }
 }
 
 // ===========================================================================
-// SCENARIO 3: a genuine TEXT key in the outer map (registration vs
-// deregistration asymmetry).
+// SCENARIO 3: a genuine TEXT key in the outer map.
+// The rest row's key domain is `uint` (transaction_metadatum_label), so text
+// keys are rejected — with the SAME error for both types. (avoids
+// loops diverging: registration UnknownKey(Str),
+// deregistration UnexpectedKeyType(Text).)
 // ===========================================================================
 
 #[test]
@@ -392,21 +317,17 @@ fn scenario3_text_key_outer_asymmetry() {
         s.finalize()
     };
 
-    // QUIRK-WATCH: the REGISTRATION loop has a dedicated `CBORType::Text` arm
-    // that returns UnknownKey(Str(..)) leaking the key name.
+    // contract: unknown-KEY tolerance is exactly as wide as the rest row's key
+    // domain (`uint`); a text key is an UnknownKey error either way.
     assert_eq!(
         fail_of(CIP36RegistrationCbor::from_metadata_bytes(&text_key_reg)),
         "UnknownKey(Str(\"hello\"))"
     );
-    // QUIRK-WATCH: the DEREGISTRATION loop has NO Text arm, so the very same
-    // input yields UnexpectedKeyType(Text) instead. This asymmetry between the
-    // two hand-written loops is accidental and likely to normalize under the new
-    // codegen.
     assert_eq!(
         fail_of(CIP36DeregistrationCbor::from_metadata_bytes(
             &text_key_dereg
         )),
-        "UnexpectedKeyType(Text)"
+        "UnknownKey(Str(\"hello\"))"
     );
 }
 
@@ -726,27 +647,23 @@ fn scenario7_length_and_key_type_mismatches() {
 // ===========================================================================
 
 #[test]
-fn scenario8_trailing_garbage_is_ignored() {
-    // QUIRK-WATCH: `from_metadata_bytes` does NOT check that the whole input was
-    // consumed. Extra bytes after a complete valid outer map are silently
-    // ignored and deserialization still succeeds.
+fn scenario8_trailing_garbage_is_rejected() {
+    // contract: `from_metadata_bytes` (= the generated `from_cbor_bytes`) checks
+    // that the whole input was consumed; extra bytes after a complete valid outer
+    // map are rejected. (avoids the hand-written deserializer
+    // silently ignored trailing bytes.)
     let mut bytes = baseline_reg().to_metadata_bytes();
     bytes.extend_from_slice(&[0xff, 0xff, 0xde, 0xad]);
-    let parsed = CIP36RegistrationCbor::from_metadata_bytes(&bytes)
-        .expect("trailing garbage after a valid structure is ignored (currently Ok)");
     assert_eq!(
-        parsed.to_metadata_bytes(),
-        baseline_reg().to_metadata_bytes(),
-        "the parse ignores trailing bytes and yields the canonical structure"
+        fail_of(CIP36RegistrationCbor::from_metadata_bytes(&bytes)),
+        "CBOR(TrailingData)"
     );
 
     // Same for deregistration.
     let mut dbytes = baseline_dereg().to_metadata_bytes();
     dbytes.extend_from_slice(&[0x01, 0x02, 0x03]);
-    let dparsed = CIP36DeregistrationCbor::from_metadata_bytes(&dbytes)
-        .expect("trailing garbage after a valid structure is ignored (currently Ok)");
     assert_eq!(
-        dparsed.to_metadata_bytes(),
-        baseline_dereg().to_metadata_bytes(),
+        fail_of(CIP36DeregistrationCbor::from_metadata_bytes(&dbytes)),
+        "CBOR(TrailingData)"
     );
 }

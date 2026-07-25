@@ -16,7 +16,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 cml-core = { "path" = "../../core/rust", version = "6.2.0" }
 base64 = "0.22.1"
-cbor_event = "3.2.0"
+cbor_event = { git = "https://github.com/dcSpark/cbor_event", rev = "e2bca6d257f70ab0c226c4efd0726d3f5c1b4490" }
 cryptoxide = "0.5.1"
 ed25519-bip32 = "0.4.2"
 bech32 = "0.12.0"

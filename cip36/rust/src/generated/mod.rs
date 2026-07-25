@@ -8,18 +8,83 @@
 )]
 
 extern crate derivative;
-pub mod cbor_encodings;
 mod extern_interface_check;
+fn cip36_deregistration_cbor_rest_flatten_serialize<S: serde::Serializer>(
+    rest: &OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    cml_core::open_struct_rest_json::serialize_flattened_rest(
+        &["key_deregistration", "deregistration_witness"],
+        |k: &u64| Ok::<String, std::convert::Infallible>(k.to_string()),
+        rest.iter(),
+        serializer,
+    )
+}
+
+fn cip36_deregistration_cbor_rest_flatten_deserialize<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>, D::Error> {
+    let pairs: Vec<(String, TransactionMetadatum)> =
+        cml_core::open_struct_rest_json::read_flattened_rest_pairs(deserializer)?;
+    pairs
+        .into_iter()
+        .map(|(ks, v)| {
+            let k = ks.parse::<u64>().map_err(|_| {
+                serde::de::Error::custom(format!(
+                    "open struct-map rest key {ks:?} is not a valid uint"
+                ))
+            })?;
+            Ok((k, v))
+        })
+        .collect()
+}
+
+fn cip36_registration_cbor_rest_flatten_serialize<S: serde::Serializer>(
+    rest: &OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    cml_core::open_struct_rest_json::serialize_flattened_rest(
+        &["key_registration", "registration_witness"],
+        |k: &u64| Ok::<String, std::convert::Infallible>(k.to_string()),
+        rest.iter(),
+        serializer,
+    )
+}
+
+fn cip36_registration_cbor_rest_flatten_deserialize<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>, D::Error> {
+    let pairs: Vec<(String, TransactionMetadatum)> =
+        cml_core::open_struct_rest_json::read_flattened_rest_pairs(deserializer)?;
+    pairs
+        .into_iter()
+        .map(|(ks, v)| {
+            let k = ks.parse::<u64>().map_err(|_| {
+                serde::de::Error::custom(format!(
+                    "open struct-map rest key {ks:?} is not a valid uint"
+                ))
+            })?;
+            Ok((k, v))
+        })
+        .collect()
+}
+
+pub mod cbor_encodings;
 pub mod serialization;
 
 use cbor_encodings::{
-    CIP36DelegationEncoding, CIP36DeregistrationWitnessEncoding, CIP36KeyDeregistrationEncoding,
-    CIP36KeyRegistrationEncoding, CIP36RegistrationWitnessEncoding,
+    CIP36DelegationEncoding, CIP36DeregistrationCborEncoding, CIP36DeregistrationWitnessEncoding,
+    CIP36KeyDeregistrationEncoding, CIP36KeyRegistrationEncoding, CIP36RegistrationCborEncoding,
+    CIP36RegistrationWitnessEncoding,
 };
+use cml_chain::TransactionMetadatumLabel;
 use cml_chain::address::Address as PaymentAddress;
+use cml_chain::auxdata::TransactionMetadatum;
 use cml_core::non_empty::NonEmptyVec;
+use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use cml_crypto::{Ed25519Signature, PublicKey};
+use std::collections::BTreeMap;
 
 /// Weighted delegation input.
 /// This is the proportion of weight to assign to this public key relative to the weights
@@ -81,6 +146,15 @@ impl CIP36DelegationDistribution {
 pub struct CIP36DeregistrationCbor {
     pub key_deregistration: CIP36KeyDeregistration,
     pub deregistration_witness: CIP36DeregistrationWitness,
+    /// Captured open-map entries whose keys are not declared fields (CDDL `* k => v` rest row). Serialized after the declared fields; defaults empty. `@duplicates preserve` makes this a `PairMap` (duplicate keys kept, in wire order); otherwise the loose table container.
+    #[serde(flatten)]
+    #[serde(
+        serialize_with = "cip36_deregistration_cbor_rest_flatten_serialize",
+        deserialize_with = "cip36_deregistration_cbor_rest_flatten_deserialize"
+    )]
+    pub rest: OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>,
+    #[serde(skip)]
+    pub encodings: Option<CIP36DeregistrationCborEncoding>,
 }
 
 impl CIP36DeregistrationCbor {
@@ -91,6 +165,8 @@ impl CIP36DeregistrationCbor {
         Self {
             key_deregistration,
             deregistration_witness,
+            rest: OrderedHashMap::new(),
+            encodings: None,
         }
     }
 }
@@ -175,6 +251,15 @@ pub type CIP36Nonce = u64;
 pub struct CIP36RegistrationCbor {
     pub key_registration: CIP36KeyRegistration,
     pub registration_witness: CIP36RegistrationWitness,
+    /// Captured open-map entries whose keys are not declared fields (CDDL `* k => v` rest row). Serialized after the declared fields; defaults empty. `@duplicates preserve` makes this a `PairMap` (duplicate keys kept, in wire order); otherwise the loose table container.
+    #[serde(flatten)]
+    #[serde(
+        serialize_with = "cip36_registration_cbor_rest_flatten_serialize",
+        deserialize_with = "cip36_registration_cbor_rest_flatten_deserialize"
+    )]
+    pub rest: OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>,
+    #[serde(skip)]
+    pub encodings: Option<CIP36RegistrationCborEncoding>,
 }
 
 impl CIP36RegistrationCbor {
@@ -185,6 +270,8 @@ impl CIP36RegistrationCbor {
         Self {
             key_registration,
             registration_witness,
+            rest: OrderedHashMap::new(),
+            encodings: None,
         }
     }
 }

@@ -92,8 +92,7 @@ impl ByronProxySecretKey {
         ser2.serialize(&omega).unwrap();
         let buf2 = ser2.finalize();
 
-        let mut buf = vec![];
-        buf.push(byron_tags::SigningTag::ProxySK as u8);
+        let buf = vec![byron_tags::SigningTag::ProxySK as u8];
         let mut ser = se::Serializer::new(buf);
         ser.serialize(&protocol_magic)
             .unwrap()

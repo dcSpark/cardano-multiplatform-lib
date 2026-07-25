@@ -79,10 +79,7 @@ impl Serialize for MaryBlock {
             .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
         if force_canonical {
             key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
-                match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                    diff_ord => diff_ord,
-                }
+                cbor_canonical_key_cmp(lhs_bytes, rhs_bytes)
             });
         }
         for (key_bytes, _key, value) in key_order {
@@ -485,15 +482,9 @@ impl Serialize for MaryTransactionBody {
                             })
                             .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
                         if force_canonical {
-                            key_order.sort_by(
-                                |(lhs_bytes, _, _), (rhs_bytes, _, _)| match lhs_bytes
-                                    .len()
-                                    .cmp(&rhs_bytes.len())
-                                {
-                                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                                    diff_ord => diff_ord,
-                                },
-                            );
+                            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
+                                cbor_canonical_key_cmp(lhs_bytes, rhs_bytes)
+                            });
                         }
                         for (key_bytes, key, value) in key_order {
                             serializer.write_raw_bytes(&key_bytes)?;
@@ -621,15 +612,9 @@ impl Serialize for MaryTransactionBody {
                             })
                             .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
                         if force_canonical {
-                            key_order.sort_by(
-                                |(lhs_bytes, _, _), (rhs_bytes, _, _)| match lhs_bytes
-                                    .len()
-                                    .cmp(&rhs_bytes.len())
-                                {
-                                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                                    diff_ord => diff_ord,
-                                },
-                            );
+                            key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
+                                cbor_canonical_key_cmp(lhs_bytes, rhs_bytes)
+                            });
                         }
                         for (key_bytes, key, value) in key_order {
                             serializer.write_raw_bytes(&key_bytes)?;
@@ -652,10 +637,7 @@ impl Serialize for MaryTransactionBody {
                                 .collect::<Result<Vec<(Vec<u8>, &_, &_)>, cbor_event::Error>>()?;
                             if force_canonical {
                                 key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
-                                    match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                                        std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
-                                        diff_ord => diff_ord,
-                                    }
+                                    cbor_canonical_key_cmp(lhs_bytes, rhs_bytes)
                                 });
                             }
                             for (key_bytes, key, value) in key_order {

@@ -150,8 +150,12 @@ const GOLDEN_WEIGHTED_DEFAULT: &str = "a219ef64a501818258200036ef3e1f0d3f5989e2d
 const GOLDEN_WEIGHTED_PURPOSE_1: &str = "a219ef64a501818258200036ef3e1f0d3f5989e2d155ea54bdb2a72c4c456ccb959af4c94868f473f5a001025820e3cd2404c84de65f96918f18d5b445bcb933a7cda18eeded7945dd191e432369035839004777561e7d9ec112ec307572faec1aff61ff0cfed68df4cd5c847f1872b617657881e30ad17c46e4010c9cb3ebb2440653a34d32219c83e9041904d2050119ef65a101584000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 const GOLDEN_WEIGHTED_ABSENT: &str = "a219ef64a401818258200036ef3e1f0d3f5989e2d155ea54bdb2a72c4c456ccb959af4c94868f473f5a001025820e3cd2404c84de65f96918f18d5b445bcb933a7cda18eeded7945dd191e432369035839004777561e7d9ec112ec307572faec1aff61ff0cfed68df4cd5c847f1872b617657881e30ad17c46e4010c9cb3ebb2440653a34d32219c83e9041904d219ef65a101584000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 const GOLDEN_LEGACY: &str = "a219ef64a40158200036ef3e1f0d3f5989e2d155ea54bdb2a72c4c456ccb959af4c94868f473f5a0025820e3cd2404c84de65f96918f18d5b445bcb933a7cda18eeded7945dd191e43236903581de072b617657881e30ad17c46e4010c9cb3ebb2440653a34d32219c83e9041904d219ef65a101584000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-const GOLDEN_DEREG_DEFAULT: &str = "a219ef65a10158400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000019ef66a2015820e3cd2404c84de65f96918f18d5b445bcb933a7cda18eeded7945dd191e432369021904d2";
-const GOLDEN_DEREG_PURPOSE_1: &str = "a219ef65a10158400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000019ef66a3015820e3cd2404c84de65f96918f18d5b445bcb933a7cda18eeded7945dd191e432369021904d20301";
+// NOTE: codegen migration (open struct-maps) changed constructed-value wire order for
+// deregistration: the hand-written serializer emitted 61285 (witness) before 61286, the
+// generated serializer emits CDDL declaration order (61286 first). Parsed values still
+// round-trip their original order via encodings, and canonical order is unaffected.
+const GOLDEN_DEREG_DEFAULT: &str = "a219ef66a2015820e3cd2404c84de65f96918f18d5b445bcb933a7cda18eeded7945dd191e432369021904d219ef65a101584000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+const GOLDEN_DEREG_PURPOSE_1: &str = "a219ef66a3015820e3cd2404c84de65f96918f18d5b445bcb933a7cda18eeded7945dd191e432369021904d2030119ef65a101584000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
 #[test]
 fn golden_registration_weighted_default() {
@@ -381,31 +385,21 @@ fn preserve_indefinite_delegation_array() {
     assert_preserved(&crafted);
 }
 
-const QUIRK_OUTER_INDEF_OUTPUT: &str = "a219ef64a501818258200036ef3e1f0d3f5989e2d155ea54bdb2a72c4c456ccb959af4c94868f473f5a001025820e3cd2404c84de65f96918f18d5b445bcb933a7cda18eeded7945dd191e432369035839004777561e7d9ec112ec307572faec1aff61ff0cfed68df4cd5c847f1872b617657881e30ad17c46e4010c9cb3ebb2440653a34d32219c83e9041904d2050019ef65a101584000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-const QUIRK_OVERSIZED_LABEL_OUTPUT: &str = "a219ef64a501818258200036ef3e1f0d3f5989e2d155ea54bdb2a72c4c456ccb959af4c94868f473f5a001025820e3cd2404c84de65f96918f18d5b445bcb933a7cda18eeded7945dd191e432369035839004777561e7d9ec112ec307572faec1aff61ff0cfed68df4cd5c847f1872b617657881e30ad17c46e4010c9cb3ebb2440653a34d32219c83e9041904d2050019ef65a101584000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-
 #[test]
-fn quirk_outer_indefinite_map_not_preserved() {
-    // QUIRK: current behavior, expected to be revisited in codegen migration.
-    // The OUTER metadata map's length encoding is NOT tracked (CIP36RegistrationCbor stores no
-    // outer encoding); an indefinite outer map is re-emitted as a definite Len(2) map.
+fn preserve_outer_indefinite_map() {
+    // The OUTER metadata map's length encoding is tracked by the generated type (the
+    // codegen migration gave the view types their own outer encodings): an indefinite outer
+    // map round-trips byte-exactly.
     let crafted = craft_registration(true, false, false, false, false);
-    let parsed = CIP36RegistrationCbor::from_metadata_bytes(&crafted).unwrap();
-    let out = hex::encode(parsed.to_metadata_bytes());
-    assert_ne!(out, hex::encode(&crafted), "expected non-preservation");
-    assert_eq!(out, QUIRK_OUTER_INDEF_OUTPUT);
+    assert_preserved(&crafted);
 }
 
 #[test]
-fn quirk_oversized_label_not_preserved() {
-    // QUIRK: current behavior, expected to be revisited in codegen migration.
-    // The outer 61284/61285 label key encodings are NOT tracked; an 8-byte label is re-emitted
-    // canonically (2-byte).
+fn preserve_oversized_outer_label() {
+    // The outer 61284/61285 label key encodings are now tracked: an oversized (8-byte) label
+    // round-trips byte-exactly.
     let crafted = craft_registration(false, true, false, false, false);
-    let parsed = CIP36RegistrationCbor::from_metadata_bytes(&crafted).unwrap();
-    let out = hex::encode(parsed.to_metadata_bytes());
-    assert_ne!(out, hex::encode(&crafted), "expected non-preservation");
-    assert_eq!(out, QUIRK_OVERSIZED_LABEL_OUTPUT);
+    assert_preserved(&crafted);
 }
 
 // ===========================================================================

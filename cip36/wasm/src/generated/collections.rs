@@ -8,4 +8,5 @@
 // drift. Downstream crates point `--extern-wrapper-index <dep>=<this file>` here to
 // avoid re-minting these wrappers (a wasm duplicate-symbol link error otherwise).
 pub use crate::generated::CIP36DelegationList;
+pub use crate::generated::MapTransactionMetadatumLabelToTransactionMetadatum;
 pub use crate::generated::NonEmptyCIP36DelegationList;

@@ -17,7 +17,7 @@ generated-with = "0.1.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cbor_event = "3.2.0"
+cbor_event = { git = "https://github.com/dcSpark/cbor_event", rev = "e2bca6d257f70ab0c226c4efd0726d3f5c1b4490" }
 cml-chain = { path = "../../chain/rust", version = "6.2.0", features = ["used_from_wasm"] }
 cml-chain-wasm = { path = "../../chain/wasm", version = "6.2.0" }
 cml-core = { path = "../../core/rust", version = "6.2.0" }

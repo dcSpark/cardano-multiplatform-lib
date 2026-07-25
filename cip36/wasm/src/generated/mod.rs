@@ -8,11 +8,12 @@
 )]
 pub mod collections;
 
+use cml_chain_wasm::TransactionMetadatumLabel;
 use cml_chain_wasm::address::Address as PaymentAddress;
+use cml_chain_wasm::auxdata::TransactionMetadatum;
 use cml_core::non_empty::NonEmptyVec;
-use cml_core_wasm::{
-    impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_json_api, impl_wasm_list_needs_into,
-};
+use cml_core::ordered_hash_map::OrderedHashMap;
+use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions, impl_wasm_list_needs_into};
 use cml_crypto_wasm::{Ed25519Signature, PublicKey};
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
@@ -115,8 +116,7 @@ impl_wasm_list_needs_into!(
 #[wasm_bindgen]
 pub struct CIP36DeregistrationCbor(pub(crate) cml_cip36::CIP36DeregistrationCbor);
 
-// CIP36DeregistrationCbor does not implement Serialize as it may be a subset of metadata
-impl_wasm_json_api!(CIP36DeregistrationCbor);
+impl_wasm_cbor_json_api!(CIP36DeregistrationCbor);
 
 impl_wasm_conversions!(cml_cip36::CIP36DeregistrationCbor, CIP36DeregistrationCbor);
 
@@ -128,6 +128,11 @@ impl CIP36DeregistrationCbor {
 
     pub fn deregistration_witness(&self) -> CIP36DeregistrationWitness {
         self.0.deregistration_witness.clone().into()
+    }
+
+    /// The captured open-map entries whose keys are not declared fields (CDDL `* k => v` rest row), as the wasm map wrapper.
+    pub fn rest(&self) -> MapTransactionMetadatumLabelToTransactionMetadatum {
+        self.0.rest.clone().into()
     }
 
     pub fn new(
@@ -256,8 +261,7 @@ pub type CIP36Nonce = u64;
 #[wasm_bindgen]
 pub struct CIP36RegistrationCbor(pub(crate) cml_cip36::CIP36RegistrationCbor);
 
-// not implemented since CIP36RegistrationCbor doesn't implement Serialize as it's a subset of metadata
-impl_wasm_json_api!(CIP36RegistrationCbor);
+impl_wasm_cbor_json_api!(CIP36RegistrationCbor);
 
 impl_wasm_conversions!(cml_cip36::CIP36RegistrationCbor, CIP36RegistrationCbor);
 
@@ -269,6 +273,11 @@ impl CIP36RegistrationCbor {
 
     pub fn registration_witness(&self) -> CIP36RegistrationWitness {
         self.0.registration_witness.clone().into()
+    }
+
+    /// The captured open-map entries whose keys are not declared fields (CDDL `* k => v` rest row), as the wasm map wrapper.
+    pub fn rest(&self) -> MapTransactionMetadatumLabelToTransactionMetadatum {
+        self.0.rest.clone().into()
     }
 
     pub fn new(
@@ -317,6 +326,44 @@ pub type CIP36VotingPubKey = PublicKey;
 pub type CIP36VotingPurpose = u64;
 
 pub type CIP36Weight = u32;
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
+// rustfmt::skip: rustfmt breaks after the field vis leaving trailing whitespace and errors
+// (rust-lang/rustfmt#5703, fix PR #5708 unmerged). Remove when #5708 ships.
+#[rustfmt::skip]
+pub struct MapTransactionMetadatumLabelToTransactionMetadatum(
+    pub(crate) OrderedHashMap<cml_chain::TransactionMetadatumLabel, cml_chain::auxdata::TransactionMetadatum>,
+);
+
+impl_wasm_conversions!(OrderedHashMap<cml_chain::TransactionMetadatumLabel, cml_chain::auxdata::TransactionMetadatum>, MapTransactionMetadatumLabelToTransactionMetadatum);
+
+#[wasm_bindgen]
+impl MapTransactionMetadatumLabelToTransactionMetadatum {
+    pub fn new() -> Self {
+        Self(OrderedHashMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn insert(
+        &mut self,
+        key: TransactionMetadatumLabel,
+        value: &TransactionMetadatum,
+    ) -> Option<TransactionMetadatum> {
+        self.0.insert(key, value.clone().into()).map(Into::into)
+    }
+
+    pub fn get(&self, key: TransactionMetadatumLabel) -> Option<TransactionMetadatum> {
+        self.0.get(&key).map(|v| v.clone().into())
+    }
+
+    pub fn keys(&self) -> Vec<TransactionMetadatumLabel> {
+        self.0.keys().copied().collect::<Vec<_>>()
+    }
+}
 
 /// `[+ CIP36Delegation]`: at least one element, enforced by the `NonEmptyVec` representation.
 /// Enter via `try_from` or `new(first)`.

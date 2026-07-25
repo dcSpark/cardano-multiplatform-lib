@@ -200,8 +200,8 @@ pub fn write_bounded_bytes<'se>(
                 return serializer.write_bytes_sz(bytes, cbor_event::StringLenSz::Len(fit_sz));
             }
         }
-        StringEncoding::Indefinite(chunks) if !force_canonical => {
-            if valid_indefinite_string_encoding(chunks, bytes.len()) {
+        StringEncoding::Indefinite(chunks) if !force_canonical
+            && valid_indefinite_string_encoding(chunks, bytes.len()) => {
                 write_cbor_indefinite_byte_tag(serializer)?;
                 let mut start = 0;
                 for (len, sz) in chunks {
@@ -212,7 +212,6 @@ pub fn write_bounded_bytes<'se>(
                 }
                 return serializer.write_special(cbor_event::Special::Break);
             }
-        }
         _ =>
             /* handled below */
             {}

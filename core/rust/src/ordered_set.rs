@@ -25,6 +25,11 @@ use super::error::{DeserializeError, DeserializeFailure, Key};
 /// `try_opt_from` is the empty-means-absent constructor for optional fields. The strict `push -> Result`
 /// stays as the duplicate-is-a-bug door (the one the decoder uses).
 //
+// careful: the incremental doors (`push`/`insert`/`contains`/`Extend`/`FromIterator`) are linear
+// `contains` scans (`T: PartialEq`, zero extra storage, O(n) per element). The bulk `TryFrom<Vec<T>>`
+// door — the one the CBOR decoder feeds untrusted input through — is the hybrid `scan_unique`
+// (`T: Ord`): linear below `SORTED_SCAN_MIN_LEN`, sorted-index O(n log n) above, so a large
+// adversarial input cannot buy quadratic deep comparisons.
 // careful: duplicate detection is a linear `contains` scan (`T: PartialEq`, zero extra storage,
 // O(n²) build). Real sets here are small (signers, certificates); a shadow hash/sorted set is a
 // purely internal upgrade that would not change these public bounds if it is ever profiled to matter.
@@ -101,7 +106,7 @@ impl<T> OrderedSet<T> {
     /// which would silently swallow it.
     pub fn try_opt_from(vec: Vec<T>) -> Result<Option<Self>, DeserializeError>
     where
-        T: PartialEq,
+        T: Ord,
     {
         if vec.is_empty() {
             Ok(None)
@@ -152,18 +157,42 @@ impl<T> Default for OrderedSet<T> {
     }
 }
 
+/// Below this length `scan_unique` uses the plain linear `contains` scan; at or above it, the
+/// sorted-index scan. The crossover is empirical, not asymptotic: for cheap-to-compare elements
+/// (32-byte hashes) the linear scan's zero allocation and early-exit comparisons win up to a few
+/// dozen elements (measured ~21ns vs ~50ns at n=10, with the sorted scan already ahead by n=100),
+/// while expensive comparisons (large near-identical elements — the adversarial decode input) push
+/// the crossover *below* 10. 32 sits between those two crossovers: typical protocol sets (a handful
+/// of keys/certificates) keep the allocation-free path, and everything large enough for O(n²) to
+/// compound gets the O(n log n) scan.
+const SORTED_SCAN_MIN_LEN: usize = 32;
+
 /// Scan a `Vec` for the first duplicate; on success return the checked collection. Shared by both
 /// twins' doors so the uniqueness scan and its `DuplicateKey(index)` error can never drift.
-fn scan_unique<T: PartialEq>(vec: &[T]) -> Result<(), DeserializeError> {
-    for (i, elem) in vec.iter().enumerate() {
-        if vec[..i].contains(elem) {
-            return Err(DeserializeFailure::DuplicateKey(Key::Uint(i as u64)).into());
-        }
+///
+/// The reported index is the scan-order-first second occurrence (see `OrderedSet::push` for why the
+/// doors' index conventions agree). The sorted path reproduces it exactly: sorting index keys by
+/// `(element, original index)` puts every equal run in ascending index order, so each equal-adjacent
+/// pair's later index is a second occurrence, and the minimum over those is the first one in scan
+/// order.
+fn scan_unique<T: Ord>(vec: &[T]) -> Result<(), DeserializeError> {
+    let dup = if vec.len() < SORTED_SCAN_MIN_LEN {
+        (1..vec.len()).find(|&i| vec[..i].contains(&vec[i]))
+    } else {
+        let mut idx: Vec<usize> = (0..vec.len()).collect();
+        idx.sort_unstable_by(|&a, &b| vec[a].cmp(&vec[b]).then(a.cmp(&b)));
+        idx.windows(2)
+            .filter(|w| vec[w[0]].cmp(&vec[w[1]]).is_eq())
+            .map(|w| w[1])
+            .min()
+    };
+    match dup {
+        Some(i) => Err(DeserializeFailure::DuplicateKey(Key::Uint(i as u64)).into()),
+        None => Ok(()),
     }
-    Ok(())
 }
 
-impl<T: PartialEq> TryFrom<Vec<T>> for OrderedSet<T> {
+impl<T: Ord> TryFrom<Vec<T>> for OrderedSet<T> {
     type Error = DeserializeError;
 
     fn try_from(vec: Vec<T>) -> Result<Self, Self::Error> {
@@ -295,7 +324,7 @@ impl<T> NonEmptyOrderedSet<T> {
     /// duplicate failure surfaces as `Err`.
     pub fn try_opt_from(vec: Vec<T>) -> Result<Option<Self>, DeserializeError>
     where
-        T: PartialEq,
+        T: Ord,
     {
         if vec.is_empty() {
             Ok(None)
@@ -365,7 +394,7 @@ impl<T> NonEmptyOrderedSet<T> {
     }
 }
 
-impl<T: PartialEq> TryFrom<Vec<T>> for NonEmptyOrderedSet<T> {
+impl<T: Ord> TryFrom<Vec<T>> for NonEmptyOrderedSet<T> {
     type Error = DeserializeError;
 
     fn try_from(vec: Vec<T>) -> Result<Self, Self::Error> {
@@ -457,7 +486,7 @@ impl<T: serde::Serialize> serde::Serialize for OrderedSet<T> {
     }
 }
 
-impl<'de, T: serde::Deserialize<'de> + PartialEq> serde::de::Deserialize<'de> for OrderedSet<T> {
+impl<'de, T: serde::Deserialize<'de> + Ord> serde::de::Deserialize<'de> for OrderedSet<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::de::Deserializer<'de>,
@@ -478,9 +507,7 @@ impl<T: serde::Serialize> serde::Serialize for NonEmptyOrderedSet<T> {
     }
 }
 
-impl<'de, T: serde::Deserialize<'de> + PartialEq> serde::de::Deserialize<'de>
-    for NonEmptyOrderedSet<T>
-{
+impl<'de, T: serde::Deserialize<'de> + Ord> serde::de::Deserialize<'de> for NonEmptyOrderedSet<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::de::Deserializer<'de>,

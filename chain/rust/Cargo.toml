@@ -22,7 +22,7 @@ used_from_wasm = ["dep:wasm-bindgen"]
 [dependencies]
 cml-core = { "path" = "../../core/rust", version = "6.2.0" }
 cml-crypto = { "path" = "../../crypto/rust", version = "6.2.0" }
-cbor_event = "3.2.0"
+cbor_event = { git = "https://github.com/dcSpark/cbor_event", rev = "e2bca6d257f70ab0c226c4efd0726d3f5c1b4490" }
 linked-hash-map = "0.5.6"
 derivative = "2.2.0"
 serde = { version = "1.0.152", features = ["derive"] }

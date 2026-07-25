@@ -398,11 +398,9 @@ impl TransactionBuilderConfigBuilder {
                 .ok_or(TxBuilderError::UninitializedField(
                     TxBuilderConfigField::ExUnitPrices,
                 ))?,
-            cost_models: if self.cost_models.is_some() {
-                self.cost_models.unwrap()
-            } else {
-                CostModels::new(Default::default())
-            },
+            cost_models: self
+                .cost_models
+                .unwrap_or_else(|| CostModels::new(Default::default())),
             _collateral_percentage: self.collateral_percentage.ok_or(
                 TxBuilderError::UninitializedField(TxBuilderConfigField::CollateralPercentage),
             )?,

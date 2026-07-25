@@ -18,7 +18,12 @@
 #
 # cddl-codegen is pinned (CDDL_CODEGEN_REV) so a regen reflects spec changes, not codegen
 # drift. Bump CDDL_CODEGEN_REV in its own commit when intentionally adopting a newer codegen
-# (e.g. for a new era).
+# (e.g. for a new era). The pin can be overridden per-run from the environment
+# (CDDL_CODEGEN_REV=<sha> ./codegen.sh). Combined with CDDL_CODEGEN_DIR it selects a commit from
+# that checkout's object store — read-only, the checkout itself is never modified — instead of
+# whatever commit it happens to sit on. An env override is a one-off for testing an unmerged or
+# older codegen; the committed pin is what the tree is generated against, so anything you keep
+# must be regenerated against a committed pin before landing.
 #
 # WHAT STILL SHOWS IN THE DIFF AFTER A NO-OP REGEN (all genuine hand-editing — reconcile, don't fight):
 #   - plutus/ and transaction/ modules: heavily customized by hand on top of generation
@@ -36,7 +41,11 @@
 #
 # Usage:   ./codegen.sh                 # regenerate all crates in place
 #          ./codegen.sh chain           # regenerate a single crate
-#          CDDL_CODEGEN_DIR=~/src/cddl-codegen ./codegen.sh   # use a local checkout
+#          CDDL_CODEGEN_DIR=~/src/cddl-codegen ./codegen.sh   # use a local checkout, as it stands
+#          CDDL_CODEGEN_REV=<sha> ./codegen.sh                # use a rev other than the pin
+#          CDDL_CODEGEN_REV=<sha> CDDL_CODEGEN_DIR=~/src/cddl-codegen ./codegen.sh
+#                                       # that commit FROM that checkout's object store, without
+#                                       # touching the checkout (dirty tree / other agent = fine)
 set -euo pipefail
 
 # cddl-codegen commit the specs target. Override with CDDL_CODEGEN_DIR
@@ -79,7 +88,12 @@ set -euo pipefail
 # As of 2026-07-19 the earlier cycle's fixes are NOT yet pushed (only e07c3a0 of the referenced
 # commits is on the remote). Until everything above lands on the remote, regen only works via
 # CDDL_CODEGEN_DIR pointing at a local checkout.
-CDDL_CODEGEN_REV="77237871a3d2585996b103fbcc03bd227606c445"
+CDDL_CODEGEN_PINNED_REV="77237871a3d2585996b103fbcc03bd227606c445"
+# A CDDL_CODEGEN_REV in the environment wins over the pin. Remember whether it was set explicitly:
+# with CDDL_CODEGEN_DIR the two cases differ (HEAD as-is vs. move the checkout to that commit).
+CDDL_CODEGEN_REV_EXPLICIT=0
+[ -n "${CDDL_CODEGEN_REV:-}" ] && CDDL_CODEGEN_REV_EXPLICIT=1
+CDDL_CODEGEN_REV="${CDDL_CODEGEN_REV:-$CDDL_CODEGEN_PINNED_REV}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SPECS="$REPO_ROOT/specs"
@@ -88,7 +102,25 @@ SPECS="$REPO_ROOT/specs"
 # Kept OUTSIDE the repo: a checkout under REPO_ROOT gets absorbed by this Cargo workspace and
 # cargo refuses to build a nested package that isn't a member. Outside, it also builds with the
 # system toolchain rather than this repo's pinned rust-toolchain.toml.
-WORK="${CDDL_CODEGEN_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/cml-cddl-codegen}"
+CACHE_ROOT="${XDG_CACHE_HOME:-$HOME/.cache}"
+WORK="${CDDL_CODEGEN_DIR:-$CACHE_ROOT/cml-cddl-codegen}"
+
+# Cargo env for trees THIS SCRIPT materializes (the cached clone, and extracted revs below).
+# Deliberately NOT applied to a CDDL_CODEGEN_DIR used as-is: that tree is yours, its target/ is
+# warm, and redirecting it would force a full rebuild in a directory you're working in.
+#   CARGO_TARGET_DIR  — one target dir shared by every tree we build. Dependencies dominate it
+#     and are identical across revs, so after the first build a second rev costs ~0 extra bytes
+#     there (measured) instead of ~960MB of its own.
+#   CARGO_PROFILE_DEV_DEBUG=0 / CARGO_INCREMENTAL=0 — this binary is built to be run once per
+#     regen, never stepped through, and never rebuilt from a small edit. Dropping debug info and
+#     the incremental cache took that shared dir from 957MB to 324MB for a byte-identical run.
+# Net: the whole tool cache is ~324MB once, plus ~31MB of source per extra rev you pin.
+CODEGEN_CARGO_ENV=()
+CODEGEN_CARGO_LEAN=(
+  CARGO_TARGET_DIR="$CACHE_ROOT/cml-cddl-codegen-target"
+  CARGO_PROFILE_DEV_DEBUG=0
+  CARGO_INCREMENTAL=0
+)
 if [ -z "${CDDL_CODEGEN_DIR:-}" ]; then
   mkdir -p "$(dirname "$WORK")"
   if [ ! -d "$WORK/.git" ]; then
@@ -96,7 +128,48 @@ if [ -z "${CDDL_CODEGEN_DIR:-}" ]; then
   fi
   git -C "$WORK" fetch --quiet origin
   git -C "$WORK" checkout --quiet "$CDDL_CODEGEN_REV"
+  CODEGEN_CARGO_ENV=("${CODEGEN_CARGO_LEAN[@]}")
+elif [ "$CDDL_CODEGEN_REV_EXPLICIT" = 1 ]; then
+  # Local checkout AND an explicit rev: generate from that exact COMMIT while leaving the checkout
+  # completely alone — no checkout, no fetch, no stash, nothing written to it. `git archive` reads
+  # the commit straight out of the object database, so the branch that checkout is on, its index,
+  # and any uncommitted work (yours, or another agent's) are untouched and unobserved. That is the
+  # point of this path: pinning the generation to a known commit must not cost you the working
+  # tree you're developing the codegen in.
+  #
+  # The commit is materialized once per sha under the cache dir and reused, so repeat regens skip
+  # the extract and (via the shared CARGO_TARGET_DIR above) most of the rebuild. `git archive`
+  # writes only files TRACKED at that commit — no target/, no .claude/, no untracked test output —
+  # so an extracted rev is ~31MB here regardless of how large the source checkout has grown.
+  # These dirs are pure cache; delete any of them freely.
+  SRC="$WORK"
+  # rev-parse so a branch/tag name works too, and so the cache key is always the resolved sha
+  # (a branch tip moves; the extracted tree must not be reused for a different commit).
+  REV_SHA="$(git -C "$SRC" rev-parse --verify --quiet "${CDDL_CODEGEN_REV}^{commit}")" || {
+    echo "ERROR: $SRC has no commit $CDDL_CODEGEN_REV." >&2
+    echo "  Fetch it in that checkout first (git -C $SRC fetch), or name a rev it already has." >&2
+    exit 1
+  }
+  WORK="$CACHE_ROOT/cml-cddl-codegen-revs/$REV_SHA"
+  if [ -d "$WORK" ]; then
+    echo ">> using cached tree for $REV_SHA (extracted from $SRC; that checkout untouched)" >&2
+  else
+    echo ">> extracting $REV_SHA from $SRC into $WORK (that checkout untouched)" >&2
+    # .tmp + mv: an interrupted extract must not leave a half-tree that the next run trusts.
+    rm -rf "$WORK.tmp"
+    mkdir -p "$WORK.tmp"
+    git -C "$SRC" archive "$REV_SHA" | tar -x -C "$WORK.tmp"
+    mv "$WORK.tmp" "$WORK"
+  fi
+  CODEGEN_CARGO_ENV=("${CODEGEN_CARGO_LEAN[@]}")
 fi
+if [ "$CDDL_CODEGEN_REV_EXPLICIT" = 1 ] && [ "$CDDL_CODEGEN_REV" != "$CDDL_CODEGEN_PINNED_REV" ]; then
+  echo "NOTE: generating with cddl-codegen $CDDL_CODEGEN_REV, NOT the pin ($CDDL_CODEGEN_PINNED_REV)." >&2
+fi
+# The env prefix that reproduces this run, for the re-run hints printed further down.
+ENV_PREFIX=""
+[ "$CDDL_CODEGEN_REV_EXPLICIT" = 1 ] && ENV_PREFIX="CDDL_CODEGEN_REV=$CDDL_CODEGEN_REV "
+[ -n "${CDDL_CODEGEN_DIR:-}" ] && ENV_PREFIX="${ENV_PREFIX}CDDL_CODEGEN_DIR=$CDDL_CODEGEN_DIR "
 
 # gen <group-dir> <input> <extra cddl-codegen args...>
 # --output is the crate-GROUP dir (e.g. `chain`): cddl-codegen writes `<group>/rust/`,
@@ -104,7 +177,11 @@ fi
 gen() {
   local out="$1" input="$2"; shift 2
   echo ">> generating $out"
-  ( cd "$WORK" && cargo run --quiet -- --input="$input" --output="$REPO_ROOT/$out" "$@" )
+  # env: empty for a CDDL_CODEGEN_DIR used as-is, the lean/shared cargo settings for trees this
+  # script materialized (see CODEGEN_CARGO_ENV above). The ${a[@]+…} form is for `set -u`, which
+  # otherwise trips on expanding an empty array.
+  ( cd "$WORK" && env ${CODEGEN_CARGO_ENV[@]+"${CODEGEN_CARGO_ENV[@]}"} \
+      cargo run --quiet -- --input="$input" --output="$REPO_ROOT/$out" "$@" )
 }
 
 # Shared flags.
@@ -263,19 +340,27 @@ check_convergence() {
   if [ -n "$missing" ]; then
     echo "ERROR: chain's collections index is STALE relative to multi-era's borrowed_collections.rs sidecar." >&2
     echo "  not yet provided by chain:$missing" >&2
-    echo "  fix (dep-alone regen is always safe): ${CDDL_CODEGEN_DIR:+CDDL_CODEGEN_DIR=$CDDL_CODEGEN_DIR }./codegen.sh chain" >&2
+    echo "  fix (dep-alone regen is always safe): ${ENV_PREFIX}./codegen.sh chain" >&2
     return 1
   fi
 }
 
-echo "Running clippy --fix on the regenerated code..." >&2
+echo "Running clippy on the regenerated code..." >&2
 cargo fmt --all
-# cml-core is excluded from clippy --fix: its runtime files are now tool-owned (see
-# --export-static-dir above) and clippy's rewrites there (e.g. inline format args) would be
-# reverted by the next regen, churning the diff forever. Regular clippy still checks cml-core.
-cargo clippy --fix --allow-dirty --allow-staged --workspace --exclude cml-core --all-features --all-targets
+# CHECK ONLY — deliberately NOT `clippy --fix`. Everything clippy has to say about a file under
+# src/generated/ is about code the TOOL wrote: a fix applied here is reverted by the next regen
+# (and, for the tool-owned cml-core runtime files, immediately), so --fix churned the diff forever
+# and quietly hid lints that the codegen should stop emitting in the first place. Whatever fires
+# is a cddl-codegen feature request, not a local edit — see the message below.
+# The gate itself (deny level + the hand-code allow list) lives in ./clippy.sh, which CI runs too:
+# ONE definition, no list to keep in sync across this script and the workflow.
+CLIPPY_STATUS=0
+"$REPO_ROOT/clippy.sh" || CLIPPY_STATUS=$?
 
-check_convergence
+# Status-captured (rather than fatal on the spot) so a stale-convergence run still reaches the
+# clippy guidance below; both statuses are folded into the exit code at the end.
+CONV_STATUS=0
+check_convergence || CONV_STATUS=$?
 
 cat <<'EOF'
 
@@ -288,3 +373,32 @@ Done — sources regenerated in place. Review with git:
 
 Then sanity-build:  cargo test -p cml-chain   (etc.)
 EOF
+
+if [ "$CLIPPY_STATUS" -ne 0 ]; then
+  cat >&2 <<EOF
+
+ERROR: clippy is unhappy with the regenerated code (exit $CLIPPY_STATUS).
+
+Do NOT fix this by editing the output or by running \`cargo clippy --fix\`: files under
+src/generated/ are rewritten wholesale by the next regen, so the fix disappears and the lint
+comes back. File a feature request upstream instead, at
+
+  https://github.com/dcSpark/cddl-codegen/issues
+
+reporting it as a regression in the emitter — quote the lint name and one generated snippet that
+trips it. The fix belongs in the emitter; the #![allow(...)] set at each generated module root is
+for structural cases only (variant sizes, arg counts), not a dumping ground. Then bump
+CDDL_CODEGEN_REV once the fix lands and regen. Do NOT widen ./clippy.sh's allow list to cover
+generated code: that silences the lint for our hand-written code too, and — more to the point —
+this check exists to DETECT that class of regression, so absorbing it locally turns the detector
+off. Five such entries had already gone stale that way by 2026-07-25.
+
+If the lint fires on a HAND-written file (builders/, utils.rs, address.rs, crypto/, core/ outside
+the tool-owned runtime files), that one is ours: fix it at the site, or — if the lint is wrong
+about our design rather than about one line — add it to the allow list in ./clippy.sh with a
+comment naming the sites that justify it.
+EOF
+fi
+
+[ "$CONV_STATUS" -ne 0 ] && exit "$CONV_STATUS"
+exit "$CLIPPY_STATUS"

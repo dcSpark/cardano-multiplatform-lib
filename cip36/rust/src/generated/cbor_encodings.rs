@@ -1,7 +1,9 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+use super::*;
 use cml_core::serialization::{LenEncoding, StringEncoding};
+use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct CIP36DelegationEncoding {
@@ -16,6 +18,7 @@ pub struct CIP36DeregistrationCborEncoding {
     pub orig_deser_order: Vec<usize>,
     pub key_deregistration_key_encoding: Option<cbor_event::Sz>,
     pub deregistration_witness_key_encoding: Option<cbor_event::Sz>,
+    pub rest_key_encodings: BTreeMap<TransactionMetadatumLabel, Option<cbor_event::Sz>>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -60,6 +63,7 @@ pub struct CIP36RegistrationCborEncoding {
     pub orig_deser_order: Vec<usize>,
     pub key_registration_key_encoding: Option<cbor_event::Sz>,
     pub registration_witness_key_encoding: Option<cbor_event::Sz>,
+    pub rest_key_encodings: BTreeMap<TransactionMetadatumLabel, Option<cbor_event::Sz>>,
 }
 
 #[derive(Clone, Debug, Default)]

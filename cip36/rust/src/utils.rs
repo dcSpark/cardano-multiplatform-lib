@@ -1,4 +1,4 @@
-use cbor_event::{self, de::Deserializer, se::Serializer};
+use cbor_event::{self, se::Serializer};
 
 use crate::error::CIP36Error;
 
@@ -14,24 +14,25 @@ pub use cml_chain::{
     auxdata::{Metadata, TransactionMetadatum},
 };
 
-use std::convert::From;
-
 use super::{
     CIP36DelegationDistribution, CIP36DeregistrationCbor, CIP36DeregistrationWitness,
     CIP36KeyDeregistration, CIP36KeyRegistration, CIP36RegistrationCbor, CIP36RegistrationWitness,
 };
-
-use cbor_event::Type as CBORType;
-
-use cbor_event::Special as CBORSpecial;
 
 pub static KEY_REGISTRATION_LABEL: u64 = 61284;
 pub static REGISTRATION_WITNESS_LABEL: u64 = 61285;
 pub static DEREGISTRATION_WITNESS_LABEL: u64 = REGISTRATION_WITNESS_LABEL;
 pub static KEY_DEREGISTRATION_LABEL: u64 = 61286;
 
+// The generated Serialize/Deserialize for the *Cbor view types are the CBOR API: the CDDL rest
+// row captures every non-CIP36 metadatum label (with encodings and wire position), so a parsed
+// value round-trips the FULL metadata map byte-exactly. The to/from_metadata_bytes names are
+// kept as thin aliases for API compatibility; the hand-written serializers they used to wrap
+// (which silently projected down to only the CIP36 labels) are gone.
+
 impl CIP36DeregistrationCbor {
-    /// Add to an existing metadata (could be empty) the full CIP36 deregistration metadata
+    /// Add to an existing metadata (could be empty) the full CIP36 deregistration metadata,
+    /// including any captured non-CIP36 metadatum labels (`rest`)
     pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), DeserializeError> {
         let dereg_metadatum =
             TransactionMetadatum::from_cbor_bytes(&self.key_deregistration.to_cbor_bytes())?;
@@ -39,132 +40,25 @@ impl CIP36DeregistrationCbor {
         let witness_metadatum =
             TransactionMetadatum::from_cbor_bytes(&self.deregistration_witness.to_cbor_bytes())?;
         metadata.set(DEREGISTRATION_WITNESS_LABEL, witness_metadatum);
+        for (label, datum) in self.rest.iter() {
+            metadata.set(*label, datum.clone());
+        }
         Ok(())
     }
 
-    // these are not implementing Serialize/Deserialize as we do not keep track of the rest of the encoding metadata
-    // so it would be disingenuous to implement them if users called to_cbor_bytes() and we skip the rest of
-    // the metadata, as well as when creating from a Metadata object its outer encoding (e.g. map len, key encodings)
-    // is not present as that is simply an OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>
-
-    /// Serializes to bytes compatable with Metadata, but containing ONLY the relevant fields for CIP36.
-    /// If this was created from bytes or from a Metadata that was created from bytes, it will preserve
-    /// the encodings but only from the metadatums themselves within the keys 61285 and 61286
+    /// Serializes to bytes compatible with Metadata.
+    /// If this was created from bytes or from a Metadata that was created from bytes, it will
+    /// preserve the encodings of all captured labels, not just the CIP36 ones.
+    /// Alias of `to_cbor_bytes()`.
     pub fn to_metadata_bytes(&self) -> Vec<u8> {
-        let mut buf = Serializer::new_vec();
-        self.serialize(&mut buf, false).unwrap();
-        buf.finalize()
+        self.to_cbor_bytes()
     }
 
     /// Create a CIP36 view from the bytes of a Metadata.
-    /// The resulting CIP36DeregistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
+    /// Non-CIP36 metadatum labels are captured in `rest` and will round-trip.
+    /// Alias of `from_cbor_bytes()`.
     pub fn from_metadata_bytes(metadata_cbor_bytes: &[u8]) -> Result<Self, DeserializeError> {
-        let mut raw = Deserializer::from(metadata_cbor_bytes.to_vec());
-        Self::deserialize(&mut raw)
-    }
-
-    /// Serializes as a Metadata structure containing ONLY the relevant fields for CIP36
-    /// If this was created from bytes or from a Metadata that was created from bytes, it will preserve
-    /// the encodings but only from the metadatums themselves within the keys 61285 and 61286
-    /// * `force_canonical` - Whether to force canonical CBOR encodings. ONLY applies to the metadatums within labels 61285 and 61286
-    pub fn serialize<'se>(
-        &self,
-        serializer: &'se mut Serializer,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer> {
-        serializer.write_map(cbor_event::Len::Len(2))?;
-        serializer.write_unsigned_integer(DEREGISTRATION_WITNESS_LABEL)?;
-        self.deregistration_witness
-            .serialize(serializer, force_canonical)?;
-        serializer.write_unsigned_integer(KEY_DEREGISTRATION_LABEL)?;
-        self.key_deregistration
-            .serialize(serializer, force_canonical)
-    }
-
-    /// Deserializes a CIP36 view from either a Metadata or a CIP36DeregistrationCbor
-    /// This contains ONLY the relevant fields for CIP36 if created from a Metadata
-    pub fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
-        use cml_core::{Key, serialization::CBORReadLen};
-
-        let len = raw.map_sz()?;
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        (|| -> Result<_, DeserializeError> {
-            let mut deregistration_witness = None;
-            let mut key_deregistration = None;
-            let mut read = 0;
-            while match len {
-                cbor_event::LenSz::Len(n, _enc) => read < n,
-                cbor_event::LenSz::Indefinite => true,
-            } {
-                match raw.cbor_type()? {
-                    CBORType::UnsignedInteger => match raw.unsigned_integer()? {
-                        61285 => {
-                            if deregistration_witness.is_some() {
-                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(
-                                    DEREGISTRATION_WITNESS_LABEL,
-                                ))
-                                .into());
-                            }
-                            deregistration_witness =
-                                Some(CIP36DeregistrationWitness::deserialize(raw).map_err(
-                                    |e: DeserializeError| e.annotate("deregistration_witness"),
-                                )?);
-                        }
-                        61286 => {
-                            if key_deregistration.is_some() {
-                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(
-                                    KEY_DEREGISTRATION_LABEL,
-                                ))
-                                .into());
-                            }
-                            key_deregistration =
-                                Some(CIP36KeyDeregistration::deserialize(raw).map_err(
-                                    |e: DeserializeError| e.annotate("key_deregistration"),
-                                )?);
-                        }
-                        _unknown_key => (), /* ignore all other metadatum labels */
-                    },
-                    CBORType::Special => match len {
-                        cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
-                        }
-                        cbor_event::LenSz::Indefinite => match raw.special()? {
-                            CBORSpecial::Break => break,
-                            _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                        },
-                    },
-                    other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
-                    }
-                }
-                read += 1;
-            }
-            let key_deregistration = match key_deregistration {
-                Some(x) => x,
-                None => {
-                    return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(
-                        KEY_DEREGISTRATION_LABEL,
-                    ))
-                    .into());
-                }
-            };
-            let deregistration_witness = match deregistration_witness {
-                Some(x) => x,
-                None => {
-                    return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(
-                        DEREGISTRATION_WITNESS_LABEL,
-                    ))
-                    .into());
-                }
-            };
-            read_len.finish()?;
-            Ok(Self {
-                key_deregistration,
-                deregistration_witness,
-            })
-        })()
-        .map_err(|e| e.annotate("CIP36DeregistrationCbor"))
+        Self::from_cbor_bytes(metadata_cbor_bytes)
     }
 }
 
@@ -179,14 +73,16 @@ impl std::convert::TryFrom<&Metadata> for CIP36DeregistrationCbor {
         let witness_metadatum = metadata.get(DEREGISTRATION_WITNESS_LABEL).ok_or_else(|| {
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(DEREGISTRATION_WITNESS_LABEL))
         })?;
-        Ok(Self {
-            key_deregistration: CIP36KeyDeregistration::from_cbor_bytes(
-                &dereg_metadatum.to_cbor_bytes(),
-            )?,
-            deregistration_witness: CIP36DeregistrationWitness::from_cbor_bytes(
-                &witness_metadatum.to_cbor_bytes(),
-            )?,
-        })
+        let mut dereg_cbor = Self::new(
+            CIP36KeyDeregistration::from_cbor_bytes(&dereg_metadatum.to_cbor_bytes())?,
+            CIP36DeregistrationWitness::from_cbor_bytes(&witness_metadatum.to_cbor_bytes())?,
+        );
+        for (label, datum) in metadata.entries.iter() {
+            if *label != KEY_DEREGISTRATION_LABEL && *label != DEREGISTRATION_WITNESS_LABEL {
+                dereg_cbor.rest.insert(*label, datum.clone());
+            }
+        }
+        Ok(dereg_cbor)
     }
 }
 
@@ -233,7 +129,8 @@ impl CIP36KeyRegistration {
 }
 
 impl CIP36RegistrationCbor {
-    /// Add to an existing metadata (could be empty) the full CIP36 registration metadata
+    /// Add to an existing metadata (could be empty) the full CIP36 registration metadata,
+    /// including any captured non-CIP36 metadatum labels (`rest`)
     pub fn add_to_metadata(&self, metadata: &mut Metadata) -> Result<(), DeserializeError> {
         self.verify()
             .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?;
@@ -243,6 +140,9 @@ impl CIP36RegistrationCbor {
         let witness_metadatum =
             TransactionMetadatum::from_cbor_bytes(&self.registration_witness.to_cbor_bytes())?;
         metadata.set(REGISTRATION_WITNESS_LABEL, witness_metadatum);
+        for (label, datum) in self.rest.iter() {
+            metadata.set(*label, datum.clone());
+        }
         Ok(())
     }
 
@@ -262,137 +162,26 @@ impl CIP36RegistrationCbor {
         Ok(())
     }
 
-    // these are not implementing Serialize/Deserialize as we do not keep track of the rest of the encoding metadata
-    // so it would be disingenuous to implement them if users called to_cbor_bytes() and we skip the rest of
-    // the metadata, as well as when creating from a Metadata object its outer encoding (e.g. map len, key encodings)
-    // is not present as that is simply an OrderedHashMap<TransactionMetadatumLabel, TransactionMetadatum>
+    /// CIP36 invariants enforced during (de)serialization, called from
+    /// cddl-codegen preserved blocks in the generated Serialize/Deserialize impls
+    pub fn extra_validation(&self) -> Result<(), DeserializeError> {
+        self.verify()
+            .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
+    }
 
-    /// Serializes to bytes compatable with Metadata, but containing ONLY the relevant fields for CIP36.
-    /// If this was created from bytes or from a Metadata that was created from bytes, it will preserve
-    /// the encodings but only from the metadatums themselves within the keys 61284 and 61285
+    /// Serializes to bytes compatible with Metadata.
+    /// If this was created from bytes or from a Metadata that was created from bytes, it will
+    /// preserve the encodings of all captured labels, not just the CIP36 ones.
+    /// Alias of `to_cbor_bytes()`.
     pub fn to_metadata_bytes(&self) -> Vec<u8> {
-        let mut buf = Serializer::new_vec();
-        self.serialize(&mut buf, false).unwrap();
-        buf.finalize()
+        self.to_cbor_bytes()
     }
 
     /// Create a CIP36 view from the bytes of a Metadata.
-    /// The resulting CIP36RegistrationCbor will contain ONLY the relevant fields for CIP36 from the Metadata
+    /// Non-CIP36 metadatum labels are captured in `rest` and will round-trip.
+    /// Alias of `from_cbor_bytes()`.
     pub fn from_metadata_bytes(metadata_cbor_bytes: &[u8]) -> Result<Self, DeserializeError> {
-        let mut raw = Deserializer::from(metadata_cbor_bytes.to_vec());
-        Self::deserialize(&mut raw)
-    }
-
-    /// Serializes as a Metadata structure containing ONLY the relevant fields for CIP36
-    /// If this was created from bytes or from a Metadata that was created from bytes, it will preserve
-    /// the encodings but only from the metadatums themselves within the keys 61284 and 61285
-    /// * `force_canonical` - Whether to force canonical CBOR encodings. ONLY applies to the metadatums within labels 61285 and 61286
-    fn serialize<'se>(
-        &self,
-        serializer: &'se mut Serializer,
-        force_canonical: bool,
-    ) -> cbor_event::Result<&'se mut Serializer> {
-        self.verify()
-            .map_err(|e| cbor_event::Error::CustomError(e.to_string()))?;
-        serializer.write_map(cbor_event::Len::Len(2))?;
-        serializer.write_unsigned_integer(KEY_REGISTRATION_LABEL)?;
-        self.key_registration
-            .serialize(serializer, force_canonical)?;
-        serializer.write_unsigned_integer(REGISTRATION_WITNESS_LABEL)?;
-        self.registration_witness
-            .serialize(serializer, force_canonical)
-    }
-
-    /// Deserializes a CIP36 view from either a Metadata or a CIP36RegistrationCbor
-    /// This contains ONLY the relevant fields for CIP36 if created from a Metadata
-    fn deserialize(raw: &mut Deserializer) -> Result<Self, DeserializeError> {
-        use cml_core::{error::Key, serialization::CBORReadLen};
-        let len = raw.map_sz()?;
-        let mut read_len = CBORReadLen::new(len);
-        read_len.read_elems(2)?;
-        (|| -> Result<_, DeserializeError> {
-            let mut key_registration = None;
-            let mut registration_witness = None;
-            let mut read = 0;
-            while match len {
-                cbor_event::LenSz::Len(n, _) => read < n,
-                cbor_event::LenSz::Indefinite => true,
-            } {
-                match raw.cbor_type()? {
-                    CBORType::UnsignedInteger => match raw.unsigned_integer()? {
-                        61284 => {
-                            if key_registration.is_some() {
-                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(
-                                    KEY_REGISTRATION_LABEL,
-                                ))
-                                .into());
-                            }
-                            key_registration =
-                                Some(CIP36KeyRegistration::deserialize(raw).map_err(
-                                    |e: DeserializeError| e.annotate("key_registration"),
-                                )?);
-                        }
-                        61285 => {
-                            if registration_witness.is_some() {
-                                return Err(DeserializeFailure::DuplicateKey(Key::Uint(
-                                    REGISTRATION_WITNESS_LABEL,
-                                ))
-                                .into());
-                            }
-                            registration_witness =
-                                Some(CIP36RegistrationWitness::deserialize(raw).map_err(
-                                    |e: DeserializeError| e.annotate("registration_witness"),
-                                )?);
-                        }
-                        _unknown_key => (), /* permissive of other metadatum labels */
-                    },
-                    CBORType::Text => {
-                        return Err(DeserializeFailure::UnknownKey(Key::Str(raw.text()?)).into());
-                    }
-                    CBORType::Special => match len {
-                        cbor_event::LenSz::Len(_, _) => {
-                            return Err(DeserializeFailure::BreakInDefiniteLen.into());
-                        }
-                        cbor_event::LenSz::Indefinite => match raw.special()? {
-                            CBORSpecial::Break => break,
-                            _ => return Err(DeserializeFailure::EndingBreakMissing.into()),
-                        },
-                    },
-                    other_type => {
-                        return Err(DeserializeFailure::UnexpectedKeyType(other_type).into());
-                    }
-                }
-                read += 1;
-            }
-            let key_registration = match key_registration {
-                Some(x) => x,
-                None => {
-                    return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(
-                        KEY_REGISTRATION_LABEL,
-                    ))
-                    .into());
-                }
-            };
-            let registration_witness = match registration_witness {
-                Some(x) => x,
-                None => {
-                    return Err(DeserializeFailure::MandatoryFieldMissing(Key::Uint(
-                        REGISTRATION_WITNESS_LABEL,
-                    ))
-                    .into());
-                }
-            };
-            read_len.finish()?;
-            let reg_cbor = Self {
-                key_registration,
-                registration_witness,
-            };
-            reg_cbor
-                .verify()
-                .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)))?;
-            Ok(reg_cbor)
-        })()
-        .map_err(|e| e.annotate("CIP36RegistrationCbor"))
+        Self::from_cbor_bytes(metadata_cbor_bytes)
     }
 }
 
@@ -407,14 +196,16 @@ impl std::convert::TryFrom<&Metadata> for CIP36RegistrationCbor {
         let witness_metadatum = metadata.get(REGISTRATION_WITNESS_LABEL).ok_or_else(|| {
             DeserializeFailure::MandatoryFieldMissing(Key::Uint(REGISTRATION_WITNESS_LABEL))
         })?;
-        Ok(Self {
-            key_registration: CIP36KeyRegistration::from_cbor_bytes(
-                &reg_metadatum.to_cbor_bytes(),
-            )?,
-            registration_witness: CIP36RegistrationWitness::from_cbor_bytes(
-                &witness_metadatum.to_cbor_bytes(),
-            )?,
-        })
+        let mut reg_cbor = Self::new(
+            CIP36KeyRegistration::from_cbor_bytes(&reg_metadatum.to_cbor_bytes())?,
+            CIP36RegistrationWitness::from_cbor_bytes(&witness_metadatum.to_cbor_bytes())?,
+        );
+        for (label, datum) in metadata.entries.iter() {
+            if *label != KEY_REGISTRATION_LABEL && *label != REGISTRATION_WITNESS_LABEL {
+                reg_cbor.rest.insert(*label, datum.clone());
+            }
+        }
+        Ok(reg_cbor)
     }
 }
 

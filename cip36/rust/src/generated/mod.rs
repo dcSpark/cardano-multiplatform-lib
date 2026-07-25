@@ -86,6 +86,7 @@ use cml_core::serialization::{LenEncoding, StringEncoding};
 use cml_crypto::{Ed25519Signature, PublicKey};
 use std::collections::BTreeMap;
 
+// cddl-codegen:keep
 /// Weighted delegation input.
 /// This is the proportion of weight to assign to this public key relative to the weights
 /// of all other Delegations where this is used.
@@ -122,6 +123,7 @@ pub enum CIP36DelegationDistribution {
 }
 
 impl CIP36DelegationDistribution {
+    // cddl-codegen:keep
     /// Create a new delegations delegation. Weights are relative to all others and will be rounded down.
     /// Leftover ADA will be delegated to the last item in the array.
     pub fn new_weighted(weighted: NonEmptyVec<CIP36Delegation>) -> Self {
@@ -131,6 +133,7 @@ impl CIP36DelegationDistribution {
         }
     }
 
+    // cddl-codegen:keep
     /// Delegate to a single key i.e. CIP-15.
     pub fn new_legacy(legacy: CIP36LegacyKeyRegistration) -> Self {
         Self::Legacy {
@@ -140,6 +143,7 @@ impl CIP36DelegationDistribution {
     }
 }
 
+// cddl-codegen:keep
 /// This is the entire metadata schema for CIP-36 deregistration.
 /// It can be parsed by passing in the CBOR bytes of the entire transaction metadatum
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -190,6 +194,7 @@ impl CIP36DeregistrationWitness {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct CIP36KeyDeregistration {
     pub stake_credential: CIP36StakeCredential,
+    // cddl-codegen:keep
     /// Monotonically rising across all transactions with the same staking key. Recommended to just use the slot of this tx.
     pub nonce: CIP36Nonce,
     pub voting_purpose: CIP36VotingPurpose,
@@ -213,6 +218,7 @@ pub struct CIP36KeyRegistration {
     pub delegation: CIP36DelegationDistribution,
     pub stake_credential: CIP36StakeCredential,
     pub payment_address: PaymentAddress,
+    // cddl-codegen:keep
     /// Monotonically rising across all transactions with the same staking key. Recommended to just use the slot of this tx.
     pub nonce: CIP36Nonce,
     pub voting_purpose: CIP36VotingPurpose,
@@ -240,11 +246,13 @@ impl CIP36KeyRegistration {
 
 pub type CIP36LegacyKeyRegistration = PublicKey;
 
+// cddl-codegen:keep
 /// The nonce is an unsigned integer that should be monotonically rising across all transactions with the same staking key.
 /// The advised way to construct a nonce is to use the current slot number.
 /// This is a simple way to keep the nonce increasing without having to access the previous transaction data.
 pub type CIP36Nonce = u64;
 
+// cddl-codegen:keep
 /// This is the entire metadata schema for CIP-36 registration.
 /// It can be parsed by passing in the CBOR bytes of the entire transaction metadatum
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
@@ -298,6 +306,7 @@ pub type CIP36StakeWitness = Ed25519Signature;
 
 pub type CIP36StakingPubKey = PublicKey;
 
+// cddl-codegen:keep
 /// To avoid linking voting keys directly with Cardano spending keys,
 /// the voting key derivation path must start with a specific segment:
 /// m / 1694' / 1815' / account' / chain / address_index

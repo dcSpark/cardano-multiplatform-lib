@@ -1,6 +1,5 @@
 use core::hash::Hash;
 
-// allowing this since PartialEq equality here still implies hash equality
 #[derive(Clone, Debug, Hash, Ord, Eq, PartialEq, PartialOrd)]
 pub struct OrderedHashMap<K, V>(linked_hash_map::LinkedHashMap<K, V>)
 where
@@ -12,7 +11,6 @@ where
 // KEY type isn't `Default` — e.g. a generated `@used_as_key` enum under `--preserve-encodings`,
 // where tables become `OrderedHashMap` and enum keys don't derive `Default` — can still be
 // `Default::default()`ed
-// `std::collections::BTreeMap`/`HashMap`.
 impl<K, V> Default for OrderedHashMap<K, V>
 where
     K: Hash + Eq + Ord,

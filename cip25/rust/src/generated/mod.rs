@@ -16,6 +16,7 @@ pub use crate::CIP25LabelMetadata;
 
 use cml_core::error::*;
 
+// cddl-codegen:keep
 /// A String that may or may not be chunked into 64-byte chunks to be able
 /// to conform to Cardano TX Metadata limitations.
 /// Unless you have good reasons, you should be using the From<&str> trait to construct this:
@@ -38,12 +39,14 @@ pub enum CIP25ChunkableString {
 }
 
 impl CIP25ChunkableString {
+    // cddl-codegen:keep
     /// Construct from a single <=64 byte string chunk.
     /// If size is not known or for simplicity use From<&str> instead
     pub fn new_single(single: CIP25String64) -> Self {
         Self::Single(single)
     }
 
+    // cddl-codegen:keep
     /// Construct from an explicit list of chunks
     /// If size is not known or for simplicity use From<&str> instead
     pub fn new_chunked(chunked: Vec<CIP25String64>) -> Self {
@@ -68,12 +71,14 @@ impl CIP25FilesDetails {
     }
 }
 
+// cddl-codegen:keep
 /// This is the entire metadata schema for CIP-25
 /// It can be parsed by passing in the CBOR bytes of the entire transaction metadata
 /// or by passing in an existing Metadata struct.
 /// Parsing from CBOR bytes should be marginally faster.
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct CIP25Metadata {
+    // cddl-codegen:keep
     /// The core details of the CIP25 spec
     pub key_721: CIP25LabelMetadata,
 }

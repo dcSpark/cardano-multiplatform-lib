@@ -51,9 +51,17 @@ pub mod assets {                         // shadows the glob-imported generated 
   `crypto/hash.rs`), each crate's `src/utils.rs`, `chain/*/src/address.rs`, the whole `crypto/`
   crate, `core/`, and each crate's `lib.rs` (module list + facades) and `Cargo.toml`.
 - **Generated (read for shape; change via CDDL + regen):** everything under `**/src/generated/`
-  and the wasm mirrors. The only hand content inside generated files lives in
-  `cddl-codegen:insert-start/replace-start` blocks, which the regen re-applies automatically —
-  **never bare-edit a generated file**; an edit outside a block is silently reverted
+  and the wasm mirrors. Hand content inside a generated file must DECLARE itself, in one of three
+  forms the regen re-applies automatically: `cddl-codegen:insert-start/replace-start` blocks for
+  code, and `// cddl-codegen:keep` for a comment — either inline (`// cddl-codegen:keep <text>`) or
+  as a bare marker on its own line claiming the contiguous comment run below it, which is the only
+  form that can carry `///`/`//!` docs. **Never bare-edit a generated file**: an undeclared code
+  edit is silently reverted, and an undeclared COMMENT now fails loudly — the regen replaces it
+  with a `cddl-codegen:unpreserved-comment` `compile_error!` block carrying the original text, so
+  the crate won't build until you either delete it (stale tool output) or re-add it with a marker.
+  Prefer the CDDL `@doc` DSL over a `keep`-marked doc where the text suits both the rust and wasm
+  faces; `cip25`/`cip36` keep theirs marked because their rust and wasm docs carry
+  language-specific examples that one `@doc` cannot serve.
 - To answer *"how is X encoded on-chain?"* → read `specs/**/*.cddl` plus the generated
   serialization. To answer *"how do I build/validate X?"* → read the hand-written `builders/`
   and the per-scope `utils.rs` files.

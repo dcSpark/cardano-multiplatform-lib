@@ -17,6 +17,7 @@ use cml_core_wasm::{
 };
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
+// cddl-codegen:keep
 /// A String that may or may not be chunked into 64-byte chunks to be able
 /// to conform to Cardano TX Metadata limitations.
 /// Most users should simply use CIP25ChunkableString::from_string() and CIP25ChunkableString::to_string()
@@ -117,6 +118,7 @@ impl_wasm_list_needs_into!(
     false
 );
 
+// cddl-codegen:keep
 /// This is the entire metadata schema for CIP-25
 /// It can be parsed by passing in the CBOR bytes of the entire transaction metadata
 /// or by passing in an existing Metadata struct.

@@ -11,36 +11,30 @@ fn _key_demand_hash<T: core::hash::Hash + Eq>() {}
 fn _key_demand_ord<T: Ord>() {}
 #[allow(dead_code)]
 fn _demand_asset_name() {
-    // required by `@used_as_key` on asset_name
     _key_demand_hash::<crate::generated::assets::AssetName>();
     _key_demand_ord::<crate::generated::assets::AssetName>();
 }
 #[allow(dead_code)]
 fn _demand_ex_units() {
-    // required by `@used_as_key` on ex_units
     _key_demand_hash::<crate::generated::plutus::ExUnits>();
     _key_demand_ord::<crate::generated::plutus::ExUnits>();
 }
 #[allow(dead_code)]
 fn _demand_plutus_data() {
-    // required by `@used_as_key` on plutus_data
     _key_demand_hash::<crate::generated::plutus::PlutusData>();
     _key_demand_ord::<crate::generated::plutus::PlutusData>();
 }
 #[allow(dead_code)]
 fn _demand_script() {
-    // required by `@used_as_key` on Script
     _key_demand_hash::<crate::generated::Script>();
     _key_demand_ord::<crate::generated::Script>();
 }
 #[allow(dead_code)]
 fn _demand_transaction_input() {
-    // required by `@used_as_key` on transaction_input
     _key_demand_hash::<crate::generated::transaction::TransactionInput>();
     _key_demand_ord::<crate::generated::transaction::TransactionInput>();
 }
 #[allow(dead_code)]
 fn _demand_transaction_output() {
-    // required by `@used_as_key hash` on transaction_output
     _key_demand_hash::<crate::generated::transaction::TransactionOutput>();
 }

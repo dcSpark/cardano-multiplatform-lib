@@ -30,10 +30,6 @@ use super::error::{DeserializeError, DeserializeFailure, Key};
 // door — the one the CBOR decoder feeds untrusted input through — is the hybrid `scan_unique`
 // (`T: Ord`): linear below `SORTED_SCAN_MIN_LEN`, sorted-index O(n log n) above, so a large
 // adversarial input cannot buy quadratic deep comparisons.
-// careful: duplicate detection is a linear `contains` scan (`T: PartialEq`, zero extra storage,
-// O(n²) build). Real sets here are small (signers, certificates); a shadow hash/sorted set is a
-// purely internal upgrade that would not change these public bounds if it is ever profiled to matter.
-// ponytail: duplicate detection is a linear `contains` scan (`T: PartialEq`, zero extra storage,
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OrderedSet<T>(Vec<T>);
 

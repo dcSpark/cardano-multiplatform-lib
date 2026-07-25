@@ -9,8 +9,10 @@ pub trait Deserialize {
         Self: Sized;
 
     // cbor_event's Deserializer owns its buffer, so this copies `data` once (O(n))
-    /// from-bytes using the exact CBOR format specified in the CDDL binary spec.
-    /// For hashes/addresses/etc this will include the CBOR bytes type/len/etc.
+    /// Deserialize from this type's CBOR form.
+    /// For a type that also has a raw-bytes form (e.g. one implementing `RawBytesEncoding`),
+    /// this expects the CBOR byte-string encoding (type/length header plus payload),
+    /// where `from_raw_bytes` takes the bare payload.
     fn from_cbor_bytes(data: &[u8]) -> Result<Self, DeserializeError>
     where
         Self: Sized,

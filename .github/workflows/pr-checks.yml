@@ -77,6 +77,11 @@ jobs:
       - name: multi-era:rust:build-browser
         working-directory: multi-era/wasm
         run: npm run rust:build-browser
+      # The committed json-types.d.ts is the published JSON surface. The builds above just
+      # regenerated it end to end; any drift from the committed baseline must arrive as a
+      # reviewed diff, never silently.
+      - name: json-types:diff
+        run: git diff --exit-code -- '**/json-types.d.ts'
 
   cargo-deny:
     runs-on: ubuntu-latest

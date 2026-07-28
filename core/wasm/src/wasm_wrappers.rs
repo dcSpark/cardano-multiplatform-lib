@@ -572,16 +572,32 @@ macro_rules! impl_wasm_json_api {
                 })
             }
 
-            pub fn to_js_value(&self) -> Result<wasm_bindgen::JsValue, wasm_bindgen::JsError> {
+            // to_json gives the JSON document as a string; to_json_value gives the same
+            // document as a live JS value. The name is also cddl-codegen's default JSON-method
+            // name, which the shipped json-ts-types.js types without a --method override.
+            //
+            // This body is a verbatim copy of cddl-codegen's own emission, and it must STAY one.
+            // Its behaviour above 2^53 is a deliberate, documented cddl-codegen contract
+            // (docs/docs/wasm_differences.mdx, pinned by that repo's tests/wasm_json/roundtrip.mjs):
+            // to_json() stays lossless, and to_json_value() FAILS LOUD — json_compatible() emits no
+            // BigInt, so it throws "can't be represented as a JavaScript number" rather than handing
+            // back a silently rounded one. Do not "fix" that by routing this through
+            // JSON.parse(to_json()): that trades the loud failure for silent rounding and diverges
+            // CML from the generator on a contract the generator regression-tests.
+            //
+            // Making the two routes AGREE is therefore a job for the serde impls, not for this
+            // method — see json_serialize::Value's Serialize impl in cml-chain, and
+            // chain/wasm/tests/json_value_api.rs which pins both halves of the contract.
+            pub fn to_json_value(&self) -> Result<wasm_bindgen::JsValue, wasm_bindgen::JsError> {
                 // json_compatible(): maps -> JS objects (not Map), None -> null, bytes -> arrays,
-                // so to_js_value matches to_json's shape. Default to_value() emits a JS Map instead.
+                // so to_json_value matches to_json's shape. Default to_value() emits a JS Map instead.
                 serde::Serialize::serialize(
                     &self.0,
                     &serde_wasm_bindgen::Serializer::json_compatible(),
                 )
                 .map_err(|e| {
                     wasm_bindgen::JsError::new(&format!(
-                        concat!(stringify!($wasm_name), "::to_js_value: {}"),
+                        concat!(stringify!($wasm_name), "::to_json_value: {}"),
                         e
                     ))
                 })

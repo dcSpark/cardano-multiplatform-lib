@@ -404,7 +404,10 @@ impl serde::Serialize for TransactionMetadatum {
     {
         let json_value = decode_metadatum_to_json_value(self, MetadataJsonSchema::DetailedSchema)
             .expect("DetailedSchema can represent everything");
-        serde_json::Value::from(json_value).serialize(serializer)
+        // json_value.serialize, NOT serde_json::Value::from(...).serialize — see the Serialize
+        // impl on json_serialize::Value for why routing through serde_json::Value is wrong for any
+        // serializer that is not serde_json's own.
+        crate::json::json_serialize::Structural(&json_value).serialize(serializer)
     }
 }
 
@@ -426,19 +429,13 @@ impl<'de> serde::de::Deserialize<'de> for TransactionMetadatum {
     }
 }
 
-impl schemars::JsonSchema for TransactionMetadatum {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("TransactionMetadatum")
-    }
-
-    fn json_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        schemars::Schema::new_ref("TransactionMetadatum".to_owned())
-    }
-
-    fn inline_schema() -> bool {
-        false
-    }
-}
+// Hand-authored: the published JSON is produced by our hand-written serde impls
+// (cardano-node metadata encoding), not a derivable shape. Validated by the round-trip test
+// in src/json/custom_schemas_tests.rs.
+cml_core::custom_schema_impl!(
+    TransactionMetadatum,
+    "../json/custom_schemas/TransactionMetadatum.json"
+);
 
 impl Serialize for TransactionMetadatum {
     fn serialize<'se>(

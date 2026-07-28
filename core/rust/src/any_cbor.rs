@@ -974,6 +974,18 @@ impl<'de> serde::de::Visitor<'de> for AnyCborJsonVisitor {
 // prefer-numeric rule (a text key `"12"` JSON-round-trips to uint `12` — the documented JSON-only
 // ambiguity; CBOR is authoritative).
 
+// The natural walk builds a `serde_json::Value` and hands it to the caller's serializer. That final
+// step goes through the sibling `json_value_ser` runtime module rather than `serde_json::Value`'s own
+// `Serialize`, because the latter is DISHONEST in the serde data model under
+// `serde_json/arbitrary_precision` (every number becomes a private `$serde_json::private::Number`
+// token struct that only serde_json itself collapses — so `to_json()` looks right while
+// `to_json_value()` and every other serializer ship the token). See `json_value_ser.rs` for the
+// guarantees; it is emitted alongside this fragment under the same `--json-serde-derives` flag, so
+// the path always resolves. Imported ONCE here at the `any_cbor` module level so every inner adapter
+// module reaches it as `super::…` — the spelling that resolves both in-crate (`super` is `generated`)
+// and under `--export-static-crate` (`super` is the target crate's flat module dir).
+use super::json_value_ser::{JsonValueSer, serialize_json_value};
+
 /// Error from [`to_natural_json`]: a CBOR node whose kind has no injective JSON image (RFC 8949
 /// §6.1 strict-fail — no substitute values). The message names the offending kind.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1126,14 +1138,14 @@ pub fn from_natural_json(value: serde_json::Value) -> AnyCbor {
 /// is fallible-on-data (RFC 8949 §6.1's failure set surfaces as a serde error naming the node kind);
 /// deserialize is total (RFC 8949 §6.2).
 pub mod natural_any_cbor {
-    use super::{AnyCbor, from_natural_json, to_natural_json};
+    use super::{AnyCbor, from_natural_json, serialize_json_value, to_natural_json};
 
     pub fn serialize<S>(value: &AnyCbor, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         let json = to_natural_json(value).map_err(serde::ser::Error::custom)?;
-        serde::Serialize::serialize(&json, serializer)
+        serialize_json_value(&json, serializer)
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<AnyCbor, D::Error>
@@ -1149,7 +1161,7 @@ pub mod natural_any_cbor {
 /// → `Option<AnyCbor>`). A generated optional field pairs this with `#[serde(default)]` so a missing
 /// key reads back as `None`, matching the derive's ordinary optional handling.
 pub mod natural_any_cbor_opt {
-    use super::{AnyCbor, from_natural_json, to_natural_json};
+    use super::{AnyCbor, JsonValueSer, from_natural_json, to_natural_json};
 
     pub fn serialize<S>(value: &Option<AnyCbor>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -1158,7 +1170,7 @@ pub mod natural_any_cbor_opt {
         match value {
             Some(v) => {
                 let json = to_natural_json(v).map_err(serde::ser::Error::custom)?;
-                serializer.serialize_some(&json)
+                serializer.serialize_some(&JsonValueSer(&json))
             }
             None => serializer.serialize_none(),
         }

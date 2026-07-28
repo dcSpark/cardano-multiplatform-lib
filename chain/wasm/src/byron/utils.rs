@@ -1,3 +1,4 @@
+use cml_core_wasm::impl_wasm_json_api;
 use cml_crypto_wasm::{
     Bip32PrivateKey, Bip32PublicKey, LegacyDaedalusPrivateKey, PublicKey, TransactionHash,
     impl_hash_type_ext,
@@ -159,6 +160,9 @@ impl ByronAddress {
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub struct ProtocolMagic(cml_chain::byron::ProtocolMagic);
+
+// JSON only. wasm CBOR API not hand-ported yet (see Ipv4, Url, DNSName for what a full CBOR API would look like)
+impl_wasm_json_api!(ProtocolMagic);
 
 #[wasm_bindgen]
 impl ProtocolMagic {

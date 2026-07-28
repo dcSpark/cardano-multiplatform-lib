@@ -56,10 +56,46 @@ impl RawBytesEncoding for AssetName {
 }
 
 /// Bundle of assets within range of T, grouped by PolicyID then AssetName
-#[derive(
-    Clone, Default, PartialEq, Hash, serde::Deserialize, serde::Serialize, schemars::JsonSchema,
-)]
+#[derive(Clone, Default, PartialEq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct AssetBundle<T>(OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>);
+
+/// Names the JSON schema of each `AssetBundle<T>` instantiation. A derived impl would name
+/// every instantiation `AssetBundle`, and `schemars` resolves that collision per-generator in
+/// first-encounter order (`AssetBundle` / `AssetBundle2`) — so an unrelated field reorder could
+/// silently swap the two published TypeScript names. Named for what the CDDL calls the
+/// instantiations instead, which also makes the published names domain terms.
+pub trait AssetBundleSchemaName {
+    const SCHEMA_NAME: &'static str;
+}
+
+impl AssetBundleSchemaName for PositiveCoin {
+    // AssetBundle<PositiveCoin> is `MultiAsset` (Value.multiasset)
+    const SCHEMA_NAME: &'static str = "MultiAsset";
+}
+
+impl AssetBundleSchemaName for NonZeroInt64 {
+    // AssetBundle<NonZeroInt64> is `Mint`
+    const SCHEMA_NAME: &'static str = "Mint";
+}
+
+impl<T: schemars::JsonSchema + AssetBundleSchemaName> schemars::JsonSchema for AssetBundle<T> {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        std::borrow::Cow::Borrowed(T::SCHEMA_NAME)
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        // The newtype is serde-transparent over the nested map, so its schema IS the map's.
+        <OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>> as schemars::JsonSchema>::json_schema(
+            generator,
+        )
+    }
+
+    fn inline_schema() -> bool {
+        // Non-inline like the old derived impl: each instantiation keeps its own `$defs` entry
+        // (MultiAsset / Mint), so referencing fields emit named types rather than inline maps.
+        false
+    }
+}
 
 impl<T: std::fmt::Debug> std::fmt::Debug for AssetBundle<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {

@@ -1,0 +1,73 @@
+{
+  "title": "PlutusData",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "map"
+      ],
+      "properties": {
+        "map": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["k", "v"],
+            "properties": {
+              "k": {
+                "$ref": "#/$defs/PlutusData"
+              },
+              "v": {
+                "$ref": "#/$defs/PlutusData"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "list"
+      ],
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlutusData"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "int"
+      ],
+      "properties": {
+        "int": {
+          "type": "integer",
+          "description": "A Plutus integer: unbounded by the ledger's definition, which is why this is the one integer in the document with no `format` and no bounds. Values outside ±2^53 cannot be held exactly by a JavaScript `number`; read the JSON text if you need them intact."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "bytes"
+      ],
+      "properties": {
+        "bytes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "$ref": "#/$defs/ConstrPlutusData"
+    }
+  ]
+}

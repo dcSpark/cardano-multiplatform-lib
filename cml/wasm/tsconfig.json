@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "target": "esnext",
+    "types": []
+  },
+  "files": ["pkg/cardano_multiplatform_lib.d.ts"]
+}

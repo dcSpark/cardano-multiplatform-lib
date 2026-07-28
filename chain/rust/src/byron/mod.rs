@@ -221,17 +221,31 @@ impl StakeDistribution {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use cml_core::serialization::ToBytes;
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cml_core::serialization::Deserialize;
 
-//     #[test]
-//     fn tx_output_decoding() {
-//         let tx_out = ByronTxOut::from_bytes(
-//             hex::decode("8282d818582183581cc6eb29e2cbb7b616b28c83da505a08253c33ec371319261ad93e558ca0001a1102942c1b00000005f817ddfc").unwrap()
-//         ).unwrap();
-//         assert_eq!(tx_out.address().to_base58(), "Ae2tdPwUPEZGexC4LXgsr1BJ1PppXk71zpuRkboFopVpSDcykQvpyYJXCJf");
-//         assert!(tx_out.to_json().unwrap().contains("Ae2tdPwUPEZGexC4LXgsr1BJ1PppXk71zpuRkboFopVpSDcykQvpyYJXCJf"));
-//     }
-// }
+    #[test]
+    fn tx_output_decoding() {
+        let tx_out = ByronTxOut::from_cbor_bytes(
+            &hex::decode("8282d818582183581cc6eb29e2cbb7b616b28c83da505a08253c33ec371319261ad93e558ca0001a1102942c1b00000005f817ddfc").unwrap()
+        ).unwrap();
+        let base58 = "Ae2tdPwUPEZGexC4LXgsr1BJ1PppXk71zpuRkboFopVpSDcykQvpyYJXCJf";
+        assert_eq!(tx_out.address.to_base58(), base58);
+        assert!(serde_json::to_string(&tx_out).unwrap().contains(base58));
+    }
+
+    /// Test JSON conversion uses base58 notation and round-trips
+    #[test]
+    fn byron_address_json_is_the_base58_string() {
+        let base58 = "Ae2tdPwUPEZGexC4LXgsr1BJ1PppXk71zpuRkboFopVpSDcykQvpyYJXCJf";
+        let addr = ByronAddress::from_base58(base58).unwrap();
+        assert_eq!(
+            serde_json::to_string(&addr).unwrap(),
+            format!("\"{base58}\"")
+        );
+        let back: ByronAddress = serde_json::from_str(&format!("\"{base58}\"")).unwrap();
+        assert_eq!(back.to_base58(), base58);
+    }
+}

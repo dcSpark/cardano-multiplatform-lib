@@ -14,6 +14,19 @@ pub use error::*;
 
 pub mod any_cbor;
 pub mod error;
+// Tool-owned (written by codegen.sh's --export-static-crate under --json-schema-export): the
+// per-workspace json-gen helper machinery — the row Registrar / add_schema name guard, the
+// reference-closure check, and the custom_schema_impl! macro (exported at this crate's ROOT
+// by #[macro_export], so it is `cml_core::custom_schema_impl!`).
+pub mod json_schema_gen;
+// Tool-owned (written by --export-static-crate under --json-serde-derives): the HONEST rendering of
+// serde_json::Value/Number in the serde data model. serde_json::Number's own Serialize is a private
+// `$serde_json::private::Number` token struct when serde_json/arbitrary_precision is on anywhere in
+// the build graph — which it is, from chain/rust/Cargo.toml, and cargo unifies features — and only
+// serde_json's own serializer collapses that token back. any_cbor's natural_any_cbor adapter routes
+// through here so an `any` member reaches serde-wasm-bindgen (or any other serializer) as a number.
+// The `pub mod` line is ours because lib.rs is hand-owned; the regen only writes the file.
+pub mod json_value_ser;
 pub mod network;
 pub mod non_empty;
 pub mod non_empty_map;

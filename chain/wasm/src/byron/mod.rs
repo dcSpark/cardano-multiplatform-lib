@@ -12,7 +12,7 @@ pub mod utils;
 pub use self::crc32::Crc32;
 pub use self::utils::{AddressId, ByronScript, ProtocolMagic, StakeholderId};
 pub use cml_chain::byron::ByronAddrType;
-use cml_core_wasm::{impl_wasm_cbor_event_serialize_api, impl_wasm_conversions};
+use cml_core_wasm::{impl_wasm_cbor_json_api_cbor_event_serialize, impl_wasm_conversions};
 use cml_crypto_wasm::{Bip32PublicKey, PublicKey};
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -22,7 +22,7 @@ pub struct AddrAttributes(cml_chain::byron::AddrAttributes);
 
 impl_wasm_conversions!(cml_chain::byron::AddrAttributes, AddrAttributes);
 
-impl_wasm_cbor_event_serialize_api!(AddrAttributes);
+impl_wasm_cbor_json_api_cbor_event_serialize!(AddrAttributes);
 
 #[wasm_bindgen]
 impl AddrAttributes {
@@ -64,7 +64,7 @@ pub struct AddressContent(cml_chain::byron::AddressContent);
 
 impl_wasm_conversions!(cml_chain::byron::AddressContent, AddressContent);
 
-impl_wasm_cbor_event_serialize_api!(AddressContent);
+impl_wasm_cbor_json_api_cbor_event_serialize!(AddressContent);
 
 #[wasm_bindgen]
 impl AddressContent {
@@ -99,7 +99,7 @@ pub struct ByronAddress(cml_chain::byron::ByronAddress);
 
 impl_wasm_conversions!(cml_chain::byron::ByronAddress, ByronAddress);
 
-impl_wasm_cbor_event_serialize_api!(ByronAddress);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronAddress);
 
 #[wasm_bindgen]
 impl ByronAddress {
@@ -125,7 +125,7 @@ pub struct HDAddressPayload(cml_chain::byron::HDAddressPayload);
 
 impl_wasm_conversions!(cml_chain::byron::HDAddressPayload, HDAddressPayload);
 
-impl_wasm_cbor_event_serialize_api!(HDAddressPayload);
+impl_wasm_cbor_json_api_cbor_event_serialize!(HDAddressPayload);
 
 #[wasm_bindgen]
 impl HDAddressPayload {
@@ -140,7 +140,7 @@ pub struct SpendingData(cml_chain::byron::SpendingData);
 
 impl_wasm_conversions!(cml_chain::byron::SpendingData, SpendingData);
 
-impl_wasm_cbor_event_serialize_api!(SpendingData);
+impl_wasm_cbor_json_api_cbor_event_serialize!(SpendingData);
 
 #[wasm_bindgen]
 impl SpendingData {
@@ -215,7 +215,7 @@ pub struct StakeDistribution(cml_chain::byron::StakeDistribution);
 
 impl_wasm_conversions!(cml_chain::byron::StakeDistribution, StakeDistribution);
 
-impl_wasm_cbor_event_serialize_api!(StakeDistribution);
+impl_wasm_cbor_json_api_cbor_event_serialize!(StakeDistribution);
 
 #[wasm_bindgen]
 impl StakeDistribution {
@@ -260,7 +260,7 @@ pub struct ByronTxOut(cml_chain::byron::ByronTxOut);
 
 impl_wasm_conversions!(cml_chain::byron::ByronTxOut, ByronTxOut);
 
-impl_wasm_cbor_event_serialize_api!(ByronTxOut);
+impl_wasm_cbor_json_api_cbor_event_serialize!(ByronTxOut);
 
 #[wasm_bindgen]
 impl ByronTxOut {

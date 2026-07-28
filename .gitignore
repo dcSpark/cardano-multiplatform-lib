@@ -60,12 +60,14 @@ multi-era/wasm/target/**
 multi-era/wasm/Cargo.lock
 multi-era/wasm/pkg/**
 multi-era/wasm/json-gen/target/**
-multi-era/wasm/json-gen/output/**
+# json-gen/output/json-types.d.ts is COMMITTED for the two published packages (cml, multi-era):
+# it is the reviewable projection of the JSON surface, diffed in CI so a regen cannot silently
+# change what ships. The schema documents stay ignored (machine JSON; the .d.ts reviews the
+# same contract).
 multi-era/wasm/json-gen/schemas/**
 multi-era/wasm/node_modules/**
 
 cml/wasm/json-gen/target/**
-cml/wasm/json-gen/output/**
 cml/wasm/json-gen/schemas/**
 cml/wasm/node_modules/**
 

@@ -49,46 +49,54 @@
 set -euo pipefail
 
 # cddl-codegen commit the specs target. Override with CDDL_CODEGEN_DIR
-# NOTE: this rev PREDATES the extern-wrapper-dedup feature (--no-synthesized-rust-collection-aliases,
-# --extern-wrapper-index, generated collections.rs), workspace mode (--workspace-dep,
-# --wrapper-requests, borrowed/requested_collections.rs), the cml-core runtime export
-# (--export-static-dir), AND the wrapper-requests alias-element fix + hardening (without which the
-# dep-side regen PANICS on this workspace's real sidecar — alias elements like stake_credential).
-# It ALSO predates the @custom_json fix for sum-type/record encoding fields + record derives
-# (c9c47b0), which specs/conway/plutus.cddl's plutus_data now relies on, AND the crate-shaped
-# static export (--export-static-crate, which replaced --export-static-dir and also merges
-# core/rust/Cargo.toml — the chain invocation below uses the NEW flag, so it needs a rev that
-# has it; an older rev fails loudly on the unknown flag).
-# The 2026-07-19 upstream cycle (see draft/migrations/RESPONSE-2026-07-19-*.md) added MORE the
-# bump rev must include:
-#   - --rust-wasm-feature (feature-gates the c-style-enum #[wasm_bindgen] in the RUST crate via
-#     cfg_attr, replacing the old noop_proc_macro import shim the committed generated code still
-#     carries; the flag is passed below, so an older rev fails loudly on it) and the automatic
-#     repair of the legacy `used_from_wasm = ["wasm-bindgen"]` feature list to ["dep:…"]
-#   - banner-only extern_interface_check.rs / key_demand_assertions.rs (per-row `// <rule>`
-#     markers removed — they self-perpetuated as unpreserved-comment traps after rule deletions;
-#     our tree carries no trap blocks, so no one-time hand-cleanup is needed here)
-#   - json-gen extern-row fixes (skips uncompilable rows for generic-extern bases and
-#     workspace-dep-owned types; KEEPS rows for own-spec externs, which now contractually need
-#     schemars::JsonSchema — all of CML's externs already impl it)
-#   - borrowed_key_types.rs self-check emits the dep's SCOPED path (bare machine rows unchanged;
-#     sidecar bytes only change if a map is keyed on a non-root dep type)
-# Bump to a rev with all of the above once they are on the GitHub remote — nothing earlier; e.g.
-# 2bff93f has --export-static-dir but not the alias fix, and 18fb7cc lacks the @custom_json fix.
-# The 2026-07-20 cycle added two more requirements (both shipped upstream, see
-# draft/feature-requests/RESPONSE-2026-07-20-request-0{7,8}.md in the cddl-codegen repo):
-#   - the REQUEST-07 fix (generic-extern instance `Base<Args>` leaked into scope `use` lists;
-#     previously blocked the chain regen entirely)
-#   - the REQUEST-08 series (transparent tag-258 set idiom, branch feature/request-08-cbor-set):
-#     specs/conway/lib.cddl now DEFINES set<T>/nonempty_set<T> as the `#6.258([* T]) / [* T]`
-#     choice instead of externing them, and the hand NonemptySet/NonemptySetRawBytes impls
-#     (chain/rust/src/utils.rs) plus the wasm alias/conversion shims were DELETED. A rev without
-#     the request-08 collapse mis-models these rules as two-variant enums — do not regen chain
-#     on anything older.
-# As of 2026-07-19 the earlier cycle's fixes are NOT yet pushed (only e07c3a0 of the referenced
-# commits is on the remote). Until everything above lands on the remote, regen only works via
-# CDDL_CODEGEN_DIR pointing at a local checkout.
-CDDL_CODEGEN_PINNED_REV="77237871a3d2585996b103fbcc03bd227606c445"
+# This rev is the request-12 (json-gen row-set ownership) delivery: it has everything the
+# previous pin (77237871) had, PLUS the JSON-schema machinery this tree now relies on:
+#   - one document per crate (wasm/json-gen writes schemas/<lib>.schema.json; per-type files
+#     are gone), with the name-injectivity guard and the reference-closure check running inside
+#     the json-gen crate's own `cargo run`, before the write
+#   - @no_json_schema_export (specs/conway/plutus.cddl uses it on plutus_map and
+#     constr_plutus_data — an older rev re-emits those rows and the PlutusMap one is an E0277)
+#   - --json-schema-root / --json-schema-dep (passed below; an older rev fails loudly on them)
+#   - --json-schema-scripts (ships the canonical run-json2ts.js / json-ts-types.js into
+#     <group>/scripts/, replacing CML's forks of the pre-split-era copies)
+#   - rejection of rule-level directives on a non-last arm of a multi-choice type rule
+#     (plutus_data's @custom_json @used_as_key placement is load-bearing; see the spec comment)
+#   - the collapsible_if fix for the emitted closure-check helper (bafaccdf; clippy 1.96's
+#     let-chain-aware lint fails ./clippy.sh on anything older, 06c86542 included)
+#   - run-json2ts.js widening of patternProperties catch-alls beside named properties
+#     (66249378; without it cip36's {De,}RegistrationCbor rest-row types emit TS2411)
+#   - json-ts-types.js failing on silently-untyped JSON methods (d5367b44) — a wasm class
+#     declaring to_json_value() whose type the document doesn't publish fails the npm build
+#     naming the class, instead of shipping `any` with nothing said. This is what guards the
+#     JSON_ROOTS_* / dep lists below: forgetting one is a build error, not silence.
+#   - the request-13 response cycle (4b2122cc): the widening handles optional named properties
+#     (undefined joins the union under strictNullChecks) and no longer misreads data fields
+#     literally named properties/patternProperties; the untyped-class failure names an existing
+#     declaration that differs only by json2ts identifier normalization; @custom_json docs now
+#     carry the hand-authored-schema pattern this tree uses
+#   - the request-14 cycle (62011287, cycle8-helper-dedup): the json-gen helper machinery lives
+#     ONCE per workspace as cml_core::json_schema_gen (written by --export-static-crate under
+#     --json-schema-export; the json-gen manifests hand-declare cml-core, and core's lib.rs
+#     hand-declares `pub mod json_schema_gen;`); rows are `reg.add::<T>()` against a Registrar;
+#     cml_core::custom_schema_impl! writes the hand-authored-schema JsonSchema impls
+#   - the request-15 cycle (13bbfa27..9e1f14f0): serde_json::Number's own Serialize is a private
+#     `$serde_json::private::Number` token struct whenever serde_json/arbitrary_precision is on
+#     anywhere in the build graph — and it is, from chain/rust/Cargo.toml, which cargo unifies
+#     across the workspace. Only serde_json's own serializer collapses that token, so every OTHER
+#     serializer (serde-wasm-bindgen above all) shipped it verbatim: to_json() looked right while
+#     to_json_value() returned {"int":{"$serde_json::private::Number":"1000"}}, at every magnitude.
+#     This rev adds the static json_value_ser.rs runtime (an honest Value/Number walker) and routes
+#     any_cbor's natural_any_cbor adapter through it. TWO THINGS RIDE ON THIS REV, both already
+#     taken here: core/rust/src/lib.rs hand-declares `pub mod json_value_ser;` (the tool writes the
+#     file, not the mod line), and the emitted wasm error prefix is `to_json_value:` — which our
+#     impl_wasm_json_api! copy already used, so nothing moved. An OLDER rev leaves any_cbor.rs
+#     importing a module that does not exist (E0432) once the mod line is present.
+# NOTE: this rev is on the LOCAL cddl-codegen checkout's master. Upstream has declined to push
+# to the GitHub remote (request-13 §8) — treat this as a PERMANENT condition of consuming an
+# unpushed rev, not something to wait out: regen requires CDDL_CODEGEN_DIR pointing at a local
+# checkout that has the commit (the default clone-from-GitHub path cannot check it out). CI is
+# unaffected; it never regenerates.
+CDDL_CODEGEN_PINNED_REV="9e1f14f016b245051476099a87bab916262798f8"
 # A CDDL_CODEGEN_REV in the environment wins over the pin. Remember whether it was set explicitly:
 # with CDDL_CODEGEN_DIR the two cases differ (HEAD as-is vs. move the checkout to that commit).
 CDDL_CODEGEN_REV_EXPLICIT=0
@@ -213,6 +221,53 @@ gen() {
 #     this is emission-only; it removes public rust API in EVERY crate (incl. chain's own
 #     PolicyIdList etc.) — intentional, they were dead re-declarations.
 OVERRIDE=(--common-import-override=cml_core --no-synthesized-rust-collection-aliases=true)
+# JSON-schema roots: hand-written types whose JSON form is published API but that no CDDL rule
+# describes, so the spec-derived row set cannot see them (rust_structs() reads the spec; no
+# closure can reach an UNREFERENCED root). Verbatim Rust paths, resolved by the json-gen crate's
+# own build — cml_crypto resolves because chain/wasm/json-gen/Cargo.toml hand-declares it (the
+# manifest is merged, so the entry survives regen).
+#   chain: the Byron address machinery + Bip32PublicKey. These 8 were rows in the pre-request-12
+#   hand-maintained row set; without them 8 wasm classes fall back to `to_json_value(): any`.
+JSON_ROOTS_CHAIN=(
+  --json-schema-root=cml_chain::byron::AddressContent
+  --json-schema-root=cml_chain::byron::ByronAddress
+  --json-schema-root=cml_chain::byron::ByronAddrType
+  --json-schema-root=cml_chain::byron::ByronTxOut
+  --json-schema-root=cml_chain::byron::Crc32
+  --json-schema-root=cml_chain::byron::SpendingData
+  --json-schema-root=cml_chain::byron::StakeholderId
+  --json-schema-root=cml_crypto::Bip32PublicKey
+)
+#   multi-era: its hand-written roots — the multi-era wrapper enums (utils.rs) plus two byron
+#   types (published as Blake2B256JSON / AnyJSON after json2ts name normalization). The
+#   dep-owned roots arrive through --json-schema-dep below instead of being restated here —
+#   each dep's own row set is the source of truth and a restated list would silently drift.
+JSON_ROOTS_MULTIERA=(
+  --json-schema-root=cml_multi_era::byron::Blake2b256
+  --json-schema-root=cml_multi_era::byron::utils::ByronAny
+  --json-schema-root=cml_multi_era::utils::MultiEraBlockHeader
+  --json-schema-root=cml_multi_era::utils::MultiEraCertificate
+  --json-schema-root=cml_multi_era::utils::MultiEraProtocolParamUpdate
+)
+#   cip25: hand-written type with the wasm JSON API but no CDDL rule.
+JSON_ROOTS_CIP25=(
+  --json-schema-root=cml_cip25::utils::CIP25MiniMetadataDetails
+)
+# --json-schema-dep=<dep>=<dep_json_gen_crate>: thread a dependency's whole row set into
+#   multi-era's schema document (dep calls are emitted FIRST in add_schemas, so on a
+#   cross-crate name collision the guard blames multi-era's row — the one we can change).
+#   The right side is the dep's json-gen crate, which multi-era/wasm/json-gen/Cargo.toml
+#   hand-declares (merged manifest, survives regen). chain replaces the old hand insert block
+#   in json-gen main.rs; cip25/cip36 are threaded because the multi-era wasm package SHIPS
+#   their classes, so their JSON surface must be typed there too (json-ts-types.js fails the
+#   build otherwise).
+# --json-schema-scripts: take the canonical JSON-schema -> TypeScript scripts into
+#   <group>/scripts/ instead of maintaining forks under the repo-root scripts/.
+JSON_SCHEMA_DEP_MULTIERA=(
+  --json-schema-dep=cml_chain=cml_chain_json_schema_gen
+  --json-schema-dep=cml_cip25=cml_cip25_json_schema_gen
+  --json-schema-dep=cml_cip36=cml_cip36_json_schema_gen
+)
 WASM_MACROS=(--wasm true --rust-wasm-feature=used_from_wasm --wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api --wasm-conversions-macro=cml_core_wasm::impl_wasm_conversions --wasm-list-macro=cml_core_wasm::impl_wasm_list_needs_into)
 CIP25_WASM_MACROS=(--wasm true --rust-wasm-feature=used_from_wasm --wasm-cbor-json-api-macro=cml_core_wasm::impl_wasm_cbor_json_api_cbor_event_serialize --wasm-conversions-macro=cml_core_wasm::impl_wasm_conversions --wasm-list-macro=cml_core_wasm::impl_wasm_list_needs_into)
 COMMON=(--preserve-encodings=true --canonical-form=true --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${WASM_MACROS[@]}")
@@ -267,7 +322,8 @@ fi
 #   cip36      <- specs/cip36   (extern-deps dirs attribute crypto/chain types to their crates)
 #   cip25      <- specs/cip25.cddl    (no preserve-encodings)
 # multi-era BEFORE chain: workspace-mode reverse dependency order (see comment above).
-want multi-era && gen multi-era "$SPECS/multiera" --lib-name=cml-multi-era "${COMMON[@]}" "${EXTERN_WASM_MULTIERA[@]}"
+want multi-era && gen multi-era "$SPECS/multiera" --lib-name=cml-multi-era "${COMMON[@]}" "${EXTERN_WASM_MULTIERA[@]}" \
+  "${JSON_SCHEMA_DEP_MULTIERA[@]}" "${JSON_ROOTS_MULTIERA[@]}" --json-schema-scripts=true
 if want chain; then
   if [ -f "$MULTIERA_SIDECAR" ]; then
     # --export-static-crate: refresh cml-core's copy of the static runtime (error.rs,
@@ -290,7 +346,8 @@ if want chain; then
     # response); this is the flag doc's own documented pairing with --common-import-override.
     gen chain "$SPECS/conway" --lib-name=cml-chain "${COMMON[@]}" "${WRAPPER_REQUESTS_CHAIN[@]}" \
       --extern-wasm-crate=cml_core=cml_core_wasm \
-      --export-static-crate="$REPO_ROOT/core/rust"
+      --export-static-crate="$REPO_ROOT/core/rust" \
+      "${JSON_ROOTS_CHAIN[@]}" --json-schema-scripts=true
   else
     # Only possible before the first multi-era regen under workspace mode. Without the sidecar,
     # chain would silently drop every hosted wrapper multi-era needs — refuse instead.
@@ -306,7 +363,8 @@ fi
 want cip36     && gen cip36     "$SPECS/cip36" --lib-name=cml-cip36    "${COMMON[@]}" \
   --extern-wasm-crate=cml_crypto=cml_crypto_wasm --extern-wasm-crate=cml_chain=cml_chain_wasm
 #    cip25 doesn't use COMMON as it deliberately omits preserve-encodings/canonical-form (it never had them).
-want cip25     && gen cip25     "$SPECS/cip25.cddl" --lib-name=cml-cip25 --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${CIP25_WASM_MACROS[@]}"
+want cip25     && gen cip25     "$SPECS/cip25.cddl" --lib-name=cml-cip25 --json-serde-derives=true --json-schema-export=true "${OVERRIDE[@]}" "${CIP25_WASM_MACROS[@]}" \
+  "${JSON_ROOTS_CIP25[@]}"
 
 # Byron is a legacy era (original cardano-sl format). It is NOT regenerated by default because a
 # routine regen would silently break it — it needs special args AND a hand-edit cddl-codegen can't

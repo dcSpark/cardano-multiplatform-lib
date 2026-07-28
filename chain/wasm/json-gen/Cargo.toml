@@ -8,6 +8,7 @@ keywords = ["cardano"]
 generated-with = "0.1.0"
 
 [dependencies]
+cml-core = { path = "../../../core/rust" }
 serde_json = "1.0.57"
 schemars = "1.2.1"
 cml-chain = { path = "../../rust" }

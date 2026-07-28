@@ -17,8 +17,15 @@ plutus_v3_script = bytes ; @newtype
 ; original def:
 ; { * plutus_data => plutus_data }
 ; we hand-code it to handle duplicates
-plutus_map = _CDDL_CODEGEN_EXTERN_TYPE_
+; no_json_schema_export because PlutusMap has no schemars::JsonSchema impl (and no serde
+; impl) — a bare plutus_map is never exchanged as JSON; its JSON form exists only inside
+; plutus_data's hand-written DetailedSchema encoding.
+plutus_map = _CDDL_CODEGEN_EXTERN_TYPE_ ; @no_json_schema_export
 
+; NOTE: the rule-level directives (custom_json, used_as_key) MUST stay on the LAST arm —
+; a multi-choice rule's rule-position comment slot is the last arm's trailing comment.
+; cddl-codegen rejects them on a non-last arm, so a reorder fails loudly, but reorder
+; with care: whichever arm ends up last must carry them.
 plutus_data =
     constr_plutus_data
   / plutus_map ; @name map
@@ -39,6 +46,9 @@ big_integer = _CDDL_CODEGEN_EXTERN_TYPE_
 ;  / #6.127([* a])
 ;  ; similarly for tag range: 6.1280 .. 6.1400 inclusive
 ;  / #6.102([alternative: uint, fields: [* a]])
+; the hand-written serde/schemars impls publish the cardano-node DetailedSchema form
+; ({constructor, fields}) — the same encoding this data has inside a plutus_data — so the
+; type is a published schema root like any other.
 constr_plutus_data = _CDDL_CODEGEN_EXTERN_TYPE_
 
 redeemer_key = [ tag: redeemer_tag, index: uint ]

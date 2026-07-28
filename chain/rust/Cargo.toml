@@ -56,3 +56,6 @@ quickcheck = "1.1.0"
 quickcheck_macros = "1.2.0"
 rand_chacha = "0.10.0"
 flaky_test = "0.2.2"
+# Validates the hand-authored JSON schemas in src/json/custom_schemas/ against what the
+# hand-written serde impls actually emit (src/json/custom_schemas_tests.rs).
+jsonschema = "0.49.1"

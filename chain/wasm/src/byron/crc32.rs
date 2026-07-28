@@ -1,8 +1,12 @@
+use cml_core_wasm::impl_wasm_json_api;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub struct Crc32(cml_chain::byron::Crc32);
+
+// JSON only. wasm CBOR API not hand-ported yet (see Ipv4, Url, DNSName for what a full CBOR API would look like)
+impl_wasm_json_api!(Crc32);
 
 #[wasm_bindgen]
 impl Crc32 {

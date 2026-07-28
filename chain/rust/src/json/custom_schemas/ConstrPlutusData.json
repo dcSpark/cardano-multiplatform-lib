@@ -1,0 +1,22 @@
+{
+  "title": "ConstrPlutusData",
+  "type": "object",
+  "required": [
+    "constructor",
+    "fields"
+  ],
+  "properties": {
+    "constructor": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PlutusData"
+      }
+    }
+  },
+  "additionalProperties": false
+}

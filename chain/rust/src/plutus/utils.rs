@@ -23,7 +23,10 @@ impl serde::Serialize for PlutusData {
         let json_value =
             decode_plutus_datum_to_json_value(self, CardanoNodePlutusDatumSchema::DetailedSchema)
                 .expect("DetailedSchema can represent everything");
-        serde_json::Value::from(json_value).serialize(serializer)
+        // json_value.serialize, NOT serde_json::Value::from(...).serialize — see the Serialize
+        // impl on json_serialize::Value for why routing through serde_json::Value is wrong for any
+        // serializer that is not serde_json's own.
+        crate::json::json_serialize::Structural(&json_value).serialize(serializer)
     }
 }
 
@@ -48,19 +51,10 @@ impl<'de> serde::de::Deserialize<'de> for PlutusData {
     }
 }
 
-impl schemars::JsonSchema for PlutusData {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("PlutusData")
-    }
-
-    fn json_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        schemars::Schema::new_ref("PlutusData".to_owned())
-    }
-
-    fn inline_schema() -> bool {
-        false
-    }
-}
+// The hand-authored schema for the cardano-node DetailedSchema encoding produced by our
+// hand-written serde impls — the derived shape is NOT the published encoding. Validated
+// against the real serde output by the round-trip test in src/json/custom_schemas_tests.rs.
+cml_core::custom_schema_impl!(PlutusData, "../json/custom_schemas/PlutusData.json");
 
 use cml_crypto::{DatumHash, blake2b256};
 
@@ -142,11 +136,13 @@ impl PlutusData {
     }
 }
 
-#[derive(
-    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
-)]
+#[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ConstrPlutusData {
+    /// Note: this field has different names in different places:
+    ///       `alternative`: Plutus Core's name
+    ///       `constructor`: cardano-node's name
+    /// The CBOR spec names neither (it's an anonymous type)
     pub alternative: u64,
     pub fields: Vec<PlutusData>,
     #[derivative(
@@ -155,9 +151,46 @@ pub struct ConstrPlutusData {
         PartialOrd = "ignore",
         Hash = "ignore"
     )]
-    #[serde(skip)]
     pub encodings: Option<ConstrPlutusDataEncoding>,
 }
+
+/// A type has ONE published JSON encoding. Constr data's is the cardano-node DetailedSchema
+/// form `{"constructor": <alt>, "fields": [...]}` — the shape this same value takes inside a
+/// `PlutusData` — so the standalone type serializes identically. (A derived impl would emit
+/// `{"alternative", "fields"}`, publishing a second, contradictory encoding of the same data.)
+impl serde::Serialize for ConstrPlutusData {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut s = serializer.serialize_struct("ConstrPlutusData", 2)?;
+        s.serialize_field("constructor", &self.alternative)?;
+        s.serialize_field("fields", &self.fields)?;
+        s.end()
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ConstrPlutusData {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(serde::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct DetailedSchemaConstr {
+            constructor: u64,
+            fields: Vec<PlutusData>,
+        }
+        let constr = DetailedSchemaConstr::deserialize(deserializer)?;
+        Ok(Self::new(constr.constructor, constr.fields))
+    }
+}
+
+// Hand-authored to match the hand-written serde impls above. `PlutusData`'s schema references
+// this one for its constructor arm, so the two cannot drift — valid ONLY because
+// constr_plutus_data has its own registration row: a type reached solely through a
+// hand-written `$ref` is never visited by schemars, so nothing would create its `$defs`
+// entry and the closure check would fail on the pointer. Validated by the round-trip test in
+// src/json/custom_schemas_tests.rs.
+cml_core::custom_schema_impl!(
+    ConstrPlutusData,
+    "../json/custom_schemas/ConstrPlutusData.json"
+);
 
 impl ConstrPlutusData {
     // see: https://github.com/input-output-hk/plutus/blob/1f31e640e8a258185db01fa899da63f9018c0e85/plutus-core/plutus-core/src/PlutusCore/Data.hs#L61

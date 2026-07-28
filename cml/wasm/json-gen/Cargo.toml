@@ -5,6 +5,7 @@ edition = "2024"
 
 
 [dependencies]
+cml-core = { path = "../../../core/rust" }
 serde_json = "1.0.57"
 schemars = "1.2.1"
 cml-chain-json-schema-gen = { path = "../../../chain/wasm/json-gen" }

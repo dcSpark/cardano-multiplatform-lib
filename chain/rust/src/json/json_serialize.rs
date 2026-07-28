@@ -539,6 +539,80 @@ impl Value {
     }
 }
 
+/// A `Value` serialized STRUCTURALLY — as the JSON document it represents — into ANY serializer,
+/// not just `serde_json`'s.
+///
+/// **Read [`cml_core::json_value_ser`] first**: it states the whole problem and the guarantees, and
+/// it is the canonical version. Short form — the obvious spelling
+/// `serde_json::Value::from(self).serialize(serializer)` is wrong for a foreign serializer, because
+/// `serde_json::Number` under `arbitrary_precision` serializes as a private token STRUCT that only
+/// serde_json itself collapses back, so `PlutusData::to_json_value()` shipped
+/// `{"int":{"$serde_json::private::Number":"1000"}}` to JS at every magnitude.
+///
+/// This is a second implementation of that walker, and deliberately so: `cml_core`'s takes a
+/// `serde_json::Value`, whereas ours walks `Value` — a `BigInteger` tree — directly, so routing
+/// through it would mean materializing an intermediate `serde_json::Value` for every datum. Two
+/// differences from the canonical version follow from that input type, both intentional:
+///
+/// * **No re-print guard.** `cml_core`'s ladder checks that the chosen integer re-prints to the
+///   `Number`'s own spelling, because a `serde_json::Number` can hold `007`, `-0`, `+5` or `1e3`
+///   under `arbitrary_precision`. `BigInteger` NORMALISES on parse (`-0` → `0`, `007` → `7`,
+///   `+5` → `5`, `1e3` rejected), so no non-canonical spelling can reach this ladder and the guard
+///   would be dead code. If `Value::Number` ever stops being `BigInteger`-backed, add it.
+/// * **No `f64` arm.** `BigInteger` is integral; there is no float to render.
+///
+/// The `>±2^127` fallthrough matches the canonical version: serde's data model has no integer that
+/// wide, a Plutus integer is unbounded, and `to_json()` depends on serde_json's token to stay
+/// lossless there. Unreachable for anything that fits a machine word.
+///
+/// Note what this deliberately does NOT do: it does not rescue a value between 2^53 and `u64::MAX`
+/// from serde-wasm-bindgen, which refuses it with "can't be represented as a JavaScript number".
+/// That refusal is cddl-codegen's documented contract (`docs/docs/wasm_differences.mdx`) — fail
+/// loud rather than silently round — and emitting a real `u64` here is exactly what lets that
+/// contract apply to these types too, instead of them silently bypassing it with a token object.
+///
+/// A newtype rather than an impl on `Value`, because `Value`'s own `Serialize` (above) already
+/// means something else and is load-bearing: it emits the whole document as a single JSON *string*,
+/// which is how a `Value`-typed field is carried. These are two different jobs and both are needed.
+pub(crate) struct Structural<'a>(pub &'a Value);
+
+impl Serialize for Structural<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self.0 {
+            Value::Null => serializer.serialize_unit(),
+            Value::Bool(b) => serializer.serialize_bool(*b),
+            Value::String(s) => serializer.serialize_str(s),
+            Value::Array(arr) => serializer.collect_seq(arr.iter().map(Structural)),
+            Value::Object(obj) => {
+                serializer.collect_map(obj.iter().map(|(k, v)| (k, Structural(v))))
+            }
+            Value::Number(n) => {
+                let text = n.to_string();
+                // Widest-fits-last through serde's own integer methods. This is what makes the
+                // value a real NUMBER to whatever serializer is on the other end.
+                if let Some(u) = n.as_u64() {
+                    serializer.serialize_u64(u)
+                } else if let Ok(i) = i64::from_str(&text) {
+                    serializer.serialize_i64(i)
+                } else if let Some(u) = n.as_u128() {
+                    serializer.serialize_u128(u)
+                } else if let Ok(i) = i128::from_str(&text) {
+                    serializer.serialize_i128(i)
+                } else {
+                    // Wider than serde's data model (±2^127). serde_json can still carry it via the
+                    // arbitrary_precision token, and `to_json()` depends on that staying lossless;
+                    // no other serializer can represent it at all. Documented residual, unreachable
+                    // for any integer that fits a machine word.
+                    serde_json::Value::Number(serde_json::Number::from_str(&text).map_err(|e| {
+                        serde::ser::Error::custom(format!("json number {text}: {e}"))
+                    })?)
+                    .serialize(serializer)
+                }
+            }
+        }
+    }
+}
+
 impl From<Value> for serde_json::Value {
     fn from(value: Value) -> Self {
         match value {

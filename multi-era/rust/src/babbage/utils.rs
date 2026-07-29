@@ -1,10 +1,10 @@
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_chain::{
-    LenEncoding, PolicyId, Script, StringEncoding,
+    LenEncoding, PolicyId, StringEncoding,
     assets::{AssetName, Mint, NonZeroInt64},
     auxdata::{AuxiliaryData, ConwayFormatAuxData},
     plutus::Redeemers,
-    transaction::TransactionWitnessSet,
+    transaction::{Script, TransactionWitnessSet},
 };
 
 use super::{

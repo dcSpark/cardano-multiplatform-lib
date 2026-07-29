@@ -85,4 +85,4 @@ pub use transaction::RequiredSigners;
 // Crate-root aliases the hand-written builder/util modules reference bare
 // (these were private root imports in the pre-thin-root lib.rs).
 use crate::plutus::ExUnitPrices;
-use crate::transaction::NativeScript;
+use crate::transaction::{NativeScript, Script};

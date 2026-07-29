@@ -79,5 +79,5 @@ pub use utils::BigInteger;
 // imports in the pre-thin-root lib.rs).
 use crate::assets::AssetName;
 use crate::crypto::Vkeywitness;
-use crate::transaction::NativeScript;
+use crate::transaction::{NativeScript, Script};
 use ::wasm_bindgen::prelude::{JsError, wasm_bindgen};

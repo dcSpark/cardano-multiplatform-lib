@@ -1,11 +1,13 @@
 use crate::chain_crypto::bech32::{self, Bech32};
+use alloc::format;
+use alloc::string::String;
 use cbor_event::{de::Deserializer, se::Serializer};
+use core::fmt;
+use core::hash::Hash;
+use core::str::FromStr;
 use hex::FromHexError;
 use rand::{CryptoRng, Rng};
 use schemars::JsonSchema;
-use std::fmt;
-use std::hash::Hash;
-use std::str::FromStr;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SecretKeyError {
@@ -90,13 +92,13 @@ impl<A: AsymmetricKey> KeyPair<A> {
         KeyPair(SecretKey(sk), PublicKey(pk))
     }
 }
-impl<A: AsymmetricKey> std::fmt::Debug for KeyPair<A> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl<A: AsymmetricKey> core::fmt::Debug for KeyPair<A> {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "KeyPair(<secret key>, {:?})", self.public_key())
     }
 }
-impl<A: AsymmetricKey> std::fmt::Display for KeyPair<A> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl<A: AsymmetricKey> core::fmt::Display for KeyPair<A> {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "KeyPair(<secret key>, {})", self.public_key())
     }
 }
@@ -116,7 +118,8 @@ impl<A: AsymmetricPublicKey> FromStr for PublicKey<A> {
     type Err = PublicKeyFromStrError;
 
     fn from_str(hex: &str) -> Result<Self, Self::Err> {
-        let bytes = hex::decode(hex).map_err(PublicKeyFromStrError::HexMalformed)?;
+        let bytes = cml_core::hex_grammar::decode_canonical_hex(hex)
+            .map_err(PublicKeyFromStrError::HexMalformed)?;
         Self::from_binary(&bytes).map_err(PublicKeyFromStrError::KeyInvalid)
     }
 }
@@ -146,8 +149,8 @@ impl<'de, A: AsymmetricPublicKey> serde::de::Deserialize<'de> for PublicKey<A> {
 }
 
 impl JsonSchema for PublicKey<crate::chain_crypto::Ed25519> {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("Ed25519PublicKey")
+    fn schema_name() -> crate::json_schema_gen::Cow<'static, str> {
+        crate::json_schema_gen::Cow::Borrowed("Ed25519PublicKey")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
@@ -157,8 +160,8 @@ impl JsonSchema for PublicKey<crate::chain_crypto::Ed25519> {
     }
 }
 impl JsonSchema for PublicKey<crate::chain_crypto::Ed25519Bip32> {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("Ed25519Bip32PublicKey")
+    fn schema_name() -> crate::json_schema_gen::Cow<'static, str> {
+        crate::json_schema_gen::Cow::Borrowed("Ed25519Bip32PublicKey")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
@@ -172,7 +175,8 @@ impl<A: AsymmetricKey> FromStr for SecretKey<A> {
     type Err = SecretKeyFromStrError;
 
     fn from_str(hex: &str) -> Result<Self, Self::Err> {
-        let bytes = hex::decode(hex).map_err(SecretKeyFromStrError::HexMalformed)?;
+        let bytes = cml_core::hex_grammar::decode_canonical_hex(hex)
+            .map_err(SecretKeyFromStrError::HexMalformed)?;
         Self::from_binary(&bytes).map_err(SecretKeyFromStrError::KeyInvalid)
     }
 }
@@ -205,12 +209,12 @@ impl fmt::Display for PublicKeyFromStrError {
     }
 }
 
-impl std::error::Error for SecretKeyError {}
+impl core::error::Error for SecretKeyError {}
 
-impl std::error::Error for PublicKeyError {}
+impl core::error::Error for PublicKeyError {}
 
-impl std::error::Error for PublicKeyFromStrError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for PublicKeyFromStrError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             PublicKeyFromStrError::HexMalformed(e) => Some(e),
             PublicKeyFromStrError::KeyInvalid(e) => Some(e),
@@ -277,22 +281,22 @@ impl<A: AsymmetricKey> Clone for KeyPair<A> {
     }
 }
 
-impl<A: AsymmetricPublicKey> std::cmp::PartialEq<Self> for PublicKey<A> {
+impl<A: AsymmetricPublicKey> core::cmp::PartialEq<Self> for PublicKey<A> {
     fn eq(&self, other: &Self) -> bool {
         self.0.as_ref().eq(other.0.as_ref())
     }
 }
 
-impl<A: AsymmetricPublicKey> std::cmp::Eq for PublicKey<A> {}
+impl<A: AsymmetricPublicKey> core::cmp::Eq for PublicKey<A> {}
 
-impl<A: AsymmetricPublicKey> std::cmp::PartialOrd<Self> for PublicKey<A> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+impl<A: AsymmetricPublicKey> core::cmp::PartialOrd<Self> for PublicKey<A> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<A: AsymmetricPublicKey> std::cmp::Ord for PublicKey<A> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+impl<A: AsymmetricPublicKey> core::cmp::Ord for PublicKey<A> {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.0.as_ref().cmp(other.0.as_ref())
     }
 }
@@ -300,7 +304,7 @@ impl<A: AsymmetricPublicKey> std::cmp::Ord for PublicKey<A> {
 impl<A: AsymmetricPublicKey> Hash for PublicKey<A> {
     fn hash<H>(&self, state: &mut H)
     where
-        H: std::hash::Hasher,
+        H: core::hash::Hasher,
     {
         self.0.as_ref().hash(state)
     }
@@ -354,11 +358,11 @@ mod test {
     use super::*;
 
     // ONLY ALLOWED WHEN TESTING
-    impl<A> std::fmt::Debug for SecretKey<A>
+    impl<A> core::fmt::Debug for SecretKey<A>
     where
         A: AsymmetricKey,
     {
-        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
             write!(f, "SecretKey ({:?})", self.0.as_ref())
         }
     }

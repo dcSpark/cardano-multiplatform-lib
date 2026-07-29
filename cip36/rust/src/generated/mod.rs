@@ -7,6 +7,11 @@
     clippy::result_large_err
 )]
 
+extern crate alloc;
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
 extern crate derivative;
 mod extern_interface_check;
 fn cip36_deregistration_cbor_rest_flatten_serialize<S: serde::Serializer>(
@@ -15,7 +20,7 @@ fn cip36_deregistration_cbor_rest_flatten_serialize<S: serde::Serializer>(
 ) -> Result<S::Ok, S::Error> {
     cml_core::open_struct_rest_json::serialize_flattened_rest(
         &["key_deregistration", "deregistration_witness"],
-        |k: &u64| Ok::<String, std::convert::Infallible>(k.to_string()),
+        |k: &u64| Ok::<String, core::convert::Infallible>(k.to_string()),
         rest.iter(),
         serializer,
     )
@@ -45,7 +50,7 @@ fn cip36_registration_cbor_rest_flatten_serialize<S: serde::Serializer>(
 ) -> Result<S::Ok, S::Error> {
     cml_core::open_struct_rest_json::serialize_flattened_rest(
         &["key_registration", "registration_witness"],
-        |k: &u64| Ok::<String, std::convert::Infallible>(k.to_string()),
+        |k: &u64| Ok::<String, core::convert::Infallible>(k.to_string()),
         rest.iter(),
         serializer,
     )
@@ -84,7 +89,6 @@ use cml_core::non_empty::NonEmptyVec;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
 use cml_crypto::{Ed25519Signature, PublicKey};
-use std::collections::BTreeMap;
 
 // cddl-codegen:keep
 /// Weighted delegation input.

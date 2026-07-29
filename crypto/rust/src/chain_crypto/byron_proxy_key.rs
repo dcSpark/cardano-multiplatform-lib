@@ -1,3 +1,6 @@
+use alloc::format;
+use alloc::vec;
+use alloc::vec::Vec;
 use cbor_event::{
     self,
     de::Deserializer,
@@ -191,7 +194,7 @@ impl cbor_event::de::Deserialize for BlockSignature {
 mod tests {
     use base64::{Engine, engine::general_purpose::STANDARD};
 
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     use crate::chain_crypto::{
         Ed25519Bip32, PublicKey, SecretKey, Signature, byron_proxy_key::ByronProxySecretKey,

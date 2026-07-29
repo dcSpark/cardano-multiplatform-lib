@@ -1,5 +1,7 @@
+extern crate alloc;
 use super::error::{DeserializeError, DeserializeFailure};
 use super::ordered_hash_map::OrderedHashMap;
+use alloc::format;
 
 /// A map guaranteed to hold at least one entry — the restricted twin of the loose table map for the
 /// CDDL `{+ k => v}` occurrence (`+` / `1*`).
@@ -150,7 +152,7 @@ impl<'de, K: Ord + core::hash::Hash + Eq + serde::Deserialize<'de>, V: serde::De
 impl<K: Ord + core::hash::Hash + Eq + schemars::JsonSchema, V: schemars::JsonSchema>
     schemars::JsonSchema for NonEmptyMap<K, V>
 {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
         format!("NonEmptyMap<{}, {}>", K::schema_name(), V::schema_name()).into()
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

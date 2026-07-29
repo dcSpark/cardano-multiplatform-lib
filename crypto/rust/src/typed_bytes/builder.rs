@@ -1,6 +1,7 @@
 use crate::typed_bytes::ByteArray;
-use std::marker::PhantomData;
-use std::num::NonZeroUsize;
+use alloc::vec::Vec;
+use core::marker::PhantomData;
+use core::num::NonZeroUsize;
 
 /// A dynamically created buffer for T
 #[derive(Clone)]

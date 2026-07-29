@@ -100,6 +100,21 @@ note: a subset regen that leaves the committed tree inconsistent across the edge
 naming the dependency-alone regen that converges it (the tool's committed-state verdict — the
 old hand-rolled convergence check, generalized)
 
+**no_std, and the `no-std-check/` shims.** The generated rust sources are no_std-capable: they
+use `core::`/`alloc::` paths throughout and each generated crate carries a `std` feature, on by
+default. `cml-core` and `cml-crypto` carry `#![cfg_attr(not(feature = "std"), no_std)]` and are
+no_std-clean; the four generated crates do not yet (their hand-written `builders/` etc. are still
+std). Each generated output root has a tool-owned, always-clobbered `no-std-check/` crate (same
+ownership rules as `extern-interface/`), and `crypto/no-std-check/` is a hand-written twin of the
+same shape. Run one with
+`cargo check --manifest-path <root>/no-std-check/Cargo.toml --target thumbv7m-none-eabi`.
+Expect the four generated ones to be **red by design** (not a regression) — their hand-written
+`builders/` etc. are still std. `crypto/no-std-check/` is **green** and should stay green.
+Never read a green *workspace* build as evidence of anything no_std — Cargo unifies features
+across the graph, so one std-enabling member silently satisfies an in-workspace check; that is
+why every shim is standalone with its own empty `[workspace]`. Background, the upstream filings,
+and the crypto migration record are in `draft/no-std-migration/`.
+
 ## Verifying changes
 
 `cargo test --workspace` is the gate. The `multi-era` golden tests round-trip real block CBOR

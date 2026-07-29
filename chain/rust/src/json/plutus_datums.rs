@@ -114,7 +114,7 @@ pub fn encode_json_value_to_plutus_datum(
         if schema == CardanoNodePlutusDatumSchema::BasicConversions {
             if let Some(stripped) = s.strip_prefix("0x") {
                 // this must be a valid hex bytestring after
-                hex::decode(stripped)
+                cml_core::hex_grammar::decode_bare(stripped)
                     .map(PlutusData::new_bytes)
                     .map_err(Into::into)
             } else if is_key {
@@ -131,7 +131,7 @@ pub fn encode_json_value_to_plutus_datum(
         } else if s.starts_with("0x") {
             Err(PlutusJsonError::DetailedHexWith0x)
         } else {
-            hex::decode(s)
+            cml_core::hex_grammar::decode_bare(s)
                 .map(PlutusData::new_bytes)
                 .map_err(Into::into)
         }

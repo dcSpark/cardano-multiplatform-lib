@@ -1,7 +1,12 @@
+use alloc::borrow::ToOwned;
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
 use bech32::Hrp;
-use std::error::Error as StdError;
-use std::fmt;
-use std::result::Result as StdResult;
+use core::error::Error as StdError;
+use core::fmt;
+use core::result::Result as StdResult;
 
 pub type Result<T> = StdResult<T, Error>;
 

@@ -52,6 +52,12 @@ export-static-crate = "core/rust"
 # (expanding to --common-import-override on every crate) and suppresses generating those files
 # locally. Each crate's Cargo.toml dependency on cml-core/cml-core-wasm stays a hand edit — an
 # override is a Rust path prefix, so no cargo package name can be derived from it.
+# The cargo PACKAGE name behind `common-import`'s rust path. `common-import` is a path prefix, so
+# the package name cannot be derived from it -- this states it, and is what lets the regen wire the
+# runtime-edge dependency (`default-features = false`) and the computed `std` forwarding list that
+# names `cml-core/std`. Without it the generated crates' `std` cannot reach cml-core's
+# `MapHashBuilder` cfg.
+lib-name = "cml-core"
 common-import = "cml_core"
 # cip25 omits the encoding pair, so no single flavor serves all four crates and the export
 # carrier cannot be derived. This declares chain (the maximal flavor) and thereby ACCEPTS

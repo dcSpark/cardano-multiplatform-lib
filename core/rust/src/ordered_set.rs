@@ -1,4 +1,8 @@
+extern crate alloc;
 use super::error::{DeserializeError, DeserializeFailure, Key};
+use alloc::format;
+use alloc::vec;
+use alloc::vec::Vec;
 
 /// A `Vec<T>` guaranteed to hold no duplicate elements — the uniqueness twin of `Vec<T>` for a
 /// `[* T]` collection rule carrying `@duplicates reject` (the tag-258 set idiom's strict flavor).
@@ -133,7 +137,7 @@ impl<T> OrderedSet<T> {
         self.0.get(index)
     }
 
-    pub fn iter(&self) -> std::slice::Iter<'_, T> {
+    pub fn iter(&self) -> core::slice::Iter<'_, T> {
         self.0.iter()
     }
 
@@ -209,7 +213,7 @@ impl<T> AsRef<[T]> for OrderedSet<T> {
     }
 }
 
-impl<T> std::ops::Index<usize> for OrderedSet<T> {
+impl<T> core::ops::Index<usize> for OrderedSet<T> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -219,7 +223,7 @@ impl<T> std::ops::Index<usize> for OrderedSet<T> {
 
 impl<'a, T> IntoIterator for &'a OrderedSet<T> {
     type Item = &'a T;
-    type IntoIter = std::slice::Iter<'a, T>;
+    type IntoIter = core::slice::Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
@@ -376,7 +380,7 @@ impl<T> NonEmptyOrderedSet<T> {
         &self.0[0]
     }
 
-    pub fn iter(&self) -> std::slice::Iter<'_, T> {
+    pub fn iter(&self) -> core::slice::Iter<'_, T> {
         self.0.iter()
     }
 
@@ -419,7 +423,7 @@ impl<T> AsRef<[T]> for NonEmptyOrderedSet<T> {
     }
 }
 
-impl<T> std::ops::Index<usize> for NonEmptyOrderedSet<T> {
+impl<T> core::ops::Index<usize> for NonEmptyOrderedSet<T> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -429,7 +433,7 @@ impl<T> std::ops::Index<usize> for NonEmptyOrderedSet<T> {
 
 impl<'a, T> IntoIterator for &'a NonEmptyOrderedSet<T> {
     type Item = &'a T;
-    type IntoIter = std::slice::Iter<'a, T>;
+    type IntoIter = core::slice::Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
@@ -513,7 +517,7 @@ impl<'de, T: serde::Deserialize<'de> + Ord> serde::de::Deserialize<'de> for NonE
     }
 }
 impl<T: schemars::JsonSchema> schemars::JsonSchema for OrderedSet<T> {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
         format!("OrderedSet<{}>", T::schema_name()).into()
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -530,7 +534,7 @@ impl<T: schemars::JsonSchema> schemars::JsonSchema for OrderedSet<T> {
 }
 
 impl<T: schemars::JsonSchema> schemars::JsonSchema for NonEmptyOrderedSet<T> {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
         format!("NonEmptyOrderedSet<{}>", T::schema_name()).into()
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

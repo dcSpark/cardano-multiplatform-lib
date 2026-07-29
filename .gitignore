@@ -14,6 +14,12 @@ target/
 # The workspace root Cargo.lock IS committed (reproducible CI/dev builds; modern Cargo guidance).
 # The per-crate Cargo.lock files below are only produced by standalone (non-workspace) builds and
 # stay ignored.
+#
+# The tool-owned no-std-check/ shims are deliberately standalone (own empty [workspace]), so
+# running one always drops a Cargo.lock and target/ next to it. Same policy: build artifacts of
+# a non-workspace crate, ignored. The shim's Cargo.toml and src/lib.rs ARE committed.
+*/no-std-check/target/**
+*/no-std-check/Cargo.lock
 
 chain/rust/target/**
 chain/rust/Cargo.lock

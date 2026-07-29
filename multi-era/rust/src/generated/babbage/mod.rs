@@ -1,6 +1,8 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+extern crate alloc;
+use alloc::vec::Vec;
 pub mod cbor_encodings;
 pub mod serialization;
 // cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
@@ -30,7 +32,6 @@ use cml_chain::transaction::{AlonzoFormatTxOut, DatumOption, NativeScript, Trans
 use cml_chain::{Epoch, NetworkId, Rational, TransactionIndex, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::LenEncoding;
-use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub enum BabbageAuxiliaryData {
@@ -304,8 +305,8 @@ impl<'de> serde::de::Deserialize<'de> for BabbageScriptRef {
 }
 
 impl schemars::JsonSchema for BabbageScriptRef {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("BabbageScriptRef")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("BabbageScriptRef")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

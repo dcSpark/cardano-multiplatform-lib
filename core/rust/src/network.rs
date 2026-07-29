@@ -9,8 +9,8 @@ pub static SANCHO_TESTNET_NETWORK_MAGIC: u32 = 4;
 pub static PREPROD_NETWORK_MAGIC: u32 = 1;
 pub static PREVIEW_NETWORK_MAGIC: u32 = 2;
 
-impl std::fmt::Display for ProtocolMagic {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for ProtocolMagic {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -42,7 +42,7 @@ impl From<u32> for ProtocolMagic {
     }
 }
 
-impl ::std::ops::Deref for ProtocolMagic {
+impl ::core::ops::Deref for ProtocolMagic {
     type Target = u32;
     fn deref(&self) -> &Self::Target {
         &self.0

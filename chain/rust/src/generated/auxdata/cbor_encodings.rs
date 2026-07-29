@@ -1,6 +1,8 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+extern crate alloc;
+use alloc::vec::Vec;
 use cml_core::serialization::LenEncoding;
 
 #[derive(Clone, Debug, Default)]

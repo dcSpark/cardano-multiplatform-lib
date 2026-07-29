@@ -1,3 +1,5 @@
+use alloc::string::String;
+use alloc::vec::Vec;
 use cryptoxide::chacha20poly1305::ChaCha20Poly1305;
 use cryptoxide::hmac::Hmac;
 use cryptoxide::pbkdf2::pbkdf2;
@@ -67,10 +69,10 @@ pub fn emip3_encrypt_with_password(
 ) -> Result<String, EmIP3Error> {
     use password_encryption_parameter::*;
 
-    let password = hex::decode(password)?;
-    let salt = hex::decode(salt)?;
-    let nonce = hex::decode(nonce)?;
-    let data = hex::decode(data)?;
+    let password = cml_core::hex_grammar::decode_canonical_hex(password)?;
+    let salt = cml_core::hex_grammar::decode_canonical_hex(salt)?;
+    let nonce = cml_core::hex_grammar::decode_canonical_hex(nonce)?;
+    let data = cml_core::hex_grammar::decode_canonical_hex(data)?;
 
     if salt.len() != SALT_SIZE {
         return Err(EmIP3Error::SaltLen(SALT_SIZE, salt.len()));
@@ -84,13 +86,13 @@ pub fn emip3_encrypt_with_password(
 
     let key = {
         let mut mac = Hmac::new(Sha512::new(), &password);
-        let mut key: Vec<u8> = std::iter::repeat_n(0, KEY_SIZE).collect();
+        let mut key: Vec<u8> = core::iter::repeat_n(0, KEY_SIZE).collect();
         pbkdf2(&mut mac, &salt[..], ITER, &mut key);
         key
     };
 
     let mut tag = [0; TAG_SIZE];
-    let mut encrypted: Vec<u8> = std::iter::repeat_n(0, data.len()).collect();
+    let mut encrypted: Vec<u8> = core::iter::repeat_n(0, data.len()).collect();
     {
         let nonce: &[u8; NONCE_SIZE] = nonce[..]
             .try_into()
@@ -110,8 +112,8 @@ pub fn emip3_encrypt_with_password(
 /// Decrypt using Emip3: <https://github.com/Emurgo/EmIPs/blob/master/specs/emip-003.md>
 pub fn emip3_decrypt_with_password(password: &str, data: &str) -> Result<String, EmIP3Error> {
     use password_encryption_parameter::*;
-    let password = hex::decode(password)?;
-    let data = hex::decode(data)?;
+    let password = cml_core::hex_grammar::decode_canonical_hex(password)?;
+    let data = cml_core::hex_grammar::decode_canonical_hex(data)?;
 
     if data.len() <= METADATA_SIZE {
         // not enough input to decrypt.
@@ -125,7 +127,7 @@ pub fn emip3_decrypt_with_password(password: &str, data: &str) -> Result<String,
 
     let key = {
         let mut mac = Hmac::new(Sha512::new(), &password);
-        let mut key: Vec<u8> = std::iter::repeat_n(0, KEY_SIZE).collect();
+        let mut key: Vec<u8> = core::iter::repeat_n(0, KEY_SIZE).collect();
         pbkdf2(&mut mac, salt, ITER, &mut key);
         key
     };
@@ -134,7 +136,7 @@ pub fn emip3_decrypt_with_password(password: &str, data: &str) -> Result<String,
         .try_into()
         .expect("nonce slice is exactly NONCE_SIZE bytes");
 
-    let mut decrypted: Vec<u8> = std::iter::repeat_n(0, encrypted.len()).collect();
+    let mut decrypted: Vec<u8> = core::iter::repeat_n(0, encrypted.len()).collect();
     let decryption_succeed =
         { ChaCha20Poly1305::new(&key, nonce, &[]).decrypt(encrypted, &mut decrypted, tag) };
 

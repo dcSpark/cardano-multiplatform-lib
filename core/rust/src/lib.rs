@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "std"), no_std)]
 // This recently introduced lint does not play well with the derivative crate.
 // We have both Ord and PartialOrd derive automatically by derivative's proc macros
 // but clippy sees these as hand implementations.
@@ -10,10 +11,17 @@
 // from within their proc macros itself. Issue: https://github.com/mcarton/rust-derivative/issues/115
 #![allow(clippy::non_canonical_partial_ord_impl)]
 
+extern crate alloc;
+
+use alloc::string::String;
+use alloc::string::ToString;
+
 pub use error::*;
 
 pub mod any_cbor;
 pub mod error;
+// Hand-owned: the read-side hex grammar, kept explicit after the const-hex swap widened it.
+pub mod hex_grammar;
 // Tool-owned (written by codegen.sh's --export-static-crate under --json-schema-export): the
 // per-workspace json-gen helper machinery — the row Registrar / add_schema name guard, the
 // reference-closure check, and the custom_schema_impl! macro (exported at this crate's ROOT
@@ -75,8 +83,8 @@ pub enum Int {
 
 #[derive(Clone, Debug)]
 pub enum IntError {
-    Bounds(std::num::TryFromIntError),
-    Parsing(std::num::ParseIntError),
+    Bounds(core::num::TryFromIntError),
+    Parsing(core::num::ParseIntError),
 }
 
 impl Int {
@@ -103,8 +111,8 @@ impl Int {
     }
 }
 
-impl std::fmt::Display for Int {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for Int {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Uint { value, .. } => write!(f, "{value}"),
             // need to cast to avoid potential overflow when value == u64::max
@@ -113,11 +121,11 @@ impl std::fmt::Display for Int {
     }
 }
 
-impl std::str::FromStr for Int {
+impl core::str::FromStr for Int {
     type Err = IntError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use std::convert::TryFrom;
+        use core::convert::TryFrom;
         let x = i128::from_str(s).map_err(IntError::Parsing)?;
         Self::try_from(x).map_err(IntError::Bounds)
     }
@@ -140,7 +148,7 @@ impl<'de> serde::de::Deserialize<'de> for Int {
     where
         D: serde::de::Deserializer<'de>,
     {
-        use std::str::FromStr;
+        use core::str::FromStr;
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
         Self::from_str(&s).map_err(|_e| {
             serde::de::Error::invalid_value(
@@ -152,8 +160,8 @@ impl<'de> serde::de::Deserialize<'de> for Int {
 }
 
 impl schemars::JsonSchema for Int {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("Int")
+    fn schema_name() -> crate::json_schema_gen::Cow<'static, str> {
+        crate::json_schema_gen::Cow::Borrowed("Int")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -190,8 +198,8 @@ impl From<i64> for Int {
     }
 }
 
-impl std::convert::TryFrom<i128> for Int {
-    type Error = std::num::TryFromIntError;
+impl core::convert::TryFrom<i128> for Int {
+    type Error = core::num::TryFromIntError;
 
     fn try_from(x: i128) -> Result<Self, Self::Error> {
         if x >= 0 {
@@ -244,14 +252,14 @@ impl Deserialize for Int {
                         value: x,
                         encoding: Some(enc),
                     })
-                    .map_err(std::convert::Into::into),
+                    .map_err(core::convert::Into::into),
                 cbor_event::Type::NegativeInteger => raw
                     .negative_integer_sz()
                     .map(|(x, enc)| Self::Nint {
                         value: (-1 - x) as u64,
                         encoding: Some(enc),
                     })
-                    .map_err(std::convert::Into::into),
+                    .map_err(core::convert::Into::into),
                 _ => Err(DeserializeFailure::NoVariantMatched.into()),
             }
         })()

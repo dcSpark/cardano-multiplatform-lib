@@ -24,6 +24,22 @@
 // on message fragments, and `docs/docs/command_line_flags.mdx` / `docs/docs/comment_dsl.mdx` quote
 // them. Reword nothing.
 
+/// `Cow`, re-exported so `custom_schema_impl!` can name it as `$crate::json_schema_gen::Cow`.
+///
+/// The macro expands in the INVOKING crate, which may be a consumer crate this tool never writes
+/// to, so its `schema_name()` return type cannot be spelled `alloc::borrow::Cow`: `alloc` is a
+/// sysroot crate that resolves only where an `extern crate alloc;` is in scope, and nothing here
+/// can deliver that line into a hand-owned crate. Routing the type through `$crate` instead makes
+/// the expansion depend only on this module being reachable — the same contract
+/// `$crate::json_schema_gen::custom_schema_body` already relies on, so it adds no new requirement
+/// on the invoking crate.
+extern crate alloc;
+pub use alloc::borrow::Cow;
+use alloc::borrow::ToOwned;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
+
 /// The prefix a HAND-AUTHORED schema body writes its internal references with. It is a fixed part
 /// of the authoring convention (`{"$ref": "#/$defs/ConstrPlutusData"}`), NOT a claim about the
 /// document the body ends up in: `retarget_defs_references` below rewrites exactly these onto
@@ -198,8 +214,8 @@ pub fn custom_schema_body(
 macro_rules! custom_schema_impl {
     ($ty:ident, $path:literal) => {
         impl schemars::JsonSchema for $ty {
-            fn schema_name() -> ::std::borrow::Cow<'static, str> {
-                ::std::borrow::Cow::Borrowed(::core::stringify!($ty))
+            fn schema_name() -> $crate::json_schema_gen::Cow<'static, str> {
+                $crate::json_schema_gen::Cow::Borrowed(::core::stringify!($ty))
             }
 
             fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -213,7 +229,7 @@ macro_rules! custom_schema_impl {
     };
     ($ty:ty, $path:literal, $name:expr) => {
         impl schemars::JsonSchema for $ty {
-            fn schema_name() -> ::std::borrow::Cow<'static, str> {
+            fn schema_name() -> $crate::json_schema_gen::Cow<'static, str> {
                 ::core::convert::Into::into($name)
             }
 
@@ -249,10 +265,10 @@ macro_rules! custom_schema_impl {
 /// helper with a ledger of its own.
 pub fn add_schema<T: schemars::JsonSchema>(
     generator: &mut schemars::SchemaGenerator,
-    claimed: &mut std::collections::BTreeMap<String, &'static str>,
+    claimed: &mut alloc::collections::BTreeMap<String, &'static str>,
 ) {
     let name = <T as schemars::JsonSchema>::schema_name().into_owned();
-    let rust = std::any::type_name::<T>();
+    let rust = core::any::type_name::<T>();
     // A — the name ledger. Two rows claiming one published name is a silent MERGE when their
     // `schema_id`s also match (the id DEFAULTS to the name, so schemars sees one type, emits one
     // definition, and every reference to the loser resolves to the winner's shape) and an
@@ -333,14 +349,14 @@ pub fn add_schema<T: schemars::JsonSchema>(
 /// one implementation of the guard.
 pub struct Registrar<'a> {
     generator: &'a mut schemars::SchemaGenerator,
-    claimed: std::collections::BTreeMap<String, &'static str>,
+    claimed: alloc::collections::BTreeMap<String, &'static str>,
 }
 
 impl<'a> Registrar<'a> {
     pub fn new(generator: &'a mut schemars::SchemaGenerator) -> Self {
         Self {
             generator,
-            claimed: std::collections::BTreeMap::new(),
+            claimed: alloc::collections::BTreeMap::new(),
         }
     }
 
@@ -350,7 +366,7 @@ impl<'a> Registrar<'a> {
     }
 }
 
-fn collect_schema_refs(value: &serde_json::Value, out: &mut std::collections::BTreeSet<String>) {
+fn collect_schema_refs(value: &serde_json::Value, out: &mut alloc::collections::BTreeSet<String>) {
     match value {
         serde_json::Value::Object(map) => {
             for (key, child) in map {
@@ -428,7 +444,7 @@ pub fn check_schema_ref_closure(document: &serde_json::Value, definitions_path: 
         Some(defs) => defs,
         None => return,
     };
-    let mut references = std::collections::BTreeSet::new();
+    let mut references = alloc::collections::BTreeSet::new();
     collect_schema_refs(document, &mut references);
     // Sorted and deduplicated by the BTreeSet, so the same document always produces the same verdict
     // and the same message.

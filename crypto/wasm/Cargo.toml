@@ -18,7 +18,6 @@ cml-core-wasm = { path = "../../core/wasm", version = "6.2.0" }
 cml-crypto = { path = "../rust", version = "6.2.0" }
 cbor_event = { git = "https://github.com/dcSpark/cbor_event", rev = "e2bca6d257f70ab0c226c4efd0726d3f5c1b4490" }
 wasm-bindgen = { version = "0.2.126" }
-linked-hash-map = "0.5.6"
 serde_json = "1.0.57"
 
 # Runtime keygen test runs in Node via wasm-bindgen-test-runner on wasm32 (see tests/keygen_runtime.rs).

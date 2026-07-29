@@ -7,6 +7,9 @@
     clippy::result_large_err
 )]
 
+extern crate alloc;
+use alloc::string::String;
+use alloc::vec::Vec;
 mod extern_interface_check;
 pub mod serialization;
 // cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
@@ -166,8 +169,8 @@ impl<'de> serde::de::Deserialize<'de> for CIP25String64 {
 }
 
 impl schemars::JsonSchema for CIP25String64 {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("CIP25String64")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("CIP25String64")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

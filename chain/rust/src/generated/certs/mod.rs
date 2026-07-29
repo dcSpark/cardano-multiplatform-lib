@@ -1,6 +1,9 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+extern crate alloc;
+use alloc::string::String;
+use alloc::vec::Vec;
 pub mod cbor_encodings;
 pub mod serialization;
 
@@ -367,8 +370,8 @@ impl<'de> serde::de::Deserialize<'de> for DNSName {
 }
 
 impl schemars::JsonSchema for DNSName {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("DNSName")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("DNSName")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1283,8 +1286,8 @@ impl<'de> serde::de::Deserialize<'de> for Url {
 }
 
 impl schemars::JsonSchema for Url {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("Url")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("Url")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

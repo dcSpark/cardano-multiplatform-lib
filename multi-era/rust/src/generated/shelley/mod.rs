@@ -1,6 +1,9 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+extern crate alloc;
+use alloc::string::String;
+use alloc::vec::Vec;
 pub mod cbor_encodings;
 pub mod serialization;
 
@@ -32,7 +35,6 @@ use cml_chain::transaction::TransactionInput;
 use cml_chain::{Epoch, Port, Rational, TransactionIndex, UnitInterval, Withdrawals};
 use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct GenesisKeyDelegation {
@@ -308,8 +310,8 @@ impl<'de> serde::de::Deserialize<'de> for ShelleyDNSName {
 }
 
 impl schemars::JsonSchema for ShelleyDNSName {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("ShelleyDNSName")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("ShelleyDNSName")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

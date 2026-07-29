@@ -1,6 +1,8 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+extern crate alloc;
+use alloc::vec::Vec;
 pub mod cbor_encodings;
 pub mod serialization;
 // cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export

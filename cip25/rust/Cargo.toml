@@ -18,12 +18,12 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 cml-chain = { "path" = "../../chain/rust", version = "6.2.0" }
-cml-core = { "path" = "../../core/rust", version = "6.2.0" }
+cml-core = { path = "../../core/rust", version = "6.2.0", default-features = false }
 cml-crypto = { "path" = "../../crypto/rust", version = "6.2.0" }
 cbor_event = { git = "https://github.com/dcSpark/cbor_event", rev = "e2bca6d257f70ab0c226c4efd0726d3f5c1b4490" }
-schemars = "1.2.1"
-serde = { version = "1.0.152", features = ["derive"] }
-serde_json = { version = "1.0.57", features = ["float_roundtrip"] }
+schemars = { version = "1.2.1", features = ["derive"], default-features = false }
+serde = { version = "1.0.152", features = ["derive", "alloc"], default-features = false }
+serde_json = { version = "1.0.57", features = ["float_roundtrip", "alloc"], default-features = false }
 thiserror = "2.0.18"
 
 [dev-dependencies]
@@ -31,3 +31,5 @@ hex = "0.4.0"
 
 [features]
 used_from_wasm = []
+default = ["std"]
+std = ["cml-core/std", "serde/std", "serde_json/std", "schemars/std"]

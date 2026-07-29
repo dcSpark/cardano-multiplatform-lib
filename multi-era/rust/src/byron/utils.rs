@@ -79,7 +79,7 @@ impl<'de> serde::de::Deserialize<'de> for ByronAny {
         D: serde::de::Deserializer<'de>,
     {
         let cbor_hex = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        let cbor = hex::decode(&cbor_hex).map_err(|_e| {
+        let cbor = cml_core::hex_grammar::decode_canonical_hex(&cbor_hex).map_err(|_e| {
             serde::de::Error::invalid_value(
                 serde::de::Unexpected::Str(&cbor_hex),
                 &"invalid hex string",

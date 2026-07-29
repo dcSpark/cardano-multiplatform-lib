@@ -7,6 +7,8 @@
     clippy::result_large_err
 )]
 
+extern crate alloc;
+use alloc::vec::Vec;
 extern crate derivative;
 pub mod address;
 pub mod assets;
@@ -20,7 +22,7 @@ mod key_demand_assertions;
 pub mod plutus;
 pub mod transaction;
 pub use cml_core::{Int, IntError};
-impl std::ops::Deref for NonemptySetBootstrapWitness {
+impl core::ops::Deref for NonemptySetBootstrapWitness {
     type Target = NonEmptyOrderedSet<BootstrapWitness>;
 
     fn deref(&self) -> &Self::Target {
@@ -28,7 +30,7 @@ impl std::ops::Deref for NonemptySetBootstrapWitness {
     }
 }
 
-impl std::ops::DerefMut for NonemptySetBootstrapWitness {
+impl core::ops::DerefMut for NonemptySetBootstrapWitness {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -36,7 +38,7 @@ impl std::ops::DerefMut for NonemptySetBootstrapWitness {
 
 impl<'a> IntoIterator for &'a NonemptySetBootstrapWitness {
     type Item = &'a BootstrapWitness;
-    type IntoIter = std::slice::Iter<'a, BootstrapWitness>;
+    type IntoIter = core::slice::Iter<'a, BootstrapWitness>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -45,7 +47,7 @@ impl<'a> IntoIterator for &'a NonemptySetBootstrapWitness {
 
 impl IntoIterator for NonemptySetBootstrapWitness {
     type Item = BootstrapWitness;
-    type IntoIter = std::vec::IntoIter<BootstrapWitness>;
+    type IntoIter = alloc::vec::IntoIter<BootstrapWitness>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<BootstrapWitness>::from(self.inner).into_iter()
@@ -77,7 +79,7 @@ impl NonemptySetBootstrapWitness {
     }
 }
 
-impl std::ops::Deref for NonemptySetCertificate {
+impl core::ops::Deref for NonemptySetCertificate {
     type Target = NonEmptyOrderedSet<Certificate>;
 
     fn deref(&self) -> &Self::Target {
@@ -85,7 +87,7 @@ impl std::ops::Deref for NonemptySetCertificate {
     }
 }
 
-impl std::ops::DerefMut for NonemptySetCertificate {
+impl core::ops::DerefMut for NonemptySetCertificate {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -93,7 +95,7 @@ impl std::ops::DerefMut for NonemptySetCertificate {
 
 impl<'a> IntoIterator for &'a NonemptySetCertificate {
     type Item = &'a Certificate;
-    type IntoIter = std::slice::Iter<'a, Certificate>;
+    type IntoIter = core::slice::Iter<'a, Certificate>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -102,7 +104,7 @@ impl<'a> IntoIterator for &'a NonemptySetCertificate {
 
 impl IntoIterator for NonemptySetCertificate {
     type Item = Certificate;
-    type IntoIter = std::vec::IntoIter<Certificate>;
+    type IntoIter = alloc::vec::IntoIter<Certificate>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<Certificate>::from(self.inner).into_iter()
@@ -133,7 +135,7 @@ impl NonemptySetCertificate {
     }
 }
 
-impl std::ops::Deref for NonemptySetEd25519KeyHash {
+impl core::ops::Deref for NonemptySetEd25519KeyHash {
     type Target = NonEmptyOrderedSet<Ed25519KeyHash>;
 
     fn deref(&self) -> &Self::Target {
@@ -141,7 +143,7 @@ impl std::ops::Deref for NonemptySetEd25519KeyHash {
     }
 }
 
-impl std::ops::DerefMut for NonemptySetEd25519KeyHash {
+impl core::ops::DerefMut for NonemptySetEd25519KeyHash {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -149,7 +151,7 @@ impl std::ops::DerefMut for NonemptySetEd25519KeyHash {
 
 impl<'a> IntoIterator for &'a NonemptySetEd25519KeyHash {
     type Item = &'a Ed25519KeyHash;
-    type IntoIter = std::slice::Iter<'a, Ed25519KeyHash>;
+    type IntoIter = core::slice::Iter<'a, Ed25519KeyHash>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -158,7 +160,7 @@ impl<'a> IntoIterator for &'a NonemptySetEd25519KeyHash {
 
 impl IntoIterator for NonemptySetEd25519KeyHash {
     type Item = Ed25519KeyHash;
-    type IntoIter = std::vec::IntoIter<Ed25519KeyHash>;
+    type IntoIter = alloc::vec::IntoIter<Ed25519KeyHash>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<Ed25519KeyHash>::from(self.inner).into_iter()
@@ -190,7 +192,7 @@ impl NonemptySetEd25519KeyHash {
     }
 }
 
-impl std::ops::Deref for NonemptySetNativeScript {
+impl core::ops::Deref for NonemptySetNativeScript {
     type Target = NonEmptyOrderedSet<NativeScript>;
 
     fn deref(&self) -> &Self::Target {
@@ -198,7 +200,7 @@ impl std::ops::Deref for NonemptySetNativeScript {
     }
 }
 
-impl std::ops::DerefMut for NonemptySetNativeScript {
+impl core::ops::DerefMut for NonemptySetNativeScript {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -206,7 +208,7 @@ impl std::ops::DerefMut for NonemptySetNativeScript {
 
 impl<'a> IntoIterator for &'a NonemptySetNativeScript {
     type Item = &'a NativeScript;
-    type IntoIter = std::slice::Iter<'a, NativeScript>;
+    type IntoIter = core::slice::Iter<'a, NativeScript>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -215,7 +217,7 @@ impl<'a> IntoIterator for &'a NonemptySetNativeScript {
 
 impl IntoIterator for NonemptySetNativeScript {
     type Item = NativeScript;
-    type IntoIter = std::vec::IntoIter<NativeScript>;
+    type IntoIter = alloc::vec::IntoIter<NativeScript>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<NativeScript>::from(self.inner).into_iter()
@@ -249,7 +251,7 @@ impl NonemptySetNativeScript {
     }
 }
 
-impl std::ops::Deref for NonemptySetPlutusData {
+impl core::ops::Deref for NonemptySetPlutusData {
     type Target = NonEmptyOrderedSet<PlutusData>;
 
     fn deref(&self) -> &Self::Target {
@@ -257,7 +259,7 @@ impl std::ops::Deref for NonemptySetPlutusData {
     }
 }
 
-impl std::ops::DerefMut for NonemptySetPlutusData {
+impl core::ops::DerefMut for NonemptySetPlutusData {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -265,7 +267,7 @@ impl std::ops::DerefMut for NonemptySetPlutusData {
 
 impl<'a> IntoIterator for &'a NonemptySetPlutusData {
     type Item = &'a PlutusData;
-    type IntoIter = std::slice::Iter<'a, PlutusData>;
+    type IntoIter = core::slice::Iter<'a, PlutusData>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -274,7 +276,7 @@ impl<'a> IntoIterator for &'a NonemptySetPlutusData {
 
 impl IntoIterator for NonemptySetPlutusData {
     type Item = PlutusData;
-    type IntoIter = std::vec::IntoIter<PlutusData>;
+    type IntoIter = alloc::vec::IntoIter<PlutusData>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<PlutusData>::from(self.inner).into_iter()
@@ -305,7 +307,7 @@ impl NonemptySetPlutusData {
     }
 }
 
-impl std::ops::Deref for NonemptySetPlutusV1Script {
+impl core::ops::Deref for NonemptySetPlutusV1Script {
     type Target = NonEmptyOrderedSet<PlutusV1Script>;
 
     fn deref(&self) -> &Self::Target {
@@ -313,7 +315,7 @@ impl std::ops::Deref for NonemptySetPlutusV1Script {
     }
 }
 
-impl std::ops::DerefMut for NonemptySetPlutusV1Script {
+impl core::ops::DerefMut for NonemptySetPlutusV1Script {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -321,7 +323,7 @@ impl std::ops::DerefMut for NonemptySetPlutusV1Script {
 
 impl<'a> IntoIterator for &'a NonemptySetPlutusV1Script {
     type Item = &'a PlutusV1Script;
-    type IntoIter = std::slice::Iter<'a, PlutusV1Script>;
+    type IntoIter = core::slice::Iter<'a, PlutusV1Script>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -330,7 +332,7 @@ impl<'a> IntoIterator for &'a NonemptySetPlutusV1Script {
 
 impl IntoIterator for NonemptySetPlutusV1Script {
     type Item = PlutusV1Script;
-    type IntoIter = std::vec::IntoIter<PlutusV1Script>;
+    type IntoIter = alloc::vec::IntoIter<PlutusV1Script>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<PlutusV1Script>::from(self.inner).into_iter()
@@ -362,7 +364,7 @@ impl NonemptySetPlutusV1Script {
     }
 }
 
-impl std::ops::Deref for NonemptySetPlutusV2Script {
+impl core::ops::Deref for NonemptySetPlutusV2Script {
     type Target = NonEmptyOrderedSet<PlutusV2Script>;
 
     fn deref(&self) -> &Self::Target {
@@ -370,7 +372,7 @@ impl std::ops::Deref for NonemptySetPlutusV2Script {
     }
 }
 
-impl std::ops::DerefMut for NonemptySetPlutusV2Script {
+impl core::ops::DerefMut for NonemptySetPlutusV2Script {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -378,7 +380,7 @@ impl std::ops::DerefMut for NonemptySetPlutusV2Script {
 
 impl<'a> IntoIterator for &'a NonemptySetPlutusV2Script {
     type Item = &'a PlutusV2Script;
-    type IntoIter = std::slice::Iter<'a, PlutusV2Script>;
+    type IntoIter = core::slice::Iter<'a, PlutusV2Script>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -387,7 +389,7 @@ impl<'a> IntoIterator for &'a NonemptySetPlutusV2Script {
 
 impl IntoIterator for NonemptySetPlutusV2Script {
     type Item = PlutusV2Script;
-    type IntoIter = std::vec::IntoIter<PlutusV2Script>;
+    type IntoIter = alloc::vec::IntoIter<PlutusV2Script>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<PlutusV2Script>::from(self.inner).into_iter()
@@ -419,7 +421,7 @@ impl NonemptySetPlutusV2Script {
     }
 }
 
-impl std::ops::Deref for NonemptySetPlutusV3Script {
+impl core::ops::Deref for NonemptySetPlutusV3Script {
     type Target = NonEmptyOrderedSet<PlutusV3Script>;
 
     fn deref(&self) -> &Self::Target {
@@ -427,7 +429,7 @@ impl std::ops::Deref for NonemptySetPlutusV3Script {
     }
 }
 
-impl std::ops::DerefMut for NonemptySetPlutusV3Script {
+impl core::ops::DerefMut for NonemptySetPlutusV3Script {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -435,7 +437,7 @@ impl std::ops::DerefMut for NonemptySetPlutusV3Script {
 
 impl<'a> IntoIterator for &'a NonemptySetPlutusV3Script {
     type Item = &'a PlutusV3Script;
-    type IntoIter = std::slice::Iter<'a, PlutusV3Script>;
+    type IntoIter = core::slice::Iter<'a, PlutusV3Script>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -444,7 +446,7 @@ impl<'a> IntoIterator for &'a NonemptySetPlutusV3Script {
 
 impl IntoIterator for NonemptySetPlutusV3Script {
     type Item = PlutusV3Script;
-    type IntoIter = std::vec::IntoIter<PlutusV3Script>;
+    type IntoIter = alloc::vec::IntoIter<PlutusV3Script>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<PlutusV3Script>::from(self.inner).into_iter()
@@ -476,7 +478,7 @@ impl NonemptySetPlutusV3Script {
     }
 }
 
-impl std::ops::Deref for NonemptySetProposalProcedure {
+impl core::ops::Deref for NonemptySetProposalProcedure {
     type Target = NonEmptyOrderedSet<ProposalProcedure>;
 
     fn deref(&self) -> &Self::Target {
@@ -484,7 +486,7 @@ impl std::ops::Deref for NonemptySetProposalProcedure {
     }
 }
 
-impl std::ops::DerefMut for NonemptySetProposalProcedure {
+impl core::ops::DerefMut for NonemptySetProposalProcedure {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -492,7 +494,7 @@ impl std::ops::DerefMut for NonemptySetProposalProcedure {
 
 impl<'a> IntoIterator for &'a NonemptySetProposalProcedure {
     type Item = &'a ProposalProcedure;
-    type IntoIter = std::slice::Iter<'a, ProposalProcedure>;
+    type IntoIter = core::slice::Iter<'a, ProposalProcedure>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -501,7 +503,7 @@ impl<'a> IntoIterator for &'a NonemptySetProposalProcedure {
 
 impl IntoIterator for NonemptySetProposalProcedure {
     type Item = ProposalProcedure;
-    type IntoIter = std::vec::IntoIter<ProposalProcedure>;
+    type IntoIter = alloc::vec::IntoIter<ProposalProcedure>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<ProposalProcedure>::from(self.inner).into_iter()
@@ -533,7 +535,7 @@ impl NonemptySetProposalProcedure {
     }
 }
 
-impl std::ops::Deref for NonemptySetTransactionInput {
+impl core::ops::Deref for NonemptySetTransactionInput {
     type Target = NonEmptyOrderedSet<TransactionInput>;
 
     fn deref(&self) -> &Self::Target {
@@ -541,7 +543,7 @@ impl std::ops::Deref for NonemptySetTransactionInput {
     }
 }
 
-impl std::ops::DerefMut for NonemptySetTransactionInput {
+impl core::ops::DerefMut for NonemptySetTransactionInput {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -549,7 +551,7 @@ impl std::ops::DerefMut for NonemptySetTransactionInput {
 
 impl<'a> IntoIterator for &'a NonemptySetTransactionInput {
     type Item = &'a TransactionInput;
-    type IntoIter = std::slice::Iter<'a, TransactionInput>;
+    type IntoIter = core::slice::Iter<'a, TransactionInput>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -558,7 +560,7 @@ impl<'a> IntoIterator for &'a NonemptySetTransactionInput {
 
 impl IntoIterator for NonemptySetTransactionInput {
     type Item = TransactionInput;
-    type IntoIter = std::vec::IntoIter<TransactionInput>;
+    type IntoIter = alloc::vec::IntoIter<TransactionInput>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<TransactionInput>::from(self.inner).into_iter()
@@ -590,7 +592,7 @@ impl NonemptySetTransactionInput {
     }
 }
 
-impl std::ops::Deref for NonemptySetVkeywitness {
+impl core::ops::Deref for NonemptySetVkeywitness {
     type Target = NonEmptyOrderedSet<Vkeywitness>;
 
     fn deref(&self) -> &Self::Target {
@@ -598,7 +600,7 @@ impl std::ops::Deref for NonemptySetVkeywitness {
     }
 }
 
-impl std::ops::DerefMut for NonemptySetVkeywitness {
+impl core::ops::DerefMut for NonemptySetVkeywitness {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -606,7 +608,7 @@ impl std::ops::DerefMut for NonemptySetVkeywitness {
 
 impl<'a> IntoIterator for &'a NonemptySetVkeywitness {
     type Item = &'a Vkeywitness;
-    type IntoIter = std::slice::Iter<'a, Vkeywitness>;
+    type IntoIter = core::slice::Iter<'a, Vkeywitness>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -615,7 +617,7 @@ impl<'a> IntoIterator for &'a NonemptySetVkeywitness {
 
 impl IntoIterator for NonemptySetVkeywitness {
     type Item = Vkeywitness;
-    type IntoIter = std::vec::IntoIter<Vkeywitness>;
+    type IntoIter = alloc::vec::IntoIter<Vkeywitness>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<Vkeywitness>::from(self.inner).into_iter()
@@ -646,7 +648,7 @@ impl NonemptySetVkeywitness {
     }
 }
 
-impl std::ops::Deref for SetCommitteeColdCredential {
+impl core::ops::Deref for SetCommitteeColdCredential {
     type Target = OrderedSet<CommitteeColdCredential>;
 
     fn deref(&self) -> &Self::Target {
@@ -654,7 +656,7 @@ impl std::ops::Deref for SetCommitteeColdCredential {
     }
 }
 
-impl std::ops::DerefMut for SetCommitteeColdCredential {
+impl core::ops::DerefMut for SetCommitteeColdCredential {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -662,7 +664,7 @@ impl std::ops::DerefMut for SetCommitteeColdCredential {
 
 impl<'a> IntoIterator for &'a SetCommitteeColdCredential {
     type Item = &'a CommitteeColdCredential;
-    type IntoIter = std::slice::Iter<'a, CommitteeColdCredential>;
+    type IntoIter = core::slice::Iter<'a, CommitteeColdCredential>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -671,7 +673,7 @@ impl<'a> IntoIterator for &'a SetCommitteeColdCredential {
 
 impl IntoIterator for SetCommitteeColdCredential {
     type Item = CommitteeColdCredential;
-    type IntoIter = std::vec::IntoIter<CommitteeColdCredential>;
+    type IntoIter = alloc::vec::IntoIter<CommitteeColdCredential>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<CommitteeColdCredential>::from(self.inner).into_iter()
@@ -705,7 +707,7 @@ impl SetCommitteeColdCredential {
     }
 }
 
-impl std::ops::Deref for SetEd25519KeyHash {
+impl core::ops::Deref for SetEd25519KeyHash {
     type Target = OrderedSet<Ed25519KeyHash>;
 
     fn deref(&self) -> &Self::Target {
@@ -713,7 +715,7 @@ impl std::ops::Deref for SetEd25519KeyHash {
     }
 }
 
-impl std::ops::DerefMut for SetEd25519KeyHash {
+impl core::ops::DerefMut for SetEd25519KeyHash {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -721,7 +723,7 @@ impl std::ops::DerefMut for SetEd25519KeyHash {
 
 impl<'a> IntoIterator for &'a SetEd25519KeyHash {
     type Item = &'a Ed25519KeyHash;
-    type IntoIter = std::slice::Iter<'a, Ed25519KeyHash>;
+    type IntoIter = core::slice::Iter<'a, Ed25519KeyHash>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -730,7 +732,7 @@ impl<'a> IntoIterator for &'a SetEd25519KeyHash {
 
 impl IntoIterator for SetEd25519KeyHash {
     type Item = Ed25519KeyHash;
-    type IntoIter = std::vec::IntoIter<Ed25519KeyHash>;
+    type IntoIter = alloc::vec::IntoIter<Ed25519KeyHash>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<Ed25519KeyHash>::from(self.inner).into_iter()
@@ -761,7 +763,7 @@ impl SetEd25519KeyHash {
     }
 }
 
-impl std::ops::Deref for SetTransactionInput {
+impl core::ops::Deref for SetTransactionInput {
     type Target = OrderedSet<TransactionInput>;
 
     fn deref(&self) -> &Self::Target {
@@ -769,7 +771,7 @@ impl std::ops::Deref for SetTransactionInput {
     }
 }
 
-impl std::ops::DerefMut for SetTransactionInput {
+impl core::ops::DerefMut for SetTransactionInput {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -777,7 +779,7 @@ impl std::ops::DerefMut for SetTransactionInput {
 
 impl<'a> IntoIterator for &'a SetTransactionInput {
     type Item = &'a TransactionInput;
-    type IntoIter = std::slice::Iter<'a, TransactionInput>;
+    type IntoIter = core::slice::Iter<'a, TransactionInput>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()
@@ -786,7 +788,7 @@ impl<'a> IntoIterator for &'a SetTransactionInput {
 
 impl IntoIterator for SetTransactionInput {
     type Item = TransactionInput;
-    type IntoIter = std::vec::IntoIter<TransactionInput>;
+    type IntoIter = alloc::vec::IntoIter<TransactionInput>;
 
     fn into_iter(self) -> Self::IntoIter {
         Vec::<TransactionInput>::from(self.inner).into_iter()
@@ -947,8 +949,8 @@ impl<'de> serde::de::Deserialize<'de> for NetworkId {
 }
 
 impl schemars::JsonSchema for NetworkId {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("NetworkId")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("NetworkId")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1016,8 +1018,8 @@ impl<'de> serde::de::Deserialize<'de> for NonemptySetBootstrapWitness {
 }
 
 impl schemars::JsonSchema for NonemptySetBootstrapWitness {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("NonemptySetBootstrapWitness")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("NonemptySetBootstrapWitness")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1084,8 +1086,8 @@ impl<'de> serde::de::Deserialize<'de> for NonemptySetCertificate {
 }
 
 impl schemars::JsonSchema for NonemptySetCertificate {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("NonemptySetCertificate")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("NonemptySetCertificate")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1153,8 +1155,8 @@ impl<'de> serde::de::Deserialize<'de> for NonemptySetEd25519KeyHash {
 }
 
 impl schemars::JsonSchema for NonemptySetEd25519KeyHash {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("NonemptySetEd25519KeyHash")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("NonemptySetEd25519KeyHash")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1222,8 +1224,8 @@ impl<'de> serde::de::Deserialize<'de> for NonemptySetNativeScript {
 }
 
 impl schemars::JsonSchema for NonemptySetNativeScript {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("NonemptySetNativeScript")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("NonemptySetNativeScript")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1290,8 +1292,8 @@ impl<'de> serde::de::Deserialize<'de> for NonemptySetPlutusData {
 }
 
 impl schemars::JsonSchema for NonemptySetPlutusData {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("NonemptySetPlutusData")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("NonemptySetPlutusData")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1359,8 +1361,8 @@ impl<'de> serde::de::Deserialize<'de> for NonemptySetPlutusV1Script {
 }
 
 impl schemars::JsonSchema for NonemptySetPlutusV1Script {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("NonemptySetPlutusV1Script")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("NonemptySetPlutusV1Script")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1428,8 +1430,8 @@ impl<'de> serde::de::Deserialize<'de> for NonemptySetPlutusV2Script {
 }
 
 impl schemars::JsonSchema for NonemptySetPlutusV2Script {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("NonemptySetPlutusV2Script")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("NonemptySetPlutusV2Script")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1497,8 +1499,8 @@ impl<'de> serde::de::Deserialize<'de> for NonemptySetPlutusV3Script {
 }
 
 impl schemars::JsonSchema for NonemptySetPlutusV3Script {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("NonemptySetPlutusV3Script")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("NonemptySetPlutusV3Script")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1566,8 +1568,8 @@ impl<'de> serde::de::Deserialize<'de> for NonemptySetProposalProcedure {
 }
 
 impl schemars::JsonSchema for NonemptySetProposalProcedure {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("NonemptySetProposalProcedure")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("NonemptySetProposalProcedure")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1635,8 +1637,8 @@ impl<'de> serde::de::Deserialize<'de> for NonemptySetTransactionInput {
 }
 
 impl schemars::JsonSchema for NonemptySetTransactionInput {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("NonemptySetTransactionInput")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("NonemptySetTransactionInput")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1703,8 +1705,8 @@ impl<'de> serde::de::Deserialize<'de> for NonemptySetVkeywitness {
 }
 
 impl schemars::JsonSchema for NonemptySetVkeywitness {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("NonemptySetVkeywitness")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("NonemptySetVkeywitness")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -1933,8 +1935,8 @@ impl<'de> serde::de::Deserialize<'de> for SetCommitteeColdCredential {
 }
 
 impl schemars::JsonSchema for SetCommitteeColdCredential {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("SetCommitteeColdCredential")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("SetCommitteeColdCredential")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -2001,8 +2003,8 @@ impl<'de> serde::de::Deserialize<'de> for SetEd25519KeyHash {
 }
 
 impl schemars::JsonSchema for SetEd25519KeyHash {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("SetEd25519KeyHash")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("SetEd25519KeyHash")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -2069,8 +2071,8 @@ impl<'de> serde::de::Deserialize<'de> for SetTransactionInput {
 }
 
 impl schemars::JsonSchema for SetTransactionInput {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("SetTransactionInput")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("SetTransactionInput")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

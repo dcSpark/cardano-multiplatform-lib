@@ -14,27 +14,46 @@ keywords = ["cardano"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-core = { "path" = "../../core/rust", version = "6.2.0" }
-base64 = "0.22.1"
+cml-core = { "path" = "../../core/rust", version = "6.2.0", default-features = false }
+base64 = { version = "0.22.1", features = ["alloc"], default-features = false }
 cbor_event = { git = "https://github.com/dcSpark/cbor_event", rev = "e2bca6d257f70ab0c226c4efd0726d3f5c1b4490" }
 cryptoxide = "0.5.1"
-ed25519-bip32 = "0.4.2"
-bech32 = "0.12.0"
-hex = "0.4.0"
-thiserror = "2.0.18"
-rand = "0.10.1"
+ed25519-bip32 = { version = "0.4.3", default-features = false }
+bech32 = { version = "0.12.0", features = ["alloc"], default-features = false }
+hex = { package = "const-hex", version = "1.19.1", features = ["core-error", "alloc"], default-features = false }
+thiserror = { version = "2.0.18", default-features = false }
+rand = { version = "0.10.1", features = ["alloc"], default-features = false }
 # rand uses getrandom for OS entropy (key generation). On wasm the `wasm_js` feature selects the
 # Web Crypto backend; getrandom 0.4 needs only this feature (no rustflag/cfg). Declared here so the
 # wasm crate builds standalone; dependents (chain, cip*, multi-era) inherit it.
-getrandom = { version = "0.4.3", features = ["wasm_js"] }
+getrandom = { version = "0.4.3", features = ["wasm_js"], optional = true }
 cfg-if = "1.0.4"
 
-derivative = "2.2.0"
-serde = { version = "1.0.152", features = ["derive"] }
-serde_json = "1.0.57"
-schemars = "1.2.1"
+derivative = { version = "2.2.0", features = ["use_core"] }
+serde = { version = "1.0.152", features = ["derive", "alloc"], default-features = false }
+serde_json = { version = "1.0.57", features = ["alloc"], default-features = false }
+schemars = { version = "1.2.1", features = ["derive"], default-features = false }
 
 [dev-dependencies]
 quickcheck = "1.1.0"
 quickcheck_macros = "1.2.0"
 rand_chacha = "0.10.0"
+
+[features]
+default = ["std"]
+# `std` here means "this build has an OS entropy source and std-backed dependencies".
+# It is what gates `os_csprng` and the three `generate_*` convenience constructors in src/lib.rs;
+# the generic `SecretKey::generate(rng)` path stays available either way.
+std = [
+    "dep:getrandom",
+    "rand/std",
+    "rand/sys_rng",
+    "cml-core/std",
+    "base64/std",
+    "bech32/std",
+    "hex/std",
+    "thiserror/std",
+    "serde/std",
+    "serde_json/std",
+    "schemars/std",
+]

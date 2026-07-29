@@ -1,5 +1,13 @@
+extern crate alloc;
 use super::error::{DeserializeError, DeserializeFailure};
 use super::serialization::*;
+use alloc::borrow::ToOwned;
+use alloc::boxed::Box;
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec;
+use alloc::vec::Vec;
 
 macro_rules! any_cbor_recursion_guard {
     () => {};
@@ -603,9 +611,9 @@ impl PartialEq for AnyCbor {
 }
 impl Eq for AnyCbor {}
 
-impl std::hash::Hash for AnySpecial {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        std::mem::discriminant(self).hash(state);
+impl core::hash::Hash for AnySpecial {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
         match self {
             AnySpecial::Bool(b) => b.hash(state),
             AnySpecial::Null | AnySpecial::Undefined => {}
@@ -618,9 +626,9 @@ impl std::hash::Hash for AnySpecial {
     }
 }
 
-impl std::hash::Hash for AnyCbor {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        std::mem::discriminant(self).hash(state);
+impl core::hash::Hash for AnyCbor {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
         match self {
             AnyCbor::UInt(v, sz) => {
                 v.hash(state);
@@ -667,7 +675,7 @@ fn any_special_ord_rank(s: &AnySpecial) -> u8 {
 }
 
 impl Ord for AnySpecial {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         any_special_ord_rank(self)
             .cmp(&any_special_ord_rank(other))
             .then_with(|| match (self, other) {
@@ -676,12 +684,12 @@ impl Ord for AnySpecial {
                 (AnySpecial::Float(a, sa), AnySpecial::Float(b, sb)) => a
                     .total_cmp(b)
                     .then_with(|| opt_sz_rank(sa).cmp(&opt_sz_rank(sb))),
-                _ => std::cmp::Ordering::Equal,
+                _ => core::cmp::Ordering::Equal,
             })
     }
 }
 impl PartialOrd for AnySpecial {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -700,7 +708,7 @@ fn any_cbor_ord_rank(v: &AnyCbor) -> u8 {
 }
 
 impl Ord for AnyCbor {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         any_cbor_ord_rank(self)
             .cmp(&any_cbor_ord_rank(other))
             .then_with(|| match (self, other) {
@@ -727,12 +735,12 @@ impl Ord for AnyCbor {
                     .then_with(|| ia.cmp(ib))
                     .then_with(|| opt_sz_rank(sa).cmp(&opt_sz_rank(sb))),
                 (AnyCbor::Special(a), AnyCbor::Special(b)) => a.cmp(b),
-                _ => std::cmp::Ordering::Equal,
+                _ => core::cmp::Ordering::Equal,
             })
     }
 }
 impl PartialOrd for AnyCbor {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -762,7 +770,8 @@ impl Serialize for AnyCbor {
 //   uint       {"uint": 5}                 JSON number (u64 range, as serde_json emits crate-wide)
 //   nint       {"nint": -3}                JSON number when the value fits i64,
 //              {"nint": "-18446744073709551616"}  else a decimal string (the nint domain exceeds i64)
-//   bytes      {"bytes": "a1b2"}           lowercase hex
+//   bytes      {"bytes": "a1b2"}           canonical hex — lowercase, even length, no 0x prefix,
+//                                          on the read side as well (`any_cbor_hex_decode`)
 //   text       {"text": "…"}
 //   array      {"array": [ … ]}            recursive
 //   map        {"map": [[K, V], …]}        array of pairs — wire order + duplicate keys preserved,
@@ -874,7 +883,7 @@ struct AnyCborJsonVisitor;
 impl<'de> serde::de::Visitor<'de> for AnyCborJsonVisitor {
     type Value = AnyCbor;
 
-    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn expecting(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.write_str("a single-key CBOR-tagged JSON object (e.g. {\"uint\": 5})")
     }
 
@@ -991,8 +1000,8 @@ use super::json_value_ser::{JsonValueSer, serialize_json_value};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AnyToNaturalJsonError(pub String);
 
-impl std::fmt::Display for AnyToNaturalJsonError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for AnyToNaturalJsonError {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(
             f,
             "AnyCbor value has no natural JSON representation: {}",
@@ -1001,7 +1010,7 @@ impl std::fmt::Display for AnyToNaturalJsonError {
     }
 }
 
-impl std::error::Error for AnyToNaturalJsonError {}
+impl core::error::Error for AnyToNaturalJsonError {}
 
 /// The natural-JSON string form of an `any` MAP KEY (used both for a key's object-property name and
 /// for collision detection): text verbatim, uint/nint in decimal. Any other kind (bytes, array,
@@ -1061,7 +1070,7 @@ pub fn to_natural_json(value: &AnyCbor) -> Result<serde_json::Value, AnyToNatura
             // Determinism + collision detection: a `BTreeSet` of stringified keys. Two keys that
             // stringify identically (uint `12` + text `"12"`, or two equal keys) are a collision →
             // strict-fail (RFC 8949 §6.1's "danger of key collision"): our JSON feeds a symmetric read.
-            let mut seen = std::collections::BTreeSet::new();
+            let mut seen = alloc::collections::BTreeSet::new();
             for (key, val) in pairs {
                 let key_string = any_cbor_natural_key_string(key)?;
                 if !seen.insert(key_string.clone()) {
@@ -1209,6 +1218,9 @@ impl<'de> serde::Deserialize<'de> for NaturalAnyCborDe {
 /// struct field), rendering each element naturally. Rides serde's own seq handling.
 pub mod natural_any_cbor_seq {
     use super::{AnyCbor, NaturalAnyCborDe, NaturalAnyCborSer};
+    // `super::alloc`, not `alloc` — the bounded hand-written exception; the full rationale is on
+    // natural_any_cbor_btreemap's import in this file.
+    use super::alloc::vec::Vec;
 
     pub fn serialize<S>(value: &[AnyCbor], serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -1232,7 +1244,14 @@ pub mod natural_any_cbor_seq {
 /// only the VALUE flips to natural. Generic over `K` so one module serves every key type.
 pub mod natural_any_cbor_btreemap {
     use super::{AnyCbor, NaturalAnyCborDe, NaturalAnyCborSer};
-    use std::collections::BTreeMap;
+    // `super::alloc`, not `alloc`: a file-top `extern crate alloc;` binds the crate name in the
+    // FILE's module, and a nested inline module does not inherit that binding (a bare
+    // `use alloc::…` here is E0433). This is the bounded hand-written exception to "static
+    // sources carry no alloc imports" — the alloc-import injector deliberately does not scan
+    // nested module bodies, because a file-top import it added for them would be unused at file
+    // scope and still would not resolve in here. The injector DOES count this `super::alloc`
+    // reference when deciding to emit the file-top `extern crate alloc;` this resolves through.
+    use super::alloc::collections::BTreeMap;
 
     pub fn serialize<K, S>(value: &BTreeMap<K, AnyCbor>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -1256,6 +1275,9 @@ pub mod natural_any_cbor_btreemap {
 /// `Option<Vec<AnyCbor>>`), paired with `#[serde(default)]`. `None` → JSON null / missing.
 pub mod natural_any_cbor_opt_seq {
     use super::{AnyCbor, NaturalAnyCborDe, NaturalAnyCborSer};
+    // `super::alloc`, not `alloc` — the bounded hand-written exception; the full rationale is on
+    // natural_any_cbor_btreemap's import in this file.
+    use super::alloc::vec::Vec;
 
     pub fn serialize<S>(value: &Option<Vec<AnyCbor>>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -1282,8 +1304,8 @@ pub mod natural_any_cbor_opt_seq {
 /// `#[serde(with = …)]` adapter for an OPTIONAL non-preserve table member (`? N: {* K => any}` →
 /// `Option<BTreeMap<K, AnyCbor>>`), paired with `#[serde(default)]`.
 pub mod natural_any_cbor_opt_btreemap {
+    use super::alloc::collections::BTreeMap;
     use super::{AnyCbor, NaturalAnyCborDe, NaturalAnyCborSer};
-    use std::collections::BTreeMap;
 
     pub fn serialize<K, S>(
         value: &Option<BTreeMap<K, AnyCbor>>,
@@ -1325,23 +1347,35 @@ fn any_cbor_hex_encode(bytes: &[u8]) -> String {
     s
 }
 
-/// Parse lowercase/uppercase hex into bytes; errors on odd length or a non-hex nibble.
+/// Parses **canonical** hex into bytes — lowercase digits only, even length, no `0x`/`0X` prefix.
+///
+/// The grammar is deliberately the one `decode_canonical_hex` accepts on the crate's other two hex
+/// surfaces (`RawBytesEncoding::from_raw_hex` and a `bytes` newtype's JSON form), so hex text has a
+/// single canonical spelling tool-wide: for every accepted `s`, `any_cbor_hex_encode` of the decoded
+/// bytes reproduces `s` byte for byte — the round-trip property on the ENCODING and not merely on
+/// the bytes. This stays a SEPARATE, self-contained routine rather than a call into that function
+/// because a crate emitting `AnyCbor` need not take the `hex` dependency at all, and it keeps its
+/// own error surface: `String` messages rendered through serde's `Error::custom`, with odd length
+/// reported BEFORE any bad nibble (the shared door reports the first offending character first).
+///
+/// Full rationale lives on `decode_canonical_hex`.
 fn any_cbor_hex_decode(s: &str) -> Result<Vec<u8>, String> {
+    /// The canonical alphabet, i.e. exactly what `any_cbor_hex_encode` writes. `char::to_digit(16)`
+    /// would also take `A`–`F`, which is the leniency this surface no longer has.
+    fn nibble(b: u8) -> Result<u32, String> {
+        match b {
+            b'0'..=b'9' => Ok((b - b'0') as u32),
+            b'a'..=b'f' => Ok((b - b'a') as u32 + 10),
+            _ => Err(format!("invalid hex nibble {:?}", b as char)),
+        }
+    }
     if s.len() & 1 == 1 {
         return Err(format!("odd-length hex string (len {})", s.len()));
     }
     let bytes = s.as_bytes();
     (0..bytes.len())
         .step_by(2)
-        .map(|i| {
-            let hi = (bytes[i] as char)
-                .to_digit(16)
-                .ok_or_else(|| format!("invalid hex nibble {:?}", bytes[i] as char))?;
-            let lo = (bytes[i + 1] as char)
-                .to_digit(16)
-                .ok_or_else(|| format!("invalid hex nibble {:?}", bytes[i + 1] as char))?;
-            Ok(((hi << 4) | lo) as u8)
-        })
+        .map(|i| Ok(((nibble(bytes[i])? << 4) | nibble(bytes[i + 1])?) as u8))
         .collect()
 }
 // Preserve-only natural-JSON companions for `any`-valued map MEMBERS. Assembled ONLY under
@@ -1358,14 +1392,21 @@ use super::ordered_hash_map::OrderedHashMap;
 pub mod natural_any_cbor_orderedmap {
     use super::OrderedHashMap;
     use super::{AnyCbor, NaturalAnyCborDe, NaturalAnyCborSer};
-    use std::collections::BTreeMap;
+    // `super::alloc`, not `alloc`: a file-top `extern crate alloc;` binds the crate name in the
+    // FILE's module, and a nested inline module does not inherit that binding (a bare
+    // `use alloc::…` here is E0433). This is the bounded hand-written exception to "static
+    // sources carry no alloc imports" — the alloc-import injector deliberately does not scan
+    // nested module bodies, because a file-top import it added for them would be unused at file
+    // scope and still would not resolve in here. The injector DOES count this `super::alloc`
+    // reference when deciding to emit the file-top `extern crate alloc;` this resolves through.
+    use super::alloc::collections::BTreeMap;
 
     pub fn serialize<K, S>(
         value: &OrderedHashMap<K, AnyCbor>,
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
-        K: serde::Serialize + std::hash::Hash + Eq + Ord,
+        K: serde::Serialize + core::hash::Hash + Eq + Ord,
         S: serde::Serializer,
     {
         let sorted: BTreeMap<&K, NaturalAnyCborSer> = value
@@ -1377,7 +1418,7 @@ pub mod natural_any_cbor_orderedmap {
 
     pub fn deserialize<'de, K, D>(deserializer: D) -> Result<OrderedHashMap<K, AnyCbor>, D::Error>
     where
-        K: serde::Deserialize<'de> + std::hash::Hash + Eq + Ord,
+        K: serde::Deserialize<'de> + core::hash::Hash + Eq + Ord,
         D: serde::Deserializer<'de>,
     {
         let map = <BTreeMap<K, NaturalAnyCborDe> as serde::Deserialize>::deserialize(deserializer)?;
@@ -1389,15 +1430,15 @@ pub mod natural_any_cbor_orderedmap {
 /// (`? N: {* K => any}` → `Option<OrderedHashMap<K, AnyCbor>>`), paired with `#[serde(default)]`.
 pub mod natural_any_cbor_opt_orderedmap {
     use super::OrderedHashMap;
+    use super::alloc::collections::BTreeMap;
     use super::{AnyCbor, NaturalAnyCborDe, NaturalAnyCborSer};
-    use std::collections::BTreeMap;
 
     pub fn serialize<K, S>(
         value: &Option<OrderedHashMap<K, AnyCbor>>,
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
-        K: serde::Serialize + std::hash::Hash + Eq + Ord,
+        K: serde::Serialize + core::hash::Hash + Eq + Ord,
         S: serde::Serializer,
     {
         match value {
@@ -1414,7 +1455,7 @@ pub mod natural_any_cbor_opt_orderedmap {
         deserializer: D,
     ) -> Result<Option<OrderedHashMap<K, AnyCbor>>, D::Error>
     where
-        K: serde::Deserialize<'de> + std::hash::Hash + Eq + Ord,
+        K: serde::Deserialize<'de> + core::hash::Hash + Eq + Ord,
         D: serde::Deserializer<'de>,
     {
         let opt = <Option<BTreeMap<K, NaturalAnyCborDe>> as serde::Deserialize>::deserialize(
@@ -1433,7 +1474,7 @@ pub mod natural_any_cbor_opt_orderedmap {
 // compiles under `--json-schema-export` even when `--json-serde-derives` is off (serde_json is only
 // a direct dep under the serde flag).
 impl schemars::JsonSchema for AnyCbor {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
         "AnyCbor".into()
     }
 

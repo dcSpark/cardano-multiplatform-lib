@@ -95,7 +95,7 @@ fn supports_tagged_values(schema: MetadataJsonSchema) -> bool {
 
 fn hex_string_to_bytes(hex: &str) -> Option<Vec<u8>> {
     if let Some(stripped) = hex.strip_prefix("0x") {
-        hex::decode(stripped).ok()
+        cml_core::hex_grammar::decode_bare(stripped).ok()
     } else {
         None
     }
@@ -187,7 +187,7 @@ pub fn encode_json_value_to_metadatum(
                         _ => Err(MetadataJsonError::DetailedKeyMismatch(k, v)),
                     },
                     "bytes" => match v {
-                        JSONValue::String(string) => hex::decode(string)
+                        JSONValue::String(string) => cml_core::hex_grammar::decode_bare(&string)
                             .map_err(Into::into)
                             .and_then(|b| TransactionMetadatum::new_bytes(b).map_err(Into::into)),
                         _ => Err(MetadataJsonError::DetailedKeyMismatch(k, v)),

@@ -7,6 +7,8 @@
     clippy::result_large_err
 )]
 
+extern crate alloc;
+use alloc::vec::Vec;
 extern crate derivative;
 pub mod allegra;
 pub mod alonzo;

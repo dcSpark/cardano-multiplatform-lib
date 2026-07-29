@@ -4,6 +4,7 @@ use crate::chain_crypto::key::{
 use crate::chain_crypto::sign::{
     SignatureError, SigningAlgorithm, Verification, VerificationAlgorithm,
 };
+use alloc::format;
 
 use cryptoxide::digest::Digest;
 use cryptoxide::hmac::Hmac;

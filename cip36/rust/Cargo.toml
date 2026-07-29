@@ -17,17 +17,19 @@ generated-with = "0.1.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-core = { "path" = "../../core/rust", version = "6.2.0" }
+cml-core = { path = "../../core/rust", version = "6.2.0", default-features = false }
 cml-crypto = { "path" = "../../crypto/rust", version = "6.2.0" }
 cml-chain = { "path" = "../../chain/rust", version = "6.2.0" }
 cbor_event = { git = "https://github.com/dcSpark/cbor_event", rev = "e2bca6d257f70ab0c226c4efd0726d3f5c1b4490" }
-linked-hash-map = "0.5.6"
-derivative = "2.2.0"
-serde = { version = "1.0.152", features = ["derive"] }
-serde_json = { version = "1.0.57", features = ["float_roundtrip"] }
-schemars = "1.2.1"
-hex = "0.4.3"
+derivative = { version = "2.2.0", features = ["use_core"] }
+serde = { version = "1.0.152", features = ["derive", "alloc"], default-features = false }
+serde_json = { version = "1.0.57", features = ["float_roundtrip", "alloc"], default-features = false }
+schemars = { version = "1.2.1", features = ["derive"], default-features = false }
+hex = { version = "1.19.1", features = ["alloc", "core-error"], default-features = false, package = "const-hex" }
 thiserror = "2.0.18"
+hashlink = "0.12.1"
 
 [features]
 used_from_wasm = []
+default = ["std"]
+std = ["cml-core/std", "serde/std", "serde_json/std", "schemars/std", "hex/std"]

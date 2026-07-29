@@ -1,6 +1,8 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+extern crate alloc;
+use alloc::vec::Vec;
 pub mod cbor_encodings;
 pub mod serialization;
 
@@ -29,7 +31,6 @@ use cbor_encodings::{
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
 
 #[derive(
     Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
@@ -519,8 +520,8 @@ impl<'de> serde::de::Deserialize<'de> for ScriptRef {
 }
 
 impl schemars::JsonSchema for ScriptRef {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("ScriptRef")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("ScriptRef")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

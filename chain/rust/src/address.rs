@@ -206,7 +206,7 @@ impl Address {
     }
 
     pub fn from_hex(hex: &str) -> Result<Address, DeserializeError> {
-        hex::decode(hex)
+        cml_core::hex_grammar::decode_canonical_hex(hex)
             .map_err(|e| DeserializeFailure::InvalidStructure(Box::new(e)).into())
             .and_then(|bytes| Self::from_raw_bytes(&bytes))
     }

@@ -59,38 +59,33 @@
 set -euo pipefail
 
 # cddl-codegen commit the specs target. Override with CDDL_CODEGEN_DIR
-# This rev is the last generator-relevant commit of the 2026-07-28/29 config+fixes series,
-# chosen to include everything below while stopping short of the OrderedHashMap
-# linked-hash-map->hashlink backing swap (51c96430) and the no_std emission series (1cd34ffc..)
-# that immediately follow it — each of those is its own adoption decision. Relative to the
-# previous pin (9e1f14f0) it adds:
-#   - the --config feature series (6d2f91ca..a8403b7c): `cddl-codegen --config codegen.toml`
-#     multi-crate mode, --print-flags, --with-deps, the committed-state convergence verdict
-#     (exit 2), and the --static-dir command-line exception. This script now runs the four
-#     main crates through exactly that, from the committed codegen.toml.
-#   - fix(parsing) 2605a7d7 itself (group-choice arm @name temp registration borrows a
-#     synthesized ident): REQUIRED for chain — 7dcedad7's (correct) dep-graph fix reorders
-#     rule registration so the conway `script` enum registers before the `; @name Script`
-#     arms of credential/d_rep, whose temp mint+remove used to clobber-and-delete it
-#     (draft/BUG-group-choice-arm-name-collision.md; panic at intermediate/mod.rs
-#     `assertion failed: ... contains_key(ident)`). Every rev in 7dcedad7..2605a7d7^ panics
-#     on ./codegen.sh chain.
-#   - scope-qualified _assert_key_traits paths in the borrowed_key_types.rs sidecar
-#     (draft/BUG-borrowed-key-types-paths.md): the committed sidecar's hand-qualified
-#     cml_chain::assets::AssetName etc. are now what the emitter writes.
-#   - fix(deserialize) 4b51f5e1: leaves under a `bytes .cbor` overload read the payload's own
-#     cursor; fix(deserialize) ddb36d7f + emit-tests nint fixes; fix(generation) b4b5aaeb
-#     (nominal reference to a collection typedef emits the collection); fix(enums) b6610334
-#     (fixed bool/null choice arms); plus a batch of parse-panic -> graceful-rejection
-#     conversions that don't affect specs that already generate.
-# The previous pin's own deliveries (request-12 json-gen row-set ownership through request-15
-# json_value_ser) are all ancestors and still hold; see git log of this line for the old list.
+# This rev is the no_std line: the OrderedHashMap linked-hash-map->hashlink backing swap, the
+# no_std emission series, and cddl-codegen's fixes for CML's two rounds of filings
+# (draft/no-std-migration/ + draft/REQUEST-2026-07-29-request-16-no-std-followups.md). Relative
+# to the previous pin (2605a7d7) it adds:
+#   - no_std-capable generated output: core::/alloc:: paths throughout, a `std` feature on each
+#     crate, and a tool-owned no-std-check/ shim per output root.
+#   - OrderedHashMap backed by hashlink, with the wrapper Entry that keeps linked-hash-map's
+#     position-preserving or_insert/or_default semantics (a moved entry would rewrite the bytes
+#     of a table read off the wire -- iteration order IS serialized key order).
+#   - the fixes for CML's filings: unpreserved-comment false positives, Entry's missing
+#     or_default/and_modify, manifest spec formatting, the nested-inline-module alloc-import gap,
+#     runtime-edge `default-features = false` + computed `std` forwarding lists (needs
+#     [runtime] lib-name in codegen.toml), and hex -> const-hex with FromHexErrorCore deleted.
+#   - the CANONICAL hex grammar (355cef22..2cf061ee): all three emitted hex-reading surfaces
+#     accept only what they emit -- bare, even-length, LOWERCASE. This is wire-facing and narrows
+#     what your program accepts at runtime: uppercase input, previously normalized, is now
+#     rejected. CML follows it wherever CML owns the encoding and deliberately does NOT where the
+#     format belongs to someone else (RFC 4291 IPv6, cardano-cli JSON interop). The rule and both
+#     doors live in core/rust/src/hex_grammar.rs; chain/rust/tests/hex_grammar.rs pins it.
+# The previous pins' deliveries (request-12 through request-15, the --config series, the
+# group-choice arm fix, the borrowed_key_types scope qualification) are all ancestors and hold.
 # NOTE: this rev is on the LOCAL cddl-codegen checkout's master. Upstream has declined to push
 # to the GitHub remote (request-13 §8) — treat this as a PERMANENT condition of consuming an
 # unpushed rev, not something to wait out: regen requires CDDL_CODEGEN_DIR pointing at a local
 # checkout that has the commit (the default clone-from-GitHub path cannot check it out). CI is
 # unaffected; it never regenerates.
-CDDL_CODEGEN_PINNED_REV="2605a7d72daef37e6c8cf72b117760f69cf5df7a"
+CDDL_CODEGEN_PINNED_REV="2cf061ee"
 # A CDDL_CODEGEN_REV in the environment wins over the pin. Remember whether it was set explicitly:
 # with CDDL_CODEGEN_DIR the two cases differ (HEAD as-is vs. move the checkout to that commit).
 CDDL_CODEGEN_REV_EXPLICIT=0

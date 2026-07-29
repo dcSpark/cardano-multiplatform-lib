@@ -1,4 +1,8 @@
+extern crate alloc;
 use super::error::{DeserializeError, DeserializeFailure};
+use alloc::format;
+use alloc::vec;
+use alloc::vec::Vec;
 
 /// A `Vec<(K, V)>`-backed, entry-ordered, DUPLICATE-PERMITTING map — the `@duplicates preserve` twin
 /// of the loose table map for a `{ * k => v }` rule that must accept AND re-emit duplicate keys.
@@ -287,7 +291,7 @@ impl<'de, K: serde::Deserialize<'de>, V: serde::Deserialize<'de>> serde::de::Des
     }
 }
 impl<K: schemars::JsonSchema, V: schemars::JsonSchema> schemars::JsonSchema for PairMap<K, V> {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
         format!("PairMap<{}, {}>", K::schema_name(), V::schema_name()).into()
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -303,7 +307,7 @@ impl<K: schemars::JsonSchema, V: schemars::JsonSchema> schemars::JsonSchema for 
 impl<K: schemars::JsonSchema, V: schemars::JsonSchema> schemars::JsonSchema
     for NonEmptyPairMap<K, V>
 {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
         format!(
             "NonEmptyPairMap<{}, {}>",
             K::schema_name(),

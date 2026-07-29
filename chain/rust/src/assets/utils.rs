@@ -261,7 +261,7 @@ where
     /// Adds to bundles together, checking value bounds.
     /// Does not modify self, and instead returns the result.
     pub fn checked_add(&self, rhs: &Self) -> Result<Self, AssetArithmeticError> {
-        use linked_hash_map::Entry;
+        use cml_core::ordered_hash_map::Entry;
         let mut bundle = self.0.clone();
         for (policy, assets) in rhs.0.iter() {
             for (asset_name, amount) in assets.iter() {

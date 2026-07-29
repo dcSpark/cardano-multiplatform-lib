@@ -3,9 +3,11 @@ use crate::chain_crypto::{
     key,
 };
 use crate::typed_bytes::{ByteArray, ByteSlice};
+use alloc::format;
+use alloc::string::String;
 use cbor_event::{de::Deserializer, se::Serializer};
+use core::{fmt, marker::PhantomData, str::FromStr};
 use hex::FromHexError;
-use std::{fmt, marker::PhantomData, str::FromStr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Verification {
@@ -73,7 +75,8 @@ impl<T, A: VerificationAlgorithm> FromStr for Signature<T, A> {
     type Err = SignatureFromStrError;
 
     fn from_str(hex: &str) -> Result<Self, Self::Err> {
-        let bytes = hex::decode(hex).map_err(SignatureFromStrError::HexMalformed)?;
+        let bytes = cml_core::hex_grammar::decode_canonical_hex(hex)
+            .map_err(SignatureFromStrError::HexMalformed)?;
         Self::from_binary(&bytes).map_err(SignatureFromStrError::Invalid)
     }
 }
@@ -98,9 +101,9 @@ impl fmt::Display for SignatureFromStrError {
     }
 }
 
-impl std::error::Error for SignatureError {}
-impl std::error::Error for SignatureFromStrError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for SignatureError {}
+impl core::error::Error for SignatureFromStrError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             SignatureFromStrError::HexMalformed(e) => Some(e),
             SignatureFromStrError::Invalid(e) => Some(e),
@@ -183,7 +186,7 @@ impl<T, A: VerificationAlgorithm> Clone for Signature<T, A> {
     fn clone(&self) -> Self {
         Signature {
             signdata: self.signdata.clone(),
-            phantom: std::marker::PhantomData,
+            phantom: core::marker::PhantomData,
         }
     }
 }
@@ -207,13 +210,13 @@ impl<T, A: VerificationAlgorithm> Bech32 for Signature<T, A> {
     }
 }
 
-impl<T, A: VerificationAlgorithm> std::cmp::PartialEq<Self> for Signature<T, A> {
+impl<T, A: VerificationAlgorithm> core::cmp::PartialEq<Self> for Signature<T, A> {
     fn eq(&self, other: &Self) -> bool {
         self.as_ref().eq(other.as_ref())
     }
 }
 
-impl<T, A: VerificationAlgorithm> std::cmp::Eq for Signature<T, A> {}
+impl<T, A: VerificationAlgorithm> core::cmp::Eq for Signature<T, A> {}
 
 impl<U, A: VerificationAlgorithm> cbor_event::se::Serialize for Signature<U, A> {
     fn serialize<'se>(

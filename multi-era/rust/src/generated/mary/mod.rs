@@ -1,6 +1,8 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+extern crate alloc;
+use alloc::vec::Vec;
 pub mod cbor_encodings;
 pub mod serialization;
 
@@ -18,7 +20,6 @@ use cml_chain::crypto::{AuxiliaryDataHash, ScriptHash};
 use cml_chain::transaction::TransactionInput;
 use cml_chain::{TransactionIndex, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
-use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct MaryBlock {

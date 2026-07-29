@@ -1,6 +1,9 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+extern crate alloc;
+use alloc::string::String;
+use alloc::vec::Vec;
 pub mod cbor_encodings;
 pub mod serialization;
 // cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
@@ -19,8 +22,7 @@ use cbor_encodings::{
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::non_empty_map::NonEmptyMap;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use cml_core::serialization::{LenEncoding, StringEncoding};
-use std::collections::BTreeMap;
+use cml_core::serialization::{LenEncoding, StringEncoding, decode_canonical_hex};
 
 #[derive(Clone, Debug, derivative::Derivative)]
 #[derivative(Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -81,8 +83,8 @@ impl<'de> serde::de::Deserialize<'de> for CostModels {
 }
 
 impl schemars::JsonSchema for CostModels {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("CostModels")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("CostModels")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -304,15 +306,20 @@ impl<'de> serde::de::Deserialize<'de> for PlutusV1Script {
         D: serde::de::Deserializer<'de>,
     {
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        hex::decode(&s).map(PlutusV1Script::new).map_err(|_e| {
-            serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"invalid hex bytes")
-        })
+        decode_canonical_hex(&s)
+            .map(PlutusV1Script::new)
+            .map_err(|_e| {
+                serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Str(&s),
+                    &"invalid hex bytes",
+                )
+            })
     }
 }
 
 impl schemars::JsonSchema for PlutusV1Script {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("PlutusV1Script")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("PlutusV1Script")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -377,15 +384,20 @@ impl<'de> serde::de::Deserialize<'de> for PlutusV2Script {
         D: serde::de::Deserializer<'de>,
     {
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        hex::decode(&s).map(PlutusV2Script::new).map_err(|_e| {
-            serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"invalid hex bytes")
-        })
+        decode_canonical_hex(&s)
+            .map(PlutusV2Script::new)
+            .map_err(|_e| {
+                serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Str(&s),
+                    &"invalid hex bytes",
+                )
+            })
     }
 }
 
 impl schemars::JsonSchema for PlutusV2Script {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("PlutusV2Script")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("PlutusV2Script")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -450,15 +462,20 @@ impl<'de> serde::de::Deserialize<'de> for PlutusV3Script {
         D: serde::de::Deserializer<'de>,
     {
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        hex::decode(&s).map(PlutusV3Script::new).map_err(|_e| {
-            serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"invalid hex bytes")
-        })
+        decode_canonical_hex(&s)
+            .map(PlutusV3Script::new)
+            .map_err(|_e| {
+                serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Str(&s),
+                    &"invalid hex bytes",
+                )
+            })
     }
 }
 
 impl schemars::JsonSchema for PlutusV3Script {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("PlutusV3Script")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("PlutusV3Script")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

@@ -1,6 +1,9 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+extern crate alloc;
+use alloc::string::String;
+use alloc::vec::Vec;
 pub mod cbor_encodings;
 pub mod serialization;
 // cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
@@ -30,7 +33,7 @@ use cbor_encodings::{
     BootstrapWitnessEncoding, KESSignatureEncoding, VRFCertEncoding, VkeywitnessEncoding,
 };
 use cml_core::error::*;
-use cml_core::serialization::{LenEncoding, StringEncoding};
+use cml_core::serialization::{LenEncoding, StringEncoding, decode_canonical_hex};
 
 #[derive(
     Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
@@ -134,7 +137,7 @@ impl<'de> serde::de::Deserialize<'de> for KESSignature {
         D: serde::de::Deserializer<'de>,
     {
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        hex::decode(&s)
+        decode_canonical_hex(&s)
             .ok()
             .and_then(|bytes| KESSignature::new(bytes).ok())
             .ok_or_else(|| {
@@ -147,8 +150,8 @@ impl<'de> serde::de::Deserialize<'de> for KESSignature {
 }
 
 impl schemars::JsonSchema for KESSignature {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("KESSignature")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("KESSignature")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

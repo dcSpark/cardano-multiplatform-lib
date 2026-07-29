@@ -1,9 +1,11 @@
 //! module to provide some handy interfaces atop the hashes so we have
 //! the common interfaces for the project to work with.
 
-use std::hash::{Hash, Hasher};
-use std::str::FromStr;
-use std::{error, fmt, result};
+use alloc::format;
+use alloc::string::String;
+use core::hash::{Hash, Hasher};
+use core::str::FromStr;
+use core::{error, fmt, result};
 
 use cbor_event::{self, de::Deserializer, se::Serializer};
 use cryptoxide::blake2b::Blake2b;
@@ -109,7 +111,7 @@ macro_rules! define_hash_object {
         impl FromStr for $hash_ty {
             type Err = Error;
             fn from_str(s: &str) -> result::Result<Self, Self::Err> {
-                let bytes = hex::decode(s)?;
+                let bytes = cml_core::hex_grammar::decode_canonical_hex(s)?;
                 Self::try_from_slice(&bytes)
             }
         }

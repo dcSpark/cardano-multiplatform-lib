@@ -175,7 +175,7 @@ impl FromStr for Ipv6 {
                 } else {
                     Cow::Owned(format!("0{hextet_str}"))
                 };
-                let hextet_bytes = hex::decode(padded_str.as_bytes())
+                let hextet_bytes = cml_core::hex_grammar::decode_bare(&padded_str)
                     .map_err(|_e| IPStringParsingError::IPv6StringFormat)?;
                 match hextet_bytes.len() {
                     0 => {

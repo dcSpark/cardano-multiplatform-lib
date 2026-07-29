@@ -51,6 +51,8 @@
 /// what serde_json prints for that `f64`, and otherwise by delegating to serde_json's own impl (the
 /// only lossless carrier for a decimal the serde data model cannot hold). See this file's header for
 /// the two cfg guarantees.
+extern crate alloc;
+use alloc::string::ToString;
 pub fn serialize_json_number<S>(
     number: &serde_json::Number,
     serializer: S,

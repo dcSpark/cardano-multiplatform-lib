@@ -1,8 +1,12 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+extern crate alloc;
 use super::cbor_encodings::*;
 use super::*;
+use alloc::boxed::Box;
+use alloc::vec;
+use alloc::vec::Vec;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;

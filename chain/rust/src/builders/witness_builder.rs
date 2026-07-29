@@ -1,5 +1,5 @@
 use cml_core::non_empty::NonEmptyVec;
-use linked_hash_map::LinkedHashMap;
+use cml_core::ordered_hash_map::OrderedHashMap;
 use std::{
     collections::{BTreeSet, HashMap},
     fmt::Debug,
@@ -258,8 +258,8 @@ pub struct TransactionWitnessSetBuilder {
     pub vkeys: HashMap<Vkey, Vkeywitness>,
     pub bootstraps: HashMap<Vkey, BootstrapWitness>,
     pub scripts: HashMap<ScriptHash, Script>,
-    pub plutus_data: LinkedHashMap<DatumHash, PlutusData>,
-    pub redeemers: LinkedHashMap<RedeemerWitnessKey, LegacyRedeemer>,
+    pub plutus_data: OrderedHashMap<DatumHash, PlutusData>,
+    pub redeemers: OrderedHashMap<RedeemerWitnessKey, LegacyRedeemer>,
 
     /// witnesses that need to be added for the build function to succeed
     /// this allows checking that witnesses are present at build time (instead of when submitting to a node)

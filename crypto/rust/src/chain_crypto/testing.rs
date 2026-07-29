@@ -82,7 +82,7 @@ where
     T: Send + 'static,
 {
     fn arbitrary(g: &mut Gen) -> Self {
-        let bytes: Vec<_> = std::iter::repeat_with(|| u8::arbitrary(g))
+        let bytes: Vec<_> = core::iter::repeat_with(|| u8::arbitrary(g))
             .take(A::SIGNATURE_SIZE)
             .collect();
         Signature::from_binary(&bytes).unwrap()
@@ -91,7 +91,7 @@ where
 
 impl Arbitrary for Blake2b256 {
     fn arbitrary(g: &mut Gen) -> Self {
-        let bytes: Vec<_> = std::iter::repeat_with(|| u8::arbitrary(g))
+        let bytes: Vec<_> = core::iter::repeat_with(|| u8::arbitrary(g))
             .take(Self::HASH_SIZE)
             .collect();
         Self::try_from_slice(&bytes).unwrap()
@@ -100,7 +100,7 @@ impl Arbitrary for Blake2b256 {
 
 impl Arbitrary for Sha3_256 {
     fn arbitrary(g: &mut Gen) -> Self {
-        let bytes: Vec<_> = std::iter::repeat_with(|| u8::arbitrary(g))
+        let bytes: Vec<_> = core::iter::repeat_with(|| u8::arbitrary(g))
             .take(Self::HASH_SIZE)
             .collect();
         Self::try_from_slice(&bytes).unwrap()
@@ -109,7 +109,7 @@ impl Arbitrary for Sha3_256 {
 
 impl<H: digest::DigestAlg + 'static> Arbitrary for digest::Digest<H> {
     fn arbitrary(g: &mut Gen) -> Self {
-        let bytes: Vec<_> = std::iter::repeat_with(|| u8::arbitrary(g))
+        let bytes: Vec<_> = core::iter::repeat_with(|| u8::arbitrary(g))
             .take(26) // actual number doesn't really matter
             .collect();
         digest::Digest::<H>::digest(&bytes[..])
@@ -118,7 +118,7 @@ impl<H: digest::DigestAlg + 'static> Arbitrary for digest::Digest<H> {
 
 impl<H: digest::DigestAlg + 'static, T: 'static> Arbitrary for digest::DigestOf<H, T> {
     fn arbitrary(g: &mut Gen) -> Self {
-        let bytes: Vec<_> = std::iter::repeat_with(|| u8::arbitrary(g))
+        let bytes: Vec<_> = core::iter::repeat_with(|| u8::arbitrary(g))
             .take(26) // actual number doesn't really matter
             .collect();
         digest::DigestOf::<H, Vec<u8>>::digest(&bytes).coerce()

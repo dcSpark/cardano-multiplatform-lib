@@ -18,23 +18,43 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 cbor_event = { git = "https://github.com/dcSpark/cbor_event", rev = "e2bca6d257f70ab0c226c4efd0726d3f5c1b4490" }
-linked-hash-map = "0.5.6"
 derivative = "2.2.0"
-serde = { version = "1.0.152", features = ["derive"] }
-serde_json = { version = "1.0.57", features = ["float_roundtrip"] }
-schemars = "1.2.1"
+serde = { version = "1.0.152", features = ["derive", "alloc"], default-features = false }
+serde_json = { version = "1.0.57", features = ["float_roundtrip", "alloc"], default-features = false }
+schemars = { version = "1.2.1", features = ["derive"], default-features = false }
 
-bech32 = "0.12.0"
-hex = "0.4.3"
-itertools = "0.15.0"
-fraction = "0.15.4"
-base64 = "0.22.1"
-num-bigint = "0.4.6"
-num-integer = "0.1.46"
-thiserror = "2.0.18"
+bech32 = { version = "0.12.0", features = ["alloc"], default-features = false }
+hex = { version = "1.19.1", features = ["alloc", "core-error"], default-features = false, package = "const-hex" }
+itertools = { version = "0.15.0", features = ["use_alloc"], default-features = false }
+base64 = { version = "0.22.1", features = ["alloc"], default-features = false }
+num-bigint = { version = "0.4.6", default-features = false }
+num-integer = { version = "0.1.46", default-features = false }
+thiserror = { version = "2.0.18", default-features = false }
 cfg-if = "1.0.4"
+hashlink = "0.12.1"
 
 
 [dev-dependencies]
 quickcheck = "1.1.0"
 quickcheck_macros = "1.2.0"
+
+[features]
+default = ["std"]
+# NOTE: this crate's manifest is co-owned -- cddl-codegen asserts the `[features]` keys into it.
+# The tool currently emits a bare `std = []`, which forwards to nothing (filed upstream as
+# draft/no-std-migration/BUG-std-feature-does-not-forward.md). The forwarding list below is the
+# hand side of that fix and is what makes `default-features = false` actually reach the
+# `#[cfg(not(feature = "std"))]` arm of `MapHashBuilder` in src/ordered_hash_map.rs.
+# If a regen ever flattens this back to `std = []`, re-apply it.
+std = [
+    "serde/std",
+    "serde_json/std",
+    "schemars/std",
+    "hex/std",
+    "bech32/std",
+    "base64/std",
+    "thiserror/std",
+    "itertools/use_std",
+    "num-bigint/std",
+    "num-integer/std",
+]

@@ -1,6 +1,9 @@
 // This file was code-generated using an experimental CDDL to rust tool:
 // https://github.com/dcSpark/cddl-codegen
 
+extern crate alloc;
+use alloc::string::String;
+use alloc::vec::Vec;
 pub mod cbor_encodings;
 pub mod serialization;
 // cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
@@ -10,6 +13,7 @@ pub use crate::Value;
 
 use cbor_encodings::AssetNameEncoding;
 use cml_core::error::*;
+use cml_core::serialization::decode_canonical_hex;
 
 /// Use TryFrom<&str> / TryInto<&str> for utf8 text conversion and RawBytesEncoding for direct bytes access
 #[derive(Clone, Debug, derivative::Derivative)]
@@ -77,7 +81,7 @@ impl<'de> serde::de::Deserialize<'de> for AssetName {
         D: serde::de::Deserializer<'de>,
     {
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
-        hex::decode(&s)
+        decode_canonical_hex(&s)
             .ok()
             .and_then(|bytes| AssetName::new(bytes).ok())
             .ok_or_else(|| {
@@ -90,8 +94,8 @@ impl<'de> serde::de::Deserialize<'de> for AssetName {
 }
 
 impl schemars::JsonSchema for AssetName {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("AssetName")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("AssetName")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

@@ -1,0 +1,25 @@
+# Hand-written twin of the cddl-codegen-emitted no-std-check shims (chain/, cip25/, cip36/,
+# multi-era/). cml-crypto is hand-written, so the generator does not emit one for it -- but the
+# same measurement problem applies: Cargo unifies features across a whole dependency graph, so ANY
+# other workspace member turning `std` back on for a shared dependency silently satisfies an
+# in-workspace check. Standalone, with its own empty `[workspace]`, is the only configuration that
+# answers the question honestly.
+#
+#   cargo check --manifest-path crypto/no-std-check/Cargo.toml --target thumbv7m-none-eabi
+#
+# One caveat when reading a RED check: cargo stops at the first crate that fails, so everything after
+# it — the crate under test included — is never compiled at all. A failure in a dependency is a
+# verdict about that dependency and clears nothing behind it. A crate was actually reached only if a
+# `Checking <name>` line for it appears in the output; the rest becomes visible once the first
+# failure is fixed.
+
+[package]
+name = "cml-crypto-no-std-check"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+cml-crypto = { path = "../rust", default-features = false }
+
+[workspace]

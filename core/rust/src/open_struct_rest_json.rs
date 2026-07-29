@@ -18,6 +18,10 @@
 /// duplicates stringify identically by definition); a key whose string form does not exist (a complex
 /// `any` key — bytes/array/map/tag/float — surfaced as the `key_to_string` closure's `Err`). Collision
 /// detection is over ALL keys before any byte is emitted (a `BTreeSet` — determinism).
+extern crate alloc;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
 pub fn serialize_flattened_rest<'a, S, K, W, E, I>(
     reserved: &[&str],
     key_to_string: impl Fn(&K) -> Result<String, E>,
@@ -27,13 +31,13 @@ pub fn serialize_flattened_rest<'a, S, K, W, E, I>(
 where
     S: serde::Serializer,
     W: serde::Serialize,
-    E: std::fmt::Display,
+    E: core::fmt::Display,
     K: 'a,
     I: IntoIterator<Item = (&'a K, W)>,
 {
     use serde::ser::SerializeMap;
     let mut pairs: Vec<(String, W)> = Vec::new();
-    let mut seen = std::collections::BTreeSet::new();
+    let mut seen = alloc::collections::BTreeSet::new();
     for (k, w) in entries {
         let ks = key_to_string(k).map_err(serde::ser::Error::custom)?;
         if reserved.contains(&ks.as_str()) {
@@ -69,10 +73,10 @@ where
     D: serde::Deserializer<'de>,
     VDe: serde::Deserialize<'de>,
 {
-    struct Vis<VDe>(std::marker::PhantomData<VDe>);
+    struct Vis<VDe>(core::marker::PhantomData<VDe>);
     impl<'de, VDe: serde::Deserialize<'de>> serde::de::Visitor<'de> for Vis<VDe> {
         type Value = Vec<(String, VDe)>;
-        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fn expecting(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
             f.write_str("a map of open struct-map rest entries")
         }
         fn visit_map<M: serde::de::MapAccess<'de>>(
@@ -86,5 +90,5 @@ where
             Ok(out)
         }
     }
-    deserializer.deserialize_map(Vis(std::marker::PhantomData))
+    deserializer.deserialize_map(Vis(core::marker::PhantomData))
 }

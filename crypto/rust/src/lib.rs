@@ -1,13 +1,35 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
+extern crate alloc;
 //use crate::byron::{AddrAttributes, AddressContent};
 use crate::chain_crypto::bech32::Bech32;
+pub use cml_core::hex_grammar;
+pub use cml_core::json_schema_gen;
+
+/// Alloc items re-exported so `#[macro_export]` macro bodies in this crate can name them as
+/// `$crate::__alloc::…`.
+///
+/// A macro body's paths resolve at the EXPANSION site, and `impl_hash_type!` expands in consumer
+/// crates (`cml-chain`, `cml-multi-era`). `core` is always in the extern prelude so `core::…` is
+/// safe there, but `alloc` is NOT — a bare `alloc::string::String` in the macro body would fail to
+/// resolve in any consumer that has no `extern crate alloc;` of its own. Routing through `$crate`
+/// makes the expansion depend only on this module being reachable, which it always is. Same
+/// contract as `cml_core::json_schema_gen::Cow`.
+#[doc(hidden)]
+pub mod __alloc {
+    pub use alloc::boxed::Box;
+    pub use alloc::string::{String, ToString};
+}
 pub use cml_core::{
     error::{DeserializeError, DeserializeFailure},
     serialization::{Deserialize, RawBytesEncoding, Serialize, StringEncoding},
 };
+use core::convert::From;
 use cryptoxide::blake2b::Blake2b;
 pub use derivative::Derivative;
 use impl_mockchain::key;
-use std::convert::From;
 
 pub mod emip3;
 
@@ -86,6 +108,14 @@ pub fn blake2b256(data: &[u8]) -> [u8; 32] {
 ///  [7] https://docs.rs/rand/0.10.1/rand/rngs/struct.ThreadRng.html  ("The currently selected algorithm is ChaCha (12-rounds)", src/rngs/thread.rs:92)
 ///  [8] rand-0.10.1 src/rngs/thread.rs:108 ("`ThreadRng` is not automatically reseeded on fork"); rendered on the page in [7]
 ///  [9] getrandom-0.4.3 src/lib.rs:72 ("Blocking is possible, at least during early boot")
+///
+/// Gated on `std`: `SysRng` comes from rand's `sys_rng` feature, which is in rand's DEFAULT set
+/// and is what reaches getrandom's OS backend. A build without `std` has no OS entropy source to
+/// offer and must not silently substitute a weaker one — so the convenience generators below
+/// disappear with it, and such a consumer calls the generic
+/// [`chain_crypto::SecretKey::generate`] with a CSPRNG of their own. That path is unchanged and
+/// keeps the `CryptoRng` bound, so the type-level guarantee survives either way.
+#[cfg(feature = "std")]
 fn os_csprng() -> impl rand::CryptoRng {
     // CryptoRng: Rng, so this also satisfies the `Rng` half of `generate`'s bound.
     rand::rand_core::UnwrapErr(rand::rngs::SysRng)
@@ -150,6 +180,8 @@ impl Bip32PrivateKey {
         buf.to_vec()
     }
 
+    /// Requires the `std` feature (OS entropy). See [`os_csprng`].
+    #[cfg(feature = "std")]
     pub fn generate_ed25519_bip32() -> Bip32PrivateKey {
         Bip32PrivateKey(
             chain_crypto::SecretKey::<chain_crypto::Ed25519Bip32>::generate(os_csprng()),
@@ -285,11 +317,15 @@ impl PrivateKey {
         self.0.to_public().into()
     }
 
+    /// Requires the `std` feature (OS entropy). See [`os_csprng`].
+    #[cfg(feature = "std")]
     pub fn generate_ed25519() -> PrivateKey {
         let keypair = chain_crypto::SecretKey::<chain_crypto::Ed25519>::generate(os_csprng());
         PrivateKey(key::EitherEd25519SecretKey::Normal(keypair))
     }
 
+    /// Requires the `std` feature (OS entropy). See [`os_csprng`].
+    #[cfg(feature = "std")]
     pub fn generate_ed25519extended() -> PrivateKey {
         let keypair =
             chain_crypto::SecretKey::<chain_crypto::Ed25519Extended>::generate(os_csprng());
@@ -484,8 +520,8 @@ macro_rules! impl_signature {
         }
 
         impl schemars::JsonSchema for $name {
-            fn schema_name() -> ::std::borrow::Cow<'static, str> {
-                ::std::borrow::Cow::Borrowed(stringify!($name))
+            fn schema_name() -> $crate::json_schema_gen::Cow<'static, str> {
+                $crate::json_schema_gen::Cow::Borrowed(stringify!($name))
             }
             fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
                 String::json_schema(generator)
@@ -496,21 +532,21 @@ macro_rules! impl_signature {
         }
 
         impl Ord for $name {
-            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+            fn cmp(&self, other: &Self) -> core::cmp::Ordering {
                 self.0.as_ref().cmp(other.0.as_ref())
             }
         }
 
         impl PartialOrd for $name {
-            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+            fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
                 Some(self.cmp(other))
             }
         }
 
         // allow since both act on the raw bytes
         #[allow(clippy::derived_hash_with_manual_eq)]
-        impl std::hash::Hash for $name {
-            fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        impl core::hash::Hash for $name {
+            fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
                 self.0.as_ref().hash(state)
             }
         }
@@ -534,33 +570,45 @@ macro_rules! impl_hash_type {
         impl $name {
             pub const BYTE_COUNT: usize = $byte_count;
 
-            pub fn to_bech32(&self, prefix: &str) -> Result<String, CryptoError> {
-                let hrp = bech32::Hrp::parse(prefix)
-                    .map_err(|e| chain_crypto::bech32::Error::Bech32Malformed(e.to_string()))?;
-                bech32::encode::<bech32::Bech32>(hrp, self.0.as_ref())
-                    .map_err(|e| chain_crypto::bech32::Error::Bech32Malformed(e.to_string()).into())
+            pub fn to_bech32(&self, prefix: &str) -> Result<$crate::__alloc::String, CryptoError> {
+                let hrp = bech32::Hrp::parse(prefix).map_err(|e| {
+                    chain_crypto::bech32::Error::Bech32Malformed(
+                        $crate::__alloc::ToString::to_string(&e),
+                    )
+                })?;
+                bech32::encode::<bech32::Bech32>(hrp, self.0.as_ref()).map_err(|e| {
+                    chain_crypto::bech32::Error::Bech32Malformed(
+                        $crate::__alloc::ToString::to_string(&e),
+                    )
+                    .into()
+                })
             }
 
             pub fn from_bech32(bech_str: &str) -> Result<$name, CryptoError> {
-                let (_hrp, data) = bech32::decode(bech_str)
-                    .map_err(|e| chain_crypto::bech32::Error::Bech32Malformed(e.to_string()))?;
+                let (_hrp, data) = bech32::decode(bech_str).map_err(|e| {
+                    chain_crypto::bech32::Error::Bech32Malformed(
+                        $crate::__alloc::ToString::to_string(&e),
+                    )
+                })?;
                 Self::from_raw_bytes(&data).map_err(Into::into)
             }
 
-            pub fn to_hex(&self) -> String {
+            pub fn to_hex(&self) -> $crate::__alloc::String {
                 hex::encode(&self.0.as_ref())
             }
 
             pub fn from_hex(input: &str) -> Result<Self, DeserializeError> {
-                let hex_bytes = hex::decode(input).map_err(|e| {
-                    DeserializeError::from(DeserializeFailure::InvalidStructure(Box::new(e)))
+                let hex_bytes = $crate::hex_grammar::decode_canonical_hex(input).map_err(|e| {
+                    DeserializeError::from(DeserializeFailure::InvalidStructure(
+                        $crate::__alloc::Box::new(e),
+                    ))
                 })?;
                 Self::from_raw_bytes(&hex_bytes)
             }
         }
 
-        impl std::fmt::Display for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        impl core::fmt::Display for $name {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 write!(f, "{}", self.to_raw_hex())
             }
         }
@@ -583,7 +631,7 @@ macro_rules! impl_hash_type {
             }
 
             fn from_raw_bytes(bytes: &[u8]) -> Result<Self, DeserializeError> {
-                use std::convert::TryInto;
+                use core::convert::TryInto;
                 match bytes.len() {
                     $byte_count => Ok($name(bytes[..$byte_count].try_into().unwrap())),
                     other_len => {
@@ -615,7 +663,8 @@ macro_rules! impl_hash_type {
             where
                 D: serde::de::Deserializer<'de>,
             {
-                let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
+                let s =
+                    <$crate::__alloc::String as serde::de::Deserialize>::deserialize(deserializer)?;
                 $name::from_hex(&s).map_err(|_e| {
                     serde::de::Error::invalid_value(
                         serde::de::Unexpected::Str(&s),
@@ -626,14 +675,14 @@ macro_rules! impl_hash_type {
         }
 
         impl schemars::JsonSchema for $name {
-            fn schema_name() -> ::std::borrow::Cow<'static, str> {
-                ::std::borrow::Cow::Borrowed(stringify!($name))
+            fn schema_name() -> $crate::json_schema_gen::Cow<'static, str> {
+                $crate::json_schema_gen::Cow::Borrowed(stringify!($name))
             }
             fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-                String::json_schema(generator)
+                $crate::__alloc::String::json_schema(generator)
             }
             fn inline_schema() -> bool {
-                String::inline_schema()
+                $crate::__alloc::String::inline_schema()
             }
         }
     };

@@ -46,6 +46,7 @@ pub fn add_schemas(generator: &mut schemars::SchemaGenerator) {
     reg.add::<cml_multi_era::Block>();
     reg.add::<cml_multi_era::ByronBlock>();
     reg.add::<cml_multi_era::ByronTx>();
+    reg.add::<cml_multi_era::Int>();
     reg.add::<cml_multi_era::MultiEraBlock>();
     reg.add::<cml_multi_era::MultiEraTransactionBody>();
     // mary

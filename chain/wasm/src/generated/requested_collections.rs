@@ -27,7 +27,7 @@ impl_wasm_list_needs_into!(
     true
 );
 
-/// Generated at the request of: cml-multi-era.
+/// Generated at the request of: cml_multi_era.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapStakeCredentialToCoin(
@@ -59,7 +59,7 @@ impl MapStakeCredentialToCoin {
     }
 }
 
-/// Generated at the request of: cml-multi-era.
+/// Generated at the request of: cml_multi_era.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapStakeCredentialToDeltaCoin(
@@ -93,7 +93,7 @@ impl MapStakeCredentialToDeltaCoin {
     }
 }
 
-/// Generated at the request of: cml-multi-era.
+/// Generated at the request of: cml_multi_era.
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MapTransactionIndexToMetadata(

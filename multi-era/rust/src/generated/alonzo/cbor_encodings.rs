@@ -102,9 +102,9 @@ pub struct AlonzoTransactionBodyEncoding {
     pub validity_interval_start_encoding: Option<cbor_event::Sz>,
     pub validity_interval_start_key_encoding: Option<cbor_event::Sz>,
     pub mint_encoding: LenEncoding,
-    pub mint_key_encodings: BTreeMap<PolicyId, StringEncoding>,
+    pub mint_key_encodings: BTreeMap<ScriptHash, StringEncoding>,
     pub mint_value_encodings:
-        BTreeMap<PolicyId, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
+        BTreeMap<ScriptHash, (LenEncoding, BTreeMap<AssetName, Option<cbor_event::Sz>>)>,
     pub mint_key_encoding: Option<cbor_event::Sz>,
     pub script_data_hash_encoding: StringEncoding,
     pub script_data_hash_key_encoding: Option<cbor_event::Sz>,

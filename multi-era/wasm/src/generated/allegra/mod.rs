@@ -156,14 +156,11 @@ impl AllegraCertificate {
         )
     }
 
-    pub fn new_stake_delegation(
-        stake_credential: &StakeCredential,
-        ed25519_key_hash: &Ed25519KeyHash,
-    ) -> Self {
+    pub fn new_stake_delegation(stake_credential: &StakeCredential, pool: &Ed25519KeyHash) -> Self {
         Self(
             cml_multi_era::allegra::AllegraCertificate::new_stake_delegation(
                 stake_credential.clone().into(),
-                ed25519_key_hash.clone().into(),
+                pool.clone().into(),
             ),
         )
     }
@@ -176,10 +173,10 @@ impl AllegraCertificate {
         )
     }
 
-    pub fn new_pool_retirement(ed25519_key_hash: &Ed25519KeyHash, epoch: Epoch) -> Self {
+    pub fn new_pool_retirement(pool: &Ed25519KeyHash, epoch: Epoch) -> Self {
         Self(
             cml_multi_era::allegra::AllegraCertificate::new_pool_retirement(
-                ed25519_key_hash.clone().into(),
+                pool.clone().into(),
                 epoch,
             ),
         )

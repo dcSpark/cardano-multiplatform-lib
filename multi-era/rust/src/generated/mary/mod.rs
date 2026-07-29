@@ -14,9 +14,9 @@ use cbor_encodings::{
 };
 use cml_chain::address::{Address, RewardAccount};
 use cml_chain::assets::{AssetName, Coin, Mint, Value};
-use cml_chain::crypto::AuxiliaryDataHash;
+use cml_chain::crypto::{AuxiliaryDataHash, ScriptHash};
 use cml_chain::transaction::TransactionInput;
-use cml_chain::{PolicyId, TransactionIndex, Withdrawals};
+use cml_chain::{TransactionIndex, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use std::collections::BTreeMap;
 

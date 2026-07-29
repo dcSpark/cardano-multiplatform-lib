@@ -11,16 +11,16 @@ fn _assert_key_traits<K: Eq + Ord + PartialOrd + core::hash::Hash>() {}
 #[allow(dead_code)]
 fn _borrowed_key_types_self_check() {
     _assert_key_traits::<cml_chain::assets::AssetName>();
+    _assert_key_traits::<cml_chain::certs::Credential>();
     _assert_key_traits::<cml_chain::crypto::GenesisHash>();
-    _assert_key_traits::<cml_chain::PolicyId>();
     _assert_key_traits::<cml_chain::address::RewardAccount>();
-    _assert_key_traits::<cml_chain::certs::StakeCredential>();
+    _assert_key_traits::<cml_chain::crypto::ScriptHash>();
 }
 #[allow(dead_code)]
 pub(crate) const BORROWED_KEY_TYPES: &[(&str, &str)] = &[
     ("cml_chain", "asset_name"),
+    ("cml_chain", "credential"),
     ("cml_chain", "genesis_hash"),
-    ("cml_chain", "policy_id"),
     ("cml_chain", "reward_account"),
-    ("cml_chain", "stake_credential"),
+    ("cml_chain", "script_hash"),
 ];

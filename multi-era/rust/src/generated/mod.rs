@@ -14,8 +14,9 @@ pub mod babbage;
 mod borrowed_key_types;
 mod extern_interface_check;
 pub mod mary;
-pub mod serialization;
 pub mod shelley;
+pub use cml_core::{Int, IntError};
+pub mod serialization;
 // cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
 // each name below (`pub use <your_module>::<Name>;`) so the generated glue resolves against the
 // user-owned definition. See the extern types section of docs/output_format.

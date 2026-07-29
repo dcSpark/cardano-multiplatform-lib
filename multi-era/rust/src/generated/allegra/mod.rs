@@ -4,6 +4,7 @@
 pub mod cbor_encodings;
 pub mod serialization;
 
+use crate::generated::Int;
 use crate::generated::shelley::{
     GenesisKeyDelegation, ShelleyHeader, ShelleyPoolParams, ShelleyPoolRegistration,
     ShelleyTransactionOutput, ShelleyUpdate,
@@ -15,9 +16,10 @@ use cbor_encodings::{
 };
 use cml_chain::address::RewardAccount;
 use cml_chain::assets::Coin;
-use cml_chain::auxdata::{ShelleyFormatAuxData, ShelleyMAFormatAuxData};
+use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain::certs::{
-    PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration, StakeRegistration,
+    Credential, PoolRetirement, StakeCredential, StakeDelegation, StakeDeregistration,
+    StakeRegistration,
 };
 use cml_chain::crypto::{
     AuxiliaryDataHash, BootstrapWitness, Ed25519KeyHash, GenesisDelegateHash, GenesisHash,
@@ -92,19 +94,16 @@ impl AllegraCertificate {
         Self::StakeDeregistration(StakeDeregistration::new(stake_credential))
     }
 
-    pub fn new_stake_delegation(
-        stake_credential: StakeCredential,
-        ed25519_key_hash: Ed25519KeyHash,
-    ) -> Self {
-        Self::StakeDelegation(StakeDelegation::new(stake_credential, ed25519_key_hash))
+    pub fn new_stake_delegation(stake_credential: StakeCredential, pool: Ed25519KeyHash) -> Self {
+        Self::StakeDelegation(StakeDelegation::new(stake_credential, pool))
     }
 
     pub fn new_shelley_pool_registration(pool_params: ShelleyPoolParams) -> Self {
         Self::ShelleyPoolRegistration(ShelleyPoolRegistration::new(pool_params))
     }
 
-    pub fn new_pool_retirement(ed25519_key_hash: Ed25519KeyHash, epoch: Epoch) -> Self {
-        Self::PoolRetirement(PoolRetirement::new(ed25519_key_hash, epoch))
+    pub fn new_pool_retirement(pool: Ed25519KeyHash, epoch: Epoch) -> Self {
+        Self::PoolRetirement(PoolRetirement::new(pool, epoch))
     }
 
     pub fn new_genesis_key_delegation(

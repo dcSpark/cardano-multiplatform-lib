@@ -68,10 +68,15 @@ pub mod assets {                         // shadows the glob-imported generated 
 
 ## Regeneration
 
-`codegen.sh` is the single source of truth for how generated code is produced — the pinned
-`cddl-codegen` version, exact per-crate args, and the in-place + `git diff` review workflow. Read
-its header before doing anything generation-related; `specs/README.md` complements it. Byron is a
-deliberately special, opt-in case (its rationale is documented in `codegen.sh`).
+Two files own how generated code is produced. **`codegen.toml`** (repo root) is the committed
+flag set for the four generated crates — every key in it is a `cddl-codegen` flag, and the
+multi-era→chain workspace edge derives from its `deps = ["chain"]` line
+(`./codegen.sh --print-flags` shows the full expansion, tagged with the config key each flag
+comes from). **`codegen.sh`** owns everything that is not a flag: the pinned `cddl-codegen`
+version, the per-machine `--static-dir`, the opt-in byron pass, and the in-place + `git diff`
+review workflow. Read both headers before doing anything generation-related;
+`specs/README.md` complements them. Byron is a deliberately special, opt-in case (its rationale
+is documented in `codegen.sh`).
 
 **A no-op regen is zero-diff** (verified property, chain + multi-era): facades, hand files, and
 the insert/replace blocks all survive a `./codegen.sh` byte-for-byte. If a regen
@@ -79,15 +84,21 @@ shows unexpected diff, something may have regressed.
 Note the regen may need one extra run to reach the fixed point after NEW blocks are hand-added
 (the overlay normalizes their placement on the first pass).
 
-**Workspace mode (cross-crate wrapper placement):** multi-era regenerates **before** chain —
-reverse dependency order. multi-era emits a request sidecar
-(`multi-era/wasm/src/generated/borrowed_collections.rs`) that chain's regen consumes
-(`--wrapper-requests`) to host borrowed collection wrappers in its
-`chain/wasm/src/generated/{requested_,}collections.rs` index. These generated files are
-**cross-crate contracts**:
+**Workspace mode (cross-crate wrapper placement):** the config generates in **dependency order**
+— chain before multi-era — then a built-in convergence pass re-runs chain when the run rewrote a
+request sidecar chain had already read. multi-era emits two request sidecars
+(`multi-era/wasm/src/generated/borrowed_collections.rs`,
+`multi-era/rust/src/generated/borrowed_key_types.rs`) that chain's regen consumes
+(`--wrapper-requests` / `--key-requests`, derived from `deps`) to host borrowed collection
+wrappers in its `chain/wasm/src/generated/{requested_,}collections.rs` index and to derive key
+traits on borrowed map-key types; multi-era in turn reads chain's committed
+`chain/extern-interface/cml_chain/` export (its extern dependency declaration — there is no hand
+stub tree for this edge anymore). These generated files are **cross-crate contracts**:
 - never hand-edit them
 - never keep/revert one side's regen diff without the other
-note: a stranded half-pass surfaces as unresolved-import errors, but `codegen.sh` ends with a convergence check
+note: a subset regen that leaves the committed tree inconsistent across the edge exits **2**,
+naming the dependency-alone regen that converges it (the tool's committed-state verdict — the
+old hand-rolled convergence check, generalized)
 
 ## Verifying changes
 

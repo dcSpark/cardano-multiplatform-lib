@@ -13,6 +13,7 @@ mod borrowed_collections;
 pub mod collections;
 pub mod mary;
 pub mod shelley;
+pub use cml_core::Int;
 // cddl-codegen extern re-export contract: this crate's hand-written root lib.rs must re-export
 // each name below (`pub use <your_module>::<Name>;`) so the generated glue resolves against the
 // user-owned definition. See the extern types section of docs/output_format.
@@ -41,7 +42,7 @@ use shelley::{
     MultisigScript, ShelleyBlock, ShelleyCertificate, ShelleyRelay, ShelleyTransactionBody,
     ShelleyTransactionOutput, ShelleyTransactionWitnessSet,
 };
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 impl_wasm_list_needs_into!(
     cml_multi_era::allegra::AllegraCertificate,
@@ -114,6 +115,8 @@ impl_wasm_list_needs_into!(
     true,
     false
 );
+
+pub type IntError = JsError;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]

@@ -1801,7 +1801,7 @@ impl Deserialize for ShelleyMoveInstantaneousReward {
                     {
                         break;
                     }
-                    let to_stake_credentials_key = StakeCredential::deserialize(raw)?;
+                    let to_stake_credentials_key = Credential::deserialize(raw)?;
                     let (to_stake_credentials_value, to_stake_credentials_value_encoding) =
                         raw.unsigned_integer_sz().map(|(x, enc)| (x, Some(enc)))?;
                     if to_stake_credentials_table

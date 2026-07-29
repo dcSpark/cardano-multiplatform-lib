@@ -84,7 +84,7 @@ pub struct ShelleyMoveInstantaneousRewardEncoding {
     pub len_encoding: LenEncoding,
     pub pot_encoding: Option<cbor_event::Sz>,
     pub to_stake_credentials_encoding: LenEncoding,
-    pub to_stake_credentials_value_encodings: BTreeMap<StakeCredential, Option<cbor_event::Sz>>,
+    pub to_stake_credentials_value_encodings: BTreeMap<Credential, Option<cbor_event::Sz>>,
 }
 
 #[derive(Clone, Debug, Default)]

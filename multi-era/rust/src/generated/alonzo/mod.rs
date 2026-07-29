@@ -16,13 +16,11 @@ use cml_chain::assets::{AssetName, Coin, Mint};
 use cml_chain::auxdata::{Metadata, ShelleyFormatAuxData, ShelleyMAFormatAuxData};
 use cml_chain::crypto::{
     AuxiliaryDataHash, BootstrapWitness, Ed25519KeyHash, GenesisHash, Nonce, ScriptDataHash,
-    Vkeywitness,
+    ScriptHash, Vkeywitness,
 };
 use cml_chain::plutus::{CostModels, ExUnitPrices, ExUnits, PlutusData, PlutusV1Script};
 use cml_chain::transaction::{AlonzoFormatTxOut, NativeScript, TransactionInput};
-use cml_chain::{
-    Epoch, NetworkId, PolicyId, Rational, TransactionIndex, UnitInterval, Withdrawals,
-};
+use cml_chain::{Epoch, NetworkId, Rational, TransactionIndex, UnitInterval, Withdrawals};
 use cml_core::ordered_hash_map::OrderedHashMap;
 use std::collections::BTreeMap;
 

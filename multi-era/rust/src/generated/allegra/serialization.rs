@@ -30,7 +30,7 @@ impl Deserialize for AllegraAuxiliaryData {
         (|| -> Result<_, DeserializeError> {
             let initial_position = raw.position();
             let mut errs = Vec::new();
-            let deser_variant: Result<_, DeserializeError> = ShelleyFormatAuxData::deserialize(raw);
+            let deser_variant: Result<_, DeserializeError> = Metadata::deserialize(raw);
             match deser_variant {
                 Ok(shelley) => return Ok(Self::Shelley(shelley)),
                 Err(e) => {
@@ -1463,8 +1463,8 @@ impl Deserialize for MIRAction {
                         {
                             break;
                         }
-                        let to_stake_credentials_key = StakeCredential::deserialize(raw)?;
-                        let to_stake_credentials_value = DeltaCoin::deserialize(raw)?;
+                        let to_stake_credentials_key = Credential::deserialize(raw)?;
+                        let to_stake_credentials_value = Int::deserialize(raw)?;
                         if to_stake_credentials_table
                             .insert(to_stake_credentials_key.clone(), to_stake_credentials_value)
                             .is_some()

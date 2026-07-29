@@ -15,6 +15,11 @@ fn _demand_asset_name() {
     _key_demand_ord::<crate::generated::assets::AssetName>();
 }
 #[allow(dead_code)]
+fn _demand_credential() {
+    _key_demand_hash::<crate::generated::certs::Credential>();
+    _key_demand_ord::<crate::generated::certs::Credential>();
+}
+#[allow(dead_code)]
 fn _demand_ex_units() {
     _key_demand_hash::<crate::generated::plutus::ExUnits>();
     _key_demand_ord::<crate::generated::plutus::ExUnits>();

@@ -49,54 +49,38 @@
 set -euo pipefail
 
 # cddl-codegen commit the specs target. Override with CDDL_CODEGEN_DIR
-# This rev is the request-12 (json-gen row-set ownership) delivery: it has everything the
-# previous pin (77237871) had, PLUS the JSON-schema machinery this tree now relies on:
-#   - one document per crate (wasm/json-gen writes schemas/<lib>.schema.json; per-type files
-#     are gone), with the name-injectivity guard and the reference-closure check running inside
-#     the json-gen crate's own `cargo run`, before the write
-#   - @no_json_schema_export (specs/conway/plutus.cddl uses it on plutus_map and
-#     constr_plutus_data — an older rev re-emits those rows and the PlutusMap one is an E0277)
-#   - --json-schema-root / --json-schema-dep (passed below; an older rev fails loudly on them)
-#   - --json-schema-scripts (ships the canonical run-json2ts.js / json-ts-types.js into
-#     <group>/scripts/, replacing CML's forks of the pre-split-era copies)
-#   - rejection of rule-level directives on a non-last arm of a multi-choice type rule
-#     (plutus_data's @custom_json @used_as_key placement is load-bearing; see the spec comment)
-#   - the collapsible_if fix for the emitted closure-check helper (bafaccdf; clippy 1.96's
-#     let-chain-aware lint fails ./clippy.sh on anything older, 06c86542 included)
-#   - run-json2ts.js widening of patternProperties catch-alls beside named properties
-#     (66249378; without it cip36's {De,}RegistrationCbor rest-row types emit TS2411)
-#   - json-ts-types.js failing on silently-untyped JSON methods (d5367b44) — a wasm class
-#     declaring to_json_value() whose type the document doesn't publish fails the npm build
-#     naming the class, instead of shipping `any` with nothing said. This is what guards the
-#     JSON_ROOTS_* / dep lists below: forgetting one is a build error, not silence.
-#   - the request-13 response cycle (4b2122cc): the widening handles optional named properties
-#     (undefined joins the union under strictNullChecks) and no longer misreads data fields
-#     literally named properties/patternProperties; the untyped-class failure names an existing
-#     declaration that differs only by json2ts identifier normalization; @custom_json docs now
-#     carry the hand-authored-schema pattern this tree uses
-#   - the request-14 cycle (62011287, cycle8-helper-dedup): the json-gen helper machinery lives
-#     ONCE per workspace as cml_core::json_schema_gen (written by --export-static-crate under
-#     --json-schema-export; the json-gen manifests hand-declare cml-core, and core's lib.rs
-#     hand-declares `pub mod json_schema_gen;`); rows are `reg.add::<T>()` against a Registrar;
-#     cml_core::custom_schema_impl! writes the hand-authored-schema JsonSchema impls
-#   - the request-15 cycle (13bbfa27..9e1f14f0): serde_json::Number's own Serialize is a private
-#     `$serde_json::private::Number` token struct whenever serde_json/arbitrary_precision is on
-#     anywhere in the build graph — and it is, from chain/rust/Cargo.toml, which cargo unifies
-#     across the workspace. Only serde_json's own serializer collapses that token, so every OTHER
-#     serializer (serde-wasm-bindgen above all) shipped it verbatim: to_json() looked right while
-#     to_json_value() returned {"int":{"$serde_json::private::Number":"1000"}}, at every magnitude.
-#     This rev adds the static json_value_ser.rs runtime (an honest Value/Number walker) and routes
-#     any_cbor's natural_any_cbor adapter through it. TWO THINGS RIDE ON THIS REV, both already
-#     taken here: core/rust/src/lib.rs hand-declares `pub mod json_value_ser;` (the tool writes the
-#     file, not the mod line), and the emitted wasm error prefix is `to_json_value:` — which our
-#     impl_wasm_json_api! copy already used, so nothing moved. An OLDER rev leaves any_cbor.rs
-#     importing a module that does not exist (E0432) once the mod line is present.
+# This rev is the last generator-relevant commit of the 2026-07-28/29 config+fixes series,
+# chosen to include everything below while stopping short of the OrderedHashMap
+# linked-hash-map->hashlink backing swap (51c96430) and the no_std emission series (1cd34ffc..)
+# that immediately follow it — each of those is its own adoption decision. Relative to the
+# previous pin (9e1f14f0) it adds:
+#   - the --config feature series (6d2f91ca..a8403b7c): `cddl-codegen --config codegen.toml`
+#     multi-crate mode, --print-flags, --with-deps, the committed-state convergence verdict
+#     (exit 2), and the --static-dir command-line exception. Groundwork for migrating this
+#     script's flag bundles to a committed codegen.toml.
+#   - fix(parsing) 2605a7d7 itself (group-choice arm @name temp registration borrows a
+#     synthesized ident): REQUIRED for chain — 7dcedad7's (correct) dep-graph fix reorders
+#     rule registration so the conway `script` enum registers before the `; @name Script`
+#     arms of credential/d_rep, whose temp mint+remove used to clobber-and-delete it
+#     (draft/BUG-group-choice-arm-name-collision.md; panic at intermediate/mod.rs
+#     `assertion failed: ... contains_key(ident)`). Every rev in 7dcedad7..2605a7d7^ panics
+#     on ./codegen.sh chain.
+#   - scope-qualified _assert_key_traits paths in the borrowed_key_types.rs sidecar
+#     (draft/BUG-borrowed-key-types-paths.md): the committed sidecar's hand-qualified
+#     cml_chain::assets::AssetName etc. are now what the emitter writes.
+#   - fix(deserialize) 4b51f5e1: leaves under a `bytes .cbor` overload read the payload's own
+#     cursor; fix(deserialize) ddb36d7f + emit-tests nint fixes; fix(generation) b4b5aaeb
+#     (nominal reference to a collection typedef emits the collection); fix(enums) b6610334
+#     (fixed bool/null choice arms); plus a batch of parse-panic -> graceful-rejection
+#     conversions that don't affect specs that already generate.
+# The previous pin's own deliveries (request-12 json-gen row-set ownership through request-15
+# json_value_ser) are all ancestors and still hold; see git log of this line for the old list.
 # NOTE: this rev is on the LOCAL cddl-codegen checkout's master. Upstream has declined to push
 # to the GitHub remote (request-13 §8) — treat this as a PERMANENT condition of consuming an
 # unpushed rev, not something to wait out: regen requires CDDL_CODEGEN_DIR pointing at a local
 # checkout that has the commit (the default clone-from-GitHub path cannot check it out). CI is
 # unaffected; it never regenerates.
-CDDL_CODEGEN_PINNED_REV="9e1f14f016b245051476099a87bab916262798f8"
+CDDL_CODEGEN_PINNED_REV="2605a7d72daef37e6c8cf72b117760f69cf5df7a"
 # A CDDL_CODEGEN_REV in the environment wins over the pin. Remember whether it was set explicitly:
 # with CDDL_CODEGEN_DIR the two cases differ (HEAD as-is vs. move the checkout to that commit).
 CDDL_CODEGEN_REV_EXPLICIT=0

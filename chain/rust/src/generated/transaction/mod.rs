@@ -11,13 +11,14 @@ use crate::generated::crypto::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, ScriptHash, TransactionHash,
 };
 use crate::generated::governance::{GovActionId, Voter, VotingProcedure, VotingProcedures};
-use crate::generated::plutus::{PlutusData, Redeemers};
+use crate::generated::plutus::{
+    PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script, Redeemers,
+};
 use crate::generated::{
     NetworkId, NonemptySetBootstrapWitness, NonemptySetCertificate, NonemptySetEd25519KeyHash,
     NonemptySetNativeScript, NonemptySetPlutusData, NonemptySetPlutusV1Script,
     NonemptySetPlutusV2Script, NonemptySetPlutusV3Script, NonemptySetProposalProcedure,
-    NonemptySetTransactionInput, NonemptySetVkeywitness, Script, SetTransactionInput, Slot,
-    Withdrawals,
+    NonemptySetTransactionInput, NonemptySetVkeywitness, SetTransactionInput, Slot, Withdrawals,
 };
 use cbor_encodings::{
     AlonzoFormatTxOutEncoding, ConwayFormatTxOutEncoding, ScriptAllEncoding, ScriptAnyEncoding,
@@ -189,6 +190,129 @@ impl NativeScript {
 /// `@duplicates reject`: a repeated element is refused (a `DuplicateKey` error) on both the wire and the API; accepted (duplicate-free) input re-emits byte-exactly in wire order (the set is order-preserving, never sorted).
 /// wasm/JS: this rule has no class of its own — the wasm surface is the nominal class `NonemptySetEd25519KeyHash`. TypeScript keeps `RequiredSigners` as a generated type alias (`export type RequiredSigners = NonemptySetEd25519KeyHash;`), but JS call sites re-key to `NonemptySetEd25519KeyHash`.
 pub type RequiredSigners = NonemptySetEd25519KeyHash;
+
+#[derive(
+    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
+)]
+#[derivative(
+    Eq,
+    PartialEq,
+    Ord = "feature_allow_slow_enum",
+    PartialOrd = "feature_allow_slow_enum",
+    Hash
+)]
+pub enum Script {
+    Native {
+        script: NativeScript,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        tag_encoding: Option<cbor_event::Sz>,
+    },
+    PlutusV1 {
+        script: PlutusV1Script,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        tag_encoding: Option<cbor_event::Sz>,
+    },
+    PlutusV2 {
+        script: PlutusV2Script,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        tag_encoding: Option<cbor_event::Sz>,
+    },
+    PlutusV3 {
+        script: PlutusV3Script,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        len_encoding: LenEncoding,
+        #[derivative(
+            PartialEq = "ignore",
+            Ord = "ignore",
+            PartialOrd = "ignore",
+            Hash = "ignore"
+        )]
+        #[serde(skip)]
+        tag_encoding: Option<cbor_event::Sz>,
+    },
+}
+
+impl Script {
+    pub fn new_native(script: NativeScript) -> Self {
+        Self::Native {
+            script,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+        }
+    }
+
+    pub fn new_plutus_v1(script: PlutusV1Script) -> Self {
+        Self::PlutusV1 {
+            script,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+        }
+    }
+
+    pub fn new_plutus_v2(script: PlutusV2Script) -> Self {
+        Self::PlutusV2 {
+            script,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+        }
+    }
+
+    pub fn new_plutus_v3(script: PlutusV3Script) -> Self {
+        Self::PlutusV3 {
+            script,
+            len_encoding: LenEncoding::default(),
+            tag_encoding: None,
+        }
+    }
+}
 
 impl From<ScriptRef> for Script {
     fn from(wrapper: ScriptRef) -> Self {

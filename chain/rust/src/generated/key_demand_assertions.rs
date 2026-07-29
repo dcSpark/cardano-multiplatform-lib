@@ -26,8 +26,8 @@ fn _demand_plutus_data() {
 }
 #[allow(dead_code)]
 fn _demand_script() {
-    _key_demand_hash::<crate::generated::Script>();
-    _key_demand_ord::<crate::generated::Script>();
+    _key_demand_hash::<crate::generated::transaction::Script>();
+    _key_demand_ord::<crate::generated::transaction::Script>();
 }
 #[allow(dead_code)]
 fn _demand_transaction_input() {

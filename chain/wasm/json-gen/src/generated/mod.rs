@@ -109,7 +109,6 @@ pub fn add_schemas(generator: &mut schemars::SchemaGenerator) {
     reg.add::<cml_chain::PoolVotingThresholds>();
     reg.add::<cml_chain::ProtocolParamUpdate>();
     reg.add::<cml_chain::Rational>();
-    reg.add::<cml_chain::Script>();
     reg.add::<cml_chain::SetCommitteeColdCredential>();
     reg.add::<cml_chain::SetEd25519KeyHash>();
     reg.add::<cml_chain::SetTransactionInput>();
@@ -135,6 +134,7 @@ pub fn add_schemas(generator: &mut schemars::SchemaGenerator) {
     reg.add::<cml_chain::transaction::ConwayFormatTxOut>();
     reg.add::<cml_chain::transaction::DatumOption>();
     reg.add::<cml_chain::transaction::NativeScript>();
+    reg.add::<cml_chain::transaction::Script>();
     reg.add::<cml_chain::transaction::ScriptAll>();
     reg.add::<cml_chain::transaction::ScriptAny>();
     reg.add::<cml_chain::transaction::ScriptInvalidBefore>();

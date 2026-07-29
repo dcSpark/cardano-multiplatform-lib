@@ -12,12 +12,14 @@ use crate::generated::crypto::{
     AuxiliaryDataHash, DatumHash, Ed25519KeyHash, ScriptDataHash, TransactionHash,
 };
 use crate::generated::governance::VotingProcedures;
-use crate::generated::plutus::{PlutusData, Redeemers};
+use crate::generated::plutus::{
+    PlutusData, PlutusV1Script, PlutusV2Script, PlutusV3Script, Redeemers,
+};
 use crate::generated::{
     NativeScriptList, NetworkId, NonemptySetBootstrapWitness, NonemptySetCertificate,
     NonemptySetEd25519KeyHash, NonemptySetNativeScript, NonemptySetPlutusData,
     NonemptySetPlutusV1Script, NonemptySetPlutusV2Script, NonemptySetPlutusV3Script,
-    NonemptySetProposalProcedure, NonemptySetTransactionInput, NonemptySetVkeywitness, Script,
+    NonemptySetProposalProcedure, NonemptySetTransactionInput, NonemptySetVkeywitness,
     SetTransactionInput, Slot, TransactionOutputList, Withdrawals,
 };
 use cml_core_wasm::{impl_wasm_cbor_json_api, impl_wasm_conversions};
@@ -283,6 +285,78 @@ pub type RequiredSigners = NonemptySetEd25519KeyHash;
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
+pub struct Script(pub(crate) cml_chain::transaction::Script);
+
+impl_wasm_cbor_json_api!(Script);
+
+impl_wasm_conversions!(cml_chain::transaction::Script, Script);
+
+#[wasm_bindgen]
+impl Script {
+    pub fn new_native(script: &NativeScript) -> Self {
+        Self(cml_chain::transaction::Script::new_native(
+            script.clone().into(),
+        ))
+    }
+
+    pub fn new_plutus_v1(script: &PlutusV1Script) -> Self {
+        Self(cml_chain::transaction::Script::new_plutus_v1(
+            script.clone().into(),
+        ))
+    }
+
+    pub fn new_plutus_v2(script: &PlutusV2Script) -> Self {
+        Self(cml_chain::transaction::Script::new_plutus_v2(
+            script.clone().into(),
+        ))
+    }
+
+    pub fn new_plutus_v3(script: &PlutusV3Script) -> Self {
+        Self(cml_chain::transaction::Script::new_plutus_v3(
+            script.clone().into(),
+        ))
+    }
+
+    pub fn kind(&self) -> ScriptKind {
+        match &self.0 {
+            cml_chain::transaction::Script::Native { .. } => ScriptKind::Native,
+            cml_chain::transaction::Script::PlutusV1 { .. } => ScriptKind::PlutusV1,
+            cml_chain::transaction::Script::PlutusV2 { .. } => ScriptKind::PlutusV2,
+            cml_chain::transaction::Script::PlutusV3 { .. } => ScriptKind::PlutusV3,
+        }
+    }
+
+    pub fn as_native(&self) -> Option<NativeScript> {
+        match &self.0 {
+            cml_chain::transaction::Script::Native { script, .. } => Some(script.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_plutus_v1(&self) -> Option<PlutusV1Script> {
+        match &self.0 {
+            cml_chain::transaction::Script::PlutusV1 { script, .. } => Some(script.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_plutus_v2(&self) -> Option<PlutusV2Script> {
+        match &self.0 {
+            cml_chain::transaction::Script::PlutusV2 { script, .. } => Some(script.clone().into()),
+            _ => None,
+        }
+    }
+
+    pub fn as_plutus_v3(&self) -> Option<PlutusV3Script> {
+        match &self.0 {
+            cml_chain::transaction::Script::PlutusV3 { script, .. } => Some(script.clone().into()),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+#[wasm_bindgen]
 pub struct ScriptAll(pub(crate) cml_chain::transaction::ScriptAll);
 
 impl_wasm_cbor_json_api!(ScriptAll);
@@ -365,6 +439,14 @@ impl ScriptInvalidHereafter {
     pub fn new(after: Slot) -> Self {
         Self(cml_chain::transaction::ScriptInvalidHereafter::new(after))
     }
+}
+
+#[wasm_bindgen]
+pub enum ScriptKind {
+    Native,
+    PlutusV1,
+    PlutusV2,
+    PlutusV3,
 }
 
 #[derive(Clone, Debug)]

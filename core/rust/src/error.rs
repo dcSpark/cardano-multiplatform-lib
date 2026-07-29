@@ -2,6 +2,10 @@
 pub enum Key {
     Str(String),
     Uint(u64),
+    /// A negative integer key or fixed value. Separate from `Uint` (rather than widening it) so a
+    /// mismatch names the value the CDDL AUTHORED (`-7`), not the CBOR nint wire representation
+    /// (`-1-N`, i.e. `6`) that a u64-only `Key` would have forced the message to print.
+    Nint(i128),
     Float(f64),
     Bool(bool),
 }
@@ -11,6 +15,7 @@ impl std::fmt::Display for Key {
         match self {
             Key::Str(x) => write!(f, "\"{}\"", x),
             Key::Uint(x) => write!(f, "{}", x),
+            Key::Nint(x) => write!(f, "{}", x),
             Key::Float(x) => write!(f, "{}", x),
             Key::Bool(x) => write!(f, "{}", x),
         }

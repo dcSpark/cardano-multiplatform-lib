@@ -244,6 +244,8 @@ fn _extern_interface_self_check() {
     _assert_deserialize_embedded_group::<crate::generated::certs::ResignCommitteeColdCert>();
     _assert_serialize::<crate::generated::address::RewardAccount>();
     _assert_deserialize::<crate::generated::address::RewardAccount>();
+    _assert_serialize::<crate::generated::transaction::Script>();
+    _assert_deserialize::<crate::generated::transaction::Script>();
     _assert_serialize::<crate::generated::transaction::ScriptAll>();
     _assert_serialize_embedded_group::<crate::generated::transaction::ScriptAll>();
     _assert_deserialize::<crate::generated::transaction::ScriptAll>();

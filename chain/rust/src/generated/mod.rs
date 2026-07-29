@@ -837,7 +837,6 @@ use certs::{Certificate, CommitteeColdCredential, Credential};
 use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::ordered_set::{NonEmptyOrderedSet, OrderedSet};
-use cml_core::serialization::LenEncoding;
 use crypto::{BootstrapWitness, Ed25519KeyHash, ScriptHash, Vkeywitness};
 use governance::ProposalProcedure;
 use plutus::{
@@ -1874,129 +1873,6 @@ impl Rational {
             numerator,
             denominator,
             encodings: None,
-        }
-    }
-}
-
-#[derive(
-    Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema, derivative::Derivative,
-)]
-#[derivative(
-    Eq,
-    PartialEq,
-    Ord = "feature_allow_slow_enum",
-    PartialOrd = "feature_allow_slow_enum",
-    Hash
-)]
-pub enum Script {
-    Native {
-        script: NativeScript,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        len_encoding: LenEncoding,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        tag_encoding: Option<cbor_event::Sz>,
-    },
-    PlutusV1 {
-        script: PlutusV1Script,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        len_encoding: LenEncoding,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        tag_encoding: Option<cbor_event::Sz>,
-    },
-    PlutusV2 {
-        script: PlutusV2Script,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        len_encoding: LenEncoding,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        tag_encoding: Option<cbor_event::Sz>,
-    },
-    PlutusV3 {
-        script: PlutusV3Script,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        len_encoding: LenEncoding,
-        #[derivative(
-            PartialEq = "ignore",
-            Ord = "ignore",
-            PartialOrd = "ignore",
-            Hash = "ignore"
-        )]
-        #[serde(skip)]
-        tag_encoding: Option<cbor_event::Sz>,
-    },
-}
-
-impl Script {
-    pub fn new_native(script: NativeScript) -> Self {
-        Self::Native {
-            script,
-            len_encoding: LenEncoding::default(),
-            tag_encoding: None,
-        }
-    }
-
-    pub fn new_plutus_v1(script: PlutusV1Script) -> Self {
-        Self::PlutusV1 {
-            script,
-            len_encoding: LenEncoding::default(),
-            tag_encoding: None,
-        }
-    }
-
-    pub fn new_plutus_v2(script: PlutusV2Script) -> Self {
-        Self::PlutusV2 {
-            script,
-            len_encoding: LenEncoding::default(),
-            tag_encoding: None,
-        }
-    }
-
-    pub fn new_plutus_v3(script: PlutusV3Script) -> Self {
-        Self::PlutusV3 {
-            script,
-            len_encoding: LenEncoding::default(),
-            tag_encoding: None,
         }
     }
 }

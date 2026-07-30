@@ -19,11 +19,23 @@ crate-type = ["cdylib", "rlib"]
 [features]
 used_from_wasm = ["dep:wasm-bindgen"]
 default = ["std"]
-std = ["cml-chain/std", "cml-core/std", "serde/std", "serde_json/std", "schemars/std", "hex/std"]
+# NOTE: the [features] table is co-owned by cddl-codegen (it asserts the keys); the forwarding
+# list below is hand-maintained — see core/rust/Cargo.toml for the upstream filing. If a regen
+# ever flattens this back to a bare `std = []`, re-apply it.
+std = [
+    "cml-chain/std",
+    "cml-core/std",
+    "cml-crypto/std",
+    "serde/std",
+    "serde_json/std",
+    "schemars/std",
+    "hex/std",
+    "bech32/std",
+]
 
 [dependencies]
 cml-core = { path = "../../core/rust", version = "6.2.0", default-features = false }
-cml-crypto = { path = "../../crypto/rust", version = "6.2.0" }
+cml-crypto = { path = "../../crypto/rust", version = "6.2.0", default-features = false }
 cml-chain = { path = "../../chain/rust", version = "6.2.0", default-features = false }
 cbor_event = { git = "https://github.com/dcSpark/cbor_event", rev = "e2bca6d257f70ab0c226c4efd0726d3f5c1b4490" }
 derivative = { version = "2.2.0", features = ["use_core"] }
@@ -32,7 +44,7 @@ serde_json = { version = "1.0.57", features = ["float_roundtrip", "alloc"], defa
 schemars = { version = "1.2.1", features = ["derive"], default-features = false }
 
 # only for declaring hash types
-bech32 = "0.12.0"
+bech32 = { version = "0.12.0", features = ["alloc"], default-features = false }
 hex = { version = "1.19.1", features = ["alloc", "core-error"], default-features = false, package = "const-hex" }
 
 # wasm

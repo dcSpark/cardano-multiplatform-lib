@@ -66,8 +66,8 @@ impl fmt::Display for Error {
         }
     }
 }
-impl ::std::error::Error for Error {
-    fn cause(&self) -> Option<&dyn ::std::error::Error> {
+impl core::error::Error for Error {
+    fn cause(&self) -> Option<&dyn core::error::Error> {
         match self {
             Error::CborError(ref err) => Some(err),
             _ => None,
@@ -80,7 +80,7 @@ impl ::std::error::Error for Error {
 /// reasonable size.
 pub const MAX_PAYLOAD_SIZE: usize = 48;
 
-pub type Result<T> = ::std::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, Error>;
 
 /// A derivation path of HD wallet derivation indices which uses a CBOR encoding
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]

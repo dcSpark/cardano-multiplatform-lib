@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use core::convert::TryInto;
 
 use cml_core::ArithmeticError;
 use cml_crypto::Serialize;

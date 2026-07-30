@@ -102,18 +102,24 @@ old hand-rolled convergence check, generalized)
 
 **no_std, and the `no-std-check/` shims.** The generated rust sources are no_std-capable: they
 use `core::`/`alloc::` paths throughout and each generated crate carries a `std` feature, on by
-default. `cml-core` and `cml-crypto` carry `#![cfg_attr(not(feature = "std"), no_std)]` and are
-no_std-clean; the four generated crates do not yet (their hand-written `builders/` etc. are still
-std). Each generated output root has a tool-owned, always-clobbered `no-std-check/` crate (same
-ownership rules as `extern-interface/`), and `crypto/no-std-check/` is a hand-written twin of the
-same shape. Run one with
+default. `cml-core`, `cml-crypto`, `cml-chain`, and `cml-multi-era` carry
+`#![cfg_attr(not(feature = "std"), no_std)]` and are no_std-clean, hand-written halves included
+(builders, genesis parsing, multi-era's hand-maintained byron era). What stays std-gated is
+deliberate and small: OS-entropy conveniences (`TransactionBuilder::select_utxos` — the
+rng-injected `select_utxos_with_rng` is the no_std form, same split as cml-crypto's key
+generation) and `Crc32`'s `std::io::Write` impl. Genesis parsing was made no_std by API change:
+byte-slice input instead of `std::io::Read`, `core::time::Duration` (since Unix epoch) instead of
+`SystemTime`, and `num::rational::Ratio<u64>` instead of the std-only `fraction` crate.
+`cml-cip25`/`cml-cip36` are NOT yet converted — they still pull `cml-chain` with default
+features. Each generated output root has a tool-owned, always-clobbered `no-std-check/` crate
+(same ownership rules as `extern-interface/`), and `crypto/no-std-check/` is a hand-written twin
+of the same shape. Run one with
 `cargo check --manifest-path <root>/no-std-check/Cargo.toml --target thumbv7m-none-eabi`.
-Expect the four generated ones to be **red by design** (not a regression) — their hand-written
-`builders/` etc. are still std. `crypto/no-std-check/` is **green** and should stay green.
-Never read a green *workspace* build as evidence of anything no_std — Cargo unifies features
-across the graph, so one std-enabling member silently satisfies an in-workspace check; that is
-why every shim is standalone with its own empty `[workspace]`. Background, the upstream filings,
-and the crypto migration record are in `draft/no-std-migration/`.
+crypto, chain, and multi-era are **green** and should stay green; cip25/cip36 stay red until
+their conversion. Never read a green *workspace* build as evidence of anything no_std — Cargo
+unifies features across the graph, so one std-enabling member silently satisfies an in-workspace
+check; that is why every shim is standalone with its own empty `[workspace]`. Background, the
+upstream filings, and the migration records are in `draft/no-std-migration/`.
 
 ## Verifying changes
 

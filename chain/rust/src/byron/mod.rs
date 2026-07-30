@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use cml_crypto::{Bip32PublicKey, PublicKey, chain_crypto::hash::Blake2b224};
 
 use crate::Coin;

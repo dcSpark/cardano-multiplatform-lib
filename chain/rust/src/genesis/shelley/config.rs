@@ -1,6 +1,7 @@
+use alloc::collections::BTreeMap;
+use alloc::string::String;
 use cml_crypto::{Ed25519KeyHash, VRFKeyHash};
-use fraction::Fraction;
-use std::collections::BTreeMap;
+use num::rational::Ratio;
 
 use crate::{Coin, address::Address, block::ProtocolVersion};
 
@@ -8,7 +9,7 @@ use crate::{Coin, address::Address, block::ProtocolVersion};
 /// is something completely different from a epoch genesis block and the Byron genesis block
 #[derive(Debug, Clone)]
 pub struct ShelleyGenesisData {
-    pub active_slots_coeff: Fraction,
+    pub active_slots_coeff: Ratio<u64>,
     pub epoch_length: u64,
     pub gen_delegs: BTreeMap<Ed25519KeyHash, ShelleyGenesisDelegations>,
     pub initial_funds: BTreeMap<Address, Coin>,
@@ -18,7 +19,7 @@ pub struct ShelleyGenesisData {
     pub network_magic: u64,
     pub protocol_params: ShelleyGenesisProtocolParameters,
     pub security_param: u64,
-    pub slot_length: Fraction,
+    pub slot_length: Ratio<u64>,
     pub slots_per_kes_period: u64,
     pub staking: Option<ShelleyGenesisStaking>,
     pub system_start: chrono::DateTime<chrono::Utc>,
@@ -40,8 +41,8 @@ pub struct ShelleyGenesisStaking {
 
 #[derive(Debug, Clone)]
 pub struct ShelleyGenesisProtocolParameters {
-    pub a0: Fraction,
-    pub decentralisation_param: Fraction,
+    pub a0: Ratio<u64>,
+    pub decentralisation_param: Ratio<u64>,
     pub e_max: u64,
     pub extra_entropy: ShelleyGenesisExtraEntropy,
     pub key_deposit: Coin,
@@ -55,8 +56,8 @@ pub struct ShelleyGenesisProtocolParameters {
     pub n_opt: u64,
     pub pool_deposit: Coin,
     pub protocol_version: ProtocolVersion,
-    pub rho: Fraction,
-    pub tau: Fraction,
+    pub rho: Ratio<u64>,
+    pub tau: Ratio<u64>,
 }
 
 #[derive(Debug, Clone)]

@@ -2,6 +2,9 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use crate::byron::ByronAny;
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 use super::*;
 use cbor_event;

@@ -1,4 +1,7 @@
 #![allow(clippy::too_many_arguments)]
+#![cfg_attr(not(feature = "std"), no_std)]
+
+extern crate alloc;
 
 // Seeded by cddl-codegen on first export; never overwritten after that.
 // All regenerated code lives in the `generated` module. Add your own

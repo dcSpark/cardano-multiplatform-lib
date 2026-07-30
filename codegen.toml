@@ -17,6 +17,7 @@
 # `extern-wasm-crate = { ... }` spelling below is used for exactly that reason.
 
 [defaults]
+verbosity = "warn"
 # Suppress the dead `pub type FooList = Vec<Foo>;` aliases minted for generator-SYNTHESIZED
 # collection wrappers; rule-declared aliases are never touched. Emission-only (generated code
 # is structural) — intentionally removes dead public re-declarations in every crate.

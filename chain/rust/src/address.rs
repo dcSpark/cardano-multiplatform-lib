@@ -1,10 +1,15 @@
 use crate::byron::{ByronAddress, ByronAddressError};
 use crate::genesis::network_info::NetworkInfo;
 use crate::{Slot, TransactionIndex};
+use alloc::boxed::Box;
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
 use cbor_event::{de::Deserializer, se::Serializer};
+use core::convert::{TryFrom, TryInto};
 use derivative::Derivative;
 use schemars::JsonSchema;
-use std::convert::{TryFrom, TryInto};
 
 use cml_crypto::{Ed25519KeyHash, ScriptHash};
 
@@ -109,8 +114,8 @@ impl<'de> serde::de::Deserialize<'de> for Address {
 }
 
 impl JsonSchema for Address {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("Address")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("Address")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
@@ -326,11 +331,11 @@ impl Address {
                 addr_size: usize,
             ) -> Result<Option<Vec<u8>>, DeserializeFailure> {
                 match data.len().cmp(&addr_size) {
-                    std::cmp::Ordering::Less => Err(DeserializeFailure::CBOR(
+                    core::cmp::Ordering::Less => Err(DeserializeFailure::CBOR(
                         cbor_event::Error::NotEnough(data.len(), addr_size),
                     )),
-                    std::cmp::Ordering::Greater => Ok(Some(data[addr_size..].to_vec())),
-                    std::cmp::Ordering::Equal => Ok(None),
+                    core::cmp::Ordering::Greater => Ok(Some(data[addr_size..].to_vec())),
+                    core::cmp::Ordering::Equal => Ok(None),
                 }
             }
             match (header & 0xF0) >> 4 {
@@ -729,8 +734,8 @@ impl<'de> serde::de::Deserialize<'de> for RewardAddress {
 }
 
 impl JsonSchema for RewardAddress {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("RewardAddress")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("RewardAddress")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)

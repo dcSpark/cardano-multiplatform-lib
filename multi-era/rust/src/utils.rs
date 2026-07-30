@@ -1,4 +1,6 @@
-use std::borrow::Cow;
+use alloc::borrow::Cow;
+use alloc::vec;
+use alloc::vec::Vec;
 
 use crate::allegra::{
     AllegraCertificate, MIRAction, MoveInstantaneousReward, MoveInstantaneousRewardsCert,
@@ -1447,6 +1449,7 @@ mod test {
 // generated/ tree (per-scope thin-root migration). Impl blocks attach to the types,
 // so these private modules add no public paths; each was generated/<era>/utils.rs.
 mod shelley_impls {
+    use alloc::vec::Vec;
     use cml_chain::{
         certs::{DNSName, PoolParams, PoolRegistration, Relay},
         transaction::{NativeScript, TransactionWitnessSet},
@@ -1613,6 +1616,7 @@ mod mary_impls {
 }
 
 mod alonzo_impls {
+    use alloc::vec::Vec;
     use cml_chain::{
         auxdata::{AuxiliaryData, ConwayFormatAuxData},
         plutus::{LegacyRedeemer, RedeemerTag, Redeemers},

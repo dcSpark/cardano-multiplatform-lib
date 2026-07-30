@@ -3,8 +3,8 @@ use crate::plutus::ExUnitPrices;
 use crate::plutus::utils::compute_total_ex_units;
 use crate::transaction::Transaction;
 use cml_core::{ArithmeticError, serialization::Serialize};
+use core::convert::TryFrom;
 use num::{CheckedAdd, CheckedMul, rational::BigRational};
-use std::convert::TryFrom;
 
 /// Careful: although the linear fee is the same for Byron & Shelley
 /// The value of the parameters and how fees are computed is not the same
@@ -82,7 +82,7 @@ pub fn min_ref_script_fee(
 
         loop {
             fee = BigRational::from_integer(
-                std::cmp::min(size_increment, ref_scripts_size_left).into(),
+                core::cmp::min(size_increment, ref_scripts_size_left).into(),
             )
             .checked_mul(&fee_tier)
             .and_then(|x| x.checked_add(&fee))

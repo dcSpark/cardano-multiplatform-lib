@@ -1,3 +1,5 @@
+use alloc::collections::BTreeMap;
+use alloc::string::{String, ToString};
 use base64::{
     Engine,
     engine::general_purpose::{STANDARD, URL_SAFE},
@@ -5,11 +7,9 @@ use base64::{
 use cbor_event::cbor;
 use cml_core::DeserializeError;
 use cml_crypto::{CryptoError, RawBytesEncoding};
+use core::str::FromStr;
+use core::time::Duration;
 use serde_json;
-use std::collections::BTreeMap;
-use std::io::Read;
-use std::str::FromStr;
-use std::time::{Duration, SystemTime};
 
 use crate::byron::{
     AddressContent, ByronAddress, ParseExtendedAddrError, ProtocolMagic, StakeholderId,
@@ -32,10 +32,12 @@ pub enum GenesisJSONError {
     CryptoError(#[from] CryptoError),
     #[error("Deserialize: {0:?}")]
     DeserializeError(#[from] DeserializeError),
+    // no #[from]: base64's DecodeError only implements core::error::Error with its `std`
+    // feature, so deriving a source() here would break the no_std build
     #[error("Base64: {0:?}")]
-    Base64(#[from] base64::DecodeError),
+    Base64(base64::DecodeError),
     #[error("ParseInt: {0:?}")]
-    ParseInt(#[from] std::num::ParseIntError),
+    ParseInt(#[from] core::num::ParseIntError),
     #[error("ByronAddress: {0:?}")]
     ByronAddress(#[from] ParseExtendedAddrError),
     #[error("SignatureParse: {0:?}")]
@@ -44,8 +46,14 @@ pub enum GenesisJSONError {
     StakeholderMissing(String),
 }
 
-pub fn parse_genesis_data<R: Read>(json: R) -> Result<config::GenesisData, GenesisJSONError> {
-    let data_value: serde_json::Value = serde_json::from_reader(json)?;
+impl From<base64::DecodeError> for GenesisJSONError {
+    fn from(err: base64::DecodeError) -> Self {
+        Self::Base64(err)
+    }
+}
+
+pub fn parse_genesis_data(json: &[u8]) -> Result<config::GenesisData, GenesisJSONError> {
+    let data_value: serde_json::Value = serde_json::from_slice(json)?;
     let genesis_prev =
         BlockHeaderHash::from_raw_bytes(&blake2b256(data_value.to_string().as_bytes()))?;
     let data: raw::GenesisData = serde_json::from_value(data_value.clone())?;
@@ -68,10 +76,7 @@ pub fn parse_genesis_data<R: Read>(json: R) -> Result<config::GenesisData, Genes
         Duration::from_millis(v)
     };
 
-    let start_time = {
-        let unix_displacement = Duration::from_secs(data.startTime);
-        SystemTime::UNIX_EPOCH + unix_displacement
-    };
+    let start_time = Duration::from_secs(data.startTime);
 
     let mut non_avvm_balances = BTreeMap::new();
     for (address, balance) in &data.nonAvvmBalances {
@@ -138,8 +143,8 @@ pub fn parse_genesis_data<R: Read>(json: R) -> Result<config::GenesisData, Genes
     })
 }
 
-pub fn canonicalize_json<R: Read>(json: R) -> Result<String, GenesisJSONError> {
-    let data: serde_json::Value = serde_json::from_reader(json)?;
+pub fn canonicalize_json(json: &[u8]) -> Result<String, GenesisJSONError> {
+    let data: serde_json::Value = serde_json::from_slice(json)?;
     Ok(data.to_string())
 }
 
@@ -160,6 +165,10 @@ mod test {
 
     use crate::crypto::BlockHeaderHash;
 
+    /// Real Byron genesis files from IOHK's published network configs, keyed by their genesis
+    /// hash (= blake2b-256 of the canonical JSON, also the filename): mainnet (5f20df…),
+    /// staging (c6a004…), the 2019 public testnet (96fceff…), and the 2018 testnet it
+    /// superseded (b7f76950…).
     fn get_test_genesis_data(genesis_prev: &BlockHeaderHash) -> Result<&str, BlockHeaderHash> {
         if genesis_prev
             == &BlockHeaderHash::from_hex(
@@ -234,15 +243,9 @@ mod test {
             super::parse_genesis_data(get_test_genesis_data(&genesis_hash).unwrap().as_bytes())
                 .unwrap();
 
+        assert_eq!(genesis_data.genesis_prev, genesis_hash);
         assert_eq!(genesis_data.epoch_stability_depth, 2160);
-        assert_eq!(
-            genesis_data
-                .start_time
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-            1506450213
-        );
+        assert_eq!(genesis_data.start_time.as_secs(), 1506450213);
         assert_eq!(genesis_data.slot_duration.as_secs(), 20);
         assert_eq!(genesis_data.slot_duration.subsec_millis(), 0);
         assert_eq!(genesis_data.protocol_magic, 633343913.into());
@@ -270,6 +273,7 @@ mod test {
             super::parse_genesis_data(get_test_genesis_data(&genesis_hash).unwrap().as_bytes())
                 .unwrap();
 
+        assert_eq!(genesis_data.genesis_prev, genesis_hash);
         assert_eq!(
             *genesis_data
                 .non_avvm_balances
@@ -280,5 +284,28 @@ mod test {
                 .1,
             5428571428571429u64
         );
+    }
+
+    /// genesis_prev is the blake2b-256 of the file's serde_json canonicalization (sorted keys,
+    /// compact, literal-preserving numbers), so these asserts pin that re-serialization
+    /// byte-for-byte against the official genesis hashes the test files are named after.
+    #[test]
+    pub fn canonical_json_reproduces_genesis_hashes() {
+        for hash_hex in [
+            // mainnet
+            "5f20df933584822601f9e3f8c024eb5eb252fe8cefb24d1317dc3d432e940ebb",
+            // 2018 testnet
+            "b7f76950bc4866423538ab7764fc1c7020b24a5f717a5bee3109ff2796567214",
+            // staging
+            "c6a004d3d178f600cd8caa10abbebe1549bef878f0665aea2903472d5abf7323",
+            // 2019 testnet
+            "96fceff972c2c06bd3bb5243c39215333be6d56aaf4823073dca31afe5038471",
+        ] {
+            let genesis_hash = BlockHeaderHash::from_hex(hash_hex).unwrap();
+            let genesis_data =
+                super::parse_genesis_data(get_test_genesis_data(&genesis_hash).unwrap().as_bytes())
+                    .unwrap();
+            assert_eq!(genesis_data.genesis_prev, genesis_hash);
+        }
     }
 }

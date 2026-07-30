@@ -1,7 +1,11 @@
-use std::collections::{BTreeMap, VecDeque};
-use std::fmt::{Display, Formatter};
-use std::iter::FromIterator;
-use std::str::FromStr;
+use alloc::collections::{BTreeMap, VecDeque};
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
+use core::fmt::{Display, Formatter};
+use core::iter::FromIterator;
+use core::str::FromStr;
 
 use itertools::Itertools;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -115,12 +119,12 @@ pub enum JsonParseError {
 }
 
 impl Display for JsonParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.serialize_str(format!("{:?}", self).as_str())
     }
 }
 
-impl std::error::Error for JsonParseError {}
+impl core::error::Error for JsonParseError {}
 
 fn tokenize_string(string: &str) -> Vec<JsonToken> {
     fn are_we_inside_string(tokens: &[JsonToken]) -> bool {
@@ -690,7 +694,7 @@ impl<'a> From<&'a Value> for serde::de::Unexpected<'a> {
                 if let Some(as_u64) = x.as_u64() {
                     Self::Unsigned(as_u64)
                 } else if let Some(as_i64) = x.as_int().and_then(|i| {
-                    use std::convert::TryFrom;
+                    use core::convert::TryFrom;
                     i64::try_from(i128::from(&i)).ok()
                 }) {
                     Self::Signed(as_i64)
@@ -705,9 +709,9 @@ impl<'a> From<&'a Value> for serde::de::Unexpected<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-    use std::iter::FromIterator;
-    use std::str::FromStr;
+    use alloc::collections::BTreeMap;
+    use core::iter::FromIterator;
+    use core::str::FromStr;
 
     use super::{JsonToken, Value, parse_json, tokenize_string};
     use crate::utils::BigInteger;

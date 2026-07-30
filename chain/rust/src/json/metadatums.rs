@@ -3,11 +3,14 @@ use crate::{
     json::json_serialize::{JsonParseError, Value as JSONValue},
     utils::BigInteger,
 };
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 
 use cml_core::{DeserializeError, Int};
 
-use std::collections::BTreeMap;
-use std::convert::TryFrom;
+use alloc::collections::BTreeMap;
+use core::convert::TryFrom;
 
 #[cfg_attr(feature = "used_from_wasm", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Copy, Clone, Eq, PartialEq)]

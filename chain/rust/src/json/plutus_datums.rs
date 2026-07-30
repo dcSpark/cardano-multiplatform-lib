@@ -3,8 +3,11 @@ use crate::{
     plutus::{ConstrPlutusData, PlutusData, PlutusMap},
     utils::BigInteger,
 };
-use std::collections::BTreeMap;
-use std::str::FromStr;
+use alloc::collections::BTreeMap;
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use core::str::FromStr;
 
 /// JSON <-> PlutusData conversion schemas.
 /// Follows ScriptDataJsonSchema in cardano-cli defined at:

@@ -1,6 +1,7 @@
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
 use crate::*;
-use std::collections::HashSet;
+use alloc::collections::BTreeSet;
+use alloc::vec::Vec;
 
 use super::witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet};
 
@@ -83,7 +84,7 @@ pub fn cert_required_wits(cert: &Certificate, required_witnesses: &mut RequiredW
 #[allow(clippy::result_large_err)]
 pub fn add_cert_vkeys(
     cert: &Certificate,
-    vkeys: &mut HashSet<Ed25519KeyHash>,
+    vkeys: &mut BTreeSet<Ed25519KeyHash>,
 ) -> Result<(), CertBuilderError> {
     match cert {
         // stake key registrations do not require a witness

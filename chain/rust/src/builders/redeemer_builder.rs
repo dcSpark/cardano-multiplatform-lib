@@ -9,7 +9,12 @@ use crate::{
     plutus::{ExUnits, LegacyRedeemer, PlutusData, RedeemerTag},
     transaction::TransactionInput,
 };
-use std::{collections::BTreeMap, fmt::Debug};
+use alloc::collections::BTreeMap;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec;
+use alloc::vec::Vec;
+use core::fmt::Debug;
 
 #[derive(Clone, Copy, PartialOrd, Ord, Debug, PartialEq, Eq, Hash)]
 pub struct RedeemerWitnessKey {

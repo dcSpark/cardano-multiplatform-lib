@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_chain::{
     LenEncoding, PolicyId, StringEncoding,

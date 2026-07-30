@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use cml_core::serialization::Serialize;
 use cml_crypto::{
     AuxiliaryDataHash, DatumHash, ScriptDataHash, ScriptHash, TransactionHash, blake2b224,

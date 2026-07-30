@@ -9,6 +9,7 @@ pub mod transaction;
 pub mod update;
 pub mod utils;
 
+use alloc::vec::Vec;
 use cml_crypto::TransactionHash;
 pub use utils::*;
 

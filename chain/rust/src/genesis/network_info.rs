@@ -2,6 +2,7 @@ use crate::{
     byron::ProtocolMagic,
     plutus::{CostModels, Language},
 };
+use alloc::vec;
 use cml_core::network::{
     BYRON_MAINNET_NETWORK_MAGIC, BYRON_TESTNET_NETWORK_MAGIC, PREPROD_NETWORK_MAGIC,
     PREVIEW_NETWORK_MAGIC, SANCHO_TESTNET_NETWORK_MAGIC,

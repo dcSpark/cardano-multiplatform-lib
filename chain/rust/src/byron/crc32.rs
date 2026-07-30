@@ -321,7 +321,10 @@ impl Crc32 {
         self.0 ^ 0xFFFF_FFFF
     }
 }
-impl ::std::io::Write for Crc32 {
+/// `std::io::Write` sink convenience only — nothing in this crate needs it; CRC computation
+/// itself (`crc32`/`update`) is std-free.
+#[cfg(feature = "std")]
+impl std::io::Write for Crc32 {
     #[inline]
     fn write(&mut self, bytes: &[u8]) -> Result<usize, std::io::Error> {
         self.update(bytes.iter());
@@ -348,8 +351,8 @@ impl Deserialize for Crc32 {
     }
 }
 
-impl std::fmt::Display for Crc32 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for Crc32 {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:#04x}", self.0)
     }
 }

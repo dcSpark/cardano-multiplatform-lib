@@ -6,8 +6,9 @@ pub mod utils;
 
 use crate::byron::{Blake2b256, ByronPubKey, ByronSignature, ByronTxId};
 
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 use cml_chain::byron::ByronTxOut;
-use std::collections::BTreeMap;
 
 use super::ByronAny;
 

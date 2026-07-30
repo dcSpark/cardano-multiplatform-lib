@@ -16,7 +16,7 @@ use crate::auxdata::{MetadatumMap, TransactionMetadatum};
 use crate::plutus::{ConstrPlutusData, PlutusData, PlutusMap};
 use crate::utils::BigInteger;
 use cml_core::Int;
-use std::str::FromStr;
+use core::str::FromStr;
 
 /// Wrap the schema files exactly the way the exported schema document embeds them: as `$defs`
 /// entries named by their types, so the files' internal `#/$defs/<name>` references resolve

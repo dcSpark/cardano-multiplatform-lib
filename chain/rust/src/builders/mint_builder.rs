@@ -1,4 +1,5 @@
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
+use alloc::vec::Vec;
 
 use super::witness_builder::{NativeScriptWitnessInfo, RequiredWitnessSet};
 

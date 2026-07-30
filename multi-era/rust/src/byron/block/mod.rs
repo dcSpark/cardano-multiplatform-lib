@@ -13,7 +13,8 @@ use crate::byron::{Blake2b256, ByronBlockId, ByronPubKey, ByronSignature, ByronS
 
 use cml_chain::byron::StakeholderId;
 
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, schemars::JsonSchema)]
 pub struct BlockHeaderExtraData {

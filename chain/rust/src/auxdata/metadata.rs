@@ -1,6 +1,9 @@
 use crate::json::metadatums::{
     MetadataJsonSchema, decode_metadatum_to_json_value, encode_json_value_to_metadatum,
 };
+use alloc::borrow::ToOwned;
+use alloc::string::String;
+use alloc::vec::Vec;
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::{
     Int,
@@ -103,7 +106,7 @@ impl Serialize for Metadata {
         if force_canonical {
             key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
                 match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                    core::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
                     diff_ord => diff_ord,
                 }
             });
@@ -235,7 +238,7 @@ impl Serialize for MetadatumMap {
         if force_canonical {
             key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
                 match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                    core::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
                     diff_ord => diff_ord,
                 }
             });

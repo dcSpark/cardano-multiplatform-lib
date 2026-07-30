@@ -9,6 +9,9 @@
 // Possibly the derivative crate could get updated to suppress this lint
 // from within their proc macros itself. Issue: https://github.com/mcarton/rust-derivative/issues/115
 #![allow(clippy::non_canonical_partial_ord_impl)]
+#![cfg_attr(not(feature = "std"), no_std)]
+
+extern crate alloc;
 
 // Seeded by cddl-codegen on first export; never overwritten after that.
 // All regenerated code lives in the `generated` module. Add your own

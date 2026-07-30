@@ -1,4 +1,9 @@
-use std::{borrow::Cow, str::FromStr};
+use alloc::borrow::Cow;
+use alloc::borrow::ToOwned;
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use core::str::FromStr;
 
 use super::{Ipv4, Ipv6, StakeCredential};
 use cml_core::DeserializeError;
@@ -26,8 +31,8 @@ pub enum IPStringParsingError {
     DeserializeError(DeserializeError),
 }
 
-impl std::fmt::Display for Ipv4 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for Ipv4 {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
             f,
             "{}",
@@ -74,8 +79,8 @@ impl<'de> serde::de::Deserialize<'de> for Ipv4 {
 }
 
 impl schemars::JsonSchema for Ipv4 {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("Ipv4")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("Ipv4")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -99,8 +104,8 @@ impl Ipv6 {
     }
 }
 
-impl std::fmt::Display for Ipv6 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for Ipv6 {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         // Using the canonical format for IPV6 in RFC5952
         // 4.1) Leading zeros MUST be suppressed.
         // 4.2.1) :: MUST shorten as much as possible
@@ -229,8 +234,8 @@ impl<'de> serde::de::Deserialize<'de> for Ipv6 {
 }
 
 impl schemars::JsonSchema for Ipv6 {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("Ipv6")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("Ipv6")
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {

@@ -2,6 +2,9 @@
 // https://github.com/dcSpark/cddl-codegen
 
 use super::*;
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
 use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;

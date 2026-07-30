@@ -1,12 +1,13 @@
+use alloc::collections::BTreeMap;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use cml_core::DeserializeError;
 use cml_crypto::{
     Ed25519KeyHash, PoolMetadataHash, TransactionHash, VRFKeyHash, chain_crypto::Blake2b256,
 };
-use num::traits::Pow as _;
+use core::str::FromStr;
+use num::rational::Ratio;
 use serde_json;
-use std::collections::BTreeMap;
-use std::io::Read;
-use std::str::FromStr;
 
 use crate::{
     SetEd25519KeyHash, UnitInterval,
@@ -27,17 +28,15 @@ pub enum GenesisJSONError {
     #[error("Deserialize: {0:?}")]
     Deserialize(#[from] DeserializeError),
     #[error("ParseInt: {0:?}")]
-    ParseInt(#[from] std::num::ParseIntError),
+    ParseInt(#[from] core::num::ParseIntError),
     #[error("ParseIP: {0:?}")]
     ParseIP(#[from] crate::certs::utils::IPStringParsingError),
     #[error("Unexpected network type: {0:?}")]
     ParseNetwork(String),
 }
 
-pub fn parse_genesis_data<R: Read>(
-    json: R,
-) -> Result<config::ShelleyGenesisData, GenesisJSONError> {
-    let data: raw::ShelleyGenesisData = serde_json::from_reader(json)?;
+pub fn parse_genesis_data(json: &[u8]) -> Result<config::ShelleyGenesisData, GenesisJSONError> {
+    let data: raw::ShelleyGenesisData = serde_json::from_slice(json)?;
 
     let mut initial_funds = BTreeMap::new();
     for (addr_hex, balance) in &data.initialFunds {
@@ -55,7 +54,7 @@ pub fn parse_genesis_data<R: Read>(
             // 1) Get stake pools
             let mut pools: BTreeMap<Ed25519KeyHash, PoolParams> = BTreeMap::new();
             for (pool_id, params) in &raw.pools {
-                let ration = json_number_to_fraction(&params.margin);
+                let ration = json_number_to_ratio(&params.margin);
                 let mut owners = Vec::<Ed25519KeyHash>::new();
                 for owner in &params.owners {
                     owners.push(Ed25519KeyHash::from_hex(owner)?);
@@ -93,7 +92,7 @@ pub fn parse_genesis_data<R: Read>(
                     VRFKeyHash::from_hex(&params.vrf)?,
                     params.pledge,
                     params.cost,
-                    UnitInterval::new(*ration.numer().unwrap(), *ration.denom().unwrap()),
+                    UnitInterval::new(*ration.numer(), *ration.denom()),
                     RewardAccount::new(
                         match data.networkId.as_str() {
                             "Mainnet" => crate::NetworkId::mainnet().get() as u8,
@@ -136,7 +135,7 @@ pub fn parse_genesis_data<R: Read>(
         );
     }
     Ok(config::ShelleyGenesisData {
-        active_slots_coeff: json_number_to_fraction(&data.activeSlotsCoeff),
+        active_slots_coeff: json_number_to_ratio(&data.activeSlotsCoeff),
         epoch_length: data.epochLength,
         gen_delegs,
         initial_funds,
@@ -145,8 +144,8 @@ pub fn parse_genesis_data<R: Read>(
         network_id,
         network_magic: data.networkMagic,
         protocol_params: config::ShelleyGenesisProtocolParameters {
-            a0: json_number_to_fraction(&data.protocolParams.a0),
-            decentralisation_param: json_number_to_fraction(
+            a0: json_number_to_ratio(&data.protocolParams.a0),
+            decentralisation_param: json_number_to_ratio(
                 &data.protocolParams.decentralisationParam,
             ),
             e_max: data.protocolParams.eMax,
@@ -167,11 +166,11 @@ pub fn parse_genesis_data<R: Read>(
                 data.protocolParams.protocolVersion.major,
                 data.protocolParams.protocolVersion.minor,
             ),
-            rho: json_number_to_fraction(&data.protocolParams.rho),
-            tau: json_number_to_fraction(&data.protocolParams.tau),
+            rho: json_number_to_ratio(&data.protocolParams.rho),
+            tau: json_number_to_ratio(&data.protocolParams.tau),
         },
         security_param: data.securityParam,
-        slot_length: json_number_to_fraction(&data.slotLength),
+        slot_length: json_number_to_ratio(&data.slotLength),
         slots_per_kes_period: data.slotsPerKESPeriod,
         staking,
         system_start: data.systemStart.parse().expect("Failed to parse date"),
@@ -179,18 +178,48 @@ pub fn parse_genesis_data<R: Read>(
     })
 }
 
-fn json_number_to_fraction(param: &serde_json::Number) -> fraction::GenericFraction<u64> {
+/// Lossless decimal/scientific JSON literal -> exact rational (e.g. "0.05" -> 1/20, "4.5e-2" ->
+/// 9/200). serde_json's arbitrary_precision feature preserves the literal, so no value ever
+/// round-trips through f64. Genesis rationals are never negative; a sign is rejected rather than
+/// widened away.
+fn json_number_to_ratio(param: &serde_json::Number) -> Ratio<u64> {
     let s = param.to_string();
+    assert!(
+        !s.starts_with('-'),
+        "negative rational in genesis JSON: {s}"
+    );
 
-    if let Some(exp_position) = s.find('e').or_else(|| s.find('E')) {
-        let (a, b) = s.split_at_checked(exp_position).unwrap();
+    let (mantissa, exp) = match s.find(['e', 'E']) {
+        Some(exp_position) => {
+            let (a, b) = s.split_at(exp_position);
+            (a, i32::from_str(&b[1..]).unwrap())
+        }
+        None => (s.as_str(), 0i32),
+    };
 
-        let exp = fraction::Ratio::from(10u64).pow(i32::from_str(&b[1..]).unwrap());
+    let (numer, denom) = match mantissa.find('.') {
+        Some(dot_position) => {
+            let (int_part, frac_part) = (&mantissa[..dot_position], &mantissa[dot_position + 1..]);
+            let scale = 10u64.checked_pow(frac_part.len() as u32).unwrap();
+            let int = u64::from_str(int_part).unwrap();
+            let frac = if frac_part.is_empty() {
+                0
+            } else {
+                u64::from_str(frac_part).unwrap()
+            };
+            (
+                int.checked_mul(scale).unwrap().checked_add(frac).unwrap(),
+                scale,
+            )
+        }
+        None => (u64::from_str(mantissa).unwrap(), 1),
+    };
 
-        fraction::Fraction::from_str(a).unwrap()
-            * fraction::Fraction::new(*exp.numer(), *exp.denom())
-    } else {
-        fraction::Fraction::from_str(&param.to_string()).unwrap()
+    let ratio = Ratio::new(numer, denom);
+    match exp {
+        0 => ratio,
+        e if e > 0 => ratio * Ratio::from_integer(10u64.checked_pow(e as u32).unwrap()),
+        e => ratio / Ratio::from_integer(10u64.checked_pow(e.unsigned_abs()).unwrap()),
     }
 }
 
@@ -245,5 +274,29 @@ mod test {
     #[test]
     fn parse_test_genesis_yaci_files() {
         super::parse_genesis_data(get_test_genesis_data_yaci().as_bytes()).unwrap();
+    }
+
+    fn number_to_ratio(s: &str) -> Ratio<u64> {
+        json_number_to_ratio(&serde_json::Number::from_str(s).unwrap())
+    }
+
+    #[test]
+    fn json_number_to_ratio_forms() {
+        assert_eq!(number_to_ratio("0.05"), Ratio::new(1, 20));
+        assert_eq!(number_to_ratio("0.45"), Ratio::new(9, 20));
+        assert_eq!(number_to_ratio("4.5e-2"), Ratio::new(9, 200));
+        assert_eq!(number_to_ratio("4.5E-2"), Ratio::new(9, 200));
+        assert_eq!(number_to_ratio("20"), Ratio::from_integer(20));
+        assert_eq!(number_to_ratio("1e2"), Ratio::from_integer(100));
+        assert_eq!(number_to_ratio("2.5e2"), Ratio::from_integer(250));
+        assert_eq!(number_to_ratio("0.1"), Ratio::new(1, 10));
+        assert_eq!(number_to_ratio("0"), Ratio::from_integer(0));
+        assert_eq!(number_to_ratio("0.259"), Ratio::new(259, 1000));
+    }
+
+    #[test]
+    #[should_panic(expected = "negative rational")]
+    fn json_number_to_ratio_rejects_negative() {
+        number_to_ratio("-0.5");
     }
 }

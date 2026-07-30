@@ -4,6 +4,9 @@
 use crate::byron::ByronAny;
 
 use super::*;
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
 use cbor_event;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;

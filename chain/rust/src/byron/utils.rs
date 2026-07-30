@@ -1,3 +1,4 @@
+use alloc::string::String;
 use cbor_event::cbor;
 
 use super::*;
@@ -16,7 +17,7 @@ use cml_crypto::{
     chain_crypto::{self, Sha3_256},
     impl_hash_type,
 };
-use std::{convert::TryFrom, fmt};
+use core::{convert::TryFrom, fmt};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ByronAddressError {
@@ -206,7 +207,7 @@ impl ByronAddress {
     }
 
     pub fn is_valid(s: &str) -> bool {
-        use std::str::FromStr;
+        use core::str::FromStr;
         match ByronAddress::from_str(s) {
             Ok(_v) => true,
             Err(_err) => false,
@@ -248,7 +249,7 @@ impl fmt::Display for ByronAddress {
     }
 }
 
-impl ::std::str::FromStr for ByronAddress {
+impl core::str::FromStr for ByronAddress {
     type Err = ParseExtendedAddrError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_base58(s)
@@ -318,8 +319,8 @@ impl<'de> serde::de::Deserialize<'de> for ByronAddress {
 }
 
 impl schemars::JsonSchema for ByronAddress {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("ByronAddress")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("ByronAddress")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)

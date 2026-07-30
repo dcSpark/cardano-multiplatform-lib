@@ -1,9 +1,8 @@
+use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::vec::Vec;
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::ordered_hash_map::OrderedHashMap;
-use std::{
-    collections::{BTreeSet, HashMap},
-    fmt::Debug,
-};
+use core::fmt::Debug;
 
 use crate::{
     NativeScript, NonemptySetBootstrapWitness, NonemptySetNativeScript, NonemptySetPlutusData,
@@ -255,9 +254,9 @@ impl RequiredWitnessSet {
 #[derive(Clone, Default, Debug)]
 pub struct TransactionWitnessSetBuilder {
     // See Alonzo spec section 3.1 which defines the keys for these types
-    pub vkeys: HashMap<Vkey, Vkeywitness>,
-    pub bootstraps: HashMap<Vkey, BootstrapWitness>,
-    pub scripts: HashMap<ScriptHash, Script>,
+    pub vkeys: BTreeMap<Vkey, Vkeywitness>,
+    pub bootstraps: BTreeMap<Vkey, BootstrapWitness>,
+    pub scripts: BTreeMap<ScriptHash, Script>,
     pub plutus_data: OrderedHashMap<DatumHash, PlutusData>,
     pub redeemers: OrderedHashMap<RedeemerWitnessKey, LegacyRedeemer>,
 

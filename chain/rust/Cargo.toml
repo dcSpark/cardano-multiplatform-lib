@@ -19,31 +19,52 @@ crate-type = ["cdylib", "rlib"]
 [features]
 used_from_wasm = ["dep:wasm-bindgen"]
 default = ["std"]
-std = ["cml-core/std", "serde/std", "serde_json/std", "schemars/std", "hex/std"]
+# NOTE: the [features] table is co-owned by cddl-codegen (it asserts the keys); the forwarding
+# list below is hand-maintained — see core/rust/Cargo.toml for the upstream filing. If a regen
+# ever flattens this back to a bare `std = []`, re-apply it.
+std = [
+    "cml-core/std",
+    "cml-crypto/std",
+    "serde/std",
+    "serde_json/std",
+    "schemars/std",
+    "hex/std",
+    "bech32/std",
+    "base64/std",
+    "thiserror/std",
+    "itertools/use_std",
+    "num-bigint/std",
+    "num-integer/std",
+    "num/std",
+    "chrono/std",
+    "rand/std",
+    "rand/thread_rng",
+]
 
 [dependencies]
 cml-core = { path = "../../core/rust", version = "6.2.0", default-features = false }
-cml-crypto = { "path" = "../../crypto/rust", version = "6.2.0" }
+cml-crypto = { path = "../../crypto/rust", version = "6.2.0", default-features = false }
 cbor_event = { git = "https://github.com/dcSpark/cbor_event", rev = "e2bca6d257f70ab0c226c4efd0726d3f5c1b4490" }
 derivative = { version = "2.2.0", features = ["use_core"] }
 serde = { version = "1.0.152", features = ["derive", "alloc"], default-features = false }
 serde_json = { version = "1.0.57", features = ["arbitrary_precision", "float_roundtrip", "alloc"], default-features = false }
 schemars = { version = "1.2.1", features = ["derive"], default-features = false }
 
-bech32 = "0.12.0"
+bech32 = { version = "0.12.0", features = ["alloc"], default-features = false }
 hex = { version = "1.19.1", features = ["alloc", "core-error"], default-features = false, package = "const-hex" }
-itertools = "0.15.0"
+itertools = { version = "0.15.0", features = ["use_alloc"], default-features = false }
 # getrandom (OS entropy for rand) + its wasm_js feature are declared once in cml-crypto,
 # which every rand-using crate here depends on; see crypto/rust/Cargo.toml.
-rand = "0.10.1"
-fraction = "0.15.4"
-base64 = "0.22.1"
-num-bigint = "0.4.6"
-num-integer = "0.1.46"
-thiserror = "2.0.18"
-num = "0.4.3"
+rand = { version = "0.10.1", features = ["alloc"], default-features = false }
+base64 = { version = "0.22.1", features = ["alloc"], default-features = false }
+num-bigint = { version = "0.4.6", default-features = false }
+num-integer = { version = "0.1.46", default-features = false }
+thiserror = { version = "2.0.18", default-features = false }
+# `alloc` rather than bare default-features=false: fees.rs uses num::rational::BigRational,
+# which needs num-bigint wired through num-rational.
+num = { version = "0.4.3", features = ["alloc"], default-features = false }
 unicode-segmentation = "1.13.3"
-chrono = "0.4.45"
+chrono = { version = "0.4.45", features = ["alloc"], default-features = false }
 
 # non-wasm
 noop_proc_macro = { version = "0.3.0", optional = false }

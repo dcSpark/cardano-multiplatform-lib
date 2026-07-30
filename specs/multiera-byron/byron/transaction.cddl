@@ -3,7 +3,7 @@
 ; Attributes - at the moment we do not bother deserialising these, since they
 ; don't contain anything
 byron_any = _CDDL_CODEGEN_EXTERN_TYPE_
-byron_attributes = { * byron_any => byron_any} ; @name byron_attributes
+byron_attributes = { * byron_any => byron_any}
 ;byron_attributes = {* any => any}
 
 

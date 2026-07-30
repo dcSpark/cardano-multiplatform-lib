@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use cml_crypto::Ed25519KeyHash;
 
 use crate::{

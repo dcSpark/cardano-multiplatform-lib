@@ -1,15 +1,16 @@
+use alloc::collections::BTreeMap;
+use alloc::string::String;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 use super::config;
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GenesisData {
-    pub avvmDistr: HashMap<String, String>,
-    pub nonAvvmBalances: HashMap<String, String>,
-    pub bootStakeholders: HashMap<String, config::BootStakeWeight>,
-    pub heavyDelegation: HashMap<String, HeavyDelegation>,
+    pub avvmDistr: BTreeMap<String, String>,
+    pub nonAvvmBalances: BTreeMap<String, String>,
+    pub bootStakeholders: BTreeMap<String, config::BootStakeWeight>,
+    pub heavyDelegation: BTreeMap<String, HeavyDelegation>,
     pub protocolConsts: ProtocolConsts,
     pub startTime: u64,
     pub blockVersionData: BlockVersionData,

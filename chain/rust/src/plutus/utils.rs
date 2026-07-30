@@ -6,14 +6,15 @@ use crate::json::plutus_datums::{
     encode_json_value_to_plutus_datum,
 };
 use crate::utils::BigInteger;
+use alloc::vec::Vec;
 use cbor_event::de::Deserializer;
 use cbor_event::se::Serializer;
 use cml_core::error::*;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::*;
 use cml_crypto::ScriptHash;
+use core::convert::{TryFrom, TryInto};
 use itertools::Itertools;
-use std::convert::{TryFrom, TryInto};
 
 impl serde::Serialize for PlutusData {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -750,7 +751,7 @@ impl Serialize for PlutusMap {
         if force_canonical {
             key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
                 match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                    std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                    core::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
                     diff_ord => diff_ord,
                 }
             });

@@ -37,17 +37,19 @@ use crate::{
     NonemptySetPlutusData, NonemptySetProposalProcedure, NonemptySetTransactionInput, PolicyId,
     Script, SetTransactionInput, Value, Withdrawals, assets::AssetName,
 };
+use alloc::collections::BTreeSet;
+use alloc::vec;
+use alloc::vec::Vec;
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::non_empty::NonEmptyVec;
 use cml_core::ordered_hash_map::OrderedHashMap;
 use cml_core::serialization::{CBORReadLen, Deserialize};
 use cml_core::{ArithmeticError, DeserializeError, DeserializeFailure};
 use cml_crypto::{Ed25519KeyHash, RawBytesEncoding, ScriptDataHash, ScriptHash, Serialize};
+use core::convert::TryInto;
+use core::ops::DerefMut;
 use num::Zero;
 use rand::RngExt;
-use std::collections::BTreeSet;
-use std::convert::TryInto;
-use std::ops::DerefMut;
 
 /**
  * A UTXO structure.
@@ -445,9 +447,23 @@ impl TransactionBuilder {
     /// Adding a change output must be called after via TransactionBuilder::add_change_if_needed()
     /// This function, diverging from CIP2, takes into account fees and will attempt to add additional
     /// inputs to cover the minimum fees. This does not, however, set the txbuilder's fee.
+    #[cfg(feature = "std")]
     pub fn select_utxos(
         &mut self,
         strategy: CoinSelectionStrategyCIP2,
+    ) -> Result<(), TxBuilderError> {
+        // CSPRNG is not required here 
+        self.select_utxos_with_rng(strategy, &mut rand::rng())
+    }
+
+    /// `select_utxos` with the randomness source made explicit: the random-improve strategies
+    /// draw from `rng`. This is the only form available without the `std` feature (no OS entropy).
+    pub fn select_utxos_with_rng<R: RngExt + ?Sized>(
+        &mut self,
+        strategy: CoinSelectionStrategyCIP2,
+        // Non-security: randomizes UTXO selection only, never key material — a CSPRNG is
+        // not required here (cf. cml_crypto's os_csprng, used for key generation).
+        rng: &mut R,
     ) -> Result<(), TxBuilderError> {
         let available_inputs = self.utxos.clone();
         let mut input_total = self.get_total_input()?;
@@ -472,9 +488,6 @@ impl TransactionBuilder {
                 {
                     return Err(TxBuilderError::RandomImproveCantContainMultiasset);
                 }
-                // Non-security: randomizes UTXO selection only, never key material — a CSPRNG is
-                // not required here (cf. cml_crypto's os_csprng, used for key generation).
-                let mut rng = rand::rng();
                 let mut available_indices =
                     (0..available_inputs.len()).collect::<BTreeSet<usize>>();
                 self.cip2_random_improve_by(
@@ -483,7 +496,7 @@ impl TransactionBuilder {
                     &mut input_total,
                     &mut output_total,
                     |value| Some(value.coin),
-                    &mut rng,
+                    rng,
                 )?;
                 // Phase 3: add extra inputs needed for fees (not covered by CIP-2)
                 // We do this at the end because this new inputs won't be associated with
@@ -532,8 +545,6 @@ impl TransactionBuilder {
                 )?;
             }
             CoinSelectionStrategyCIP2::RandomImproveMultiAsset => {
-                // Non-security: randomizes UTXO selection only, never key material (see above).
-                let mut rng = rand::rng();
                 let mut available_indices =
                     (0..available_inputs.len()).collect::<BTreeSet<usize>>();
                 // run random-improve by each asset type
@@ -545,7 +556,7 @@ impl TransactionBuilder {
                             &mut input_total,
                             &mut output_total,
                             |value| value.multiasset.get(policy_id, asset_name),
-                            &mut rng,
+                            rng,
                         )?;
                     }
                 }
@@ -556,7 +567,7 @@ impl TransactionBuilder {
                     &mut input_total,
                     &mut output_total,
                     |value| Some(value.coin),
-                    &mut rng,
+                    rng,
                 )?;
                 // Phase 3: add extra inputs needed for fees (not covered by CIP-2)
                 // We do this at the end because this new inputs won't be associated with
@@ -719,7 +730,7 @@ impl TransactionBuilder {
                     if should_improve {
                         available_indices.insert(*i);
                         available_indices.remove(j);
-                        std::mem::swap(i, j);
+                        core::mem::swap(i, j);
                     }
                 }
             }
@@ -1396,7 +1407,7 @@ impl TransactionBuilder {
             .map(|tx_builder_input| tx_builder_input.input.clone())
             .collect::<Vec<_>>();
         inputs.sort_by(|a, b| match a.transaction_id.cmp(&b.transaction_id) {
-            std::cmp::Ordering::Equal => a.index.cmp(&b.index),
+            core::cmp::Ordering::Equal => a.index.cmp(&b.index),
             rest => rest,
         });
         let mut built = TransactionBody {
@@ -1740,7 +1751,7 @@ pub fn add_change_if_needed(
 
     let output_total = builder.get_total_output()?;
 
-    use std::cmp::Ordering;
+    use core::cmp::Ordering;
     match &input_total.partial_cmp(&output_total.checked_add(&Value::from(fee))?) {
         Some(Ordering::Equal) => {
             // recall: min_fee assumed the fee was the maximum possible so we definitely have enough input to cover whatever fee it ends up being
@@ -2059,8 +2070,8 @@ pub fn add_change_if_needed(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-    use std::ops::Deref;
+    use alloc::collections::BTreeMap;
+    use core::ops::Deref;
 
     use cml_core::Int;
     use cml_crypto::{
@@ -4939,7 +4950,7 @@ mod tests {
 
         let mut next_index = move || {
             let next = index + 1;
-            std::mem::replace(&mut index, next)
+            core::mem::replace(&mut index, next)
         };
         // One input from an unrelated address
         let input = {

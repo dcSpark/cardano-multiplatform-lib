@@ -4,10 +4,8 @@
 //! operability with the appropriate network or different option.
 //!
 
-use std::{
-    collections::BTreeMap,
-    time::{Duration, SystemTime},
-};
+use alloc::collections::BTreeMap;
+use core::time::Duration;
 
 use crate::{
     Coin,
@@ -46,7 +44,8 @@ pub struct GenesisData {
     // FIXME: genesis_prev shouldn't be here since it's computed *from* the GenesisData.
     pub genesis_prev: BlockHeaderHash,
     pub epoch_stability_depth: usize, // a.k.a. 'k'
-    pub start_time: SystemTime,
+    /// Duration since the Unix epoch (add `SystemTime::UNIX_EPOCH` to recover a wall-clock time)
+    pub start_time: Duration,
     pub slot_duration: Duration,
     pub protocol_magic: ProtocolMagic,
     pub fee_policy: LinearFee,

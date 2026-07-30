@@ -1,6 +1,8 @@
 use crate::assets::Coin;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Parsing of the JSON representation of the Shelley genesis block
 /// Note: for a lot of these fields, I didn't check what the max valid size is in the Haskell code
@@ -12,8 +14,8 @@ pub struct ShelleyGenesisData {
     // convert lossless JSON floats to string to avoid lossy Rust f64
     pub activeSlotsCoeff: serde_json::Number,
     pub epochLength: u64,
-    pub genDelegs: HashMap<String, ShelleyGenesisDelegations>,
-    pub initialFunds: HashMap<String, Coin>,
+    pub genDelegs: BTreeMap<String, ShelleyGenesisDelegations>,
+    pub initialFunds: BTreeMap<String, Coin>,
     pub maxKESEvolutions: u64,
     pub maxLovelaceSupply: Coin,
     pub networkId: String,
@@ -76,8 +78,8 @@ pub struct ShelleyGenesisProtocolVersion {
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ShelleyGenesisStaking {
-    pub pools: HashMap<String, ShelleyGenesisPool>,
-    pub stake: HashMap<String, String>,
+    pub pools: BTreeMap<String, ShelleyGenesisPool>,
+    pub stake: BTreeMap<String, String>,
 }
 
 #[allow(non_snake_case)]
@@ -100,7 +102,7 @@ pub struct ShelleyGenesisPool {
 // The key here defines the relay type
 // ex:
 // - single host address
-type RelayTypeMap = HashMap<String, ShelleyGenesisPoolSingleHotsRelay>;
+type RelayTypeMap = BTreeMap<String, ShelleyGenesisPoolSingleHotsRelay>;
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]

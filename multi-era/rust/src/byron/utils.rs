@@ -1,3 +1,4 @@
+use alloc::string::String;
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_crypto::impl_hash_type;
 
@@ -26,14 +27,14 @@ impl PartialEq for ByronAny {
 impl Eq for ByronAny {}
 
 impl PartialOrd for ByronAny {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
 // implement ord by serialized bytes since cbor_event::Value doesn't implement it
 impl Ord for ByronAny {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         let mut lhs_buf = cbor_event::se::Serializer::new_vec();
         cbor_event::se::Serialize::serialize(self, &mut lhs_buf).unwrap();
         let lhs_bytes = lhs_buf.finalize();
@@ -97,8 +98,8 @@ impl<'de> serde::de::Deserialize<'de> for ByronAny {
 }
 
 impl JsonSchema for ByronAny {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("any")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("any")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)

@@ -1,4 +1,6 @@
 use crate::builders::witness_builder::{InputAggregateWitnessData, PartialPlutusWitness};
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 use super::{
     tx_builder::TransactionUnspentOutput,

@@ -1,4 +1,7 @@
 use crate::Slot;
+use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::{
     Int,
@@ -6,8 +9,8 @@ use cml_core::{
     serialization::{Deserialize, Serialize, fit_sz, sz_max},
 };
 use cml_crypto::{Ed25519KeyHash, RawBytesEncoding, ScriptHash};
+use core::convert::TryFrom;
 use derivative::Derivative;
-use std::convert::TryFrom;
 
 use crate::{
     NativeScript, NetworkId, Script, SubCoin,
@@ -307,7 +310,7 @@ impl<'de> serde::de::Deserialize<'de> for BigInteger {
     where
         D: serde::de::Deserializer<'de>,
     {
-        use std::str::FromStr;
+        use core::str::FromStr;
         let s = <String as serde::de::Deserialize>::deserialize(deserializer)?;
         BigInteger::from_str(&s).map_err(|_e| {
             serde::de::Error::invalid_value(
@@ -319,8 +322,8 @@ impl<'de> serde::de::Deserialize<'de> for BigInteger {
 }
 
 impl schemars::JsonSchema for BigInteger {
-    fn schema_name() -> ::std::borrow::Cow<'static, str> {
-        ::std::borrow::Cow::Borrowed("BigInteger")
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("BigInteger")
     }
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         String::json_schema(generator)
@@ -330,13 +333,13 @@ impl schemars::JsonSchema for BigInteger {
     }
 }
 
-impl std::fmt::Display for BigInteger {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for BigInteger {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         self.num.fmt(f)
     }
 }
 
-impl std::str::FromStr for BigInteger {
+impl core::str::FromStr for BigInteger {
     type Err = num_bigint::ParseBigIntError;
     fn from_str(string: &str) -> Result<Self, Self::Err> {
         num_bigint::BigInt::from_str(string).map(|num| Self {
@@ -452,7 +455,7 @@ impl Serialize for BigInteger {
                 // negative bigint
                 num_bigint::Sign::Minus => {
                     serializer.write_tag(3u64)?;
-                    use std::ops::Neg;
+                    use core::ops::Neg;
                     // CBOR RFC defines this as the bytes of -n -1
                     let adjusted = self
                         .num
@@ -540,7 +543,7 @@ impl Deserialize for BigInteger {
                             // CBOR RFC defines this as the bytes of -n -1
                             let initial =
                                 num_bigint::BigInt::from_bytes_be(num_bigint::Sign::Plus, &bytes);
-                            use std::ops::Neg;
+                            use core::ops::Neg;
                             let adjusted = initial
                                 .checked_add(&num_bigint::BigInt::from(1u32))
                                 .unwrap()
@@ -580,9 +583,9 @@ impl Deserialize for BigInteger {
     }
 }
 
-impl<T> std::convert::From<T> for BigInteger
+impl<T> core::convert::From<T> for BigInteger
 where
-    T: std::convert::Into<num_bigint::BigInt>,
+    T: core::convert::Into<num_bigint::BigInt>,
 {
     fn from(x: T) -> Self {
         Self {
@@ -608,18 +611,68 @@ impl SubCoin {
     /// Warning: If the passed in float was not meant to be base 10
     /// this might result in a slightly inaccurate fraction.
     pub fn from_base10_f32(f: f32) -> Self {
+        // f32's inherent fract()/abs()/ceil() are std-only; FloatCore's provided versions are
+        // core-only and exact for every input (its fract is `x % 1.0` — float `%` lowers to
+        // compiler-builtins fmod, exact by definition). Called by explicit path, not method
+        // syntax: in std builds the inherent methods would win resolution and leave the trait
+        // import unused, and the explicit form guarantees the same implementation in both
+        // build modes.
+        use num::traits::float::FloatCore;
         let mut denom = 1u64;
-        while (f * (denom as f32)).fract().abs() > f32::EPSILON {
+        while FloatCore::abs(FloatCore::fract(f * (denom as f32))) > f32::EPSILON {
             denom *= 10;
         }
-        Self::new((f * (denom as f32)).ceil() as u64, denom)
+        Self::new(FloatCore::ceil(f * (denom as f32)) as u64, denom)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::str::FromStr;
+    use core::str::FromStr;
+
+    #[test]
+    fn subcoin_from_base10_f32_matches_std_float_semantics() {
+        // The core-only emulation in from_base10_f32 must agree with the std-backed
+        // implementation it replaced, everywhere — including the integer-gap region
+        // (>= 2^23), the i64-saturation region (>= 2^63), infinities, negatives, and NaN.
+        fn std_reference(f: f32) -> (u64, u64) {
+            let mut denom = 1u64;
+            while (f * (denom as f32)).fract().abs() > f32::EPSILON {
+                denom *= 10;
+            }
+            ((f * (denom as f32)).ceil() as u64, denom)
+        }
+        for f in [
+            0.0,
+            1.0,
+            0.0577, // blockfrost-style ex-unit price
+            0.0000721,
+            2.5,
+            20.0,
+            1234.5678,
+            8_388_607.5, // just below 2^23: last region with fractional ulps
+            8_388_608.0, // 2^23
+            1e10,
+            9.3e18, // just above i64::MAX
+            1e20,   // far above i64::MAX: `as i64` saturates, fract() must still be 0
+            1e30,
+            f32::MAX,
+            f32::INFINITY,
+            -0.5,
+            -5.5,
+            -1e20, // large negative: old float->u64 ceil saturated to 0, must not wrap
+            f32::NEG_INFINITY,
+            f32::NAN,
+        ] {
+            let sub = SubCoin::from_base10_f32(f);
+            assert_eq!(
+                (sub.numerator, sub.denominator),
+                std_reference(f),
+                "f = {f:?}"
+            );
+        }
+    }
 
     #[test]
     fn bigint_uint_u64_min() {
@@ -741,6 +794,8 @@ mod tests {
 // generated/ tree (per-scope thin-root migration). Impl blocks attach to the types,
 // so these private modules add no public paths; each was generated/<scope>/utils.rs.
 mod auxdata_impls {
+    use alloc::vec::Vec;
+
     use crate::auxdata::metadata::Metadata;
 
     use crate::{

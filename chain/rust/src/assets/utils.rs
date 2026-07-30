@@ -1,4 +1,8 @@
 use crate::PolicyId;
+use alloc::boxed::Box;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
 use cbor_event::{de::Deserializer, se::Serializer};
 use cml_core::{
     ArithmeticError,
@@ -7,12 +11,12 @@ use cml_core::{
     serialization::{CBORReadLen, Deserialize, LenEncoding, Serialize, StringEncoding, fit_sz},
 };
 use cml_crypto::{RawBytesEncoding, ScriptHash};
-use std::{
+use core::{
     cmp::PartialOrd,
     convert::{TryFrom, TryInto},
 };
 
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 // Coin/NonZeroInt64/PositiveCoin are now the generated aliases (semantically identical to
 // the hand ones this file used to define); Mint/MultiAsset stay hand-defined below because
@@ -38,10 +42,10 @@ impl TryFrom<&str> for AssetName {
 }
 
 impl<'a> TryInto<&'a str> for &'a AssetName {
-    type Error = std::str::Utf8Error;
+    type Error = core::str::Utf8Error;
 
     fn try_into(self) -> Result<&'a str, Self::Error> {
-        std::str::from_utf8(self.to_raw_bytes())
+        core::str::from_utf8(self.to_raw_bytes())
     }
 }
 
@@ -79,8 +83,8 @@ impl AssetBundleSchemaName for NonZeroInt64 {
 }
 
 impl<T: schemars::JsonSchema + AssetBundleSchemaName> schemars::JsonSchema for AssetBundle<T> {
-    fn schema_name() -> std::borrow::Cow<'static, str> {
-        std::borrow::Cow::Borrowed(T::SCHEMA_NAME)
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed(T::SCHEMA_NAME)
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
@@ -97,8 +101,8 @@ impl<T: schemars::JsonSchema + AssetBundleSchemaName> schemars::JsonSchema for A
     }
 }
 
-impl<T: std::fmt::Debug> std::fmt::Debug for AssetBundle<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+impl<T: core::fmt::Debug> core::fmt::Debug for AssetBundle<T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> {
         let mut ds = f.debug_struct(if self.0.iter().any(|(_, a)| !a.is_empty()) {
             ""
         } else {
@@ -144,7 +148,7 @@ impl<T> From<OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>> for AssetBu
     }
 }
 
-impl<T> std::ops::Deref for AssetBundle<T> {
+impl<T> core::ops::Deref for AssetBundle<T> {
     type Target = OrderedHashMap<PolicyId, OrderedHashMap<AssetName, T>>;
 
     fn deref(&self) -> &Self::Target {
@@ -152,7 +156,7 @@ impl<T> std::ops::Deref for AssetBundle<T> {
     }
 }
 
-impl<T> std::ops::DerefMut for AssetBundle<T> {
+impl<T> core::ops::DerefMut for AssetBundle<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -457,7 +461,7 @@ impl<T> PartialOrd for AssetBundle<T>
 where
     T: num::CheckedAdd + num::CheckedSub + num::Zero + num::Bounded + Copy + Clone + PartialOrd,
 {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         // idea: if (a-b) > 0 for some asset, then a > b for at least some asset
         fn is_all_zeros<T>(lhs: &AssetBundle<T>, rhs: &AssetBundle<T>) -> bool
         where
@@ -475,7 +479,7 @@ where
                         .checked_sub(&rhs.get(pid, aname).unwrap_or(T::zero()))
                         .and_then(|o| o.partial_cmp(&T::zero()))
                     {
-                        Some(std::cmp::Ordering::Equal) => (),
+                        Some(core::cmp::Ordering::Equal) => (),
                         _ => return false,
                     }
                 }
@@ -484,9 +488,9 @@ where
         }
 
         match (is_all_zeros(self, other), is_all_zeros(other, self)) {
-            (true, true) => Some(std::cmp::Ordering::Equal),
-            (true, false) => Some(std::cmp::Ordering::Less),
-            (false, true) => Some(std::cmp::Ordering::Greater),
+            (true, true) => Some(core::cmp::Ordering::Equal),
+            (true, false) => Some(core::cmp::Ordering::Less),
+            (false, true) => Some(core::cmp::Ordering::Greater),
             (false, false) => None,
         }
     }
@@ -586,7 +590,7 @@ impl Serialize for Value {
             if force_canonical {
                 key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
                     match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                        std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                        core::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
                         diff_ord => diff_ord,
                     }
                 });
@@ -613,7 +617,7 @@ impl Serialize for Value {
                 if force_canonical {
                     key_order.sort_by(|(lhs_bytes, _, _), (rhs_bytes, _, _)| {
                         match lhs_bytes.len().cmp(&rhs_bytes.len()) {
-                            std::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
+                            core::cmp::Ordering::Equal => lhs_bytes.cmp(rhs_bytes),
                             diff_ord => diff_ord,
                         }
                     });

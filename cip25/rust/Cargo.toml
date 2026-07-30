@@ -17,14 +17,14 @@ generated-with = "0.1.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cml-chain = { "path" = "../../chain/rust", version = "6.2.0" }
+cml-chain = { "path" = "../../chain/rust", version = "6.2.0", default-features = false }
 cml-core = { path = "../../core/rust", version = "6.2.0", default-features = false }
-cml-crypto = { "path" = "../../crypto/rust", version = "6.2.0" }
+cml-crypto = { "path" = "../../crypto/rust", version = "6.2.0", default-features = false }
 cbor_event = { git = "https://github.com/dcSpark/cbor_event", rev = "e2bca6d257f70ab0c226c4efd0726d3f5c1b4490" }
 schemars = { version = "1.2.1", features = ["derive"], default-features = false }
 serde = { version = "1.0.152", features = ["derive", "alloc"], default-features = false }
 serde_json = { version = "1.0.57", features = ["float_roundtrip", "alloc"], default-features = false }
-thiserror = "2.0.18"
+thiserror = { version = "2.0.18", default-features = false }
 
 [dev-dependencies]
 hex = "0.4.0"
@@ -32,4 +32,15 @@ hex = "0.4.0"
 [features]
 used_from_wasm = []
 default = ["std"]
-std = ["cml-core/std", "serde/std", "serde_json/std", "schemars/std"]
+# NOTE: the [features] table is co-owned by cddl-codegen (it asserts the keys); the forwarding
+# list below is hand-maintained — see core/rust/Cargo.toml for the upstream filing. If a regen
+# ever flattens this back to a bare `std = []`, re-apply it.
+std = [
+    "cml-core/std",
+    "cml-chain/std",
+    "cml-crypto/std",
+    "serde/std",
+    "serde_json/std",
+    "schemars/std",
+    "thiserror/std",
+]

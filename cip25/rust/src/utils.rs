@@ -1,4 +1,9 @@
-use std::{collections::BTreeMap, convert::TryFrom, string::FromUtf8Error};
+use alloc::borrow::ToOwned;
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::{FromUtf8Error, String};
+use alloc::vec;
+use alloc::vec::Vec;
 
 use cbor_event::{de::Deserializer, se::Serializer};
 pub use cml_chain::{
@@ -15,7 +20,6 @@ pub static CIP25_METADATA_LABEL: u64 = 721;
 impl CIP25Metadata {
     /// Create a Metadata containing only the CIP25 schema
     pub fn to_metadata(&self) -> Result<Metadata, DeserializeError> {
-        use std::convert::TryInto;
         self.try_into()
     }
 
@@ -33,7 +37,7 @@ impl CIP25Metadata {
     }
 }
 
-impl std::convert::TryFrom<&Metadata> for CIP25Metadata {
+impl TryFrom<&Metadata> for CIP25Metadata {
     type Error = DeserializeError;
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
@@ -46,7 +50,7 @@ impl std::convert::TryFrom<&Metadata> for CIP25Metadata {
     }
 }
 
-impl std::convert::TryInto<Metadata> for &CIP25Metadata {
+impl TryInto<Metadata> for &CIP25Metadata {
     type Error = DeserializeError;
 
     fn try_into(self) -> Result<Metadata, Self::Error> {
@@ -81,7 +85,7 @@ impl From<&str> for CIP25ChunkableString {
             .unwrap_or_else(|_err| {
                 let mut chunks = Vec::with_capacity(s.len() / 64);
                 for i in (0..s.len()).step_by(64) {
-                    let j = std::cmp::min(s.len(), i + 64);
+                    let j = core::cmp::min(s.len(), i + 64);
                     chunks.push(CIP25String64::new_str(&s[i..j]).unwrap());
                 }
                 Self::Chunked(chunks)

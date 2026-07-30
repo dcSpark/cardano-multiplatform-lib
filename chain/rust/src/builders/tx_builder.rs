@@ -452,7 +452,7 @@ impl TransactionBuilder {
         &mut self,
         strategy: CoinSelectionStrategyCIP2,
     ) -> Result<(), TxBuilderError> {
-        // CSPRNG is not required here 
+        // CSPRNG is not required here
         self.select_utxos_with_rng(strategy, &mut rand::rng())
     }
 

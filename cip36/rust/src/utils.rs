@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use cbor_event::{self, se::Serializer};
 
 use crate::error::CIP36Error;
@@ -62,7 +64,7 @@ impl CIP36DeregistrationCbor {
     }
 }
 
-impl std::convert::TryFrom<&Metadata> for CIP36DeregistrationCbor {
+impl TryFrom<&Metadata> for CIP36DeregistrationCbor {
     type Error = DeserializeError;
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
@@ -86,7 +88,7 @@ impl std::convert::TryFrom<&Metadata> for CIP36DeregistrationCbor {
     }
 }
 
-impl std::convert::TryInto<Metadata> for &CIP36DeregistrationCbor {
+impl TryInto<Metadata> for &CIP36DeregistrationCbor {
     type Error = DeserializeError;
 
     fn try_into(self) -> Result<Metadata, Self::Error> {
@@ -185,7 +187,7 @@ impl CIP36RegistrationCbor {
     }
 }
 
-impl std::convert::TryFrom<&Metadata> for CIP36RegistrationCbor {
+impl TryFrom<&Metadata> for CIP36RegistrationCbor {
     type Error = DeserializeError;
 
     fn try_from(metadata: &Metadata) -> Result<Self, Self::Error> {
@@ -209,7 +211,7 @@ impl std::convert::TryFrom<&Metadata> for CIP36RegistrationCbor {
     }
 }
 
-impl std::convert::TryInto<Metadata> for &CIP36RegistrationCbor {
+impl TryInto<Metadata> for &CIP36RegistrationCbor {
     type Error = DeserializeError;
 
     fn try_into(self) -> Result<Metadata, Self::Error> {
